@@ -190,6 +190,67 @@ at the foot of the Cloudstair (and back). Before the Lake Mother, Wayra says the
   the water, then everything. The wisp stays on after the citadel's ending (a save loaded from the title keeps the
   ending flag) and leads to Wayra's boat and up the mountain; it goes out once the Bell is calm.
 
+## Echo Trials
+
+Once the Out-of-Tune Bell is calm, resting at a shrine plays a short scene (Enzo, then Dora) and the **Trials** page in
+the pause menu opens. A trial starts from any lit candle shrine (standing or swimming by it, not on a ladder). Before
+the Bell, the page says "Calm the Out-of-Tune Bell to open the Echo Trials."; away from a shrine it says to stand at
+one; a run whose start shrine is still dark says "Light the X first".
+
+- **Guardian Rush.** All eight guardians in story order (frog, hydra, puma, warden, mother, condor, clappers, Bell). The
+  clock starts at once. Between guardians each hero gets back half their max HP and MP (`RUSH_HEAL = 0.5`, a knocked-out hero gets up) and a
+  short breath. No XP, coins or drops, no endings.
+- **Area runs.** One per area: the heroes are moved to the area's shrine and touch its trial bells in order (a post
+  with a swinging bell, lit, numbered; later ones dim). The clock starts on the first move.
+
+| Trial | Start | Bells | Gold / silver / bronze |
+|---|---|---|---|
+| Guardian Rush | the shrine you stand at | 8 guardians | 5:20 / 6:20 / 8:40 |
+| Landing Dash | Landing | rope cellar, well | 0:18 / 0:24 / 0:36 |
+| Flooded Halls Run | Chapel | sink, gate | 0:58 / 1:18 / 1:56 |
+| Reed Docks Run | Reed Mill | boathouse, dock gate, jetty | 0:32 / 0:42 / 1:03 |
+| Bell Towers Run | Bell Loft | shaft, roost, attic | 0:51 / 1:08 / 1:42 |
+| Crypt Murals Run | Mural Crypt | vault, stair | 0:29 / 0:39 / 0:58 |
+| Sunken Throne Run | Pearl Throne | garden, throne gate | 1:08 / 1:30 / 2:15 |
+| Cloudstair Run | Cliff foot (wind up the stair) | windgate, cairns, bannerwalk | 1:33 / 2:04 / 3:06 |
+| Belfry Loft Run | Loft base | bell shaft, cogworks, belfry top | 0:52 / 1:09 / 1:43 |
+
+A trial runs on a copy of the save: water reset to a new game's, the wind set for the run, food set to 2 cakes and 1
+tea, and travel shut. When it ends (all done, given up from the Trials page, or both heroes knocked out) the save comes
+back as it was, plus the best time and medal (`save.medals[id]`). The result card shows the medal, the time, "New
+best!", the thresholds, and Try again / Close.
+
+Medal tuning: gold for a run is set about 15 to 25% above the planner bot's line (the bot runs at 15 to 78 s; gold
+must stay at or above the bot's best and within 1.35× of it). For the rush, the casual bot (helping hand on, human
+delay) finishes 16 of 16 seeds in 307 to 420 s (median 366 s): 4 gold, 7 silver, 5 bronze; pro (helping hand off) finishes 12 of 16, all bronze. Gold is for a player who
+fights clean.
+
+## New Game+
+
+When the Bell is calm, the title offers **New Game+**. It starts a second save under its own key
+(`bellspire-v1-ngp`), so the first game stays. The heroes keep their levels and XP, gear, worn gear, spells (not the
+Bell Chime, which is an ability) and medals; abilities wait on their pedestals again, and hearts, coins, food, flags and
+time start fresh. The intro opens with a line saying so. Finishing NG+ and starting again gives NG+ 2, and so on.
+
+Each guardian has `NGP_HP = 1.4` times its HP and hits for at least `NGP_HIT = 18` (so carried-over levels don't make
+it trivial), and gains one new attack with its own wind-up and animation, in every phase:
+
+- **Grand Frog Idol, Flop:** squats, leaps out of sight, a shadow on the floor tracks the lead and then stops, and it
+  lands there with a splash wave.
+- **Reed Hydra, Seed Rain:** heads rear back and spit; sprouts mark where seeds will fall, with a two-slot gap to
+  stand in.
+- **Puma of the Murals, Painted Twin:** a purple painted twin peels from the far wall and charges a moment after the
+  puma, from the other side.
+- **Bell Warden, Chorus:** two of its small bells shake, then drop on marked spots in turn, each ringing out a ring.
+- **Lake Mother, Spouts:** whirlpools open at three spots from the lead outward, then water columns rise one after
+  another.
+- The belfry's three already had New Game+ attacks from the Windward Belfry round, now tested here: the Hail Condor's
+  marked row of icicles, the Twin Clappers slamming both at once, and the Out-of-Tune Bell's crack (a spiral of sour
+  notes).
+
+The title lists both saves ("Your game" and "New Game+ n") with Continue and Continue New Game+; starting NG+ again
+over an NG+ save asks first ("Yes, start New Game+" / "Keep it").
+
 ## Shrine travel
 
 Each shrine has a name: Landing Candle, Chapel Candle, Reed Mill Candle, Bell Loft Candle, Mural Crypt Candle and
@@ -253,6 +314,18 @@ unexplored), so "the Reed Docks are through here" shows once the doorway has bee
 (ability doors, bell seals, hatches, the throne) is a small lock in the colour of what opens it, and turns into a gap
 once open. The pause map has a key for these symbols. The numbers on the map read "Guardians 2 of 5 · Rooms 39 of 64 ·
 Chests 10 of 17 · Murals 5 of 10".
+
+The way to the Windward Belfry: before the Lake Mother is calm the maps show nothing of it. Once she is calm
+(`belfryKnown()`), the pause map widens east to show the belfry's rooms not seen yet as a dim hatched silhouette in each
+area's colour, outlined where the area ends, with no room detail, named "The Cloudstair" and "The Belfry Loft" while
+anything of that area is unseen. Wayra's boat shows on both shores (on the minimap too) with a dotted route bowed over
+the lake between them, still drawn on the way back. Rooms fill in as they are seen. On the minimap, when what to head
+for (`mapTarget()`) is past its edge, a small arrow at that edge points to it: in the citadel, the boat while the
+belfry has rooms not seen or the next goal is over there; in the belfry, the nearest unseen room of the Cloudstair,
+then of the Belfry Loft, then the boat back. The wisp's mark on the maps (`mapGoal()`) sits on the boat when the next
+goal is across the water. The key adds Wayra's boat, the unexplored belfry, the belfry's seal door and the minimap's
+arrow. The Bell Rope and Echo Step doors are drawn as locks in those abilities' colours; bell hooks, wind bells and
+echo bells are not drawn on the maps.
 
 Numbers in the UI use Silkscreen's blocky digits (a digits-only font face covering 0 to 9, % and /, ahead of Pixelify
 Sans), because in Pixelify Sans the 5 reads as an S and the 2 as a Z. The canvas damage numbers use their own 3×5
@@ -329,7 +402,8 @@ where they fell; walking back picks it up.
 `localStorage` key `bellspire-v1` (settings in `bellspire-v1-settings`). Resting at a candle shrine saves and heals. A
 save is checked when loaded (version, shrine, abilities, gear worn, HP) and a bad one is ignored, not misread. The
 Windward Belfry added `wind` (each wind area's direction), `medals` and `ngp` to the save; a save from before it loads
-with the wind at its start, no medals and a first time through, and keeps its `epilogue`.
+with the wind at its start, no medals and a first time through, and keeps its `epilogue`. New Game+ saves under
+`bellspire-v1-ngp`; a trial never writes its working copy, only the best time back into the save it started from.
 
 ## Tuning and bots
 
@@ -350,7 +424,7 @@ Results on 07-11-2026 (24 seeds each, all eight rerun together after the Twin Cl
 | Frog | 24/24, 37 s, lowest HP 58% | 24/24, 33 s, lowest HP 23% |
 | Hydra | 24/24, 55 s, lowest HP 91% | 24/24, 61 s, lowest HP 60% |
 | Puma | 24/24, 46 s, lowest HP 52% | 24/24, 48 s, lowest HP 32% |
-| Warden | 24/24, 54 s, lowest HP 62% | 24/24, 63 s, lowest HP 33% |
+| Warden | 24/24, 54 s, lowest HP 61% | 24/24, 63 s, lowest HP 28% |
 | Mother | 24/24, 30 s, lowest HP 78% | 24/24, 34 s, lowest HP 58% |
 | Hail Condor | 24/24, 46 s, lowest HP 84% | 24/24, 46 s, lowest HP 69% |
 | Twin Clappers | 24/24, 82 s, lowest HP 78% | 24/24, 139 s, lowest HP 30% |
@@ -359,6 +433,19 @@ Results on 07-11-2026 (24 seeds each, all eight rerun together after the Twin Cl
 The Twin Clappers were loosened for pro, who had scraped through at 5% HP: in phase 3 a clapper throws after four
 swings in five rather than every one, its glass shards fly at 2 rather than 2.4, it rests 32 ticks rather than 28,
 and its floor waves are 10 high (from 12) and hit for 80% of its attack. Casual's lowest HP rose from 65% to 78%.
+
+New Game+ (24 seeds, NG+ preset: the tune preset's levels, gear and spells, ×1.4 HP, the new attacks): casual wins
+every guardian within 3 tries in 24 of 24 seeds (lowest HP: frog 91%, hydra 97%, puma 73%, warden 74%, mother 88%,
+condor 82%, clappers 66%, Bell 49%); pro wins all but one Bell seed (lowest HP from 8%, the clappers, to 87%). The test
+requires 85% for casual. `tests/bellspire-trials-bot.mjs` also runs the rush bot (casual must finish 75% of 16 seeds,
+at least bronze every time, gold in at most a third) and a run bot on every area run (finished, under gold, gold within
+1.35× of the bot).
+
+The Bell Warden's falling bells and the Lake Mother's lilies never fired before 07-11-2026 (their wind-up skipped
+its first step, so no marks were placed and nothing fell). With them working, the warden's lowest HP went from 62% to
+61% (casual) and 33% to 28% (pro); the Mother's stayed at 78% and 58%, since she rarely lives long enough in phase 3 to
+throw lilies (2 in 8 casual fights). Their landing spots now show as a pulsing ring with a faint column of light and a
+small bell or lily over it, drawn over the heroes and the water.
 
 The route bot finishes seeds 1 to 3 in 20 to 21 minutes of game time: the citadel in 12 (level 9), the belfry in
 8 or 9 more (level 12). From the finished citadel save the belfry takes 8 minutes. A person exploring will take much
@@ -399,6 +486,24 @@ longer. The test requires casual wins in 85% of seeds and pro in 70%.
   finished save, the wisp to the boat, both new spells, every new foe's wind-up and attack, the three guardians (door,
   introduction, three phases, wind-ups, their signature attacks, each clapper's hero, the reward, the ending), the
   condor's planks, the retune, old saves, the totals and both epilogues, and every new pose.
+- `tests/bellspire-trials.mjs` (run by `tests/bellspire.mjs`): Echo Trials and New Game+. Each trial's definition and
+  that every bell stands on ground; the locks and their reasons; the trials scene once; a run's clock (starting on the
+  first move), bells in order, the result, the save restored with only the best kept, a slow run's medal, wind and
+  water restored, giving up, a knock-out; the rush (all eight in order, the half heal, no XP or endings, the save
+  restored, a knock-out ending it); New Game+ (what carries over, the save round trip, the intro line, round 2), and
+  each guardian's ×1.4 HP, the hit floor and its new attack only in New Game+, always after its wind-up.
+- The map guide (in `tests/bellspire-belfry.mjs`): no belfry on the maps before the Lake Mother; after her, the arrow to
+  the boat (east of the shrine), the wisp's mark on the boat, never back to Ukumari, the Cloudstair then the Loft then
+  the boat back from inside the belfry, no arrow with everything done, kept across a save. The browser suite checks the
+  same on screen on a desktop and both phone sizes (silhouette cells, both names, both boats, the route, the legend
+  entries, the arrow's direction), and sweeps every menu tab, gear slot and gear preview for "undefined" or "NaN".
+- `tests/bellspire-strips.mjs` (run by `tests/bellspire.mjs`): every art strip's image is exactly its manifest frame
+  count of cells wide (read from the WebP header), every strip the CSS sizes in % is (frames × 100)% wide, and every
+  `backgroundSize` in the page takes its frame count from `ART` (the icon, portrait and mural strips), so a strip that
+  grows can't squeeze its frames again. The browser suite checks the same on screen for a mural, the item icons and a
+  dialog portrait: drawn frames × the box wide, on one whole frame, in the frame's shape.
+- `tests/bellspire-trials-bot.mjs` (run at the end of `tests/bellspire-bot.mjs`; `--quick`, `--only=rush|runs|ngp`):
+  the rush, run and New Game+ bots above.
 - `tests/e2e/bellspire.mjs`: the browser suite. Every player action with the real keys, each locked action's message,
   the shrine (↑ rests, X travels, X near a foe swings, a map tap travels), the climb frame, a chest, a door opening,
   a bell ringing, damage numbers, the minimap at three screen sizes (with an area entrance drawn), gear equipped through
@@ -406,7 +511,9 @@ longer. The test requires casual wins in 85% of seeds and pro in 70%.
   Ukumari keeping the throne shut with the hydra skipped, the Guiding wisp setting, the shop, a mural, every menu tab, a key rebind, a water bell, a lantern hatch, a guardian, the ending,
   saves, the Windward Belfry (Wayra's boat, the wider map, bracing in a gust, a wind bell, the Bell Rope's throw,
   swing and release, an echo bell's notes, the Frost Fan, the Gale Wave, riding a swinging bell, the two outfits, the
-  three guardians and the belfry's ending), and phones held both ways, with no page errors and no sideways scrolling.
+  three guardians and the belfry's ending), the Echo Trials (locked before the Bell, the scene, the page, a run with
+its clock, bells, card, Try again and Give up, the whole rush and the medals), New Game+ (locked on the title, started,
+both keys, each new attack's wind-up and hit, the title with both saves, the confirm, each Continue), and phones held both ways, with no page errors and no sideways scrolling.
 
 Compile first: `npx tsc lib/bellspire-game.ts lib/bellspire-nav.ts --target es2022 --module es2022
 --moduleResolution bundler --outDir .checks --skipLibCheck --strict`.

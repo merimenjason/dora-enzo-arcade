@@ -227,3 +227,40 @@
 .bs-legend .lg-seal{width:15px;height:4px;background:repeating-linear-gradient(90deg,#4f86d9 0 3px,#1a1020 3px 4px,#5cae55 4px 7px,#1a1020 7px 8px,#9a5fd0 8px 11px,#1a1020 11px 12px,#d9a93a 12px 15px)}
 .bs-legend .lg-wisp{width:7px;height:7px;background:#e8fdff;box-shadow:0 0 6px 2px rgba(150,240,255,.6)}
 .bs-toggle.bs-off{opacity:.55}
+
+/* ─── the Echo Trials and New Game+ ─── */
+/* the title's two saves, one line each */
+.bs-saves{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:6px}
+.bs-saves li{padding:6px 10px;background:var(--stone2);box-shadow:inset 3px 0 0 var(--bronze)}
+.bs-saves li.bs-save-ngp{box-shadow:inset 3px 0 0 var(--teal)}
+.bs-saves b{display:block;color:var(--gold);font-size:15px}
+.bs-saves small{color:var(--dim);font-size:13px}
+.bs-locked{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px}
+.bs-locked .bs-why{width:auto;text-align:left;max-width:15em}
+/* a trial's clock: under the HUD, out of the way; it fades when a hero walks up under it */
+.bs-trial-clock{position:absolute;left:50%;top:12%;transform:translateX(-50%);display:flex;gap:.7em;align-items:baseline;padding:3px 10px;pointer-events:none;
+  background:rgba(13,11,22,.8);box-shadow:inset 0 0 0 1px #5a8aa0;font-size:14px;white-space:nowrap;transition:opacity .2s}
+.bs-trial-clock b{color:#bfe8ff}
+.bs-trial-clock span{color:var(--dim)}
+.bs-trial-clock .bs-trial-time{color:var(--ink);font-variant-numeric:tabular-nums;min-width:4.5em;text-align:right}
+.bs-trial-clock.bs-faded{opacity:.25}
+/* medals: a coloured bell-shaped badge with the word, so it never relies on colour alone */
+.bs-medal{flex:none;min-width:4.6em;padding:3px 6px;text-align:center;font-size:13px;font-weight:700;border-radius:10px 10px 3px 3px;color:#1a1208;background:#5a5060}
+.bs-medal-gold{background:linear-gradient(#ffe89a,#d8a030)}
+.bs-medal-silver{background:linear-gradient(#f4f6fa,#a0a8b8)}
+.bs-medal-bronze{background:linear-gradient(#f0b880,#a8642e)}
+.bs-medal-none{background:#3a3044;color:var(--dim)}
+.bs-medal-big{display:inline-block;min-width:7em;padding:8px 12px;font-size:18px}
+.bs-trials .bs-trials-why{text-align:left;color:var(--gold);font-size:15px;margin:4px 0 8px}
+.bs-trial-locked{opacity:.6}
+.bs-trial-now{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px;padding:8px;background:#1a2a34;box-shadow:inset 0 0 0 1px #5a8aa0}
+.bs-trial-now p{margin:0}
+.bs-trial-card{text-align:center;max-width:420px}
+.bs-trial-card h3{font-size:24px}
+.bs-trial-secs{font-size:30px;margin:4px 0;font-variant-numeric:tabular-nums}
+.bs-new-best{display:block;font-size:15px;color:var(--gold);font-style:normal}
+.bs-trial-card .bs-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+/* the map guide to the Windward Belfry */
+.bs-legend .lg-boat{width:12px;height:6px;background:linear-gradient(#d9a35a 0 3px,#8a5a2a 3px);border-radius:0 0 4px 4px}
+.bs-legend .lg-belfry{width:12px;height:8px;background:repeating-linear-gradient(-45deg,rgba(232,137,90,.55) 0 1px,rgba(232,137,90,.12) 1px 4px);box-shadow:0 0 0 1px #e8895a}
+.bs-legend .lg-arrow{width:0;height:0;background:none;box-shadow:none;border-style:solid;border-width:5px 0 5px 8px;border-color:transparent transparent transparent #ffcf6a;margin:0 2px}

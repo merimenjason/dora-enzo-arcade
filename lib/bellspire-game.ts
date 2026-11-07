@@ -2,7 +2,7 @@
 // comes from a seeded generator, so a seed and the same inputs replay a game exactly.
 import {
   ROOMS, AREAS, COLS, ROWS, TILE, SCREEN_W, SCREEN_H, ABILITIES, ABILITY_ORDER, SPELLS, GEAR, START_EQUIP, FOOD, SHOP, BOSSES, MURALS,
-  SCRIPTS, WATER_AREAS, SHRINE_NAMES, GUARDIANS, GUARDIAN_AREA, BELFRY_GUARDIANS, WIND_AREAS, ALL_BOSSES, abilityIcon,
+  SCRIPTS, WATER_AREAS, SHRINE_NAMES, GUARDIANS, GUARDIAN_AREA, BELFRY_GUARDIANS, BELFRY_AREAS, WIND_AREAS, ALL_BOSSES, abilityIcon,
   type Room, type AreaId, type Ability, type HeroId, type SpellId, type Slot, type FoodId, type BossId, type Line, type WaterArea, type Perk, type WindArea,
 } from './bellspire-world.js';
 import { BOXES, FOE_BODY } from './bellspire-art.js';
@@ -12,6 +12,8 @@ export * from './bellspire-world.js';
 export { HERO_W, HERO_H, type Body } from './bellspire-physics.js';
 export const VIEW_W = 480, VIEW_H = 270;
 export const SAVE_KEY = 'bellspire-v1';
+/** New Game+ keeps its own save, so the first game's save is never touched. */
+export const NGP_SAVE_KEY = 'bellspire-v1-ngp';
 
 export type Input = { left: boolean; right: boolean; up: boolean; down: boolean; jump: boolean; attack: boolean; dash: boolean; cast: boolean; tag: boolean };
 export const NO_INPUT: Input = { left: false, right: false, up: false, down: false, jump: false, attack: false, dash: false, cast: false, tag: false };
@@ -164,6 +166,68 @@ export const COMPLETION = (() => {
   return { ...count(null), bosses: ALL_BOSSES.length, base: { ...count(false), bosses: BASE_BOSSES.length } };
 })();
 
+// ─── the Echo Trials (at any lit shrine once the Out-of-Tune Bell is calm) ──────────
+/** A trial: the Guardian Rush (all eight guardians back to back, with one heal between each), or an area's run (from
+ *  its shrine, touch each trial bell in order). `medals` are the gold, silver and bronze times in seconds, set from
+ *  the bots (tests/bellspire-trials-bot.mjs): a run's gold is 1.2x the planner's own line (silver 1.6x, bronze 2.4x);
+ *  the rush's gold is beaten by about one casual bot in eight, and silver by most of them. */
+export type TrialDef = {
+  id: string; name: string; kind: 'rush' | 'run'; area?: AreaId; from?: string; text: string;
+  goals: { room: string; c: number; r: number }[]; wind?: Record<WindArea, 1 | -1>; medals: [number, number, number];
+};
+/** The Guardian Rush's order: the story's. */
+export const RUSH: BossId[] = ['frog', 'hydra', 'puma', 'warden', 'mother', 'condor', 'clappers', 'tune'];
+/** What one heal between guardians gives back (of max HP and MP; a knocked-out hero wakes with it). */
+export const RUSH_HEAL = 0.5;
+/** Every trial runs with this pantry (the save's own food is set aside and comes back after). */
+export const TRIAL_FOOD: Record<FoodId, number> = { cake: 2, tea: 1 };
+export const TRIALS: TrialDef[] = [
+  { id: 'rush', name: 'Guardian Rush', kind: 'rush', text: 'All eight guardians, one after another. One heal between each.', goals: [], medals: [320, 380, 520] },
+  { id: 'run:hub', name: 'Landing Dash', kind: 'run', area: 'hub', from: 'landing', text: 'Down the rope cellar and up to the well.', goals: [{ room: 'ropecellar', c: 15, r: 8 }, { room: 'well', c: 13, r: 14 }], medals: [18, 24, 36] },
+  { id: 'run:halls', name: 'Flooded Halls Run', kind: 'run', area: 'halls', from: 'chapel', text: 'Down to the sink, then out to the gate.', goals: [{ room: 'sink', c: 17, r: 32 }, { room: 'gate', c: 14, r: 14 }], medals: [58, 78, 116] },
+  { id: 'run:docks', name: 'Reed Docks Run', kind: 'run', area: 'docks', from: 'mill', text: 'The boathouse, the dock gate, then out along the jetty.', goals: [{ room: 'boathouse', c: 27, r: 8 }, { room: 'dgate', c: 15, r: 14 }, { room: 'jetty', c: 24, r: 11 }], medals: [32, 42, 63] },
+  { id: 'run:towers', name: 'Bell Towers Run', kind: 'run', area: 'towers', from: 'gears', text: 'The shaft, the roost, then the attic.', goals: [{ room: 'shaft', c: 12, r: 14 }, { room: 'roost', c: 17, r: 10 }, { room: 'attic', c: 15, r: 14 }], medals: [51, 68, 102] },
+  { id: 'run:crypt', name: 'Crypt Murals Run', kind: 'run', area: 'crypt', from: 'cshrine', text: 'Into the vault, then up the stair.', goals: [{ room: 'vault', c: 27, r: 9 }, { room: 'stair', c: 12, r: 14 }], medals: [29, 39, 58] },
+  { id: 'run:throne', name: 'Sunken Throne Run', kind: 'run', area: 'throne', from: 'tshrine', text: 'Out to the garden, then back to the throne gate.', goals: [{ room: 'garden', c: 15, r: 14 }, { room: 'tgate', c: 15, r: 6 }], medals: [68, 90, 135] },
+  { id: 'run:cloud', name: 'Cloudstair Run', kind: 'run', area: 'cloud', from: 'cliffoot', text: 'Up the Cloudstair with the wind at your back, to the bannerwalk.', goals: [{ room: 'windgate', c: 25, r: 14 }, { room: 'cairns', c: 29, r: 13 }, { room: 'bannerwalk', c: 31, r: 14 }], wind: { cloud: -1, loft: 1 }, medals: [93, 124, 186] },
+  { id: 'run:loft', name: 'Belfry Loft Run', kind: 'run', area: 'loft', from: 'loftbase', text: 'Up the bell shaft and the cogworks to the top of the belfry.', goals: [{ room: 'bellshaft', c: 15, r: 31 }, { room: 'cogworks', c: 30, r: 6 }, { room: 'belltop', c: 30, r: 14 }], medals: [52, 69, 103] },
+];
+export const MEDALS = ['gold', 'silver', 'bronze'] as const;
+export type Medal = (typeof MEDALS)[number];
+export const trialById = (id: string) => TRIALS.find((t) => t.id === id) ?? null;
+/** The medal a time earns (null: slower than bronze). */
+export function medalFor(def: TrialDef, secs: number | undefined): Medal | null {
+  if (secs === undefined) return null;
+  const i = def.medals.findIndex((m) => secs <= m);
+  return i < 0 ? null : MEDALS[i];
+}
+/** Seconds to a tenth, from ticks. */
+export const trialSecs = (ticks: number) => Math.round((ticks / 60) * 10) / 10;
+
+// ─── New Game+ ─────────────────────────────────────────────────────────────
+/** Each guardian's HP in New Game+ (and each one has a new attack). */
+export const NGP_HP = 1.4;
+/** ...and hits at least this hard (before the heroes' defence): the Hail Condor's blow, give or take. */
+export const NGP_HIT = 18;
+/** New Game+ can start once the Out-of-Tune Bell is calm. */
+export const ngpReady = (s: Save | null) => !!s && s.flags.includes('boss:tune');
+/** A New Game+ save from a finished one: the heroes keep their levels, their gear (as worn) and their spells, and the
+ *  Echo Trials' best times; the abilities, the Bell Hearts and Moon Drops, the coins and the map start again (the
+ *  Bell Chime spell comes back with its pedestal, since it opens doors). */
+export function newGamePlusSave(done: Save): Save {
+  const s = freshSave();
+  s.ngp = (done.ngp ?? 0) + 1;
+  for (const h of ['dora', 'enzo'] as HeroId[]) {
+    s.heroes[h] = { level: done.heroes[h].level, xp: done.heroes[h].xp, hp: 9999, mp: 9999, down: false };
+  }
+  s.gear = [...new Set([...s.gear, ...done.gear])];
+  s.equip = JSON.parse(JSON.stringify(done.equip));
+  s.spells = [...new Set([...s.spells, ...done.spells.filter((sp) => sp !== 'chime')])];
+  s.medals = { ...done.medals };
+  s.lead = done.lead;
+  return s;
+}
+
 export function surfaceRow(room: Room, water: Record<WaterArea, 0 | 1>): number | null {
   if (!room.water) return null;
   const lvl = (WATER_AREAS as string[]).includes(room.area) ? water[room.area as WaterArea] : 0;
@@ -272,7 +336,7 @@ export const foeBody = (k: FoeKind): number[] => FOE_BODY[k] ?? FOE_BODY[({ gust
 /** A guardian's box from its painted frame (the frame the scene shows for its state: rest, wind-up, attack or calm),
  *  drawn from (ax, ay) and mirrored when flipped, scaled by k about the frame's centre. */
 export function bossArtBox(b: { st: string; calm: boolean }, sheet: string, ax: number, ay: number, flip: boolean, k: number): Rect {
-  const atk = /hop|tongue|pounce|dash|leap|swing|drop|sweep/.test(b.st) && !b.st.endsWith('Tell');
+  const atk = /hop|tongue|pounce|dash|leap|swing|drop|sweep|twin|flopUp|flopDown|chorus|spout/.test(b.st) && !b.st.endsWith('Tell');
   const fr = b.calm ? 5 : b.st.endsWith('Tell') ? 1 : atk ? 2 : 0;
   const [x0, y0, x1, y1] = BOXES[sheet][fr];
   const l = flip ? -x1 : x0, r = flip ? -x0 : x1, w = (r - l) * k, h = (y1 - y0) * k;
@@ -317,7 +381,9 @@ export type Shot = {
 };
 export type Wave = { x: number; y: number; dir: 1 | -1; speed: number; life: number; h: number; dmg: number };
 export type Ring = { x: number; y: number; r: number; vr: number; max: number; thick: number; dmg: number; friendly: boolean; kind: 'imp' | 'chime'; hit: number[]; rung: string[] };
-export type Marker = { x: number; y: number; t: number; kind: 'bell' | 'lily' | 'aim' };
+/** floor markers: a falling bell, lily or (the hydra's rain) seed; where a head will strike; where the frog will land
+ *  (`shadow`); where the Lake Mother's spout will rise (`swirl`) */
+export type Marker = { x: number; y: number; t: number; kind: 'bell' | 'lily' | 'aim' | 'seed' | 'shadow' | 'swirl' };
 export type Pickup = { id: number; kind: 'coin' | 'mp' | 'hp' | 'bag'; x: number; y: number; vy: number; amount: number; t: number };
 export type Rect = { x: number; y: number; w: number; h: number };
 
@@ -351,7 +417,10 @@ export type GameEvent =
   /** attack at a lit shrine: the page opens the map for travel; and a journey's arrival */
   | { k: 'travelOpen'; id: string } | { k: 'travel'; id: string }
   /** a Puma Tooth hit landed twice as hard */
-  | { k: 'crit'; x: number; y: number } | { k: 'seal'; id: string; n: number };
+  | { k: 'crit'; x: number; y: number } | { k: 'seal'; id: string; n: number }
+  /** an Echo Trial began, a trial bell was touched (n of `of`), or the trial ended (won, or failed or given up) */
+  | { k: 'trialStart'; id: string } | { k: 'trialBell'; id: string; n: number; of: number; x: number; y: number }
+  | { k: 'trial'; id: string; won: boolean; secs: number; medal: Medal | null; best: number | null; newBest: boolean };
 export type NumKind = 'hit' | 'big' | 'spell' | 'hurt' | 'heal' | 'xp' | 'coin';
 
 /** `wisp`: the guiding wisp, shown only while the helping hand is on (on unless turned off) */
@@ -434,6 +503,9 @@ export class BellspireGame {
   planks = new Map<number, number>();
   /** a guardian's arena wind (its gust zones blow only while it fights): direction and strength */
   arenaWind = { dir: 1 as 1 | -1, str: 1 };
+  /** the Echo Trial being run: its ticks (a run's clock starts on the first key), the next bell or guardian, the save
+   *  as it was (it all comes back after), the shrine it started from, and the pause before the next guardian */
+  trial: { def: TrialDef; t: number; i: number; started: boolean; back: Save; from: string; next: number } | null = null;
 
   constructor(save?: Save | null, settings: Partial<Settings> = {}, seed = 1) {
     this.save = save ? JSON.parse(JSON.stringify(save)) : freshSave();
@@ -453,7 +525,11 @@ export class BellspireGame {
     this.follower = { x: start.x - 16, y: start.y, face: 1, air: false, moving: false, swim: false, climb: false, swipeT: 0, swipeCd: 0 };
     this.enterRoom(this.room, true);
     for (const h of ALL_HEROES) this.clampHero(h);
-    if (!this.flag('script:intro')) { this.setFlag('script:intro'); this.say(SCRIPTS.intro); }
+    if (!this.flag('script:intro')) {
+      this.setFlag('script:intro');
+      // New Game+ says what carries over first
+      this.say(this.save.ngp ? [{ who: 'sign', text: `New Game+${this.save.ngp > 1 ? ` ${this.save.ngp}` : ''}: Dora and Enzo keep their levels, gear and spells, but the abilities wait on their pedestals again. Every guardian is tougher and has a new attack.` }, ...SCRIPTS.intro] : SCRIPTS.intro);
+    }
     // a save that has already calmed the Lake Mother hears there's more, straight away
     if (this.flag('boss:mother') && !this.flag('script:belfryCall')) this.note('New: the Windward Belfry. Rest at a shrine to hear about it from Wayra.', true);
   }
@@ -662,8 +738,10 @@ export class BellspireGame {
     const o = info.things.find((t) => t.ch === 'O')!;
     const def = BOSSES[id];
     const ox = o.c * TILE + 8, oy = (o.r + 1) * TILE;
+    // New Game+: every guardian is tougher
+    const hp = Math.round(def.hp * (this.save.ngp ? NGP_HP : 1));
     const b: Boss = {
-      id, x: ox, y: oy, hp: def.hp, max: def.hp, phase: 1, st: 'wait', t: 0, dur: 0, face: -1, flash: 0, tellT: 0, step: 0, hurt: [], harm: [], calm: false,
+      id, x: ox, y: oy, hp, max: hp, phase: 1, st: 'wait', t: 0, dur: 0, face: -1, flash: 0, tellT: 0, step: 0, hurt: [], harm: [], calm: false,
       heads: [], arms: [], low: 0, vis: 1, side: 1, sx: ox, sy: oy, tx: ox, ty: 0, body: { x: ox - 30, y: oy - 50, w: 60, h: 50 },
     };
     if (id === 'hydra') b.heads = [[-46, -96], [0, -128], [44, -88]].map(([dx, dy]) => ({ x: ox + dx, y: oy + dy, bx: ox + dx, by: oy + dy, st: 'idle', t: 0, tx: 0, ty: 0 }));
@@ -671,7 +749,7 @@ export class BellspireGame {
     if (id === 'condor') { b.y = rr.y + 12 * TILE - 92; b.sx = b.x; b.sy = b.y; }
     if (id === 'clappers') {
       // two clappers on ropes from the rafters: [0] the Iron Clapper (Dora's blade), [1] the Glass Clapper (spells)
-      const half = Math.round(def.hp / 2);
+      const half = Math.round(hp / 2);
       b.heads = [20, 40].map((c) => ({ x: rr.x + c * TILE + 8, y: rr.y + 2 * TILE + 132, bx: rr.x + c * TILE + 8, by: rr.y + 2 * TILE, st: 'idle', t: 0, tx: 132, ty: 0, hp: half, max: half, ang: 0, av: 0 }));
       b.hp = b.max = half * 2;
     }
@@ -703,7 +781,8 @@ export class BellspireGame {
     const any = inp.left || inp.right || inp.up || inp.down || inp.jump || inp.attack || inp.dash || inp.cast || inp.tag;
     this.idleT = any ? 0 : this.idleT + 1;
     this.lostT++;
-    if (this.tick % 15 === 0) this.checkEpilogue();
+    if (this.trial) this.updateTrial(inp);
+    else if (this.tick % 15 === 0) this.checkEpilogue();
 
     // water and floats, echo notes fading, the condor's broken planks mending
     this.updateWater();
@@ -1321,6 +1400,8 @@ export class BellspireGame {
     const rt = this.leadRt, b = this.body;
     if (rt.inv > 0 || b.dashT > 0 || this.dialog) return false;
     const st = this.stats(this.lead);
+    // New Game+: a guardian's blows land at least as hard as NGP_HIT, so the early ones still matter to strong heroes
+    if (this.save.ngp && this.boss && !this.boss.calm && atk > 0) atk = Math.max(atk, NGP_HIT);
     const dmg = Math.max(1, Math.round(atk * this.assistMul - st.def * 0.5));
     this.leadSave.hp -= dmg;
     rt.inv = HURT_INV; rt.hurtT = 16; rt.act = null; rt.castHold = 0;
@@ -1356,6 +1437,8 @@ export class BellspireGame {
 
   wipe() {
     this.emit({ k: 'wipe' }); this.sfx('wipe');
+    // in an Echo Trial, both heroes knocked out ends it
+    if (this.trial) { this.endTrial(false, 'Both heroes were knocked out.'); return; }
     for (const h of ALL_HEROES) { const s = this.save.heroes[h], st = this.stats(h); s.down = false; s.hp = st.maxHp; s.mp = st.maxMp; this.hero[h] = this.newRt(); }
     this.lead = 'dora'; this.save.lead = 'dora';
     const b = this.body;
@@ -1852,14 +1935,15 @@ export class BellspireGame {
     for (const m of this.markers) m.t -= this.bossSpeed;
     this.markers = this.markers.filter((m) => {
       if (m.t > 0) return true;
-      if (m.kind === 'aim') return false;
-      this.shots.push({ id: this.nextId++, kind: m.kind as 'bell' | 'lily', friendly: false, x: m.x, y: this.bossRoomRect().y + 40, vx: 0, vy: 2, g: 0.18 * this.bossSpeed, life: 200, dmg: BOSSES[b.id].atk, r: 8, hits: [] });
+      if (m.kind === 'aim' || m.kind === 'shadow' || m.kind === 'swirl') return false;
+      this.shots.push({ id: this.nextId++, kind: m.kind as 'bell' | 'lily' | 'seed', friendly: false, x: m.x, y: this.bossRoomRect().y + 40, vx: 0, vy: 2, g: 0.18 * this.bossSpeed, life: 200, dmg: BOSSES[b.id].atk, r: 8, hits: [] });
       return false;
     });
   }
 
   bossDone() {
     const b = this.boss!;
+    if (this.trial?.def.kind === 'rush') { this.rushCalm(b); return; }
     this.setFlag(`boss:${b.id}`);
     if ((GUARDIANS as readonly string[]).includes(b.id)) {
       // one of the throne door's bell seals goes quiet
@@ -1930,16 +2014,46 @@ export class BellspireGame {
   }
 
   bossFrog(b: Boss) {
-    const rr = this.bossRoomRect(), floor = this.floorY(), lead = this.body;
+    const rr = this.bossRoomRect(), floor = this.floorY(), lead = this.body, sp = this.bossSpeed;
     const W = 64, H = 50;
-    if (b.st !== 'hop') b.face = lead.x > b.x ? 1 : -1;
+    if (b.st !== 'hop' && !b.st.startsWith('flop')) b.face = lead.x > b.x ? 1 : -1;
     const body: Rect = { x: b.x - W / 2, y: b.y - H, w: W, h: H };
     // hit where it is painted (the scene draws it from (x, y + 2)); its body still moves it
     b.hurt.push(bossArtBox(b, 'boss-frog', b.x, b.y + 2, b.face > 0, 0.85)); b.body = body;
-    const cycle = b.phase === 1 ? ['hop', 'spit', 'hop', 'spit'] : b.phase === 2 ? ['hop', 'tongue', 'spit', 'hop'] : ['hop', 'spit', 'tongue', 'hop', 'tongue'];
+    const ngp = this.save.ngp ? ['flop'] : [];
+    const cycle = b.phase === 1 ? ['hop', ...ngp, 'spit', 'hop', 'spit'] : b.phase === 2 ? ['hop', 'tongue', 'spit', ...ngp, 'hop'] : ['hop', 'spit', 'tongue', ...ngp, 'hop', 'tongue'];
     switch (b.st) {
       case 'intro': if (b.t > 60) this.go('idle', 50); break;
-      case 'idle': if (b.t > b.dur) { const nx = cycle[b.step++ % cycle.length]; this.go(`${nx}Tell`, nx === 'hop' ? 40 : 38, true); } break;
+      // New Game+: the belly flop. A deep squat, a leap clean out of sight, its shadow following the lead, then a
+      // crash down on the shadow that sends a wave both ways (and a moment winded after)
+      case 'flopTell': if (b.t > b.dur) { b.sx = b.x; this.go('flopUp', 26); this.sfx('hop', b.x, b.y); } break;
+      case 'flopUp': {
+        const p = clamp(b.t / 26, 0, 1);
+        b.y = floor - p * p * 300;
+        if (p >= 1) { this.markers.push({ x: clamp(lead.x, rr.x + 50, rr.x + rr.w - 60), y: floor, t: 64, kind: 'shadow' }); this.go('flopAim', 64); }
+        break;
+      }
+      case 'flopAim': {
+        // the shadow creeps after the lead for most of a second, then holds still (that's the moment to move)
+        const m = this.markers.find((k) => k.kind === 'shadow');
+        if (m && b.t < 40) m.x += clamp(clamp(lead.x, rr.x + 50, rr.x + rr.w - 60) - m.x, -1.6 * sp, 1.6 * sp);
+        if (m) b.x = m.x;
+        if (b.t > b.dur) { this.go('flopDown', 14); this.markers = this.markers.filter((k) => k.kind !== 'shadow'); }
+        break;
+      }
+      case 'flopDown': {
+        const p = clamp(b.t / 14, 0, 1);
+        b.y = floor - 300 * (1 - p * p);
+        b.harm.push(bossArtBox(b, 'boss-frog', b.x, b.y + 2, b.face > 0, 0.7));
+        if (p >= 1) {
+          b.y = floor; this.emit({ k: 'shake', n: 12 }); this.sfx('quake', b.x, b.y);
+          for (const d of [-1, 1] as const) this.waves.push({ x: b.x + d * 34, y: floor, dir: d, speed: 2.6 * sp, life: 110, h: 12, dmg: BOSSES.frog.atk });
+          this.go('flopLand', 56);
+        }
+        break;
+      }
+      case 'flopLand': if (b.t > b.dur) this.go('idle', 30); break;
+      case 'idle': if (b.t > b.dur) { const nx = cycle[b.step++ % cycle.length]; this.go(`${nx}Tell`, nx === 'hop' ? 40 : nx === 'flop' ? 48 : 38, true); } break;
       case 'hopTell': if (b.t > b.dur) { b.sx = b.x; b.sy = clamp(lead.x, rr.x + 60, rr.x + rr.w - 70); this.go('hop', 50 / this.bossSpeed * this.bossSpeed); this.sfx('hop', b.x, b.y); } break;
       case 'hop': {
         const p = clamp(b.t / 50, 0, 1);
@@ -1981,7 +2095,10 @@ export class BellspireGame {
     for (const h of b.heads) {
       h.t += sp;
       const sway = Math.sin((this.tick + h.bx) * 0.03) * 6;
-      if (h.st === 'idle') { h.x += (h.bx + sway - h.x) * 0.1; h.y += (h.by - h.y) * 0.1; }
+      // (New Game+: rearing back for the seed rain, all three heads up and shaking)
+      const rear = b.st === 'rainTell' || b.st === 'rain';
+      if (h.st === 'idle' && rear) { h.x += (h.bx - 10 + (this.tick % 4 < 2 ? 2 : -2) - h.x) * 0.15; h.y += (h.by - 44 - h.y) * 0.12; }
+      else if (h.st === 'idle') { h.x += (h.bx + sway - h.x) * 0.1; h.y += (h.by - h.y) * 0.1; }
       else if (h.st === 'aim') {
         h.x += (h.bx + 24 - h.x) * 0.1; h.y += (h.by - 14 - h.y) * 0.1;
         // the head picks its spot well before it strikes (and can only reach so far), so a step aside dodges it
@@ -2004,7 +2121,16 @@ export class BellspireGame {
       case 'intro': if (b.t > 70) this.go('idle', 60); break;
       case 'idle': if (b.t > b.dur) {
         const free = b.heads.filter((h) => h.st === 'idle');
-        if (b.phase === 3 && free.length === 3 && b.step % 2 === 1) {
+        // (the rain waits for every head to come back first)
+        if (this.save.ngp && b.step % 4 === 2 && free.length < 3) { this.go('idle', 10); break; }
+        if (this.save.ngp && b.step % 4 === 2) {
+          // New Game+: the seed rain. Every head rears and spits high; seeds come down all over the pool but for one
+          // gap, marked by where no seed is
+          const rr = this.bossRoomRect(), x0 = rr.x + 2 * TILE + 20, x1 = rr.x + rr.w - 2 * TILE - 20, n = Math.floor((x1 - x0) / 38);
+          const gap = 1 + Math.floor(this.rand() * (n - 3));
+          for (let i = 0; i <= n; i++) if (i !== gap && i !== gap + 1) this.markers.push({ x: x0 + i * 38, y: this.floorY(), t: 50 * this.tellMul + 40, kind: 'seed' });
+          this.go('rainTell', 50, true);
+        } else if (b.phase === 3 && free.length === 3 && b.step % 2 === 1) {
           b.heads.forEach((h, i) => { h.st = 'aim'; h.t = -i * 30; });
           this.sfx('tell', b.x, b.y); this.emit({ k: 'flash', color: '#d8ffb0', n: 4 });
           this.go('idle', 150);
@@ -2015,6 +2141,8 @@ export class BellspireGame {
         } else this.go('idle', 20);
         b.step++;
       } break;
+      case 'rainTell': if (b.t > b.dur) { this.go('rain', 40); this.sfx('spit', b.x, b.y - 100); } break;
+      case 'rain': if (b.t > b.dur) this.go('idle', 70); break;
       case 'seedTell': if (b.t > b.dur) {
         const h = b.heads[1];
         for (let i = 0; i < 3; i++) {
@@ -2039,9 +2167,11 @@ export class BellspireGame {
       case 'prowl': {
         b.face = lead.x > b.x ? 1 : -1; b.x = clamp(b.x + b.face * 0.9 * sp, left, right);
         if (b.t > b.dur) {
-          const opts = b.phase === 1 ? ['pounce', 'dash'] : b.phase === 2 ? ['pounce', 'mural', 'dash'] : ['pounce', 'mural', 'pounce', 'dash'];
+          const ngp = this.save.ngp ? ['twin'] : [];
+          const opts = b.phase === 1 ? ['pounce', ...ngp, 'dash'] : b.phase === 2 ? ['pounce', 'mural', ...ngp, 'dash'] : ['pounce', 'mural', 'pounce', ...ngp, 'dash'];
           const nx = opts[b.step++ % opts.length];
-          if (nx === 'mural') { b.side = lead.x > rr.x + rr.w / 2 ? -1 : 1; this.go('muralTell', 56, true); }
+          if (nx === 'twin') { b.side = b.x > rr.x + rr.w / 2 ? 1 : -1; this.go('twinTell', 54, true); }
+          else if (nx === 'mural') { b.side = lead.x > rr.x + rr.w / 2 ? -1 : 1; this.go('muralTell', 56, true); }
           else this.go(`${nx}Tell`, nx === 'pounce' ? 40 : 36, true);
         }
         break;
@@ -2068,6 +2198,27 @@ export class BellspireGame {
         break;
       }
       case 'skid': if (b.t > b.dur) this.go('prowl', 50); break;
+      // New Game+: the painted twin. The puma rears and paints a copy of itself on the far wall; both charge at once
+      // from either side (the twin a beat later), so the heroes jump one and then the other
+      case 'twinTell': {
+        b.face = (-b.side) as 1 | -1;
+        b.x = clamp(b.x + b.side * 0.8 * sp, left, right);
+        b.arms[0] = { x: b.side > 0 ? left : right, y: floor };
+        if (b.t > b.dur) { this.go('twin', 220); this.sfx('roar', b.x, b.y); }
+        break;
+      }
+      case 'twin': {
+        b.x += b.face * 4.6 * sp;
+        b.harm.push(bossArtBox(b, 'boss-puma', b.x, b.y + 2, b.face > 0, 0.62));
+        const tw = b.arms[0];
+        if (tw && b.t > 22) {
+          tw.x -= b.face * 4.6 * sp;
+          b.harm.push(bossArtBox(b, 'boss-puma', tw.x, floor + 2, b.face < 0, 0.62));
+          if (tw.x <= left || tw.x >= right) b.arms = [];
+        }
+        if (b.x <= left || b.x >= right) { b.x = clamp(b.x, left, right); if (!b.arms.length || b.t > 200) { b.arms = []; this.go('skid', 34); this.emit({ k: 'shake', n: 3 }); } }
+        break;
+      }
       case 'muralTell': {
         b.vis = Math.max(0, 1 - b.t / 20);
         if (b.t > b.dur) { b.x = b.side < 0 ? left : right; b.face = (-b.side) as 1 | -1; b.y = floor; this.go('leap', 200); this.sfx('roar', b.x, b.y); }
@@ -2089,7 +2240,8 @@ export class BellspireGame {
     };
     for (let i = 0; i < 2; i++) b.arms[i] = b.arms[i] ?? restArm(i);
     const armsRest = () => { for (let i = 0; i < 2; i++) { const r = restArm(i); b.arms[i].x += (r.x - b.arms[i].x) * 0.12; b.arms[i].y += (r.y - b.arms[i].y) * 0.12; } };
-    const cycle = b.phase === 1 ? ['swing', 'toll', 'swing', 'bells'] : b.phase === 2 ? ['swing2', 'toll', 'bells', 'swing2', 'toll'] : ['swing2', 'toll', 'bells', 'toll', 'swing2'];
+    const ngp = this.save.ngp ? ['chorus'] : [];
+    const cycle = b.phase === 1 ? ['swing', 'toll', ...ngp, 'swing', 'bells'] : b.phase === 2 ? ['swing2', 'toll', ...ngp, 'bells', 'swing2', 'toll'] : ['swing2', 'toll', 'bells', ...ngp, 'toll', 'swing2'];
     switch (b.st) {
       case 'intro': armsRest(); if (b.t > 80) this.go('hang', 60); break;
       case 'hang': armsRest(); b.low = Math.max(0, b.low - 0.03); if (b.t > b.dur) { const nx = cycle[b.step++ % cycle.length]; b.side = (b.step % 2 ? 1 : -1); this.go(`${nx}Tell`, 46, true); } break;
@@ -2134,9 +2286,32 @@ export class BellspireGame {
         break;
       }
       case 'rise': armsRest(); b.low = clamp(1 - b.t / 30, 0, 1); if (b.t > b.dur) this.go('hang', 50); break;
+      // New Game+: the chorus. Both hand bells fly up over the heroes and come down one after the other where the
+      // marks show, each ringing out a short wave of sound where it lands
+      case 'chorusTell': case 'chorus': {
+        const mk = (x: number, t: number) => { const mx = clamp(x, rr.x + 50, rr.x + rr.w - 50); this.markers.push({ x: mx, y: floor, t, kind: 'aim' }); return mx; };
+        if (b.st === 'chorusTell' && b.t <= sp) { b.sx = mk(lead.x, b.dur + 14); b.sy = b.sx; }
+        if (b.st === 'chorus' && b.t >= 26 && b.t < 26 + sp) b.sy = mk(lead.x, 28);
+        for (let i = 0; i < 2; i++) {
+          const x = i === 0 ? b.sx : b.sy, t0 = i === 0 ? 0 : 40;
+          const a = b.arms[i], high = rr.y + 56 + i * 10;
+          if (b.st === 'chorusTell' || b.t < t0) { a.x += ((i === 1 && b.st === 'chorus' && b.t > 26 ? b.sy : x + (i ? 60 : 0)) - a.x) * 0.12; a.y += (high + Math.sin(this.tick * 0.5 + i) * 3 - a.y) * 0.15; continue; }
+          const p = clamp((b.t - t0) / 14, 0, 1);
+          a.x = x; a.y = high + (floor - 13 - high) * p * p;
+          if (p < 1) b.harm.push({ x: a.x - 14, y: a.y - 12, w: 28, h: 24 });
+          if (b.t - t0 >= 14 && b.t - t0 < 14 + sp) {
+            this.rings.push({ x: a.x, y: floor - 10, r: 6, vr: 2.4 * sp, max: 84, thick: 8, dmg: BOSSES.warden.atk, friendly: false, kind: 'imp', hit: [], rung: [] });
+            this.sfx('toll', a.x, a.y); this.emit({ k: 'shake', n: 5 });
+          }
+        }
+        if (b.st === 'chorusTell' && b.t > b.dur) this.go('chorus', 100);
+        else if (b.st === 'chorus' && b.t > b.dur) this.go('hang', 60);
+        break;
+      }
       case 'bellsTell': {
         armsRest();
-        if (b.t < sp) {
+        // (the first step of a state: the timer has already moved on by one step)
+        if (b.t <= sp) {
           const n = b.phase === 1 ? 3 : b.phase === 2 ? 4 : 5;
           const xs = [clamp(lead.x, rr.x + 30, rr.x + rr.w - 30)];
           while (xs.length < n) { const x = rr.x + 40 + this.rand() * (rr.w - 80); if (xs.every((o) => Math.abs(o - x) > 60)) xs.push(x); }
@@ -2399,7 +2574,8 @@ export class BellspireGame {
     // her body is where she is painted: the scene draws her from (x + 40, y + 2)
     b.body = bossArtBox(b, 'boss-mother', b.x + 40, b.y + 2, false, 0.85);
     b.hurt.push(b.body);
-    const cycle = b.phase === 1 ? ['sweep', 'bubbles', 'sweep'] : b.phase === 2 ? ['sweep', 'rise', 'bubbles', 'sweep'] : ['sweep', 'lilies', 'bubbles', 'sweep', 'lilies'];
+    const ngp = this.save.ngp ? ['spout'] : [];
+    const cycle = b.phase === 1 ? ['sweep', ...ngp, 'bubbles', 'sweep'] : b.phase === 2 ? ['sweep', 'rise', ...ngp, 'bubbles', 'sweep'] : ['sweep', 'lilies', 'bubbles', ...ngp, 'sweep', 'lilies'];
     switch (b.st) {
       case 'intro': if (b.t > 90) this.go('idle', 60); break;
       case 'idle': if (b.t > b.dur) { const nx = cycle[b.step++ % cycle.length]; this.go(`${nx}Tell`, nx === 'sweep' ? 55 : 44, true); } break;
@@ -2416,8 +2592,29 @@ export class BellspireGame {
         for (let i = 0; i < 4; i++) this.shots.push({ id: this.nextId++, kind: 'bubble', friendly: false, x: b.x - 70, y: b.y - 60 - i * 10, vx: -0.6 - i * 0.1, vy: -0.3 + i * 0.2, g: 0, life: 300, dmg: BOSSES.mother.atk - 2, r: 7, hits: [] });
         this.sfx('bubble', b.x, b.y); this.go('idle', 70);
       } break;
+      // New Game+: the spouts. She rises up out of the lake and three whirlpools open on the floor, the first under the
+      // lead; one after another each throws up a tall column of water
+      case 'spoutTell': {
+        // (the timer has already moved on by one step the first time a state runs, so the first step is b.t <= sp)
+        if (b.t <= sp) {
+          const x0 = clamp(lead.x, rr.x + 40, b.x - 120), dir = x0 > rr.x + 160 ? -1 : 1;
+          b.arms = [0, 1, 2].map((i) => ({ x: clamp(x0 + dir * i * 72, rr.x + 30, b.x - 110), y: floor }));
+          for (const a of b.arms) this.markers.push({ x: a.x, y: floor, t: b.dur + 60, kind: 'swirl' });
+        }
+        if (b.t > b.dur) { this.go('spout', 80); this.sfx('flood', b.x, b.y); }
+        break;
+      }
+      case 'spout': {
+        b.arms.forEach((a, i) => {
+          const t0 = i * 18, u = b.t - t0;
+          if (u >= 0 && u < 34) b.harm.push({ x: a.x - 13, y: rr.y + 30, w: 26, h: floor - rr.y - 30 });
+          if (u >= 0 && u < sp) { this.emit({ k: 'shake', n: 4 }); this.sfx('splash', a.x, floor); }
+        });
+        if (b.t > b.dur) { b.arms = []; this.go('idle', 60); }
+        break;
+      }
       case 'riseTell': if (b.t > b.dur) { this.arenaWater = { row: 13, t: 420 }; this.sfx('flood', b.x, b.y); this.go('idle', 60); } break;
-      case 'liliesTell': if (b.t < sp) {
+      case 'liliesTell': if (b.t <= sp) {
         const xs = [clamp(lead.x, rr.x + 40, b.x - 120)];
         while (xs.length < 5) { const x = rr.x + 40 + this.rand() * (b.x - 160 - rr.x); if (xs.every((o) => Math.abs(o - x) > 50)) xs.push(x); }
         for (const x of xs) this.markers.push({ x, y: floor, t: b.dur + 10, kind: 'lily' });
@@ -2440,7 +2637,8 @@ export class BellspireGame {
       [() => this.has('chime'), (t, r) => t.ch === 'A' && r.ability === 'chime'],
       [() => this.flag('boss:warden'), (t, r) => t.ch === 'O' && r.boss === 'warden'],
       [() => this.has('deep'), (t, r) => t.ch === 'C' && r.chests?.[t.i] === 'ability:deep'],
-      [() => this.flag('keeper'), (t) => t.ch === 'U'],
+      // (meeting Ukumari is behind the Lake Mother in the story; a save with her calm never needs to go back)
+      [() => this.flag('keeper') || this.flag('boss:mother'), (t) => t.ch === 'U'],
       [() => this.flag('boss:mother'), (t, r) => t.ch === 'O' && r.boss === 'mother'],
       // the Windward Belfry
       [() => this.has('rope'), (t, r) => t.ch === 'A' && r.ability === 'rope'],
@@ -2463,6 +2661,47 @@ export class BellspireGame {
       return t ? { room: t.room, x: t.c * TILE + 8, y: t.r * TILE } : null;
     }
     return null;
+  }
+  /** Does the map show the Windward Belfry yet: once the Lake Mother is calm (Wayra will row then), or once the heroes
+   *  have been there. Before that the maps keep it a secret. */
+  belfryKnown(): boolean { return this.flag('boss:mother') || this.flag('belfry:visited') || BELFRY_ROOMS_SET.has(this.room.id); }
+  /** Wayra's boat on one shore, in world pixels. */
+  boatAt(room: 'landing' | 'cliffoot'): { room: string; x: number; y: number } {
+    const t = INFO.get(room)!.things.find((th) => th.ch === 'D')!;
+    return { room, x: t.c * TILE + 8, y: t.r * TILE };
+  }
+  /** Where the maps mark the wisp's lead: the next goal, or Wayra's boat on this shore when the goal is across the
+   *  water (as the wisp itself leads). */
+  mapGoal(): { room: string; x: number; y: number } | null {
+    const goal = this.nextGoal();
+    if (!goal) return null;
+    const here = BELFRY_ROOMS_SET.has(this.room.id);
+    return BELFRY_ROOMS_SET.has(goal.room) !== here ? this.boatAt(here ? 'cliffoot' : 'landing') : goal;
+  }
+  /** What the minimap's edge arrow points at, once the belfry is known. In the citadel: Wayra's boat, while the
+   *  belfry still has rooms not seen or the next goal is over there. In the belfry: the nearest room not seen yet in
+   *  the first area with any (the Cloudstair, then the Belfry Loft), or with everything seen, the boat back. */
+  mapTarget(): { kind: 'boat' | 'area'; area?: string; x: number; y: number } | null {
+    if (!this.belfryKnown()) return null;
+    const seen = new Set(this.save.seen), here = BELFRY_ROOMS_SET.has(this.room.id);
+    const unseen = (area: string) => ROOMS.filter((r) => r.area === area).flatMap((r) => {
+      const out: { x: number; y: number }[] = [];
+      for (let y = 0; y < r.h; y++) for (let x = 0; x < r.w; x++) if (!seen.has(`${r.gx + x},${r.gy + y}`)) out.push({ x: (r.gx + x + 0.5) * COLS * TILE, y: (r.gy + y + 0.5) * ROWS * TILE });
+      return out;
+    });
+    const goal = this.nextGoal();
+    if (!here) {
+      const left = BELFRY_AREAS.some((a) => unseen(a).length > 0);
+      return left || (goal && BELFRY_ROOMS_SET.has(goal.room)) ? { kind: 'boat', ...this.boatAt('landing') } : null;
+    }
+    for (const area of BELFRY_AREAS) {
+      const cells = unseen(area);
+      if (!cells.length) continue;
+      const b = this.body;
+      cells.sort((p, q) => Math.hypot(p.x - b.x, p.y - b.y) - Math.hypot(q.x - b.x, q.y - b.y));
+      return { kind: 'area', area, ...cells[0] };
+    }
+    return { kind: 'boat', ...this.boatAt('cliffoot') };
   }
   /** Where the wisp should float: the goal itself when it is in this room, else the doorway towards it (a search over
    * rooms, skipping doorways behind doors that are shut). */
@@ -2619,12 +2858,13 @@ export class BellspireGame {
    *  foe within about 80 px (so a fight at a shrine still swings). */
   canOpenTravel() {
     const b = this.body;
-    if (!b.ground || b.swim || b.climb || this.dialog || !this.atShrine() || !this.litShrines().includes(this.room.id)) return false;
+    if (!b.ground || b.swim || b.climb || this.dialog || this.trial || !this.atShrine() || !this.litShrines().includes(this.room.id)) return false;
     if (this.boss && !this.boss.calm && this.boss.st !== 'wait') return false;
     return !this.enemies.some((e) => e.alive && !e.hidden && e.st !== 'sleep' && Math.hypot(e.x - b.x, e.y - b.y) < 80);
   }
   /** Why travel to a shrine can't happen now, or null if it can. Travel never heals: only resting does. */
   whyNotTravel(id: string): string | null {
+    if (this.trial) return 'Not during an Echo Trial. Give it up first (Esc).';
     if (this.boss && !this.boss.calm && this.boss.st !== 'wait') return 'You can’t leave in the middle of a boss fight.';
     if (!this.litShrines().includes(id)) return 'Light that shrine first by resting at it.';
     if (id === this.room.id) return 'You are here.';
@@ -2670,8 +2910,132 @@ export class BellspireGame {
     return { ...all, bosses, got, total, pct: Math.floor((got / total) * 100), base: { ...base, bosses: baseBosses, got: bgot, total: btotal, pct: Math.floor((bgot / btotal) * 100) } };
   }
 
-  /** A copy of the save for storing: the hero's place is the last shrine. */
-  snapshot(): Save { return JSON.parse(JSON.stringify(this.save)); }
+  /** A copy of the save for storing: the hero's place is the last shrine. During an Echo Trial it is the save as it
+   *  was before the trial (nothing a trial does is kept but its best time). */
+  snapshot(): Save { return JSON.parse(JSON.stringify(this.trial ? this.trial.back : this.save)); }
+
+  // ─── the Echo Trials ─────────────────────────────────────────────────────
+  /** Why the trials can't be run at all yet, or null once they are open. */
+  trialsLocked(): string | null {
+    return this.flag('boss:tune') ? null : 'Calm the Out-of-Tune Bell at the top of the Windward Belfry to open the Echo Trials.';
+  }
+  /** Why a trial can't start now, or null if it can. */
+  whyNotTrial(id: string): string | null {
+    const def = trialById(id);
+    if (!def) return 'There is no such trial.';
+    const locked = this.trialsLocked();
+    if (locked) return locked;
+    if (this.trial) return 'A trial is already running. Finish it or give it up first (Esc).';
+    if (this.boss && !this.boss.calm && this.boss.st !== 'wait') return 'You can’t start a trial in the middle of a boss fight.';
+    if (this.ended || this.dialog) return 'Not right now.';
+    // (by the candle: standing, or just set down there at the end of a trial)
+    const b = this.body, near = INFO.get(this.room.id)!.things.some((t) => t.ch === 'S' && Math.abs(t.c * TILE + 8 - b.x) < 30 && Math.abs((t.r + 1) * TILE - b.y) < 26);
+    if (!near || b.climb || !this.litShrines().includes(this.room.id)) return 'Stand at a lit candle shrine to start a trial.';
+    if (def.from && !this.litShrines().includes(def.from)) return `Light the ${SHRINE_NAMES[def.from]} first: this run starts there.`;
+    return null;
+  }
+  /** Start an Echo Trial from the shrine the heroes stand at. Both heroes start fresh, with the trial pantry, the
+   *  water as it first was and the run's wind; afterwards the save comes back as it was, plus any best time. */
+  startTrial(id: string): string | null {
+    const why = this.whyNotTrial(id);
+    if (why) return why;
+    const def = trialById(id)!;
+    const back = JSON.parse(JSON.stringify(this.save)) as Save;
+    this.trial = { def, t: 0, i: 0, started: def.kind === 'rush', back, from: this.room.id, next: 0 };
+    const base = freshSave();
+    this.save.food = { ...TRIAL_FOOD }; this.save.water = { ...base.water }; this.save.wind = { ...(def.wind ?? base.wind) };
+    this.save.drop = null;
+    for (const h of ALL_HEROES) { const sv = this.save.heroes[h], st = this.stats(h); sv.down = false; sv.hp = st.maxHp; sv.mp = st.maxMp; this.hero[h] = this.newRt(); }
+    this.boss = null; this.bossEntry = null; this.arenaWater = null; this.notes = []; this.planks.clear(); this.lanternUp = false;
+    this.shots = []; this.waves = []; this.rings = []; this.markers = [];
+    if (def.kind === 'rush') this.rushNext();
+    else {
+      const spot = this.shrineSpot(def.from!)!;
+      Object.assign(this.body, newBody(spot.x, spot.y));
+      this.enterRoom(roomOfPoint(spot.x, spot.y - 4)!, true);
+      this.follower.x = spot.x - 24; this.follower.y = spot.y; this.trail = [];
+      this.safe = { ...spot };
+      this.note(`${def.name}: touch the ${def.goals.length} trial bells in order. The clock starts when you move.`, true);
+    }
+    this.sfx('chime'); this.emit({ k: 'trialStart', id });
+    return null;
+  }
+  /** The Guardian Rush: into the next guardian's doorway. */
+  rushNext() {
+    const t = this.trial!, id = RUSH[t.i];
+    this.fightBoss(id);
+    this.note(`${t.i + 1} of ${RUSH.length}: ${BOSSES[id].name}.`, true);
+  }
+  /** A guardian in the rush is calm: one heal, a breath, and on to the next (or the end). */
+  rushCalm(b: Boss) {
+    const t = this.trial!;
+    this.boss = null; this.bossEntry = null; this.arenaWater = null;
+    this.planks.clear(); this.arenaWind = { dir: 1, str: 1 }; this.notes = [];
+    t.i++;
+    if (t.i >= RUSH.length) { this.endTrial(true); return; }
+    for (const h of ALL_HEROES) {
+      const sv = this.save.heroes[h], st = this.stats(h);
+      if (sv.down) { sv.down = false; sv.hp = 0; }
+      sv.hp += Math.round(st.maxHp * RUSH_HEAL); sv.mp += Math.round(st.maxMp * RUSH_HEAL);
+      this.clampHero(h);
+    }
+    this.sfx('shrine'); this.emit({ k: 'pulse', x: this.body.x, y: this.body.y - 20, r: 120, color: [1, 0.8, 0.5] });
+    this.emit({ k: 'num', x: this.body.x, y: this.body.y - 30, n: Math.round(this.stats(this.lead).maxHp * RUSH_HEAL), kind: 'heal' });
+    this.note(`${BOSSES[b.id].name} is calm. One heal, then ${BOSSES[RUSH[t.i]].name}.`, true);
+    t.next = 100;
+  }
+  /** Each tick of a trial: the clock, the rush's pause between guardians, and a run's trial bells. */
+  updateTrial(inp: Input) {
+    const t = this.trial!;
+    if (!t.started && (inp.left || inp.right || inp.jump || inp.dash || inp.up || inp.down)) t.started = true;
+    if (t.started) t.t++;
+    if (t.def.kind === 'rush') {
+      if (t.next > 0 && --t.next === 0) this.rushNext();
+      return;
+    }
+    const goal = t.def.goals[t.i];
+    const p = this.trialBellAt(goal);
+    if (overlap(this.leadRect(), { x: p.x - 12, y: p.y - 36, w: 24, h: 36 })) {
+      t.i++;
+      this.sfx('chime'); this.emit({ k: 'pulse', x: p.x, y: p.y - 18, r: 90, color: [0.6, 0.9, 1] });
+      this.emit({ k: 'trialBell', id: t.def.id, n: t.i, of: t.def.goals.length, x: p.x, y: p.y });
+      if (t.i >= t.def.goals.length) this.endTrial(true);
+      else this.note(`Trial bell ${t.i} of ${t.def.goals.length}: ${trialSecs(t.t).toFixed(1)}s.`, true);
+    }
+  }
+  /** Where a run's trial bell stands (world px: the middle of its tile, on the floor). */
+  trialBellAt(goal: { room: string; c: number; r: number }) {
+    const rm = roomById(goal.room);
+    return { x: (rm.gx * COLS + goal.c) * TILE + 8, y: (rm.gy * ROWS + goal.r + 1) * TILE };
+  }
+  /** The trial is over: the save comes back as it was, with the best time kept, and the heroes stand at the shrine
+   *  they started from. `won` false is a wipe or giving up. */
+  endTrial(won: boolean, why = 'Given up.') {
+    const t = this.trial;
+    if (!t) return;
+    const secs = trialSecs(t.t), id = t.def.id;
+    const before = t.back.medals[id];
+    const newBest = won && (before === undefined || secs < before);
+    this.trial = null;
+    this.save = t.back;
+    if (newBest) this.save.medals[id] = secs;
+    this.lead = this.save.lead; if (this.save.heroes[this.lead].down) this.lead = other(this.lead);
+    for (const h of ALL_HEROES) this.hero[h] = this.newRt();
+    this.boss = null; this.bossEntry = null; this.arenaWater = null; this.notes = []; this.planks.clear(); this.arenaWind = { dir: 1, str: 1 }; this.lanternUp = false;
+    this.shots = []; this.waves = []; this.rings = []; this.markers = []; this.dialog = null;
+    const spot = this.shrineSpot(t.from) ?? this.shrineSpot(this.save.shrine) ?? this.startSpot();
+    Object.assign(this.body, newBody(spot.x, spot.y));
+    this.enterRoom(roomOfPoint(spot.x, spot.y - 4)!, true);
+    this.follower.x = spot.x - 24; this.follower.y = spot.y; this.trail = [];
+    this.safe = { ...spot };
+    const best = this.save.medals[id] ?? null, medal = won ? medalFor(t.def, secs) : null;
+    this.sfx(won ? 'calm' : 'locked');
+    this.note(won ? `${t.def.name}: ${secs.toFixed(1)}s${medal ? `, ${medal}` : ''}${newBest ? '. A new best!' : `. Best ${best!.toFixed(1)}s.`}` : `${t.def.name}: ${why} Back at the shrine.`, true);
+    this.emit({ k: 'trial', id, won, secs, medal, best, newBest });
+    this.emit({ k: 'save' });
+  }
+  /** Give up the trial being run (the pause menu). */
+  quitTrial() { this.endTrial(false); }
 
   // ─── debug helpers for the browser tests and bots ────────────────────────
   teleport(roomId: string, c: number, r: number) {

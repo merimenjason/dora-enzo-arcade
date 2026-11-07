@@ -644,5 +644,41 @@ export default function belfry() {
     ok(BOSSES.tune.hp > BOSSES.mother.hp, 'the finale is the toughest');
     void groupAt; void NOTE_GAP;
   }
+
+  // the map guide to the belfry: kept secret until the Lake Mother is calm, then Wayra's boat and the way across
+  {
+    const g = new BellspireGame(freshSave(), {}, 1); g.dialog = null;
+    for (const a of BASE_ABILITIES) if (!g.save.abilities.includes(a)) g.save.abilities.push(a);
+    for (const b of ['frog', 'hydra', 'puma', 'warden']) g.setFlag(`boss:${b}`);
+    g.teleport('landing', 10, 14);
+    ok(!g.belfryKnown() && g.mapTarget() === null, 'before the Lake Mother the maps show nothing of the belfry');
+    ok(!isBelfryRoom(g.mapGoal().room) && g.mapGoal().room !== 'landing', 'and the wisp’s map mark is in the citadel');
+    g.setFlag('boss:mother');
+    ok(g.belfryKnown(), 'once she is calm the belfry is on the map');
+    const boat = g.boatAt('landing'), t = g.mapTarget();
+    eq(t && [t.kind, t.room, t.x, t.y], ['boat', 'landing', boat.x, boat.y], 'the minimap points to Wayra’s boat on the Landing');
+    ok(t.x > g.body.x, 'which is east of the shrine, so the arrow points right');
+    eq(g.mapGoal(), boat, 'and the wisp’s map mark sits on the boat (its goal, the Bell Rope, is across the water)');
+    // a save that skipped meeting Ukumari (a debug save) still leads to the boat, not back to the keeper
+    ok(!g.flag('keeper') && g.nextGoal().room !== 'keeper', 'with the Mother calm the wisp never leads back to Ukumari');
+    // across the water: the Cloudstair first, then the Loft, then the boat back
+    g.teleport('cliffoot', 10, 14); g.step(NO_INPUT);
+    const c = g.mapTarget();
+    eq([c.kind, c.area], ['area', 'cloud'], 'in the belfry the arrow points to the Cloudstair’s rooms not seen yet');
+    ok(isBelfryRoom(g.mapGoal().room), 'and the wisp’s mark is on the belfry goal itself');
+    for (const r of ROOMS) if (r.area === 'cloud') for (let y = 0; y < r.h; y++) for (let x = 0; x < r.w; x++) if (!g.save.seen.includes(`${r.gx + x},${r.gy + y}`)) g.save.seen.push(`${r.gx + x},${r.gy + y}`);
+    const l = g.mapTarget();
+    eq([l.kind, l.area], ['area', 'loft'], 'with the Cloudstair seen it points to the Belfry Loft');
+    ok(l.y < g.body.y, 'which is up the mountain');
+    for (const r of ROOMS) if (r.area === 'loft') for (let y = 0; y < r.h; y++) for (let x = 0; x < r.w; x++) if (!g.save.seen.includes(`${r.gx + x},${r.gy + y}`)) g.save.seen.push(`${r.gx + x},${r.gy + y}`);
+    const back = g.mapTarget(), cb = g.boatAt('cliffoot');
+    eq([back.kind, back.room, back.x], ['boat', 'cliffoot', cb.x], 'with everything seen it points back to the boat');
+    g.teleport('landing', 10, 14); g.step(NO_INPUT);
+    for (const b of ['condor', 'clappers', 'tune']) g.setFlag(`boss:${b}`);
+    for (const a of ['rope', 'echo']) g.save.abilities.push(a);
+    eq(g.mapTarget(), null, 'and in the citadel, with the belfry done, there is no arrow');
+    const p = new BellspireGame(parseSave(JSON.stringify(g.snapshot())), {}, 1);
+    ok(p.belfryKnown(), 'a loaded save keeps the belfry on the map');
+  }
   return checks;
 }

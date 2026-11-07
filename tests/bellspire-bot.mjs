@@ -8,9 +8,10 @@
 //    Lake Mother, then Keep exploring, Wayra's boat and the Windward Belfry to the Out-of-Tune Bell (the wind bells,
 //    the Bell Rope and the echo notes done for real). It plays the belfry a second time from the finished citadel
 //    save, loaded as the title's Continue loads it.
+// Then the Echo Trials' and New Game+'s bots (tests/bellspire-trials-bot.mjs).
 // Run after compiling the engine into .checks/. `--quick` runs fewer seeds.
 import assert from 'node:assert/strict';
-import { BellspireGame, freshSave, parseSave, BOSSES, TILE, HERO_W, HERO_H, ROOMS, INFO, ABILITY_ORDER, roomById, roomRect, groupAt, rawChar, isBelfryRoom, NOTE_LIFE, WIND_AREAS, SCRIPTS, MURALS } from '../.checks/bellspire-game.js';
+import { BellspireGame, freshSave, parseSave, trialById, BOSSES, TILE, HERO_W, HERO_H, ROOMS, INFO, ABILITY_ORDER, roomById, roomRect, groupAt, rawChar, isBelfryRoom, NOTE_LIFE, WIND_AREAS, SCRIPTS, MURALS } from '../.checks/bellspire-game.js';
 import { Graph, stateKey, nodeRoom, NOTES } from '../.checks/bellspire-nav.js';
 
 const QUICK = process.argv.includes('--quick');
@@ -31,8 +32,16 @@ const PRESET = {
   tune: { level: 12, abilities: ['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide', 'deep', 'rope', 'echo'], hearts: 5, drops: 2, gear: ['reed-ring', 'moonsteel', 'puma-tooth', 'windward-jacket', 'condor-talon', 'star-lamp'], spells: ['ember', 'chime', 'frost', 'gale'], flags: ['boss:condor', 'boss:clappers'] },
 };
 
-export function presetSave(id) {
-  const p = PRESET[id], s = freshSave();
+/** New Game+: each guardian with the abilities of that point of the story again, but the levels, gear and spells
+ *  (bar the Bell Chime, which comes back with its pedestal) of a finished game, and the tougher guardians. */
+export function ngpPresetSave(id) {
+  const end = PRESET.tune, p = PRESET[id];
+  return presetSave(id, { level: end.level, gear: end.gear, spells: end.spells.filter((sp) => sp !== 'chime' || p.abilities.includes('chime')), ngp: 1 });
+}
+
+export function presetSave(id, over = {}) {
+  const p = { ...PRESET[id], ...over }, s = freshSave();
+  if (over.ngp) s.ngp = over.ngp;
   s.abilities = [...p.abilities]; s.hearts = p.hearts; s.drops = p.drops;
   for (const g of p.gear) if (!s.gear.includes(g)) s.gear.push(g);
   for (const sp of p.spells) if (!s.spells.includes(sp)) s.spells.push(sp);
@@ -57,8 +66,8 @@ const rectDist = (x, y, r) => Math.hypot(Math.max(r.x - x, 0, x - (r.x + r.w)), 
 const NO = { left: false, right: false, up: false, down: false, jump: false, attack: false, dash: false, cast: false, tag: false };
 
 /** A human-paced boss player. */
-export function bossBot(id, seed, { assist = true, delay = 13, noise = 0.08 } = {}) {
-  const g = new BellspireGame(presetSave(id), { assist, strict: !assist }, seed);
+export function bossBot(id, seed, { assist = true, delay = 13, noise = 0.08, ngp = false } = {}) {
+  const g = new BellspireGame(ngp ? ngpPresetSave(id) : presetSave(id), { assist, strict: !assist }, seed);
   g.fightBoss(id);
   let rs = seed * 9301 + 49297;
   const rnd = () => { rs = (rs * 1103515245 + 12345) & 0x7fffffff; return rs / 0x7fffffff; };
@@ -103,7 +112,7 @@ export function bossBot(id, seed, { assist = true, delay = 13, noise = 0.08 } = 
   return { won: g.flag(`boss:${id}`), tries: Math.min(tries, 4), ticks: tick, low };
 }
 
-function decide(g, v, rnd, noise) {
+export function decide(g, v, rnd, noise) {
   const out = decide0(g, v, rnd, noise);
   // a clapper's swing skims over a standing hero: keep fighting, but don't jump into it
   if (v?.id === 'clappers' && v.heads.some((h) => h.st === 'swing') && !v.waves.length) out.jump = false;
@@ -134,7 +143,15 @@ function decide0(g, v, rnd, noise) {
       if (Math.abs(x - b.x) < 22 && y >= b.y - 20) { away(x); if (Math.abs(x - b.x) < 10 && b.ground && rnd() < 0.3) inp.dash = true; return inp; }
     }
   }
-  for (const m of v.markers) if (Math.abs(m.x - b.x) < (m.kind === 'aim' ? 34 : 28)) { away(m.x); if (m.kind === 'aim' && g.has('dash') && g.lead === 'dora' && m.t < 12) inp.dash = true; return inp; }
+  // the hydra's seed rain (New Game+): seeds fall everywhere but one gap, so head for the gap and wait in it
+  const seeds = v.markers.filter((m) => m.kind === 'seed').map((m) => m.x).sort((a, c) => a - c);
+  if (seeds.length > 4) {
+    let gx = b.x, gw = 0;
+    for (let i = 1; i < seeds.length; i++) if (seeds[i] - seeds[i - 1] > gw) { gw = seeds[i] - seeds[i - 1]; gx = (seeds[i] + seeds[i - 1]) / 2; }
+    if (Math.abs(gx - b.x) > 6) { if (gx > b.x) inp.right = true; else inp.left = true; if (Math.abs(gx - b.x) > 60 && g.has('dash') && g.lead === 'dora' && b.ground && rnd() < 0.2) inp.dash = true; }
+    return inp;
+  }
+  for (const m of v.markers) if (Math.abs(m.x - b.x) < (m.kind === 'shadow' ? 46 : m.kind === 'aim' || m.kind === 'swirl' ? 34 : 28)) { away(m.x); if (m.kind === 'aim' && g.has('dash') && g.lead === 'dora' && m.t < 12) inp.dash = true; return inp; }
   for (const r of v.rings) if (Math.abs(Math.hypot(r.x - b.x, r.y - me.y) - r.r) < 30) { away(r.x); return inp; }
   // the Out-of-Tune Bell's swing skims over a standing hero: stay down and wait
   if (v.id === 'tune' && v.st === 'swing') return inp;
@@ -277,7 +294,7 @@ function referee(g) {
   return r;
 }
 
-export function routeBot(seed, { maxMinutes = 180, log = false, save = null } = {}) {
+export function routeBot(seed, { maxMinutes = 180, log = false, save = null, trial = null } = {}) {
   // a new game, or (with `save`) the finished citadel save loaded from the title's Continue
   let g = new BellspireGame(save ? parseSave(JSON.stringify(save)) : null, { assist: true }, seed);
   const ref = referee(g);
@@ -286,7 +303,7 @@ export function routeBot(seed, { maxMinutes = 180, log = false, save = null } = 
   const graph = () => { const st = navState(g); const k = stateKey(st); if (!graphs.has(k)) graphs.set(k, new Graph(st)); return graphs.get(k); };
   let prev = NO, ticks = 0;
   const limit = maxMinutes * 3600;
-  const timeline = [], endings = [];
+  const timeline = [], endings = [], trials = [];
   const step = (inp) => {
     if (g.dialog) inp = { ...NO, jump: ticks % 2 === 0 };
     // fight back against anything close by, like a player would
@@ -294,7 +311,7 @@ export function routeBot(seed, { maxMinutes = 180, log = false, save = null } = 
     if (out.jump && prev.jump && !inp.__hold) out.jump = inp.jump;
     g.step(out); prev = out; ticks++;
     ref.tick(ticks);
-    for (const e of g.drainEvents()) { if (e.k === 'item' && log) console.log(`  [${Math.round(ticks / 60)}s] ${e.text}`); if (e.k === 'ending') endings.push({ ...e, at: ticks }); }
+    for (const e of g.drainEvents()) { if (e.k === 'item' && log) console.log(`  [${Math.round(ticks / 60)}s] ${e.text}`); if (e.k === 'ending') endings.push({ ...e, at: ticks }); if (e.k === 'trial') trials.push(e); }
   };
   const idle = (n) => { for (let i = 0; i < n; i++) step({ ...NO }); };
   const tagTo = (h) => { let n = 0; while (g.lead !== h && n++ < 120) { if (g.tagCd === 0 && !g.save.heroes[h].down) { step({ ...NO, tag: true }); step({ ...NO }); } else step({ ...NO }); } };
@@ -445,7 +462,8 @@ export function routeBot(seed, { maxMinutes = 180, log = false, save = null } = 
       const chunk = path.slice(0, k > 0 ? Math.min(k, 6) : 6);
       // in the belfry, the planned moves are replayed back to back exactly as the planner simulated them (a still
       // tick between moves, no settling): its rope swings, wall kicks up shafts and gusty jumps only work as planned
-      if (isBelfryRoom(g.room.id) && !g.dialog) {
+      // (and in an Echo Trial's run everywhere: the clock wants the planner's own line)
+      if ((trial || isBelfryRoom(g.room.id)) && !g.dialog) {
         // never stop on a wall mid-shaft: carry on to the next spot to stand or rung
         while (chunk.length < path.length && G.nodes.get(chunk.at(-1).to).mode === 'wall' && !noteAt(G.nodes.get(path[chunk.length].to))) chunk.push(path[chunk.length]);
         const end = G.nodes.get(chunk.at(-1).to);
@@ -591,6 +609,25 @@ export function routeBot(seed, { maxMinutes = 180, log = false, save = null } = 
   }
   return null;
   };
+  // an Echo Trial's run (from a finished save at its shrine): the planner's way to each trial bell in turn, played
+  // for real, ringing a wind bell if the wind is wrong
+  if (trial) {
+    const def = trialById(trial);
+    idle(5);
+    const why = g.startTrial(trial);
+    if (why) return { ok: false, why };
+    for (const goal of def.goals) {
+      const p = g.trialBellAt(goal);
+      const at = (n) => n.mode === 'ground' && Math.abs(n.x - p.x) < 10 && Math.abs(n.y - p.y) < 6;
+      let reached = false;
+      for (let k = 0; k < 4 && !reached && g.trial && ticks < limit; k++) { reached = go(at, goal.room); if (!reached && !fixWind(at)) break; }
+      if (!g.trial) break;
+      for (let i = 0; i < 30 && g.trial && g.trial.i <= def.goals.indexOf(goal); i++) step({ ...NO, left: g.body.x > p.x + 2, right: g.body.x < p.x - 2 });
+      if (!reached && g.trial) return { ok: false, at: goal.room, ticks, room: g.room.id };
+    }
+    const r = trials.at(-1);
+    return { ok: !!r?.won, secs: r?.secs, medal: r?.medal, ticks };
+  }
   const OBJ = objectives();
   let citadel = null;
   if (!save) {
@@ -712,4 +749,14 @@ function runRoute() {
     belfryChecks(c, 'from the save');
   }
 }
-if (process.argv[1]?.endsWith('bellspire-bot.mjs')) { if (!process.argv.includes('--route-only')) runBosses(); if (!ONLY) runRoute(); }
+if (process.argv[1]?.endsWith('bellspire-bot.mjs')) {
+  if (!process.argv.includes('--route-only')) runBosses();
+  if (!ONLY) runRoute();
+  // and the Echo Trials' and New Game+'s bots (tests/bellspire-trials-bot.mjs)
+  // (in its own process: it imports this file's bots, which can't be imported while this file is still running)
+  if (!ONLY && !process.argv.includes('--route-only')) {
+    const { spawnSync } = await import('node:child_process');
+    const r = spawnSync(process.execPath, [new URL('./bellspire-trials-bot.mjs', import.meta.url).pathname, ...process.argv.slice(2)], { stdio: 'inherit' });
+    if (r.status !== 0) process.exit(r.status ?? 1);
+  }
+}

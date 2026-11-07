@@ -13,7 +13,7 @@ import { HeroAnimator, type AnimInput, type AnimOut } from './bellspire-anim';
 
 type Img = HTMLImageElement | HTMLCanvasElement;
 /** Extra treatment for a sprite: `rim` adds a dark outline and a lit upper edge in that colour; `tell` flashes it. */
-type SprFx = { rim?: string; tell?: boolean };
+type SprFx = { rim?: string; tell?: boolean; /** washed over with one colour (the puma's painted twin) */ wash?: string };
 /** Each guardian's rim light, in the colour of its arena's light. */
 const RIM: Record<string, string> = { frog: '#bfe6ff', hydra: '#eaf5a8', puma: '#ffd49a', warden: '#ffe49a', mother: '#b4fff0', condor: '#ffd0a8', clappers: '#c8d8ff', tune: '#a8f4ff' };
 /** A point light; `soft` lights fall off linearly (a wide, even pool), the rest fall off with the square (a hot centre). */
@@ -233,6 +233,14 @@ export class BellspireScene {
   }
 
   /** Draw frame `i` of strip `name` with its bottom-middle at (x, y). */
+  /** A sprite squashed, stretched or tilted about its feet (the New Game+ attacks' own poses). */
+  sprXf(name: string, i: number, x: number, y: number, flip: boolean, alpha: number, white: boolean, fx: SprFx | undefined, sx: number, sy: number, rot = 0) {
+    if (sx === 1 && sy === 1 && !rot) { this.spr(name, i, x, y, flip, alpha, white, fx); return; }
+    const ctx = this.ctx;
+    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); if (rot) ctx.rotate(rot); ctx.scale(sx, sy);
+    this.spr(name, i, 0, 0, flip, alpha, white, fx);
+    ctx.restore();
+  }
   spr(name: string, i: number, x: number, y: number, flip = false, alpha = 1, white = false, fx?: SprFx) {
     const base = name.split('@')[0];
     const im = white ? this.white.get(base) : this.img.get(name);
@@ -262,6 +270,7 @@ export class BellspireScene {
         const ga = ctx.globalAlpha; ctx.globalAlpha = ga * 0.9; blit(rc, 0, 0, 0); ctx.globalAlpha = ga;
       }
     }
+    if (fx?.wash) { const w = this.tint(name, fx.wash); if (w) { const ga = ctx.globalAlpha; ctx.globalAlpha = ga * 0.55; blit(w); ctx.globalAlpha = ga; } }
     // a wind-up flashes bright
     if (fx?.tell) { const hot = this.tint(name, '#fff4c0'); if (hot) { const ga = ctx.globalAlpha; ctx.globalAlpha = ga * 0.5; blit(hot); ctx.globalAlpha = ga; } }
     if (alpha !== 1) ctx.globalAlpha = 1;
@@ -585,9 +594,11 @@ export class BellspireScene {
     this.drawPickups(g, ox, oy);
     this.drawEnemies(g, ox, oy);
     if (g.boss) this.drawBoss(g, g.boss, ox, oy);
+    if (g.trial?.def.kind === 'run') this.drawTrialBells(g, ox, oy);
     this.drawHeroes(g, ox, oy);
     this.drawShots(g, ox, oy);
     this.drawWater(g, ox, oy);
+    if (g.boss) this.drawWarnings(g, ox, oy);
     this.drawParticles(ox, oy);
 
     // light
@@ -1206,24 +1217,120 @@ export class BellspireScene {
     }
   }
 
+  /** An Echo Trial run's bells in this room: the next one bright and swaying, with its number, the later ones dim. */
+  drawTrialBells(g: BellspireGame, ox: number, oy: number) {
+    const ctx = this.ctx, t = g.trial!;
+    t.def.goals.forEach((goal, i) => {
+      if (i < t.i || goal.room !== g.room.id) return;
+      const p = g.trialBellAt(goal), next = i === t.i;
+      const x = Math.round(p.x + ox), y = Math.round(p.y + oy);
+      ctx.globalAlpha = next ? 1 : 0.45;
+      // a little post with an arm, and a bell on it that swings
+      ctx.fillStyle = '#2a2030'; ctx.fillRect(x - 9, y - 34, 3, 34); ctx.fillRect(x - 9, y - 34, 10, 2);
+      ctx.fillStyle = '#6a5a70'; ctx.fillRect(x - 8, y - 33, 1, 32);
+      const sw = next ? Math.sin(this.t * 0.12) * 0.35 : 0;
+      ctx.save(); ctx.translate(x, y - 32); ctx.rotate(sw);
+      ctx.fillStyle = next ? '#bfe8ff' : '#7a90a0'; ctx.beginPath(); ctx.moveTo(-5, 10); ctx.quadraticCurveTo(-5, 1, 0, 1); ctx.quadraticCurveTo(5, 1, 5, 10); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = next ? '#ffffff' : '#a0b0c0'; ctx.fillRect(-6, 9, 12, 2); ctx.fillRect(-1, 11, 2, 2);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+      if (next) this.text(String(i + 1), x, y - 40, '#dff4ff');
+      if (next && this.t % 10 === 0) this.particles.push({ x: p.x + (Math.random() - 0.5) * 10, y: p.y - 26, vx: 0, vy: -0.4, life: 0, max: 30, color: '#bfe8ff', size: 1, g: 0, light: true });
+    });
+  }
+  /** Warnings that must show over the heroes and the water: the frog's shadow as it comes down (with dust falling
+   *  from the dark above it), and the whirlpools where the Lake Mother's spouts will rise. */
+  drawWarnings(g: BellspireGame, ox: number, oy: number) {
+    const ctx = this.ctx;
+    for (const m of g.markers) {
+      const cx = Math.round(m.x + ox), cy = Math.round(m.y + oy);
+      if (m.kind === 'shadow') {
+        const k = 1 - Math.max(0, m.t) / 64;
+        this.shadow(cx, cy, Math.max(12, 14 + 26 * k), 0.35 + 0.3 * k);
+        ctx.strokeStyle = `rgba(255,120,90,${0.5 + 0.4 * (this.t % 10 < 5 ? 1 : 0)})`; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.ellipse(cx, cy - 1, Math.max(12, 14 + 26 * k) + 2, Math.max(3, (14 + 26 * k) * 0.22), 0, 0, Math.PI * 2); ctx.stroke();
+        if (this.t % 2 === 0) this.particles.push({ x: m.x + (Math.random() - 0.5) * 20, y: g.bossRoomRect().y + 8, vx: 0, vy: 2.5, life: 0, max: 60, color: '#b8b0a0', size: 1, g: 0.05 });
+      } else if (m.kind === 'bell' || m.kind === 'lily') {
+        // where a bell or a lily will land: a pulsing ring on the floor, a faint column of light up to it, and a small
+        // picture of what is coming, so the spot reads even under the heroes or the water
+        const bell = m.kind === 'bell', k = this.t % 12 < 6, w = 13 + (k ? 1 : 0);
+        const col = bell ? '255,208,96' : '170,255,210';
+        const top = g.bossRoomRect().y + 40, gr = ctx.createLinearGradient(0, top + oy, 0, cy);
+        gr.addColorStop(0, `rgba(${col},0)`); gr.addColorStop(1, `rgba(${col},0.22)`);
+        ctx.fillStyle = gr; ctx.fillRect(cx - 9, Math.round(top + oy), 18, Math.round(cy - top - oy));
+        ctx.fillStyle = `rgba(${col},0.25)`; ctx.beginPath(); ctx.ellipse(cx, cy - 1, w, 4, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = `rgba(${col},${k ? 1 : 0.7})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(cx, cy - 1, w, 4, 0, 0, Math.PI * 2); ctx.stroke();
+        if (bell) { ctx.fillStyle = k ? '#ffd060' : '#c89030'; ctx.fillRect(cx - 3, cy - 14, 6, 6); ctx.fillRect(cx - 4, cy - 9, 8, 2); ctx.fillRect(cx - 1, cy - 16, 2, 2); ctx.fillRect(cx - 1, cy - 7, 2, 2); }
+        else { this.lily(cx, cy - 10, 0.5, 0); }
+      } else if (m.kind === 'swirl') {
+        for (let i = 0; i < 3; i++) { ctx.strokeStyle = i ? 'rgba(120,210,230,0.85)' : '#e0ffff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(cx, cy - 2, 6 + i * 5, 2 + i * 1.2, 0, this.t * 0.2 + i * 2, this.t * 0.2 + i * 2 + 4); ctx.stroke(); }
+      }
+    }
+  }
+  /** A falling lily pad: a round green pad with its notch and veins, and a white water lily on it. */
+  lily(x: number, y: number, scale: number, rot: number) {
+    const ctx = this.ctx;
+    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.rotate(rot); ctx.scale(scale, scale);
+    ctx.fillStyle = '#1e4a30'; ctx.beginPath(); ctx.ellipse(0, 0, 12, 7, 0, 0.35, Math.PI * 2 - 0.35); ctx.lineTo(0, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#3e8a52'; ctx.beginPath(); ctx.ellipse(0, -1, 11, 6, 0, 0.4, Math.PI * 2 - 0.4); ctx.lineTo(0, -1); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#6cc07a'; ctx.lineWidth = 1; ctx.beginPath(); for (const a of [2.2, 3.1, 4.0]) { ctx.moveTo(0, -1); ctx.lineTo(Math.cos(a) * 9, -1 + Math.sin(a) * 5); } ctx.stroke();
+    ctx.fillStyle = '#f4fff6'; for (const [px, py] of [[-4, -4], [0, -6], [4, -4], [-2, -3], [2, -3]]) ctx.fillRect(px - 1, py - 1, 3, 3);
+    ctx.fillStyle = '#ffe27a'; ctx.fillRect(-1, -5, 2, 2);
+    ctx.restore();
+  }
+  /** A soft dark oval on the floor (a shadow from above). */
+  shadow(x: number, y: number, r: number, a: number) {
+    const ctx = this.ctx;
+    ctx.fillStyle = `rgba(8,6,16,${a})`; ctx.beginPath(); ctx.ellipse(Math.round(x), Math.round(y - 1), r, Math.max(2, r * 0.2), 0, 0, Math.PI * 2); ctx.fill();
+  }
   drawBoss(g: BellspireGame, b: Boss, ox: number, oy: number) {
     const ctx = this.ctx;
     const tell = b.tellT > 0 && Math.floor(b.tellT / 3) % 2 === 0;
     const white = b.flash > 0 && b.flash % 4 < 2;
     const calmA = b.calm ? Math.max(0.25, 1 - b.t / 120) : 1;
     const st = b.st;
-    const atk = /hop|tongue|pounce|dash|leap|swing|drop|sweep/.test(st) && !st.endsWith('Tell');
+    const atk = /hop|tongue|pounce|dash|leap|swing|drop|sweep|twin|flopUp|flopDown|chorus|spout/.test(st) && !st.endsWith('Tell');
     // frames: 0 rest, 1 and 3 the wind-up (they alternate, so a tell throbs), 2 the attack, 4 staggered by a hit, 5 calmed
     const fr = b.calm ? 5 : st.endsWith('Tell') ? (Math.floor(this.t / 7) % 2 ? 3 : 1) : atk ? 2 : b.flash > 3 ? 4 : 0;
     const body = b.body;
     const fx: SprFx = { rim: b.calm ? undefined : RIM[b.id], tell: tell && !b.calm };
     if (b.id === 'frog') {
-      this.spr('boss-frog', fr, b.x + ox, b.y + oy + 2, b.face > 0, calmA, white, fx);
+      // New Game+'s belly flop: a deep squat that throbs, stretched tall in the leap and the fall, flattened on landing
+      let sx = 1, sy = 1;
+      if (st === 'flopTell') { const k = Math.min(1, b.t / 18); sx = 1 + 0.18 * k; sy = 1 - 0.26 * k + (this.t % 6 < 3 ? 0.03 : 0); }
+      else if (st === 'flopUp' || st === 'flopDown') { sx = 0.84; sy = 1.24; }
+      else if (st === 'flopLand') { const k = Math.max(0, 1 - b.t / 22); sx = 1 + 0.32 * k; sy = 1 - 0.3 * k; }
+      if (st === 'flopDown') this.shadow(b.x + ox, g.floorY() + oy, 30 + 8 * Math.min(1, b.t / 14), 0.55);
+      if (st !== 'flopAim') this.sprXf('boss-frog', st === 'flopLand' && b.t < 30 ? 4 : fr, b.x + ox, b.y + oy + 2, b.face > 0, calmA, white, fx, sx, sy);
       if (st === 'tongue') { for (const h of b.harm) { ctx.fillStyle = '#d0506a'; ctx.fillRect(Math.round(h.x + ox), Math.round(h.y + oy + 2), Math.round(h.w), 5); ctx.fillStyle = '#ff8aa0'; ctx.fillRect(Math.round(h.x + ox), Math.round(h.y + oy + 2), Math.round(h.w), 1); } }
     } else if (b.id === 'puma') {
-      this.spr('boss-puma', fr, b.x + ox, b.y + oy + 2, b.face > 0, calmA * b.vis, white, fx);
+      // New Game+'s painted twin: the puma rears (tilted back on its haunches) while a copy of it, all wet paint, comes
+      // off the far wall; then the copy charges with a smear of paint behind it
+      const tw = (st === 'twinTell' || st === 'twin') ? b.arms[0] : undefined;
+      if (tw) {
+        const a = st === 'twinTell' ? Math.min(1, b.t / 40) * 0.75 : 0.75, tf = b.face < 0;
+        const k = st === 'twin' && b.t > 22;
+        if (k) for (let i = 1; i <= 4; i++) { ctx.globalAlpha = 0.18 * (5 - i) / 4; ctx.fillStyle = '#c050d0'; ctx.fillRect(Math.round(tw.x + ox - (tf ? 1 : -1) * i * 9 - 10), Math.round(tw.y + oy - 18 + i), 20, 10 - i * 2); }
+        ctx.globalAlpha = 1;
+        this.spr('boss-puma', k ? 2 : st === 'twinTell' ? 1 : 0, tw.x + ox, tw.y + oy + 2, tf, a, false, { wash: '#b048c8', tell: st === 'twinTell' && this.t % 6 < 3 });
+        if (!k && this.t % 4 === 0) this.particles.push({ x: tw.x + (Math.random() - 0.5) * 30, y: tw.y - 24 + Math.random() * 10, vx: 0, vy: 0.5, life: 0, max: 24, color: '#d070e0', size: 2, g: 0.04 });
+      }
+      this.sprXf('boss-puma', fr, b.x + ox, b.y + oy + 2, b.face > 0, calmA * b.vis, white, fx, 1, st === 'twinTell' ? 1.08 : 1, st === 'twinTell' ? -b.face * 0.22 * Math.min(1, b.t / 12) : 0);
     } else if (b.id === 'mother') {
-      this.spr('boss-mother', fr, b.x + 40 + ox, b.y + oy + 2, false, calmA, white, fx);
+      // New Game+'s spouts: she rises up out of the water, arms high, and sinks back as the columns burst
+      const lift = st === 'spoutTell' ? Math.min(1, b.t / 24) * 14 + (this.t % 8 < 4 ? 1 : 0) : st === 'spout' ? Math.max(0, 14 - b.t * 0.4) : 0;
+      this.sprXf('boss-mother', fr, b.x + 40 + ox, b.y + oy + 2 - lift, false, calmA, white, fx, 1, 1 + lift / 140);
+      if (st === 'spout') b.arms.forEach((a, i) => {
+        const u = b.t - i * 18;
+        if (u < 0 || u >= 34) return;
+        const top = g.bossRoomRect().y + 30, h = (g.floorY() - top) * Math.min(1, u / 6) * (u > 28 ? (34 - u) / 6 : 1);
+        const x0 = Math.round(a.x - 13 + ox), y1 = Math.round(g.floorY() + oy);
+        ctx.fillStyle = 'rgba(60,150,190,0.85)'; ctx.fillRect(x0, y1 - h, 26, h);
+        ctx.fillStyle = 'rgba(150,230,245,0.9)'; ctx.fillRect(x0 + 4, y1 - h, 4, h); ctx.fillRect(x0 + 16, y1 - h, 2, h);
+        for (let k = 0; k < h; k += 12) { const w = ((k + this.t * 3) % 24) < 12 ? 1 : -1; ctx.fillStyle = '#e8ffff'; ctx.fillRect(x0 + 12 + w * 8, y1 - h + k, 2, 4); }
+        ctx.fillStyle = '#f0ffff'; ctx.fillRect(x0 - 3, Math.round(y1 - h), 32, 3);
+        if (this.t % 2 === 0) this.particles.push({ x: a.x + (Math.random() - 0.5) * 26, y: g.floorY() - h, vx: (Math.random() - 0.5) * 2, vy: -1.4 - Math.random(), life: 0, max: 22, color: '#bff4ff', size: 2, g: 0.12 });
+      });
       if (st === 'sweep' && b.arms[0]) {
         // a rolling wave: a curved crest, higher at the front, with a foam lip and spray
         const a = b.arms[0], x0 = Math.round(a.x - 18 + ox), y0 = Math.round(a.y + oy), dir = g.body.x < a.x ? -1 : 1;
@@ -1246,21 +1353,30 @@ export class BellspireScene {
       }
       this.spr('boss-hydra', 0, b.x + ox + 20, b.y + oy + 8, false, calmA, white, { rim: fx.rim });
       for (const h of b.heads) {
-        const open = h.st === 'aim' || h.st === 'lunge' || h.st === 'hold';
+        const rear = (st === 'rainTell' || st === 'rain') && h.st === 'idle';
+        const open = h.st === 'aim' || h.st === 'lunge' || h.st === 'hold' || rear;
+        // New Game+'s seed rain: the reared heads spit seeds high into the air
+        if (rear && st === 'rain' && this.t % 3 === 0) this.particles.push({ x: h.x + (Math.random() - 0.5) * 8, y: h.y - 8, vx: (Math.random() - 0.5) * 1.6, vy: -3.2 - Math.random() * 1.5, life: 0, max: 26, color: '#a8d050', size: 2, g: 0.05 });
         const shiver = h.st === 'aim' && this.t % 4 < 2 ? 1 : 0;
         // heads: 0-1 swaying, 2 jaws open, 3 struck, 4 asleep, 5 snapping
         const hf = b.calm ? 4 : h.st === 'lunge' ? 5 : open ? 2 : b.flash > 3 ? 3 : Math.floor((this.t + h.x) / 24) % 2;
-        this.spr('hydra-head', hf, h.x + ox + shiver, h.y + oy + 20, false, calmA, white, { rim: fx.rim, tell: h.st === 'aim' && this.t % 6 < 3 && !b.calm });
+        this.sprXf('hydra-head', hf, h.x + ox + shiver + (rear && this.t % 4 < 2 ? 1 : 0), h.y + oy + 20, false, calmA, white, { rim: fx.rim, tell: (h.st === 'aim' || (rear && st === 'rainTell')) && this.t % 6 < 3 && !b.calm }, 1, 1, rear ? -0.35 : 0);
       }
     } else if (b.id === 'warden') {
+      // (in the chorus the hand bells fly over the heroes, often in front of the big bell, so they're drawn after it)
+      const chorus = st === 'chorusTell' || st === 'chorus';
+      const wf = b.calm ? 4 : st === 'swing' || st === 'swing2' ? 2 : st === 'rest' || st === 'drop' || st === 'chorus' || st.endsWith('Tell') ? 1 : b.flash > 3 ? 3 : 0;
+      if (chorus) this.spr('boss-warden', wf, b.x + ox, body.y + body.h + oy + 6, false, calmA, white, fx);
       for (const a of b.arms) {
         const sx = a.x < b.x ? body.x + 14 : body.x + body.w - 14, sy = body.y + 30;
         ctx.strokeStyle = '#2a2024'; ctx.lineWidth = 3; ctx.setLineDash([3, 2]); ctx.beginPath(); ctx.moveTo(sx + ox, sy + oy); ctx.lineTo(a.x + ox, a.y + oy - 8); ctx.stroke(); ctx.setLineDash([]);
-        this.spr('warden-bell', 0, a.x + ox, a.y + oy + 12, false, calmA, false, { rim: fx.rim, tell: fx.tell });
+        // New Game+'s chorus: the hand bells ring in the air (a quick shake and a halo) before they come down
+        const ring = chorus && a.y < g.floorY() - 40;
+        if (ring) { ctx.strokeStyle = `rgba(255,220,140,${0.4 + 0.3 * Math.sin(this.t * 0.4)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(Math.round(a.x + ox), Math.round(a.y + oy), 16 + (this.t % 12), 0, Math.PI * 2); ctx.stroke(); }
+        this.sprXf('warden-bell', 0, a.x + ox, a.y + oy + 12, false, calmA, false, { rim: fx.rim, tell: fx.tell || (ring && this.t % 6 < 3) }, 1, 1, ring ? Math.sin(this.t * 0.6) * 0.3 : 0);
       }
       // the bell: 0 hanging, 1 blazing, 2 tilted in a swing, 3 jolted by a hit, 4 quiet
-      const wf = b.calm ? 4 : st === 'swing' || st === 'swing2' ? 2 : st === 'rest' || st === 'drop' || st.endsWith('Tell') ? 1 : b.flash > 3 ? 3 : 0;
-      this.spr('boss-warden', wf, b.x + ox, body.y + body.h + oy + 6, false, calmA, white, fx);
+      if (!chorus) this.spr('boss-warden', wf, b.x + ox, body.y + body.h + oy + 6, false, calmA, white, fx);
     }
     else if (b.id === 'condor') {
       // the Hail Condor: drawn standing on (or diving at) the bottom of its body, facing the heroes
@@ -1288,7 +1404,12 @@ export class BellspireScene {
     // floor markers for falling bells and lilies
     for (const m of g.markers) {
       const k = m.t % 10 < 5;
-      ctx.fillStyle = m.kind === 'bell' ? (k ? '#ffd060' : '#a07020') : m.kind === 'aim' ? (k ? '#ff6a5a' : '#902a20') : k ? '#a0ffd0' : '#408060';
+      // the frog's shadow grows as it comes down; a whirlpool turns where a spout will rise; a seed sprouts where one
+      // will fall
+      // (drawn over the heroes and the water instead: drawWarnings)
+      if (m.kind === 'shadow' || m.kind === 'swirl' || m.kind === 'bell' || m.kind === 'lily') continue;
+      if (m.kind === 'seed') { ctx.fillStyle = k ? '#c8f070' : '#5a8a2a'; ctx.fillRect(Math.round(m.x - 6 + ox), Math.round(m.y - 2 + oy), 12, 2); ctx.fillRect(Math.round(m.x - 1 + ox), Math.round(m.y - 6 + oy), 2, 4); ctx.fillRect(Math.round(m.x + 1 + ox), Math.round(m.y - 7 + oy), 3, 2); continue; }
+      ctx.fillStyle = k ? '#ff6a5a' : '#902a20';
       ctx.fillRect(Math.round(m.x - 10 + ox), Math.round(m.y - 2 + oy), 20, 2);
       ctx.fillRect(Math.round(m.x - 1 + ox), Math.round(m.y - 8 + oy), 2, 4);
     }
@@ -1320,6 +1441,7 @@ export class BellspireScene {
         for (let k = 0; k < 3; k++) { ctx.strokeStyle = `rgba(220,250,255,${0.85 - k * 0.25})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x - f * k * 6, y, s.r - k * 2, f > 0 ? -1.2 : Math.PI - 1.2 + 0.0, f > 0 ? 1.2 : Math.PI + 1.2); ctx.stroke(); }
         if (this.t % 3 === 0) this.particles.push({ x: s.x, y: s.y + (Math.random() - 0.5) * 20, vx: -f * 0.6, vy: 0, life: 0, max: 16, color: '#e8fbff', size: 1, g: 0 });
       }
+      else if (s.kind === 'lily') this.lily(x, y, 1, Math.sin((this.t + s.id * 7) * 0.15) * 0.5);
       else if (s.kind === 'bubble') { ctx.strokeStyle = 'rgba(200,250,255,0.9)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, s.r, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = 'rgba(160,230,240,0.3)'; ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillRect(x - 3, y - 3, 2, 2); }
       else {
         const c = s.kind === 'water' ? ['#2a5aa0', '#7ac0ff'] : s.kind === 'seed' ? ['#3a5a1a', '#a8d050'] : s.kind === 'paint' ? ['#7a3010', '#ff9040'] : s.kind === 'lily' ? ['#3a7a50', '#e8fff0'] : ['#444', '#ccc'];
@@ -1394,6 +1516,8 @@ export class BellspireScene {
     const L: Light[] = [];
     const room = g.room, t = this.t;
     const flick = (k: number) => 0.88 + 0.08 * Math.sin(t * 0.21 + k * 1.7) + 0.04 * Math.sin(t * 0.53 + k * 3.1);
+    // an Echo Trial run's next bell glows pale blue
+    if (g.trial?.def.kind === 'run') { const goal = g.trial.def.goals[g.trial.i]; if (goal?.room === room.id) { const p = g.trialBellAt(goal); L.push({ x: p.x, y: p.y - 26, r: 70, c: [0.7, 0.9, 1], i: 0.9 * flick(5) }); } }
     // each echo note glows cyan as it appears, and dims and flickers as it fades
     for (const n of g.notes) {
       if (n.room !== room.id || n.t < n.at) continue;

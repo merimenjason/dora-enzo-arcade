@@ -4,10 +4,13 @@
 // a mural, the pause menu (map and travel, gear, items, guide, settings and a key rebind), a water bell, a lantern
 // hatch, a boss fight, the ending, the save across a reload and a corrupt save, the Windward Belfry (Wayra's boat,
 // the wind and its bells, the Bell Rope, the echo notes, the Frost Fan and the Gale Wave, riding a swinging bell, the
-// outfits, the three guardians and the belfry's ending), and phones held sideways and upright with the on-screen pad,
+// outfits, the three guardians and the belfry's ending), the Echo Trials (the Trials page locked and open, a run with its
+// clock, bells and result card, Try again, giving up, the Guardian Rush) and New Game+ (locked, started, its own save,
+// each new guardian attack, both saves on the title), and phones held sideways and upright with the on-screen pad,
 // all with no page errors and no sideways scrolling. Needs `npm run dev` and Playwright.
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import { manifest } from '../bellspire-strips.mjs';
 
 const base = process.env.BASE_URL ?? 'http://localhost:3000';
 const KEY = 'bellspire-v1';
@@ -35,6 +38,26 @@ const until = async (page, fn, arg, timeout = 15000) => {
 };
 const dbg = (page, fn, ...a) => page.evaluate(([f, args]) => window.__bellspire()[f](...args), [fn, a]);
 const game = (page, expr) => page.evaluate((e) => { const g = window.__bellspire().game; return new Function('g', `return (${e})`)(g); }, expr);
+const ART = manifest();
+/** An art strip shown through a CSS background: sized to exactly its frames (as the manifest says, matching the image),
+ *  and placed on one whole frame, so the element shows one frame, unsqueezed. */
+const stripShowsOneFrame = async (page, selector, name) => {
+  const r = await page.locator(selector).first().evaluate(async (el) => {
+    const cs = getComputedStyle(el), url = cs.backgroundImage.match(/url\("?(.*?)"?\)/)[1];
+    const im = new Image(); im.src = url; await im.decode();
+    return { size: cs.backgroundSize, pos: cs.backgroundPositionX, w: el.getBoundingClientRect().width, h: el.getBoundingClientRect().height, nw: im.naturalWidth, nh: im.naturalHeight };
+  });
+  const [cw, ch, n] = ART[name];
+  assert.equal(r.nw, cw * n, `${name}.webp holds ${n} frames of ${cw}px`);
+  // the drawn strip's width: n × the element's width (in % or px), so one frame fills the element exactly
+  const bw = r.size.endsWith('%') || /% /.test(r.size) ? parseFloat(r.size) / 100 * r.w : parseFloat(r.size);
+  assert.ok(Math.abs(bw - n * r.w) < 0.5, `${name}: the strip is drawn ${n} frames wide (${r.size} on a ${r.w}px box)`);
+  if (r.size.includes('%')) assert.equal(r.size, `${n * 100}% 100%`, `${name}: background-size is ${n * 100}% 100%`);
+  // and placed on a whole frame
+  const off = r.pos.endsWith('%') ? parseFloat(r.pos) / 100 * (bw - r.w) : -parseFloat(r.pos);
+  assert.ok(Math.abs(off / r.w - Math.round(off / r.w)) < 0.01 && Math.round(off / r.w) >= 0 && Math.round(off / r.w) < n, `${name}: shows exactly one frame (offset ${off}px on ${r.w}px frames)`);
+  assert.ok(Math.abs(r.w / r.h - cw / ch) < 0.02, `${name}: the box keeps the frame's shape (${r.w}×${r.h} for ${cw}×${ch})`);
+};
 const noSideScroll = (page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
 const hold = async (page, key, ms) => { await page.keyboard.down(key); await page.waitForTimeout(ms); await page.keyboard.up(key); };
 // hold V long enough for a charged spell (counted in game ticks, so a slow frame rate can't cut it short)
@@ -75,10 +98,11 @@ try {
   ok('settings open from the title');
 
   // ─── a new game ──────────────────────────────────────────────────────────
-  await page.getByRole('button', { name: 'New game' }).click();
+  await page.getByRole('button', { name: 'New game', exact: true }).click();
   await ready(page);
   await until(page, () => window.__bellspire().screen === 'game' && window.__bellspire().state?.dialog);
   assert.ok(await page.locator('.bs-dialog').isVisible(), 'the intro talks');
+  if (await page.locator('.bs-dialog .bs-portrait').count()) await stripShowsOneFrame(page, '.bs-dialog .bs-portrait', 'portraits');
   for (let i = 0; i < 20 && (await st(page)).dialog; i++) { await page.keyboard.press('KeyZ'); await page.waitForTimeout(60); }
   assert.ok(!(await st(page)).dialog, 'Z moves the talk along to the end');
   ok('a new game opens with the intro, read through with Z');
@@ -248,9 +272,10 @@ try {
   await page.keyboard.press('ArrowUp');
   await until(page, () => window.__bellspire().mural !== null);
   assert.ok(await page.locator('.bs-mural p').isVisible());
+  await stripShowsOneFrame(page, '.bs-mural-art', 'murals');
   await page.keyboard.press('Escape');
   await until(page, () => window.__bellspire().mural === null);
-  ok('↑ at a mural shows its painting and story; Esc closes it');
+  ok('↑ at a mural shows its painting (one whole panel of the strip, not squeezed) and story; Esc closes it');
 
   // ─── the menu ────────────────────────────────────────────────────────────
   await page.keyboard.press('Escape');
@@ -272,6 +297,8 @@ try {
   assert.match(await sword.locator('.bs-why').innerText(), /Only Dora/);
   ok('Gear: Enzo can’t take Dora’s sword, and it says so');
   await page.getByRole('tab', { name: 'Items' }).click();
+  await stripShowsOneFrame(page, '.bs-items .bs-icon', 'icons');
+  ok('the item icons show one whole icon each, unsqueezed');
   await dbg(page, 'setHp', 'dora', 5);
   await page.waitForTimeout(150);
   await page.locator('.bs-items li', { hasText: 'Quinoa' }).getByRole('button', { name: 'Use' }).click();
@@ -558,7 +585,10 @@ try {
   await dbg(page, 'teleport', 'well', 14, 15);
   await page.waitForTimeout(200);
   await tagTo(page, 'enzo');
-  await chord(page, 'ArrowDown', 'KeyV');
+  // (↓ and V in the same moment: Enzo stands on the ladder's top under the hatch, and ↓ alone, even for a frame, starts
+  // him down the ladder, where the lantern can't be raised)
+  const keys = (type, codes) => page.evaluate(([t, cs]) => { for (const code of cs) window.dispatchEvent(new KeyboardEvent(t, { code, key: code, bubbles: true })); }, [type, codes]);
+  await keys('keydown', ['ArrowDown', 'KeyV']); await page.waitForTimeout(120); await keys('keyup', ['KeyV', 'ArrowDown']);
   await until(page, () => window.__bellspire().state.lantern);
   ok('↓ + V raises the lantern');
   await page.keyboard.down('ArrowUp');
@@ -621,9 +651,9 @@ try {
   ok('after the ending, finding the rest plays the epilogue; the title can show it again');
   await page.getByRole('button', { name: 'Title' }).click();
   await until(page, () => window.__bellspire().screen === 'title');
-  assert.ok(await page.getByRole('button', { name: 'Continue' }).isVisible());
+  assert.ok(await page.getByRole('button', { name: 'Continue', exact: true }).isVisible());
   await page.reload(); await ready(page);
-  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await until(page, () => window.__bellspire().screen === 'game' && window.__bellspire().state);
   assert.ok((await st(page)).abilities.includes('dash'), 'the save comes back after a reload');
   ok('Continue after a reload picks the save back up');
@@ -632,7 +662,7 @@ try {
   await page.getByRole('button', { name: 'Save and quit to title' }).click();
   await until(page, () => window.__bellspire().screen === 'title');
   ok('save and quit to the title');
-  await page.getByRole('button', { name: 'New game' }).click();
+  await page.getByRole('button', { name: 'New game', exact: true }).click();
   assert.ok(await page.locator('.bs-confirm').isVisible());
   await page.getByRole('button', { name: 'Keep my save' }).click();
   ok('New game over a save asks first');
@@ -647,7 +677,7 @@ try {
   {
     const page = await open();
     await page.goto(`${base}/bellspire`); await page.evaluate((k) => localStorage.removeItem(k), KEY); await page.reload(); await ready(page);
-    await page.getByRole('button', { name: 'New game' }).click();
+    await page.getByRole('button', { name: 'New game', exact: true }).click();
     await until(page, () => window.__bellspire().screen === 'game' && window.__bellspire().state);
     // a save that has finished the citadel: every ability it gives, the Lake Mother calm
     await game(page, `(g.save.abilities = ['dash','lantern','double','wallkick','chime','glide','deep'], g.save.spells.push('ember','chime'),
@@ -767,12 +797,272 @@ try {
     await page.context().close();
   }
 
+  // ─── the Echo Trials and New Game+: every new action ────────────────────────
+  {
+    const page = await open();
+    await page.goto(`${base}/bellspire`);
+    await page.evaluate((k) => { localStorage.removeItem(k); localStorage.removeItem(`${k}-ngp`); }, KEY); await page.reload(); await ready(page);
+    await page.getByRole('button', { name: 'New game', exact: true }).click();
+    await until(page, () => window.__bellspire().screen === 'game' && window.__bellspire().state);
+    await dbg(page, 'skipDialog');
+    const tab = async (name) => { if (!(await page.evaluate(() => window.__bellspire().menu))) { await page.keyboard.press('Escape'); await until(page, () => !!window.__bellspire().menu); } await page.getByRole('tab', { name }).click(); };
+    const closeMenu = async () => { await page.keyboard.press('Escape'); await until(page, () => !window.__bellspire().menu); };
+    const atShrine = () => game(page, `(() => { const s = g.shrineSpot('landing'); if (g.room.id !== 'landing') g.teleport('landing', 3, 14); g.body.x = s.x; g.body.y = s.y; g.body.vx = 0; g.enemies = []; g.dialog = null; return true; })()`);
+    // before the Bell: the Trials page says why they're shut
+    await tab('Trials');
+    await page.locator('.bs-trials-why', { hasText: 'Out-of-Tune Bell' }).waitFor();
+    assert.equal(await page.locator('.bs-trials li').count(), 9, 'the rush and eight runs are listed');
+    assert.equal(await page.locator('.bs-trials button', { hasText: 'Start' }).evaluateAll((b) => b.filter((x) => !x.disabled).length), 0, 'none can start');
+    await page.screenshot({ path: '.shots/bellspire/50-trials-locked.png' });
+    ok('before the Out-of-Tune Bell is calm, the Trials page lists every trial and says why they are shut');
+    await closeMenu();
+    // the title before the Bell: New Game+ locked, saying why
+    await tab('Settings'); await page.getByRole('button', { name: 'Save and quit to title' }).click();
+    await until(page, () => window.__bellspire().screen === 'title');
+    await page.locator('.bs-locked .bs-why', { hasText: 'Calm the Out-of-Tune Bell' }).waitFor();
+    assert.ok(await page.getByRole('button', { name: 'New Game+' }).isDisabled(), 'New Game+ is locked before the Bell');
+    ok('the title locks New Game+ until the Bell is calm, and says why');
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await until(page, () => window.__bellspire().screen === 'game' && window.__bellspire().state);
+    // a finished game: the Bell calm, every shrine lit; resting tells the heroes about the trials
+    await game(page, `(g.save.abilities = ['dash','lantern','double','wallkick','chime','glide','deep','rope','echo'], g.save.spells.push('ember','chime','frost','gale'),
+      ['frog','hydra','puma','warden','mother','condor','clappers','tune'].forEach((b) => g.save.flags.push('boss:' + b, 'script:boss:' + b)),
+      g.save.flags.push('script:intro','script:firstDark','script:wayra','script:bell','keeper','script:belfryCall','script:cliff','script:wind','script:echo','script:rope','belfry:visited',
+        ...['landing','chapel','mill','gears','cshrine','tshrine','cliffoot','bannerwalk','loftbase'].map((id) => 'shrine:' + id)),
+      g.save.heroes.dora.level = g.save.heroes.enzo.level = 12, g.save.coins = 77, true)`);
+    await atShrine(); await page.waitForTimeout(200);
+    await page.keyboard.press('ArrowUp');
+    await until(page, () => /Echo Trials/.test(window.__bellspire().game.dialog?.lines[window.__bellspire().game.dialog.i]?.text ?? ''));
+    await page.screenshot({ path: '.shots/bellspire/51-trials-told.png' });
+    for (let i = 0; i < 4 && (await st(page)).dialog; i++) { await page.keyboard.press('KeyZ'); await page.waitForTimeout(150); }
+    ok('↑ at a shrine after the Bell: Enzo and Dora tell you about the Echo Trials');
+    // the Trials page at a shrine: every trial can start; away from it they say why
+    await tab('Trials');
+    await until(page, () => [...document.querySelectorAll('.bs-trials button')].filter((b) => b.textContent === 'Start' && !b.disabled).length === 9);
+    await page.screenshot({ path: '.shots/bellspire/52-trials-open.png' });
+    await closeMenu();
+    await dbg(page, 'teleport', 'well', 13, 14); await page.waitForTimeout(150);
+    await tab('Trials');
+    await page.locator('.bs-trials-why', { hasText: 'lit candle shrine' }).waitFor();
+    await closeMenu();
+    ok('at a lit shrine every trial can start; away from one the page says to stand at a shrine');
+    // a run: Start, the clock waits for a move, the bells in order, the result card with its medal
+    await atShrine(); await page.waitForTimeout(150);
+    await tab('Trials');
+    await page.locator('.bs-trials li', { hasText: 'Landing Dash' }).getByRole('button', { name: 'Start' }).click();
+    await until(page, () => !window.__bellspire().menu && window.__bellspire().game.trial?.def.id === 'run:hub');
+    await page.locator('.bs-trial-clock', { hasText: 'Move to start' }).waitFor();
+    assert.deepEqual(await game(page, 'g.save.food'), { cake: 2, tea: 1 }, 'a trial runs with its own pantry');
+    await game(page, '(g.save.coins = 999, true)');
+    await hold(page, 'ArrowRight', 400);
+    await until(page, () => window.__bellspire().game.trial.started && window.__bellspire().game.trial.t > 10);
+    assert.match(await page.locator('.bs-trial-time').textContent(), /^\d:\d\d\.\d$/, 'the clock runs');
+    await game(page, `(() => { const goal = g.trial.def.goals[0]; g.teleport(goal.room, goal.c, goal.r); g.enemies = []; return true; })()`);
+    await until(page, () => window.__bellspire().game.trial?.i === 1);
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: '.shots/bellspire/53-trial-run.png' });
+    ok('Start runs the Landing Dash: the clock waits for a move, then runs; touching a trial bell rings it');
+    await game(page, `(() => { const goal = g.trial.def.goals[1]; g.teleport(goal.room, goal.c, goal.r); g.enemies = []; return true; })()`);
+    await page.locator('.bs-trial-card').waitFor();
+    const medal = await page.locator('.bs-trial-card .bs-medal').textContent();
+    assert.ok(/Gold|Silver|Bronze|No medal/.test(medal), `the card shows a medal (${medal})`);
+    assert.ok(await page.locator('.bs-new-best').isVisible(), 'a first finish is a new best');
+    await page.screenshot({ path: '.shots/bellspire/54-trial-result.png' });
+    assert.equal(await game(page, 'g.save.coins'), 77, 'the save comes back as it was');
+    ok(`the last bell ends the run: a result card with the time and medal (${medal}), and the save as it was`);
+    // Try again restarts it; Esc and Give up ends it
+    await page.getByRole('button', { name: 'Try again' }).click();
+    await until(page, () => !window.__bellspire().trialResult && window.__bellspire().game.trial?.def.id === 'run:hub');
+    ok('Try again on the card starts the run again');
+    await tab('Trials');
+    await page.getByRole('button', { name: 'Give up the trial' }).click();
+    await page.locator('.bs-trial-card', { hasText: 'The trial is over' }).waitFor();
+    await page.screenshot({ path: '.shots/bellspire/55-trial-given-up.png' });
+    await page.getByRole('button', { name: 'Close' }).click();
+    await until(page, () => !window.__bellspire().trialResult && !window.__bellspire().game.trial);
+    ok('Give up the trial on the Trials page ends it, and Close shuts the card');
+    // the Guardian Rush: all eight, one heal between each
+    await atShrine(); await page.waitForTimeout(150);
+    await tab('Trials');
+    await page.locator('.bs-trials li', { hasText: 'Guardian Rush' }).getByRole('button', { name: 'Start' }).click();
+    const RUSH = ['frog', 'hydra', 'puma', 'warden', 'mother', 'condor', 'clappers', 'tune'];
+    for (const [k, id] of RUSH.entries()) {
+      await until(page, (b) => window.__bellspire().game.boss?.id === b, id, 20000);
+      await page.locator('.bs-trial-clock', { hasText: `Guardian ${k + 1} of 8` }).waitFor();
+      const dir = ['frog', 'clappers', 'tune'].includes(id) ? 'ArrowLeft' : 'ArrowRight';
+      await page.keyboard.down(dir);
+      await until(page, () => window.__bellspire().game.boss?.st !== 'wait');
+      await page.keyboard.up(dir);
+      await until(page, () => { const g = window.__bellspire().game; g.dialog = null; return !['wait', 'intro'].includes(g.boss?.st); });
+      if (k === 0) await page.screenshot({ path: '.shots/bellspire/56-rush-fight.png' });
+      if (id === 'clappers') await game(page, `(g.lead = 'dora', g.damageBoss(99999, 0, 0, false, Object.assign({}, g.boss.hurt.find((h) => h.part === 0))), g.lead = 'enzo', g.damageBoss(99999, 0, 0, true, Object.assign({}, g.boss.hurt.find((h) => h.part === 1))), g.lead = 'dora', true)`);
+      else await game(page, '(g.damageBoss(99999, g.boss.x, g.boss.y), true)');
+    }
+    await page.locator('.bs-trial-card', { hasText: 'Guardian Rush' }).waitFor({ timeout: 30000 });
+    await page.screenshot({ path: '.shots/bellspire/57-rush-result.png' });
+    assert.ok(await game(page, `g.save.medals.rush > 0 && !g.ended`), 'the rush’s time is kept, and no ending plays');
+    await page.getByRole('button', { name: 'Close' }).click();
+    ok('the Guardian Rush meets all eight guardians in turn (the clock counts them) and ends on its card');
+    await tab('Trials');
+    await until(page, () => /\d:\d\d\.\d/.test(document.querySelector('.bs-trials li')?.textContent ?? ''));
+    await page.screenshot({ path: '.shots/bellspire/58-trials-medals.png' });
+    ok('the Trials page shows the best times and medals');
+    // New Game+ from the title: its own save, the first game's kept
+    await tab('Settings'); await page.getByRole('button', { name: 'Save and quit to title' }).click();
+    await until(page, () => window.__bellspire().screen === 'title');
+    const main0 = await page.evaluate((k) => localStorage.getItem(k), KEY);
+    await page.locator('.bs-saves li', { hasText: 'Your game' }).waitFor();
+    await page.getByRole('button', { name: 'New Game+' }).click();
+    await until(page, () => window.__bellspire().screen === 'game' && window.__bellspire().slot === 'ngp' && window.__bellspire().game?.dialog);
+    assert.ok(await game(page, `g.save.ngp === 1 && g.save.abilities.length === 0 && g.save.heroes.dora.level === 12 && /keep their levels/.test(g.dialog.lines[0].text)`), 'New Game+ keeps the levels, not the abilities, and says so');
+    await page.screenshot({ path: '.shots/bellspire/59-ngp-start.png' });
+    const keys = await page.evaluate((k) => [localStorage.getItem(k), JSON.parse(localStorage.getItem(`${k}-ngp`) ?? 'null')?.ngp], KEY);
+    assert.equal(keys[0], main0, 'the first game’s save is untouched');
+    assert.equal(keys[1], 1, 'New Game+ saves under its own key');
+    ok('New Game+ on the title starts round 1 with the levels kept, under its own save key, the first save untouched');
+    // the NG+ guardians' new attacks, each with its warning and its own animation
+    await dbg(page, 'skipDialog');
+    await page.evaluate(() => { window.__tough = setInterval(() => { const g = window.__bellspire().game; if (!g) return; for (const h of ['dora', 'enzo']) { g.save.heroes[h].down = false; g.save.heroes[h].hp = 9999; g.clampHero(h); } }, 50); });
+    const NEW = { frog: 'flop', hydra: 'rain', puma: 'twin', warden: 'chorus', mother: 'spout' };
+    for (const [id, atk] of Object.entries(NEW)) {
+      await dbg(page, 'fightBoss', id);
+      const dir = id === 'frog' ? 'ArrowLeft' : 'ArrowRight';
+      await page.keyboard.down(dir); await until(page, () => window.__bellspire().game.boss?.st !== 'wait'); await page.keyboard.up(dir);
+      // (to the middle of the arena, so the camera has the guardian and the heroes both in the shot)
+      if (id !== 'frog') await game(page, '(() => { const r = g.bossRoomRect(); g.body.x = r.x + r.w / 2; g.body.vx = 0; return true; })()');
+      await until(page, (a) => { const g = window.__bellspire().game; g.dialog = null; return g.boss?.st === `${a}Tell`; }, atk, 40000);
+      await page.waitForTimeout(id === 'frog' ? 300 : 500);
+      await page.screenshot({ path: `.shots/bellspire/60-ngp-${id}-tell.png` });
+      await until(page, (a) => window.__bellspire().game.boss?.st.startsWith(a) && !window.__bellspire().game.boss.st.endsWith('Tell'), atk, 20000);
+      await page.waitForTimeout(id === 'puma' ? 500 : id === 'frog' ? 900 : 350);
+      await page.screenshot({ path: `.shots/bellspire/61-ngp-${id}-attack.png` });
+      ok(`New Game+ ${id}: its new attack (${atk}) is warned of, then lands`);
+    }
+    await page.evaluate(() => clearInterval(window.__tough));
+    // the title shows both saves; Continue New Game+ and Continue each load their own
+    await tab('Settings'); await page.getByRole('button', { name: 'Save and quit to title' }).click();
+    await until(page, () => window.__bellspire().screen === 'title');
+    await page.locator('.bs-saves li', { hasText: 'New Game+' }).waitFor();
+    assert.equal(await page.locator('.bs-saves li').count(), 2, 'both saves are listed');
+    await page.screenshot({ path: '.shots/bellspire/62-title-both-saves.png' });
+    await page.getByRole('button', { name: 'Start New Game+ again' }).click();
+    await page.locator('.bs-confirm', { hasText: 'first game’s save is kept' }).waitFor();
+    await page.screenshot({ path: '.shots/bellspire/63-ngp-confirm.png' });
+    await page.getByRole('button', { name: 'Keep it' }).click();
+    await page.getByRole('button', { name: 'Continue New Game+' }).click();
+    await until(page, () => window.__bellspire().screen === 'game' && window.__bellspire().slot === 'ngp' && window.__bellspire().game.save.ngp === 1);
+    await tab('Settings'); await page.getByRole('button', { name: 'Save and quit to title' }).click();
+    await until(page, () => window.__bellspire().screen === 'title');
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await until(page, () => window.__bellspire().screen === 'game' && window.__bellspire().slot === 'main' && window.__bellspire().game.save.ngp === 0 && window.__bellspire().game.save.medals.rush > 0);
+    ok('the title lists both saves; Start New Game+ again asks first; Continue New Game+ and Continue each load their own');
+    assert.ok(await noSideScroll(page), 'nothing scrolls sideways');
+    assert.deepEqual(errors, [], 'no page errors in the trials or New Game+');
+    await page.context().close();
+  }
+
+  // ─── no "undefined" or "NaN" anywhere: every menu tab, every gear slot and every gear preview ─────
+  {
+    const p = await open();
+    await p.goto(`${base}/bellspire`); await p.evaluate((k) => { localStorage.removeItem(k); localStorage.removeItem(`${k}-ngp`); }, KEY); await p.reload(); await ready(p);
+    await p.getByRole('button', { name: 'New game', exact: true }).click();
+    await until(p, () => window.__bellspire().screen === 'game' && window.__bellspire().state);
+    await dbg(p, 'skipDialog'); await dbg(p, 'findAll');
+    // every piece of gear owned, so every preview can be seen
+    const { GEAR } = await import('../../.checks/bellspire-game.js');
+    await p.evaluate((ids) => { const g = window.__bellspire().game; for (const id of ids) if (!g.save.gear.includes(id)) g.save.gear.push(id); }, Object.keys(GEAR));
+    const bad = async (where) => { const t = await p.evaluate(() => document.body.innerText); const m = t.match(/.{0,40}\b(undefined|NaN|null|\[object Object\])\b.{0,40}/); assert.ok(!m, `${where}: “${m?.[0]}”`); };
+    const tabNames = ['Map', 'Gear', 'Items', 'Trials', 'Guide', 'Settings'];
+    await p.keyboard.press('Escape'); await until(p, () => !!window.__bellspire().menu);
+    let previews = 0;
+    for (const t of tabNames) {
+      await p.getByRole('tab', { name: t }).click(); await p.waitForTimeout(80);
+      await bad(`the ${t} tab`);
+      if (t !== 'Gear') continue;
+      const slots = await p.locator('.bs-slot').count();
+      for (let i = 0; i < slots; i++) {
+        await p.locator('.bs-slot').nth(i).click(); await p.waitForTimeout(40);
+        await bad(`gear slot ${i}`);
+        const items = await p.locator('.bs-gear-pick li').count();
+        for (let j = 0; j < items; j++) { await p.locator('.bs-gear-pick li').nth(j).hover(); previews++; await bad(`gear slot ${i}, item ${j}`); }
+      }
+    }
+    assert.ok(previews > 20, `every gear preview was looked at (${previews})`);
+    ok(`no “undefined” or “NaN” in any menu tab, gear slot or gear preview (${previews} previews)`);
+    await p.context().close();
+  }
+
+  // ─── the map guide to the Windward Belfry: secret before the Lake Mother, then the boat and the way across ───
+  for (const vp of [{ width: 1280, height: 800 }, { width: 844, height: 390 }, { width: 390, height: 844 }]) {
+    const phone = vp.width < 1000, tag = `${vp.width}x${vp.height}`;
+    const p = await open(vp, phone);
+    await p.goto(`${base}/bellspire`); await p.evaluate((k) => localStorage.removeItem(k), KEY); await p.reload(); await ready(p);
+    await p.getByRole('button', { name: 'New game', exact: true }).click();
+    await until(p, () => window.__bellspire().screen === 'game' && window.__bellspire().state);
+    await dbg(p, 'skipDialog');
+    await game(p, `(() => { for (const a of ['dash', 'double', 'wallkick', 'chime', 'lantern', 'glide', 'deep']) if (!g.save.abilities.includes(a)) g.save.abilities.push(a); for (const b of ['frog', 'hydra', 'puma', 'warden']) g.setFlag('boss:' + b); g.setFlag('keeper'); return true; })()`);
+    const guide = () => p.evaluate(() => window.__bellspire().mapGuide());
+    const openMap = async () => { await p.keyboard.press('Escape'); await until(p, () => window.__bellspire().menu === 'map'); await p.waitForTimeout(150); };
+    const closeMap = async () => { await p.keyboard.press('Escape'); await until(p, () => !window.__bellspire().menu); };
+    const legend = () => p.locator('.bs-legend').innerText();
+    // before the Mother: nothing new
+    await dbg(p, 'teleport', 'landing', 40, 14); await p.waitForTimeout(250);
+    let gd = await guide();
+    assert.deepEqual(gd.mini.boats, [], 'no boat on the minimap before the Lake Mother'); assert.equal(gd.mini.arrow, null, 'and no arrow');
+    await p.screenshot({ path: `.shots/bellspire/64-guide-before-mini-${tag}.png` });
+    await openMap(); gd = await guide();
+    assert.equal(gd.map.silhouette, 0, 'no belfry silhouette before the Lake Mother'); assert.deepEqual(gd.map.boats, [], 'no boat'); assert.ok(!gd.map.route, 'no route');
+    assert.ok(!/Wayra’s boat|Windward Belfry/.test(await legend()), 'the legend keeps the secret');
+    await p.screenshot({ path: `.shots/bellspire/64-guide-before-map-${tag}.png` });
+    await closeMap();
+    // the Mother calm: the silhouette, the names, the boat, the route, the legend, the wisp's mark on the boat
+    await game(p, `(g.setFlag('boss:mother'), true)`);
+    await p.waitForTimeout(200); gd = await guide();
+    assert.ok(gd.mini.boats.includes('landing'), 'the boat shows on the minimap at the Landing');
+    await p.screenshot({ path: `.shots/bellspire/65-guide-after-mini-${tag}.png` });
+    await openMap(); gd = await guide();
+    assert.ok(gd.map.silhouette > 10, `the belfry's silhouette (${gd.map.silhouette} cells)`);
+    assert.deepEqual(gd.map.labels, ['The Cloudstair', 'The Belfry Loft'], 'both areas named');
+    assert.ok(gd.map.boats.includes('landing') && gd.map.boats.includes('cliffoot') && gd.map.route, 'both boats and the route across');
+    const lg = await legend();
+    for (const want of ['Wayra’s boat (↑ to row across)', 'The Windward Belfry, not explored yet', 'seal door', 'the way to the boat']) assert.ok(lg.includes(want), `the legend has “${want}”`);
+    assert.equal(await game(p, 'g.mapGoal().room'), 'landing', 'the wisp’s map mark is on the boat');
+    await p.screenshot({ path: `.shots/bellspire/65-guide-after-map-${tag}.png` });
+    await closeMap();
+    // far west: the minimap's arrow points east to the boat
+    await dbg(p, 'teleport', 'cistern', 10, 14); await p.waitForTimeout(250); gd = await guide();
+    assert.equal(gd.mini.arrow?.kind, 'boat', 'off the minimap, an arrow to the boat'); assert.equal(gd.mini.arrow.dx, 1, 'pointing east');
+    if (!phone) await p.screenshot({ path: `.shots/bellspire/66-guide-arrow-${tag}.png`, clip: await p.locator('.bs-minimap').boundingBox() });
+    // across the water: the arrow to the Cloudstair, the route back on the map
+    await dbg(p, 'teleport', 'cliffoot', 10, 14); await p.waitForTimeout(300); gd = await guide();
+    assert.deepEqual(await game(p, '[g.mapTarget().kind, g.mapTarget().area]'), ['area', 'cloud'], 'in the belfry the guide leads to the next area, the Cloudstair first');
+    // (its nearest room not seen yet is right beside the cliff, on the minimap already: no arrow needed until it isn't)
+    assert.ok(gd.mini.arrow === null || (gd.mini.arrow.kind === 'area' && gd.mini.arrow.area === 'cloud'), 'and the minimap arrow, if any, agrees');
+    {
+      // with the Cloudstair all seen, the arrow points up the mountain to the Belfry Loft
+      const { ROOMS: RS } = await import('../../.checks/bellspire-game.js');
+      const cells = RS.filter((r) => r.area === 'cloud').flatMap((r) => Array.from({ length: r.w * r.h }, (_, i) => `${r.gx + (i % r.w)},${r.gy + Math.floor(i / r.w)}`));
+      await p.evaluate((cs) => { const g = window.__bellspire().game; for (const c of cs) if (!g.save.seen.includes(c)) g.save.seen.push(c); }, cells);
+      await p.waitForTimeout(200); gd = await guide();
+      assert.equal(gd.mini.arrow?.area, 'loft', 'with the Cloudstair seen, an arrow to the Belfry Loft'); assert.equal(gd.mini.arrow.dy, -1, 'pointing up');
+      if (!phone) await p.screenshot({ path: `.shots/bellspire/66-guide-arrow-loft-${tag}.png`, clip: await p.locator('.bs-minimap').boundingBox() });
+      await p.evaluate((cs) => { const g = window.__bellspire().game; g.save.seen = g.save.seen.filter((c) => !cs.includes(c) || c.startsWith('13,8') || c.startsWith('14,8')); }, cells);
+    }
+    await p.screenshot({ path: `.shots/bellspire/67-guide-crossed-mini-${tag}.png` });
+    await openMap(); gd = await guide();
+    assert.ok(gd.map.route && gd.map.boats.includes('landing'), 'the route back to the Landing on the full map');
+    await p.screenshot({ path: `.shots/bellspire/67-guide-crossed-map-${tag}.png` });
+    assert.ok(await noSideScroll(p), 'nothing scrolls sideways');
+    ok(`${tag}: the map guide keeps the belfry secret before the Lake Mother, then shows its silhouette, names, the boat, the route, the legend and the minimap's arrow`);
+    await p.context().close();
+  }
+
   // ─── phones ──────────────────────────────────────────────────────────────
   for (const vp of [{ width: 844, height: 390 }, { width: 390, height: 844 }]) {
     const p = await open(vp, true);
     await p.goto(`${base}/bellspire`); await p.evaluate((k) => localStorage.removeItem(k), KEY); await p.reload(); await ready(p);
     assert.ok(await noSideScroll(p), 'title fits');
-    await p.getByRole('button', { name: 'New game' }).tap();
+    await p.getByRole('button', { name: 'New game', exact: true }).tap();
     await until(p, () => window.__bellspire().screen === 'game' && window.__bellspire().state);
     await dbg(p, 'skipDialog');
     assert.ok(await p.locator('.bs-pad').isVisible(), 'the on-screen pad shows on a touch screen');

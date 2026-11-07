@@ -247,7 +247,10 @@ export const SCRIPTS: Record<string, Line[]> = {
     { who: 'enzo', text: 'Listen, Dora. The citadel is answering it from the lake.' },
     { who: 'dora', text: 'Both belfries, in tune. Ukumari is going to love this.' },
   ],
-  trials: [{ who: 'enzo', text: 'The shrine’s candle burns a different colour now. Echo Trials: we can test ourselves against everything we met.' }],
+  trials: [
+    { who: 'enzo', text: 'Listen, Dora: the shrine candles hum with the belfry’s note now. Echo Trials. We can race each area again, or meet all eight guardians in a row.' },
+    { who: 'dora', text: 'At any lit shrine, then. The Trials page in the menu keeps our best times, and a bell of bronze, silver or gold for each.' },
+  ],
 };
 
 /**

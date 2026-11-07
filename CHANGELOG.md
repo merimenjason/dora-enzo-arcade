@@ -6,6 +6,9 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **The Sunken Bellspire**: Echo Trials. After the Out-of-Tune Bell, start them from any lit candle shrine: a Guardian Rush (all eight guardians in a row, one heal between each) and a timed run in each of the eight areas, with bronze, silver and gold times and your best kept on a Trials page in the pause menu. A trial never changes your save.
+- **The Sunken Bellspire**: New Game+ on the title once the Bell is calm, with its own save so your first game is kept. Dora and Enzo keep their levels, gear and spells but find the abilities again, and every guardian is tougher with a new attack.
+- **The Sunken Bellspire**: once the Lake Mother is calm, the map shows the way to the Windward Belfry: its two areas as a dim outline to explore, Wayra's boat and a dotted route across the lake. On the minimap, an arrow at the edge points to the boat or the next area to explore.
 - **The Sunken Bellspire**: the **Windward Belfry** expansion. After the Lake Mother, Wayra's boat rows to the Cloudstair and the Belfry Loft: about 30 new screens of wind, wind bells that turn it, giant swinging bells to ride, and echo notes to climb. Dora's new Bell Rope swings from bell hooks (some hidden back in the citadel too), and Enzo's Echo Step leaves notes in the air to stand on. Also new: the Frost Fan and Gale Wave spells, the Windward Jacket and Highland Cloak outfits, the Condor Talon and Carillon Staff, two Bell Hearts, eight more murals, three guardians (the Hail Condor, the Twin Clappers and the Out-of-Tune Bell), and a second ending and epilogue.
 - **The Sunken Bellspire** is game 94, a castle explorer in hi-bit pixel art with real lighting: candles, torches, moonlight and Enzo's lantern light the scene as you move. A drowned citadel of bells rises from an Andean lake, and Dora (sword and dash) and Enzo (lantern staff and spells) explore its 64 screens together, tagging between them. Ring bells to raise and lower the water, light dark rooms to reveal ghost-glass platforms, gain new abilities, gear and levels, and face five guardians including the Bell Warden. A helping hand is on by default, and falling only drops your coins.
 
@@ -19,6 +22,9 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **The Sunken Bellspire**: the gear preview no longer shows "+undefined" for the Windward Jacket, Highland Cloak and Carillon Staff; it names their perks.
+- **The Sunken Bellspire**: item icons are no longer cut in half and squeezed.
+- **The Sunken Bellspire**: the Bell Warden's falling bells and the Lake Mother's falling lilies now actually fall, with a clear glowing mark where each will land.
 - **The Sunken Bellspire**: murals open in their frames again. Adding the belfry's eight murals had stretched every mural sideways, with a slice of the next one showing.
 - **The Sunken Bellspire**: the guiding wisp stays on after the citadel's ending (it switched off when you continued from the title), and leads on to the belfry.
 - **The Sunken Bellspire**: after the ending, finding everything plays the epilogue the moment you reach 100%, and once it's earned the title screen has a **See the epilogue** button. The ending tells you this, and the pause map shows what's left.

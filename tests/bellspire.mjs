@@ -14,6 +14,8 @@ import {
 import { Graph, nodeRoom, HeroAnimator, ANIMS, animFrames, heroHas } from '../.checks/bellspire-nav.js';
 import { BOXES, FOE_BODY, ART } from '../.checks/bellspire-art.js';
 import belfry from './bellspire-belfry.mjs';
+import trials from './bellspire-trials.mjs';
+import strips from './bellspire-strips.mjs';
 
 let checks = 0;
 const ok = (c, m) => { assert.ok(c, m); checks++; };
@@ -1067,4 +1069,6 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
 }
 
 checks += belfry();
+checks += trials();
+checks += strips();
 console.log(`bellspire: ${checks} checks passed`);
