@@ -18,6 +18,12 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / 'public' / 'art' / 'bellspire'
 OUT.mkdir(parents=True, exist_ok=True)
 MANIFEST = {}
+BOXES = {}  # name: per-frame painted bounds (x0, y0, x1, y1) from the draw point
+# the decor frames with open flames (the torch and candle frames the scene uses; the docks light with a lantern post
+# and the throne with a chandelier, so they have none)
+OPEN_FLAMES = {'halls': (6, 0), 'towers': (4, 6), 'crypt': (6, 2)}
+FLAMES = {}  # decor sheet: per frame, the painted flames' boxes
+FOE_BODY = {}  # foe kind: the frame whose bounds are its body
 INK = (34, 24, 32)
 
 
@@ -295,6 +301,15 @@ def strip(name, frames, cw, ch, anchor='foot', note=''):
         out.alpha_composite(f, (i * cw + x, y))
     out.save(OUT / f'{name}.webp', lossless=True, method=6)
     MANIFEST[name] = (cw, ch, len(frames))
+    # each frame's painted bounds, measured from the point the scene draws it at (the cell's bottom middle), so
+    # hitboxes can be taken from the art itself
+    al = np.asarray(out)[..., 3] > 0
+    bx = []
+    for i in range(len(frames)):
+        cell = al[:, i * cw:(i + 1) * cw]
+        ys, xs = np.nonzero(cell)
+        bx.append((int(xs.min()) - cw // 2, int(ys.min()) - ch, int(xs.max()) + 1 - cw // 2, int(ys.max()) + 1 - ch) if len(xs) else (0, 0, 0, 0))
+    BOXES[name] = bx
     print(f'{name:14} {len(frames):2} x {cw}x{ch} {note}')
 
 
@@ -323,8 +338,10 @@ def cover(im, w, h):
 # ─── the heroes ────────────────────────────────────────────────────────────
 for hero in ('dora', 'enzo'):
     src = lambda n: hero_colours(load(n), hero)
-    figs = [bbox(c) for c in cells(key(src(f'bs-{hero}-a')), 4, 2) + cells(key(src(f'bs-{hero}-b')), 4, 2)]
-    s = 38 / figs[0].height  # the idle pose stands 38 pixels tall
+    # a, b: the first 16 frames; c to h, the animation pass (climb and land, run, idle and interactions, attacks,
+    # body, water), 8 each, in the order of the HERO_FRAMES comment in lib/bellspire-anim.ts
+    figs = [bbox(c) for sh in 'abcdefgh' for c in cells(key(src(f'bs-{hero}-{sh}')), 4, 2)]
+    s = 38 / figs[0].height  # the idle pose stands 38 pixels tall; every sheet was painted at the same size
     strip(hero, [scaled(f, s, 20) for f in figs], 56, 44)
 
 # ─── enemies: frame A on top, frame B below ───────────────────────────────
@@ -344,13 +361,22 @@ for i, n in ((0, 'jelly'), (1, 'golem')):
 # projectiles: falling bell, mud ball, salt shard, fire orb
 for i, hgt in ((2, 22), (3, 11), (6, 12), (7, 13)):
     foes.append(scaled(cs[i], hgt / cs[i].height, 16))
+# the animation pass: each foe's own sheet, 8 frames from index 24 (idle x2, move x4, wind-up, attack); the idle
+# frame keeps the height the foe had, and the body frames (idle and move) are what its hitbox is checked against
+for k, n in enumerate(FOE_H):
+    cs = [bbox(c) for c in cells(key(load(f'bs-foe-{n}')), 4, 2)]
+    s = FOE_H[n] / cs[0].height
+    FOE_BODY[n] = [len(foes) + j for j in range(6)]
+    foes += [scaled(c, s, 18) for c in cs]
 strip('foes', foes, 64, 48)
 
 # ─── bosses ───────────────────────────────────────────────────────────────
 def boss(name, sheet, height, cw, ch):
+    """frames 0-2: rest, wind-up, attack; 3-5 (the animation pass): a second wind-up, stagger, calmed"""
     cs = figures(key(load(sheet)), 3)
     s = height / cs[0].height
-    strip(name, [scaled(c, s, 32) for c in cs], cw, ch)
+    more = figures(key(load(sheet + '2')), 3)
+    strip(name, [scaled(c, s, 32) for c in cs + more], cw, ch)
 
 
 boss('boss-frog', 'bs-boss-frog', 74, 150, 96)
@@ -367,7 +393,10 @@ tell = bbox(hy[1])
 open_head = bbox(tell.crop((int(tell.width * 0.05), 0, int(tell.width * 0.55), int(tell.height * 0.18))))
 strip('boss-hydra', [scaled(base, s, 32)], 220, 96)
 hs = 30 / idle_head.height
-strip('hydra-head', [scaled(idle_head, hs, 24), scaled(open_head, 30 / open_head.height, 24)], 80, 48)
+# the animation pass: six painted heads: calm, sway, open, hurt, asleep, snapping
+heads = [bbox(drop_neighbours(c)) for c in cells(key(load('bs-hydra-heads')), 3, 2)]
+hh = 30 / heads[0].height
+strip('hydra-head', [scaled(h, hh, 24) for h in heads], 80, 48)
 
 # the warden: the great bell, and the small bells at the end of its chains
 wd = cells(key(load('bs-boss-warden')), 3, 1)
@@ -381,13 +410,18 @@ bell = bbox(drop_neighbours(wsheet.crop((84, 250, 346, 706))))
 lit = bbox(drop_neighbours(wsheet.crop((546, 244, 836, 706))))
 small = bbox(f0.crop((0, int(f0.height * 0.62), int(f0.width * 0.3), f0.height)))
 s = 118 / bell.height
-strip('boss-warden', [scaled(bell, s, 32), scaled(lit, s, 32)], 150, 130)
+more = figures(key(load('bs-boss-warden2')), 3)  # the animation pass: tilted mid-swing, struck, calmed
+strip('boss-warden', [scaled(bell, s, 32), scaled(lit, s, 32)] + [scaled(c, s * bell.width / more[2].width * 0.97, 32) for c in more], 150, 130)
 strip('warden-bell', [scaled(small, 26 / small.height, 20)], 40, 32)
 
 # ─── props, people and pickups ────────────────────────────────────────────
 PROPS = [40, 40, 40, 18, 18, 48, 26, 30]  # shrine, shrine lit, water bell, chest, chest open, door, reed wreck, lectern
 cs = [bbox(c) for c in cells(key(load('bs-props')), 4, 2)]
-strip('props', [scaled(c, h / c.height, 24) for c, h in zip(cs, PROPS)], 64, 56)
+# the animation pass (bs-world): a chest with its lid half up (frame 8) and rubble for crumbling walls (frame 9);
+# torch and candle flame frames for the flicker
+wd = [bbox(drop_neighbours(c)) for c in cells(key(load('bs-world')), 4, 2)]
+strip('props', [scaled(c, h / c.height, 24) for c, h in zip(cs, PROPS)] + [scaled(wd[3], 22 / wd[3].height, 24), scaled(wd[7], 9 / wd[7].height, 16)], 64, 56)
+strip('flames', [scaled(c, 18 / c.height, 12, outline=False) for c in wd[0:3]] + [scaled(c, 8 / c.height, 8, outline=False) for c in wd[4:7]], 16, 20)
 cs = [bbox(c) for c in cells(key(load('bs-npcs')), 4, 2)]
 NPCS = [44, 44, 50, 50, 12, 16, 10, 16]  # wayra x2, ukumari x2, wisp, ghost-glass, coins, ability orb
 npc = [scaled(c, h / c.height, 24, outline=(i != 5)) for i, (c, h) in enumerate(zip(cs, NPCS))]
@@ -434,6 +468,20 @@ for area, hs in DECOR.items():
     print(f'tiles-{area:8}  9 x 16x16')
     cs = [bbox(c) for c in cells(key(load(f'bs-decor-{area}')), 4, 2)]
     strip(f'decor-{area}', [scaled(c, h / c.height, 20) for c, h in zip(cs, hs)], 72, 68)
+    # where the painted flames are in each decor frame (bright warm pixels), so the scene can lay moving flames over
+    # them: up to six per frame, as [x0, y0, x1, y1] from the draw point
+    sheet = np.asarray(Image.open(OUT / f'decor-{area}.webp').convert('RGBA')).astype(int)
+    cw, ch, n = MANIFEST[f'decor-{area}']
+    FLAMES[f'decor-{area}'] = []
+    for i in range(n):
+        c = sheet[:, i * cw:(i + 1) * cw]
+        if i not in OPEN_FLAMES.get(area, ()):
+            FLAMES[f'decor-{area}'].append([])
+            continue
+        hot = (c[..., 3] > 0) & (c[..., 0] > 200) & (c[..., 1] > 100) & (c[..., 2] < 150) & (c[..., 0] - c[..., 2] > 80)
+        lab, sizes, boxes = label(hot)
+        fl = [boxes[j] for j in sorted(range(1, len(sizes)), key=lambda j: -sizes[j]) if sizes[j] >= 3][:6]
+        FLAMES[f'decor-{area}'].append([(x0 - cw // 2, y0 - ch, x1 + 1 - cw // 2, y1 + 1 - ch) for y0, x0, y1, x1 in fl])
     opaque(f'bg-{area}', cover(load(f'bs-bg-{area}'), 16, 9), 480, 270, 40)
     mid = key(cover(load(f'bs-mid-{area}'), 16, 9))
     m = pixelate(mid, 480, 270, 24, outline=False, clean=False)
@@ -461,6 +509,23 @@ lines = ['// Generated by scripts/bellspire-art.py: each art strip\'s cell width
          'export const ART: Record<string, [number, number, number]> = {']
 for k, (w, h, n) in MANIFEST.items():
     lines.append(f"  '{k}': [{w}, {h}, {n}],")
+lines.append('};')
+lines += ['', '// Painted bounds of every frame, [x0, y0, x1, y1] from the draw point (the cell\'s bottom middle; y is up-negative),',
+          '// for sprites whose hitboxes come from the art. The art faces the way it was painted; mirror x when flipped.',
+          'export const BOXES: Record<string, [number, number, number, number][]> = {']
+for k in ('foes', 'dora', 'enzo', 'boss-frog', 'boss-puma', 'boss-mother', 'boss-warden', 'hydra-head'):
+    if k in BOXES:
+        lines.append(f"  '{k}': [" + ', '.join(f'[{a}, {b}, {c}, {d}]' for a, b, c, d in BOXES[k]) + '],')
+lines.append('};')
+lines += ['', '// Painted flames in each decor frame, [x0, y0, x1, y1] from the draw point, for the flicker overlay.',
+          'export const FLAMES: Record<string, [number, number, number, number][][]> = {']
+for k, v in FLAMES.items():
+    lines.append(f"  '{k}': [" + ', '.join('[' + ', '.join(f'[{a}, {b}, {c}, {d}]' for a, b, c, d in fr) + ']' for fr in v) + '],')
+lines.append('};')
+lines += ['', '// For each foe kind, the frames that show its body (idle and moving, not the reach of an attack): the first is',
+          '// the one its hitbox is taken from.', 'export const FOE_BODY: Record<string, number[]> = {']
+for k, v in FOE_BODY.items():
+    lines.append(f"  {k}: [{', '.join(map(str, v))}],")
 lines.append('};')
 (ROOT / 'lib' / 'bellspire-art.ts').write_text('\n'.join(lines) + '\n')
 total = sum(f.stat().st_size for f in OUT.glob('*.webp'))

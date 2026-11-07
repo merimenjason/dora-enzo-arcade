@@ -86,6 +86,12 @@ export const BOSSES: Record<BossId, { name: string; title: string; hp: number; a
 };
 
 /** Lore murals: the painted panels (`panel` indexes the six paintings). */
+/** Each candle shrine's own name, shown on the map, the shrine card and on arrival. */
+export const SHRINE_NAMES: Record<string, string> = {
+  landing: 'Landing Candle', chapel: 'Chapel Candle', mill: 'Reed Mill Candle', gears: 'Bell Loft Candle',
+  cshrine: 'Mural Crypt Candle', tshrine: 'Pearl Throne Candle',
+};
+
 export const MURALS: { panel: number; text: string }[] = [
   { panel: 0, text: 'A citadel of bells beside a great lake. Every midnight the bells rang, and the lake listened.' },
   { panel: 1, text: 'The people feared the water would rise too high. They silenced the bells, and the lake slept over the towers.' },

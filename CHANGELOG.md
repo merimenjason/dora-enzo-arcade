@@ -7,6 +7,15 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 ### Added
 
 - **The Sunken Bellspire** is game 94, a castle explorer in hi-bit pixel art with real lighting: candles, torches, moonlight and Enzo's lantern light the scene as you move. A drowned citadel of bells rises from an Andean lake, and Dora (sword and dash) and Enzo (lantern staff and spells) explore its 64 screens together, tagging between them. Ring bells to raise and lower the water, light dark rooms to reveal ghost-glass platforms, gain new abilities, gear and levels, and face five guardians including the Bell Warden. A helping hand is on by default, and falling only drops your coins.
+
+### Changed
+
+- **The Sunken Bellspire** comes alive: Dora and Enzo climb ladders hand over hand, run, skid, land with a puff of dust, swim, rest at shrines and open chests with their own animations, and every enemy, guardian, bell, banner, door and flame moves. Damage numbers now pop off every hit, a minimap sits in the corner (tap it for the full map), and shrines are linked: ↑ rests and the attack button opens travel to any lit shrine, each with its own name.
+
+### Fixed
+
+- **The Sunken Bellspire**: enemy hitboxes now match their art. The lantern moth, glow jelly and eel were drawn well below where they could be hit, and ground enemies were bigger than their hitboxes, so swings that looked like hits missed.
+
 ## 06-11-2026
 
 ### Added

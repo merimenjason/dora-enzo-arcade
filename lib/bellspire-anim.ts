@@ -1,0 +1,247 @@
+// The Sunken Bellspire: the heroes' animation state machine. Drawing-side only and pure (no DOM), so the tests can
+// drive it. Each tick the scene hands it a snapshot of what the hero is doing; it picks a state, keeps that state's
+// clock, and answers with a frame of the hero strip plus a little squash, stretch and lean.
+//
+// It never holds up control: every state that shows the player's own input (run, jump, climb, attack, swim) is
+// chosen straight from the body each tick, and the short one-shots (a landing, a skid, a turn) give way the moment
+// the body does something else.
+//
+// HERO_FRAMES, the hero strips (public/art/bellspire/dora.webp and enzo.webp), 8 frames to a painted sheet:
+//   a  0 idle  1-3 run (old)  4 rise  5 fall  6 hurt  7 dash
+//   b  8-10 swing (old)  11 thrust (Dora) or spell (Enzo)  12 wall (Dora) or lantern up (Enzo)  13-15 swim and glide (old)
+//   c 16-19 climb from behind  20 pull up over the top  21 step onto the ladder  22 landing squash  23 hard landing
+//   d 24-29 run  30 skid  31 turn round
+//   e 32 breathe in  33 blink  34-35 fidget  36 kneel to rest  37 from behind, looking up  38 item held high  39 lift a lid
+//   f Dora: 40 wind-up  41 slash  42 low wind-up  43 rising slash  44 overhead wind-up  45 chop  46 spin  47 down-thrust
+//     Enzo: 40 wind-up  41 swing  42 follow-through  43 spell wind-up  44 spell release  45 lantern high  46 chime strike  47 glide
+//   g Dora: 48 wall slide  49 wall kick   Enzo: 48 glide  49 lowering the lantern
+//     both: 50 knocked out  51 getting up  52 jump apex  53 hop back  54 leap in  55 holding a coin
+//   h 56-59 swim strokes  60 dive  61 surface  62-63 wade
+
+import type { HeroId } from './bellspire-world.js';
+
+export type AnimState =
+  | 'idle' | 'blink' | 'fidget' | 'runStart' | 'run' | 'skid' | 'turn' | 'rise' | 'apex' | 'fall' | 'land' | 'hardLand'
+  | 'climb' | 'climbOn' | 'climbOff' | 'wallSlide' | 'wallKick' | 'dash' | 'glide'
+  | 'swing' | 'thrust' | 'whirl' | 'cast' | 'castWind' | 'lanternUp' | 'lanternDown' | 'chime'
+  | 'hurt' | 'ko' | 'revive' | 'tagOut' | 'tagIn'
+  | 'wade' | 'wadeStill' | 'swim' | 'tread' | 'dive' | 'surface'
+  | 'rest' | 'chest' | 'relic' | 'ring' | 'read' | 'shop';
+
+/** What the hero is doing this tick: read from the engine by the scene. */
+export type AnimInput = {
+  ground: boolean; vx: number; vy: number; face: 1 | -1;
+  climb: boolean; swim: boolean; wade: boolean; glide: boolean;
+  /** pressed against a wall in the air, sliding */
+  wallSlide: boolean;
+  dash: boolean; hurt: boolean; down: boolean;
+  /** the current attack, if any: its kind, combo step, clock and the swing's wind-up and active ticks */
+  act: { kind: 'swing' | 'thrust' | 'whirl' | 'cast' | 'tagin'; n: number; t: number; wind: number; active: number } | null;
+  castHold: boolean; lanternUp: boolean;
+  /** one-off things that happened this tick: 'jumped', 'kicked', 'tagOut', 'chime', 'rest', 'chest', 'relic', 'ring', 'read', 'shop', 'revive' */
+  events: string[];
+};
+
+export type AnimOut = {
+  state: AnimState; frame: number; flip: boolean;
+  /** squash and stretch about the feet, and a lean (shear) that lags behind a change of speed */
+  sx: number; sy: number; lean: number;
+  /** draw fading copies behind (the dash) */
+  trail: boolean;
+  /** kick up dust this tick (a skid, a landing, a step in water) */
+  dust: '' | 'skid' | 'land' | 'hard' | 'splash' | 'step';
+};
+
+type Def = { frames: number[] | { dora: number[]; enzo: number[] }; rate: number; loop: boolean; len?: number };
+
+/** Every state's frames, how many ticks each frame shows, and whether it loops (a one-shot lasts `len` ticks). */
+export const ANIMS: Record<AnimState, Def> = {
+  idle: { frames: [0, 32], rate: 40, loop: true },
+  blink: { frames: [33], rate: 6, loop: false, len: 6 },
+  fidget: { frames: [34, 35, 34, 35, 34], rate: 22, loop: false, len: 110 },
+  runStart: { frames: [26, 27], rate: 3, loop: false, len: 6 },
+  run: { frames: [24, 25, 26, 27, 28, 29], rate: 5, loop: true },
+  skid: { frames: [30], rate: 10, loop: false, len: 10 },
+  turn: { frames: [31], rate: 5, loop: false, len: 5 },
+  rise: { frames: [4], rate: 60, loop: true },
+  apex: { frames: [52], rate: 60, loop: true },
+  fall: { frames: [5], rate: 60, loop: true },
+  land: { frames: [22], rate: 6, loop: false, len: 6 },
+  hardLand: { frames: [23, 22], rate: 9, loop: false, len: 18 },
+  climb: { frames: [16, 17, 18, 19], rate: 1, loop: true },
+  climbOn: { frames: [21], rate: 7, loop: false, len: 7 },
+  climbOff: { frames: [20], rate: 9, loop: false, len: 9 },
+  wallSlide: { frames: { dora: [48], enzo: [5] }, rate: 60, loop: true },
+  wallKick: { frames: { dora: [49], enzo: [4] }, rate: 10, loop: false, len: 10 },
+  dash: { frames: [7], rate: 60, loop: true },
+  glide: { frames: { dora: [5], enzo: [47, 48] }, rate: 10, loop: true },
+  // a swing's frames come from its combo step and clock (see swingFrame)
+  swing: { frames: [40], rate: 60, loop: true },
+  thrust: { frames: { dora: [47], enzo: [4] }, rate: 60, loop: true },
+  whirl: { frames: { dora: [46, 41], enzo: [41, 46] }, rate: 3, loop: true },
+  cast: { frames: { dora: [41], enzo: [44] }, rate: 60, loop: true },
+  castWind: { frames: { dora: [40], enzo: [43] }, rate: 60, loop: true },
+  lanternUp: { frames: { dora: [0], enzo: [45] }, rate: 60, loop: true },
+  lanternDown: { frames: { dora: [0], enzo: [49] }, rate: 10, loop: false, len: 10 },
+  chime: { frames: { dora: [41], enzo: [46] }, rate: 22, loop: false, len: 22 },
+  hurt: { frames: [6], rate: 60, loop: true },
+  ko: { frames: [50], rate: 60, loop: true },
+  revive: { frames: [51], rate: 30, loop: false, len: 30 },
+  tagOut: { frames: [53], rate: 14, loop: false, len: 14 },
+  tagIn: { frames: [54], rate: 60, loop: true },
+  wade: { frames: [62, 63], rate: 10, loop: true },
+  wadeStill: { frames: [0, 32], rate: 40, loop: true },
+  swim: { frames: [56, 57, 58, 59], rate: 8, loop: true },
+  tread: { frames: [56, 57, 58, 59], rate: 15, loop: true },
+  dive: { frames: [60], rate: 60, loop: true },
+  surface: { frames: [61], rate: 60, loop: true },
+  rest: { frames: [36], rate: 70, loop: false, len: 70 },
+  chest: { frames: [39], rate: 30, loop: false, len: 30 },
+  relic: { frames: [38], rate: 80, loop: false, len: 80 },
+  ring: { frames: { dora: [41], enzo: [46] }, rate: 18, loop: false, len: 18 },
+  read: { frames: [37], rate: 90, loop: false, len: 90 },
+  shop: { frames: [55], rate: 40, loop: false, len: 40 },
+};
+
+/** The one-shots the player starts by pressing a button or touching something (they play out unless control moves on). */
+const ONE_SHOT: AnimState[] = ['blink', 'fidget', 'runStart', 'skid', 'turn', 'land', 'hardLand', 'climbOn', 'climbOff', 'wallKick',
+  'lanternDown', 'chime', 'revive', 'tagOut', 'rest', 'chest', 'relic', 'ring', 'read', 'shop'];
+/** One-shots that hold even while the body moves a little (the scripted moments). */
+const STICKY: AnimState[] = ['rest', 'chest', 'relic', 'read', 'shop', 'revive', 'chime', 'ring'];
+const EVENT_STATE: Record<string, AnimState> = { chime: 'chime', rest: 'rest', chest: 'chest', relic: 'relic', ring: 'ring', read: 'read', shop: 'shop', revive: 'revive', tagOut: 'tagOut', kicked: 'wallKick' };
+
+const framesOf = (s: AnimState, hero: HeroId) => { const f = ANIMS[s].frames; return Array.isArray(f) ? f : f[hero]; };
+
+/** A swing in three beats, each combo step its own: wind-up (anticipation), the cut, and a follow-through. */
+export function swingFrame(hero: HeroId, n: number, t: number, wind: number, active: number): number {
+  const beats = hero === 'dora' ? [[40, 41, 8], [42, 43, 9], [44, 45, 10]] : [[40, 41, 42], [40, 9, 42], [40, 10, 42]];
+  const b = beats[Math.max(0, Math.min(2, n))];
+  return t < wind ? b[0] : t < wind + active ? b[1] : b[2];
+}
+
+export class HeroAnimator {
+  state: AnimState = 'idle';
+  /** ticks in the current state */
+  t = 0;
+  /** distance climbed, which drives the climb cycle: it moves only while the hero moves */
+  climbed = 0;
+  /** ticks standing still, for the fidget */
+  still = 0;
+  /** ticks in the air, and the fastest fall, for the landing */
+  airT = 0; fallV = 0;
+  /** how fast the hero was running lately, for the skid */
+  lastRun = 0;
+  sq = 0; lean = 0; svx = 0;
+  prev: AnimInput | null = null;
+  private seed: number;
+
+  constructor(readonly hero: HeroId, seed = 0) { this.seed = seed; }
+
+  private go(s: AnimState) { if (this.state !== s) { this.state = s; this.t = 0; } }
+
+  /** Pick this tick's state from the hero's snapshot. */
+  choose(i: AnimInput): AnimState {
+    const p = this.prev, cur = this.state, h = this.hero;
+    const oneShotLive = ONE_SHOT.includes(cur) && this.t < (ANIMS[cur].len ?? 0);
+    // the hero's own actions come first, always
+    if (i.down) return 'ko';
+    if (i.hurt) return 'hurt';
+    if (i.act) {
+      if (i.act.kind === 'swing') return 'swing';
+      if (i.act.kind === 'thrust') return 'thrust';
+      if (i.act.kind === 'whirl') return 'whirl';
+      if (i.act.kind === 'tagin') return 'tagIn';
+      return 'cast';
+    }
+    if (i.castHold) return 'castWind';
+    for (const e of i.events) { const s = EVENT_STATE[e]; if (s && !(s === 'wallKick' && h !== 'dora')) return s; }
+    if (oneShotLive && STICKY.includes(cur)) return cur;
+    if (i.dash) return 'dash';
+    if (i.swim) {
+      if (i.vy > 1 && Math.abs(i.vx) < 1.2) return 'dive';
+      if (i.vy < -1 && Math.abs(i.vx) < 1.2) return 'surface';
+      return Math.abs(i.vx) > 0.4 || Math.abs(i.vy) > 0.4 ? 'swim' : 'tread';
+    }
+    if (i.climb) {
+      if (!p || !p.climb) return 'climbOn';
+      if (cur === 'climbOn' && oneShotLive && Math.abs(i.vy) < 0.1) return cur;
+      return 'climb';
+    }
+    if (p && p.climb && !i.climb && i.ground && p.vy < 0) return 'climbOff';
+    if (!i.ground) {
+      if (i.glide) return 'glide';
+      if (i.wallSlide && h === 'dora') return 'wallSlide';
+      if (cur === 'wallKick' && oneShotLive) return cur;
+      if (i.vy < -1.2) return 'rise';
+      if (i.vy > 1.2) return 'fall';
+      return 'apex';
+    }
+    // on the ground
+    const running = Math.abs(i.vx) > 0.3;
+    if (p && !p.ground && !p.climb && !p.swim) return this.airT > 40 || this.fallV > 6 ? 'hardLand' : 'land';
+    if (cur === 'climbOff' && oneShotLive) return cur;
+    if (running) {
+      if (p && Math.sign(i.vx) !== Math.sign(p.vx) && Math.abs(p.vx) > 0.5) return 'turn';
+      if (cur === 'turn' && oneShotLive) return cur;
+      // a landing gives way to running after a beat, a hard one after a longer beat
+      if ((cur === 'land' && this.t < 3) || (cur === 'hardLand' && this.t < 8)) return cur;
+      if (i.wade) return 'wade';
+      if (cur === 'idle' || cur === 'blink' || cur === 'fidget' || cur === 'skid') return 'runStart';
+      if (cur === 'runStart' && oneShotLive) return cur;
+      return 'run';
+    }
+    if ((cur === 'run' || cur === 'runStart' || cur === 'turn') && this.lastRun > 1.2 && !i.wade) return 'skid';
+    if (oneShotLive) return cur;
+    if (i.lanternUp && h === 'enzo') return 'lanternUp';
+    if (cur === 'lanternUp' && !i.lanternUp) return 'lanternDown';
+    if (i.wade) return 'wadeStill';
+    if (this.still > 300) return 'fidget';
+    if (cur === 'idle' && (this.t + this.seed * 37) % 210 === 209) return 'blink';
+    return 'idle';
+  }
+
+  step(i: AnimInput): AnimOut {
+    const prevState = this.state;
+    const s = this.choose(i);
+    this.go(s);
+    if (this.state === prevState) this.t++;
+    // clocks
+    this.airT = i.ground || i.climb || i.swim ? 0 : this.airT + 1;
+    if (this.airT) this.fallV = this.airT === 1 ? i.vy : Math.max(this.fallV, i.vy);
+    if (i.climb) this.climbed += Math.abs(i.vy); else this.climbed = 0;
+    this.still = s === 'idle' || s === 'blink' ? this.still + 1 : 0;
+    this.lastRun = Math.abs(i.vx) > 0.3 ? Math.max(Math.abs(i.vx), this.lastRun * 0.9) : this.lastRun * 0.7;
+    // the frame
+    const fr = framesOf(s, this.hero), d = ANIMS[s];
+    let frame: number;
+    if (s === 'swing' && i.act) frame = swingFrame(this.hero, i.act.n, i.act.t, i.act.wind, i.act.active);
+    else if (s === 'climb') frame = fr[Math.floor(this.climbed / 7) % fr.length];
+    else if (s === 'run') frame = fr[Math.floor(this.t * Math.min(1.4, Math.max(0.7, Math.abs(i.vx) / 1.8)) / d.rate) % fr.length];
+    else { const k = Math.floor(this.t / d.rate); frame = fr[d.loop ? k % fr.length : Math.min(fr.length - 1, k)]; }
+    // facing: the spin turns the hero round every other frame; a wall slide faces away from the wall
+    let flip = i.face < 0;
+    if (s === 'whirl') flip = Math.floor(this.t / d.rate) % 4 >= 2 ? !flip : flip;
+    // squash and stretch, about the feet: a stretch on take-off, a squash on landing, easing back
+    if (i.events.includes('jumped')) this.sq = -1;
+    if (s === 'land' && this.t === 0) this.sq = 0.8;
+    if (s === 'hardLand' && this.t === 0) this.sq = 1.4;
+    this.sq *= 0.8;
+    const sx = 1 + Math.max(0, this.sq) * 0.12 - Math.max(0, -this.sq) * 0.08;
+    const sy = 1 - Math.max(0, this.sq) * 0.12 + Math.max(0, -this.sq) * 0.1;
+    // the coat and tail lag behind: a lean against a change of speed
+    this.svx += (i.vx - this.svx) * 0.15;
+    this.lean = Math.max(-0.12, Math.min(0.12, (this.svx - i.vx) * 0.06 + (s === 'run' ? i.vx * 0.015 : 0)));
+    // dust
+    let dust: AnimOut['dust'] = '';
+    if (s === 'skid' && this.t % 3 === 0) dust = 'skid';
+    else if (s === 'land' && this.t === 0) dust = 'land';
+    else if (s === 'hardLand' && this.t === 0) dust = 'hard';
+    else if (s === 'wade' && this.t % 10 === 0) dust = 'splash';
+    else if (s === 'run' && this.t % 15 === 0) dust = 'step';
+    this.prev = i;
+    return { state: s, frame, flip, sx, sy, lean: this.lean, trail: s === 'dash', dust };
+  }
+}
+
+/** Every animation state's frames for a hero: for the tests and the contact sheets. */
+export function animFrames(s: AnimState, hero: HeroId): number[] { return framesOf(s, hero); }

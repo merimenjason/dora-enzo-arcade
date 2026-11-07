@@ -8,9 +8,10 @@
 import assert from 'node:assert/strict';
 import {
   BellspireGame, freshSave, parseSave, heroStats, xpToNext, ROOMS, INFO, COLS, ROWS, TILE, COMPLETION, ABILITY_ORDER, ABILITIES, BOSSES, GEAR, SHOP,
-  rawChar, roomOfTile, groupAt, roomById, NO_INPUT, HEART_HP, TAG_CD, surfaceRow, roomRect as roomRectOf,
+  rawChar, roomOfTile, groupAt, roomById, NO_INPUT, HEART_HP, TAG_CD, surfaceRow, roomRect as roomRectOf, FOES, foeBox, foeFrame,
 } from '../.checks/bellspire-game.js';
-import { Graph, nodeRoom } from '../.checks/bellspire-nav.js';
+import { Graph, nodeRoom, HeroAnimator, ANIMS, animFrames } from '../.checks/bellspire-nav.js';
+import { BOXES, FOE_BODY } from '../.checks/bellspire-art.js';
 
 let checks = 0;
 const ok = (c, m) => { assert.ok(c, m); checks++; };
@@ -469,6 +470,190 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
   ok(c.pct < 5, 'a new game has barely started');
   g.unlockMap();
   eq(g.completion().cells, COMPLETION.cells, 'every map cell can be seen');
+}
+
+// ─── hitboxes match the art ───────────────────────────────────────────────
+{
+  const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  // for every foe kind and every frame that shows its body, both ways round, the box you hit is centred on the painted
+  // body (within 3 px) and covers 70–110% of its area; touching hurts only well inside it
+  let n = 0;
+  for (const kind of Object.keys(FOES)) {
+    ok(FOE_BODY[kind]?.length > 0, `${kind} has body frames`);
+    for (let fr = FOE_BODY[kind][0]; fr < FOE_BODY[kind][0] + 8; fr++) {
+      const [x0, y0, x1, y1] = BOXES.foes[fr];
+      for (const face of [-1, 1]) {
+        const g = new BellspireGame(fresh(), {}, 1);
+        const e = { kind, x: 100, y: 200, face };
+        const r = foeBox(e, 0.9, fr), c = foeBox(e, 0.72, fr);
+        // the painted bounds, where the scene draws them: from (x, y + 1), mirrored when facing right
+        const l = face > 0 ? -x1 : x0, rr = face > 0 ? -x0 : x1;
+        const art = { x: 100 + l, y: 201 + y0, w: rr - l, h: y1 - y0 };
+        const dc = Math.hypot(r.x + r.w / 2 - art.x - art.w / 2, r.y + r.h / 2 - art.y - art.h / 2);
+        ok(dc <= 3, `${kind} frame ${fr}: hurtbox centred on the art (${dc.toFixed(1)} px off)`);
+        const k = (r.w * r.h) / (art.w * art.h);
+        ok(k >= 0.7 && k <= 1.1, `${kind} frame ${fr}: hurtbox is ${(k * 100).toFixed(0)}% of the art`);
+        ok(c.w < r.w && c.h < r.h && c.x > r.x && c.y > r.y, `${kind}: the contact box sits inside the hurtbox`);
+        void g; n++;
+      }
+    }
+  }
+  ok(n >= 160, 'every kind and frame checked');
+  // the engine's hitbox follows the frame the scene shows
+  const gg = new BellspireGame(fresh(), {}, 2);
+  gg.teleport('gate', 8, 8); gg.dialog = null;
+  const mo = gg.enemies.find((x) => x.kind === 'moth');
+  const seen = new Set();
+  for (let i = 0; i < 40; i++) { gg.step(I()); gg.dialog = null; gg.save.heroes.dora.hp = 99; const fr = foeFrame(mo, gg.tick); seen.add(fr); const a = gg.foeRect(mo), b = foeBox(mo, 0.9, fr); ok(a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h, 'the moth’s box is its current frame’s'); }
+  ok(seen.size >= 3, 'the moth flaps through its frames');
+  // a swing through a moth's painted body hits it
+  const g = new BellspireGame(fresh(), {}, 5);
+  g.teleport('landing', 8, 14); quiet(g);
+  const [x0, y0, x1, y1] = BOXES.foes[FOE_BODY.moth[0]];
+  const m = { id: 999, kind: 'moth', x: g.body.x + 18, y: 0, vx: 0, vy: 0, hp: 50, max: 50, face: -1, st: 'idle', t: 0, cd: 99, hx: 0, hy: 0, flash: 0, hidden: false, alive: true, ground: false, tx: 0, ty: 0, stun: 0 };
+  m.y = g.body.y - 12 - (y0 + y1) / 2 - 1; // the moth's painted middle at the lead's chest
+  void x0; void x1;
+  const r = g.foeRect(m), sw = (() => { g.leadRt.act = null; g.startAct('swing', 0); for (let i = 0; i < 30; i++) { const b = g.attackBox(); if (b) return b.r; g.leadRt.act.t++; } return null; })();
+  ok(sw && overlap(sw, r), 'a swing at chest height meets a moth drawn there');
+}
+
+// ─── the heroes' animation ────────────────────────────────────────────────
+{
+  const base = { ground: true, vx: 0, vy: 0, face: 1, climb: false, swim: false, wade: false, glide: false, wallSlide: false, dash: false, hurt: false, down: false, act: null, castHold: false, lanternUp: false, events: [] };
+  const run = (hero, inputs) => { const a = new HeroAnimator(hero); return inputs.map((i) => a.step({ ...base, ...i, events: i.events ?? [] })); };
+  for (const hero of ['dora', 'enzo']) {
+    // every state has its own frames, and climbing never borrows the jump pose
+    const jump = new Set([...animFrames('rise', hero), ...animFrames('fall', hero), ...animFrames('apex', hero)]);
+    ok(animFrames('climb', hero).every((f) => !jump.has(f)), `${hero}: the climb has its own frames, not the jump's`);
+    eq(animFrames('climb', hero).length, 4, `${hero}: a four-frame climb`);
+    eq(new Set(animFrames('climb', hero)).size, 4, `${hero}: four different climb frames`);
+    eq(animFrames('run', hero).length, 6, `${hero}: a six-frame run`);
+    eq(animFrames('swim', hero).length, 4, `${hero}: a four-stroke swim`);
+    for (const [s, d] of Object.entries(ANIMS)) for (const f of animFrames(s, hero)) ok(f >= 0 && f < 64, `${hero} ${s}: frame ${f} is on the strip`);
+    // on a ladder: the frame moves only while the hero climbs, and holds when they stop
+    const up = run(hero, [{ climb: true, ground: false }, ...Array.from({ length: 40 }, () => ({ climb: true, ground: false, vy: -1.5 }))]);
+    eq(up[0].state, 'climbOn', `${hero}: stepping onto a ladder has its own frame`);
+    ok(up.slice(8).every((o) => o.state === 'climb'), `${hero}: then climbs`);
+    ok(new Set(up.slice(8).map((o) => o.frame)).size === 4, `${hero}: climbing up cycles all four frames`);
+    const a = new HeroAnimator(hero);
+    for (let i = 0; i < 20; i++) a.step({ ...base, climb: true, ground: false, vy: -1.5 });
+    const held = []; for (let i = 0; i < 30; i++) held.push(a.step({ ...base, climb: true, ground: false, vy: 0 }).frame);
+    eq(new Set(held).size, 1, `${hero}: holding still on a ladder holds the frame`);
+    ok(!jump.has(held[0]), `${hero}: and it is a climbing frame`);
+    // off the top: the pull-up
+    const top = run(hero, [...Array.from({ length: 10 }, () => ({ climb: true, ground: false, vy: -1.5 })), { ground: true }]);
+    eq(top[10].state, 'climbOff', `${hero}: climbing off the top pulls up onto the ledge`);
+    // the run, a skid and a turn
+    const r = run(hero, [{}, ...Array.from({ length: 30 }, () => ({ vx: 2.2 })), { vx: 0 }]);
+    eq(r[1].state, 'runStart', `${hero}: a start-up before the run`);
+    ok(new Set(r.slice(8, 31).map((o) => o.frame)).size === 6, `${hero}: running cycles six frames`);
+    eq(r[31].state, 'skid', `${hero}: stopping from a run skids`);
+    eq(run(hero, [{ vx: 2 }, { vx: 2 }, { vx: -2 }])[2].state, 'turn', `${hero}: turning round has a frame`);
+    // jumping: rise, apex, fall, a landing squash, and a crouch after a long fall
+    const j = run(hero, [{}, { ground: false, vy: -4, events: ['jumped'] }, { ground: false, vy: 0 }, { ground: false, vy: 3 }, {}]);
+    eq(j.slice(1).map((o) => o.state), ['rise', 'apex', 'fall', 'land'], `${hero}: rise, apex, fall, land`);
+    ok(j[1].sy > 1 && j[4].sy < 1, `${hero}: stretched on take-off, squashed on landing`);
+    const long = run(hero, [...Array.from({ length: 60 }, () => ({ ground: false, vy: 7 })), {}]);
+    eq(long[60].state, 'hardLand', `${hero}: a long fall lands in a crouch`);
+    eq(long[60].dust, 'hard', `${hero}: with a burst of dust`);
+    // control is never held up: a jump during a landing shows the jump at once
+    eq(run(hero, [{ ground: false, vy: 3 }, {}, { ground: false, vy: -4 }])[2].state, 'rise', `${hero}: a jump cuts a landing short`);
+    // attacks: three distinct combo cuts, each with a wind-up and a cut
+    const sw = (n, t) => run(hero, [{ act: { kind: 'swing', n, t, wind: 3, active: 5 } }])[0].frame;
+    const cuts = [0, 1, 2].map((n) => sw(n, 4));
+    eq(new Set(cuts).size, 3, `${hero}: three different combo cuts`);
+    ok([0, 1, 2].every((n) => sw(n, 0) !== sw(n, 4)), `${hero}: each cut has a wind-up`);
+    // water, hurt, knocked out, the tag, and the interactions all have their own pose
+    eq(run(hero, [{ swim: true, vx: 1.5 }])[0].state, 'swim', `${hero}: swims`);
+    eq(run(hero, [{ swim: true, vy: 2 }])[0].state, 'dive', `${hero}: dives`);
+    eq(run(hero, [{ wade: true, vx: 1.5 }, { wade: true, vx: 1.5 }])[1].state, 'wade', `${hero}: wades`);
+    for (const [ev, st] of [['rest', 'rest'], ['chest', 'chest'], ['relic', 'relic'], ['ring', 'ring'], ['read', 'read'], ['shop', 'shop'], ['tagOut', 'tagOut'], ['revive', 'revive']])
+      eq(run(hero, [{ events: [ev] }])[0].state, st, `${hero}: ${ev} has its pose`);
+    // idle: breathing, a blink, and a fidget after five seconds of standing still
+    const idle = run(hero, Array.from({ length: 400 }, () => ({})));
+    ok(new Set(idle.slice(0, 100).map((o) => o.frame)).size >= 2, `${hero}: idle breathes`);
+    ok(idle.some((o) => o.state === 'blink'), `${hero}: and blinks`);
+    ok(idle.slice(300).some((o) => o.state === 'fidget'), `${hero}: and fidgets after about five seconds`);
+  }
+  eq(run('dora', [{ ground: false, wallSlide: true, vy: 1 }])[0].state, 'wallSlide', 'Dora slides down walls');
+  eq(run('enzo', [{ ground: false, glide: true, vy: 0.5 }])[0].state, 'glide', 'Enzo glides with the lantern open');
+}
+
+// ─── shrine travel ────────────────────────────────────────────────────────
+{
+  const g = new BellspireGame(fresh(), {}, 21);
+  quiet(g);
+  const s = thing('S', (t, r) => r.id === 'landing');
+  at(g, s); g.drainEvents();
+  // ↑ at a lit shrine rests, as always
+  g.step(I()); g.step(I({ up: true }));
+  ok(g.drainEvents().some((e) => e.k === 'save'), '↑ at a shrine rests');
+  g.setFlag('shrine:chapel');
+  // attack at the shrine, nothing awake nearby: the map opens for travel instead of a swing
+  g.step(I()); g.step(I({ attack: true }));
+  const ev = g.drainEvents();
+  ok(ev.some((e) => e.k === 'travelOpen' && e.id === 'landing'), 'attack at a lit shrine opens travel');
+  ok(!g.leadRt.act, 'and does not swing');
+  g.step(I()); g.step(I({ up: true }));
+  ok(!g.drainEvents().some((e) => e.k === 'travelOpen'), '↑ never opens travel');
+  // with an awake foe close by, attack is a swing, so a fight at a shrine still works
+  const fz = new BellspireGame(fresh(), {}, 26); quiet(fz); at(fz, s); fz.drainEvents();
+  const foe = fz.enemies[0] ?? null;
+  if (foe) { foe.alive = true; foe.hidden = false; foe.st = 'idle'; foe.x = fz.body.x + 40; foe.y = fz.body.y; }
+  else { const src = new BellspireGame(fresh(), {}, 28); src.teleport('gate', 20, 14); const f2 = src.enemies.find((x) => x.kind === 'frog'); fz.enemies.push({ ...f2, st: 'idle', x: fz.body.x + 40, y: fz.body.y }); }
+  fz.step(I()); fz.step(I({ attack: true }));
+  ok(!fz.drainEvents().some((e) => e.k === 'travelOpen'), 'attack near an awake foe does not open travel');
+  ok(fz.leadRt.act && fz.leadRt.act.kind === 'swing', 'it swings');
+  // in the air, it swings too
+  const air = new BellspireGame(fresh(), {}, 27); quiet(air); at(air, s); air.drainEvents();
+  air.step(I({ jump: true })); air.step(I({ jump: true })); air.step(I({ attack: true }));
+  ok(!air.drainEvents().some((e) => e.k === 'travelOpen'), 'attack in the air at a shrine swings');
+  eq(g.whyNotTravel('landing'), 'You are here.', 'the shrine you stand at says you are here');
+  eq(g.whyNotTravel('cshrine'), 'Light that shrine first by resting at it.', 'an unlit shrine says why');
+  g.save.heroes.dora.hp = 5;
+  eq(g.travel('chapel'), null, 'travel between lit shrines works');
+  eq(g.room.id, 'chapel', 'and arrives');
+  eq(g.save.heroes.dora.hp, 5, 'travelling heals nothing');
+  const ev2 = g.drainEvents();
+  ok(ev2.some((e) => e.k === 'travel' && e.id === 'chapel'), 'the arrival is announced for the animation');
+  ok(/Chapel Candle/.test(g.toast?.text ?? ''), 'with the shrine’s name in a toast');
+  // a boss fight blocks it
+  const b = new BellspireGame(fresh(ABILITY_ORDER), {}, 22); quiet(b);
+  b.setFlag('shrine:chapel'); b.fightBoss('frog'); b.boss.st = 'idle';
+  ok(/boss fight/.test(b.whyNotTravel('chapel') ?? ''), 'no travel during a guardian fight');
+  // strict: only from a shrine; assist: from anywhere
+  const st = new BellspireGame(fresh(), { strict: true }, 23); quiet(st);
+  st.setFlag('shrine:chapel'); st.teleport('landing', 2, 14);
+  ok(/strict/.test(st.travel('chapel') ?? ''), 'strict: not from the far end of the shrine room');
+  at(st, s);
+  eq(st.travel('chapel'), null, 'strict: from the shrine itself it works');
+  const as = new BellspireGame(fresh(), {}, 24); quiet(as);
+  as.setFlag('shrine:chapel'); as.teleport('gate', 10, 14);
+  eq(as.travel('chapel'), null, 'with the helping hand, travel from anywhere');
+  // the tip, the first time a second shrine is lit
+  const tip = new BellspireGame(fresh(), {}, 25); quiet(tip);
+  tip.teleport('chapel', 4, 14); tip.rest();
+  ok(/Shrines are linked: ↑ to rest, X to travel\./.test(tip.toast?.text ?? ''), 'lighting the second shrine explains travel');
+}
+
+// ─── numbers that pop off hits ────────────────────────────────────────────
+{
+  const g = new BellspireGame(fresh(), {}, 31);
+  g.teleport('gate', 18, 14); g.dialog = null;
+  const e = g.enemies.find((x) => x.kind === 'frog');
+  g.drainEvents();
+  g.damageFoe(e, 3, 1, false);
+  ok(g.drainEvents().some((v) => v.k === 'num' && v.n === 3 && v.kind === 'hit'), 'a hit pops its damage');
+  g.damageFoe(e, 4, 1, true);
+  ok(g.drainEvents().some((v) => v.k === 'num' && v.kind === 'big'), 'a finisher pops a big number');
+  g.damageFoe(e, 50, 1, false, true);
+  const ev = g.drainEvents();
+  ok(ev.some((v) => v.k === 'num' && v.kind === 'spell'), 'spell damage has its own colour');
+  ok(ev.some((v) => v.k === 'num' && v.kind === 'xp') && ev.some((v) => v.k === 'num' && v.kind === 'coin'), 'a calmed foe pops +XP and +coins');
+  g.leadRt.inv = 0; g.hurtLead(5, g.body.x + 10);
+  ok(g.drainEvents().some((v) => v.k === 'num' && v.kind === 'hurt'), 'the heroes’ hurts pop in red');
+  g.save.heroes.dora.hp = 2; g.rest();
+  ok(g.drainEvents().some((v) => v.k === 'num' && v.kind === 'heal'), 'resting pops a green heal');
 }
 
 console.log(`bellspire: ${checks} checks passed`);

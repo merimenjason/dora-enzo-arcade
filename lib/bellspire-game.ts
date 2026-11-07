@@ -2,9 +2,10 @@
 // comes from a seeded generator, so a seed and the same inputs replay a game exactly.
 import {
   ROOMS, AREAS, COLS, ROWS, TILE, SCREEN_W, SCREEN_H, ABILITIES, ABILITY_ORDER, SPELLS, GEAR, START_EQUIP, FOOD, SHOP, BOSSES, MURALS,
-  SCRIPTS, WATER_AREAS,
+  SCRIPTS, WATER_AREAS, SHRINE_NAMES,
   type Room, type AreaId, type Ability, type HeroId, type SpellId, type Slot, type FoodId, type BossId, type Line, type WaterArea, type Perk,
 } from './bellspire-world.js';
+import { BOXES, FOE_BODY } from './bellspire-art.js';
 import { newBody, stepBody, support, HERO_W, HERO_H, RUN, type Body, type Env, type Caps, type BodyInput } from './bellspire-physics.js';
 
 export * from './bellspire-world.js';
@@ -194,6 +195,43 @@ export const FOES: Record<FoeKind, { name: string; hp: number; atk: number; xp: 
   jelly: { name: 'Glow Jelly', hp: 8, atk: 4, xp: 5, coins: 2, w: 14, h: 14, fly: true, light: [0.3, 1, 0.9, 40] },
   golem: { name: 'Salt Golem', hp: 50, atk: 8, xp: 25, coins: 8, w: 26, h: 32 },
 };
+/** A guardian's box from its painted frame (the frame the scene shows for its state: rest, wind-up, attack or calm),
+ *  drawn from (ax, ay) and mirrored when flipped, scaled by k about the frame's centre. */
+export function bossArtBox(b: { st: string; calm: boolean }, sheet: string, ax: number, ay: number, flip: boolean, k: number): Rect {
+  const atk = /hop|tongue|pounce|dash|leap|swing|drop|sweep/.test(b.st) && !b.st.endsWith('Tell');
+  const fr = b.calm ? 5 : b.st.endsWith('Tell') ? 1 : atk ? 2 : 0;
+  const [x0, y0, x1, y1] = BOXES[sheet][fr];
+  const l = flip ? -x1 : x0, r = flip ? -x0 : x1, w = (r - l) * k, h = (y1 - y0) * k;
+  return { x: ax + (l + r) / 2 - w / 2, y: ay + (y0 + y1) / 2 - h / 2, w, h };
+}
+
+/** Which of a foe's 8 frames shows now (idle x2, move x4, wind-up, attack): worked out here from the game clock, so
+ *  the scene draws exactly the frame its hitbox was taken from. */
+export function foeFrame(e: { kind: FoeKind; id: number; st: string; vx: number; vy: number; ground: boolean }, tick: number): number {
+  const base = FOE_BODY[e.kind][0], f = FOES[e.kind];
+  const moving = f.fly || f.swim || Math.abs(e.vx) > 0.15;
+  let frame = moving ? base + 2 + (Math.floor((tick + e.id * 5) / (f.fly ? 5 : 7)) % 4) : base + (Math.floor((tick + e.id * 11) / 28) % 2);
+  if (e.st === 'tell') frame = base + 6;
+  else if (e.st === 'strike' || e.st === 'lunge' || e.st === 'swoop') frame = base + 7;
+  if (e.kind === 'frog') {
+    // the frog's own hop: crouch (tell), spring up mouth open, sail, land
+    if (e.st === 'sleep') frame = base;
+    else if (e.st === 'wake') frame = base + 1;
+    else if (e.st === 'hop') frame = e.ground ? base + 5 : e.vy < -1 ? base + 7 : e.vy > 1 ? base + 4 : base + 3;
+    else if (e.st !== 'tell') frame = base + (Math.floor((tick + e.id * 11) / 28) % 2);
+  }
+  return frame;
+}
+
+/** A foe's box from a painted frame (by default its first, idle one), scaled by k about the frame's centre. The art
+ *  faces left; mirrored when facing right. */
+export function foeBox(e: { kind: FoeKind; x: number; y: number; face: number }, k: number, frame = FOE_BODY[e.kind][0]): Rect {
+  const [x0, y0, x1, y1] = BOXES.foes[frame];
+  const l = e.face > 0 ? -x1 : x0, r = e.face > 0 ? -x0 : x1;
+  const w = (r - l) * k, h = (y1 - y0) * k, cx = (l + r) / 2, cy = (y0 + y1) / 2 + 1;
+  return { x: e.x + cx - w / 2, y: e.y + cy - h / 2, w, h };
+}
+
 export type Enemy = {
   id: number; kind: FoeKind; x: number; y: number; vx: number; vy: number; hp: number; max: number; face: 1 | -1;
   st: string; t: number; cd: number; hx: number; hy: number; flash: number; hidden: boolean; alive: boolean; ground: boolean;
@@ -229,7 +267,12 @@ export type GameEvent =
   | { k: 'save' } | { k: 'shop' } | { k: 'mural'; n: number } | { k: 'ending'; full: boolean }
   | { k: 'level'; hero: HeroId; level: number } | { k: 'item'; text: string; icon?: number }
   | { k: 'bell'; x: number; y: number } | { k: 'room'; id: string } | { k: 'boss'; id: BossId } | { k: 'down'; hero: HeroId }
-  | { k: 'wipe' } | { k: 'pulse'; x: number; y: number; r: number; color: [number, number, number] };
+  | { k: 'wipe' } | { k: 'pulse'; x: number; y: number; r: number; color: [number, number, number] }
+  /** a number to pop off something: damage dealt (hit, big for finishers, spell), damage taken (hurt), heals, XP and coins */
+  | { k: 'num'; x: number; y: number; n: number; kind: NumKind }
+  /** attack at a lit shrine: the page opens the map for travel; and a journey's arrival */
+  | { k: 'travelOpen'; id: string } | { k: 'travel'; id: string };
+export type NumKind = 'hit' | 'big' | 'spell' | 'hurt' | 'heal' | 'xp' | 'coin';
 
 export type Settings = { assist: boolean; strict: boolean };
 type Act = { kind: 'swing' | 'thrust' | 'whirl' | 'cast' | 'tagin'; t: number; n: number; hit: Set<number>; dur: number };
@@ -448,8 +491,8 @@ export class BellspireGame {
       const f = FOES[kind];
       const x = t.c * TILE + 8, y = (t.r + 1) * TILE;
       this.enemies.push({
-        id: this.nextId++, kind, x, y: f.fly || f.swim ? y - 8 : y, vx: 0, vy: 0, hp: f.hp, max: f.hp, face: -1, st: kind === 'frog' ? 'sleep' : 'idle', t: 0, cd: 30 + Math.floor(this.rand() * 40),
-        hx: x, hy: f.fly || f.swim ? y - 8 : y, flash: 0, hidden: false, alive: true, ground: false, tx: x, ty: y, stun: 0,
+        id: this.nextId++, kind, x, y: f.fly || f.swim ? y - 1 : y, vx: 0, vy: 0, hp: f.hp, max: f.hp, face: -1, st: kind === 'frog' ? 'sleep' : 'idle', t: 0, cd: 30 + Math.floor(this.rand() * 40),
+        hx: x, hy: f.fly || f.swim ? y - 1 : y, flash: 0, hidden: false, alive: true, ground: false, tx: x, ty: y, stun: 0,
       });
     }
     this.boss = null; this.bossEntry = null;
@@ -513,7 +556,10 @@ export class BellspireGame {
     // actions
     const busy = rt.hurtT > 0;
     if (!busy) {
-      if (pressed.attack) {
+      if (pressed.attack && !rt.act && this.canOpenTravel()) {
+        // attack at a lit shrine, with nothing about to bite: the map opens for travel instead of a swing
+        this.emit({ k: 'travelOpen', id: this.room.id });
+      } else if (pressed.attack) {
         if (rt.act && rt.act.kind === 'swing') rt.buf = true;
         else if (!rt.act && rt.swingCd <= 0) {
           if (lead === 'dora' && !b.ground && inp.down && !b.swim && !b.climb) this.startAct('thrust', 0);
@@ -668,8 +714,10 @@ export class BellspireGame {
     if (act.kind === 'swing') {
       if (act.t < sw.wind || act.t >= sw.wind + sw.act) return null;
       const reach = sw.reach + (this.perk(this.lead, 'reach') ? 8 : 0);
-      const y = act.n === 1 ? b.y - HERO_H - 8 : b.y - HERO_H + 1;
-      return { r: { x: b.face > 0 ? b.x : b.x - reach, y, w: reach, h: sw.h + (act.n === 1 ? 6 : 0) }, mult: sw.mult[act.n], finisher: act.n === 2 };
+      // the cut sweeps from the 38-pixel hero's chest down to the floor in front (the rising second cut reaches higher);
+      // the scene draws its arc from this same box
+      const y = act.n === 1 ? b.y - 41 : b.y - 31, h = act.n === 1 ? 36 : 30;
+      return { r: { x: b.face > 0 ? b.x : b.x - reach, y, w: reach, h }, mult: sw.mult[act.n], finisher: act.n === 2 };
     }
     if (act.kind === 'thrust') return { r: { x: b.x - 7, y: b.y - 4, w: 14, h: 16 }, mult: 1.2, finisher: false };
     if (act.kind === 'whirl') return act.t % 8 < 4 ? { r: { x: b.x - 30, y: b.y - HERO_H - 10, w: 60, h: HERO_H + 16 }, mult: 0.8, finisher: false, ring: 30 } : null;
@@ -736,14 +784,24 @@ export class BellspireGame {
   visitKey() { return 'v'; }
   firstBell() { if (!this.flag('script:bell')) { this.setFlag('script:bell'); } }
 
-  foeRect(e: Enemy): Rect {
-    const f = FOES[e.kind];
-    return { x: e.x - f.w / 2, y: e.y - f.h, w: f.w, h: f.h };
+  /** Where a foe can be hit: its painted body (the bounds of its body frame, measured from the art), at 90% so the
+   *  very tips of ears and fins don't count. The scene draws every foe from the same point, (x, y + 1), so the box
+   *  and the picture always line up. */
+  foeRect(e: Enemy): Rect { return foeBox(e, 0.9, foeFrame(e, this.tick)); }
+
+  /** A foe's lunge or thrust: a band reaching out in front of its body, at the height of its middle. */
+  strikeRect(e: Enemy): Rect {
+    const r = this.foeRect(e), len = e.kind === 'reed' ? 26 : 22;
+    return { x: e.face > 0 ? r.x + r.w - 4 : r.x - len + 4, y: r.y + r.h / 2 - 6, w: len, h: 12 };
   }
 
-  damageFoe(e: Enemy, dmg: number, dir: number, big: boolean) {
+  /** Where touching a foe hurts: a smaller box, so brushing its edge is forgiven. */
+  contactRect(e: Enemy): Rect { return foeBox(e, 0.72, foeFrame(e, this.tick)); }
+
+  damageFoe(e: Enemy, dmg: number, dir: number, big: boolean, spell = false) {
     e.hp -= dmg; e.flash = 8;
     const f = FOES[e.kind];
+    { const r = this.foeRect(e); this.emit({ k: 'num', x: e.x, y: r.y, n: dmg, kind: spell ? 'spell' : big ? 'big' : 'hit' }); }
     if (e.kind !== 'golem' && e.kind !== 'shell') { e.vx = dir * (big ? 2.4 : 1.6); if (!f.fly && !f.swim) e.vy = -1.5; }
     this.emit({ k: 'hit', x: e.x, y: e.y - f.h / 2, big });
     this.sfx(big ? 'crit' : 'hit', e.x, e.y);
@@ -753,6 +811,7 @@ export class BellspireGame {
       this.emit({ k: 'pulse', x: e.x, y: e.y - f.h / 2, r: 50, color: [0.9, 0.95, 1] });
       this.sfx('poof', e.x, e.y);
       this.gainXp(f.xp);
+      this.emit({ k: 'num', x: e.x, y: e.y - f.h, n: f.xp, kind: 'xp' });
       this.dropCoins(e.x, e.y - f.h / 2, f.coins);
       if (this.rand() < 0.22) this.pickups.push({ id: this.nextId++, kind: this.rand() < 0.5 ? 'mp' : 'hp', x: e.x, y: e.y - f.h / 2, vy: -2, amount: 4, t: 0 });
     }
@@ -761,6 +820,7 @@ export class BellspireGame {
   dropCoins(x: number, y: number, n: number) {
     const lucky = this.perk('dora', 'lucky') || this.perk('enzo', 'lucky');
     const total = Math.round(n * (lucky ? 1.25 : 1));
+    this.emit({ k: 'num', x, y: y - 8, n: total, kind: 'coin' });
     for (let i = 0; i < Math.min(total, 6); i++) this.pickups.push({ id: this.nextId++, kind: 'coin', x: x + (this.rand() - 0.5) * 12, y, vy: -2 - this.rand() * 1.5, amount: i === 0 ? total - Math.min(total, 6) + 1 : 1, t: 0 });
   }
 
@@ -869,12 +929,18 @@ export class BellspireGame {
   }
 
   rest() {
+    const healed = this.stats(this.lead).maxHp - this.leadSave.hp, before = this.litShrines().length, wasLit = this.litShrines().includes(this.room.id);
     for (const h of ALL_HEROES) { const s = this.save.heroes[h], st = this.stats(h); s.down = false; s.hp = st.maxHp; s.mp = st.maxMp; }
+    if (healed > 0) this.emit({ k: 'num', x: this.body.x, y: this.body.y - 30, n: healed, kind: 'heal' });
+    // the shrine the heroes last woke at stays lit when they rest somewhere new
+    if (this.save.shrine) this.setFlag(`shrine:${this.save.shrine}`);
     this.save.shrine = this.room.id;
     this.setFlag(`shrine:${this.room.id}`);
     this.sfx('shrine'); this.emit({ k: 'pulse', x: this.body.x, y: this.body.y - 20, r: 140, color: [1, 0.75, 0.4] });
     this.emit({ k: 'save' });
-    this.note('Rested and saved. Both heroes are fully healed.', true);
+    // the first time a second shrine is lit, say how travel works
+    if (!wasLit && before === 1 && this.litShrines().length === 2) this.note('Shrines are linked: ↑ to rest, X to travel.', true);
+    else this.note('Rested and saved. Both heroes are fully healed.', true);
   }
 
   openChest(t: Thing) {
@@ -993,6 +1059,7 @@ export class BellspireGame {
     this.leadSave.hp -= dmg;
     rt.inv = HURT_INV; rt.hurtT = 16; rt.act = null; rt.castHold = 0;
     this.sfx('hurt'); this.emit({ k: 'shake', n: 4 }); this.emit({ k: 'hit', x: b.x, y: b.y - 12, big: false, color: '#ff6a6a' });
+    this.emit({ k: 'num', x: b.x, y: b.y - 30, n: dmg, kind: 'hurt' });
     if (!this.perk(this.lead, 'sturdy')) {
       const dir = b.x >= fromX ? 1 : -1;
       // knock-back never throws a hero off a ledge or into a pit
@@ -1156,14 +1223,14 @@ export class BellspireGame {
         case 'moth': {
           const near = dist < 150;
           e.hx += near ? clamp(dx, -0.3, 0.3) : (e.tx - e.hx) * 0.01;
-          e.hy += near ? clamp(dy - 20, -0.2, 0.2) : 0;
+          e.hy += near ? clamp(dy - 14, -0.2, 0.2) : 0; // hovers at chest height
           e.x = e.hx + Math.sin(e.t * 0.035) * 22; e.y = e.hy + Math.sin(e.t * 0.06) * 8;
           e.face = toward;
           break;
         }
         case 'eel': {
           const surf = this.surfaceAt(e.hx, e.hy);
-          e.hidden = surf === null || surf > e.hy - 10;
+          e.hidden = surf === null || surf > e.hy - 17; // its whole body under the surface
           if (e.hidden) { e.st = 'idle'; break; }
           if (e.st === 'idle') {
             e.x += e.face * 0.7;
@@ -1194,9 +1261,7 @@ export class BellspireGame {
             }
           } else if (e.st === 'strike') {
             if (e.kind !== 'golem') {
-              const len = e.kind === 'reed' ? 26 : 22;
-              const hb = { x: e.face > 0 ? e.x + f.w / 2 : e.x - f.w / 2 - len, y: e.y - f.h + 4, w: len, h: 10 };
-              if (e.t < 12 && overlap(hb, me)) this.hurtLead(f.atk, e.x);
+              if (e.t < 12 && overlap(this.strikeRect(e), me)) this.hurtLead(f.atk, e.x);
             }
             if (e.t > 14) { e.st = 'idle'; e.t = 0; e.cd = e.kind === 'golem' ? 90 : 55; }
           }
@@ -1247,12 +1312,12 @@ export class BellspireGame {
           e.hx += near ? clamp(dx, -0.25, 0.25) : 0;
           e.x = e.hx; e.y = e.hy + Math.sin(e.t * 0.035) * 22;
           const surf = this.surfaceAt(e.x, e.y);
-          if (surf !== null && e.y - 8 < surf && e.hy > surf) e.y = surf + 8;
+          if (surf !== null && e.y - 22 < surf && e.hy > surf) e.y = surf + 22; // stays under the surface
           break;
         }
       }
       // touching an enemy hurts (sleeping frogs and hidden eels are harmless)
-      if (e.alive && !e.hidden && e.st !== 'sleep' && e.st !== 'wake' && overlap(me, this.shrink(this.foeRect(e), 3))) this.hurtLead(f.atk, e.x);
+      if (e.alive && !e.hidden && e.st !== 'sleep' && e.st !== 'wake' && overlap(me, this.contactRect(e))) this.hurtLead(f.atk, e.x);
     }
     this.enemies = this.enemies.filter((e) => e.alive || false);
     // shockwaves along the floor
@@ -1279,8 +1344,8 @@ export class BellspireGame {
       if ((s.kind === 'bell' || s.kind === 'lily') && this.solidTile(Math.floor(s.x / TILE), Math.floor((s.y + s.r) / TILE))) { s.life = 0; this.emit({ k: 'hit', x: s.x, y: s.y, big: true, color: '#e8c070' }); this.sfx('clang', s.x, s.y); continue; }
       const sr = { x: s.x - s.r, y: s.y - s.r, w: s.r * 2, h: s.r * 2 };
       if (s.friendly) {
-        for (const e of this.enemies) if (e.alive && !e.hidden && !s.hits.includes(e.id) && overlap(sr, this.foeRect(e))) { s.hits.push(e.id); this.damageFoe(e, s.dmg, Math.sign(s.vx) || 1, false); s.life = 0; break; }
-        if (s.life > 0 && this.boss && !this.boss.calm) for (const h of this.boss.hurt) if (overlap(sr, h)) { this.damageBoss(s.dmg, s.x, s.y); s.life = 0; break; }
+        for (const e of this.enemies) if (e.alive && !e.hidden && !s.hits.includes(e.id) && overlap(sr, this.foeRect(e))) { s.hits.push(e.id); this.damageFoe(e, s.dmg, Math.sign(s.vx) || 1, false, s.kind === 'bolt'); s.life = 0; break; }
+        if (s.life > 0 && this.boss && !this.boss.calm) for (const h of this.boss.hurt) if (overlap(sr, h)) { this.damageBoss(s.dmg, s.x, s.y, s.kind === 'bolt'); s.life = 0; break; }
         if (s.life > 0) for (const t of INFO.get(this.room.id)!.things) if (t.ch === 'B' && overlap(sr, { x: t.c * TILE, y: t.r * TILE - 8, w: TILE, h: TILE + 8 })) { this.ringBell(this.room.area, t.c * TILE + 8, t.r * TILE); s.life = 0; break; }
       } else {
         if (overlap(sr, this.shrink(me, 2))) { if (this.hurtLead(s.dmg, s.x)) s.life = s.kind === 'bubble' ? 0 : 0; }
@@ -1300,9 +1365,9 @@ export class BellspireGame {
         for (const e of this.enemies) {
           if (!e.alive || e.hidden) continue;
           if ((em.hits.get(e.id) ?? -99) > em.t - 12) continue;
-          if (overlap(er, this.foeRect(e))) { em.hits.set(e.id, em.t); this.damageFoe(e, Math.round(this.magic() * 0.7), ex > c.x ? 1 : -1, false); }
+          if (overlap(er, this.foeRect(e))) { em.hits.set(e.id, em.t); this.damageFoe(e, Math.round(this.magic() * 0.7), ex > c.x ? 1 : -1, false, true); }
         }
-        if (this.boss && !this.boss.calm && (em.hits.get(-1) ?? -99) <= em.t - 12) for (const h of this.boss.hurt) if (overlap(er, h)) { em.hits.set(-1, em.t); this.damageBoss(Math.round(this.magic() * 0.7), ex, ey); break; }
+        if (this.boss && !this.boss.calm && (em.hits.get(-1) ?? -99) <= em.t - 12) for (const h of this.boss.hurt) if (overlap(er, h)) { em.hits.set(-1, em.t); this.damageBoss(Math.round(this.magic() * 0.7), ex, ey, true); break; }
       }
       if (em.t > 70) this.embers = null;
     }
@@ -1315,11 +1380,11 @@ export class BellspireGame {
       if (g.friendly) {
         for (const e of this.enemies) {
           if (!e.alive || e.hidden || g.hit.includes(e.id)) continue;
-          if (Math.hypot(e.x - g.x, e.y - FOES[e.kind].h / 2 - g.y) < g.r) { g.hit.push(e.id); this.damageFoe(e, g.dmg, e.x > g.x ? 1 : -1, false); e.stun = 60; }
+          if (Math.hypot(e.x - g.x, e.y - FOES[e.kind].h / 2 - g.y) < g.r) { g.hit.push(e.id); this.damageFoe(e, g.dmg, e.x > g.x ? 1 : -1, false, true); e.stun = 60; }
         }
         if (this.boss && !this.boss.calm && !g.hit.includes(-1)) for (const h of this.boss.hurt) {
           const cx = clamp(g.x, h.x, h.x + h.w), cy = clamp(g.y, h.y, h.y + h.h);
-          if (Math.hypot(cx - g.x, cy - g.y) < g.r) { g.hit.push(-1); this.damageBoss(g.dmg, cx, cy); break; }
+          if (Math.hypot(cx - g.x, cy - g.y) < g.r) { g.hit.push(-1); this.damageBoss(g.dmg, cx, cy, true); break; }
         }
         for (const t of INFO.get(this.room.id)!.things) {
           if (t.ch !== 'B' || g.rung.includes(`b${t.i}`)) continue;
@@ -1360,7 +1425,7 @@ export class BellspireGame {
         p.t = -1;
         if (p.kind === 'coin') { this.save.coins += p.amount; this.sfx('coin'); }
         else if (p.kind === 'mp') { this.leadSave.mp += p.amount; this.clampHero(this.lead); this.sfx('mp'); }
-        else if (p.kind === 'hp') { this.leadSave.hp += p.amount * 2; this.clampHero(this.lead); this.sfx('mp'); }
+        else if (p.kind === 'hp') { const was = this.leadSave.hp; this.leadSave.hp += p.amount * 2; this.clampHero(this.lead); this.sfx('mp'); if (this.leadSave.hp > was) this.emit({ k: 'num', x: b.x, y: b.y - 30, n: this.leadSave.hp - was, kind: 'heal' }); }
         else if (p.kind === 'bag') { this.save.coins += p.amount; this.save.drop = null; this.sfx('coin'); this.note(`Picked up your ${p.amount} dropped coins.`, true); }
       }
       if (p.kind === 'coin' && p.t > 900) p.t = -1;
@@ -1386,11 +1451,11 @@ export class BellspireGame {
   bossRoomRect() { return roomRect(this.room); }
   floorY() { const rr = this.bossRoomRect(); return rr.y + 15 * TILE; }
 
-  damageBoss(dmg: number, x: number, y: number) {
+  damageBoss(dmg: number, x: number, y: number, spell = false) {
     const b = this.boss!;
     if (b.calm || b.st === 'wait' || b.st === 'intro' || b.vis < 0.5) return;
     b.hp -= dmg; b.flash = 8;
-    this.emit({ k: 'hit', x, y, big: dmg > 12 }); this.sfx('bosshit', x, y);
+    this.emit({ k: 'hit', x, y, big: dmg > 12 }); this.emit({ k: 'num', x, y: y - 10, n: Math.round(dmg), kind: spell ? 'spell' : dmg > 12 ? 'big' : 'hit' }); this.sfx('bosshit', x, y);
     const ratio = b.hp / b.max;
     const phase = ratio < 0.3 ? 3 : ratio < 0.6 ? 2 : 1;
     if (phase > b.phase) { b.phase = phase as 1 | 2 | 3; this.emit({ k: 'flash', color: '#fff', n: 8 }); this.sfx('phase'); this.emit({ k: 'shake', n: 8 }); }
@@ -1464,7 +1529,8 @@ export class BellspireGame {
     const W = 64, H = 50;
     if (b.st !== 'hop') b.face = lead.x > b.x ? 1 : -1;
     const body: Rect = { x: b.x - W / 2, y: b.y - H, w: W, h: H };
-    b.hurt.push(body); b.body = body;
+    // hit where it is painted (the scene draws it from (x, y + 2)); its body still moves it
+    b.hurt.push(bossArtBox(b, 'boss-frog', b.x, b.y + 2, b.face > 0, 0.85)); b.body = body;
     const cycle = b.phase === 1 ? ['hop', 'spit', 'hop', 'spit'] : b.phase === 2 ? ['hop', 'tongue', 'spit', 'hop'] : ['hop', 'spit', 'tongue', 'hop', 'tongue'];
     switch (b.st) {
       case 'intro': if (b.t > 60) this.go('idle', 50); break;
@@ -1473,7 +1539,7 @@ export class BellspireGame {
       case 'hop': {
         const p = clamp(b.t / 50, 0, 1);
         b.x = b.sx + (b.sy - b.sx) * p; b.y = floor - Math.sin(Math.PI * p) * 72;
-        b.harm.push(this.shrink(body, 6));
+        b.harm.push(bossArtBox(b, 'boss-frog', b.x, b.y + 2, b.face > 0, 0.62));
         if (p >= 1) {
           b.y = floor; this.emit({ k: 'shake', n: 7 }); this.sfx('quake', b.x, b.y);
           if (b.phase >= 2) for (const d of [-1, 1] as const) this.waves.push({ x: b.x + d * 34, y: floor, dir: d, speed: 2.2 * this.bossSpeed, life: 90, h: 12, dmg: BOSSES.frog.atk });
@@ -1560,7 +1626,7 @@ export class BellspireGame {
     const rr = this.bossRoomRect(), floor = this.floorY(), lead = this.body, sp = this.bossSpeed;
     const W = 54, H = 32;
     const body: Rect = { x: b.x - W / 2, y: b.y - H, w: W, h: H };
-    if (b.vis > 0.5) b.hurt.push(body);
+    if (b.vis > 0.5) b.hurt.push(bossArtBox(b, 'boss-puma', b.x, b.y + 2, b.face > 0, 0.85));
     b.body = body;
     const left = rr.x + 2 * TILE + 30, right = rr.x + rr.w - TILE - 30;
     switch (b.st) {
@@ -1579,7 +1645,7 @@ export class BellspireGame {
       case 'pounce': {
         const p = clamp(b.t / 44, 0, 1);
         b.x = b.sx + (b.sy - b.sx) * p; b.y = floor - Math.sin(Math.PI * p) * 84;
-        b.harm.push(this.shrink(body, 4));
+        b.harm.push(bossArtBox(b, 'boss-puma', b.x, b.y + 2, b.face > 0, 0.62));
         if (p >= 1) {
           b.y = floor; this.emit({ k: 'shake', n: 5 }); this.sfx('land', b.x, b.y);
           if (b.phase === 3) for (const vx of [-2, -1, 1, 2]) this.shots.push({ id: this.nextId++, kind: 'paint', friendly: false, x: b.x, y: b.y - 20, vx: vx * sp, vy: -4 * sp, g: 0.18 * sp * sp, life: 200, dmg: BOSSES.puma.atk, r: 5, hits: [] });
@@ -1592,7 +1658,7 @@ export class BellspireGame {
       case 'dash': case 'leap': {
         b.vis = 1;
         b.x += b.face * 5 * sp;
-        b.harm.push(this.shrink(body, 4));
+        b.harm.push(bossArtBox(b, 'boss-puma', b.x, b.y + 2, b.face > 0, 0.62));
         if (b.x <= left || b.x >= right) { b.x = clamp(b.x, left, right); this.go('skid', 34); this.emit({ k: 'shake', n: 3 }); }
         break;
       }
@@ -1680,7 +1746,8 @@ export class BellspireGame {
   bossMother(b: Boss) {
     const rr = this.bossRoomRect(), floor = this.floorY(), lead = this.body, sp = this.bossSpeed;
     b.face = -1;
-    b.body = { x: b.x - 80, y: b.y - 96, w: 70, h: 70 };
+    // her body is where she is painted: the scene draws her from (x + 40, y + 2)
+    b.body = bossArtBox(b, 'boss-mother', b.x + 40, b.y + 2, false, 0.85);
     b.hurt.push(b.body);
     const cycle = b.phase === 1 ? ['sweep', 'bubbles', 'sweep'] : b.phase === 2 ? ['sweep', 'rise', 'bubbles', 'sweep'] : ['sweep', 'lilies', 'bubbles', 'sweep', 'lilies'];
     switch (b.st) {
@@ -1847,7 +1914,10 @@ export class BellspireGame {
     if (food === 'cake') {
       const s = this.leadSave, st = this.stats(this.lead);
       if (s.hp >= st.maxHp) return `${this.lead === 'dora' ? 'Dora' : 'Enzo'} is already at full HP.`;
+      const was = s.hp;
       s.hp += Math.round(st.maxHp * 0.4);
+      this.clampHero(this.lead);
+      this.emit({ k: 'num', x: this.body.x, y: this.body.y - 30, n: s.hp - was, kind: 'heal' });
     } else {
       for (const h of ALL_HEROES) { const s = this.save.heroes[h], st = this.stats(h); if (s.down) { s.down = false; s.hp = Math.round(st.maxHp * 0.5); } s.mp += Math.round(st.maxMp * 0.5); }
     }
@@ -1857,16 +1927,35 @@ export class BellspireGame {
     return null;
   }
   litShrines() { return ROOMS.filter((r) => this.flag(`shrine:${r.id}`) || r.id === this.save.shrine).map((r) => r.id); }
-  travel(id: string): string | null {
+  /** Standing at a candle shrine (close enough that ↑ would use it). */
+  atShrine() { return this.nearby()?.ch === 'S'; }
+  /** Attack opens travel instead of swinging: the lead on the ground at a lit shrine, no guardian fight, and no awake
+   *  foe within about 80 px (so a fight at a shrine still swings). */
+  canOpenTravel() {
+    const b = this.body;
+    if (!b.ground || b.swim || b.climb || this.dialog || !this.atShrine() || !this.litShrines().includes(this.room.id)) return false;
+    if (this.boss && !this.boss.calm && this.boss.st !== 'wait') return false;
+    return !this.enemies.some((e) => e.alive && !e.hidden && e.st !== 'sleep' && Math.hypot(e.x - b.x, e.y - b.y) < 80);
+  }
+  /** Why travel to a shrine can't happen now, or null if it can. Travel never heals: only resting does. */
+  whyNotTravel(id: string): string | null {
     if (this.boss && !this.boss.calm && this.boss.st !== 'wait') return 'You can’t leave in the middle of a boss fight.';
     if (!this.litShrines().includes(id)) return 'Light that shrine first by resting at it.';
-    if (this.settings.strict && !INFO.get(this.room.id)!.things.some((t) => t.ch === 'S')) return 'In strict mode you can only travel from a candle shrine.';
+    if (id === this.room.id) return 'You are here.';
+    if (this.settings.strict && !this.atShrine()) return 'In strict mode you can only travel from a candle shrine.';
+    return null;
+  }
+  travel(id: string): string | null {
+    const why = this.whyNotTravel(id);
+    if (why) return why;
     const spot = this.shrineSpot(id)!;
     Object.assign(this.body, newBody(spot.x, spot.y));
     this.enterRoom(roomOfPoint(spot.x, spot.y - 4)!, true);
     this.follower.x = spot.x - 24; this.follower.y = spot.y; this.trail = [];
     this.safe = { ...spot };
     this.sfx('warp');
+    this.emit({ k: 'travel', id });
+    this.note(`Arrived at the ${SHRINE_NAMES[id] ?? AREAS[roomById(id)!.area].name}.`, true);
     return null;
   }
 

@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BellspireGame, parseSave, heroStats, xpToNext, SAVE_KEY, NO_INPUT, ROOMS, AREAS, GEAR, SHOP, FOOD, SPELLS, ABILITIES, ABILITY_ORDER,
-  BOSSES, MURALS, NAMES, INFO, COMPLETION, roomAt, VIEW_W, VIEW_H,
+  BOSSES, MURALS, NAMES, INFO, COMPLETION, roomAt, rawChar, VIEW_W, VIEW_H, SHRINE_NAMES,
   type Input, type Save, type HeroId, type Slot, type FoodId, type GameEvent, type Settings as GameSettings,
 } from '@/lib/bellspire-game';
 import { BellspireScene } from '@/lib/bellspire-scene';
@@ -16,7 +16,7 @@ import './bellspire.css';
 type Screen = 'title' | 'game' | 'ending';
 type Tab = 'map' | 'gear' | 'items' | 'guide' | 'settings';
 type Action = keyof Input;
-type Settings = { sound: boolean; music: boolean; assist: boolean; strict: boolean; shake: boolean; calmFlash: boolean; touch: 'auto' | 'on' | 'off'; keys: Record<Action, string[]> };
+type Settings = { sound: boolean; music: boolean; assist: boolean; strict: boolean; shake: boolean; calmFlash: boolean; numbers: boolean; minimap: boolean; touch: 'auto' | 'on' | 'off'; keys: Record<Action, string[]> };
 const SETTINGS_KEY = 'bellspire-v1-settings';
 const ACTIONS: { id: Action; label: string }[] = [
   { id: 'left', label: 'Left' }, { id: 'right', label: 'Right' }, { id: 'up', label: 'Up / use' }, { id: 'down', label: 'Down' },
@@ -26,7 +26,7 @@ const DEFAULT_KEYS: Record<Action, string[]> = {
   left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], up: ['ArrowUp', 'KeyW'], down: ['ArrowDown', 'KeyS'],
   jump: ['KeyZ', 'Space', 'KeyK'], attack: ['KeyX', 'KeyJ'], dash: ['KeyC', 'KeyL'], cast: ['KeyV', 'KeyI'], tag: ['ShiftLeft', 'ShiftRight', 'Tab'],
 };
-const DEFAULTS: Settings = { sound: true, music: true, assist: true, strict: false, shake: true, calmFlash: false, touch: 'auto', keys: DEFAULT_KEYS };
+const DEFAULTS: Settings = { sound: true, music: true, assist: true, strict: false, shake: true, calmFlash: false, numbers: true, minimap: true, touch: 'auto', keys: DEFAULT_KEYS };
 const PORTRAIT: Record<string, number> = { dora: 0, enzo: 1, wayra: 2, ukumari: 3, mother: 4 };
 const SLOTS: Slot[] = ['weapon', 'coat', 'ring', 'relic'];
 const SLOT_NAME: Record<Slot, string> = { weapon: 'Weapon', coat: 'Coat', ring: 'Ring', relic: 'Relic' };
@@ -86,9 +86,15 @@ export default function BellspirePage() {
   const liftRef = useRef(20);
   const [coarse, setCoarse] = useState(false);
   const [, setFrame] = useState(0);
+  /** the map in travel mode (attack at a lit shrine), and a journey under way (ticks since it began) */
+  const [travelMode, setTravelMode] = useState(false);
+  const travelRef = useRef<{ id: string; t: number } | null>(null);
+  const mapNavRef = useRef<((k: 'left' | 'right' | 'ok') => void) | null>(null);
+  const padNav = useRef({ left: false, right: false, ok: false });
   const lastArea = useRef('');
 
   useEffect(() => { settingsRef.current = settings; }, [settings]);
+  useEffect(() => { if (!menu) setTravelMode(false); }, [menu]);
   const paused = screen !== 'game' || menu !== null || shop || mural !== null;
   useEffect(() => { pausedRef.current = paused; }, [paused]);
 
@@ -101,6 +107,8 @@ export default function BellspirePage() {
     soundRef.current = new BellspireSound(s.sound, s.music);
     const scene = new BellspireScene();
     sceneRef.current = scene;
+    // ?hitboxes=1 draws every hitbox over the picture
+    scene.debug = new URLSearchParams(window.location.search).get('hitboxes') === '1';
     void scene.load().then(() => setReady(true));
     const unlock = () => { soundRef.current?.unlock(); };
     window.addEventListener('pointerdown', unlock); window.addEventListener('keydown', unlock);
@@ -115,8 +123,20 @@ export default function BellspirePage() {
     soundRef.current?.setSound(s.sound); soundRef.current?.setMusic(s.music);
     const g = gameRef.current;
     if (g) { g.settings.assist = s.assist && !s.strict; g.settings.strict = s.strict; }
-    if (sceneRef.current) { sceneRef.current.shakeOn = s.shake; sceneRef.current.reduceFlash = s.calmFlash; }
+    if (sceneRef.current) { sceneRef.current.shakeOn = s.shake; sceneRef.current.reduceFlash = s.calmFlash; sceneRef.current.numbersOn = s.numbers; }
   };
+  /** Go to a lit shrine: with the short journey animation, or straight there when motion is reduced. */
+  const doTravel = useCallback((id: string) => {
+    const g = gameRef.current;
+    if (!g) return;
+    const why = g.whyNotTravel(id);
+    if (why) { setMsg(why); return; }
+    setMenu(null); setTravelMode(false); setMsg(null);
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      g.travel(id); const ev = g.drainEvents(); sceneRef.current?.handle(ev); onEventsRef.current?.(ev);
+    } else travelRef.current = { id, t: 0 };
+  }, []);
+  const onEventsRef = useRef<((ev: GameEvent[]) => void) | null>(null);
   const writeSave = useCallback(() => {
     const g = gameRef.current;
     if (!g) return;
@@ -127,7 +147,7 @@ export default function BellspirePage() {
     const s = settingsRef.current;
     const g = new BellspireGame(save, { assist: s.assist && !s.strict, strict: s.strict }, (Date.now() % 100000) + 1);
     gameRef.current = g;
-    if (sceneRef.current) { sceneRef.current.roomId = ''; sceneRef.current.shakeOn = s.shake; sceneRef.current.reduceFlash = s.calmFlash; }
+    if (sceneRef.current) { sceneRef.current.roomId = ''; sceneRef.current.shakeOn = s.shake; sceneRef.current.reduceFlash = s.calmFlash; sceneRef.current.numbersOn = s.numbers; }
     lastArea.current = '';
     setMenu(null); setShop(false); setMural(null); setEnding(null); setConfirmNew(false);
     setScreen('game');
@@ -148,8 +168,10 @@ export default function BellspirePage() {
       else if (e.k === 'room') writeSave();
       else if (e.k === 'ending') { writeSave(); setEnding({ full: e.full, pct: g.completion().pct }); setScreen('ending'); snd?.setTrack('ending'); }
       else if (e.k === 'down') snd?.play('down');
+      else if (e.k === 'travelOpen') { setTravelMode(true); setMsg(null); setMenu('map'); }
     }
   }, [writeSave]);
+  onEventsRef.current = onEvents;
 
   // ─── the loop ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -163,6 +185,16 @@ export default function BellspirePage() {
       const pad = readPad();
       while (acc >= 1000 / 60) {
         acc -= 1000 / 60;
+        // a journey between shrines: the heroes kneel and fade (half a second), arrive, and fade in at the other
+        // candle; the game waits (nothing can hurt them) and the controls are locked only for that second
+        const tr = travelRef.current;
+        if (tr) {
+          tr.t++;
+          scene.travelFx = tr.t;
+          if (tr.t === 30) { g.travel(tr.id); const ev = g.drainEvents(); scene.handle(ev); onEvents(ev); soundRef.current?.play('chime'); }
+          if (tr.t >= 60) { travelRef.current = null; scene.travelFx = -1; taps.current.clear(); }
+          continue;
+        }
         if (pausedRef.current) continue;
         const inp: Input = { ...NO_INPUT };
         for (const a of ACTIONS) inp[a.id] = held.current[a.id] || touchHeld.current[a.id] || pad[a.id] || taps.current.has(a.id);
@@ -216,6 +248,13 @@ export default function BellspirePage() {
         return;
       }
       if (screen === 'game' && (mural !== null || shop) && (e.code === settingsRef.current.keys.jump[0] || e.code === 'Space')) { e.preventDefault(); setMural(null); return; }
+      // the map: ← → step through the lit shrines and Z travels to the chosen one
+      if (screen === 'game' && menu === 'map' && mapNavRef.current) {
+        const k = settingsRef.current.keys;
+        if (k.left.includes(e.code)) { e.preventDefault(); mapNavRef.current('left'); return; }
+        if (k.right.includes(e.code)) { e.preventDefault(); mapNavRef.current('right'); return; }
+        if ((k.jump.includes(e.code) || k.attack.includes(e.code)) && travelMode) { e.preventDefault(); mapNavRef.current('ok'); return; }
+      }
       for (const a of ACTIONS) if (settingsRef.current.keys[a.id].includes(e.code)) {
         if (screen === 'game') e.preventDefault();
         if (!held.current[a.id]) taps.current.add(a.id);
@@ -227,7 +266,7 @@ export default function BellspirePage() {
     const blur = () => { for (const a of ACTIONS) held.current[a.id] = false; };
     window.addEventListener('keydown', down); window.addEventListener('keyup', up); window.addEventListener('blur', blur);
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur); };
-  }, [screen, shop, mural, rebind, equipPick]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [screen, shop, mural, rebind, equipPick, menu, travelMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── gamepad ─────────────────────────────────────────────────────────────
   const padPrev = useRef(false);
@@ -240,6 +279,14 @@ export default function BellspirePage() {
       const ax = p.axes[0] ?? 0, ay = p.axes[1] ?? 0;
       out.left ||= b(14) || ax < -0.4; out.right ||= b(15) || ax > 0.4; out.up ||= b(12) || ay < -0.5; out.down ||= b(13) || ay > 0.5;
       out.jump ||= b(0); out.attack ||= b(2); out.dash ||= b(1) || b(7); out.cast ||= b(3); out.tag ||= b(4) || b(5);
+      // on the map, the d-pad steps through lit shrines and A travels
+      const nav = { left: b(14) || ax < -0.5, right: b(15) || ax > 0.5, ok: b(0) || b(2) };
+      if (mapNavRef.current) {
+        if (nav.left && !padNav.current.left) mapNavRef.current('left');
+        if (nav.right && !padNav.current.right) mapNavRef.current('right');
+        if (nav.ok && !padNav.current.ok) mapNavRef.current('ok');
+      }
+      padNav.current = nav;
       const start = b(9);
       if (start && !padPrev.current) setMenu((m) => (m ? null : 'map'));
       padPrev.current = start;
@@ -289,6 +336,8 @@ export default function BellspirePage() {
         setHp: (h: HeroId, hp: number) => g?.setHp(h, hp),
         skipDialog: () => { if (g) g.dialog = null; },
         coins: (n: number) => { if (g) g.save.coins = n; },
+        shrineIcon: (id: string) => { const t = INFO.get(id)!.things.find((x) => x.ch === 'S')!; return { x: 8 + (t.c / 30) * 26, y: 8 + (t.r / 17) * 16 - 4 }; },
+        debug: (on: boolean) => { if (sceneRef.current) sceneRef.current.debug = on; },
       };
     };
   }, [screen, menu, shop, mural]);
@@ -358,7 +407,22 @@ export default function BellspirePage() {
   const boss = g?.boss && g.boss.st !== 'wait' ? g.boss : null;
   const dialog = g?.dialog;
   const line = dialog ? dialog.lines[dialog.i] : null;
-  const hint = g && !dialog ? g.nearbyLabel() : null;
+  const near = g && !dialog ? g.nearby() : null;
+  // at a candle shrine: a small prompt over the candle with the player's own keys ("Hit" on the touch pad)
+  let shrinePrompt: { text: string; x: number; y: number } | null = null;
+  if (g && near && near.ch === 'S' && sceneRef.current) {
+    const sc2 = sceneRef.current, lit = g.litShrines().includes(g.room.id);
+    const up = touchOn ? '▲' : `${keyName(settings.keys.up[0] ?? 'ArrowUp')}`.replace(/^Up$/, '↑');
+    const hit = touchOn ? 'Hit' : keyName(settings.keys.attack[0] ?? 'KeyX');
+    const sx = near.c * 16 + 8 - sc2.cam.x;
+    // above the candle and above both heroes' heads, so it never sits on a face
+    const top = Math.min((near.r + 1) * 16 - 40, g.body.y - 46, g.follower.y - 46) - sc2.cam.y;
+    shrinePrompt = { text: lit ? `${up} Rest · ${hit} Travel` : `${up} Rest to light`, x: sx * scale, y: Math.max(26, top) * scale };
+  }
+  const hint = g && !dialog && !shrinePrompt ? g.nearbyLabel() : null;
+  // the minimap fades when the lead walks up under the top-right corner
+  const sc = sceneRef.current;
+  const heroUnderMap = !!(g && sc && (g.body.x - sc.cam.x) / sc.vw > 0.68 && (g.body.y - 30 - sc.cam.y) / sc.vh < 0.32);
 
   return (
     <main className={`bs-shell bs-game ${touchOn ? 'bs-touch' : ''}`} data-ready={ready && g ? 'true' : 'false'}>
@@ -381,12 +445,14 @@ export default function BellspirePage() {
                 );
               })}
               <div className="bs-coins"><Icon i={20} size={0.7} /> {g.save.coins}</div>
+              {settings.minimap && <MiniMap g={g} faded={heroUnderMap} onOpen={() => { setTravelMode(false); setMenu('map'); }} />}
               <button type="button" className="bs-menu-btn" onClick={() => setMenu('map')} aria-label="Menu">☰</button>
             </div>
           )}
           {boss && <div className="bs-boss"><b>{BOSSES[boss.id].name}</b><small>{BOSSES[boss.id].title}</small><Bar v={boss.hp} max={boss.max} kind="boss" /></div>}
           {g?.toast && !dialog && <div className="bs-toast" key={g.toast.text}>{g.toast.text}</div>}
           {hint && !g?.toast && <div className="bs-hint">↑ {hint}</div>}
+          {shrinePrompt && <div className="bs-shrine-prompt" style={{ left: shrinePrompt.x, top: shrinePrompt.y }}>{shrinePrompt.text}</div>}
           {areaBanner && <div className="bs-area" key={areaBanner.key} onAnimationEnd={() => setAreaBanner(null)}>{areaBanner.text}</div>}
           {banner && <div className="bs-banner" key={banner.key} onAnimationEnd={() => setBanner(null)}>{banner.icon !== undefined && <Icon i={banner.icon} size={1.5} />}<span>{banner.text}</span></div>}
           {line && (
@@ -411,7 +477,7 @@ export default function BellspirePage() {
       )}
 
       {menu && g && (
-        <div className="bs-modal" onClick={(e) => { if (e.target === e.currentTarget) setMenu(null); }}>
+        <div className="bs-modal" onClick={(e) => { if (e.target === e.currentTarget) { setMenu(null); setTravelMode(false); } }}>
           <div className="bs-sheet bs-menu">
             <nav className="bs-tabs" role="tablist">
               {(['map', 'gear', 'items', 'guide', 'settings'] as Tab[]).map((t) => (
@@ -419,7 +485,7 @@ export default function BellspirePage() {
                   {{ map: 'Map', gear: 'Gear', items: 'Items', guide: 'Guide', settings: 'Settings' }[t]}
                 </button>
               ))}
-              <button type="button" className="bs-tab-close" onClick={() => setMenu(null)} aria-label="Close menu">✕</button>
+              <button type="button" className="bs-tab-close" onClick={() => { setMenu(null); setTravelMode(false); }} aria-label="Close menu">✕</button>
             </nav>
             <div className="bs-tab-body">
               {menu === 'map' && mapPanel(g)}
@@ -477,7 +543,7 @@ export default function BellspirePage() {
   // ─── panels ──────────────────────────────────────────────────────────────
   function settingsPanel() {
     const s = settings;
-    const toggle = (k: 'sound' | 'music' | 'assist' | 'strict' | 'shake' | 'calmFlash', label: string, help: string) => (
+    const toggle = (k: 'sound' | 'music' | 'assist' | 'strict' | 'shake' | 'calmFlash' | 'numbers' | 'minimap', label: string, help: string) => (
       <label className="bs-toggle"><input type="checkbox" checked={s[k]} onChange={(e) => saveSettings({ ...s, [k]: e.target.checked, ...(k === 'strict' && e.target.checked ? { assist: false } : {}), ...(k === 'assist' && e.target.checked ? { strict: false } : {}) })} /><span><b>{label}</b><small>{help}</small></span></label>
     );
     return (
@@ -489,6 +555,8 @@ export default function BellspirePage() {
         {toggle('strict', 'Strict mode', 'For experts: full damage, tighter jumps, and travel only from shrines. Turns the helping hand off.')}
         {toggle('shake', 'Screen shake', 'The screen shakes on big hits.')}
         {toggle('calmFlash', 'Calmer flashes', 'No full-screen flashes.')}
+        {toggle('numbers', 'Damage numbers', 'Numbers pop off hits, heals, XP and coins.')}
+        {toggle('minimap', 'Minimap', 'A small map of the nearby rooms in the corner.')}
         <label className="bs-select">On-screen buttons
           <select value={s.touch} onChange={(e) => saveSettings({ ...s, touch: e.target.value as Settings['touch'] })}>
             <option value="auto">On touch screens</option><option value="on">Always</option><option value="off">Never</option>
@@ -513,7 +581,7 @@ export default function BellspirePage() {
     const shrines = g.litShrines();
     return (
       <div className="bs-map-wrap">
-        <MapCanvas g={g} />
+        <MapCanvas g={g} travelMode={travelMode} onTravel={doTravel} navRef={mapNavRef} />
         <div className="bs-map-side">
           <p className="bs-pct">{c.pct}% explored</p>
           <p className="bs-small-print">{c.cells}/{COMPLETION.cells} rooms · {c.chests}/{COMPLETION.chests} chests · {c.murals}/{COMPLETION.murals} murals · {c.bosses}/{COMPLETION.bosses} guardians</p>
@@ -523,10 +591,12 @@ export default function BellspirePage() {
               const lit = shrines.includes(r.id);
               return (
                 <li key={r.id}>
-                  <button type="button" className="bs-btn bs-small" disabled={!lit || r.id === g.room.id} onClick={() => { const why = g.travel(r.id); if (why) setMsg(why); else { onEvents(g.drainEvents()); setMenu(null); } }}>
-                    {lit ? `${AREAS[r.area].name}` : 'Unlit shrine'}
+                  <button type="button" className="bs-btn bs-small" disabled={!lit || !!g.whyNotTravel(r.id)} title={lit ? g.whyNotTravel(r.id) ?? '' : ''} onClick={() => doTravel(r.id)}>
+                    {lit ? SHRINE_NAMES[r.id] : 'Unlit shrine'}
                   </button>
                   {!lit && <em className="bs-why">Rest at it once to light it.</em>}
+                  {lit && r.id === g.room.id && <em className="bs-here">You are here</em>}
+                  {lit && r.id !== g.room.id && g.whyNotTravel(r.id) && <em className="bs-why">{g.whyNotTravel(r.id)}</em>}
                 </li>
               );
             })}
@@ -657,76 +727,183 @@ function statLine(it: { atk?: number; def?: number; mag?: number; hp?: number; m
 function formatTime(s: number) { const m = Math.floor(s / 60); return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`; }
 
 /** The pause map: every room you have seen, coloured by area, with shrines, chests and the heroes. */
-function MapCanvas({ g }: { g: BellspireGame }) {
+// ─── the map: drawn the same way in the pause menu and the HUD minimap ─────
+/** Cell edges with a way through (some open tile on both sides), as "cx,cy,dx,dy", worked out once. */
+const OPEN_EDGES = (() => {
+  const out = new Set<string>();
+  const open = (c: number, r: number) => !'#^'.includes(rawChar(c, r));
+  for (let cy = 0; cy < 12; cy++) for (let cx = 0; cx < 16; cx++) {
+    if (!roomAt(cx, cy)) continue;
+    for (let r = 0; r < 17; r++) if (open(cx * 30 + 29, cy * 17 + r) && open(cx * 30 + 30, cy * 17 + r) && roomAt(cx + 1, cy)) { out.add(`${cx},${cy},1,0`); out.add(`${cx + 1},${cy},-1,0`); break; }
+    for (let c = 0; c < 30; c++) if (open(cx * 30 + c, cy * 17 + 16) && open(cx * 30 + c, cy * 17 + 17) && roomAt(cx, cy + 1)) { out.add(`${cx},${cy},0,1`); out.add(`${cx},${cy + 1},0,-1`); break; }
+  }
+  return out;
+})();
+const SHRINE_ROOMS = ROOMS.filter((r) => INFO.get(r.id)!.things.some((t) => t.ch === 'S'));
+const DOOR_COLOR: Record<string, string> = { d: ABILITIES.dash.color, j: ABILITIES.double.color, k: ABILITIES.wallkick.color, l: ABILITIES.lantern.color, c: ABILITIES.chime.color, u: '#c9a46a', b: '#b85050' };
+
+type MapIcon = { id: string; x: number; y: number; lit: boolean };
+/** Draw the explored map at cell size CW×CH from (ox, oy): rooms by area, ways out into unexplored rooms, shrines
+ *  (big candles, lit or grey), chests, Wayra, guardians and locked doors, and where the heroes are. Returns the
+ *  shrine icons, for tapping. */
+function drawMap(ctx: CanvasRenderingContext2D, g: BellspireGame, CW: number, CH: number, ox: number, oy: number, t: number, sel: string | null, small: boolean): MapIcon[] {
+  const seen = new Set(g.save.seen), lit = g.litShrines(), icons: MapIcon[] = [];
+  const line = small ? 1 : 2;
+  for (const r of ROOMS) {
+    for (let y = 0; y < r.h; y++) for (let x = 0; x < r.w; x++) {
+      const cx = r.gx + x, cy = r.gy + y;
+      if (!seen.has(`${cx},${cy}`)) continue;
+      const px = ox + cx * CW, py = oy + cy * CH;
+      ctx.fillStyle = AREAS[r.area].color; ctx.globalAlpha = 0.85; ctx.fillRect(px, py, CW, CH); ctx.globalAlpha = 1;
+      ctx.fillStyle = '#2a1a1a';
+      if (x === 0) ctx.fillRect(px, py, line, CH);
+      if (x === r.w - 1) ctx.fillRect(px + CW - line, py, line, CH);
+      if (y === 0) ctx.fillRect(px, py, CW, line);
+      if (y === r.h - 1) ctx.fillRect(px, py + CH - line, CW, line);
+      // a way on into a room not seen yet: a light notch in the wall
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        if (!OPEN_EDGES.has(`${cx},${cy},${dx},${dy}`) || seen.has(`${cx + dx},${cy + dy}`)) continue;
+        ctx.fillStyle = '#fff6d8';
+        const n = small ? 3 : 6;
+        if (dx === 1) ctx.fillRect(px + CW - line, py + CH / 2 - n / 2, line + 1, n);
+        else if (dx === -1) ctx.fillRect(px - 1, py + CH / 2 - n / 2, line + 1, n);
+        else if (dy === 1) ctx.fillRect(px + CW / 2 - n / 2, py + CH - line, n, line + 1);
+        else ctx.fillRect(px + CW / 2 - n / 2, py - 1, n, line + 1);
+      }
+    }
+    const info = INFO.get(r.id)!;
+    for (const d of info.doors) {
+      const cell = `${Math.floor(d.c / 30)},${Math.floor(d.r / 17)}`;
+      if (!seen.has(cell) || g.doorOpen(d)) continue;
+      const px = ox + (d.c / 30) * CW, py = oy + (d.r / 17) * CH, w = Math.max(2, (d.w / 30) * CW), h = Math.max(2, (d.h / 17) * CH);
+      ctx.fillStyle = '#1a1020'; ctx.fillRect(px - 1, py - 1, w + 2, h + 2);
+      ctx.fillStyle = DOOR_COLOR[d.ch] ?? '#b85050'; ctx.fillRect(px, py, w, h);
+    }
+    for (const th of info.things) {
+      const cell = `${Math.floor(th.c / 30)},${Math.floor(th.r / 17)}`;
+      if (!seen.has(cell)) continue;
+      const px = Math.round(ox + (th.c / 30) * CW), py = Math.round(oy + (th.r / 17) * CH);
+      if (th.ch === 'S') {
+        const on = lit.includes(r.id), k = small ? 1 : 2, chosen = sel === r.id;
+        if (on && !small) { ctx.fillStyle = `rgba(255,200,90,${(0.25 + 0.15 * Math.sin(t * 0.1)).toFixed(2)})`; ctx.beginPath(); ctx.arc(px, py - 2 * k, 7 * k, 0, Math.PI * 2); ctx.fill(); }
+        if (chosen) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(px - 5 * k, py - 8 * k, 10 * k, 12 * k); }
+        ctx.fillStyle = '#1a1020'; ctx.fillRect(px - 2 * k, py - 3 * k, 5 * k, 7 * k);
+        ctx.fillStyle = on ? '#f4e6c8' : '#8a8790'; ctx.fillRect(px - k, py - 2 * k, 3 * k, 5 * k);
+        ctx.fillStyle = on ? (t % 20 < 10 ? '#ffb43a' : '#ffd86a') : '#5a5860'; ctx.fillRect(px - k + (small ? 0 : 1), py - 5 * k, small ? 3 : 2 * k, 2 * k + 1);
+        icons.push({ id: r.id, x: px, y: py - 2 * k, lit: on });
+      }
+      else if (th.ch === 'C' && !g.flag(`chest:${r.id}:${th.i}`)) { ctx.fillStyle = '#fff2b0'; ctx.fillRect(px - 1, py - 1, small ? 2 : 3, small ? 2 : 3); }
+      else if (th.ch === 'M') { ctx.fillStyle = '#ff9a3c'; ctx.fillRect(px - 1, py - 1, small ? 2 : 3, small ? 2 : 3); }
+      else if (th.ch === 'O' && !g.flag(`boss:${r.boss}`)) { ctx.fillStyle = '#1a1020'; ctx.fillRect(px - 3, py - 3, 7, 7); ctx.fillStyle = '#e8484f'; ctx.fillRect(px - 2, py - 2, 5, 5); }
+    }
+  }
+  // you are here: the current room outlined in pulsing gold, and a chinchilla head where the lead really stands
+  const room = g.room, pulse = 0.55 + 0.45 * Math.sin(t * 0.12);
+  ctx.strokeStyle = '#1a1020'; ctx.lineWidth = small ? 3 : 4;
+  ctx.strokeRect(ox + room.gx * CW - 1, oy + room.gy * CH - 1, room.w * CW + 2, room.h * CH + 2);
+  ctx.strokeStyle = `rgba(255,214,90,${(0.5 + 0.5 * pulse).toFixed(2)})`; ctx.lineWidth = small ? 1 : 2;
+  ctx.strokeRect(ox + room.gx * CW - 1, oy + room.gy * CH - 1, room.w * CW + 2, room.h * CH + 2);
+  const b = g.body;
+  const hx = Math.round(ox + (b.x / 480) * CW), hy = Math.round(oy + ((b.y - 10) / 272) * CH);
+  const fur = t % 40 < 26 ? (g.lead === 'dora' ? '#fff4dc' : '#b4b8c0') : '#ffd65a';
+  if (small) {
+    ctx.fillStyle = '#1a1020'; ctx.fillRect(hx - 2, hy - 2, 5, 5);
+    ctx.fillStyle = fur; ctx.fillRect(hx - 1, hy - 1, 3, 3);
+  } else {
+    ctx.fillStyle = '#1a1020'; ctx.fillRect(hx - 5, hy - 6, 11, 10); ctx.fillRect(hx - 6, hy - 9, 5, 5); ctx.fillRect(hx + 2, hy - 9, 5, 5);
+    ctx.fillStyle = fur; ctx.fillRect(hx - 4, hy - 5, 9, 8); ctx.fillRect(hx - 5, hy - 8, 3, 3); ctx.fillRect(hx + 3, hy - 8, 3, 3);
+    ctx.fillStyle = '#1a1020'; ctx.fillRect(hx - 2, hy - 2, 1, 2); ctx.fillRect(hx + 2, hy - 2, 1, 2);
+  }
+  return icons;
+}
+
+/** The pause map. Lit shrines are big candles to tap: a card names the shrine and offers travel. In travel mode
+ *  (from the shrine card) the arrow keys or the d-pad step through the lit shrines and Z or A travels. */
+function MapCanvas({ g, travelMode, onTravel, navRef }: { g: BellspireGame; travelMode: boolean; onTravel: (id: string) => void; navRef: { current: ((k: 'left' | 'right' | 'ok') => void) | null } }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
   const boxRef = useRef<HTMLDivElement | null>(null);
+  const icons = useRef<MapIcon[]>([]);
+  const lit = g.litShrines();
+  const [sel, setSel] = useState<string | null>(travelMode ? (lit.includes(g.room.id) ? g.room.id : lit[0] ?? null) : null);
+  const selRef = useRef(sel); selRef.current = sel;
   useEffect(() => {
     const cv = ref.current;
     if (!cv) return;
     const ctx = cv.getContext('2d')!;
-    const CW = 26, CH = 16, ox = 8, oy = 8;
-    ctx.clearRect(0, 0, cv.width, cv.height);
-    const seen = new Set(g.save.seen);
-    let t = 0;
-    let raf = 0;
-    const draw = () => {
-      t++;
-      ctx.clearRect(0, 0, cv.width, cv.height);
-      for (const r of ROOMS) {
-        for (let y = 0; y < r.h; y++) for (let x = 0; x < r.w; x++) {
-          const key = `${r.gx + x},${r.gy + y}`;
-          if (!seen.has(key)) continue;
-          const px = ox + (r.gx + x) * CW, py = oy + (r.gy + y) * CH;
-          ctx.fillStyle = AREAS[r.area].color; ctx.globalAlpha = 0.85; ctx.fillRect(px, py, CW, CH); ctx.globalAlpha = 1;
-          // join cells of the same room
-          ctx.fillStyle = '#2a1a1a';
-          if (x === 0) ctx.fillRect(px, py, 2, CH);
-          if (x === r.w - 1) ctx.fillRect(px + CW - 2, py, 2, CH);
-          if (y === 0) ctx.fillRect(px, py, CW, 2);
-          if (y === r.h - 1) ctx.fillRect(px, py + CH - 2, CW, 2);
-        }
-        if (!r.rows.length) continue;
-        const info = INFO.get(r.id)!;
-        if (!seen.has(`${r.gx},${r.gy}`) && !info.things.some((th) => seen.has(`${Math.floor(th.c / 30)},${Math.floor(th.r / 17)}`))) continue;
-        for (const th of info.things) {
-          const cell = `${Math.floor(th.c / 30)},${Math.floor(th.r / 17)}`;
-          if (!seen.has(cell)) continue;
-          const px = ox + (th.c / 30) * CW, py = oy + (th.r / 17) * CH;
-          if (th.ch === 'S') { ctx.fillStyle = '#ffcf6a'; ctx.fillRect(px - 2, py - 3, 5, 5); ctx.fillStyle = '#7a3a10'; ctx.fillRect(px - 1, py - 2, 3, 3); }
-          else if (th.ch === 'C' && !g.flag(`chest:${r.id}:${th.i}`)) { ctx.fillStyle = '#fff2b0'; ctx.fillRect(px - 1, py - 1, 3, 3); }
-          else if (th.ch === 'M') { ctx.fillStyle = '#ff9a3c'; ctx.fillRect(px - 1, py - 1, 3, 3); }
-          else if (th.ch === 'O' && !g.flag(`boss:${r.boss}`)) { ctx.fillStyle = '#e8484f'; ctx.fillRect(px - 2, py - 2, 5, 5); }
-        }
-      }
-      // you are here: the current room outlined in pulsing gold, and a blinking chinchilla head where the lead stands
-      const room = g.room, pulse = 0.55 + 0.45 * Math.sin(t * 0.12);
-      ctx.strokeStyle = '#1a1020'; ctx.lineWidth = 4;
-      ctx.strokeRect(ox + room.gx * CW - 1, oy + room.gy * CH - 1, room.w * CW + 2, room.h * CH + 2);
-      ctx.strokeStyle = `rgba(255,214,90,${(0.5 + 0.5 * pulse).toFixed(2)})`; ctx.lineWidth = 2;
-      ctx.strokeRect(ox + room.gx * CW - 1, oy + room.gy * CH - 1, room.w * CW + 2, room.h * CH + 2);
-      const b = g.body;
-      const hx = Math.round(ox + (b.x / 480) * CW), hy = Math.round(oy + ((b.y - 10) / 272) * CH);
-      {
-        // it blinks between bright and soft, never off, so it can always be found
-        const fur = t % 40 < 26 ? (g.lead === 'dora' ? '#fff4dc' : '#b4b8c0') : '#ffd65a';
-        ctx.fillStyle = '#1a1020'; ctx.fillRect(hx - 5, hy - 6, 11, 10); ctx.fillRect(hx - 6, hy - 9, 5, 5); ctx.fillRect(hx + 2, hy - 9, 5, 5);
-        ctx.fillStyle = fur; ctx.fillRect(hx - 4, hy - 5, 9, 8); ctx.fillRect(hx - 5, hy - 8, 3, 3); ctx.fillRect(hx + 3, hy - 8, 3, 3);
-        ctx.fillStyle = '#1a1020'; ctx.fillRect(hx - 2, hy - 2, 1, 2); ctx.fillRect(hx + 2, hy - 2, 1, 2);
-      }
-      raf = requestAnimationFrame(draw);
-    };
+    let t = 0, raf = 0;
+    const draw = () => { t++; ctx.clearRect(0, 0, cv.width, cv.height); icons.current = drawMap(ctx, g, 26, 16, 8, 8, t, selRef.current, false); raf = requestAnimationFrame(draw); };
     draw();
     // when the map is bigger than its box (phones), scroll it so the heroes sit in the middle
     const box = boxRef.current;
     if (box) {
       const k = cv.clientWidth / cv.width;
-      box.scrollLeft = Math.max(0, (ox + (g.body.x / 480) * CW) * k - box.clientWidth / 2);
-      box.scrollTop = Math.max(0, (oy + (g.body.y / 272) * CH) * k - box.clientHeight / 2);
+      box.scrollLeft = Math.max(0, (8 + (g.body.x / 480) * 26) * k - box.clientWidth / 2);
+      box.scrollTop = Math.max(0, (8 + (g.body.y / 272) * 16) * k - box.clientHeight / 2);
     }
     return () => cancelAnimationFrame(raf);
   }, [g]);
-  void roomAt;
-  return <div className="bs-map-box" ref={boxRef}><canvas ref={ref} className="bs-map" width={12 * 26 + 16} height={9 * 16 + 16} aria-label="Map of the Bellspire" /></div>;
+  // keys and the d-pad step through the lit shrines; Z or A travels
+  useEffect(() => {
+    const order = SHRINE_ROOMS.map((r) => r.id).filter((id) => lit.includes(id));
+    navRef.current = (k) => {
+      if (k === 'ok') { if (selRef.current) onTravel(selRef.current); return; }
+      const i = order.indexOf(selRef.current ?? g.room.id), n = order.length;
+      if (n) setSel(order[(i + (k === 'right' ? 1 : -1) + n * 2) % n]);
+    };
+    return () => { navRef.current = null; };
+  }, [g, lit.join(), onTravel, navRef]); // eslint-disable-line react-hooks/exhaustive-deps
+  const tap = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const cv = ref.current!, r = cv.getBoundingClientRect(), k = cv.width / r.width;
+    const x = (e.clientX - r.left) * k, y = (e.clientY - r.top) * k;
+    let best: MapIcon | null = null, d = 14;
+    for (const ic of icons.current) { const dd = Math.hypot(ic.x - x, ic.y - y); if (dd < d) { d = dd; best = ic; } }
+    setSel(best ? best.id : null);
+  };
+  const room = sel ? ROOMS.find((r) => r.id === sel) : null;
+  const why = sel ? g.whyNotTravel(sel) : null;
+  return (
+    <div className="bs-map-col">
+      <div className="bs-map-box" ref={boxRef}><canvas ref={ref} className="bs-map" width={12 * 26 + 16} height={9 * 16 + 16} aria-label="Map of the Bellspire" onClick={tap} /></div>
+      {room && (
+        <div className="bs-shrine-pick" role="dialog" aria-label={SHRINE_NAMES[room.id]}>
+          <b>{lit.includes(room.id) ? SHRINE_NAMES[room.id] : 'Unlit shrine'}</b> <small>{AREAS[room.area].name}</small>
+          {room.id === g.room.id ? <em className="bs-here">You are here</em>
+            : lit.includes(room.id) ? <button type="button" className="bs-btn bs-small" disabled={!!why} title={why ?? ''} onClick={() => onTravel(room.id)}>Travel here</button>
+            : <em className="bs-why">Rest here once to light it.</em>}
+          {why && room.id !== g.room.id && lit.includes(room.id) && <em className="bs-why">{why}</em>}
+        </div>
+      )}
+      {travelMode && lit.length < 2 && <p className="bs-why bs-travel-note">Light another shrine to travel.</p>}
+      {travelMode && lit.length >= 2 && <p className="bs-small-print">← → choose a lit shrine · Z or X travel · tap a candle · Esc cancels</p>}
+    </div>
+  );
+}
+
+/** The HUD minimap: the rooms around the heroes, centred on where they stand. Tap it for the full map. */
+function MiniMap({ g, faded, onOpen }: { g: BellspireGame; faded: boolean; onOpen: () => void }) {
+  const ref = useRef<HTMLCanvasElement | null>(null);
+  useEffect(() => {
+    const cv = ref.current;
+    if (!cv) return;
+    const ctx = cv.getContext('2d')!;
+    let t = 0, raf = 0;
+    const draw = () => {
+      t++;
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      ctx.fillStyle = 'rgba(14,10,22,0.8)'; ctx.fillRect(0, 0, cv.width, cv.height);
+      // about 5 by 4 cells, centred on the lead
+      const CW = 16, CH = 9, cx = g.body.x / 480, cy = (g.body.y - 10) / 272;
+      drawMap(ctx, g, CW, CH, Math.round(cv.width / 2 - cx * CW), Math.round(cv.height / 2 - cy * CH), t, null, true);
+      raf = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => cancelAnimationFrame(raf);
+  }, [g]);
+  return (
+    <button type="button" className={`bs-minimap ${faded ? 'bs-faded' : ''}`} onClick={onOpen} aria-label="Open the map" data-room={g.room.id}>
+      <canvas ref={ref} width={84} height={40} />
+    </button>
+  );
 }
 
 export type { GameSettings };

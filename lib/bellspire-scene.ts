@@ -3,10 +3,11 @@
 // by a whole number with no smoothing.
 import {
   BellspireGame, INFO, ROOMS, AREAS, TILE, COLS, ROWS, VIEW_W, VIEW_H, FOES, ABILITIES, ABILITY_ORDER, HERO_H, DOOR_CHARS,
-  rawChar, groupAt, roomRect, hexRgb, surfaceY, surfaceRow,
-  type Room, type GameEvent, type FoeKind, type HeroId, type Boss,
+  rawChar, groupAt, roomRect, hexRgb, surfaceY, surfaceRow, SWING, foeFrame,
+  type Room, type GameEvent, type HeroId, type Boss, type NumKind,
 } from './bellspire-game';
-import { ART } from './bellspire-art';
+import { ART, FLAMES } from './bellspire-art';
+import { HeroAnimator, type AnimInput, type AnimOut } from './bellspire-anim';
 
 type Img = HTMLImageElement | HTMLCanvasElement;
 /** Extra treatment for a sprite: `rim` adds a dark outline and a lit upper edge in that colour; `tell` flashes it. */
@@ -15,9 +16,18 @@ type SprFx = { rim?: string; tell?: boolean };
 const RIM: Record<string, string> = { frog: '#bfe6ff', hydra: '#eaf5a8', puma: '#ffd49a', warden: '#ffe49a', mother: '#b4fff0' };
 /** A point light; `soft` lights fall off linearly (a wide, even pool), the rest fall off with the square (a hot centre). */
 type Light = { x: number; y: number; r: number; c: [number, number, number]; i: number; soft?: boolean };
+/** how a piece of decor moves: swings from its top, ripples from its top (cloth, nets), or bends from its base (reeds) */
+type Sway = 'pend' | 'cloth' | 'plant' | 'still';
+/** which decor frames move, per area (see the decor sheets) */
+const SWAY: Record<string, Record<number, Sway>> = {
+  halls: { 2: 'pend', 5: 'cloth', 7: 'plant' },
+  docks: { 1: 'plant', 5: 'cloth', 6: 'plant' },
+  towers: { 0: 'pend', 1: 'pend', 3: 'pend', 7: 'cloth' },
+  crypt: {},
+  throne: { 2: 'pend', 3: 'plant', 6: 'pend', 7: 'plant' },
+};
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number; g: number; light?: boolean };
 
-const FOE_ORDER: FoeKind[] = ['frog', 'moth', 'eel', 'reed', 'condor', 'imp', 'shell', 'vizcacha', 'jelly', 'golem'];
 const TILESET = (room: Room) => AREAS[room.area].tiles;
 /** Which decor sprite each map mark uses, per tile set, and the pieces sprinkled on floors, walls and ceilings. */
 const DECOR: Record<string, { torch: number; candle: number; window: number; bell: number; floor: number[]; wall: number[]; ceil: number[]; back: number }> = {
@@ -33,7 +43,7 @@ const SOLIDISH = '#^';
 
 // a 3×5 pixel font for the few words drawn in the world
 const GLYPHS: Record<string, string> = {
-  '0': '111101101101111', '1': '010110010010111', '2': '111001111100111', '3': '111001111001111', '4': '101101111001001', '5': '111100111001111',
+  'X': '101101010101101', '0': '111101101101111', '1': '010110010010111', '2': '111001111100111', '3': '111001111001111', '4': '101101111001001', '5': '111100111001111',
   '6': '111100111101111', '7': '111001010010010', '8': '111101111101111', '9': '111101111001111', '+': '000010111010000', '!': '010010010000010',
   'L': '100100100100111', 'V': '101101101101010', 'U': '101101101101111', 'P': '111101111100100', ' ': '000000000000000', 'M': '101111111101101',
 };
@@ -69,9 +79,49 @@ export class BellspireScene {
   flash = { color: '#fff', n: 0 };
   pulses: { x: number; y: number; r: number; c: [number, number, number]; t: number }[] = [];
   t = 0;
+  /** draw every hitbox over the picture */
+  debug = false;
   reduceFlash = false;
   shakeOn = true;
   bossName = { text: '', t: 0 };
+  // ─── the heroes' animation ──────────────────────────────────────────────
+  anims: Record<HeroId, HeroAnimator> = { dora: new HeroAnimator('dora', 1), enzo: new HeroAnimator('enzo', 2) };
+  /** what each hero's animator answered last: read by the browser tests */
+  heroAnim: Partial<Record<HeroId, AnimOut>> = {};
+  /** one-off moments for each hero's next animation step (rest, chest, relic, ring, read, shop, chime, tagOut, revive) */
+  animEvents: Record<HeroId, string[]> = { dora: [], enzo: [] };
+  pendingTag = false;
+  pendingDown: HeroId | null = null;
+  /** a knocked-out hero, slumped where they fell, fading */
+  koMarks: { hero: HeroId; x: number; y: number; t: number; flip: boolean }[] = [];
+  /** the dash's afterimages */
+  ghosts: { hero: HeroId; frame: number; x: number; y: number; flip: boolean; t: number }[] = [];
+  followerWas = { x: 0, y: 0 };
+  wasDown: Record<HeroId, boolean> = { dora: false, enzo: false };
+  leadNow: HeroId = 'dora';
+  // ─── numbers that pop off hits ──────────────────────────────────────────
+  numbersOn = true;
+  /** a journey between shrines, in ticks (0-30 fading out where they knelt, 30-60 fading in at the new candle), or -1 */
+  travelFx = -1;
+  travelSeen = -1;
+  nums: { x: number; y: number; n: number; kind: NumKind; t: number; dx: number }[] = [];
+  // ─── the moving world ───────────────────────────────────────────────────
+  /** decor drawn every frame instead of into the room picture: swaying bells, chains, banners and reeds, and flames */
+  live: { i: number; x: number; y: number; a: number; mode: Sway; amp: number; ph: number; flames: [number, number, number, number][]; candle: boolean }[] = [];
+  /** doors opening and walls crumbling (ticks since), chests opening, water bells swinging */
+  opening = new Map<string, number>();
+  wasOpen = new Map<string, boolean>();
+  chestT = new Map<string, number>();
+  bellSwing = new Map<string, number>();
+  glassA = new Map<string, number>();
+  chunks: { x: number; y: number; vx: number; vy: number; t: number; f: boolean }[] = [];
+  ripples: { x: number; y: number; t: number; big: boolean }[] = [];
+  wispTrail: { x: number; y: number }[] = [];
+  /** the water surface as drawn: it eases to a new level, with streams pouring in while it rises */
+  shownSurf: number | null = null;
+  shownSurfRoom = '';
+  /** chests already open when a room is first drawn don't replay their opening */
+  chestSeen = false;
   levelUps: { hero: HeroId; t: number }[] = [];
 
   /** The internal picture size; the page picks it to fit the screen (about 270 lines, as wide as the screen's shape). */
@@ -179,13 +229,107 @@ export class BellspireScene {
       else if (e.k === 'shake') this.shake = Math.max(this.shake, e.n);
       else if (e.k === 'flash') this.flash = { color: e.color, n: e.n };
       else if (e.k === 'pulse') this.pulses.push({ x: e.x, y: e.y, r: e.r, c: e.color, t: 0 });
-      else if (e.k === 'bell') this.burst(e.x, e.y, 14, '#ffd870', 2.4);
+      else if (e.k === 'bell') { this.burst(e.x, e.y, 14, '#ffd870', 2.4); this.ringBell(e.x, e.y); }
       else if (e.k === 'boss') this.bossName = { text: e.id, t: 180 };
       else if (e.k === 'level') this.levelUps.push({ hero: e.hero, t: 90 });
-      else if (e.k === 'sfx' && e.id === 'splash' && e.x !== undefined && e.y !== undefined) this.burst(e.x, e.y - 4, 10, '#bfe6ff', 2, -1.5);
-      else if (e.k === 'sfx' && e.id === 'poof' && e.x !== undefined && e.y !== undefined) this.burst(e.x, e.y - 8, 10, '#e8e0ff', 1.6);
+      else if (e.k === 'sfx' && e.id === 'splash' && e.x !== undefined && e.y !== undefined) { this.burst(e.x, e.y - 4, 10, '#bfe6ff', 2, -1.5); this.ripples.push({ x: e.x, y: e.y, t: 0, big: false }); }
+      else if (e.k === 'sfx' && e.id === 'poof' && e.x !== undefined && e.y !== undefined) this.poof(e.x, e.y);
+      if (e.k === 'num' && this.numbersOn) this.addNum(e.x, e.y, e.n, e.kind);
+      if (e.k === 'save') this.animEvents[this.leadNow].push('rest');
+      else if (e.k === 'bell') this.animEvents[this.leadNow].push('ring');
+      else if (e.k === 'mural') this.animEvents[this.leadNow].push('read');
+      else if (e.k === 'shop') this.animEvents[this.leadNow].push('shop');
+      else if (e.k === 'down') this.pendingDown = e.hero;
+      else if (e.k === 'sfx' && e.id === 'chime') this.animEvents[this.leadNow].push('chime');
+      else if (e.k === 'sfx' && e.id === 'chest') this.animEvents[this.leadNow].push('chest');
+      else if (e.k === 'sfx' && e.id === 'relic') this.animEvents[this.leadNow].push('relic');
+      else if (e.k === 'sfx' && e.id === 'tag') this.pendingTag = true;
     }
   }
+  /** Queue a number; numbers that would land on top of each other stack upwards instead. */
+  addNum(x: number, y: number, n: number, kind: NumKind) {
+    if (n <= 0) return;
+    let dy = 0;
+    for (const m of this.nums) if (Math.abs(m.x - x) < 18 && Math.abs(m.y - (y - dy)) < 12 && m.t < 30) dy += 12;
+    // XP and coins drift off to the side, smaller, so the damage stays readable
+    const dx = kind === 'xp' ? -12 : kind === 'coin' ? 12 : 0;
+    this.nums.push({ x: x + dx, y: y - dy - (kind === 'xp' || kind === 'coin' ? 6 : 0), n, kind, t: kind === 'xp' || kind === 'coin' ? -6 : 0, dx });
+    if (this.nums.length > 24) this.nums.shift();
+  }
+
+  /** The numbers, in the pixel font, outlined, rising and fading; never over the lead's face. */
+  drawNums(g: BellspireGame, ox: number, oy: number) {
+    const ctx = this.ctx, b = g.body;
+    const COL: Record<NumKind, string> = { hit: '#ffffff', big: '#ffd94a', spell: '#9fe6ff', hurt: '#ff5a5a', heal: '#6dff8a', xp: '#d6b8ff', coin: '#ffd94a' };
+    for (const m of this.nums) {
+      m.t++;
+      if (m.t < 0) continue;
+      const life = m.kind === 'xp' || m.kind === 'coin' ? 50 : 40;
+      const rise = m.t < 6 ? m.t * 1.6 : 9.6 + (m.t - 6) * 0.25;
+      let x = m.x + ox + (m.kind === 'xp' || m.kind === 'coin' ? m.t * 0.15 * Math.sign(m.dx) : 0), y = m.y + oy - rise;
+      // keep clear of the lead's face (the top of the sprite, about 22 to 38 px above the feet)
+      const fx = b.x + ox, fy = b.y + oy;
+      if (Math.abs(x - fx) < 14 && y > fy - 52 && y < fy - 16) y = fy - 52 - (m.t < 6 ? 0 : (m.t - 6) * 0.25);
+      const label = m.kind === 'xp' ? `+${m.n}XP` : m.kind === 'heal' || m.kind === 'coin' ? `+${m.n}` : `${m.n}`;
+      // damage and heals at 2×, finishers at 3×, the XP and coin drift at 1× so they stay quieter
+      const scale = m.kind === 'big' ? 3 : m.kind === 'xp' || m.kind === 'coin' ? 1 : 2;
+      ctx.globalAlpha = Math.max(0, Math.min(1, (life - m.t) / 10));
+      this.numText(label, x, y, COL[m.kind], scale);
+      if (m.kind === 'coin') { const w = label.length * 4 * scale; ctx.fillStyle = '#7a4a10'; ctx.fillRect(Math.round(x + w / 2 + 1), Math.round(y), 4, 5); ctx.fillStyle = '#ffd040'; ctx.fillRect(Math.round(x + w / 2 + 2), Math.round(y) + 1, 2, 3); }
+      ctx.globalAlpha = 1;
+    }
+    this.nums = this.nums.filter((m) => m.t < (m.kind === 'xp' || m.kind === 'coin' ? 50 : 40));
+  }
+
+  /** The 3×5 pixel font at a whole-number scale, with a dark outline all round. */
+  numText(s: string, x: number, y: number, color: string, k: number) {
+    const ctx = this.ctx, w = s.length * 4 * k - k;
+    const x0 = Math.round(x - w / 2), y0 = Math.round(y);
+    for (const [col, offs] of [['#1a1020', [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]]], [color, [[0, 0]]]] as const) {
+      ctx.fillStyle = col;
+      let px = x0;
+      for (const ch of s) {
+        const gl = GLYPHS[ch] ?? GLYPHS[' '];
+        for (let i = 0; i < 15; i++) if (gl[i] === '1') for (const [dx, dy] of offs) ctx.fillRect(px + (i % 3) * k + dx, y0 + Math.floor(i / 3) * k + dy, k, k);
+        px += 4 * k;
+      }
+    }
+  }
+
+  /** A water bell was rung near (x, y): it swings for a moment. */
+  ringBell(x: number, y: number) {
+    let best = '', d = 1e9;
+    for (const r of ROOMS) if (r.id === this.roomId) for (const t of INFO.get(r.id)!.things) if (t.ch === 'B') {
+      const dd = Math.hypot(t.c * TILE + 8 - x, (t.r + 1) * TILE - 20 - y);
+      if (dd < d) { d = dd; best = `${t.c},${t.r}`; }
+    }
+    if (best && d < 80) this.bellSwing.set(best, 90);
+  }
+
+  /** A foe calmed: a soft round cloud that puffs out and drifts up, with a couple of little stars. No harm shown. */
+  poof(x: number, y: number) {
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2, s = 0.7 + Math.random() * 0.5;
+      this.particles.push({ x: x + Math.cos(a) * 3, y: y - 10 + Math.sin(a) * 3, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.7 - 0.3, life: 0, max: 26 + Math.random() * 8, color: i % 3 ? '#f2eeff' : '#d8d0f0', size: 3, g: -0.01, light: true });
+    }
+    for (let i = 0; i < 3; i++) this.particles.push({ x: x + (i - 1) * 6, y: y - 16, vx: (i - 1) * 0.4, vy: -0.9, life: 0, max: 30, color: '#ffe9a0', size: 2, g: 0, light: true });
+  }
+
+  /** Dust, puffs and splashes at the feet, as the animator asks. */
+  dust(out: AnimOut, x: number, y: number) {
+    const puff = (n: number, spread: number, up: number, color: string, size = 2) => {
+      for (let i = 0; i < n; i++) {
+        const d = i % 2 ? 1 : -1;
+        this.particles.push({ x: x + d * (2 + Math.random() * spread), y: y - 1, vx: d * (0.3 + Math.random() * 0.6), vy: -up * (0.3 + Math.random()), life: 0, max: 14 + Math.random() * 10, color, size, g: 0.02 });
+      }
+    };
+    if (out.dust === 'skid') this.particles.push({ x: x - (out.flip ? -6 : 6), y: y - 1, vx: (out.flip ? 1 : -1) * 0.5, vy: -0.4, life: 0, max: 14, color: '#cdbfa8', size: 2, g: 0.02 });
+    else if (out.dust === 'land') puff(4, 4, 0.6, '#cdbfa8');
+    else if (out.dust === 'hard') puff(10, 8, 1, '#d8ccb6', 3);
+    else if (out.dust === 'splash') puff(5, 3, 2.2, '#bfe6ff', 1);
+    else if (out.dust === 'step' && Math.random() < 0.5) puff(1, 2, 0.4, '#b8ac98', 1);
+  }
+
   burst(x: number, y: number, n: number, color: string, speed: number, up = 0) {
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2, s = speed * (0.4 + Math.random() * 0.8);
@@ -215,9 +359,16 @@ export class BellspireScene {
     // decor sprinkled on the back wall
     const decor = this.img.get(`decor-${set}`);
     const things = new Set(INFO.get(room.id)!.things.map((t) => `${t.c},${t.r}`));
+    this.live = [];
     const D = (i: number, x: number, y: number, a = 1) => {
       const art = ART[`decor-${set}`];
       if (!decor || !art || i < 0) return;
+      // decor that sways or burns is drawn every frame (drawLive), not baked into the room
+      const mode = SWAY[set]?.[i], flames = FLAMES[`decor-${set}`]?.[i] ?? [];
+      if (mode || flames.length) {
+        this.live.push({ i, x, y, a, mode: mode ?? 'still', amp: 0, ph: hash(Math.round(x), Math.round(y)) % 100, flames, candle: i === dec.candle });
+        return;
+      }
       ctx.globalAlpha = a;
       ctx.drawImage(decor, i * art[0], 0, art[0], art[1], Math.round(x - art[0] / 2), Math.round(y - art[1]), art[0], art[1]);
       ctx.globalAlpha = 1;
@@ -294,7 +445,7 @@ export class BellspireScene {
     this.t++;
     if (!this.ready) { ctx.fillStyle = '#0b0a12'; ctx.fillRect(0, 0, this.vw, this.vh); return; }
     const room = g.room;
-    if (this.roomId !== room.id || !this.roomCanvas) { this.buildRoom(room); this.particles = []; this.snapCam(g); }
+    if (this.roomId !== room.id || !this.roomCanvas) { this.buildRoom(room); this.particles = []; this.snapCam(g); this.chestSeen = false; this.chestT.clear(); this.wasOpen.clear(); this.opening.clear(); this.ripples = []; this.chunks = []; this.wispTrail = []; }
     const rr = roomRect(room);
     // the camera follows the lead, a little ahead, and never leaves the room; in a boss fight it looks at the guardian
     // while it introduces itself, then leans towards it (keeping the lead well inside the picture)
@@ -334,6 +485,7 @@ export class BellspireScene {
     }
     const ox = -cx, oy = -cy;
     this.drawDynamicTiles(g, ox, oy);
+    this.drawLive(g, ox, oy);
     this.drawThings(g, ox, oy);
     this.drawPickups(g, ox, oy);
     this.drawEnemies(g, ox, oy);
@@ -358,7 +510,13 @@ export class BellspireScene {
     this.drawRays(g, ox, oy);
 
     // over the light: the wisp, rings, flashes and labels
-    if (g.wisp.on) { const wx = g.wisp.x + ox, wy = g.wisp.y + oy + Math.sin(this.t * 0.1) * 2; this.spr('npcs', 4, wx, wy + 6, g.wisp.tx < g.wisp.x); }
+    if (g.wisp.on) {
+      const wx = g.wisp.x + ox, wy = g.wisp.y + oy + Math.sin(this.t * 0.1) * 2;
+      // a trail of fading motes behind it
+      if (this.t % 3 === 0) { this.wispTrail.push({ x: g.wisp.x, y: g.wisp.y + Math.sin(this.t * 0.1) * 2 }); if (this.wispTrail.length > 10) this.wispTrail.shift(); }
+      this.wispTrail.forEach((p, i) => { ctx.fillStyle = `rgba(255,236,160,${((i + 1) / this.wispTrail.length * 0.5).toFixed(2)})`; const sz = i > 6 ? 2 : 1; ctx.fillRect(Math.round(p.x + ox), Math.round(p.y + oy), sz, sz); });
+      this.spr('npcs', 4, wx, wy + 6, g.wisp.tx < g.wisp.x);
+    } else this.wispTrail = [];
     for (const r of g.rings) { ctx.strokeStyle = r.friendly ? 'rgba(255,220,130,0.85)' : 'rgba(230,120,255,0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(Math.round(r.x + ox), Math.round(r.y + oy), r.r, 0, Math.PI * 2); ctx.stroke(); }
     for (const p of this.pulses) {
       p.t++;
@@ -369,11 +527,32 @@ export class BellspireScene {
     this.pulses = this.pulses.filter((p) => p.t < 24);
     for (const l of this.levelUps) { l.t--; const hx = l.hero === g.lead ? b.x : g.follower.x, hy = (l.hero === g.lead ? b.y : g.follower.y) - 46 - (90 - l.t) * 0.2; this.text('LV UP!', hx + ox, hy + oy, l.t > 70 || this.t % 8 < 6 ? '#ffe27a' : '#fff'); }
     this.levelUps = this.levelUps.filter((l) => l.t > 0);
+    this.drawNums(g, ox, oy);
+    if (this.debug) this.drawDebug(g, ox, oy);
     if (this.flash.n > 0) {
       if (!this.reduceFlash) { ctx.globalAlpha = Math.min(0.6, this.flash.n / 20); ctx.fillStyle = this.flash.color; ctx.fillRect(0, 0, this.vw, this.vh); ctx.globalAlpha = 1; }
       this.flash.n--;
     }
   }
+  /** The hitbox overlay (?hitboxes=1, or __bellspire().debug(true)): green where things can be hit, red where they
+   *  hurt, cyan the lead hero, yellow the lead's attack. */
+  drawDebug(g: BellspireGame, ox: number, oy: number) {
+    const ctx = this.ctx;
+    const box = (r: { x: number; y: number; w: number; h: number }, c: string) => { ctx.strokeStyle = c; ctx.lineWidth = 1; ctx.strokeRect(Math.round(r.x + ox) + 0.5, Math.round(r.y + oy) + 0.5, Math.max(1, Math.round(r.w) - 1), Math.max(1, Math.round(r.h) - 1)); };
+    for (const e of g.enemies) {
+      if (!e.alive || e.hidden) continue;
+      box(g.foeRect(e), '#3dff6e'); box(g.contactRect(e), '#ff4a4a');
+      if (e.st === 'strike' && e.kind !== 'golem' && e.t < 12) box(g.strikeRect(e), '#ff4a4a');
+    }
+    if (g.boss) { for (const r of g.boss.hurt) box(r, '#3dff6e'); for (const r of g.boss.harm) box(r, '#ff4a4a'); }
+    for (const w of g.waves) box({ x: w.x - 6, y: w.y - w.h, w: 12, h: w.h }, '#ff4a4a');
+    for (const r of g.rings) if (!r.friendly) { ctx.strokeStyle = '#ff4a4a'; ctx.beginPath(); ctx.arc(r.x + ox, r.y + oy, Math.max(0, r.r - r.thick / 2), 0, Math.PI * 2); ctx.arc(r.x + ox, r.y + oy, r.r + r.thick / 2, 0, Math.PI * 2); ctx.stroke(); }
+    for (const s of g.shots) { ctx.strokeStyle = s.friendly ? '#ffe14a' : '#ff4a4a'; ctx.beginPath(); ctx.arc(s.x + ox, s.y + oy, s.r, 0, Math.PI * 2); ctx.stroke(); }
+    box(g.leadRect(), '#4ae8ff');
+    const a = g.attackBox();
+    if (a) box(a.r, '#ffe14a');
+  }
+
   snapCam(g: BellspireGame) {
     const rr = roomRect(g.room), b = g.body;
     this.cam.x = camClamp(b.x + b.face * 24 - this.vw / 2, rr.x, rr.w, this.vw);
@@ -398,15 +577,45 @@ export class BellspireScene {
     const tiles = this.img.get(`tiles-${TILESET(room)}`);
     // breakable walls
     for (const w of info.walls) {
-      if (g.wallBroken(w)) continue;
+      const broken = g.wallBroken(w), was = this.wasOpen.get(w.id);
+      this.wasOpen.set(w.id, broken);
+      // it just broke: it crumbles into tumbling pieces and dust
+      if (broken && was === false) for (const [c, r] of w.tiles) {
+        for (let i = 0; i < 3; i++) this.chunks.push({ x: c * TILE + 4 + Math.random() * 8, y: r * TILE + 4 + Math.random() * 8, vx: (Math.random() - 0.5) * 2.4, vy: -1.5 - Math.random() * 1.5, t: 0, f: Math.random() < 0.5 });
+        this.burst(c * TILE + 8, r * TILE + 8, 6, '#b8a890', 1.2);
+      }
+      if (broken) continue;
       for (const [c, r] of w.tiles) if (tiles) ctx.drawImage(tiles, 5 * 16, 0, 16, 16, c * TILE + ox, r * TILE + oy, 16, 16);
     }
+    const props = this.img.get('props'), pa = ART.props;
+    for (const k of this.chunks) {
+      k.t++; k.vy += 0.18; k.x += k.vx; k.y += k.vy;
+      if (props && pa) { ctx.globalAlpha = Math.max(0, 1 - k.t / 50); ctx.drawImage(props, 9 * pa[0] + pa[0] / 2 - 6, pa[1] - 10, 12, 10, Math.round(k.x + ox - 3), Math.round(k.y + oy - 3), 6, 5); ctx.globalAlpha = 1; }
+    }
+    this.chunks = this.chunks.filter((k) => k.t < 50);
     // doors and hatches
     for (const d of info.doors) {
-      const open = g.doorOpen(d);
+      const open = g.doorOpen(d), was = this.wasOpen.get(d.id);
+      this.wasOpen.set(d.id, open);
+      if (open && was === false) this.opening.set(d.id, 0);
       const x = d.c * TILE + ox, y = d.r * TILE + oy, w = d.w * TILE, h = d.h * TILE;
       const ab = ({ d: 'dash', j: 'double', k: 'wallkick', l: 'lantern', c: 'chime' } as Record<string, keyof typeof ABILITIES>)[d.ch];
       const col = ab ? ABILITIES[ab].color : d.ch === 'u' ? '#c9a46a' : '#b85050';
+      // opening: the rune blazes for a moment, then the door slides away into the wall (a hatch, sideways)
+      const ot = this.opening.get(d.id);
+      if (open && ot !== undefined && ot < 40) {
+        this.opening.set(d.id, ot + 1);
+        const k = ot < 12 ? 0 : (ot - 12) / 28, ease = k * k * (3 - 2 * k);
+        ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+        const dx = d.horiz ? -w * ease : 0, dy = d.horiz ? 0 : -h * ease;
+        ctx.fillStyle = '#231a1e'; ctx.fillRect(x + dx, y + dy, w, h);
+        ctx.fillStyle = '#5a4436'; ctx.fillRect(x + dx + 1, y + dy + 1, w - 2, h - 2);
+        ctx.fillStyle = col; ctx.globalAlpha = ot < 12 ? 0.5 + 0.5 * Math.sin(ot * 0.9) : 0.6 * (1 - k);
+        ctx.fillRect(x + dx, y + dy, w, h); ctx.globalAlpha = 1;
+        ctx.restore();
+        if (ot >= 12 && ot % 4 === 0) this.burst((d.c + d.w / 2) * TILE, (d.r + (d.horiz ? 0.5 : d.h)) * TILE, 3, '#b8a890', 0.8);
+        continue;
+      }
       if (open) {
         // an open hatch over a ladder becomes ladder
         if (d.horiz && tiles) for (const [c, r] of d.tiles) if (rawChar(c, r - 1) === 'H' || rawChar(c, r + 1) === 'H') ctx.drawImage(tiles, 4 * 16, 0, 16, 16, c * TILE + ox, r * TILE + oy, 16, 16);
@@ -435,15 +644,77 @@ export class BellspireScene {
       if (rawChar(c0 + x, r0 + y) !== 'g') continue;
       const lit = g.glassLit(c0 + x, r0 + y);
       const px = (c0 + x) * TILE + ox, py = (r0 + y) * TILE + oy;
+      const key = `${c0 + x},${r0 + y}`, a0 = this.glassA.get(key) ?? (lit ? 1 : 0), ga = a0 + ((lit ? 1 : 0) - a0) * 0.15;
+      this.glassA.set(key, ga);
       if (px < -16 || px > this.vw || py < -16 || py > this.vh) continue;
-      if (lit) {
+      if (ga > 0.05) {
+        ctx.globalAlpha = ga;
         ctx.fillStyle = 'rgba(150,200,255,0.85)'; ctx.fillRect(px, py, 16, 16);
         ctx.fillStyle = '#e8f4ff'; ctx.fillRect(px, py, 16, 1); ctx.fillRect(px + 2, py + 3, 1, 6);
         ctx.fillStyle = '#5a78c8'; ctx.fillRect(px, py + 15, 16, 1);
-      } else {
+        // a glint sweeps across the solid glass
+        const sweep = ((this.t * 0.8 + (c0 + x) * 16 - (r0 + y) * 8) % 120) - 20;
+        if (sweep >= 0 && sweep < 16) { ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(px + Math.floor(sweep), py + 1, 2, 14); }
+        ctx.globalAlpha = 1;
+      }
+      if (ga < 0.95) {
+        ctx.globalAlpha = 1 - ga;
         ctx.fillStyle = 'rgba(150,200,255,0.16)'; ctx.fillRect(px, py, 16, 16);
         ctx.fillStyle = `rgba(190,220,255,${0.25 + 0.15 * Math.sin(this.t * 0.05 + x)})`;
         for (let i = 0; i < 16; i += 4) { ctx.fillRect(px + i, py, 2, 1); ctx.fillRect(px + i, py + 15, 2, 1); }
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  /** Draw a sprite cell a row at a time, each row shifted sideways by `shift(row from the top, height)`: sway that keeps
+   *  the pixels square, where a rotation would smear them. */
+  drawSliced(img: Img, sx: number, cw: number, ch: number, dx: number, dy: number, shift: (r: number, h: number) => number, alpha = 1) {
+    const ctx = this.ctx;
+    if (alpha !== 1) ctx.globalAlpha = alpha;
+    for (let r = 0; r < ch; r += 2) ctx.drawImage(img, sx, r, cw, 2, Math.round(dx + shift(r, ch)), dy + r, cw, 2);
+    if (alpha !== 1) ctx.globalAlpha = 1;
+  }
+
+  drawLive(g: BellspireGame, ox: number, oy: number) {
+    const set = TILESET(g.room), img = this.img.get(`decor-${set}`), art = ART[`decor-${set}`], fl = this.img.get('flames');
+    if (!img || !art) return;
+    const [cw, ch] = art, b = g.body, box = g.attackBox();
+    for (const d of this.live) {
+      const x = d.x + ox, y = d.y + oy;
+      if (x < -cw || x > this.vw + cw || y < -10 || y > this.vh + ch) continue;
+      // bells, chains and banners swing harder when the heroes brush past or strike them
+      const near = Math.abs(b.x - d.x) < 14 && b.y > d.y - ch && b.y - 30 < d.y;
+      const struck = box && box.r.x < d.x + 8 && box.r.x + box.r.w > d.x - 8 && box.r.y < d.y && box.r.y + box.r.h > d.y - ch;
+      if (struck) d.amp = Math.max(d.amp, 5);
+      else if (near && Math.abs(b.vx) > 0.5) d.amp = Math.max(d.amp, 2.5);
+      d.amp *= 0.985;
+      const t = this.t + d.ph * 7, sx = d.i * cw, x0 = Math.round(x - cw / 2), y0 = Math.round(y - ch);
+      // find the top of the drawn part, so a pendulum pivots on its hook
+      if (d.mode === 'pend') {
+        const ang = Math.sin(t * 0.045) * (0.6 + d.amp) * 0.02 + Math.sin(t * 0.09) * d.amp * 0.03;
+        this.drawSliced(img, sx, cw, ch, x0, y0, (r) => ang * r, d.a);
+      } else if (d.mode === 'cloth') {
+        this.drawSliced(img, sx, cw, ch, x0, y0, (r, h) => Math.sin(t * 0.05 + r * 0.12) * (0.8 + d.amp * 0.4) * (r / h), d.a);
+      } else if (d.mode === 'plant') {
+        this.drawSliced(img, sx, cw, ch, x0, y0, (r, h) => Math.sin(t * 0.03 + d.ph) * 1.4 * ((h - r) / h) ** 1.6, d.a);
+      } else {
+        if (d.a !== 1) this.ctx.globalAlpha = d.a;
+        this.ctx.drawImage(img, sx, 0, cw, ch, x0, y0, cw, ch);
+        this.ctx.globalAlpha = 1;
+      }
+      // flames: painted frames laid over the painted flame, each flickering on its own clock
+      if (fl) for (let k = 0; k < d.flames.length; k++) {
+        const [fx0, fy0, fx1, fy1] = d.flames[k];
+        const f = Math.floor((t + k * 13) / 5 + Math.sin(t * 0.3 + k) * 1.5);
+        if (d.candle) {
+          // a candle: a small flame on the top of each wick
+          const fi = 3 + (((f % 3) + 3) % 3), w = 4, h = 6;
+          this.ctx.drawImage(fl, fi * 16, 0, 16, 20, Math.round(x + (fx0 + fx1) / 2 - w / 2), Math.round(y + fy0 - h + 3), w, h);
+        } else {
+          const fi = ((f % 3) + 3) % 3, w = Math.max(6, (fx1 - fx0) * 1.5), h = Math.max(8, (fy1 - fy0) * 1.6);
+          this.ctx.drawImage(fl, fi * 16, 0, 16, 20, Math.round(x + (fx0 + fx1) / 2 - w / 2), Math.round(y + fy1 - h + 1), Math.round(w), Math.round(h));
+        }
       }
     }
   }
@@ -454,8 +725,25 @@ export class BellspireScene {
       const x = t.c * TILE + 8 + ox, y = (t.r + 1) * TILE + oy;
       if (x < -80 || x > this.vw + 80 || y < -40 || y > this.vh + 80) continue;
       if (t.ch === 'S') this.spr('props', g.flag(`shrine:${room.id}`) || g.save.shrine === room.id ? 1 : 0, x, y);
-      else if (t.ch === 'B') this.spr('props', 2, x, y);
-      else if (t.ch === 'C') this.spr('props', g.flag(`chest:${room.id}:${t.i}`) ? 4 : 3, x, y);
+      else if (t.ch === 'B') {
+        // a rung water bell swings, and rings out
+        const k = `${t.c},${t.r}`, sw = this.bellSwing.get(k) ?? 0;
+        const im = this.img.get('props'), a = ART.props;
+        if (sw > 0 && im && a) {
+          this.bellSwing.set(k, sw - 1);
+          const ang = Math.sin((90 - sw) * 0.25) * (sw / 90) * 0.12;
+          this.drawSliced(im, 2 * a[0], a[0], a[1], Math.round(x - a[0] / 2), Math.round(y - a[1]), (r) => ang * Math.max(0, r - a[1] * 0.25));
+          if (sw % 18 === 0) this.ripples.push({ x: x - ox, y: y - oy - 26, t: 0, big: true });
+        } else this.spr('props', 2, x, y);
+      } else if (t.ch === 'C') {
+        // a chest opens: the lid half up and light spilling out, then wide open
+        const k = `${room.id}:${t.i}`, open = g.flag(`chest:${k}`);
+        if (open && !this.chestT.has(k)) { this.chestT.set(k, this.chestSeen ? 0 : 99); if (this.chestSeen) this.burst(x - ox, y - oy - 10, 10, '#ffe6a0', 1.4, -0.8); }
+        if (!open) this.chestT.delete(k);
+        const ct = this.chestT.get(k) ?? 99;
+        if (open && ct < 99) this.chestT.set(k, ct + 1);
+        this.spr('props', !open ? 3 : ct < 10 ? 8 : 4, x, y);
+      }
       else if (t.ch === 'R') {
         this.spr('props', 7, x, y);
         const n = room.murals?.[t.i] ?? 0;
@@ -470,6 +758,7 @@ export class BellspireScene {
       }
     }
     // the coin bag after a wipe
+    this.chestSeen = true;
   }
 
   drawPickups(g: BellspireGame, ox: number, oy: number) {
@@ -483,8 +772,11 @@ export class BellspireScene {
         ctx.fillStyle = '#fff6c0'; ctx.fillRect(x, y - 2, 1, 2);
       } else if (p.kind === 'bag') this.spr('npcs', 6, x, y + 6 + Math.sin(this.t * 0.08) * 1.5);
       else {
-        ctx.fillStyle = p.kind === 'mp' ? '#4fa8ff' : '#ff5a6a';
-        ctx.fillRect(x - 2, y - 2, 5, 5); ctx.fillStyle = '#fff'; ctx.fillRect(x - 1, y - 1, 1, 1);
+        // a little gem that bobs and turns
+        const by = y + Math.round(Math.sin((this.t + p.id * 9) * 0.1) * 1.5), w = [2, 1, 0, 1][Math.floor((this.t + p.id * 3) / 8) % 4];
+        ctx.fillStyle = p.kind === 'mp' ? '#2a5aa8' : '#a82a3a'; ctx.fillRect(x - w - 1, by - 3, w * 2 + 3, 7);
+        ctx.fillStyle = p.kind === 'mp' ? '#4fa8ff' : '#ff5a6a'; ctx.fillRect(x - w, by - 2, w * 2 + 1, 5);
+        ctx.fillStyle = '#fff'; ctx.fillRect(x, by - 2, 1, 1);
       }
     }
   }
@@ -492,69 +784,138 @@ export class BellspireScene {
   drawEnemies(g: BellspireGame, ox: number, oy: number) {
     for (const e of g.enemies) {
       if (!e.alive || e.hidden) continue;
-      const k = FOE_ORDER.indexOf(e.kind);
-      const active = e.st === 'tell' || e.st === 'strike' || e.st === 'lunge' || e.st === 'swoop' || e.st === 'hop';
-      const f = FOES[e.kind];
-      let frame = k * 2 + (active ? 1 : 0);
-      if (f.fly && !active) frame = k * 2 + (Math.floor((this.t + e.id * 7) / 10) % 2);
-      if (e.kind === 'frog' && (e.st === 'sleep' || e.st === 'wake')) frame = k * 2;
-      let x = e.x + ox, y = e.y + oy + (f.fly || f.swim ? (ART.foes[1] - f.h) / 2 - 4 : 1);
+      // the frame comes from the game clock, the same one its hitbox is measured from
+      const frame = foeFrame(e, g.tick);
+      // every foe is drawn from (x, y + 1), the same point its hitboxes are measured from
+      let x = e.x + ox;
+      const y = e.y + oy + 1;
       // a tell shivers, so the warning is easy to see
       if (e.st === 'tell') x += (this.t % 4 < 2 ? 1 : -1);
-      if (e.kind === 'frog' && e.st === 'sleep') { this.ctx.globalAlpha = 1; }
-      this.spr('foes', frame, x, y, e.face > 0, 1, e.flash > 0 && e.flash % 4 < 2);
-      if (e.st === 'tell') this.text('!', x, y - f.h - 12, '#ffe27a');
-      if (e.kind === 'frog' && e.st === 'sleep' && this.t % 90 < 60) this.text('', x, y - f.h - 8, '#fff');
+      // hurt: a white flash and a squash that springs back
+      const hurt = e.flash > 4;
+      if (hurt) {
+        const ctx = this.ctx;
+        ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(1.12, 0.88);
+        this.spr('foes', frame, 0, 0, e.face > 0, 1, e.flash % 4 < 2);
+        ctx.restore();
+      } else this.spr('foes', frame, x, y, e.face > 0, 1, e.flash > 0 && e.flash % 4 < 2);
+      const top = g.foeRect(e).y + oy;
+      if (e.st === 'tell') this.text('!', x, top - 6, '#ffe27a');
+      if (e.kind === 'frog' && e.st === 'sleep' && this.t % 90 < 60) this.text('', x, top - 4, '#fff');
     }
     void ROOMS;
   }
 
-  heroFrame(g: BellspireGame, hero: HeroId, lead: boolean): { frame: number; flip: boolean; x: number; y: number; alpha: number } {
-    if (lead) {
-      const b = g.body, rt = g.hero[hero], act = rt.act;
-      let frame = 0;
-      if (rt.hurtT > 0) frame = 6;
-      else if (act && act.kind === 'swing') frame = 8 + act.n;
-      else if (act && act.kind === 'thrust') frame = hero === 'dora' ? 11 : 4;
-      else if (act && (act.kind === 'whirl' || act.kind === 'tagin')) frame = 8 + (Math.floor(act.t / 4) % 3);
-      else if (act && act.kind === 'cast') frame = hero === 'enzo' ? 11 : 10;
-      else if (b.dashT > 0) frame = 7;
-      else if (b.swim) frame = hero === 'dora' ? 13 + (Math.floor(this.t / 14) % 2) : 14 + (Math.floor(this.t / 14) % 2);
-      else if (b.glide) frame = hero === 'enzo' ? 13 : 5;
-      else if (b.wall !== 0 && !b.ground && hero === 'dora' && g.has('wallkick')) frame = 12;
-      else if (b.climb) frame = 4;
-      else if (!b.ground) frame = b.vy < 0 ? 4 : 5;
-      else if (Math.abs(b.vx) > 0.3) frame = 1 + (Math.floor(this.t / 6) % 3);
-      else if (hero === 'enzo' && g.lanternUp) frame = 12;
-      let flip = b.face < 0;
-      if (frame === 12 && hero === 'dora') flip = b.wall > 0 ? true : false;
-      const blink = rt.inv > 0 && rt.hurtT === 0 && rt.inv < 60 && this.t % 6 < 3;
-      return { frame, flip, x: b.x, y: b.y + 1, alpha: blink ? 0.35 : 1 };
-    }
-    const f = g.follower;
-    let frame = f.swim ? (hero === 'dora' ? 13 : 14) + (Math.floor(this.t / 14) % 2) : f.air ? 4 : f.moving ? 1 + (Math.floor(this.t / 6) % 3) : 0;
-    if (f.swipeT > 0 && hero === 'dora') frame = 9;
-    if (hero === 'enzo' && g.lanternUp && !f.moving && !f.air) frame = 12;
-    return { frame, flip: f.face < 0, x: f.x, y: f.y + 1, alpha: 1 };
+  /** The snapshot the animator reads for the lead: straight from the body and the hero's action. */
+  leadInput(g: BellspireGame): AnimInput {
+    const lead = g.lead, b = g.body, rt = g.hero[lead], act = rt.act, sw = SWING[lead];
+    const ev = this.animEvents[lead]; this.animEvents[lead] = [];
+    if (b.jumped) ev.push('jumped');
+    if (b.jumped === 'wall') ev.push('kicked');
+    return {
+      ground: b.ground, vx: b.vx, vy: b.vy, face: b.face, climb: b.climb, swim: b.swim, wade: b.wade, glide: b.glide,
+      wallSlide: b.wall !== 0 && !b.ground && b.vy > 0 && g.has('wallkick'), dash: b.dashT > 0, hurt: rt.hurtT > 0, down: false,
+      act: act ? { kind: act.kind, n: act.n, t: act.t, wind: sw.wind, active: sw.act } : null,
+      castHold: rt.castHold > 6, lanternUp: lead === 'enzo' && g.lanternUp, events: ev,
+    };
+  }
+
+  /** The follower has no body of its own (it walks the lead's trail), so its motion is read from how it moved. */
+  followerInput(g: BellspireGame, hero: HeroId): AnimInput {
+    const f = g.follower, vx = f.x - this.followerWas.x, vy = f.y - this.followerWas.y;
+    this.followerWas = { x: f.x, y: f.y };
+    const ev = this.animEvents[hero]; this.animEvents[hero] = [];
+    const onLadder = rawChar(Math.floor(f.x / TILE), Math.floor((f.y - 6) / TILE)) === 'H' && f.air;
+    return {
+      ground: !f.air || onLadder, vx: f.moving ? vx : 0, vy: onLadder ? 0 : vy, face: f.face, climb: onLadder, swim: f.swim, wade: false, glide: false,
+      wallSlide: false, dash: false, hurt: false, down: false,
+      act: f.swipeT > 0 && hero === 'dora' ? { kind: 'swing', n: 0, t: 10 - f.swipeT, wind: 2, active: 4 } : null,
+      castHold: false, lanternUp: hero === 'enzo' && g.lanternUp, events: ev,
+    };
+  }
+
+  /** One hero sprite with the animator's squash, stretch and lean, about the feet. */
+  drawHero(hero: HeroId, out: AnimOut, x: number, y: number, alpha: number, white = false) {
+    const ctx = this.ctx;
+    let flip = out.flip;
+    // back views don't turn round
+    if (out.state === 'climb' || out.state === 'climbOn' || out.state === 'read') flip = false;
+    if (out.sx === 1 && out.sy === 1 && Math.abs(out.lean) < 0.01) { this.spr(hero, out.frame, x, y, flip, alpha, white); return; }
+    ctx.save();
+    ctx.translate(Math.round(x), Math.round(y));
+    // x' = sx·x − lean·y: with y up-negative, the top of the sprite leans the way `lean` says
+    ctx.transform(out.sx, 0, -out.lean, out.sy, 0, 0);
+    this.spr(hero, out.frame, 0, 0, flip, alpha, white);
+    ctx.restore();
   }
 
   drawHeroes(g: BellspireGame, ox: number, oy: number) {
-    const lead = g.lead, oth: HeroId = lead === 'dora' ? 'enzo' : 'dora';
-    if (!g.save.heroes[oth].down) {
-      const f = this.heroFrame(g, oth, false);
-      this.spr(oth, f.frame, f.x + ox, f.y + oy, f.flip, 0.92);
+    const lead = g.lead, oth: HeroId = lead === 'dora' ? 'enzo' : 'dora', b = g.body;
+    this.leadNow = lead;
+    // a tag: the hero who just stepped back hops out of the way
+    if (this.pendingTag) { this.animEvents[oth].push('tagOut'); this.pendingTag = false; }
+    // knocked out: the fallen hero slumps where they fell and fades
+    if (this.pendingDown) { this.koMarks.push({ hero: this.pendingDown, x: b.x, y: b.y, t: 0, flip: b.face < 0 }); this.pendingDown = null; }
+    for (const h of [lead, oth]) { const d = g.save.heroes[h].down; if (this.wasDown[h] && !d) this.animEvents[h].push('revive'); this.wasDown[h] = d; }
+    for (const k of this.koMarks) {
+      k.t++;
+      const out: AnimOut = { state: 'ko', frame: 50, flip: k.flip, sx: 1, sy: 1, lean: 0, trail: false, dust: '' };
+      this.drawHero(k.hero, out, k.x + ox, k.y + oy + 1, Math.max(0, 1 - k.t / 90) * 0.85);
     }
-    const f = this.heroFrame(g, lead, true);
-    this.spr(lead, f.frame, f.x + ox, f.y + oy, f.flip, f.alpha);
+    this.koMarks = this.koMarks.filter((k) => k.t < 90);
+    // the follower first, behind
+    if (!g.save.heroes[oth].down && this.travelFx < 0) {
+      const out = this.anims[oth].step(this.followerInput(g, oth));
+      this.heroAnim[oth] = out;
+      this.drawHero(oth, out, g.follower.x + ox, g.follower.y + oy + 1, 0.92);
+      this.dust(out, g.follower.x, g.follower.y);
+    }
+    const out = this.anims[lead].step(this.leadInput(g));
+    this.heroAnim[lead] = out;
+    // a journey: both kneel; candlelight swirls up round them as they fade; at the far shrine the flame flares
+    if (this.travelFx >= 0) {
+      const tf = this.travelFx, first = tf !== this.travelSeen;
+      this.travelSeen = tf;
+      if (first && tf < 30 && tf % 2 === 0) for (let i = 0; i < 3; i++) {
+        const a = (tf * 0.5 + i * 2.1), r = 10 + Math.random() * 8;
+        this.particles.push({ x: b.x + Math.cos(a) * r, y: b.y - 4 - Math.random() * 10, vx: -Math.sin(a) * 0.8, vy: -0.7 - Math.random() * 0.6, life: 0, max: 30, color: i % 2 ? '#ffd27a' : '#ffb04a', size: 2, g: -0.01, light: true });
+      }
+      if (first && tf === 31) {
+        const sp = g.shrineSpot(g.room.id);
+        if (sp) { this.pulses.push({ x: sp.x - 18, y: sp.y - 20, r: 120, c: [1, 0.8, 0.45], t: 0 }); this.burst(sp.x - 18, sp.y - 24, 16, '#ffd27a', 2, -1); }
+      }
+      const a = tf < 30 ? 1 - tf / 30 : (tf - 30) / 30;
+      const kneel = (h: HeroId): AnimOut => ({ state: 'rest', frame: tf < 45 ? 36 : 0, flip: h === lead ? b.face < 0 : g.follower.face < 0, sx: 1, sy: 1, lean: 0, trail: false, dust: '' });
+      if (!g.save.heroes[oth].down) this.drawHero(oth, kneel(oth), g.follower.x + ox, g.follower.y + oy + 1, a * 0.92);
+      this.drawHero(lead, kneel(lead), b.x + ox, b.y + oy + 1, a);
+      return;
+    }
+    this.travelSeen = -1;
+    // a wall slide faces the wall; the kick springs away from it
+    if (out.state === 'wallSlide') out.flip = b.wall < 0;
+    else if (out.state === 'wallKick') out.flip = b.vx > 0;
+    // the dash: fading copies left behind
+    if (out.trail && this.t % 2 === 0) this.ghosts.push({ hero: lead, frame: out.frame, x: b.x, y: b.y, flip: out.flip, t: 0 });
+    for (const gh of this.ghosts) { gh.t++; this.spr(gh.hero, gh.frame, gh.x + ox, gh.y + oy + 1, gh.flip, 0.35 * (1 - gh.t / 12), true); }
+    this.ghosts = this.ghosts.filter((gh) => gh.t < 12);
+    const rt = g.hero[lead];
+    const blink = rt.inv > 0 && rt.hurtT === 0 && rt.inv < 60 && this.t % 6 < 3;
+    this.drawHero(lead, out, b.x + ox, b.y + oy + 1, blink ? 0.35 : 1);
+    this.dust(out, b.x, b.y);
     // the swing's arc
     const box = g.attackBox(), act = g.leadRt.act;
     if (box && act && act.kind === 'swing') {
       const ctx = this.ctx, b = g.body;
-      const cxh = b.x + ox, cyh = b.y - 15 + oy, r = box.r.w + 2;
+      // the arc is drawn from the hit box itself: centred on the hero's side of the box, reaching its far edge, and
+      // spanning its height, so what you see cut is what is hit
+      const r = box.r.w, cxh = b.x + ox, cyh = box.r.y + box.r.h / 2 + oy, span = Math.asin(Math.min(0.97, box.r.h / 2 / r));
       ctx.strokeStyle = lead === 'dora' ? 'rgba(220,250,255,0.9)' : 'rgba(255,214,140,0.9)'; ctx.lineWidth = act.n === 2 ? 3 : 2;
       ctx.beginPath();
-      const a0 = act.n === 1 ? -1.6 : -1.1, a1 = act.n === 1 ? 0.3 : 0.9;
-      if (b.face > 0) ctx.arc(cxh, cyh, r, a0, a1); else ctx.arc(cxh, cyh, r, Math.PI - a1, Math.PI - a0);
+      // the first and last cuts come down, the second goes up: the bright end leads
+      if (b.face > 0) ctx.arc(cxh, cyh, r, -span, span); else ctx.arc(cxh, cyh, r, Math.PI - span, Math.PI + span);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 1; ctx.beginPath();
+      if (b.face > 0) ctx.arc(cxh, cyh, r - 4, -span * 0.8, span * 0.8); else ctx.arc(cxh, cyh, r - 4, Math.PI - span * 0.8, Math.PI + span * 0.8);
       ctx.stroke();
     }
     if (act && act.kind === 'whirl') { const ctx = this.ctx; ctx.strokeStyle = 'rgba(200,250,255,0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(g.body.x + ox, g.body.y - 12 + oy, 26, act.t * 0.5, act.t * 0.5 + 4); ctx.stroke(); }
@@ -571,7 +932,8 @@ export class BellspireScene {
     const calmA = b.calm ? Math.max(0.25, 1 - b.t / 120) : 1;
     const st = b.st;
     const atk = /hop|tongue|pounce|dash|leap|swing|drop|sweep/.test(st) && !st.endsWith('Tell');
-    const fr = st.endsWith('Tell') ? 1 : atk ? 2 : 0;
+    // frames: 0 rest, 1 and 3 the wind-up (they alternate, so a tell throbs), 2 the attack, 4 staggered by a hit, 5 calmed
+    const fr = b.calm ? 5 : st.endsWith('Tell') ? (Math.floor(this.t / 7) % 2 ? 3 : 1) : atk ? 2 : b.flash > 3 ? 4 : 0;
     const body = b.body;
     const fx: SprFx = { rim: b.calm ? undefined : RIM[b.id], tell: tell && !b.calm };
     if (b.id === 'frog') {
@@ -580,7 +942,7 @@ export class BellspireScene {
     } else if (b.id === 'puma') {
       this.spr('boss-puma', fr, b.x + ox, b.y + oy + 2, b.face > 0, calmA * b.vis, white, fx);
     } else if (b.id === 'mother') {
-      this.spr('boss-mother', fr, body.x + 120 + ox, b.y + oy + 2, false, calmA, white, fx);
+      this.spr('boss-mother', fr, b.x + 40 + ox, b.y + oy + 2, false, calmA, white, fx);
       if (st === 'sweep' && b.arms[0]) {
         // a rolling wave: a curved crest, higher at the front, with a foam lip and spray
         const a = b.arms[0], x0 = Math.round(a.x - 18 + ox), y0 = Math.round(a.y + oy), dir = g.body.x < a.x ? -1 : 1;
@@ -605,7 +967,9 @@ export class BellspireScene {
       for (const h of b.heads) {
         const open = h.st === 'aim' || h.st === 'lunge' || h.st === 'hold';
         const shiver = h.st === 'aim' && this.t % 4 < 2 ? 1 : 0;
-        this.spr('hydra-head', open ? 1 : 0, h.x + ox + shiver, h.y + oy + 20, false, calmA, white, { rim: fx.rim, tell: h.st === 'aim' && this.t % 6 < 3 && !b.calm });
+        // heads: 0-1 swaying, 2 jaws open, 3 struck, 4 asleep, 5 snapping
+        const hf = b.calm ? 4 : h.st === 'lunge' ? 5 : open ? 2 : b.flash > 3 ? 3 : Math.floor((this.t + h.x) / 24) % 2;
+        this.spr('hydra-head', hf, h.x + ox + shiver, h.y + oy + 20, false, calmA, white, { rim: fx.rim, tell: h.st === 'aim' && this.t % 6 < 3 && !b.calm });
       }
     } else if (b.id === 'warden') {
       for (const a of b.arms) {
@@ -613,7 +977,9 @@ export class BellspireScene {
         ctx.strokeStyle = '#2a2024'; ctx.lineWidth = 3; ctx.setLineDash([3, 2]); ctx.beginPath(); ctx.moveTo(sx + ox, sy + oy); ctx.lineTo(a.x + ox, a.y + oy - 8); ctx.stroke(); ctx.setLineDash([]);
         this.spr('warden-bell', 0, a.x + ox, a.y + oy + 12, false, calmA, false, { rim: fx.rim, tell: fx.tell });
       }
-      this.spr('boss-warden', st === 'rest' || st === 'drop' || st.endsWith('Tell') ? 1 : 0, b.x + ox, body.y + body.h + oy + 6, false, calmA, white, fx);
+      // the bell: 0 hanging, 1 blazing, 2 tilted in a swing, 3 jolted by a hit, 4 quiet
+      const wf = b.calm ? 4 : st === 'swing' || st === 'swing2' ? 2 : st === 'rest' || st === 'drop' || st.endsWith('Tell') ? 1 : b.flash > 3 ? 3 : 0;
+      this.spr('boss-warden', wf, b.x + ox, body.y + body.h + oy + 6, false, calmA, white, fx);
     }
     if (tell && !b.calm) this.text('!', body.x + body.w / 2 + ox, body.y - 10 + oy, '#ffe27a');
     // floor markers for falling bells and lilies
@@ -648,9 +1014,26 @@ export class BellspireScene {
 
   drawWater(g: BellspireGame, ox: number, oy: number) {
     const ctx = this.ctx, room = g.room;
-    const surf = g.arenaWater ? surfaceY(room, g.arenaWater.row) : g.waterY.get(room.id);
-    if (surf === undefined) return;
+    const real = g.arenaWater ? surfaceY(room, g.arenaWater.row) : g.waterY.get(room.id);
     const rr = roomRect(room);
+    // a new water level flows in (or drains) over half a second, with streams pouring from above while it rises
+    if (this.shownSurfRoom !== room.id) { this.shownSurf = real ?? null; this.shownSurfRoom = room.id; }
+    const target = real ?? rr.y + rr.h + 8;
+    if (this.shownSurf === null) this.shownSurf = target;
+    const rising = this.shownSurf - target > 1;
+    this.shownSurf += (target - this.shownSurf) * 0.08;
+    if (Math.abs(this.shownSurf - target) < 0.5) this.shownSurf = target;
+    if (rising) {
+      for (let i = 0; i < 4; i++) {
+        const sx = Math.round(rr.x + ((i + 0.5) / 4) * rr.w + ox), top = Math.max(0, rr.y + oy);
+        ctx.fillStyle = 'rgba(170,220,250,0.55)'; ctx.fillRect(sx - 2, top, 4, Math.max(0, this.shownSurf + oy - top));
+        ctx.fillStyle = 'rgba(230,250,255,0.7)';
+        for (let yy = top + ((this.t * 4 + i * 9) % 12); yy < this.shownSurf + oy; yy += 12) ctx.fillRect(sx - 1, Math.round(yy), 1, 5);
+        if (this.t % 4 === i) this.burst(sx - ox, this.shownSurf, 2, '#cfefff', 1.2, -1);
+      }
+    }
+    if (real === undefined && !rising && this.shownSurf >= rr.y + rr.h) return;
+    const surf = this.shownSurf;
     const y = Math.round(surf + oy);
     if (y > this.vh) return;
     const [r, gg, bb] = WATER_TINT[room.area] ?? WATER_TINT.halls;
@@ -665,7 +1048,14 @@ export class BellspireScene {
         if (((x - ox) * 7 + this.t) % 97 < 3) { ctx.fillStyle = '#fff'; ctx.fillRect(x, y + w - 1, 1, 1); }
       }
     }
-    void rr;
+    // rings spread where something broke the surface
+    for (const r of this.ripples) {
+      r.t++;
+      const k = r.t / 30, ry = Math.round((Math.abs(r.y - surf) < 40 ? surf : r.y) + oy), rx = Math.round(r.x + ox), rad = 4 + k * (r.big ? 30 : 16);
+      ctx.strokeStyle = `rgba(220,245,255,${(0.7 * (1 - k)).toFixed(2)})`; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.ellipse(rx, ry, rad, rad * 0.25, 0, 0, Math.PI * 2); ctx.stroke();
+    }
+    this.ripples = this.ripples.filter((r) => r.t < 30);
     // floats ride the water
     const tiles = this.img.get('tiles-docks');
     for (const f of g.floatCache) for (let x = f.x0; x < f.x1; x += 16) if (tiles) ctx.drawImage(tiles, 0, 0, 16, 16, Math.round(x + ox), Math.round(f.y + oy), 16, 16);

@@ -31,6 +31,12 @@ hold V and let go for the Ember Ring, ↓ + V raises or lowers the lantern, ↑ 
 Whirl Slash and ↓ + X in the air is a downward thrust. Gamepads: A jump, X attack, B dash, Y spell, bumpers tag, Start
 menu. On touch screens an on-screen pad appears (Settings can force it on or off).
 
+At a candle shrine, ↑ rests (heals both heroes and saves) and X opens travel: the map opens on this shrine, ← and →
+step through the lit shrines, Z or X travels, and a tap on a lit candle works too; Esc cancels. X only opens travel
+when the lead is on the ground at the shrine with no awake foe within about 80 pixels and no guardian fight, so a fight
+at a shrine still swings. A small prompt over the candle shows the player's own keys ("↑ Rest · X Travel", with "Hit"
+on the touch pad, or "↑ Rest to light" at an unlit one).
+
 Anything that can't be done yet says why in a toast, such as a door that needs an ability, a spell not yet learned,
 Enzo trying to dash, a knocked-out partner or a shrine that isn't lit.
 
@@ -109,6 +115,52 @@ the helping hand on, guardians move at 80% speed with 25% longer warnings.
 | The Bell Warden | 600 | 14 |
 | The Lake Mother | 720 | 16 |
 
+## Shrine travel
+
+Each shrine has a name: Landing Candle, Chapel Candle, Reed Mill Candle, Bell Loft Candle, Mural Crypt Candle and
+Pearl Throne Candle. Resting at one lights it, and the shrine the heroes last woke at stays lit. When a second shrine
+is lit, a tip says "Shrines are linked: ↑ to rest, X to travel." On the map, lit shrines are big glowing candles and
+unlit ones you have seen are grey ("Rest here once to light it"); the one you stand at says "You are here". With only
+one lit, the map says "Light another shrine to travel". With the helping hand on, the map can travel from anywhere
+except a guardian fight (Esc, then tap a candle or use the list); Strict only travels from a shrine. Travel never
+heals: only resting does. A journey takes about a second: both heroes kneel, candlelight swirls up as they fade, and
+they fade in at the far candle with a flare and a chime. The controls are locked only for that second, and with
+reduced motion they arrive at once.
+
+## Animation
+
+Every hero state has its own frames, picked by a small state machine in `lib/bellspire-anim.ts` that the scene runs
+each frame (the engine knows nothing of it, so play stays deterministic, and no animation delays a control):
+breathing, a blink and after about five seconds a fidget; a start-up, a six-frame run, a skid with dust and a turn;
+rise, apex, fall, a landing squash and a crouch after a long fall; a four-frame back-view ladder climb that advances by
+distance climbed (holding still holds the frame), with climb-on and pull-up frames; Dora's wall slide and kick, the
+dash with afterimages, Enzo's glide; three combo cuts with wind-up and follow-through, the down-thrust and whirl;
+Enzo's cast wind-up and release, lantern raise and lower and the chime; hurt, knocked out and revive; the tag hop-back
+and leap-in; wading, a four-stroke swim, dive and surface; kneeling at shrines, a back view at murals, lifting a lid,
+raising a relic, striking a bell and paying Wayra. Tails, coats and ears sway and bounce in code with squash and stretch.
+
+Foes have two idle frames, four moving, a wind-up and an attack, a squash when hit and a puff when calmed. Guardians
+have extra tell and attack frames, a stagger and a calm pose. In the world, bells and chains swing when hit or passed,
+reeds and banners sway, torches and candles flicker, water ripples and pours while it rises, doors glow and slide open,
+cracked walls crumble, ghost-glass shimmers, chests open, and pickups bob and turn.
+
+## Hitboxes
+
+Each foe's hurtbox is 90% of the painted bounds of the frame it is showing (worked out by the art script and stored in
+`BOXES`), centred on the art; the box that hurts the heroes on touch is 72%. Guardians' boxes come from their painted
+frames the same way. `?hitboxes=1` or `__bellspire().debug(true)` draws them: green hurtbox, red harm, cyan the heroes,
+yellow the sword. Before this, a moth's box covered 8% of its picture and sat 11 pixels off; now every kind covers 81%
+and is centred.
+
+## Damage numbers and the minimap
+
+Hits pop numbers in the pixel font, outlined and stacked so they never sit on a face: white for a hit, gold and bigger
+for a finisher, blue for spells, red for the heroes' hurts, green for heals, and "+XP" and "+coins" drift up when a foe
+is calmed. The HUD minimap, top right by the coins, shows about 5 by 4 rooms round the heroes, coloured by area, with
+the room pulsing, a dot where the lead stands, ways on into unexplored rooms, shrines, guardians and locked doors in
+their ability's colour. It fades when the heroes walk under it and a tap opens the map. Both can be turned off in
+Settings.
+
 ## Assist and Strict
 
 The helping hand is on by default: 40% less damage taken, slower guardians with longer warnings, healing near shrines,
@@ -130,28 +182,30 @@ save is checked when loaded (version, shrine, abilities, gear worn, HP) and a ba
 and sometimes miss an input: "casual" (helping hand on) and "pro" (off), at the levels the route bot reaches on the
 shortest way through. A route bot then plays the whole game from a new save with the planner, fighting what it meets.
 
-Results on 07-11-2026 (24 seeds each, rerun after the polish round):
+Results on 07-11-2026 (24 seeds each, rerun after the hitboxes were fitted to the art):
 
 | Guardian | Casual | Pro |
 |---|---|---|
-| Frog | 24/24, 34 s, lowest HP 62% | 24/24, 29 s, lowest HP 28% |
-| Hydra | 24/24, 57 s, lowest HP 93% | 24/24, 59 s, lowest HP 60% |
-| Puma | 24/24, 40 s, lowest HP 62% | 24/24, 47 s, lowest HP 37% |
-| Warden | 24/24, 72 s, lowest HP 54% | 23/24, 75 s, lowest HP 15% |
-| Mother | 24/24, 75 s, lowest HP 83% | 24/24, 70 s, lowest HP 40% |
+| Frog | 24/24, 35 s, lowest HP 61% | 24/24, 31 s, lowest HP 24% |
+| Hydra | 24/24, 56 s, lowest HP 93% | 24/24, 59 s, lowest HP 59% |
+| Puma | 24/24, 48 s, lowest HP 50% | 24/24, 44 s, lowest HP 34% |
+| Warden | 24/24, 52 s, lowest HP 63% | 24/24, 60 s, lowest HP 38% |
+| Mother | 24/24, 29 s, lowest HP 78% | 24/24, 31 s, lowest HP 60% |
 
-The route bot finishes seeds 1 to 3 in 13 to 14 minutes of game time, reaching level 9. A person exploring will take
+The route bot finishes seeds 1 to 3 in 12 minutes of game time, reaching level 9. A person exploring will take
 much longer. The test requires casual wins in 85% of seeds and pro in 70%.
 
 ## Tests
 
 - `tests/bellspire.mjs`: the map, the gates (each pedestal reachable with what comes before it, each area shut without
   its ability), no traps with four ability sets, physics, water, doors, the lantern and ghost-glass, combat, XP,
-  tagging, knock-outs, shrines, travel, gear, the shop, food, a guardian from door to reward, the wisp, saves and
+  tagging, knock-outs, shrines, travel (and when X opens it), the hero animator (every state, the climb), every foe
+  frame's hitbox against its art, damage numbers, gear, the shop, food, a guardian from door to reward, the wisp, saves and
   determinism.
 - `tests/bellspire-bot.mjs`: the guardian bots and the route bot (`--quick` for 8 seeds and one route).
 - `tests/e2e/bellspire.mjs`: the browser suite. Every player action with the real keys, each locked action's message,
-  the shrine, the shop, a mural, every menu tab, a key rebind, a water bell, a lantern hatch, a guardian, the ending,
+  the shrine (↑ rests, X travels, X near a foe swings, a map tap travels), the climb frame, a chest, a door opening,
+  a bell ringing, damage numbers, the minimap at three screen sizes, the shop, a mural, every menu tab, a key rebind, a water bell, a lantern hatch, a guardian, the ending,
   saves, and phones held both ways, with no page errors and no sideways scrolling.
 
 Compile first: `npx tsc lib/bellspire-game.ts lib/bellspire-nav.ts --target es2022 --module es2022

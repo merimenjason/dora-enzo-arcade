@@ -140,13 +140,79 @@ try {
   // ─── the shrine, Wayra and a mural ───────────────────────────────────────
   await dbg(page, 'teleport', 'landing', 5, 14);
   await page.waitForTimeout(200);
-  await until(page, () => !!document.querySelector('.bs-hint'));
-  assert.match(await page.locator('.bs-hint').innerText(), /Rest and save/);
+  await until(page, () => !!document.querySelector('.bs-shrine-prompt'));
+  assert.match(await page.locator('.bs-shrine-prompt').innerText(), /Rest/);
   await dbg(page, 'setHp', 'dora', 5);
   await page.keyboard.press('ArrowUp');
   await until(page, () => window.__bellspire().state.heroes.dora.hp > 30);
   assert.ok((await page.evaluate((k) => localStorage.getItem(k), KEY)) !== null, 'resting saves');
   ok('↑ at the candle shrine rests, heals and saves');
+
+  // ─── shrine travel: ↑ rests, X opens travel ──────────────────────────────
+  await dbg(page, 'teleport', 'landing', 4, 14); await page.waitForTimeout(250);
+  assert.match(await page.locator('.bs-shrine-prompt').innerText(), /↑ Rest · X Travel/);
+  ok('at a lit shrine a prompt says “↑ Rest · X Travel”, with the real keys');
+  {
+    const pr = await page.locator('.bs-shrine-prompt').boundingBox(), cv = await page.locator('canvas.bs-canvas').boundingBox();
+    const k = cv.width / (await page.evaluate(() => window.__bellspire().scene.vw));
+    const face = await page.evaluate(() => { const { game: g, scene: s } = window.__bellspire(); return { x: g.body.x - s.cam.x, y: g.body.y - 38 - s.cam.y }; });
+    assert.ok(pr.y + pr.height <= cv.y + face.y * k + 2, 'the prompt sits above the heroes’ heads');
+  }
+  ok('the shrine prompt never covers a face');
+  await page.keyboard.press('KeyX');
+  await until(page, () => window.__bellspire().menu === 'map');
+  assert.match(await page.locator('.bs-travel-note').innerText(), /Light another shrine to travel/);
+  assert.equal(await game(page, '!!g.leadRt.act'), false, 'X opened the map instead of swinging');
+  await page.keyboard.press('Escape');
+  await until(page, () => window.__bellspire().menu === null);
+  ok('with one shrine lit, X at it opens the map, which says to light another; Esc cancels');
+  await dbg(page, 'teleport', 'chapel', 16, 14); await dbg(page, 'skipDialog'); await page.waitForTimeout(300);
+  await until(page, () => window.__bellspire().game.atShrine());
+  assert.match(await page.locator('.bs-shrine-prompt').innerText(), /Rest to light/);
+  await dbg(page, 'setHp', 'dora', 5);
+  await page.keyboard.press('ArrowUp');
+  assert.match(await toast(page, /Shrines are linked/), /Shrines are linked: ↑ to rest, X to travel\./);
+  assert.equal((await st(page)).heroes.dora.hp, await game(page, 'g.stats("dora").maxHp'), 'resting fills HP');
+  assert.equal(JSON.parse(await page.evaluate((k) => localStorage.getItem(k), KEY)).shrine, 'chapel', 'and saves at this shrine');
+  ok('↑ at an unlit shrine rests, lights it and saves, and the tip says how to travel');
+  await page.waitForTimeout(200);
+  await page.keyboard.press('KeyX');
+  await until(page, () => window.__bellspire().menu === 'map');
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(100);
+  assert.match(await page.locator('.bs-shrine-pick').innerText(), /Landing Candle/);
+  await page.keyboard.press('KeyZ');
+  await until(page, () => window.__bellspire().menu === null && window.__bellspire().state.room === 'landing');
+  assert.match(await toast(page, /Arrived/), /Arrived at the Landing Candle/);
+  await page.waitForTimeout(900);
+  await page.screenshot({ path: '.shots/bellspire/17-travel-arrive.png' });
+  assert.ok((await st(page)).heroes.dora.hp > 0);
+  ok('X at a lit shrine opens travel; → then Z travels, with the shrine’s name on arrival');
+  // from the map in assist mode: tap a candle, then Travel here
+  await dbg(page, 'teleport', 'gate', 10, 14); await dbg(page, 'skipDialog'); await page.waitForTimeout(200);
+  await page.keyboard.press('Escape');
+  await until(page, () => window.__bellspire().menu === 'map');
+  const icon = await page.evaluate(() => {
+    const g = window.__bellspire().game, cv = document.querySelector('canvas.bs-map'), r = cv.getBoundingClientRect(), k = r.width / cv.width;
+    void g;
+    const t = window.__bellspire().shrineIcon('chapel');
+    return { x: r.left + t.x * k, y: r.top + t.y * k };
+  });
+  await page.mouse.click(icon.x, icon.y);
+  await page.locator('.bs-shrine-pick', { hasText: 'Chapel Candle' }).getByRole('button', { name: 'Travel here' }).click();
+  await until(page, () => window.__bellspire().state.room === 'chapel');
+  ok('tapping a lit candle on the map and Travel here travels (from anywhere, with the helping hand)');
+  // a fight at a shrine still swings: an awake frog close by
+  await dbg(page, 'teleport', 'gate', 20, 14); await dbg(page, 'skipDialog');
+  await page.evaluate(() => { window.__frog = window.__bellspire().game.enemies.find((e) => e.kind === 'frog'); });
+  await dbg(page, 'teleport', 'landing', 4, 14); await page.waitForTimeout(250);
+  await page.evaluate(() => { const g = window.__bellspire().game; g.enemies.push(Object.assign(window.__frog, { st: 'idle', x: g.body.x + 40, y: g.body.y, alive: true })); });
+  await page.evaluate(() => { const h = window.__bellspire(); h.state; window.__swung = false; const g = h.game; const id = setInterval(() => { if (g.leadRt.act?.kind === 'swing') { window.__swung = true; clearInterval(id); } }, 5); });
+  for (let i = 0; i < 5 && !(await page.evaluate(() => window.__swung)); i++) { await page.keyboard.press('KeyX'); await page.waitForTimeout(250); }
+  assert.ok(await page.evaluate(() => window.__swung), 'Dora swung');
+  assert.equal(await page.evaluate(() => window.__bellspire().menu), null, 'the map stayed shut');
+  await game(page, '(g.enemies = g.enemies.filter((e) => e.kind !== "frog"), true)');
+  ok('X at a shrine with an awake foe close by swings instead of opening travel');
   const shopAt = 22; // Wayra's stall in the landing
   await dbg(page, 'teleport', 'landing', shopAt, 14);
   await page.waitForTimeout(200);
@@ -235,6 +301,19 @@ try {
   // ─── ladders, ledges, doors, the dash ────────────────────────────────────
   await dbg(page, 'teleport', 'landing', 14, 14);
   await page.waitForTimeout(250);
+  // the climb has its own back-view frames, which move only while the hero climbs
+  await page.keyboard.down('ArrowDown');
+  await until(page, () => window.__bellspire().scene.heroAnim[window.__bellspire().game.lead]?.state === 'climb');
+  await page.waitForTimeout(250);
+  await page.keyboard.up('ArrowDown');
+  await page.waitForTimeout(120);
+  const climbFrame = () => page.evaluate(() => { const a = window.__bellspire().scene.heroAnim[window.__bellspire().game.lead]; return { st: a.state, f: a.frame }; });
+  const c0 = await climbFrame();
+  assert.equal(c0.st, 'climb'); assert.ok(c0.f >= 16 && c0.f <= 19, `a climbing frame (${c0.f})`);
+  await page.screenshot({ path: '.shots/bellspire/16-climb.png', clip: await page.locator('canvas.bs-canvas').boundingBox() });
+  await page.waitForTimeout(400);
+  assert.deepEqual(await climbFrame(), c0, 'holding still on the ladder holds the frame');
+  ok('on a ladder: the back-view climb frame, held while the hero holds still');
   await page.keyboard.down('ArrowDown');
   await until(page, () => window.__bellspire().state.room === 'well');
   await page.keyboard.up('ArrowDown');
@@ -257,6 +336,10 @@ try {
   await page.keyboard.up('ArrowRight');
   ok('a blue door without the dash says what it needs');
   await dbg(page, 'give', 'dash');
+  await until(page, () => window.__bellspire().scene.opening.size > 0, null, 3000);
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: '.shots/bellspire/16-door-opening.png', clip: await page.locator('canvas.bs-canvas').boundingBox() });
+  ok('a door that can now open slides open');
   await page.keyboard.down('ArrowRight');
   await until(page, () => window.__bellspire().state.room === 'dgate');
   await page.keyboard.up('ArrowRight');
@@ -286,7 +369,36 @@ try {
   await page.keyboard.down('ArrowRight'); await page.waitForTimeout(30); await page.keyboard.up('ArrowRight');
   for (let i = 0; i < 6 && (await st(page)).water.halls === w0; i++) { await page.keyboard.press('KeyX'); await page.waitForTimeout(350); }
   assert.notEqual((await st(page)).water.halls, w0);
-  ok('X on a water bell changes the water');
+  assert.ok(await page.evaluate(() => [...window.__bellspire().scene.bellSwing.values()].some((v) => v > 0)), 'the bell swings');
+  await page.screenshot({ path: '.shots/bellspire/16-bell-ring.png', clip: await page.locator('canvas.bs-canvas').boundingBox() });
+  ok('X on a water bell changes the water, and the bell swings with a ring');
+  // a chest: ↑ lifts the lid
+  await dbg(page, 'teleport', 'well', 22, 14); await dbg(page, 'skipDialog'); await page.waitForTimeout(300);
+  await page.keyboard.press('ArrowUp');
+  await until(page, () => [...window.__bellspire().scene.chestT.values()].some((v) => v < 99), null, 5000);
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: '.shots/bellspire/16-chest.png', clip: await page.locator('canvas.bs-canvas').boundingBox() });
+  ok('↑ at a chest: the lid opens and the treasure bursts out');
+  // numbers off a hit
+  await dbg(page, 'teleport', 'gate', 18, 14); await dbg(page, 'skipDialog'); await page.waitForTimeout(250);
+  await tagTo(page, 'dora');
+  // the frog right in front of Dora
+  await game(page, '(() => { const f = g.enemies.find((e) => e.kind === "frog"); f.x = g.body.x + 22; f.y = g.body.y; g.body.face = 1; return true; })()');
+  await page.evaluate(() => { window.__nums = []; const s = window.__bellspire().scene; const id = setInterval(() => { for (const n of s.nums) window.__nums.push(n.kind); if (window.__nums.length > 3) clearInterval(id); }, 10); });
+  for (let i = 0; i < 8 && !(await page.evaluate(() => window.__nums.length)); i++) { await page.keyboard.press('KeyX'); await page.waitForTimeout(120); }
+  assert.ok(await page.evaluate(() => window.__nums.some((k) => k === 'hit' || k === 'big')), `a damage number pops (${await page.evaluate(() => window.__nums.join())})`);
+  await page.screenshot({ path: '.shots/bellspire/18-damage-numbers.png', clip: await page.locator('canvas.bs-canvas').boundingBox() });
+  ok('a hit pops its damage in pixel numbers');
+  // the minimap: shows, follows the room, and opens the map when tapped
+  assert.ok(await page.locator('.bs-minimap').isVisible());
+  assert.equal(await page.locator('.bs-minimap').getAttribute('data-room'), 'gate');
+  await dbg(page, 'teleport', 'landing', 8, 14); await page.waitForTimeout(300);
+  await until(page, () => document.querySelector('.bs-minimap')?.getAttribute('data-room') === 'landing');
+  await page.screenshot({ path: '.shots/bellspire/19-minimap-1280x800.png' });
+  await page.locator('.bs-minimap').click();
+  await until(page, () => window.__bellspire().menu === 'map');
+  await page.keyboard.press('Escape');
+  ok('the minimap shows, follows the room, and a tap opens the map');
   await dbg(page, 'give', 'lantern');
   await dbg(page, 'teleport', 'well', 14, 15);
   await page.waitForTimeout(200);
@@ -383,6 +495,13 @@ try {
     await p.waitForTimeout(400);
     await p.dispatchEvent('button[aria-label="▶"]', 'pointerup', { pointerId: 2 });
     assert.ok((await st(p)).x > px + 10, 'the pad moves the hero');
+    {
+      const mm = await p.locator('.bs-minimap').boundingBox();
+      assert.ok(mm && mm.x >= 0 && mm.x + mm.width <= vp.width + 1 && mm.y >= 0, 'the minimap is on screen');
+      const over = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+      for (const el of await p.locator('.bs-hero, .bs-pad-dir button, .bs-pad-act button').all()) assert.ok(!over(mm, await el.boundingBox()), 'the minimap covers no bar or pad button');
+      await p.screenshot({ path: `.shots/bellspire/19-minimap-${vp.width}x${vp.height}.png` });
+    }
     await p.getByRole('button', { name: 'Menu' }).tap();
     await until(p, () => window.__bellspire().menu === 'map');
     assert.ok(await noSideScroll(p), 'the menu fits');
