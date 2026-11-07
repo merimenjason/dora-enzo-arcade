@@ -611,6 +611,7 @@ export default function BellspirePage() {
             <li><i className="lg-area" style={{ background: `linear-gradient(90deg, ${AREAS.docks.color} 50%, ${AREAS.crypt.color} 50%)` }} />The way into another area, in its colour</li>
             <li><i className="lg-lock" style={{ background: ABILITIES.dash.color }} />A shut door, in the colour of what opens it</li>
             <li><i className="lg-skull" />A guardian still restless</li>
+            <li><i className="lg-chest" />A chest not opened yet</li>
             <li><i className="lg-seal" />The throne’s four bell seals</li>
             {g.wispOn() && <li><i className="lg-wisp" />Where the wisp is leading</li>}
           </ul>
@@ -896,7 +897,13 @@ function drawMap(ctx: CanvasRenderingContext2D, g: BellspireGame, CW: number, CH
         ctx.fillStyle = on ? (t % 20 < 10 ? '#ffb43a' : '#ffd86a') : '#5a5860'; ctx.fillRect(px - k + (small ? 0 : 1), py - 5 * k, small ? 3 : 2 * k, 2 * k + 1);
         icons.push({ id: r.id, x: px, y: py - 2 * k, lit: on });
       }
-      else if (th.ch === 'C' && !g.flag(`chest:${r.id}:${th.i}`)) { ctx.fillStyle = '#fff2b0'; ctx.fillRect(px - 1, py - 1, small ? 2 : 3, small ? 2 : 3); }
+      else if (th.ch === 'C' && !g.flag(`chest:${r.id}:${th.i}`)) {
+        // an unopened chest: a little brown box with a gold lid, outlined so it reads on any area colour
+        const k = small ? 1 : 2;
+        ctx.fillStyle = '#1a1020'; ctx.fillRect(px - 3 * k, py - 3 * k, 6 * k + 1, 5 * k + 1);
+        ctx.fillStyle = '#9a5a26'; ctx.fillRect(px - 2 * k, py - 2 * k, 4 * k + 1, 3 * k + 1);
+        ctx.fillStyle = '#ffd04a'; ctx.fillRect(px - 2 * k, py - 2 * k, 4 * k + 1, k); ctx.fillRect(px, py - k, k, k);
+      }
       else if (th.ch === 'M') { ctx.fillStyle = '#ff9a3c'; ctx.fillRect(px - 1, py - 1, small ? 2 : 3, small ? 2 : 3); }
       else if (th.ch === 'O' && !g.flag(`boss:${r.boss}`)) { ctx.fillStyle = '#1a1020'; ctx.fillRect(px - 3, py - 3, 7, 7); ctx.fillStyle = '#e8484f'; ctx.fillRect(px - 2, py - 2, 5, 5); }
     }

@@ -10,12 +10,14 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **The Sunken Bellspire**: unopened chests show on the minimap and the full map as little chests, and the map key lists them.
 - **The Sunken Bellspire**: gear now shows on the heroes. Each weapon has its own colour on the sprite, slash and lantern light (a green Reed-Cutter, silver-blue Moonsteel, the Bell Staff and the Star Lamp), coats recolour whoever wears them (with a little shell on the Snail-Shell Coat), and rings and relics add small touches. The gear menu previews each item on the hero with its stat change before you equip it.
 - **The Sunken Bellspire**: with the helping hand on, the guiding wisp is always out, floating just ahead along the way to the next goal (there's a setting to hide it). The minimap and the full map now show doorways, ways into other areas in that area's colour, and shut doors in the colour of what opens them.
 - **The Sunken Bellspire** comes alive: Dora and Enzo climb ladders hand over hand, run, skid, land with a puff of dust, swim, rest at shrines and open chests with their own animations, and every enemy, guardian, bell, banner, door and flame moves. Damage numbers now pop off every hit, a minimap sits in the corner (tap it for the full map), and shrines are linked: ↑ rests and the attack button opens travel to any lit shrine, each with its own name.
 
 ### Fixed
 
+- **The Sunken Bellspire**: the partner following you now climbs ladders in the climbing pose too, instead of sliding up the ladder in a standing pose.
 - **The Sunken Bellspire**: the throne now needs all four area guardians calmed, shown as four bell seals on its door; before, the Reed Hydra and the Puma of the Murals could be skipped. Ukumari names any guardian still restless.
 - **The Sunken Bellspire**: you can turn during an attack's wind-up and recovery, so a combo can be swung back the other way.
 - **The Sunken Bellspire**: numbers are easier to read: a 5 no longer looks like an S, and the map reads "Guardians 2 of 5 · Rooms 39 of 64".

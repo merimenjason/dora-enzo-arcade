@@ -880,9 +880,10 @@ export class BellspireScene {
     const f = g.follower, vx = f.x - this.followerWas.x, vy = f.y - this.followerWas.y;
     this.followerWas = { x: f.x, y: f.y };
     const ev = this.animEvents[hero]; this.animEvents[hero] = [];
-    const onLadder = rawChar(Math.floor(f.x / TILE), Math.floor((f.y - 6) / TILE)) === 'H' && f.air;
+    // the follower climbs where the lead climbed (the trail records it), and its own movement turns the climb cycle
+    const onLadder = f.climb;
     return {
-      ground: !f.air || onLadder, vx: f.moving ? vx : 0, vy: onLadder ? 0 : vy, face: f.face, climb: onLadder, swim: f.swim, wade: false, glide: false,
+      ground: !f.air || onLadder, vx: f.moving && !onLadder ? vx : 0, vy, face: f.face, climb: onLadder, swim: f.swim, wade: false, glide: false,
       wallSlide: false, dash: false, hurt: false, down: false,
       act: f.swipeT > 0 && hero === 'dora' ? { kind: 'swing', n: 0, t: 10 - f.swipeT, wind: 2, active: 4 } : null,
       castHold: false, lanternUp: hero === 'enzo' && g.lanternUp, events: ev,

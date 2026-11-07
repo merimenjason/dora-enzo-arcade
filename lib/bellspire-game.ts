@@ -316,7 +316,7 @@ export type Settings = { assist: boolean; strict: boolean; wisp?: boolean };
 /** `spell` says which of Enzo's spells a cast is, so the scene can show its own pose */
 type Act = { kind: 'swing' | 'thrust' | 'whirl' | 'cast' | 'tagin'; t: number; n: number; hit: Set<number>; dur: number; spell?: 'bolt' | 'ember' | 'chime' | 'lantern' };
 type HeroRt = { inv: number; hurtT: number; act: Act | null; combo: number; buf: boolean; castHold: number; swingCd: number };
-type Follower = { x: number; y: number; face: 1 | -1; air: boolean; moving: boolean; swim: boolean; swipeT: number; swipeCd: number };
+type Follower = { x: number; y: number; face: 1 | -1; air: boolean; moving: boolean; swim: boolean; climb: boolean; swipeT: number; swipeCd: number };
 
 const ALL_HEROES: HeroId[] = ['dora', 'enzo'];
 const other = (h: HeroId): HeroId => (h === 'dora' ? 'enzo' : 'dora');
@@ -342,7 +342,7 @@ export class BellspireGame {
   lead: HeroId;
   hero: Record<HeroId, HeroRt> = { dora: this.newRt(), enzo: this.newRt() };
   follower: Follower;
-  trail: { x: number; y: number; face: 1 | -1; air: boolean; swim: boolean }[] = [];
+  trail: { x: number; y: number; face: 1 | -1; air: boolean; swim: boolean; climb: boolean }[] = [];
   enemies: Enemy[] = [];
   shots: Shot[] = [];
   waves: Wave[] = [];
@@ -393,7 +393,7 @@ export class BellspireGame {
     this.room = roomOfPoint(start.x, start.y - 4)!;
     this.body = newBody(start.x, start.y);
     this.safe = { ...start };
-    this.follower = { x: start.x - 16, y: start.y, face: 1, air: false, moving: false, swim: false, swipeT: 0, swipeCd: 0 };
+    this.follower = { x: start.x - 16, y: start.y, face: 1, air: false, moving: false, swim: false, climb: false, swipeT: 0, swipeCd: 0 };
     this.enterRoom(this.room, true);
     for (const h of ALL_HEROES) this.clampHero(h);
     if (!this.flag('script:intro')) { this.setFlag('script:intro'); this.say(SCRIPTS.intro); }
@@ -1205,7 +1205,7 @@ export class BellspireGame {
   // ─── the follower ────────────────────────────────────────────────────────
   updateFollower() {
     const b = this.body, f = this.follower;
-    this.trail.push({ x: b.x, y: b.y, face: b.face, air: !b.ground && !b.climb, swim: b.swim });
+    this.trail.push({ x: b.x, y: b.y, face: b.face, air: !b.ground && !b.climb, swim: b.swim, climb: b.climb });
     if (this.trail.length > 22) this.trail.shift();
     const t = this.trail[0];
     const gap = 24; // far enough apart that the two heroes read as two
@@ -1216,7 +1216,7 @@ export class BellspireGame {
     f.x += clamp(dx * 0.35, -4, 4); f.y += clamp(dy * 0.35, -6, 6);
     if (Math.abs(dx) > 120 || Math.abs(dy) > 120) { f.x = tx; f.y = ty; }
     f.face = Math.abs(dx) > 0.5 ? (dx > 0 ? 1 : -1) : b.face;
-    f.air = t.air; f.swim = t.swim;
+    f.air = t.air; f.swim = t.swim; f.climb = t.climb;
     // Dora swipes at enemies near her while following
     const helper = other(this.lead);
     if (f.swipeT > 0) f.swipeT--;

@@ -607,6 +607,25 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
   ok(!fell, 'and the hero stands on the top, without falling back (held ↑ for another three seconds)');
   ok(!g.body.climb && g.body.onOneway, 'standing on the ladder top, off the ladder');
   ok(!g.drainEvents().some((e) => e.k === 'sfx' && e.id === 'land'), 'stepping off the top is no landing thump');
+  // the partner climbs the same ladder, in its climbing pose, with the climb cycle turning
+  {
+    const p = bottom(47);
+    const anim = new HeroAnimator(p.lead === 'dora' ? 'enzo' : 'dora');
+    let climbed = false; const frames = new Set();
+    let fx = p.follower.x, fy = p.follower.y;
+    for (let i = 0; i < 300; i++) {
+      p.step(I({ up: true })); quiet(p);
+      const f = p.follower, vy = f.y - fy; fx = f.x; fy = f.y;
+      if (f.climb) {
+        climbed = true;
+        const out = anim.step({ ground: true, vx: 0, vy, face: f.face, climb: true, swim: false, wade: false, glide: false, wallSlide: false, dash: false, hurt: false, down: false, act: null, castHold: false, lanternUp: false, events: [] });
+        if (out.state === 'climb') frames.add(out.frame);
+      }
+    }
+    ok(climbed, 'the partner climbs where the lead climbed');
+    ok(frames.size >= 3, `in the climbing pose, with the cycle turning (${[...frames].join(',')})`);
+    ok(!p.follower.climb && Math.abs(p.follower.y - TOP) < 2, 'and ends standing on the top too');
+  }
   // down again
   let down = false;
   for (let i = 0; i < 260 && !down; i++) { g.step(I({ down: true })); quiet(g); if (g.body.ground && g.body.y === FLOOR) down = true; }
