@@ -259,7 +259,7 @@ function referee(g) {
       const st = { ...base, ...ws };
       const k = `${stateKey(st)}|${g.room.id}`;
       if (!reachCache.has(k)) {
-        const G = new Graph(st);
+        const G = new Graph(st, true);
         const spots = [...G.reach([G.nodeAt(g.body.x, g.body.y, g.body.swim && !g.body.ground, g.body.climb)])].map((key) => G.nodes.get(key));
         reachCache.set(k, spots);
       }
@@ -300,7 +300,7 @@ export function routeBot(seed, { maxMinutes = 180, log = false, save = null, tri
   const ref = referee(g);
   const graphs = new Map();
   const fails = new Map();
-  const graph = () => { const st = navState(g); const k = stateKey(st); if (!graphs.has(k)) graphs.set(k, new Graph(st)); return graphs.get(k); };
+  const graph = () => { const st = navState(g); const k = stateKey(st); if (!graphs.has(k)) graphs.set(k, new Graph(st, true)); return graphs.get(k); };
   let prev = NO, ticks = 0;
   const limit = maxMinutes * 3600;
   const timeline = [], endings = [], trials = [];
@@ -513,7 +513,7 @@ export function routeBot(seed, { maxMinutes = 180, log = false, save = null, tri
       if (!WIND_AREAS.includes(area)) continue;
       const flipped = { ...here, wind: { ...here.wind, [area]: here.wind[area] > 0 ? -1 : 1 } };
       const k = stateKey(flipped);
-      if (!graphs.has(k)) graphs.set(k, new Graph(flipped));
+      if (!graphs.has(k)) graphs.set(k, new Graph(flipped, true));
       const G2 = graphs.get(k), G = graph();
       const start = G.nodeAt(g.body.x, g.body.y);
       if (!G.path(start, near(bell, 28), 60000)) continue;
@@ -537,7 +537,7 @@ export function routeBot(seed, { maxMinutes = 180, log = false, save = null, tri
       if (!(area in here.water)) continue;
       const flipped = { ...here, water: { ...here.water, [area]: here.water[area] ? 0 : 1 } };
       const k = stateKey(flipped);
-      if (!graphs.has(k)) graphs.set(k, new Graph(flipped));
+      if (!graphs.has(k)) graphs.set(k, new Graph(flipped, true));
       const G2 = graphs.get(k), G = graph();
       // can we reach the bell now, and the goal once it has rung?
       const start = G.nodeAt(g.body.x, g.body.y);

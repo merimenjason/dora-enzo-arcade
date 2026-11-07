@@ -51,7 +51,8 @@ export default function trials() {
       const rm = roomById(goal.room);
       ok(rm.area === t.area, `${t.name}: the bell in ${goal.room} is in the area`);
       // a hero set down on the bell's spot stands there (on the floor, a ledge or a float, not in a wall or the air)
-      const g = new BellspireGame(finished(), {}, 1); g.dialog = null;
+      // (in Strict, so a spot under a bell hook isn't caught by the helping hand's rope on the way down)
+      const g = new BellspireGame(finished(), { assist: false, strict: true }, 1); g.dialog = null;
       g.save.water = freshSave().water; g.save.wind = { ...(t.wind ?? freshSave().wind) };
       g.teleport(goal.room, goal.c, goal.r); g.enemies = [];
       for (let i = 0; i < 20; i++) g.step(I());

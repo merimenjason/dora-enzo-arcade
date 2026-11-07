@@ -21,7 +21,7 @@
 //           strike a bell  69 pommel strike  70-71 knee-deep, balancing
 //     Enzo: 64 run start-up  65 overhead wind-up  66 overhead strike  67 low wind-up  68 (unused: its lantern was cut)  69 crouched wind-up
 //           70 upward lantern swing  71 staff drawn back to strike a bell
-//   j Dora: 72-74 treading water upright  75-79 spare takes
+//   j Dora: 72-74 treading water upright  75-77 and 79 spare takes  78 flying to the rope's target (the helping hand)
 //     Enzo: 72 rapping a bell with the lantern end  73-74 knee-deep, balancing  75-77 treading water  78 spare  79 low sweep
 //   k (the Windward Belfry) Dora: 80 throwing the Bell Rope  81 swinging back  82 swinging through the bottom
 //           83 swinging forward  84 letting go  85 bracing against the wind  86 balancing on a swinging bell or a note
@@ -41,7 +41,7 @@ export type AnimState =
   | 'hurt' | 'ko' | 'revive' | 'tagOut' | 'tagIn'
   | 'wade' | 'wadeStill' | 'swim' | 'tread' | 'dive' | 'surface'
   | 'rest' | 'chest' | 'relic' | 'ring' | 'read' | 'shop'
-  | 'ropeThrow' | 'ropeSwing' | 'ropeRelease' | 'brace' | 'balance' | 'shield' | 'echo' | 'frostWind' | 'frost' | 'galeWind' | 'gale' | 'noteHop';
+  | 'ropeThrow' | 'ropeSwing' | 'ropeRelease' | 'ropeFly' | 'brace' | 'balance' | 'shield' | 'echo' | 'frostWind' | 'frost' | 'galeWind' | 'gale' | 'noteHop';
 
 /** What the hero is doing this tick: read from the engine by the scene. */
 export type AnimInput = {
@@ -55,7 +55,9 @@ export type AnimInput = {
   castHold: boolean; lanternUp: boolean;
   /** the Windward Belfry: on the Bell Rope (its angle and swing, both + toward the way the hero faces), the gust
    *  here (signed), what the hero stands on if it moves, hail falling close by, and a cast held past the Ember Ring */
-  rope?: { ang: number; av: number } | null; gust?: number; ride?: string; hail?: boolean; castLong?: boolean;
+  rope?: { ang: number; av: number } | null;
+  /** flying off the rope to its target (the helping hand's guided release) */
+  fly?: boolean; gust?: number; ride?: string; hail?: boolean; castLong?: boolean;
   /** one-off things that happened this tick: 'jumped', 'kicked', 'tagOut', 'rest', 'chest', 'relic', 'ring', 'read', 'shop', 'revive' */
   events: string[];
 };
@@ -127,6 +129,8 @@ export const ANIMS: Record<AnimState, Def> = {
   // a swing's frame comes from where along its arc the hero is (see ropeFrame)
   ropeSwing: { frames: { dora: [81, 82, 83] }, rate: 60, loop: true },
   ropeRelease: { frames: { dora: [84] }, rate: 12, loop: false, len: 12 },
+  // the guided flight to a hook or a ledge (after the release kick): her own flying pose, reaching for where she lands
+  ropeFly: { frames: { dora: [78] }, rate: 60, loop: true },
   brace: { frames: { dora: [85], enzo: [85] }, rate: 60, loop: true },
   balance: { frames: { dora: [86], enzo: [86] }, rate: 60, loop: true },
   shield: { frames: { dora: [87] }, rate: 60, loop: true },
@@ -197,6 +201,8 @@ export class HeroAnimator {
     if (cur === 'ring' && this.t < (ANIMS.ring.len ?? 0) && (!i.act || i.act.t > this.ringT)) { this.ringT = i.act ? i.act.t : 1e9; return 'ring'; }
     // the Bell Rope: the throw as it catches, the swing, and letting go
     if (i.rope) return cur === 'ropeThrow' && this.t < (ANIMS.ropeThrow.len ?? 0) ? cur : i.events.includes('hooked') ? 'ropeThrow' : 'ropeSwing';
+    // a guided flight: the release kick first, then the flight
+    if (i.fly && has('ropeFly')) return i.events.includes('unhooked') || (cur === 'ropeRelease' && oneShotLive) ? 'ropeRelease' : 'ropeFly';
     if (i.events.includes('unhooked') && has('ropeRelease')) return 'ropeRelease';
     if (cur === 'ropeRelease' && oneShotLive && !i.ground) return cur;
     if (i.act) {
@@ -274,6 +280,8 @@ export class HeroAnimator {
     // clocks
     this.airT = i.ground || i.climb || i.swim ? 0 : this.airT + 1;
     if (this.airT) this.fallV = this.airT === 1 ? i.vy : Math.max(this.fallV, i.vy);
+    // a guided flight sets her down gently: a clean landing, never a hard one
+    if (i.fly) { this.airT = 1; this.fallV = 0; }
     if (i.climb) this.climbed += Math.abs(i.vy); else this.climbed = 0;
     this.still = s === 'idle' || s === 'blink' ? this.still + 1 : 0;
     this.lastRun = Math.abs(i.vx) > 0.3 ? Math.max(Math.abs(i.vx), this.lastRun * 0.9) : this.lastRun * 0.7;

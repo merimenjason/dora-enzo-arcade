@@ -116,7 +116,7 @@ export function capsFor(s: NavState, hero: HeroId, assist = false): Caps {
   return {
     speed: RUN[hero], dash: hero === 'dora' && has('dash'), double: hero === 'dora' && has('double'), wallkick: hero === 'dora' && has('wallkick'),
     glide: hero === 'enzo' && has('glide'), deep: has('deep'), swimMul: 1, coyote: assist ? 9 : 6, buffer: assist ? 9 : 6,
-    rope: hero === 'dora' && has('rope'),
+    rope: hero === 'dora' && has('rope'), ropeAssist: assist && hero === 'dora' && has('rope'),
   };
 }
 
@@ -191,6 +191,36 @@ function ropeMacros(): Macro[] {
   return out;
 }
 const ROPE = ropeMacros();
+
+/** The guided rope (the helping hand): jump towards a hook (it catches itself), then a tap of jump a moment later,
+ *  holding the way to go: it flies to the next hook (and taps again there) or a ledge. */
+function assistRopeMacros(): Macro[] {
+  const out: Macro[] = [];
+  for (const d of [-1, 1] as const) for (const rd of [d, -d, 0] as const) for (const wait of [6, 30]) for (const hold of [11, 99]) {
+    out.push({
+      name: `grope${d}${rd}w${wait}h${hold}`, hero: 'dora', max: 420,
+      input: (t, b) => b.rope ? I(rd as -1 | 0 | 1, { jumpP: b.rope.t === wait, jumpH: true }) : b.fly ? I(rd as -1 | 0 | 1) : I(d, { jumpP: t === 0, jumpH: t < hold }),
+    });
+  }
+  return out;
+}
+const AROPE = assistRopeMacros();
+/** With the helping hand, any move near a hook may be caught by the rope: a tap of jump soon after, the way the move
+ *  was going (as a player would), carries it on. */
+function withRopeRelease(m: Macro): Macro {
+  let dir: -1 | 0 | 1 = 0;
+  return {
+    ...m,
+    input: (t, b, f) => {
+      if (t === 0) dir = 0;
+      if (b.rope && b.rope.ph !== undefined) return I(dir, { jumpP: b.rope.t === 8, jumpH: true });
+      if (b.fly) return I(dir);
+      const inp = m.input(t, b, f);
+      if (inp.dir) dir = inp.dir;
+      return inp;
+    },
+  };
+}
 
 /** One tile up or down a ladder (then let go of the stick and hang there), or off it to either side. */
 const CLIMB_STEPS: Macro[] = [
@@ -293,10 +323,13 @@ export function bodyAt(n: Node, s: NavState): Body {
 }
 
 /** Simulate one macro from a node; returns the node it comes to rest at, or null if it hits a hazard or never settles. */
-export function simulate(env: Env, s: NavState, from: Node, m: Macro, trace?: Body[]): { node: Node; ticks: number } | null {
+export function simulate(env: Env, s: NavState, from: Node, m: Macro, trace?: Body[], assist = false): { node: Node; ticks: number } | null {
   ENV_FOR_SWIM = env;
   const b = bodyAt(from, s);
   const caps = capsFor(s, m.hero);
+  // the helping hand's guided rope (only that: the rest of the planner keeps its stricter timing, as before)
+  if (assist) caps.ropeAssist = m.hero === 'dora' && s.abilities.includes('rope');
+  if (caps.ropeAssist && from.mode === 'ground') { b.homeX = from.x; b.homeY = from.y; }
   const f = { x: from.x, y: from.y };
   // a walk ends once the next tile is reached and the body has stopped
   let air = false, landed = false;
@@ -323,11 +356,18 @@ export class Graph {
   env: Env;
   nodes = new Map<number, Node>();
   edges = new Map<number, Edge[]>();
-  constructor(public s: NavState) { this.env = navEnv(s); }
+  /** `assist`: plan with the helping hand's guided rope (hooks catch themselves; a tap of jump flies to a target) */
+  constructor(public s: NavState, public assist = false) { this.env = navEnv(s); }
   private gm: Macro[] | null = null;
   private gr: Macro[] | null = null;
+  private ga: Macro[] | null = null;
   macrosFor(n: Node): Macro[] {
-    if (n.mode === 'ground' && this.s.abilities.includes('rope') && hookNear(n.x, n.y)) return (this.gr ??= [...groundMacros(this.s), ...ROPE]);
+    const rope = this.s.abilities.includes('rope') && hookNear(n.x, n.y);
+    if (this.assist && rope) {
+      if (n.mode === 'ground') return (this.ga ??= [...groundMacros(this.s).map(withRopeRelease), ...AROPE]);
+      return (n.mode === 'swim' ? SWIM : n.mode === 'climb' ? CLIMB_STEPS : WALL).map(withRopeRelease);
+    }
+    if (n.mode === 'ground' && rope) return (this.gr ??= [...groundMacros(this.s), ...ROPE]);
     if (n.mode === 'ground') return (this.gm ??= groundMacros(this.s));
     if (n.mode === 'swim') return SWIM;
     if (n.mode === 'climb') return CLIMB_STEPS;
@@ -339,7 +379,7 @@ export class Graph {
     const out: Edge[] = [];
     const seen = new Set<number>();
     for (const m of this.macrosFor(n)) {
-      const res = simulate(this.env, this.s, n, m);
+      const res = simulate(this.env, this.s, n, m, undefined, this.assist);
       if (!res || res.node.key === n.key || seen.has(res.node.key)) continue;
       seen.add(res.node.key);
       if (!this.nodes.has(res.node.key)) this.nodes.set(res.node.key, res.node);

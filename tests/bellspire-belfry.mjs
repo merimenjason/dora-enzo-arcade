@@ -11,6 +11,7 @@ import {
 } from '../.checks/bellspire-game.js';
 import { Graph, nodeRoom, stateKey, HeroAnimator, ropeFrame } from '../.checks/bellspire-nav.js';
 
+const STRICT = { assist: false, strict: true };
 export default function belfry() {
   let checks = 0;
   const ok = (c, m) => { assert.ok(c, m); checks++; };
@@ -157,6 +158,7 @@ export default function belfry() {
     }
     return g.tick - t0;
   };
+  // the free-swing rope (Strict: the helping hand's guided rope is tested in tests/bellspire-rope.mjs)
   // the rope across the bannerwalk's gorge, onto the pillar
   {
     const G = graph([...BASE_ABILITIES, 'rope'], BASE_CALM, WINDS[1]);
@@ -165,7 +167,7 @@ export default function belfry() {
     const chest = thing('bannerwalk', 'C');
     const path = G.path(from, (n) => Math.abs(n.x - (chest.c * TILE + 8)) < 24 && n.y === (chest.r + 1) * TILE);
     ok(path && path.some((e) => e.macro.name.startsWith('rope')), 'the planner swings across the gorge on the rope');
-    const g = new BellspireGame(done(['rope']), {}, 3);
+    const g = new BellspireGame(done(['rope']), STRICT, 3);
     at(g, 'bannerwalk', 4, 14);
     let hooked = false, unhooked = false;
     const step0 = g.step.bind(g);
@@ -176,7 +178,7 @@ export default function belfry() {
   }
   // the rope's rules
   {
-    const g = new BellspireGame(done(['rope']), {}, 3);
+    const g = new BellspireGame(done(['rope']), STRICT, 3);
     at(g, 'bannerwalk', 9, 14);
     const hook = INFO.get('bannerwalk').hooks[0];
     g.body.x = hook.x - 20; g.body.y = hook.y + 22 + 40; g.body.ground = false; g.body.vx = 2; g.body.vy = -1;
@@ -199,18 +201,18 @@ export default function belfry() {
     ok(g.body.vx > 1 && vx > 0, `and carries the swing on (${g.body.vx.toFixed(2)})`);
     ok(g.body.vy < 0, 'with a kick up');
     // ↓ drops off, and without the rope there's only the sword
-    const g2 = new BellspireGame(done([]), {}, 3);
+    const g2 = new BellspireGame(done([]), STRICT, 3);
     at(g2, 'bannerwalk', 9, 14);
     g2.body.x = hook.x - 20; g2.body.y = hook.y + 62; g2.body.ground = false;
     g2.step(I({ attack: true }));
     ok(!g2.body.rope && g2.leadRt.act?.kind === 'swing', 'without the Bell Rope, attack by a hook is a sword swing');
-    const g3 = new BellspireGame(done(['rope']), {}, 3);
+    const g3 = new BellspireGame(done(['rope']), STRICT, 3);
     at(g3, 'bannerwalk', 9, 14);
     g3.lead = 'enzo';
     g3.body.x = hook.x - 20; g3.body.y = hook.y + 62; g3.body.ground = false;
     g3.step(I({ attack: true }));
     ok(!g3.body.rope, 'Enzo can’t use the rope');
-    const g4 = new BellspireGame(done(['rope']), {}, 3);
+    const g4 = new BellspireGame(done(['rope']), STRICT, 3);
     at(g4, 'bannerwalk', 9, 14);
     g4.body.x = hook.x - 20; g4.body.y = hook.y + 62; g4.body.ground = false;
     g4.step(I({ attack: true })); run(g4, 10);

@@ -6,7 +6,27 @@ import {
   type Room, type AreaId, type Ability, type HeroId, type SpellId, type Slot, type FoodId, type BossId, type Line, type WaterArea, type Perk, type WindArea,
 } from './bellspire-world.js';
 import { BOXES, FOE_BODY } from './bellspire-art.js';
-import { newBody, stepBody, support, hookInReach, boxClear, HERO_W, HERO_H, RUN, type Body, type Env, type Caps, type BodyInput } from './bellspire-physics.js';
+import { newBody, stepBody, support, hookInReach, ropeAim, GRAV, MAX_FALL, ropeBail, boxClear, ASSIST_REACH, HERO_W, HERO_H, RUN, type Body, type Env, type Caps, type BodyInput, type RopeAim } from './bellspire-physics.js';
+/** The hook the guided rope is coming up to: bright (with a faint rope to it) when her fall as it goes now will bring
+ *  her within reach in the next half second, so it will catch; faint when it's near (within twice the reach) but she
+ *  needs more height or to get closer. */
+function nearHook(env: Env, b: Body) {
+  let best: { x: number; y: number } | null = null, bd = (ASSIST_REACH * 2.2) ** 2;
+  for (const h of env.hooks?.() ?? []) {
+    if (h.x === b.skipX && h.y === b.skipY) continue;
+    const d2 = (h.x - b.x) ** 2 + (h.y - b.y + HERO_H) ** 2;
+    if (h.y < b.y - HERO_H - 6 && d2 < bd) { bd = d2; best = h; }
+  }
+  if (!best) return null;
+  // her path from here (no input: the speed she has and gravity)
+  let x = b.x, y = b.y, vx = b.vx, vy = b.vy, will = false;
+  for (let t = 0; t < 30 && !will; t++) {
+    x += vx; vy = Math.min(MAX_FALL, vy + GRAV); y += vy;
+    const dx = best.x - x, dy = best.y - (y - HERO_H);
+    will = dy <= -6 && dx * dx + dy * dy < ASSIST_REACH * ASSIST_REACH;
+  }
+  return { ...best, far: !will };
+}
 
 export * from './bellspire-world.js';
 export { HERO_W, HERO_H, type Body } from './bellspire-physics.js';
@@ -697,6 +717,8 @@ export class BellspireGame {
       wallkick: h === 'dora' && this.has('wallkick'), glide: h === 'enzo' && this.has('glide'), deep: this.has('deep'),
       swimMul: this.perk(h, 'swim') ? 1.3 : 1, coyote: this.settings.assist ? 9 : 6, buffer: this.settings.assist ? 9 : 6,
       rope: h === 'dora' && this.has('rope'), windMul: this.perk(h, 'windward') ? 0.5 : 1,
+      // the guided rope is the helping hand's; Strict keeps the free swing
+      ropeAssist: h === 'dora' && this.has('rope') && this.settings.assist && !this.settings.strict,
     };
   }
 
@@ -794,8 +816,9 @@ export class BellspireGame {
     for (const h of ALL_HEROES) { const r = this.hero[h]; if (r.inv > 0) r.inv--; if (r.hurtT > 0) r.hurtT--; if (r.swingCd > 0) r.swingCd--; }
     if (this.tagCd > 0) this.tagCd--;
 
-    // tag (not while Dora hangs on the rope: Enzo can't hold it)
-    if (pressed.tag && !b.rope) this.tryTag();
+    // tag (not while Dora hangs on the rope or flies off it: Enzo can't hold it)
+    if (pressed.tag && (b.rope || b.fly)) { this.note('Dora’s on the rope. Tag once she’s on her feet.'); this.sfx('locked'); }
+    else if (pressed.tag) this.tryTag();
     let ropeP = false;
 
     // actions
@@ -876,6 +899,7 @@ export class BellspireGame {
     if (b.bonk) this.bonkHatch();
     if (b.hooked && b.rope) { this.sfx('rope', b.rope.hx, b.rope.hy); this.emit({ k: 'rope', on: true, x: b.rope.hx, y: b.rope.hy }); }
     if (b.unhooked) { this.sfx(b.jumped === 'rope' ? 'leap' : 'ropeOff', b.x, b.y); this.emit({ k: 'rope', on: false, x: b.x, y: b.y }); }
+    this.updateRopeGuide(inp);
 
     // the acting hero's attack
     this.updateAct();
@@ -1416,6 +1440,8 @@ export class BellspireGame {
       b.vx = ground || b.swim ? dir * 2.2 : 0; if (!b.swim && b.ground) b.vy = -2.4;
       b.dashT = 0;
     }
+    // hit on the guided rope: back to the ledge she swung from, safe (the hit itself still counts)
+    if (b.rope && this.caps().ropeAssist && ropeBail(this.env, b)) this.emit({ k: 'rope', on: false, x: b.x, y: b.y });
     if (this.leadSave.hp <= 0) this.downLead();
     return true;
   }
@@ -2661,6 +2687,18 @@ export class BellspireGame {
       return t ? { room: t.room, x: t.c * TILE + 8, y: t.r * TILE } : null;
     }
     return null;
+  }
+  /** The guided rope's picture (the helping hand, Dora only): in the air, the hook that will catch itself (it glows,
+   *  with a faint rope to it); on the rope, where a jump would fly, the way held or faced. */
+  ropeGuide: { hook: { x: number; y: number; far: boolean } | null; aim: RopeAim | null } = { hook: null, aim: null };
+  updateRopeGuide(inp: Input) {
+    const b = this.body, caps = this.caps();
+    this.ropeGuide = { hook: null, aim: null };
+    if (!caps.ropeAssist || this.lead !== 'dora') return;
+    if (b.rope) {
+      const dir = (inp.left !== inp.right ? (inp.left ? -1 : 1) : b.face) as 1 | -1;
+      this.ropeGuide.aim = ropeAim(this.env, b, dir);
+    } else if (!b.ground && !b.climb && !b.swim && !b.fly) this.ropeGuide.hook = nearHook(this.env, b);
   }
   /** Does the map show the Windward Belfry yet: once the Lake Mother is calm (Wayra will row then), or once the heroes
    *  have been there. Before that the maps keep it a secret. */

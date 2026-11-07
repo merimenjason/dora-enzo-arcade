@@ -712,18 +712,78 @@ try {
     await until(page, (w) => window.__bellspire().game.save.wind.cloud === -w, w0);
     ok('standing in a gust braces into the wind, and X at a wind bell turns the wind round');
 
-    // the Bell Rope: X in the air by a hook catches it (its own throw pose), the swing, and Z lets go
+    // the Bell Rope with the helping hand (the default): a hook in reach glows and catches itself, the swing keeps
+    // itself, a dotted arc shows where a jump goes, Z flies there (a hook catches again: a chain), ↓ goes home
     await game(page, `(g.save.abilities.push('rope'), true)`);
+    const canvasClip = async () => page.locator('canvas.bs-canvas').boundingBox();
+    const hp0 = await game(page, 'g.leadSave.hp');
+    await at('ropegallery', 4, 14); await game(page, '(g.enemies = [], true)'); // (the gallery's imp would knock her home: the safety net, tested below)
+    await page.keyboard.down('ArrowRight'); await page.keyboard.down('KeyZ');
+    await until(page, () => { const g = window.__bellspire().game; return !g.body.ground && g.ropeGuide.hook && !g.ropeGuide.hook.far && !g.body.rope; });
+    await page.screenshot({ path: '.shots/bellspire/70-rope-glow-1280x800.png', clip: await canvasClip() });
+    await until(page, () => !!window.__bellspire().game.body.rope);
+    await page.keyboard.up('KeyZ');
+    const first = await game(page, 'g.body.rope.hx');
+    await page.waitForTimeout(120);
+    await page.screenshot({ path: '.shots/bellspire/71-rope-catch-1280x800.png', clip: await canvasClip() });
+    ok('jumping by a bell hook: it glows and pulses in reach with a faint rope to it, and catches itself with no X');
+    await until(page, () => window.__bellspire().game.ropeGuide.aim?.kind === 'hook');
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: '.shots/bellspire/72-rope-arc-1280x800.png', clip: await canvasClip() });
+    assert.equal(await game(page, 'g.ropeGuide.aim.path.length > 8 && g.ropeGuide.aim.hx > g.body.rope.hx'), true, 'the dotted arc leads to the next hook');
+    ok('on the rope, holding → shows a dotted arc to the next hook');
+    // the chain: Z flies to the next hook and it catches; Z again flies to the ledge beyond
+    await page.keyboard.press('KeyZ');
+    await until(page, () => !!window.__bellspire().game.body.fly);
+    await page.waitForTimeout(150);
+    await page.screenshot({ path: '.shots/bellspire/73-rope-flight-1280x800.png', clip: await canvasClip() });
+    await until(page, (h) => { const b = window.__bellspire().game.body; return b.rope && b.rope.hx !== h; }, first);
+    ok('Z at any point of the swing flies along the arc, and the next hook catches her (a chain)');
+    await until(page, () => window.__bellspire().game.ropeGuide.aim?.kind === 'ledge');
+    await page.waitForTimeout(250);
+    await page.keyboard.press('KeyZ');
+    await until(page, () => window.__bellspire().game.body.ground);
+    await page.keyboard.up('ArrowRight');
+    const landed = await game(page, '({ x: (g.body.x / 16) % 30, hp: g.leadSave.hp })');
+    assert.ok(landed.x > 20 && landed.hp >= hp0, `landed on the far ledge, unhurt (${landed.x.toFixed(1)}, ${landed.hp}/${hp0})`);
+    ok('hold →, tap Z, tap Z: across the spikes to a clean landing on the far ledge');
+    for (const p of ['ropeThrow', 'ropeSwing', 'ropeFly']) assert.ok(await posed(`dora:${p}`), `Dora shows ${p}`);
+    // the safety net: caught over the spikes, ↓ flies her back to the ledge she jumped from, unhurt
+    await at('ropegallery', 4, 14); await game(page, '(g.enemies = [], true)'); // (the gallery's imp would knock her home: the safety net, tested below)
+    const hp1 = await game(page, 'g.leadSave.hp');
+    await page.keyboard.down('ArrowRight'); await page.keyboard.down('KeyZ');
+    await until(page, () => !!window.__bellspire().game.body.rope);
+    await page.keyboard.up('KeyZ'); await page.keyboard.up('ArrowRight');
+    // and Shift on the rope says why it can't tag
+    await page.keyboard.press('ShiftLeft');
+    await toast(page, /Dora’s on the rope/);
+    assert.equal((await st(page)).lead, 'dora');
+    ok('Shift on the rope doesn’t tag, and says “Dora’s on the rope”');
+    await page.waitForTimeout(150);
+    await page.keyboard.press('ArrowDown');
+    await until(page, () => window.__bellspire().game.body.ground);
+    const home = await game(page, '({ x: (g.body.x / 16) % 30, hp: g.leadSave.hp })');
+    assert.ok(home.x < 7 && home.hp === hp1, `↓ goes home to the ledge, unhurt (${home.x.toFixed(1)}, ${home.hp}/${hp1})`);
+    ok('the safety net: ↓ on the rope over the spikes flies her back to the ledge she swung from, unhurt');
+
+    // Strict keeps the free swing: no catch without X, X catches, ←/→ pump, Z lets go with a kick, no guide
+    await game(page, `(g.settings.assist = false, g.settings.strict = true, true)`);
     await at('bannerwalk', 9, 14);
+    await game(page, `(() => { const h = g.env.hooks()[0]; g.body.x = h.x - 20; g.body.y = h.y + 60; g.body.ground = false; g.body.vy = -0.5; g.body.vx = 1; return true; })()`);
+    await page.waitForTimeout(100);
+    assert.equal(await game(page, '!!g.body.rope || !!g.ropeGuide.hook'), false, 'Strict: no catch and no glow without X');
     await game(page, `(() => { const h = g.env.hooks()[0]; g.body.x = h.x - 20; g.body.y = h.y + 60; g.body.ground = false; g.body.vy = -0.5; g.body.vx = 1; return true; })()`);
     await page.keyboard.press('KeyX');
     await until(page, () => !!window.__bellspire().game.body.rope);
     await hold(page, 'ArrowRight', 500);
     await until(page, () => window.__bellspire().scene.heroAnim.dora?.state === 'ropeSwing');
+    assert.equal(await game(page, 'g.ropeGuide.aim'), null, 'Strict: no arc');
     await page.keyboard.press('KeyZ');
     await until(page, () => !window.__bellspire().game.body.rope);
+    assert.equal(await game(page, '!!g.body.fly'), false, 'Strict: a free release, not a guided flight');
     for (const p of ['ropeThrow', 'ropeSwing', 'ropeRelease']) assert.ok(await posed(`dora:${p}`), `Dora shows ${p}`);
-    ok('X in the air by a hook throws the Bell Rope; ←/→ pump the swing; Z lets go (throw, swing and release poses)');
+    await game(page, `(g.settings.assist = true, g.settings.strict = false, true)`);
+    ok('Strict: X in the air by a hook throws the Bell Rope; ←/→ pump the swing; Z lets go (throw, swing and release poses)');
 
     // the Echo Step: ↑+V by an echo bell lays three notes; Dora climbs them
     await game(page, `(g.save.abilities.push('echo'), g.save.spells.push('frost', 'gale'), g.save.heroes.enzo.mp = 90, true)`);
@@ -1094,6 +1154,32 @@ try {
       await p.evaluate(() => window.__bellspire().exitLayer(true)); await p.waitForTimeout(150);
       await p.screenshot({ path: `.shots/bellspire/31-minimap-exits-after-${vp.width}x${vp.height}.png`, clip });
       assert.ok(await p.evaluate(() => window.__bellspire().drawnExits('mini').some((d) => d.kind === 'area')), 'an area entrance on the phone minimap');
+    }
+    // the guided rope on the pad: ▶ and Jump held by the gallery's first hook: the glow, the catch, the arc, the flight
+    {
+      await p.evaluate(() => { const g = window.__bellspire().game; g.save.abilities = ['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide', 'deep', 'rope']; g.lead = 'dora'; g.save.lead = 'dora'; });
+      await dbg(p, 'teleport', 'ropegallery', 4, 14); await dbg(p, 'skipDialog'); await p.waitForTimeout(300); await dbg(p, 'skipDialog');
+      await p.evaluate(() => { window.__bellspire().game.enemies = []; });
+      const clip = await p.locator('canvas.bs-canvas').boundingBox();
+      const down = (l) => p.dispatchEvent(`button[aria-label="${l}"]`, 'pointerdown', { pointerId: l === 'Jump' ? 3 : 2 });
+      const up = (l) => p.dispatchEvent(`button[aria-label="${l}"]`, 'pointerup', { pointerId: l === 'Jump' ? 3 : 2 });
+      await down('▶'); await down('Jump');
+      await until(p, () => { const g = window.__bellspire().game; return !g.body.ground && g.ropeGuide.hook && !g.ropeGuide.hook.far && !g.body.rope; });
+      await p.screenshot({ path: `.shots/bellspire/70-rope-glow-${vp.width}x${vp.height}.png`, clip });
+      await until(p, () => !!window.__bellspire().game.body.rope);
+      await up('Jump');
+      await p.waitForTimeout(120);
+      await p.screenshot({ path: `.shots/bellspire/71-rope-catch-${vp.width}x${vp.height}.png`, clip });
+      await until(p, () => window.__bellspire().game.ropeGuide.aim?.kind === 'hook');
+      await p.waitForTimeout(200);
+      await p.screenshot({ path: `.shots/bellspire/72-rope-arc-${vp.width}x${vp.height}.png`, clip });
+      await down('Jump'); await p.waitForTimeout(60); await up('Jump');
+      await until(p, () => !!window.__bellspire().game.body.fly);
+      await p.waitForTimeout(150);
+      await p.screenshot({ path: `.shots/bellspire/73-rope-flight-${vp.width}x${vp.height}.png`, clip });
+      await until(p, () => !!window.__bellspire().game.body.rope);
+      await up('▶');
+      ok(`phone ${vp.width}×${vp.height}: on the pad, a hook glows and catches itself, the arc shows, Jump flies to the next hook`);
     }
     await p.getByRole('button', { name: 'Menu' }).tap();
     await until(p, () => window.__bellspire().menu === 'map');

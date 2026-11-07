@@ -15,6 +15,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **The Sunken Bellspire**: the Bell Rope is much easier with the helping hand on (the default). A bell hook glows as Dora comes near and catches her by itself, with no X needed. She swings a steady arc on her own. A dotted arc shows where a jump will take her (the next hook, or a safe ledge, the way you hold ← or →), and a jump at any moment flies her there, so a row of hooks is just hold → and tap jump. ↓, or a hit, takes her safely back to the ledge she swung from. Strict keeps the free swing, and Shift on the rope now says why Dora can't tag out.
 - **The Sunken Bellspire**: completion now counts the belfry (94 rooms, 27 chests, 18 murals, 8 guardians). The pause map shows the citadel's own numbers until you cross the water, finishing the citadel alone still plays the first epilogue, and the minimap is solid so nothing shows through it.
 - **The Sunken Bellspire**: unopened chests show on the minimap and the full map as little chests, and the map key lists them.
 - **The Sunken Bellspire**: gear now shows on the heroes. Each weapon has its own colour on the sprite, slash and lantern light (a green Reed-Cutter, silver-blue Moonsteel, the Bell Staff and the Star Lamp), coats recolour whoever wears them (with a little shell on the Snail-Shell Coat), and rings and relics add small touches. The gear menu previews each item on the hero with its stat change before you equip it.

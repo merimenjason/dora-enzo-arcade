@@ -603,6 +603,8 @@ export class BellspireScene {
 
     // light
     this.drawLight(g, cx, cy);
+    // the guided rope's marks (the helping hand) stay bright in the dark: they're a guide, not part of the room
+    this.drawRopeGuide(g, ox, oy);
     if (this.edgeCanvas) ctx.drawImage(this.edgeCanvas, rr.x - cx, rr.y - cy);
     // beyond a room smaller than the view: the dark
     {
@@ -919,6 +921,56 @@ export class BellspireScene {
     this.chestSeen = true;
   }
 
+  /** The guided Bell Rope (the helping hand): in the air, the hook that will catch Dora glows and pulses, with a faint
+   *  rope to it (a hook a little beyond reach glows faintly); on the rope, a dotted arc to where a jump would take her
+   *  and a mark there; in flight, the mark she's flying to. */
+  drawRopeGuide(g: BellspireGame, ox: number, oy: number) {
+    const ctx = this.ctx, b = g.body, { hook, aim } = g.ropeGuide;
+    if (g.lead !== 'dora' || (!hook && !aim && !b.fly)) return;
+    const pulse = 0.5 + 0.5 * Math.sin(this.t * 0.18);
+    ctx.save();
+    if (hook) {
+      const x = Math.round(hook.x + ox), y = Math.round(hook.y + oy);
+      const far = hook.far;
+      const r = far ? 7 : 8 + pulse * 3;
+      const glow = ctx.createRadialGradient(x, y, 1, x, y, r + 8);
+      glow.addColorStop(0, `rgba(255,226,140,${far ? 0.25 : 0.55 + pulse * 0.25})`); glow.addColorStop(1, 'rgba(255,200,90,0)');
+      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(x, y, r + 8, 0, Math.PI * 2); ctx.fill();
+      if (!far) {
+        ctx.strokeStyle = `rgba(255,236,170,${0.6 + pulse * 0.4})`; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(x + 0.5, y + 0.5, r, 0, Math.PI * 2); ctx.stroke();
+        // a faint rope from her hand: where the catch will be
+        const hx = b.x + ox + b.face * 2, hy = b.y - HERO_H - 6 + oy;
+        ctx.setLineDash([3, 3]); ctx.lineDashOffset = -this.t * 0.5;
+        ctx.strokeStyle = `rgba(217,154,82,${0.35 + pulse * 0.2})`; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(x, y); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+    const mark = (kind: 'hook' | 'ledge', x: number, y: number, a: number) => {
+      x = Math.round(x + ox); y = Math.round(y + oy);
+      ctx.strokeStyle = `rgba(255,236,170,${a})`; ctx.fillStyle = `rgba(255,226,140,${a * 0.35})`; ctx.lineWidth = 1;
+      // a ring round the target hook (open, so the hook itself still shows)
+      if (kind === 'hook') { ctx.beginPath(); ctx.arc(x + 0.5, y + 4.5, 10 + pulse * 2, 0, Math.PI * 2); ctx.stroke(); return; }
+      // a landing mark at her feet: a flat ring and two corner brackets
+      ctx.beginPath(); ctx.ellipse(x + 0.5, y - 1.5, 9 + pulse * 2, 3, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - 10, y - 8); ctx.lineTo(x - 10, y - 2); ctx.moveTo(x + 11, y - 8); ctx.lineTo(x + 11, y - 2); ctx.stroke();
+    };
+    if (aim) {
+      // the dotted arc, the dots drifting along it towards the target
+      const n = aim.path.length - 1, drift = (this.t * 0.06) % 1;
+      for (let i = 0; i < n * 2; i++) {
+        const u = (i + drift) / (n * 2), k = Math.min(n - 1, Math.floor(u * n)), f = u * n - k;
+        const p = aim.path[k], q = aim.path[k + 1];
+        const x = p.x + (q.x - p.x) * f + ox, y = p.y + (q.y - p.y) * f - HERO_H / 2 + oy;
+        ctx.fillStyle = `rgba(255,236,170,${0.35 + 0.5 * u})`;
+        ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2);
+      }
+      mark(aim.kind, aim.kind === 'hook' ? aim.hx : aim.x, aim.kind === 'hook' ? aim.hy : aim.y, 0.8);
+    }
+    if (b.fly && !b.fly.home) mark(b.fly.kind, b.fly.kind === 'hook' ? b.fly.hx : b.fly.x1, b.fly.kind === 'hook' ? b.fly.hy : b.fly.y1, 0.6 * (1 - b.fly.t / b.fly.dur) + 0.2);
+    ctx.restore();
+  }
+
   /** The Windward Belfry's moving world: the giant swinging bells on their ropes, the echo notes, wind streaks in the
    *  gusts, and Dora's Bell Rope from her hand to its hook. */
   drawBelfry(g: BellspireGame, ox: number, oy: number) {
@@ -1042,7 +1094,7 @@ export class BellspireScene {
       act: act ? { kind: act.kind, n: act.n, t: act.t, wind: sw.wind, active: sw.act, spell: act.spell } : null,
       castHold: rt.castHold > 6, lanternUp: lead === 'enzo' && g.lanternUp, events: ev,
       // the Windward Belfry: the rope's angle as seen from the way the hero faces, the gust, the float underfoot, hail
-      rope: b.rope ? { ang: b.rope.ang * b.face, av: b.rope.av * b.face } : null,
+      rope: b.rope ? { ang: b.rope.ang * b.face, av: b.rope.av * b.face } : null, fly: !!b.fly,
       gust: b.ground && Math.abs(b.vx) < 0.3 ? b.gust : 0, ride: g.riding,
       hail: g.shots.some((s) => !s.friendly && (s.kind === 'hail' || s.kind === 'ice') && Math.abs(s.x - b.x) < 60 && s.y < b.y && b.y - s.y < 120),
       castLong: rt.castHold >= 40 && g.save.spells.includes('gale'),

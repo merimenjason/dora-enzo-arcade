@@ -16,6 +16,7 @@ import { BOXES, FOE_BODY, ART } from '../.checks/bellspire-art.js';
 import belfry from './bellspire-belfry.mjs';
 import trials from './bellspire-trials.mjs';
 import strips from './bellspire-strips.mjs';
+import rope from './bellspire-rope.mjs';
 
 let checks = 0;
 const ok = (c, m) => { assert.ok(c, m); checks++; };
@@ -748,7 +749,7 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
     dora: ['glide', 'cast', 'castWind', 'lanternUp', 'lanternDown', 'chime', 'echo', 'frostWind', 'frost', 'galeWind', 'gale', 'noteHop'],
     // the dash, wall kick, down-thrust and Whirl Slash are Dora's, and so is the Bell Rope (and only she lifts a shield
     // arm to hail: Enzo shelters under the lantern's glow)
-    enzo: ['dash', 'wallSlide', 'wallKick', 'thrust', 'whirl', 'ropeThrow', 'ropeSwing', 'ropeRelease', 'shield'],
+    enzo: ['dash', 'wallSlide', 'wallKick', 'thrust', 'whirl', 'ropeThrow', 'ropeSwing', 'ropeRelease', 'ropeFly', 'shield'],
   };
   // the one deliberate share: a hard landing recovers through the ordinary landing frame
   const SHARED = [['hardLand', 'land']];
@@ -1071,4 +1072,5 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
 checks += belfry();
 checks += trials();
 checks += strips();
+checks += rope();
 console.log(`bellspire: ${checks} checks passed`);

@@ -13,6 +13,9 @@ export const RUN = { dora: 2.0, enzo: 1.75 } as const;
 /** The Bell Rope: how far from Dora's hands a hook can be caught, the rope's shortest and longest length, the pump
  *  that steering gives each tick, the swing's widest angle and the kick a jump off the rope adds. */
 export const ROPE_REACH = 64, ROPE_MIN = 30, ROPE_MAX = 72, ROPE_PUMP = 0.0022, ROPE_MAX_ANG = 1.4, ROPE_KICK = 3.2;
+/** The guided Bell Rope (with the helping hand): the reach a hook catches itself from, the rope's resting length, the
+ *  steady swing's angle, and how far a guided release can fly (across and up/down). */
+export const ASSIST_REACH = 96, ASSIST_LEN = 56, ASSIST_AMP = 1.0, AIM_DX = 15 * 16, AIM_UP = 7 * 16, AIM_DOWN = 10 * 16;
 /** Wind: how much a gust of strength 1 adds to the speed a body runs or drifts at (on the ground only while moving,
  *  so a hero can always stand braced), and how fast it carries the Lantern Glide upward. */
 export const WIND_RUN = 0.6, WIND_AIR = 1.4, WIND_LIFT = 1.2;
@@ -41,6 +44,8 @@ export type Caps = {
   coyote: number; buffer: number;
   /** the Bell Rope (Dora); how much of a gust reaches the body (1 is all of it; the Windward Jacket takes less) */
   rope?: boolean; windMul?: number;
+  /** the guided Bell Rope (the helping hand): hooks catch themselves, the swing keeps itself, a jump flies to a target */
+  ropeAssist?: boolean;
 };
 
 export type Body = {
@@ -52,13 +57,21 @@ export type Body = {
   landed: boolean; jumped: '' | 'ground' | 'air' | 'wall' | 'swim' | 'ladder' | 'rope'; hazard: boolean; bonk: boolean; dashed: boolean;
   /** on the Bell Rope: the hook, the rope's length, its angle from straight down (+ is to the hook's right) and how
    *  fast that angle changes; null when not swinging */
-  rope: { hx: number; hy: number; len: number; ang: number; av: number; t: number } | null;
+  rope: { hx: number; hy: number; len: number; ang: number; av: number; t: number; ph?: number; amp?: number; sd?: 1 | -1; stuck?: number } | null;
+  /** a guided flight off the rope (the helping hand): from (x0, y0) to (x1, y1) over `dur` ticks, ending on a hook's
+   *  rope or a ledge */
+  fly: Fly | null;
+  /** where the feet last stood on solid ground or a ledge (the guided rope's safety net), and a hook just let go of
+   *  that won't catch itself again until the feet touch down */
+  homeX: number; homeY: number; skipX: number; skipY: number;
   /** set by `stepBody`: the rope caught a hook this tick, or was let go of */
   hooked: boolean; unhooked: boolean;
   /** the gust felt this tick (signed) */
   gust: number;
 };
 
+export type Fly = { x0: number; y0: number; x1: number; y1: number; arc: number; dur: number; t: number; kind: 'hook' | 'ledge'; hx: number; hy: number; dir: 1 | -1; home?: boolean };
+export type RopeAim = { kind: 'hook' | 'ledge'; x: number; y: number; hx: number; hy: number; path: { x: number; y: number }[]; fly: Fly };
 export type BodyInput = { dir: -1 | 0 | 1; up: boolean; down: boolean; jumpP: boolean; jumpH: boolean; dashP: boolean; ropeP?: boolean };
 
 export function newBody(x: number, y: number): Body {
@@ -66,6 +79,7 @@ export function newBody(x: number, y: number): Body {
     x, y, vx: 0, vy: 0, ground: false, onOneway: false, coyote: 0, jumpBuf: 0, airJumps: 0, airDash: true, dashT: 0, dashCd: 0, dashDir: 1,
     kickT: 0, kickDir: 1, dropT: 0, climb: false, swim: false, wade: false, glide: false, wall: 0, face: 1,
     landed: false, jumped: '', hazard: false, bonk: false, dashed: false, rope: null, hooked: false, unhooked: false, gust: 0,
+    fly: null, homeX: NaN, homeY: NaN, skipX: NaN, skipY: NaN,
   };
 }
 
@@ -126,6 +140,184 @@ export function hookInReach(env: Env, b: Body): { x: number; y: number } | null 
   return best;
 }
 
+// ─── the guided Bell Rope (the helping hand) ────────────────────────────────
+
+/** The hook that catches itself from here (the helping hand): the nearest above Dora's hands within a generous reach,
+ *  never the one just let go of. */
+export function hookAssist(env: Env, b: Body): { x: number; y: number } | null {
+  if (!env.hooks) return null;
+  const hx = b.x, hy = b.y - HERO_H;
+  let best: { x: number; y: number } | null = null, bd = ASSIST_REACH * ASSIST_REACH;
+  for (const h of env.hooks()) {
+    if (h.x === b.skipX && h.y === b.skipY) continue;
+    const dx = h.x - hx, dy = h.y - hy;
+    if (dy > -6) continue;
+    const d2 = dx * dx + dy * dy;
+    if (d2 < bd) { bd = d2; best = h; }
+  }
+  return best;
+}
+
+/** A guided flight's point at u (0 to 1): eased across, on an arc over the straight line. */
+export function flyAt(f: Fly, u: number): { x: number; y: number } {
+  const e = u * u * (3 - 2 * u);
+  return { x: f.x0 + (f.x1 - f.x0) * e, y: f.y0 + (f.y1 - f.y0) * u - f.arc * 4 * u * (1 - u) };
+}
+function flyFor(x0: number, y0: number, x1: number, y1: number, kind: 'hook' | 'ledge', hx: number, hy: number): Fly {
+  const dx = x1 - x0, dist = Math.hypot(dx, y1 - y0);
+  const arc = 18 + Math.abs(dx) * 0.12 + Math.max(0, y0 - y1) * 0.35;
+  return { x0, y0, x1, y1, arc, dur: Math.round(Math.max(20, Math.min(56, 16 + dist / 4.5))), t: 0, kind, hx, hy, dir: dx >= 0 ? 1 : -1 };
+}
+const STAND_CACHE = new WeakMap<Env, Map<string, { x: number; y: number }[]>>();
+/** The safe spots to stand on around a hook: a floor or ledge tile with room for a hero over it and no hazard on or by
+ *  it. (Worked out once per hook from the terrain; checked again live, since doors and planks change.) */
+function standsNear(env: Env, h: { x: number; y: number }) {
+  let m = STAND_CACHE.get(env);
+  if (!m) STAND_CACHE.set(env, (m = new Map()));
+  const key = `${h.x},${h.y}`;
+  let out = m.get(key);
+  if (out) return out;
+  out = [];
+  const hc = Math.floor(h.x / T), hr = Math.floor(h.y / T);
+  for (let r = hr - Math.ceil(AIM_UP / T) + 3; r <= hr + Math.ceil(AIM_DOWN / T) + 4; r++) for (let c = hc - AIM_DX / T; c <= hc + AIM_DX / T; c++) {
+    if (!(env.solid(c, r) || env.oneway(c, r))) continue;
+    if (env.hazard(c, r) || env.hazard(c - 1, r) || env.hazard(c + 1, r) || env.hazard(c, r - 1)) continue;
+    const x = c * T + 8, y = r * T;
+    if (!boxClear(env, x - HERO_W / 2 - 1, y - HERO_H - 2, x + HERO_W / 2 + 1, y)) continue;
+    // whole width on the floor
+    if (!((env.solid(c - 1, r) || env.oneway(c - 1, r)) || (env.solid(c + 1, r) || env.oneway(c + 1, r)))) continue;
+    out.push({ x, y });
+  }
+  m.set(key, out);
+  return out;
+}
+/** Is a flight's path clear: the body's box fits at every point, and touches no hazard. */
+function flyClear(env: Env, f: Fly) {
+  const n = Math.max(12, Math.ceil(Math.hypot(f.x1 - f.x0, f.y1 - f.y0) / 6));
+  for (let i = 1; i <= n; i++) {
+    const p = flyAt(f, i / n);
+    if (!boxClear(env, p.x - HERO_W / 2, p.y - HERO_H, p.x + HERO_W / 2, p.y - 0.5)) return false;
+    const [c0, c1] = colsOf(p.x - HERO_W / 2 - 1, p.x + HERO_W / 2 + 1), [r0, r1] = colsOf(p.y - HERO_H - 1, p.y + 1);
+    for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) if (env.hazard(c, r)) return false;
+  }
+  return true;
+}
+/** Where a guided release goes from this swing, going `dir`: the next hook that way, or the nearest safe ledge that way
+ *  (a ledge well below the swing counts for much less, so the floor under a rope is the last choice), whichever is nearer; only along a clear path. Null when there is nowhere. */
+export function ropeAim(env: Env, b: Body, dir: 1 | -1): RopeAim | null {
+  const r = b.rope;
+  if (!r || !env.hooks) return null;
+  const hang = r.hy + ASSIST_LEN + HERO_H;
+  const cands: { score: number; kind: 'hook' | 'ledge'; x: number; y: number; hx: number; hy: number }[] = [];
+  for (const h of env.hooks()) {
+    const dx = (h.x - r.hx) * dir;
+    if (h.x === r.hx && h.y === r.hy) continue;
+    if (dx < 24 || dx > AIM_DX || h.y < r.hy - AIM_UP || h.y > r.hy + AIM_DOWN) continue;
+    cands.push({ score: dx, kind: 'hook', x: h.x, y: h.y + ASSIST_LEN + HERO_H, hx: h.x, hy: h.y });
+  }
+  for (const p of standsNear(env, { x: r.hx, y: r.hy })) {
+    const dx = (p.x - r.hx) * dir;
+    if (dx < 40) continue;
+    cands.push({ score: dx + Math.max(0, p.y - hang - 24) * 6, kind: 'ledge', x: p.x, y: p.y, hx: NaN, hy: NaN });
+  }
+  cands.sort((a, c) => a.score - c.score);
+  for (const c of cands) {
+    if (c.kind === 'ledge') {
+      const t = newBody(c.x, c.y);
+      if (!support(env, t) || !boxClear(env, c.x - HERO_W / 2, c.y - HERO_H, c.x + HERO_W / 2, c.y)) continue;
+    }
+    const f = flyFor(b.x, b.y, c.x, c.y, c.kind, c.hx, c.hy);
+    if (!flyClear(env, f)) continue;
+    const path: { x: number; y: number }[] = [];
+    for (let i = 0; i <= 16; i++) path.push(flyAt(f, i / 16));
+    return { kind: c.kind, x: c.x, y: c.y, hx: c.hx, hy: c.hy, path, fly: f };
+  }
+  return null;
+}
+/** Start a guided flight (off the rope, or back home). */
+function startFly(b: Body, f: Fly) {
+  if (b.rope) { b.skipX = b.rope.hx; b.skipY = b.rope.hy; }
+  b.rope = null; b.unhooked = true; b.fly = { ...f, t: 0 }; b.face = f.dir;
+  b.ground = false; b.climb = false; b.glide = false; b.wall = 0; b.kickT = 0; b.dashT = 0;
+}
+/** Off the rope by ↓ or a hit (the helping hand): fly back to the ledge she swung from, if the way is clear. */
+export function ropeBail(env: Env, b: Body): boolean {
+  if (!b.rope || Number.isNaN(b.homeX)) return false;
+  const f = flyFor(b.x, b.y, b.homeX, b.homeY, 'ledge', NaN, NaN);
+  f.home = true;
+  if (!flyClear(env, { ...f, x0: b.x, y0: b.y })) {
+    // a straight lift, for a path the arc can't take
+    f.arc = 0;
+    if (!flyClear(env, f)) return false;
+  }
+  startFly(b, f);
+  return true;
+}
+/** Catch a hook with the guided rope: a steady swing from where she is, the rope reeling to its resting length. */
+function catchAssist(b: Body, h: { x: number; y: number }) {
+  const dx = b.x - h.x, dy = b.y - HERO_H - h.y;
+  const len = Math.max(ROPE_MIN, Math.hypot(dx, dy)), ang = Math.atan2(dx, dy);
+  const amp = Math.min(ROPE_MAX_ANG, Math.max(ASSIST_AMP, Math.abs(ang)));
+  const sd: 1 | -1 = (b.vx !== 0 ? Math.sign(b.vx) : b.face) >= 0 ? 1 : -1;
+  let ph = Math.asin(Math.max(-1, Math.min(1, ang / amp)));
+  if (sd < 0) ph = Math.PI - ph;
+  b.rope = { hx: h.x, hy: h.y, len, ang, av: 0, t: 0, ph, amp, sd };
+  b.hooked = true; b.glide = false; b.wall = 0; b.kickT = 0; b.fly = null;
+}
+/** One tick of the guided swing: a steady arc by itself (no pumping, no wind), a jump flies to the aimed target, ↓
+ *  goes home. */
+function swingAssist(b: Body, inp: BodyInput, env: Env, caps: Caps) {
+  const r = b.rope!;
+  r.t++;
+  if (inp.jumpP && r.t > 3) {
+    const aim = ropeAim(env, b, (inp.dir || b.face) as 1 | -1);
+    if (aim) { startFly(b, aim.fly); b.jumped = 'rope'; b.jumpBuf = 0; return; }
+    b.skipX = r.hx; b.skipY = r.hy; letGo(b, caps, true); b.jumpBuf = 0; return;
+  }
+  if (inp.down && r.t > 6) {
+    if (!ropeBail(env, b)) { b.skipX = r.hx; b.skipY = r.hy; letGo(b, caps, false); }
+    return;
+  }
+  b.gust = 0;
+  r.len += (ASSIST_LEN - r.len) * 0.1;
+  r.amp! += (ASSIST_AMP - r.amp!) * 0.04;
+  const w = Math.sqrt(GRAV / r.len);
+  const ph = r.ph! + w;
+  const a = r.amp! * Math.sin(ph);
+  const nx = r.hx + Math.sin(a) * r.len, ny = r.hy + Math.cos(a) * r.len + HERO_H;
+  if (!boxClear(env, nx - HERO_W / 2, ny - HERO_H, nx + HERO_W / 2, ny)) {
+    // a wall in the way: the swing turns back there
+    r.ph = Math.PI - r.ph!; r.stuck = (r.stuck ?? 0) + 1;
+    if (r.stuck > 30 || !boxClear(env, b.x - HERO_W / 2, b.y - HERO_H, b.x + HERO_W / 2, b.y)) { b.skipX = r.hx; b.skipY = r.hy; letGo(b, caps, false); }
+    b.vx = 0; b.vy = 0;
+    return;
+  }
+  r.stuck = 0;
+  r.av = a - r.ang; r.ph = ph;
+  b.vx = nx - b.x; b.vy = ny - b.y;
+  b.x = nx; b.y = ny; r.ang = a;
+  if (Math.abs(r.av) > 0.004) b.face = r.av > 0 ? 1 : -1;
+  if (touchesHazard(env, b)) { b.hazard = true; letGo(b, caps, false); }
+}
+/** One tick of a guided flight: along its eased arc; it ends on a hook's rope or standing on the ledge. */
+function flyStep(b: Body, env: Env) {
+  const f = b.fly!;
+  f.t++;
+  const p = flyAt(f, Math.min(1, f.t / f.dur));
+  if (!boxClear(env, p.x - HERO_W / 2, p.y - HERO_H, p.x + HERO_W / 2, p.y - 0.5)) {
+    // something moved into the way: fall from here
+    b.fly = null; b.vx = Math.max(-3, Math.min(3, b.vx)); b.vy = Math.max(0, b.vy);
+    return;
+  }
+  b.vx = p.x - b.x; b.vy = p.y - b.y; b.x = p.x; b.y = p.y; b.face = f.dir;
+  if (touchesHazard(env, b)) { b.hazard = true; b.fly = null; return; }
+  if (f.t < f.dur) return;
+  b.fly = null;
+  if (f.kind === 'hook') { catchAssist(b, { x: f.hx, y: f.hy }); b.rope!.sd = f.dir; b.rope!.ph = 0; return; }
+  b.x = f.x1; b.y = f.y1; b.vx = 0; b.vy = 0;
+  if (support(env, b)) { b.ground = true; b.landed = true; b.skipX = NaN; b.skipY = NaN; b.homeX = b.x; b.homeY = b.y; }
+}
+
 /** Let go of the rope: a jump kicks off it, carrying the swing's speed. */
 function letGo(b: Body, caps: Caps, kick: boolean) {
   b.rope = null; b.unhooked = true;
@@ -163,6 +355,15 @@ function swing(b: Body, inp: BodyInput, env: Env, caps: Caps) {
 /** Move one tick. Returns nothing; the result flags are on the body. */
 export function stepBody(b: Body, inp: BodyInput, env: Env, caps: Caps) {
   b.landed = false; b.jumped = ''; b.hazard = false; b.bonk = false; b.dashed = false; b.hooked = false; b.unhooked = false; b.gust = 0;
+  if (caps.ropeAssist) {
+    // the guided rope: a flight runs on its own; in the air by a hook, the rope catches itself (or with X)
+    if (b.fly) { flyStep(b, env); if (b.fly || b.rope || b.ground) { b.coyote = 0; return; } }
+    if (!b.rope && caps.rope && !b.ground && !b.climb && !b.swim && b.dashT <= 0 && !support(env, b)) {
+      const h = hookAssist(env, b) ?? (inp.ropeP ? hookInReach(env, b) : null);
+      if (h) catchAssist(b, h);
+    }
+    if (b.rope) { if (b.dashCd > 0) b.dashCd--; swingAssist(b, inp, env, caps); b.ground = false; b.coyote = 0; return; }
+  }
   // the Bell Rope: catch a hook in the air, then swing until a jump (or ↓) lets go
   if (!b.rope && inp.ropeP && caps.rope && !b.ground && !b.climb && !b.swim && b.dashT <= 0) {
     const h = hookInReach(env, b);
@@ -312,6 +513,7 @@ export function stepBody(b: Body, inp: BodyInput, env: Env, caps: Caps) {
   if (b.ground) {
     if (!wasGround) b.landed = true;
     b.vy = 0; b.airJumps = caps.double ? 1 : 0; b.airDash = true; b.kickT = 0;
+    if (caps.ropeAssist) { b.homeX = b.x; b.homeY = b.y; b.skipX = NaN; b.skipY = NaN; }
   }
 
   // walls (for sliding and kicking)

@@ -31,9 +31,12 @@ hold V and let go for the Ember Ring, ↓ + V raises or lowers the lantern, ↑ 
 Whirl Slash and ↓ + X in the air is a downward thrust. Gamepads: A jump, X attack, B dash, Y spell, bumpers tag, Start
 menu. On touch screens an on-screen pad appears (Settings can force it on or off).
 
-The Windward Belfry adds: ↑ by Wayra's boat rows across the lake (after the Lake Mother). With the Bell Rope, X in the
-air beside a bell hook throws the rope and Dora swings; ← and → pump the swing, Z lets go with a kick upward, and ↓
-drops off. X, a Lantern Bolt, the Bell Chime or the Gale Wave rings a wind bell and turns the wind round. As Enzo with
+The Windward Belfry adds: ↑ by Wayra's boat rows across the lake (after the Lake Mother). With the Bell Rope and the
+helping hand on (the default), jumping or falling within about 6 tiles of a bell hook catches it by itself (X still
+throws it too) and Dora swings a steady arc; a dotted arc shows where Z will take her, ← or → picks the way (or the way
+she faces), Z at any moment flies her there, and ↓ takes her back to the ledge she swung from. In Strict (or with the
+helping hand off), X in the air beside a bell hook throws the rope; ← and → pump the swing, Z lets go with a kick
+upward, and ↓ drops off. Shift on the rope says Dora's on the rope instead of tagging. X, a Lantern Bolt, the Bell Chime or the Gale Wave rings a wind bell and turns the wind round. As Enzo with
 the Echo Step, ↑ + V beside an echo bell lays three notes to stand on; a tap of V in the air is the Frost Fan, and V
 held past the Ember Ring (about 1.2 seconds) is the Gale Wave.
 
@@ -161,9 +164,27 @@ at the foot of the Cloudstair (and back). Before the Lake Mother, Wayra says the
 - **Wind.** Gust zones push a hero in the air hard and a running hero a little; a hero standing still braces and holds.
   The Lantern Glide rises in a gust. Wind bells (one each side of every gap that needs the wind) turn an area's wind
   round, and the wind is saved per area like the water. The Windward Jacket and the Highland Cloak halve the push.
-- **The Bell Rope** (Dora, from a pedestal in the ropehall). In the air within about 4 tiles of a bell hook, X throws
-  the rope instead of swinging the sword. The swing is a pendulum (gravity over the rope's length, pumped with ← and →,
-  nudged by the wind); a jump lets go with the swing's speed and a kick up. Rope-knot doors (the knot sigil) need it.
+- **The Bell Rope** (Dora, from a pedestal in the ropehall). Rope-knot doors (the knot sigil) need it. Enzo can't hold
+  it, so Shift on the rope (or flying off it) says "Dora’s on the rope. Tag once she’s on her feet." There are two ways
+  to swing:
+  - **Guided, with the helping hand** (the default; `ropeAssist` in the physics). In the air within 96 px (6 tiles) of
+    a hook above her hands, it catches itself (X still throws it, even at the hook just let go of). On the way, the
+    hook glows: bright, with a faint dashed rope from her hand, when her fall as it is going will bring her into reach
+    in the next half second; faint when it's near but she needs more height or to get closer. Caught, the rope reels
+    to 56 px and she swings a steady arc of 1 radian each way by herself: no pumping, and the wind doesn't push her
+    (it still does in the air). A dotted arc shows where a jump goes, the way held (← or →) or else the way she faces:
+    the next hook that way (within 15 tiles across, 7 up and 10 down), or the nearest safe ledge that way (a floor or
+    one-way ledge with room to stand and no spikes on it or beside it; a ledge well below the swing counts for much
+    less, so the floor under a rope is the last choice). Only targets the whole flight can reach without touching a
+    wall or a hazard are offered, and only in the hook's own room. Z at any point of the swing flies her there along
+    an eased arc (20 to 56 ticks): a hook catches her (so a row of hooks is hold →, tap Z, tap Z), a ledge sets her
+    down standing. With nowhere to go, Z lets go as in Strict. ↓ (after a few ticks) or a hit while she swings flies
+    her back to where her feet last stood (the hit's damage still counts, the spikes' doesn't); with no way back, ↓
+    just drops. The hook she leaves won't catch her again until she lands. Standing under a hook never catches.
+  - **Free, in Strict** (or with the helping hand off). In the air within about 4 tiles of a bell hook, X throws the
+    rope instead of swinging the sword. The swing is a pendulum (gravity over the rope's length, pumped with ← and →,
+    nudged by the wind); a jump lets go with the swing's speed and a kick up, and ↓ drops off. This is the swing as it
+    was before the helping hand's version, unchanged.
 - **The Echo Step** (Enzo, from the Hail Condor). ↑ + V beside an echo bell sounds it: three translucent cyan notes
   appear along that bell's own shape, a fifth of a second apart, and last 4 seconds (8 with the Carillon Staff). They
   are one-way ledges. Note-sigil doors need it. Without it, a bell only hums.
@@ -281,7 +302,8 @@ can't dash, wall-kick, thrust or whirl; Dora doesn't glide, cast Enzo's spells o
 that no two states share a frame, save one: a hard landing recovers through the ordinary landing frame. Tails, coats and ears sway and bounce in code with squash and stretch.
 
 The Windward Belfry adds sheet k (frames 80 to 87) to each hero: Dora's rope throw, three swing frames picked by the
-rope's angle, the release kick and a shield guard; Enzo's echo-bell strike, the Frost Fan's wind-up and release, the
+rope's angle, the release kick and a shield guard (and the guided rope's flight: the release kick for 12 ticks, then
+`ropeFly`, spare take 78 from sheet j, a forward reach shown nowhere else, until she lands, always a clean landing); Enzo's echo-bell strike, the Frost Fan's wind-up and release, the
 Gale Wave's wind-up and release and a hop onto a note; and for both a brace into the wind and a balance on a swinging
 bell. The two outfits are whole painted strips of their own (`dora-windward`, `enzo-highland`), not tints.
 
@@ -415,7 +437,27 @@ Out-of-Tune Bell, turning the wind with a wind bell, swinging on the Bell Rope a
 notes for real inside their four seconds. It plays the belfry a second time from the finished citadel save loaded as
 the title's Continue loads it (ending flag kept). In the belfry it replays the planner's moves back to back, exactly as
 planned (settling only on a spot to stand or a rung, never on a wall mid-shaft), since a rope swing or a run of wall
-kicks only works as simulated.
+kicks only works as simulated. The bots play with the helping hand on, so the planner they use (`new Graph(state,
+true)`) simulates the guided rope: any move near a hook may be caught, and carries on with a tap of jump the way it was
+going, and there are moves that jump at a hook and tap jump on the rope at a set moment, holding a way. (The planner's
+proofs in the tests stay on the free rope, the harder of the two.)
+
+The Bell Rope's human-paced bots (`node tests/bellspire-rope.mjs --bots`, and the 95% check in `tests/bellspire.mjs`)
+see the game 12 to 15 ticks late, jump at a gap a little early or late, hold jump for a sloppy 9 to 17 ticks,
+double-jump when no hook glows bright, and (guided) let go at a random moment 0 to 70 ticks into the swing; in Strict
+they press X when a hook looks close, pump with the swing as they saw it and let go on a forward swing. A crossing
+counts only on the first try: any hurt, or falling back, is a miss. Results on 07-11-2026, 24 seeds each:
+
+| Crossing | Guided (helping hand) | Strict (free swing) |
+|---|---|---|
+| Rope cellar (to the chest ledge) | 24/24, 1.5 s | 19/24 |
+| Rope loft (two hooks over spikes) | 24/24, 3.7 s | 0/24 |
+| Rope gallery (two hooks over spikes) | 24/24, 3.4 s | 6/24 |
+| Ropehall (to the chest ledge) | 24/24, 2.2 s | 2/24 |
+| Louvres (from the echo notes) | 24/24, 1.6 s | 19/24 |
+| Bell shaft (to the chest ledge) | 24/24, 1.9 s | 0/24 |
+| Bannerwalk (to the pillar) | 24/24, 2.3 s | 12/24 |
+| Condor bridge (across the bannerwalk and up the hatch) | 24/24, 5.5 s | 9/24 |
 
 Results on 07-11-2026 (24 seeds each, all eight rerun together after the Twin Clappers were loosened):
 
@@ -497,6 +539,20 @@ longer. The test requires casual wins in 85% of seeds and pro in 70%.
   the boat back from inside the belfry, no arrow with everything done, kept across a save. The browser suite checks the
   same on screen on a desktop and both phone sizes (silhouette cells, both names, both boats, the route, the legend
   entries, the arrow's direction), and sweeps every menu tab, gear slot and gear preview for "undefined" or "NaN".
+- `tests/bellspire-rope.mjs` (run by `tests/bellspire.mjs`): the Bell Rope in both modes. The catch (by itself with
+  the helping hand from 6 tiles but not 7, never from below or standing, X still works, never Enzo; in Strict and with
+  the helping hand off, only with X), the glow (bright when the catch is coming, faint when she needs more height, none
+  in Strict), the steady swing (a full arc of 1 radian on a 56 px rope, the same with ← or → held, pumped or in a gust;
+  Strict's pumping grows its swing), the guided release (← and → pick the side, neither picks the way she faces, a jump
+  at any of 13 moments of the swing lands on the same spot, standing, unhurt, eased with no step over 9 px), a chain of
+  two hooks over the gallery's spikes to the far ledge, no catching the same hook again on the way down, the safety
+  net (↓ and a hit fly her home over the spikes, the hit's damage only; Strict's ↓ just drops), Shift's message on the
+  rope in both modes, Strict and helping-hand-off swinging exactly the same free pendulum, and every aim from every
+  hook in every rope room at 16 points of the swing each way: through no wall and no hazard, in the hook's own room, a
+  hook target a real hook, a ledge target something to stand on and a stand spot the route planner moves on from. The
+  planner crosses each rope room with the guided rope, and the human-paced bots cross every rope crossing first try in
+  at least 95% of 24 seeds. The free rope's older checks (the planner's path across the bannerwalk replayed, catch,
+  length, swing, no tagging, release with a kick, ↓ to drop, Dora only) run in Strict in `tests/bellspire-belfry.mjs`.
 - `tests/bellspire-strips.mjs` (run by `tests/bellspire.mjs`): every art strip's image is exactly its manifest frame
   count of cells wide (read from the WebP header), every strip the CSS sizes in % is (frames × 100)% wide, and every
   `backgroundSize` in the page takes its frame count from `ART` (the icon, portrait and mural strips), so a strip that
@@ -509,8 +565,11 @@ longer. The test requires casual wins in 85% of seeds and pro in 70%.
   a bell ringing, damage numbers, the minimap at three screen sizes (with an area entrance drawn), gear equipped through
   the menu (preview, comparison, toast, worn gear in the scene, a harder hit), the map's doorways and stats line,
   Ukumari keeping the throne shut with the hydra skipped, the Guiding wisp setting, the shop, a mural, every menu tab, a key rebind, a water bell, a lantern hatch, a guardian, the ending,
-  saves, the Windward Belfry (Wayra's boat, the wider map, bracing in a gust, a wind bell, the Bell Rope's throw,
-  swing and release, an echo bell's notes, the Frost Fan, the Gale Wave, riding a swinging bell, the two outfits, the
+  saves, the Windward Belfry (Wayra's boat, the wider map, bracing in a gust, a wind bell, the guided Bell Rope with the
+  real keys: the glow before the catch, the catch with no X, the dotted arc, a flight to the next hook and on to a ledge
+  (hold →, tap Z, tap Z), Shift's message on the rope and ↓ flying home over the spikes; then Strict's free throw,
+  swing and release, with screenshots of the glow, catch, arc and flight at 1280×800 and on both phones (with the
+  pad), an echo bell's notes, the Frost Fan, the Gale Wave, riding a swinging bell, the two outfits, the
   three guardians and the belfry's ending), the Echo Trials (locked before the Bell, the scene, the page, a run with
 its clock, bells, card, Try again and Give up, the whole rush and the medals), New Game+ (locked on the title, started,
 both keys, each new attack's wind-up and hit, the title with both saves, the confirm, each Continue), and phones held both ways, with no page errors and no sideways scrolling.
