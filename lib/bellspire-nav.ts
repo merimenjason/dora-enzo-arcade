@@ -2,10 +2,12 @@
 // (`stepBody`) through short input "macros" (walk a tile, a jump with a given hold and steer, a dash, a wall kick, a
 // swim stroke...) and records where each one comes to rest. Those resting places are the graph's nodes, so any edge
 // it finds is a move a player can make, and the bots replay exactly these inputs.
-import { ROOMS, COLS, ROWS, TILE, WATER_AREAS, GUARDIANS, type Ability, type WaterArea, type Room, type HeroId } from './bellspire-world.js';
-import { newBody, stepBody, boxClear, support, HERO_W, HERO_H, RUN, type Body, type BodyInput, type Caps, type Env } from './bellspire-physics.js';
+import { ROOMS, COLS, ROWS, TILE, WATER_AREAS, WIND_AREAS, GUARDIANS, BELFRY_GUARDIANS, type Ability, type WaterArea, type WindArea, type Room, type HeroId } from './bellspire-world.js';
+import { newBody, stepBody, boxClear, support, hookInReach, HERO_W, HERO_H, RUN, type Body, type BodyInput, type Caps, type Env } from './bellspire-physics.js';
 
-const GW = 12 * COLS, GH = 9 * ROWS;
+// the map grid, wide enough for the Windward Belfry east of the citadel
+export const GRID_SCREENS = { w: Math.max(...ROOMS.map((r) => r.gx + r.w)), h: Math.max(...ROOMS.map((r) => r.gy + r.h)) };
+const GW = GRID_SCREENS.w * COLS, GH = GRID_SCREENS.h * ROWS;
 const GRID = new Uint8Array(GW * GH).fill(35); // '#'
 const ROOM_AT = new Int16Array(GW * GH).fill(-1);
 for (let i = 0; i < ROOMS.length; i++) {
@@ -13,7 +15,7 @@ for (let i = 0; i < ROOMS.length; i++) {
   for (let y = 0; y < r.rows.length; y++) for (let x = 0; x < r.rows[y].length; x++) {
     const c = r.gx * COLS + x, rr = r.gy * ROWS + y;
     const ch = r.rows[y][x];
-    GRID[rr * GW + c] = ('#=Hgx^f' + 'djlkcub').includes(ch) ? ch.charCodeAt(0) : 46;
+    GRID[rr * GW + c] = ('#=Hgx^f' + 'djlkcubynZ').includes(ch) ? ch.charCodeAt(0) : 46;
     ROOM_AT[rr * GW + c] = i;
   }
 }
@@ -25,17 +27,34 @@ export const roomIndexAt = (x: number, y: number) => {
 const CH = (s: string) => s.charCodeAt(0);
 const HASH = CH('#'), EQ = CH('='), LAD = CH('H'), GLASS = CH('g'), BRK = CH('x'), SPIKE = CH('^');
 const DOORS: Record<number, string> = {};
-for (const ch of 'djlkcub') DOORS[CH(ch)] = ch;
+for (const ch of 'djlkcubynZ') DOORS[CH(ch)] = ch;
+/** Every bell hook (world points) and every echo bell's notes (as floats), from the rooms. */
+const HOOKS: { x: number; y: number }[] = [];
+export const NOTES: { x0: number; x1: number; y: number; bx: number; by: number }[] = [];
+for (const room of ROOMS) {
+  let q = 0;
+  room.rows.forEach((line, y) => [...line].forEach((ch, x) => {
+    const c = room.gx * COLS + x, r = room.gy * ROWS + y;
+    if (ch === 'o') HOOKS.push({ x: c * TILE + 8, y: r * TILE + 4 });
+    if (ch === 'Q') { for (const [dc, dr] of room.echoes?.[q] ?? []) NOTES.push({ x0: (c + dc) * TILE, x1: (c + dc + 2) * TILE, y: (r + dr) * TILE, bx: c * TILE + 8, by: r * TILE }); q++; }
+  }));
+}
+/** Is there a hook within a few tiles of this spot (so the rope macros are worth trying from it)? */
+const hookNear = (x: number, y: number) => HOOKS.some((h) => Math.abs(h.x - x) < 11 * TILE && h.y < y && y - h.y < 9 * TILE);
 
 /** What the planner assumes about the world: abilities, the water in each area, and a few story flags (Ukumari met,
  *  and which guardians are calm: the throne door needs both, all four seals lit). */
-export type NavState = { abilities: Ability[]; water: Record<WaterArea, 0 | 1>; keeper: boolean; calmed: string[]; broken?: Set<string> };
+export type NavState = { abilities: Ability[]; water: Record<WaterArea, 0 | 1>; keeper: boolean; calmed: string[]; broken?: Set<string>; wind?: Record<WindArea, 1 | -1> };
 export const throneOpen = (s: Pick<NavState, 'keeper' | 'calmed'>) => s.keeper && GUARDIANS.every((b) => s.calmed.includes(b));
-export const stateKey = (s: NavState) => `${[...s.abilities].sort().join('+')}|${WATER_AREAS.map((a) => s.water[a]).join('')}|${throneOpen(s) ? 1 : 0}`;
+/** The belfry seal: open once the Hail Condor and the Twin Clappers are calm. */
+export const belfryOpen = (s: Pick<NavState, 'calmed'>) => BELFRY_GUARDIANS.every((b) => s.calmed.includes(b));
+export const windOf = (s: NavState, a: WindArea) => s.wind?.[a] ?? 1;
+export const stateKey = (s: NavState) => `${[...s.abilities].sort().join('+')}|${WATER_AREAS.map((a) => s.water[a]).join('')}|${throneOpen(s) ? 1 : 0}|${WIND_AREAS.map((a) => windOf(s, a)).join('')}|${belfryOpen(s) ? 1 : 0}`;
 
 export function navEnv(s: NavState): Env {
   const has = (a: Ability) => s.abilities.includes(a);
-  const doorOpen = (ch: string) => ch === 'b' || (ch === 'd' && has('dash')) || (ch === 'j' && has('double')) || (ch === 'k' && has('wallkick')) || (ch === 'l' && has('lantern')) || (ch === 'c' && has('chime')) || (ch === 'u' && throneOpen(s));
+  const doorOpen = (ch: string) => ch === 'b' || (ch === 'd' && has('dash')) || (ch === 'j' && has('double')) || (ch === 'k' && has('wallkick')) || (ch === 'l' && has('lantern')) || (ch === 'c' && has('chime')) || (ch === 'u' && throneOpen(s))
+    || (ch === 'y' && has('rope')) || (ch === 'n' && has('echo')) || (ch === 'Z' && belfryOpen(s));
   const solid = (c: number, r: number) => {
     const t = at(c, r);
     if (t === HASH || t === SPIKE) return true;
@@ -65,8 +84,20 @@ export function navEnv(s: NavState): Env {
       }
     }
   });
+  // echo notes count as always there once Enzo has the Echo Step (the route bot rings the bell first, and the
+  // tests check a real climb inside the notes' few seconds)
+  if (has('echo')) floats.push(...NOTES);
   return {
     solid, ladder,
+    wind: (x, y) => {
+      const i = roomIndexAt(x, y);
+      const room = ROOMS[i];
+      if (i < 0 || !room.gusts) return 0;
+      const c = Math.floor(x / TILE) - room.gx * COLS, r = Math.floor(y / TILE) - room.gy * ROWS;
+      for (const z of room.gusts) if (z[5] !== 'boss' && c >= z[0] && c <= z[2] && r >= z[1] && r <= z[3]) return z[4] * ((WIND_AREAS as string[]).includes(room.area) ? windOf(s, room.area as WindArea) : 1);
+      return 0;
+    },
+    hooks: () => HOOKS,
     oneway: (c, r) => at(c, r) === EQ || (ladder(c, r) && !ladder(c, r - 1) && !solid(c, r - 1)),
     hazard: (c, r) => at(c, r) === SPIKE,
     surface: (x, y) => { const i = roomIndexAt(x, y); return i < 0 ? null : surf.get(i) ?? null; },
@@ -85,6 +116,7 @@ export function capsFor(s: NavState, hero: HeroId, assist = false): Caps {
   return {
     speed: RUN[hero], dash: hero === 'dora' && has('dash'), double: hero === 'dora' && has('double'), wallkick: hero === 'dora' && has('wallkick'),
     glide: hero === 'enzo' && has('glide'), deep: has('deep'), swimMul: 1, coyote: assist ? 9 : 6, buffer: assist ? 9 : 6,
+    rope: hero === 'dora' && has('rope'),
   };
 }
 
@@ -128,6 +160,37 @@ function groundMacros(s: NavState): Macro[] {
   out.push({ name: 'dropThrough', hero: 'dora', max: 150, input: (t) => I(0, { down: t < 3, jumpP: t === 1 }) });
   return out;
 }
+
+/** The Bell Rope: jump, catch the first hook in reach from a given tick on, swing, and let go at the swing's front
+ *  (its first or second high point, or early on the way up), then steer on or drift. A second catch chains two hooks.
+ *  Closed-loop, so a replay catches the same hook. */
+function ropeMacros(): Macro[] {
+  const out: Macro[] = [];
+  for (const d of [-1, 1] as const) for (const from of [4, 10, 16, 24]) for (const rel of ['early', 'apex', 'apex2', 'chain'] as const) for (const steer of [true, false]) {
+    if (rel === 'chain' && !steer) continue;
+    let caught = 0, apexes = 0, lastAv = 0, letGoAt = -1;
+    out.push({
+      name: `rope${d}@${from}${rel}${steer ? 's' : ''}`, hero: 'dora', max: 420,
+      input: (t, b) => {
+        if (t === 0) { caught = 0; apexes = 0; lastAv = 0; letGoAt = -1; }
+        const env = ENV_FOR_SWIM!;
+        let ropeP = false, jumpP = t === 0;
+        if (b.rope) {
+          if (lastAv * d > 0 && b.rope.av * d <= 0) apexes++;
+          lastAv = b.rope.av;
+          const fwd = b.rope.ang * d > 0;
+          const go = rel === 'early' ? fwd && b.rope.av * d > 0 && b.rope.ang * d > 0.55 && b.rope.t > 8
+            : rel === 'apex2' ? apexes >= 2 : apexes >= 1;
+          if (go && fwd) { jumpP = true; letGoAt = t; }
+        } else if (t >= from && !b.ground && hookInReach(env, b) && (caught === 0 || (rel === 'chain' && caught === 1 && t > letGoAt + 4))) { ropeP = true; caught++; apexes = 0; lastAv = 0; }
+        const dir = (letGoAt < 0 || steer ? d : 0) as -1 | 0 | 1;
+        return I(dir, { jumpP, jumpH: t < 40 || letGoAt >= 0, ropeP });
+      },
+    });
+  }
+  return out;
+}
+const ROPE = ropeMacros();
 
 /** One tile up or down a ladder (then let go of the stick and hang there), or off it to either side. */
 const CLIMB_STEPS: Macro[] = [
@@ -262,7 +325,9 @@ export class Graph {
   edges = new Map<number, Edge[]>();
   constructor(public s: NavState) { this.env = navEnv(s); }
   private gm: Macro[] | null = null;
+  private gr: Macro[] | null = null;
   macrosFor(n: Node): Macro[] {
+    if (n.mode === 'ground' && this.s.abilities.includes('rope') && hookNear(n.x, n.y)) return (this.gr ??= [...groundMacros(this.s), ...ROPE]);
     if (n.mode === 'ground') return (this.gm ??= groundMacros(this.s));
     if (n.mode === 'swim') return SWIM;
     if (n.mode === 'climb') return CLIMB_STEPS;
@@ -340,4 +405,4 @@ const SWIM = swimMacros(), WALL = wallMacros();
 export const nodeRoom = (n: Node) => ROOMS[roomIndexAt(n.x, n.y - 4)] ?? null;
 
 // the heroes' animation state machine is pure, so the engine tests check it too (compiled alongside the planner)
-export { HeroAnimator, ANIMS, animFrames, swingFrame, heroHas } from './bellspire-anim.js';
+export { HeroAnimator, ANIMS, animFrames, swingFrame, heroHas, ropeFrame } from './bellspire-anim.js';

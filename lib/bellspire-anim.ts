@@ -23,6 +23,11 @@
 //           70 upward lantern swing  71 staff drawn back to strike a bell
 //   j Dora: 72-74 treading water upright  75-79 spare takes
 //     Enzo: 72 rapping a bell with the lantern end  73-74 knee-deep, balancing  75-77 treading water  78 spare  79 low sweep
+//   k (the Windward Belfry) Dora: 80 throwing the Bell Rope  81 swinging back  82 swinging through the bottom
+//           83 swinging forward  84 letting go  85 bracing against the wind  86 balancing on a swinging bell or a note
+//           87 shielding from hail
+//     Enzo: 80 sounding an echo bell  81 Frost Fan wind-up  82 Frost Fan release  83 Gale Wave wind-up  84 Gale Wave release
+//           85 bracing against the wind  86 balancing on a swinging bell  87 hopping along the notes
 //
 // A state a hero can never be in has no frames for that hero (Enzo can't dash, wall-kick, thrust or whirl; Dora
 // doesn't glide, cast, chime or carry the lantern), and every state a hero can be in has frames of its own.
@@ -35,7 +40,8 @@ export type AnimState =
   | 'swing' | 'thrust' | 'whirl' | 'cast' | 'castWind' | 'lanternUp' | 'lanternDown' | 'chime'
   | 'hurt' | 'ko' | 'revive' | 'tagOut' | 'tagIn'
   | 'wade' | 'wadeStill' | 'swim' | 'tread' | 'dive' | 'surface'
-  | 'rest' | 'chest' | 'relic' | 'ring' | 'read' | 'shop';
+  | 'rest' | 'chest' | 'relic' | 'ring' | 'read' | 'shop'
+  | 'ropeThrow' | 'ropeSwing' | 'ropeRelease' | 'brace' | 'balance' | 'shield' | 'echo' | 'frostWind' | 'frost' | 'galeWind' | 'gale' | 'noteHop';
 
 /** What the hero is doing this tick: read from the engine by the scene. */
 export type AnimInput = {
@@ -47,6 +53,9 @@ export type AnimInput = {
   /** the current attack, if any: its kind, combo step, clock and the swing's wind-up and active ticks */
   act: { kind: 'swing' | 'thrust' | 'whirl' | 'cast' | 'tagin'; n: number; t: number; wind: number; active: number; spell?: string } | null;
   castHold: boolean; lanternUp: boolean;
+  /** the Windward Belfry: on the Bell Rope (its angle and swing, both + toward the way the hero faces), the gust
+   *  here (signed), what the hero stands on if it moves, hail falling close by, and a cast held past the Ember Ring */
+  rope?: { ang: number; av: number } | null; gust?: number; ride?: string; hail?: boolean; castLong?: boolean;
   /** one-off things that happened this tick: 'jumped', 'kicked', 'tagOut', 'rest', 'chest', 'relic', 'ring', 'read', 'shop', 'revive' */
   events: string[];
 };
@@ -113,13 +122,31 @@ export const ANIMS: Record<AnimState, Def> = {
   ring: { frames: { dora: [68, 69], enzo: [71, 72] }, rate: 6, loop: false, len: 18 },
   read: { frames: [37], rate: 90, loop: false, len: 90 },
   shop: { frames: [55], rate: 40, loop: false, len: 40 },
+  // the Windward Belfry
+  ropeThrow: { frames: { dora: [80] }, rate: 8, loop: false, len: 8 },
+  // a swing's frame comes from where along its arc the hero is (see ropeFrame)
+  ropeSwing: { frames: { dora: [81, 82, 83] }, rate: 60, loop: true },
+  ropeRelease: { frames: { dora: [84] }, rate: 12, loop: false, len: 12 },
+  brace: { frames: { dora: [85], enzo: [85] }, rate: 60, loop: true },
+  balance: { frames: { dora: [86], enzo: [86] }, rate: 60, loop: true },
+  shield: { frames: { dora: [87] }, rate: 60, loop: true },
+  echo: { frames: { enzo: [80] }, rate: 22, loop: false, len: 22 },
+  frostWind: { frames: { enzo: [81] }, rate: 60, loop: true },
+  frost: { frames: { enzo: [82] }, rate: 60, loop: true },
+  galeWind: { frames: { enzo: [83] }, rate: 60, loop: true },
+  gale: { frames: { enzo: [84] }, rate: 60, loop: true },
+  noteHop: { frames: { enzo: [87] }, rate: 60, loop: true },
 };
+
+/** Where along the rope's arc the hero is: drawn back (behind the hook, against the way they face), through the
+ *  bottom, or swung out in front. */
+export function ropeFrame(ang: number): number { return ang < -0.25 ? 81 : ang > 0.25 ? 83 : 82; }
 
 /** The one-shots the player starts by pressing a button or touching something (they play out unless control moves on). */
 const ONE_SHOT: AnimState[] = ['blink', 'fidget', 'runStart', 'skid', 'turn', 'land', 'hardLand', 'climbOn', 'climbOff', 'wallKick',
-  'lanternDown', 'chime', 'revive', 'tagOut', 'rest', 'chest', 'relic', 'ring', 'read', 'shop'];
+  'lanternDown', 'chime', 'revive', 'tagOut', 'rest', 'chest', 'relic', 'ring', 'read', 'shop', 'ropeThrow', 'ropeRelease', 'echo'];
 /** One-shots that hold even while the body moves a little (the scripted moments). */
-const STICKY: AnimState[] = ['rest', 'chest', 'relic', 'read', 'shop', 'revive', 'chime', 'ring'];
+const STICKY: AnimState[] = ['rest', 'chest', 'relic', 'read', 'shop', 'revive', 'chime', 'ring', 'echo'];
 const EVENT_STATE: Record<string, AnimState> = { rest: 'rest', chest: 'chest', relic: 'relic', ring: 'ring', read: 'read', shop: 'shop', revive: 'revive', tagOut: 'tagOut', kicked: 'wallKick' };
 
 const framesOf = (s: AnimState, hero: HeroId): number[] => { const f = ANIMS[s].frames; return Array.isArray(f) ? f : f[hero] ?? []; };
@@ -168,6 +195,10 @@ export class HeroAnimator {
     // a bell struck by an attack (or rung by the Chime) shows the bell strike for as long as that attack lasts
     if (i.events.includes('ring')) { this.ringT = i.act ? i.act.t : 1e9; return 'ring'; }
     if (cur === 'ring' && this.t < (ANIMS.ring.len ?? 0) && (!i.act || i.act.t > this.ringT)) { this.ringT = i.act ? i.act.t : 1e9; return 'ring'; }
+    // the Bell Rope: the throw as it catches, the swing, and letting go
+    if (i.rope) return cur === 'ropeThrow' && this.t < (ANIMS.ropeThrow.len ?? 0) ? cur : i.events.includes('hooked') ? 'ropeThrow' : 'ropeSwing';
+    if (i.events.includes('unhooked') && has('ropeRelease')) return 'ropeRelease';
+    if (cur === 'ropeRelease' && oneShotLive && !i.ground) return cur;
     if (i.act) {
       if (i.act.kind === 'swing') return 'swing';
       if (i.act.kind === 'thrust' && has('thrust')) return 'thrust';
@@ -175,10 +206,14 @@ export class HeroAnimator {
       if (i.act.kind === 'tagin') return 'tagIn';
       if (i.act.kind === 'cast' && has('cast')) {
         if (i.act.spell === 'chime') return 'chime';
+        if (i.act.spell === 'echo') return 'echo';
+        if (i.act.spell === 'frost') return i.act.t < 6 ? 'frostWind' : 'frost';
+        if (i.act.spell === 'gale') return 'gale';
         if (i.act.spell === 'lantern') return i.lanternUp ? 'lanternUp' : 'lanternDown';
         return 'cast';
       }
     }
+    if (i.castHold && i.castLong && has('galeWind')) return 'galeWind';
     if (i.castHold && has('castWind')) return 'castWind';
     for (const e of i.events) { const s = EVENT_STATE[e]; if (s && has(s)) return s; }
     if (oneShotLive && STICKY.includes(cur)) return cur;
@@ -218,6 +253,11 @@ export class HeroAnimator {
     }
     if ((cur === 'run' || cur === 'runStart' || cur === 'turn') && this.lastRun > 1.2 && !i.wade) return 'skid';
     if (oneShotLive) return cur;
+    // standing still on something that moves, in a gust, or under hail
+    if (i.ride === 'note' && has('noteHop')) return 'noteHop';
+    if (i.ride === 'note' || i.ride === 'bell') return 'balance';
+    if (i.hail && has('shield')) return 'shield';
+    if (i.gust) return 'brace';
     if (i.lanternUp && has('lanternUp')) return 'lanternUp';
     if (cur === 'lanternUp' && !i.lanternUp) return 'lanternDown';
     if (i.wade) return 'wadeStill';
@@ -241,12 +281,15 @@ export class HeroAnimator {
     const fr = framesOf(s, this.hero), d = ANIMS[s];
     let frame: number;
     if (s === 'swing' && i.act) frame = swingFrame(this.hero, i.act.n, i.act.t, i.act.wind, i.act.active);
+    else if (s === 'ropeSwing' && i.rope) frame = ropeFrame(i.rope.ang);
     else if (s === 'whirl') { const k = Math.floor(this.t / d.rate); frame = k === 0 ? fr[0] : fr[1 + ((k - 1) % 2)]; }
     else if (s === 'climb') frame = fr[Math.floor(this.climbed / 7) % fr.length];
     else if (s === 'run') frame = fr[Math.floor(this.t * Math.min(1.4, Math.max(0.7, Math.abs(i.vx) / 1.8)) / d.rate) % fr.length];
     else { const k = Math.floor(this.t / d.rate); frame = fr[d.loop ? k % fr.length : Math.min(fr.length - 1, k)]; }
     // facing: the spin turns the hero round every other frame; a wall slide faces away from the wall
     let flip = i.face < 0;
+    // braced, a hero leans into the wind
+    if (s === 'brace' && i.gust) flip = i.gust > 0;
     if (s === 'whirl') flip = Math.floor(this.t / d.rate) % 4 >= 2 ? !flip : flip;
     // squash and stretch, about the feet: a stretch on take-off, a squash on landing, easing back
     if (i.events.includes('jumped')) this.sq = -1;

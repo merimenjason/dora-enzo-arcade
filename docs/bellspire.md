@@ -6,8 +6,8 @@ explore it together, swapping the lead with a tag. It is an original world: the 
 music and the interface are made for this game.
 
 Code:
-- `lib/bellspire-world.ts`: the data. The map (64 screens in 6 areas), abilities, spells, gear, food, the shop, the
-  guardians, the murals and every line of dialogue.
+- `lib/bellspire-world.ts`: the data. The map (94 screens in 8 areas: the citadel's 64 and the Windward Belfry's 30),
+  abilities, spells, gear, food, the shop, the guardians, the murals and every line of dialogue.
 - `lib/bellspire-physics.ts`: the body. Run, a jump with a cut, coyote time and a jump buffer, the dash, the Wind Leap,
   wall slides and kicks, ladders, one-way ledges, swimming, wading, the glide and the deep-water push.
 - `lib/bellspire-game.ts`: the rules. Deterministic, a seeded generator, a fixed 60 ticks a second, no DOM. Rooms, doors,
@@ -30,6 +30,12 @@ the menu. Every key can be rebound in Settings. Down + Z drops through a ledge. 
 hold V and let go for the Ember Ring, ↓ + V raises or lowers the lantern, ↑ + V rings the Bell Chime. As Dora, V is the
 Whirl Slash and ↓ + X in the air is a downward thrust. Gamepads: A jump, X attack, B dash, Y spell, bumpers tag, Start
 menu. On touch screens an on-screen pad appears (Settings can force it on or off).
+
+The Windward Belfry adds: ↑ by Wayra's boat rows across the lake (after the Lake Mother). With the Bell Rope, X in the
+air beside a bell hook throws the rope and Dora swings; ← and → pump the swing, Z lets go with a kick upward, and ↓
+drops off. X, a Lantern Bolt, the Bell Chime or the Gale Wave rings a wind bell and turns the wind round. As Enzo with
+the Echo Step, ↑ + V beside an echo bell lays three notes to stand on; a tap of V in the air is the Frost Fan, and V
+held past the Ember Ring (about 1.2 seconds) is the Gale Wave.
 
 Ladders: ↑ grabs one you stand at or beside (within about 6 pixels of it), and holding ↑ while jumping into one grabs
 it in mid-air. Hold ↑ to climb all the way up: at the top the hero pulls up and stands on the ladder's top, and stays
@@ -118,7 +124,9 @@ rounded to steps of 0.1, which gives hand-shaded bands. Under water, caustics ad
 windows cast a cool moonlight shaft with drifting dust; water surfaces glow teal; a sword swing or a spin flashes the
 nearby walls. Lights come from torches, candles, shrines, windows, pedestals, locked doors
 (in their ability's colour), glowing foes, bolts, pulses, the heroes, the wisp and Enzo's lantern (46 px lowered, 118 px
-raised). In a guardian fight the room behind the action dims and loses colour, the camera looks at the guardian
+raised). In the Windward Belfry, an echo bell gives off a faint cyan shimmer (44 px) that swells (96 px, pulsing) while
+its notes hang in the air, each echo note glows cyan as it appears and dims and flickers through its last second, and a
+wind bell catches a little cool light that flares when it is rung. In a guardian fight the room behind the action dims and loses colour, the camera looks at the guardian
 during its introduction and then keeps both it and the heroes in view, and the guardian gets a key light, a one-pixel
 dark outline and a rim light in its own colour. Its wind-ups flash a bright warm white.
 
@@ -135,6 +143,52 @@ the helping hand on, guardians move at 80% speed with 25% longer warnings.
 | The Puma of the Murals | 480 | 15 |
 | The Bell Warden | 600 | 14 |
 | The Lake Mother | 720 | 16 |
+| The Hail Condor | 1000 | 20 |
+| The Twin Clappers (two of 410) | 820 | 17 |
+| The Out-of-Tune Bell | 1300 | 24 |
+
+## The Windward Belfry
+
+The expansion, reached once the Lake Mother is calm. Finished saves are told about it with a toast when they load,
+and Wayra mentions it at the next shrine rest. ↑ by Wayra's boat at the Lakebed Landing rows to the Cliffoot Candle
+at the foot of the Cloudstair (and back). Before the Lake Mother, Wayra says the lake is too rough.
+
+- **Areas.** The Cloudstair (terraced cliffs, bell posts, banners, wind) and the Belfry Loft (beams, cogs, louvres,
+  swinging bells), 13 rooms and 27 screens, each with its own tile set, decor, backdrop, middle layer, light and tune.
+  Three more rope rooms open off the citadel (the gallery, the chapel's shrine and the landing) behind rope-knot doors.
+  The map widens to take the belfry in once the heroes have crossed the water. Two new shrines (Cliffoot and
+  Bannerwalk Candles, plus the Loft Candle) join shrine travel.
+- **Wind.** Gust zones push a hero in the air hard and a running hero a little; a hero standing still braces and holds.
+  The Lantern Glide rises in a gust. Wind bells (one each side of every gap that needs the wind) turn an area's wind
+  round, and the wind is saved per area like the water. The Windward Jacket and the Highland Cloak halve the push.
+- **The Bell Rope** (Dora, from a pedestal in the ropehall). In the air within about 4 tiles of a bell hook, X throws
+  the rope instead of swinging the sword. The swing is a pendulum (gravity over the rope's length, pumped with ← and →,
+  nudged by the wind); a jump lets go with the swing's speed and a kick up. Rope-knot doors (the knot sigil) need it.
+- **The Echo Step** (Enzo, from the Hail Condor). ↑ + V beside an echo bell sounds it: three translucent cyan notes
+  appear along that bell's own shape, a fifth of a second apart, and last 4 seconds (8 with the Carillon Staff). They
+  are one-way ledges. Note-sigil doors need it. Without it, a bell only hums.
+- **Swinging bells.** Giant bells in the bell shaft swing on long ropes; their headstocks carry a hero along the arc.
+  They are shortcuts only: no gate depends on their timing.
+- **Gates.** The rope-knot door `y`, the note-sigil door `n`, and the belfry seal `Z`, which opens once the Hail Condor
+  and the Twin Clappers are both calm (its two bell seals light up as they are).
+- **Guardians.** (A guardian's fight starts only once the heroes are inside, and never while a hero is still
+  climbing up under a boss door that would shut over them: the condor bridge's hatch from the bannerwalk.) The Hail
+  Condor on the condor bridge rains hail, dives at an aimed spot and rests on the bridge after,
+  and from phase 2 gusts, then in phase 3 brings a storm and breaks bridge planks (which mend). The Twin Clappers hang
+  side by side: the Iron Clapper only takes Dora's blows and the Glass Clapper only Enzo's (if one of them is knocked
+  out, the other can finish it, so the fight never stalls). They swing, slam and clap together, and in phase 3 throw
+  shards and cogs. The Out-of-Tune Bell tolls a ring of sound (from phase 2 with waves along the floor), swings over a
+  hero who stays low, retunes the room (the wind turns, notes appear to climb, and it rises out of reach without them)
+  and in phase 3 rains sour notes. Calming it plays the belfry's ending page.
+- **Rewards.** The Echo Step and the Frost Fan (Hail Condor), the Gale Wave and a Moon Drop (Twin Clappers). Chests hold
+  the Windward Jacket and the Highland Cloak (painted outfits, each its own sprite strip with a part map), the Condor
+  Talon (Dora) and the Carillon Staff (Enzo), two Bell Hearts and more. Eight more murals, for 18.
+- **Completion.** The totals now include the belfry (94 rooms, 27 chests, 5 pedestals, 18 murals, 8 guardians). The
+  citadel's own 100% still plays the first epilogue (the `epilogue` flag is kept); everything at 100% after the
+  Out-of-Tune Bell plays the second (`epilogue2`, with its own painting); when both are earned at once, the second
+  stands for both and the first never plays after it. The pause map shows the citadel's numbers until the heroes cross
+  the water, then everything. The wisp stays on after the citadel's ending (a save loaded from the title keeps the
+  ending flag) and leads to Wayra's boat and up the mountain; it goes out once the Bell is calm.
 
 ## Shrine travel
 
@@ -165,6 +219,11 @@ treading water is upright, apart from the swim stroke. States a hero is never in
 can't dash, wall-kick, thrust or whirl; Dora doesn't glide, cast Enzo's spells or carry the lantern). The tests check
 that no two states share a frame, save one: a hard landing recovers through the ordinary landing frame. Tails, coats and ears sway and bounce in code with squash and stretch.
 
+The Windward Belfry adds sheet k (frames 80 to 87) to each hero: Dora's rope throw, three swing frames picked by the
+rope's angle, the release kick and a shield guard; Enzo's echo-bell strike, the Frost Fan's wind-up and release, the
+Gale Wave's wind-up and release and a hop onto a note; and for both a brace into the wind and a balance on a swinging
+bell. The two outfits are whole painted strips of their own (`dora-windward`, `enzo-highland`), not tints.
+
 Foes have two idle frames, four moving, a wind-up and an attack, a squash when hit and a puff when calmed. Guardians
 have extra tell and attack frames, a stagger and a calm pose. In the world, bells and chains swing when hit or passed,
 reeds and banners sway, torches and candles flicker, water ripples and pours while it rises, doors glow and slide open,
@@ -184,7 +243,8 @@ Hits pop numbers in the pixel font, outlined and stacked so they never sit on a 
 for a finisher, blue for spells, red for the heroes' hurts, green for heals, and "+XP" and "+coins" drift up when a foe
 is calmed. The HUD minimap, top right by the coins, shows about 5 by 4 rooms round the heroes, coloured by area, with
 the room pulsing, a dot where the lead stands, shrines, guardians, and the wisp's goal as a small glowing mote. It
-fades when the heroes walk under it and a tap opens the map. Both can be turned off in Settings.
+fades when the heroes walk under it and a tap opens the map. Otherwise it is solid, so a foe flying through the corner
+never shows through it. Both can be turned off in Settings.
 
 Doorways: every run of open tiles across a border between two rooms (`MAP_EXITS` in the engine, with the shafts up and
 down) is drawn at its real spot on the edge. Between two explored rooms it is a plain gap in the wall. Into a room not
@@ -267,26 +327,42 @@ where they fell; walking back picks it up.
 ## Saves
 
 `localStorage` key `bellspire-v1` (settings in `bellspire-v1-settings`). Resting at a candle shrine saves and heals. A
-save is checked when loaded (version, shrine, abilities, gear worn, HP) and a bad one is ignored, not misread.
+save is checked when loaded (version, shrine, abilities, gear worn, HP) and a bad one is ignored, not misread. The
+Windward Belfry added `wind` (each wind area's direction), `medals` and `ngp` to the save; a save from before it loads
+with the wind at its start, no medals and a first time through, and keeps its `epilogue`.
 
 ## Tuning and bots
 
 `tests/bellspire-bot.mjs` plays each guardian with two human-paced bots that see the fight a quarter of a second late
 and sometimes miss an input: "casual" (helping hand on) and "pro" (off), at the levels the route bot reaches on the
-shortest way through. A route bot then plays the whole game from a new save with the planner, fighting what it meets.
+shortest way through. A route bot then plays the whole game from a new save with the planner, fighting what it meets:
+the citadel to the Lake Mother, then the ending's Keep exploring, Wayra's boat and the Windward Belfry to the
+Out-of-Tune Bell, turning the wind with a wind bell, swinging on the Bell Rope and ringing an echo bell to climb its
+notes for real inside their four seconds. It plays the belfry a second time from the finished citadel save loaded as
+the title's Continue loads it (ending flag kept). In the belfry it replays the planner's moves back to back, exactly as
+planned (settling only on a spot to stand or a rung, never on a wall mid-shaft), since a rope swing or a run of wall
+kicks only works as simulated.
 
-Results on 07-11-2026 (24 seeds each, rerun after the hitboxes were fitted to the art):
+Results on 07-11-2026 (24 seeds each, all eight rerun together after the Twin Clappers were loosened):
 
 | Guardian | Casual | Pro |
 |---|---|---|
-| Frog | 24/24, 35 s, lowest HP 61% | 24/24, 31 s, lowest HP 24% |
-| Hydra | 24/24, 56 s, lowest HP 93% | 24/24, 59 s, lowest HP 59% |
-| Puma | 24/24, 48 s, lowest HP 50% | 24/24, 44 s, lowest HP 34% |
-| Warden | 24/24, 52 s, lowest HP 63% | 24/24, 60 s, lowest HP 38% |
-| Mother | 24/24, 29 s, lowest HP 78% | 24/24, 31 s, lowest HP 60% |
+| Frog | 24/24, 37 s, lowest HP 58% | 24/24, 33 s, lowest HP 23% |
+| Hydra | 24/24, 55 s, lowest HP 91% | 24/24, 61 s, lowest HP 60% |
+| Puma | 24/24, 46 s, lowest HP 52% | 24/24, 48 s, lowest HP 32% |
+| Warden | 24/24, 54 s, lowest HP 62% | 24/24, 63 s, lowest HP 33% |
+| Mother | 24/24, 30 s, lowest HP 78% | 24/24, 34 s, lowest HP 58% |
+| Hail Condor | 24/24, 46 s, lowest HP 84% | 24/24, 46 s, lowest HP 69% |
+| Twin Clappers | 24/24, 82 s, lowest HP 78% | 24/24, 139 s, lowest HP 30% |
+| Out-of-Tune Bell | 24/24, 100 s, lowest HP 62% | 24/24, 122 s, lowest HP 43% |
 
-The route bot finishes seeds 1 to 3 in 12 minutes of game time, reaching level 9. A person exploring will take
-much longer. The test requires casual wins in 85% of seeds and pro in 70%.
+The Twin Clappers were loosened for pro, who had scraped through at 5% HP: in phase 3 a clapper throws after four
+swings in five rather than every one, its glass shards fly at 2 rather than 2.4, it rests 32 ticks rather than 28,
+and its floor waves are 10 high (from 12) and hit for 80% of its attack. Casual's lowest HP rose from 65% to 78%.
+
+The route bot finishes seeds 1 to 3 in 20 to 21 minutes of game time: the citadel in 12 (level 9), the belfry in
+8 or 9 more (level 12). From the finished citadel save the belfry takes 8 minutes. A person exploring will take much
+longer. The test requires casual wins in 85% of seeds and pro in 70%.
 
 ## Tests
 
@@ -302,19 +378,50 @@ much longer. The test requires casual wins in 85% of seeds and pro in 70%.
   all four seals, and that the wisp's goal can be reached with what the heroes have (allowing the water bells) and
   never sits behind a wall, at every goal change and every 20 seconds. It saves and loads after each step of the story
   and checks the seals and the wisp's goal come back the same. At Ukumari it loads an old save with the hydra skipped
-  and checks the throne locks again and the wisp leads to the hydra. After the ending it finds the rest and checks the
-  epilogue plays once. Both heroes must lead at some point.
+  and checks the throne locks again and the wisp leads to the hydra, and that Wayra won't row before the Lake Mother.
+  After the ending it finds the rest and checks the epilogue plays once. Both heroes must lead at some point. In the
+  belfry the referee checks the wisp's goal can be reached in every wind the wind bells can set (and across the water,
+  that it leads to the boat), that the wisp stays on, that the heroes are never there before the Lake Mother, that the
+  wind is turned and an echo-note climb is done, that saving and loading after each belfry step keeps the wind, the
+  seals, the totals and the wisp, that the belfry's ending plays once, and that finding everything afterwards plays the
+  second epilogue once and nothing else, again after a reload.
+- `tests/bellspire-belfry.mjs` (run by `tests/bellspire.mjs`): the Windward Belfry. Planner proofs from Wayra's boat
+  in both winds and with the abilities in story order (the windgate shut while the wind blows the wrong way, the Bell
+  Rope's pedestal reached by turning it, the bannerwalk and condor bridge needing the rope, the cairns and the loft's
+  upper rooms needing the Echo Step, the belfry seal needing both guardians, every belfry chest, mural, shrine,
+  pedestal and bell reachable with everything) and no trap in either wind with each ability set. The rope rooms need
+  the rope and the citadel is still all reachable with its own seven abilities. Then the engine: the rope across the
+  bannerwalk replayed from the planner's path, its rules (catch, length, swing, no tagging, release with a kick, ↓ to
+  drop, Dora only), the wind (bracing, faster with it, blown in the air, the jacket's half, a wind bell rung by sword
+  and chime, the glide's lift, saved), echo notes (three in order, the bell's own path, standing on one, fading at 4
+  seconds, the staff's double time, and the climb to the cairns' shelf done for real inside that time), swinging bells
+  carrying a hero, every new door and its message, Wayra's boat before and after the Lake Mother, the news for a
+  finished save, the wisp to the boat, both new spells, every new foe's wind-up and attack, the three guardians (door,
+  introduction, three phases, wind-ups, their signature attacks, each clapper's hero, the reward, the ending), the
+  condor's planks, the retune, old saves, the totals and both epilogues, and every new pose.
 - `tests/e2e/bellspire.mjs`: the browser suite. Every player action with the real keys, each locked action's message,
   the shrine (↑ rests, X travels, X near a foe swings, a map tap travels), the climb frame, a chest, a door opening,
   a bell ringing, damage numbers, the minimap at three screen sizes (with an area entrance drawn), gear equipped through
   the menu (preview, comparison, toast, worn gear in the scene, a harder hit), the map's doorways and stats line,
   Ukumari keeping the throne shut with the hydra skipped, the Guiding wisp setting, the shop, a mural, every menu tab, a key rebind, a water bell, a lantern hatch, a guardian, the ending,
-  saves, and phones held both ways, with no page errors and no sideways scrolling.
+  saves, the Windward Belfry (Wayra's boat, the wider map, bracing in a gust, a wind bell, the Bell Rope's throw,
+  swing and release, an echo bell's notes, the Frost Fan, the Gale Wave, riding a swinging bell, the two outfits, the
+  three guardians and the belfry's ending), and phones held both ways, with no page errors and no sideways scrolling.
 
 Compile first: `npx tsc lib/bellspire-game.ts lib/bellspire-nav.ts --target es2022 --module es2022
 --moduleResolution bundler --outDir .checks --skipLibCheck --strict`.
 
 ## Art
+
+The Cloudstair's play surfaces are the one exception: its painted tile set read as flat orange brick against the warm
+backdrop, so the script redraws them as weathered grey-gold stone, with snow and ichu-grass caps on every top, a
+second top and a second fill for variety, a carved step-diamond, cracked stone and an underside. It also takes the rope
+bridge out of the Cloudstair's middle layer (it looked walkable at the heroes' height) and pushes that layer back,
+darker, cooler and less saturated. The Cloudstair is out under the sky, so it has no back wall and no back pillars,
+and a brighter, cooler ambient light (0.84, 0.78, 0.74) than the citadel's areas, so the stone stays grey. Its "torch"
+marks are bell posts that stand on the floor below them (their glow sits at the post's lamp), and every bell hook, and
+every lantern hanging in the Belfry Loft, hangs from an iron chain bolted to the stone above it. The Belfry Loft has
+no back pillars either: its middle layer has its own posts and beams.
 
 Every picture was painted with Codex on a flat magenta ground, then run through `scripts/bellspire-art.py`. The script
 keys out the magenta, crops each figure, box-downscales it to its in-game height, cuts it to a small palette, cleans

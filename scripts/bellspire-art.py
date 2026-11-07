@@ -22,7 +22,7 @@ BOXES = {}  # name: per-frame painted bounds (x0, y0, x1, y1) from the draw poin
 PARTS = []  # the part maps of the frames being scaled (the heroes'), in order
 # the decor frames with open flames (the torch and candle frames the scene uses; the docks light with a lantern post
 # and the throne with a chandelier, so they have none)
-OPEN_FLAMES = {'halls': (6, 0), 'towers': (4, 6), 'crypt': (6, 2)}
+OPEN_FLAMES = {'halls': (6, 0), 'towers': (4, 6), 'crypt': (6, 2), 'loft': (0,)}
 FLAMES = {}  # decor sheet: per frame, the painted flames' boxes
 FOE_BODY = {}  # foe kind: the frame whose bounds are its body
 INK = (34, 24, 32)
@@ -81,10 +81,12 @@ def _ramp(t, stops):
     return out
 
 
-def hero_colours(im, hero):
+def hero_colours(im, hero, outfit=False):
     """Tell the heroes apart at a glance: Dora warm cream-white with a teal coat, Enzo mid-grey with a rust coat. The
     painted fur is remapped onto a fixed ramp, the coats are pushed to their hue, and the pink inner ears are toned
-    down so they don't dominate a small sprite. The magenta ground is left alone for the keyer."""
+    down so they don't dominate a small sprite. The magenta ground is left alone for the keyer. With `outfit` (the
+    Windward Jacket and the Highland Cloak), only the fur and ears are touched: the clothes keep their painted colours,
+    and the fur is only the fur's own hues (so Dora's dusty-rose jacket and Enzo's slate-blue cloak are never fur)."""
     a = np.asarray(im.convert('RGBA')).astype(np.float32).copy()
     rgb = a[..., :3]
     r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
@@ -92,16 +94,26 @@ def hero_colours(im, hero):
     h, sat, v = _hsv(rgb)
     lum = (0.3 * r + 0.55 * g + 0.15 * b) / 255
     pinkish = ((h > 320) | (h < 15)) & (sat > 0.22) & (sat < 0.62) & (v > 0.72) & ~ground
+    if outfit and hero == 'dora':
+        # (the dusty-rose jacket shares the ears' hue; the ears are its palest, brightest pink)
+        pinkish &= (v > 0.9) & (sat < 0.55)
     if hero == 'enzo':
         fur = (sat < 0.34) & (np.minimum(r, b) >= g - 6) & (v > 0.18) & ~ground
+        if outfit:
+            fur &= (b - r < 24)
+            # the Highland Cloak's felt is painted a deep navy: lift it towards slate so it reads at sprite size
+            cloak = (h > 200) & (h < 265) & (sat > 0.18) & ~ground
+            rgb[cloak] = _rgb(np.full(h.shape, 222.0)[cloak], np.clip(sat[cloak], 0.4, 0.65), np.clip(v[cloak] * 1.05 + 0.02, 0, 1))
         rgb[fur] = _ramp(np.clip(lum[fur] * 1.05, 0, 1), [(0, (34, 36, 42)), (0.35, (88, 92, 102)), (0.6, (138, 143, 153)), (0.8, (169, 173, 181)), (1, (214, 217, 223))])
-        coat = ((h > 330) | (h < 25)) & (sat >= 0.45) & (v < 0.85) & ~ground
+        coat = ((h > 330) | (h < 25)) & (sat >= 0.45) & (v < 0.85) & ~ground & (not outfit)
         nh = np.full(h.shape, 16.0)
         rgb[coat] = _rgb(nh[coat], np.clip(sat[coat] * 0.92, 0, 1), v[coat] * 0.95)
     else:
         fur = (sat < 0.3) & (r >= b) & (v > 0.55) & ~ground & ~pinkish
+        if outfit:
+            fur &= ((h >= 18) & (h <= 70)) | (sat < 0.08)
         rgb[fur] = _ramp(np.clip(lum[fur], 0, 1), [(0.4, (150, 124, 104)), (0.65, (214, 192, 164)), (0.85, (244, 232, 210)), (1, (255, 250, 238))])
-        coat = (h > 150) & (h < 250) & (sat > 0.2) & ~ground
+        coat = (h > 150) & (h < 250) & (sat > 0.2) & ~ground & (not outfit)
         nh = np.full(h.shape, 178.0)
         rgb[coat] = _rgb(nh[coat], np.clip(sat[coat] * 1.25 + 0.1, 0, 0.85), np.clip(v[coat] * 1.12, 0, 1))
     # tone the inner ears and blush down: halfway to the fur
@@ -254,7 +266,7 @@ def enzo_parts(px):
     return out
 
 
-def enzo_zones(raw):
+def enzo_zones(raw, outfit=False):
     """Where Enzo's lantern and staff are, read from the painting before the colour pass (which pushes the staff's wood
     and the coat's rust to one hue). The lantern is found by its glow (the brightest warm pixels) and taken as the box
     round it, grown by a lantern's frame and cap; when it isn't lit, by the biggest piece of brass. The staff is every
@@ -269,6 +281,9 @@ def enzo_zones(raw):
     brass = al & (h >= 28) & (h < 70) & (sat > 0.3) & (v > 0.3)
     glow = al & (h >= 30) & (h < 62) & (sat > 0.35) & (v > 0.82)
     red = al & ((h >= 330) | (h < 8)) & (sat > 0.45)
+    if outfit:
+        # the Highland Cloak's blue felt is the coat: a brass clasp on it is no lantern
+        red |= al & (h > 200) & (h < 265) & (sat > 0.18)
     mx, my, reach = int(7 * k), int(12 * k), int(20 * k)
 
     def boxes(seed):
@@ -576,6 +591,24 @@ def bbox(im, keep_small=False):
     return im.crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
 
 
+def unrope(fig):
+    """a figure hanging from a painted rope (the clappers), cut off where the rope meets its knot or ring: the scene
+    draws the rope itself, from wherever it is tied, so the sprite and its bounds are the body alone. The rope is the
+    run of narrow rows at the top; a figure without one is left whole"""
+    a = np.asarray(fig)[..., 3] > 60
+    wide = a.sum(1)
+    h = len(wide)
+    top = wide[:max(4, h // 8)]
+    rope = float(np.median(top[top > 0])) if (top > 0).any() else 0
+    if not rope or rope > 0.2 * wide.max():
+        return fig
+    rows = np.nonzero(wide > 1.8 * rope)[0]
+    y = int(rows[0]) if len(rows) else 0
+    if y < 0.08 * h:
+        return fig
+    return bbox(fig.crop((0, y, fig.width, h)), keep_small=True)
+
+
 def pixelate(im, w, h, colors=24, outline=True, clean=True):
     """box-scale to (w, h), hard alpha, a small palette and an ink outline"""
     big = im.resize((w * 4, h * 4), Image.LANCZOS)
@@ -702,30 +735,56 @@ def cover(im, w, h):
 
 
 # ─── the heroes ────────────────────────────────────────────────────────────
-for hero in ('dora', 'enzo'):
-    src = lambda n: hero_colours(load(n), hero)
+SHEETS = 'abcdefghijk'
+# the Windward Belfry outfits: every sheet painted again in the Windward Jacket (Dora) and the Highland Cloak (Enzo)
+OUTFIT = {'dora': ('w', 'dora-windward'), 'enzo': ('h', 'enzo-highland')}
+
+
+def hero_frames(hero, prefix, outfit=False):
+    """a hero's 88 frames (from the sheets bs-<prefix>-a to -k), with their part maps and (Enzo) lantern masks"""
+    src = lambda n: hero_colours(load(n), hero, outfit)
     # a, b: the first 16 frames; c to h, the animation pass (climb and land, run, idle and interactions, attacks,
     # body, water); i, j: every state its own poses (run start-up, Whirl Slash, Enzo's combo, bell strikes, wading,
-    # treading). 8 each, in the order of the HERO_FRAMES comment in lib/bellspire-anim.ts
+    # treading); k: the Windward Belfry's (Bell Rope throw and swing, wind, hail; Enzo's echo, frost and gale casts).
+    # 8 each, in the order of the HERO_FRAMES comment in lib/bellspire-anim.ts
     # (the new sheets' long staffs and swords can reach into the next cell, so stray pieces at a cell's side go)
-    figs = [bbox(drop_neighbours(c) if sh in 'ij' else c) for sh in 'abcdefghij' for c in cells(key(src(f'bs-{hero}-{sh}')), 4, 2)]
+    near = lambda sh: outfit or sh in 'ijk'  # (the outfit sheets were all repainted, so any can stray)
+    figs = [bbox(drop_neighbours(c) if near(sh) else c) for sh in SHEETS for c in cells(key(src(f'bs-{prefix}-{sh}')), 4, 2)]
     if hero == 'enzo':
         # the same figures before the colour pass, for where the lantern and the staff are
-        raws = [bbox(drop_neighbours(c) if sh in 'ij' else c) for sh in 'abcdefghij' for c in cells(key(load(f'bs-{hero}-{sh}')), 4, 2)]
+        raws = [bbox(drop_neighbours(c) if near(sh) else c) for sh in SHEETS for c in cells(key(load(f'bs-{prefix}-{sh}')), 4, 2)]
         assert all(r.size == f.size for r, f in zip(raws, figs)), 'raw and coloured figures should crop alike'
     s = 38 / figs[0].height  # the idle pose stands 38 pixels tall; every sheet was painted at the same size
     PARTS.clear()
     if hero == 'dora':
         frames = [scaled(f, s, 20, parts=hero_parts(f, hero)) for f in figs]
         parts = [teal_trim(f, pm) for f, pm in zip(frames, PARTS)]
+        if outfit:
+            # (no teal coat to finish: the jacket is never recoloured, so only the blade counts)
+            parts = [np.where(pm == PART_BLADE, PART_BLADE, 0).astype(np.uint8) for pm in PARTS]
+        lamps = None
     else:
-        frames = [scaled(f, s, 20, parts=enzo_zones(r)) for f, r in zip(figs, raws)]
+        frames = [scaled(f, s, 20, parts=enzo_zones(r, outfit)) for f, r in zip(figs, raws)]
         parts = [enzo_merge(f, enzo_parts(f), z) for f, z in zip(frames, PARTS)]
-    strip(hero, frames, 56, 44, parts=parts, lamps=[z == PART_LAMP for z in PARTS] if hero == 'enzo' else None)
+        lamps = [z == PART_LAMP for z in PARTS]
+    return frames, parts, lamps
+
+
+for hero in ('dora', 'enzo'):
+    frames, parts, lamps = hero_frames(hero, hero)
+    wear, wname = OUTFIT[hero]
+    oframes, oparts, olamps = hero_frames(hero, f'{hero}-{wear}', outfit=True)
+    # the outfit strip shares the hero strip's cell size and frame order, so the scene can swap one for the other
+    cw = max(56, *(f.width for f in frames + oframes))
+    ch = max(44, *(f.height for f in frames + oframes))
+    strip(hero, frames, cw, ch, parts=parts, lamps=lamps)
+    strip(wname, oframes, cw, ch, parts=oparts, lamps=olamps)
 
 # ─── enemies: frame A on top, frame B below ───────────────────────────────
 FOE_H = {'frog': 20, 'moth': 15, 'eel': 18, 'reed': 30, 'condor': 30, 'imp': 19, 'shell': 30, 'vizcacha': 18,
-         'jelly': 19, 'golem': 38}
+         'jelly': 19, 'golem': 38,
+         # the Windward Belfry (frames 104-135): wind spirit, hail-hawk, clapper on its rope, bell-beetle
+         'gust': 22, 'hawk': 22, 'clapper': 28, 'beetle': 18}
 order = [('bs-foes-a', ['frog', 'moth', 'eel', 'reed']), ('bs-foes-b', ['condor', 'imp', 'shell', 'vizcacha'])]
 foes = []
 for sheet, names in order:
@@ -744,23 +803,41 @@ for i, hgt in ((2, 22), (3, 11), (6, 12), (7, 13)):
 # frame keeps the height the foe had, and the body frames (idle and move) are what its hitbox is checked against
 for k, n in enumerate(FOE_H):
     cs = [bbox(c) for c in cells(key(load(f'bs-foe-{n}')), 4, 2)]
+    if n == 'clapper':
+        cs = [unrope(c) for c in cs]
     s = FOE_H[n] / cs[0].height
     FOE_BODY[n] = [len(foes) + j for j in range(6)]
     foes += [scaled(c, s, 18) for c in cs]
+# the Windward Belfry's projectiles (136-143): hail streak, icicle, gust puff, plank chunk, clapper shard, falling cog,
+# sour-note ring fragment, big hailstone
+cs = [bbox(c) for c in cells(key(load('bs-foes-d')), 4, 2)]
+for c, hgt in zip(cs, (12, 20, 16, 14, 12, 14, 14, 16)):
+    foes.append(scaled(c, hgt / c.height, 16))
 strip('foes', foes, 64, 48)
 
 # ─── bosses ───────────────────────────────────────────────────────────────
-def boss(name, sheet, height, cw, ch):
-    """frames 0-2: rest, wind-up, attack; 3-5 (the animation pass): a second wind-up, stagger, calmed"""
+def boss(name, sheet, height, cw, ch, rope=False, fit=False):
+    """frames 0-2: rest, wind-up, attack; 3-5 (the animation pass): a second wind-up, stagger, calmed. With `rope`, the
+    painted rope it hangs from is cut off (the scene draws it). With `fit`, the second sheet was painted at another
+    size, so its frames are scaled to make its calmed frame (hanging straight, like the rest frame) as wide as the rest"""
     cs = figures(key(load(sheet)), 3)
-    s = height / cs[0].height
     more = figures(key(load(sheet + '2')), 3)
-    strip(name, [scaled(c, s, 32) for c in cs + more], cw, ch)
+    if rope:
+        cs, more = [unrope(c) for c in cs], [unrope(c) for c in more]
+    s = height / cs[0].height
+    s2 = s * cs[0].width / more[2].width if fit else s
+    strip(name, [scaled(c, s, 32) for c in cs] + [scaled(c, s2, 32) for c in more], cw, ch)
 
 
 boss('boss-frog', 'bs-boss-frog', 74, 150, 96)
 boss('boss-puma', 'bs-boss-puma', 60, 170, 92)
 boss('boss-mother', 'bs-boss-mother', 120, 280, 150)
+# the Windward Belfry's guardians: the Hail Condor, the Twin Clappers (iron for Dora's blade, glass for Enzo's spells),
+# the Out-of-Tune Bell
+boss('boss-condor', 'bs-boss-condor', 90, 240, 130)
+boss('boss-clapper-a', 'bs-boss-clapper-a', 64, 110, 110, rope=True)
+boss('boss-clapper-b', 'bs-boss-clapper-b', 64, 110, 110, rope=True)
+boss('boss-bell', 'bs-boss-bell', 120, 200, 160, fit=True)
 
 # the hydra: its coiled body stays put, and its three heads move on their own necks
 hy = cells(key(load('bs-boss-hydra')), 3, 1)
@@ -800,6 +877,11 @@ cs = [bbox(c) for c in cells(key(load('bs-props')), 4, 2)]
 # torch and candle flame frames for the flicker
 wd = [bbox(drop_neighbours(c)) for c in cells(key(load('bs-world')), 4, 2)]
 strip('props', [scaled(c, h / c.height, 24) for c, h in zip(cs, PROPS)] + [scaled(wd[3], 22 / wd[3].height, 24), scaled(wd[7], 9 / wd[7].height, 16)], 64, 56)
+# the Windward Belfry's props: bell hook, echo bell (unlit, lit), wind bell (still, rung), giant bell, Wayra's boat,
+# note platform; sized by height, or by width where the width is what matters
+PROPS2 = [('h', 18), ('h', 26), ('h', 26), ('h', 34), ('h', 34), ('w', 56), ('w', 70), ('w', 34)]
+cs = [bbox(c) for c in cells(key(load('bs-props-wb')), 4, 2)]
+strip('props2', [scaled(c, n / (c.height if d == 'h' else c.width), 24) for c, (d, n) in zip(cs, PROPS2)], 80, 56)
 strip('flames', [scaled(c, 18 / c.height, 12, outline=False) for c in wd[0:3]] + [scaled(c, 8 / c.height, 8, outline=False) for c in wd[4:7]], 16, 20)
 cs = [bbox(c) for c in cells(key(load('bs-npcs')), 4, 2)]
 NPCS = [44, 44, 50, 50, 12, 16, 10, 16]  # wayra x2, ukumari x2, wisp, ghost-glass, coins, ability orb
@@ -808,8 +890,9 @@ strip('npcs', npc, 72, 56)
 
 # ─── icons and portraits ──────────────────────────────────────────────────
 icons = []
-for sheet in ('bs-icons-a', 'bs-icons-b'):
-    for c in cells(key(load(sheet)), 4, 4):
+# (the Windward Belfry's 32-39 come from a 4 by 2 sheet)
+for sheet, (cols, rows) in (('bs-icons-a', (4, 4)), ('bs-icons-b', (4, 4)), ('bs-icons-c', (4, 2))):
+    for c in cells(key(load(sheet)), cols, rows):
         f = bbox(c)
         s = 20 / max(f.width, f.height)
         icons.append(scaled(f, s, 16))
@@ -821,6 +904,124 @@ for i, c in enumerate(cells(load('bs-portraits'), 3, 2)):
     ports.append(scaled(f, s, 32))
 strip('portraits', ports, 64, 64, anchor='middle')
 
+# ─── the Cloudstair's stone ─────────────────────────────────────────────────
+# (its painted tile set read as flat orange brick against the warm backdrop: the play surfaces are redrawn here as
+# weathered grey-gold stone with snow and ichu-grass caps, and its middle layer loses the rope bridge that looked
+# walkable at the heroes' height and is pushed back)
+import random
+OUTLINE = (38, 36, 40); DEEP = (78, 76, 78); MID = (120, 118, 114); LIGHT = (156, 152, 140); HI = (198, 192, 172)
+WARM = (138, 128, 104); GOLD = (184, 156, 88); GOLD_D = (130, 106, 60)
+SNOW = (244, 248, 252); SNOW_S = (196, 212, 230); SNOW_D = (136, 156, 184)
+GRASS = (222, 188, 96); GRASS_D = (156, 122, 54)
+
+def cloud_stone(seed, crack=False, carve=False, under=False):
+    """Irregular dressed stone: two or three courses of blocks of different lengths, each lit from the top left."""
+    rnd = random.Random(seed)
+    t = Image.new('RGBA', (16, 16), DEEP + (255,))
+    px = t.load()
+    y = 0
+    heights = rnd.choice(((8, 8), (7, 9), (9, 7)))
+    off = rnd.randint(0, 15)
+    for h in heights:
+        y0, y1 = y, min(16, y + h)
+        # block lengths along this course (wrapping, so the tile still repeats)
+        x, cuts = off, []
+        while x < off + 16:
+            cuts.append(x); x += rnd.randint(9, 16)
+        cuts.append(off + 16)
+        for a, b in zip(cuts, cuts[1:]):
+            tone = rnd.choice((MID, (130, 126, 116), LIGHT, WARM, (112, 110, 108)))
+            for yy in range(y0, y1):
+                for xx in range(a, b):
+                    c = tone
+                    if xx == a or yy == y1 - 1: c = DEEP                                   # mortar
+                    elif yy == y0: c = tuple(min(255, v + 26) for v in tone)                     # lit top
+                    elif xx == a + 1: c = tuple(min(255, v + 12) for v in tone)                  # softer lit side
+                    elif xx == b - 1 or yy == y1 - 2: c = tuple(max(0, v - 18) for v in tone)    # shade
+                    else:
+                        n = rnd.randint(-4, 4)
+                        c = tuple(max(0, min(255, v + n)) for v in tone)
+                        if rnd.random() < 0.02: c = GOLD                                   # lichen
+                    px[xx % 16, yy] = c + (255,)
+        y = y1
+        off = (off + rnd.randint(4, 9)) % 16
+    if crack:
+        x = rnd.randint(4, 11)
+        for yy in range(1, 15):
+            px[x, yy] = OUTLINE + (255,)
+            if rnd.random() < 0.45: x = max(1, min(14, x + rnd.choice((-1, 1))))
+            if rnd.random() < 0.2: px[min(15, x + 1), yy] = DEEP + (255,)
+    if carve:  # a small Andean step-diamond cut into the stone
+        for (dx, dy) in [(0, -3), (-1, -2), (1, -2), (-2, -1), (2, -1), (-3, 0), (3, 0), (-2, 1), (2, 1), (-1, 2), (1, 2), (0, 3)]:
+            px[8 + dx, 8 + dy] = GOLD_D + (255,)
+        px[8, 8] = GOLD + (255,)
+    if under:  # the underside of an overhang: shadowed, with a ragged lip
+        for x in range(16):
+            lip = 12 + (1 if rnd.random() < 0.4 else 0)
+            for yy in range(lip, 16):
+                px[x, yy] = (DEEP if yy < 15 else OUTLINE) + (255,)
+    return t
+
+def cloud_cap(t, seed, depth=4, tufts=1):
+    """Snow on top with a ragged lower edge and the odd drip, and straw tufts poking through it."""
+    rnd = random.Random(seed)
+    px = t.load()
+    edge, e = [], depth
+    for x in range(16):
+        e = max(depth - 1, min(depth + 2, e + rnd.choice((-1, 0, 0, 1))))
+        edge.append(e)
+    for x in range(16):
+        e = edge[x]
+        for y in range(0, e):
+            px[x, y] = (SNOW if y < e - 2 else SNOW_S) + (255,)
+        px[x, e] = SNOW_D + (255,)
+        if rnd.random() < 0.12 and e + 2 < 16: px[x, e + 1] = SNOW_S + (255,)       # a drip
+    for _ in range(tufts):
+        tx = rnd.randint(3, 12)
+        for dx in (-2, -1, 0, 1, 2):
+            if abs(dx) == 2 and rnd.random() < 0.5: continue
+            x = tx + dx
+            h = 5 - abs(dx) * 1 + rnd.randint(0, 1)
+            for y in range(max(0, edge[x] - h + 1), edge[x] + 1):
+                lean = 1 if (dx > 0 and y < edge[x] - h + 3) else -1 if (dx < 0 and y < edge[x] - h + 3) else 0
+                px[max(0, min(15, x + lean)), y] = (GRASS if (y + dx) % 3 else GRASS_D) + (255,)
+    return t
+
+def stone_cloud(sheet):
+    """The Cloudstair's tile set: top (0) and a second top (6), fill (1) and a second fill (7), carved fill (2),
+    ledge (3), cracked stone (5) and underside (8); the ladder (4) is kept."""
+    s = sheet.copy()
+    ledge = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    slab = cloud_cap(cloud_stone(25, ), 5, depth=3, tufts=0).crop((0, 0, 16, 7))
+    ledge.paste(slab, (0, 0))
+    lp = ledge.load()
+    for x in range(16): lp[x, 7] = OUTLINE + (255,)
+    tiles = {0: cloud_cap(cloud_stone(21), 3, tufts=1), 6: cloud_cap(cloud_stone(22), 8, tufts=0), 1: cloud_stone(23), 7: cloud_stone(24), 2: cloud_stone(26, carve=True),
+             3: ledge, 5: cloud_stone(27, crack=True), 8: cloud_stone(28, under=True)}
+    for i, t in tiles.items():
+        s.paste(Image.new('RGBA', (16, 16), (0, 0, 0, 0)), (i * 16, 0))
+        s.paste(t, (i * 16, 0))
+    return s
+
+def calm_mid_cloud(mid):
+    """The Cloudstair's middle layer: no walkway-looking rope bridge at the heroes' height, and pushed back (darker,
+    cooler, less saturated) so the stone the heroes stand on is what pops."""
+    m = mid.copy().convert('RGBA')
+    px = m.load()
+    for y in range(166, 228):
+        for x in range(272, 394):
+            px[x, y] = (0, 0, 0, 0)
+    w, h = m.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a == 0: continue
+            l = 0.3 * r + 0.59 * g + 0.11 * b
+            r, g, b = [int(0.55 * c + 0.45 * l) for c in (r, g, b)]
+            px[x, y] = (int(r * 0.72), int(g * 0.74), int(b * 0.84), a)
+    return m
+
+
 # ─── tiles, decor and backdrops for each area ─────────────────────────────
 DECOR = {
     'halls': [22, 56, 30, 30, 26, 46, 30, 30],
@@ -828,6 +1029,10 @@ DECOR = {
     'towers': [56, 34, 30, 60, 30, 56, 22, 46],
     'crypt': [36, 64, 22, 30, 24, 26, 30, 26],
     'throne': [60, 30, 40, 52, 22, 28, 34, 18],
+    # the Windward Belfry: bell post, banner, prayer cloths, cairn, ichu grass, rope coil, wind chimes, condor head
+    'cloud': [56, 60, 24, 22, 22, 20, 48, 30],
+    # lantern (lit), cogwheel, bell on a bracket, beam bracket and chain, pulley, crate, louvred window, bell rope coil
+    'loft': [30, 48, 26, 40, 34, 20, 56, 44],
 }
 for area, hs in DECOR.items():
     ts = []
@@ -842,6 +1047,7 @@ for area, hs in DECOR.items():
     a = np.asarray(q).copy()
     a[..., 3] = np.where(np.asarray(rgba)[..., 3] > 110, 255, 0)
     sheet = Image.fromarray(a)
+    if area == 'cloud': sheet = stone_cloud(sheet)
     sheet.save(OUT / f'tiles-{area}.webp', lossless=True, method=6)
     MANIFEST[f'tiles-{area}'] = (16, 16, 9)
     print(f'tiles-{area:8}  9 x 16x16')
@@ -864,6 +1070,7 @@ for area, hs in DECOR.items():
     opaque(f'bg-{area}', cover(load(f'bs-bg-{area}'), 16, 9), 480, 270, 40)
     mid = key(cover(load(f'bs-mid-{area}'), 16, 9))
     m = pixelate(mid, 480, 270, 24, outline=False, clean=False)
+    if area == 'cloud': m = calm_mid_cloud(m)
     m.save(OUT / f'mid-{area}.webp', lossless=True, method=6)
     MANIFEST[f'mid-{area}'] = (480, 270, 1)
     print(f'mid-{area:10}  1 x 480x270')
@@ -871,9 +1078,12 @@ for area, hs in DECOR.items():
 # ─── full paintings ───────────────────────────────────────────────────────
 # repainted (the "2" versions) so Dora's coat is teal and Enzo grey with a rust coat, as in the game
 # (a refined palette: with a plain median cut, the teal coat on the blue night merged into the blue)
-for n, src in (('title', 'bs-title2'), ('ending', 'bs-ending2'), ('epilogue', 'bs-epilogue2')):
+for n, src in (('title', 'bs-title2'), ('ending', 'bs-ending2'), ('epilogue', 'bs-epilogue2'),
+               ('ending2', 'bs-ending-wb'), ('epilogue2', 'bs-epilogue-wb')):
     opaque(n, cover(load(src), 16, 9), 480, 270, 96, kmeans=4)
 murals = [cover(c, 4, 3) for c in cells(load('bs-murals'), 3, 2)]
+# the Windward Belfry's eight (6-13), painted four to a sheet so each panel is near 4:3
+murals += [cover(c, 4, 3) for sh in ('bs-murals-wb', 'bs-murals-wb2') for c in cells(load(sh), 2, 2)]
 ms = []
 for c in murals:
     small = c.convert('RGB').resize((640, 480), Image.LANCZOS).resize((160, 120), Image.BOX)
@@ -892,7 +1102,8 @@ lines.append('};')
 lines += ['', '// Painted bounds of every frame, [x0, y0, x1, y1] from the draw point (the cell\'s bottom middle; y is up-negative),',
           '// for sprites whose hitboxes come from the art. The art faces the way it was painted; mirror x when flipped.',
           'export const BOXES: Record<string, [number, number, number, number][]> = {']
-for k in ('foes', 'dora', 'enzo', 'boss-frog', 'boss-puma', 'boss-mother', 'boss-warden', 'hydra-head'):
+for k in ('foes', 'dora', 'enzo', 'boss-frog', 'boss-puma', 'boss-mother', 'boss-warden', 'hydra-head',
+          'boss-condor', 'boss-clapper-a', 'boss-clapper-b', 'boss-bell', 'dora-windward', 'enzo-highland'):
     if k in BOXES:
         lines.append(f"  '{k}': [" + ', '.join(f'[{a}, {b}, {c}, {d}]' for a, b, c, d in BOXES[k]) + '],')
 lines.append('};')

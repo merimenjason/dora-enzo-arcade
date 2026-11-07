@@ -6,10 +6,12 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **The Sunken Bellspire**: the **Windward Belfry** expansion. After the Lake Mother, Wayra's boat rows to the Cloudstair and the Belfry Loft: about 30 new screens of wind, wind bells that turn it, giant swinging bells to ride, and echo notes to climb. Dora's new Bell Rope swings from bell hooks (some hidden back in the citadel too), and Enzo's Echo Step leaves notes in the air to stand on. Also new: the Frost Fan and Gale Wave spells, the Windward Jacket and Highland Cloak outfits, the Condor Talon and Carillon Staff, two Bell Hearts, eight more murals, three guardians (the Hail Condor, the Twin Clappers and the Out-of-Tune Bell), and a second ending and epilogue.
 - **The Sunken Bellspire** is game 94, a castle explorer in hi-bit pixel art with real lighting: candles, torches, moonlight and Enzo's lantern light the scene as you move. A drowned citadel of bells rises from an Andean lake, and Dora (sword and dash) and Enzo (lantern staff and spells) explore its 64 screens together, tagging between them. Ring bells to raise and lower the water, light dark rooms to reveal ghost-glass platforms, gain new abilities, gear and levels, and face five guardians including the Bell Warden. A helping hand is on by default, and falling only drops your coins.
 
 ### Changed
 
+- **The Sunken Bellspire**: completion now counts the belfry (94 rooms, 27 chests, 18 murals, 8 guardians). The pause map shows the citadel's own numbers until you cross the water, finishing the citadel alone still plays the first epilogue, and the minimap is solid so nothing shows through it.
 - **The Sunken Bellspire**: unopened chests show on the minimap and the full map as little chests, and the map key lists them.
 - **The Sunken Bellspire**: gear now shows on the heroes. Each weapon has its own colour on the sprite, slash and lantern light (a green Reed-Cutter, silver-blue Moonsteel, the Bell Staff and the Star Lamp), coats recolour whoever wears them (with a little shell on the Snail-Shell Coat), and rings and relics add small touches. The gear menu previews each item on the hero with its stat change before you equip it.
 - **The Sunken Bellspire**: with the helping hand on, the guiding wisp is always out, floating just ahead along the way to the next goal (there's a setting to hide it). The minimap and the full map now show doorways, ways into other areas in that area's colour, and shut doors in the colour of what opens them.
@@ -17,6 +19,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **The Sunken Bellspire**: the guiding wisp stays on after the citadel's ending (it switched off when you continued from the title), and leads on to the belfry.
 - **The Sunken Bellspire**: after the ending, finding everything plays the epilogue the moment you reach 100%, and once it's earned the title screen has a **See the epilogue** button. The ending tells you this, and the pause map shows what's left.
 - **The Sunken Bellspire**: Enzo's staffs now stand out against every coat in every pose. The Oak Staff is ash-white with an amber lantern, the Bell Staff bright brass and the Star Lamp star-silver. Dora's Bronze Sword is polished brighter, so it shows on the Reedweave Coat.
 - **The Sunken Bellspire**: Enzo's lantern keeps its own colour in every coat, with no coat colour bleeding into it.

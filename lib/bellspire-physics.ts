@@ -10,6 +10,12 @@ export const GLIDE_FALL = 0.6;
 export const SWIM_SINK = 1.1, SWIM_STROKE = 2.7, SWIM_EXIT_V = 5.4, SWIM_SPEED = 1.35;
 export const CLIMB_V = 1.6;
 export const RUN = { dora: 2.0, enzo: 1.75 } as const;
+/** The Bell Rope: how far from Dora's hands a hook can be caught, the rope's shortest and longest length, the pump
+ *  that steering gives each tick, the swing's widest angle and the kick a jump off the rope adds. */
+export const ROPE_REACH = 64, ROPE_MIN = 30, ROPE_MAX = 72, ROPE_PUMP = 0.0022, ROPE_MAX_ANG = 1.4, ROPE_KICK = 3.2;
+/** Wind: how much a gust of strength 1 adds to the speed a body runs or drifts at (on the ground only while moving,
+ *  so a hero can always stand braced), and how fast it carries the Lantern Glide upward. */
+export const WIND_RUN = 0.6, WIND_AIR = 1.4, WIND_LIFT = 1.2;
 
 /** What the world says about a tile or a spot; the engine and the planner each provide one. */
 export interface Env {
@@ -24,11 +30,17 @@ export interface Env {
   deep(x: number, y: number): number | null;
   /** Floating reed platforms: one-way ledges at a moving height. */
   floats(): { x0: number; x1: number; y: number }[];
+  /** The gust here: its sideways strength (signed; 0 is calm). Optional: no wind anywhere without it. */
+  wind?(x: number, y: number): number;
+  /** Bell hooks Dora's rope can catch (world points). */
+  hooks?(): { x: number; y: number }[];
 }
 
 export type Caps = {
   speed: number; dash: boolean; double: boolean; wallkick: boolean; glide: boolean; deep: boolean; swimMul: number;
   coyote: number; buffer: number;
+  /** the Bell Rope (Dora); how much of a gust reaches the body (1 is all of it; the Windward Jacket takes less) */
+  rope?: boolean; windMul?: number;
 };
 
 export type Body = {
@@ -37,16 +49,23 @@ export type Body = {
   dashT: number; dashCd: number; dashDir: 1 | -1; kickT: number; kickDir: 1 | -1; dropT: number;
   climb: boolean; swim: boolean; wade: boolean; glide: boolean; wall: -1 | 0 | 1; face: 1 | -1;
   /** set by `stepBody`: what happened this tick */
-  landed: boolean; jumped: '' | 'ground' | 'air' | 'wall' | 'swim' | 'ladder'; hazard: boolean; bonk: boolean; dashed: boolean;
+  landed: boolean; jumped: '' | 'ground' | 'air' | 'wall' | 'swim' | 'ladder' | 'rope'; hazard: boolean; bonk: boolean; dashed: boolean;
+  /** on the Bell Rope: the hook, the rope's length, its angle from straight down (+ is to the hook's right) and how
+   *  fast that angle changes; null when not swinging */
+  rope: { hx: number; hy: number; len: number; ang: number; av: number; t: number } | null;
+  /** set by `stepBody`: the rope caught a hook this tick, or was let go of */
+  hooked: boolean; unhooked: boolean;
+  /** the gust felt this tick (signed) */
+  gust: number;
 };
 
-export type BodyInput = { dir: -1 | 0 | 1; up: boolean; down: boolean; jumpP: boolean; jumpH: boolean; dashP: boolean };
+export type BodyInput = { dir: -1 | 0 | 1; up: boolean; down: boolean; jumpP: boolean; jumpH: boolean; dashP: boolean; ropeP?: boolean };
 
 export function newBody(x: number, y: number): Body {
   return {
     x, y, vx: 0, vy: 0, ground: false, onOneway: false, coyote: 0, jumpBuf: 0, airJumps: 0, airDash: true, dashT: 0, dashCd: 0, dashDir: 1,
     kickT: 0, kickDir: 1, dropT: 0, climb: false, swim: false, wade: false, glide: false, wall: 0, face: 1,
-    landed: false, jumped: '', hazard: false, bonk: false, dashed: false,
+    landed: false, jumped: '', hazard: false, bonk: false, dashed: false, rope: null, hooked: false, unhooked: false, gust: 0,
   };
 }
 
@@ -93,9 +112,74 @@ export function support(env: Env, b: Body): 'solid' | 'oneway' | 'float' | null 
   return null;
 }
 
+/** The hook the rope would catch from here, if any: the nearest one above Dora's hands within reach. */
+export function hookInReach(env: Env, b: Body): { x: number; y: number } | null {
+  if (!env.hooks) return null;
+  const hx = b.x, hy = b.y - HERO_H;
+  let best: { x: number; y: number } | null = null, bd = ROPE_REACH * ROPE_REACH;
+  for (const h of env.hooks()) {
+    const dx = h.x - hx, dy = h.y - hy;
+    if (dy > -6) continue;
+    const d2 = dx * dx + dy * dy;
+    if (d2 < bd) { bd = d2; best = h; }
+  }
+  return best;
+}
+
+/** Let go of the rope: a jump kicks off it, carrying the swing's speed. */
+function letGo(b: Body, caps: Caps, kick: boolean) {
+  b.rope = null; b.unhooked = true;
+  if (kick) { b.vy = Math.min(b.vy, 0) - ROPE_KICK; b.jumped = 'rope'; }
+  b.vx = Math.max(-5, Math.min(5, b.vx * 1.1));
+  b.airJumps = caps.double ? 1 : 0; b.airDash = true;
+}
+
+/** One tick on the rope: a pendulum about the hook, pumped by steering and pushed by the wind. */
+function swing(b: Body, inp: BodyInput, env: Env, caps: Caps) {
+  const r = b.rope!;
+  r.t++;
+  if (inp.jumpP && r.t > 2) { letGo(b, caps, true); b.jumpBuf = 0; return; }
+  if (inp.down && r.t > 6) { letGo(b, caps, false); return; }
+  const w = env.wind?.(b.x, b.y - HERO_H / 2) ?? 0;
+  b.gust = w;
+  r.av += -(GRAV / r.len) * Math.sin(r.ang) + inp.dir * ROPE_PUMP + w * (caps.windMul ?? 1) * 0.0009;
+  r.av *= 0.996;
+  let a = r.ang + r.av;
+  if (Math.abs(a) > ROPE_MAX_ANG) { a = Math.sign(a) * ROPE_MAX_ANG; r.av = 0; }
+  const nx = r.hx + Math.sin(a) * r.len, ny = r.hy + Math.cos(a) * r.len + HERO_H;
+  if (!boxClear(env, nx - HERO_W / 2, ny - HERO_H, nx + HERO_W / 2, ny)) {
+    // swung into a wall: the swing stops dead there (and slides off if it can't hang)
+    r.av = -r.av * 0.2;
+    if (!boxClear(env, b.x - HERO_W / 2, b.y - HERO_H, b.x + HERO_W / 2, b.y)) letGo(b, caps, false);
+    b.vx = 0; b.vy = 0;
+    return;
+  }
+  b.vx = nx - b.x; b.vy = ny - b.y;
+  b.x = nx; b.y = ny; r.ang = a;
+  if (Math.abs(r.av) > 0.004) b.face = r.av > 0 ? 1 : -1;
+  if (touchesHazard(env, b)) { b.hazard = true; letGo(b, caps, false); }
+}
+
 /** Move one tick. Returns nothing; the result flags are on the body. */
 export function stepBody(b: Body, inp: BodyInput, env: Env, caps: Caps) {
-  b.landed = false; b.jumped = ''; b.hazard = false; b.bonk = false; b.dashed = false;
+  b.landed = false; b.jumped = ''; b.hazard = false; b.bonk = false; b.dashed = false; b.hooked = false; b.unhooked = false; b.gust = 0;
+  // the Bell Rope: catch a hook in the air, then swing until a jump (or ↓) lets go
+  if (!b.rope && inp.ropeP && caps.rope && !b.ground && !b.climb && !b.swim && b.dashT <= 0) {
+    const h = hookInReach(env, b);
+    if (h) {
+      const dx = b.x - h.x, dy = b.y - HERO_H - h.y;
+      const len = Math.max(ROPE_MIN, Math.min(ROPE_MAX, Math.hypot(dx, dy)));
+      const ang = Math.atan2(dx, dy);
+      b.rope = { hx: h.x, hy: h.y, len, ang, av: (b.vx * Math.cos(ang) - b.vy * Math.sin(ang)) / len, t: 0 };
+      b.hooked = true; b.glide = false; b.wall = 0; b.kickT = 0;
+    }
+  }
+  if (b.rope) {
+    if (b.dashCd > 0) b.dashCd--;
+    swing(b, inp, env, caps);
+    b.ground = false; b.coyote = 0;
+    return;
+  }
   if (b.dashCd > 0) b.dashCd--;
   if (b.dropT > 0) b.dropT--;
   if (b.kickT > 0) b.kickT--;
@@ -169,9 +253,11 @@ export function stepBody(b: Body, inp: BodyInput, env: Env, caps: Caps) {
     b.vy = b.swim ? b.vy * 0.5 : 0;
   } else {
     const top = b.swim ? swimSpeed : b.wade ? caps.speed * 0.78 : caps.speed;
-    const target = dir * top;
+    const w = b.swim ? 0 : (env.wind?.(b.x, b.y - HERO_H / 2) ?? 0) * (caps.windMul ?? 1);
+    b.gust = w;
+    const target = dir * top + (b.ground ? (dir !== 0 ? w * WIND_RUN : 0) : w * WIND_AIR);
     const acc = b.swim ? 0.18 : b.ground ? 0.5 : 0.36;
-    if (Math.abs(b.vx) > top && Math.sign(b.vx) === Math.sign(target) && !b.ground) b.vx -= Math.sign(b.vx) * 0.08;
+    if (Math.abs(b.vx) > Math.abs(target) && Math.abs(b.vx) > top && Math.sign(b.vx) === Math.sign(target) && !b.ground) b.vx -= Math.sign(b.vx) * 0.08;
     else if (b.vx < target) b.vx = Math.min(target, b.vx + acc);
     else if (b.vx > target) b.vx = Math.max(target, b.vx - acc);
   }
@@ -210,7 +296,9 @@ export function stepBody(b: Body, inp: BodyInput, env: Env, caps: Caps) {
     if (deep !== null && !caps.deep && b.y - HERO_H / 2 > deep) b.vy = Math.min(b.vy, -1.5);
   } else {
     b.vy += GRAV;
-    if (caps.glide && inp.jumpH && b.vy > 0 && !b.ground) { b.vy = Math.min(b.vy, GLIDE_FALL); b.glide = true; }
+    // a gust lifts the Lantern Glide: once the jump has slowed, the glide rises with it
+    if (b.gust !== 0 && caps.glide && inp.jumpH && !b.ground && b.vy > -WIND_LIFT - 0.05 - GRAV) { b.vy = Math.max(-WIND_LIFT, Math.min(b.vy, GLIDE_FALL) - 0.5); b.glide = true; }
+    else if (caps.glide && inp.jumpH && b.vy > 0 && !b.ground) { b.vy = Math.min(b.vy, GLIDE_FALL); b.glide = true; }
     else if (b.wall !== 0 && caps.wallkick && inp.dir === b.wall && b.vy > 0) b.vy = Math.min(b.vy, WALL_SLIDE);
     b.vy = Math.min(b.vy, MAX_FALL);
   }

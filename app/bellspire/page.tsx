@@ -6,13 +6,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BellspireGame, parseSave, heroStats, xpToNext, SAVE_KEY, NO_INPUT, ROOMS, AREAS, GEAR, SHOP, FOOD, SPELLS, ABILITIES, ABILITY_ORDER,
-  BOSSES, MURALS, NAMES, INFO, COMPLETION, roomAt, rawChar, roomById, MAP_EXITS, VIEW_W, VIEW_H, SHRINE_NAMES,
+  BOSSES, MURALS, NAMES, INFO, COMPLETION, roomAt, rawChar, roomById, MAP_EXITS, VIEW_W, VIEW_H, SHRINE_NAMES, isBelfryRoom,
   type Input, type Save, type HeroId, type Slot, type FoodId, type GameEvent, type Settings as GameSettings,
 } from '@/lib/bellspire-game';
 import { BellspireScene } from '@/lib/bellspire-scene';
-import { GUARDIANS, GUARDIAN_AREA } from '@/lib/bellspire-world';
+import { GUARDIANS, GUARDIAN_AREA, abilityIcon } from '@/lib/bellspire-world';
 import { ART } from '@/lib/bellspire-art';
-import { dressStrip, lanternPixels, lanternChanged, weaponCoatContrast } from '@/lib/bellspire-gear-art';
+import { dressStrip, lanternPixels, lanternChanged, weaponCoatContrast, stripFor } from '@/lib/bellspire-gear-art';
 import { BellspireSound, type Track } from './sound';
 import './bellspire.css';
 
@@ -78,13 +78,14 @@ export default function BellspirePage() {
   const settingsRef = useRef(settings);
   const [hasSave, setHasSave] = useState(false);
   const [canEpilogue, setCanEpilogue] = useState(false);
+  const [canEpilogue2, setCanEpilogue2] = useState(false);
   const [confirmNew, setConfirmNew] = useState(false);
   const [menu, setMenu] = useState<Tab | null>(null);
   const [shop, setShop] = useState(false);
   const [mural, setMural] = useState<number | null>(null);
   const [banner, setBanner] = useState<{ text: string; icon?: number; key: number } | null>(null);
   const [areaBanner, setAreaBanner] = useState<{ text: string; key: number } | null>(null);
-  const [ending, setEnding] = useState<{ full: boolean; pct: number } | null>(null);
+  const [ending, setEnding] = useState<{ full: boolean; pct: number; belfry?: boolean } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [rebind, setRebind] = useState<Action | null>(null);
   const [equipPick, setEquipPick] = useState<{ hero: HeroId; slot: Slot } | null>(null);
@@ -125,7 +126,7 @@ export default function BellspirePage() {
   useEffect(() => {
     const s = loadSettings();
     setSettings(s);
-    setHasSave(!!readSave()); setCanEpilogue(epilogueEarned(readSave()));
+    setHasSave(!!readSave()); setCanEpilogue(epilogueEarned(readSave())); setCanEpilogue2(!!readSave()?.flags.includes('epilogue2'));
     setCoarse(window.matchMedia('(pointer: coarse)').matches);
     soundRef.current = new BellspireSound(s.sound, s.music);
     const scene = new BellspireScene();
@@ -189,7 +190,7 @@ export default function BellspirePage() {
       else if (e.k === 'mural') setMural(e.n);
       else if (e.k === 'item') setBanner({ text: e.text, icon: e.icon, key: Date.now() });
       else if (e.k === 'room') writeSave();
-      else if (e.k === 'ending') { writeSave(); setEnding({ full: e.full, pct: g.completion().pct }); setScreen('ending'); snd?.setTrack('ending'); }
+      else if (e.k === 'ending') { writeSave(); setEnding({ full: e.full, pct: g.completion().pct, belfry: !!e.belfry }); setScreen('ending'); snd?.setTrack('ending'); }
       else if (e.k === 'down') snd?.play('down');
       else if (e.k === 'travelOpen') { setTravelMode(true); setMsg(null); setMenu('map'); }
     }
@@ -363,14 +364,24 @@ export default function BellspirePage() {
         drawnExits: (which: 'mini' | 'map') => DRAWN[which],
         exitLayer: (on: boolean) => { EXIT_LAYER = on; },
         /** mark every room seen and every chest and mural found (for the epilogue test) */
-        findAll: () => { const gg = gameRef.current!; gg.save.seen = []; for (const r of ROOMS) for (let y = 0; y < r.h; y++) for (let x = 0; x < r.w; x++) gg.save.seen.push(`${r.gx + x},${r.gy + y}`); for (const info of INFO.values()) for (const t of info.things) if (t.ch === 'C') gg.setFlag(`chest:${info.room.id}:${t.i}`); MURALS.forEach((_, i) => gg.setFlag(`mural:${i}`)); for (const a of ABILITY_ORDER) if (!gg.save.abilities.includes(a)) gg.save.abilities.push(a); for (const b of Object.keys(BOSSES)) gg.setFlag(`boss:${b}`); return gg.completion().pct; },
+        /** find everything (or, with `citadel`, everything in the citadel only); returns that completion */
+        findAll: (citadel = false) => {
+          const gg = gameRef.current!, keep = (r: { exp?: boolean }) => !citadel || !r.exp;
+          gg.save.seen = []; for (const r of ROOMS) if (keep(r)) for (let y = 0; y < r.h; y++) for (let x = 0; x < r.w; x++) gg.save.seen.push(`${r.gx + x},${r.gy + y}`);
+          for (const info of INFO.values()) if (keep(info.room)) for (const t of info.things) if (t.ch === 'C') gg.setFlag(`chest:${info.room.id}:${t.i}`);
+          MURALS.forEach((_, i) => { if (!citadel || i < 10) gg.setFlag(`mural:${i}`); });
+          for (const a of citadel ? ABILITY_ORDER.slice(0, 7) : ABILITY_ORDER) if (!gg.save.abilities.includes(a)) gg.save.abilities.push(a);
+          for (const b of citadel ? ['frog', 'hydra', 'puma', 'warden', 'mother'] : Object.keys(BOSSES)) gg.setFlag(`boss:${b}`);
+          return citadel ? gg.completion().base.pct : gg.completion().pct;
+        },
         /** for each hero, every weapon they can hold against every coat: how far apart they look (ΔE, ΔL) in the worst frame */
         gearContrast: () => {
           const sc = sceneRef.current!, pixels = (name: string) => { const im = sc.img.get(name)!, c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d')!; x.drawImage(im, 0, 0); return x.getImageData(0, 0, c.width, c.height).data; };
           const out: Record<string, { dE: number; dL: number; frame: number }> = {};
-          for (const [h, ws] of [['dora', ['bronze-sword', 'reed-cutter', 'moonsteel']], ['enzo', ['oak-staff', 'bell-staff', 'star-lamp']]] as const)
-            for (const w of ws) for (const c of ['teal-coat', 'rust-coat', 'reed-coat', 'snail-coat']) {
-              const r = weaponCoatContrast(pixels(sc.dressed(h, w, c)), pixels(`${h}-parts`), sc.img.get(`${h}-parts`)!.width);
+          for (const [h, ws] of [['dora', ['bronze-sword', 'reed-cutter', 'moonsteel', 'condor-talon']], ['enzo', ['oak-staff', 'bell-staff', 'star-lamp', 'carillon-staff']]] as const)
+            for (const w of ws) for (const c of ['teal-coat', 'rust-coat', 'reed-coat', 'snail-coat', h === 'dora' ? 'windward-jacket' : 'highland-cloak']) {
+              const parts = `${stripFor(h, c)}-parts`;
+              const r = weaponCoatContrast(pixels(sc.dressed(h, w, c)), pixels(parts), sc.img.get(parts)!.width);
               out[`${h}:${w}@${c}`] = { dE: Math.round(r.dE), dL: Math.round(r.dL), frame: r.frame };
             }
           return out;
@@ -433,6 +444,12 @@ export default function BellspirePage() {
               gameRef.current = new BellspireGame(s, { assist: settings.assist && !settings.strict, strict: settings.strict, wisp: settings.wisp });
               setEnding({ full: true, pct: gameRef.current.completion().pct }); setScreen('ending'); soundRef.current?.setTrack('ending');
             }}>See the epilogue</button>}
+            {hasSave && canEpilogue2 && <button type="button" className="bs-btn" onClick={() => {
+              // the Windward Belfry's ending page, with its epilogue
+              const s = readSave(); if (!s) return;
+              gameRef.current = new BellspireGame(s, { assist: settings.assist && !settings.strict, strict: settings.strict, wisp: settings.wisp });
+              setEnding({ full: true, pct: gameRef.current.completion().pct, belfry: true }); setScreen('ending'); soundRef.current?.setTrack('ending');
+            }}>See the belfry epilogue</button>}
             <button type="button" className={`bs-btn ${hasSave ? '' : 'bs-btn-main'}`} onClick={() => (hasSave ? setConfirmNew(true) : startGame(null))}>New game</button>
             <button type="button" className="bs-btn" onClick={() => { setMenu('settings'); }}>Settings</button>
             <a className="bs-btn bs-btn-ghost" href="/">← Arcade</a>
@@ -453,17 +470,24 @@ export default function BellspirePage() {
 
   if (screen === 'ending' && ending && g) {
     const c = g.completion();
+    // the citadel's ending counts the citadel; the Windward Belfry's counts everything
+    const shown = ending.belfry ? { pct: c.pct, chests: c.chests, murals: c.murals, of: COMPLETION } : { pct: c.base.pct, chests: c.base.chests, murals: c.base.murals, of: COMPLETION.base };
     return (
       <main className="bs-shell bs-end" data-ready="true">
-        <div className={`bs-end-art ${ending.full ? 'bs-end-full' : ''}`} />
+        <div className={`bs-end-art ${ending.belfry ? (ending.full ? 'bs-end-full2' : 'bs-end-belfry') : ending.full ? 'bs-end-full' : ''}`} />
         <div className="bs-end-panel">
-          <h2>The bells ring again</h2>
-          <p>The Lake Mother is calm, the water settles, and every bell in the Bellspire rings at once. Ukumari can rest at last.</p>
-          <p className="bs-end-stats">Explored {c.pct}% · {c.chests}/{COMPLETION.chests} chests · {c.murals}/{COMPLETION.murals} murals · Dora level {g.save.heroes.dora.level} · Enzo level {g.save.heroes.enzo.level} · {formatTime(g.save.time)}</p>
-          {ending.full ? <p className="bs-end-epi">Everything found! Turn the page for the epilogue: a picnic on the shore with Wayra, Ukumari and the Lake Mother.</p> : <p>Find everything (100%), and the epilogue plays the moment you do. The pause map shows what’s left. Your save is kept, so you can keep exploring.</p>}
+          <h2>{ending.belfry ? 'The belfry sings in tune' : 'The bells ring again'}</h2>
+          {ending.belfry
+            ? <p>The Out-of-Tune Bell rings true at last, and its note rolls down the Cloudstair to the lake. The wind on the mountain settles into a song.</p>
+            : <p>The Lake Mother is calm, the water settles, and every bell in the Bellspire rings at once. Ukumari can rest at last.</p>}
+          <p className="bs-end-stats">Explored {shown.pct}% · {shown.chests}/{shown.of.chests} chests · {shown.murals}/{shown.of.murals} murals · Dora level {g.save.heroes.dora.level} · Enzo level {g.save.heroes.enzo.level} · {formatTime(g.save.time)}</p>
+          {ending.belfry
+            ? (ending.full ? <p className="bs-end-epi">Everything found, citadel and belfry! Turn the page for the second epilogue: the whole mountain ringing at sunset.</p> : <p>Find everything in the citadel and the belfry (100%), and the second epilogue plays the moment you do. Your save is kept, so you can keep exploring.</p>)
+            : ending.full ? <p className="bs-end-epi">Everything found! Turn the page for the epilogue: a picnic on the shore with Wayra, Ukumari and the Lake Mother.</p> : <p>Find everything (100%), and the epilogue plays the moment you do. The pause map shows what’s left. Your save is kept, so you can keep exploring.</p>}
+          {!ending.belfry && <p className="bs-end-next">Wayra’s boat waits at the landing: high above the lake, the Windward Belfry is out of tune.</p>}
           <div className="bs-title-btns">
             <button type="button" className="bs-btn bs-btn-main" onClick={() => { const s = readSave(); if (s) { s.flags = s.flags.filter((f) => f !== 'ending'); startGame(s); } }}>Keep exploring</button>
-            <button type="button" className="bs-btn" onClick={() => { setCanEpilogue(epilogueEarned(readSave())); setScreen('title'); }}>Title</button>
+            <button type="button" className="bs-btn" onClick={() => { setCanEpilogue(epilogueEarned(readSave())); setCanEpilogue2(!!readSave()?.flags.includes('epilogue2')); setScreen('title'); }}>Title</button>
           </div>
         </div>
       </main>
@@ -645,14 +669,16 @@ export default function BellspirePage() {
   }
 
   function mapPanel(g: BellspireGame) {
-    const c = g.completion();
+    // the citadel's counts until the heroes cross to the Windward Belfry; everything after
+    const all = g.completion(), wide = g.flag('belfry:visited') || isBelfryRoom(g.room.id);
+    const c = wide ? all : all.base, of = wide ? COMPLETION : COMPLETION.base;
     const shrines = g.litShrines();
     return (
       <div className="bs-map-wrap">
         <MapCanvas g={g} travelMode={travelMode} onTravel={doTravel} navRef={mapNavRef} />
         <div className="bs-map-side">
           <p className="bs-pct">{c.pct}% explored</p>
-          <p className="bs-small-print bs-stats-line">Guardians {c.bosses} of {COMPLETION.bosses} · Rooms {c.cells} of {COMPLETION.cells} · Chests {c.chests} of {COMPLETION.chests} · Murals {c.murals} of {COMPLETION.murals}</p>
+          <p className="bs-small-print bs-stats-line">Guardians {c.bosses} of {of.bosses} · Rooms {c.cells} of {of.cells} · Chests {c.chests} of {of.chests} · Murals {c.murals} of {of.murals}</p>
           <p className="bs-small-print bs-seals">Throne seals: {g.sealsOpen()} of 4 open</p>
           <ul className="bs-legend" aria-label="Map key">
             <li><i className="lg-stub" />A way into a room not seen yet</li>
@@ -757,7 +783,7 @@ export default function BellspirePage() {
         <ul className="bs-list">
           {ABILITY_ORDER.map((a, i) => (
             <li key={a} className={g.has(a) ? '' : 'bs-locked'}>
-              <Icon i={24 + i} size={1.5} />
+              <Icon i={abilityIcon(a)} size={1.5} />
               <span className="bs-li-text"><b>{g.has(a) ? ABILITIES[a].name : '???'}</b><small>{g.has(a) ? ABILITIES[a].how : 'Not found yet. Doors marked with this colour need it.'}</small></span>
               <i className="bs-swatch" style={{ background: ABILITIES[a].color }} />
             </li>
@@ -898,6 +924,11 @@ function sealPips(ctx: CanvasRenderingContext2D, g: BellspireGame, x: number, y:
   GUARDIANS.forEach((b, i) => { ctx.fillStyle = g.flag(`boss:${b}`) ? AREAS[GUARDIAN_AREA[b]].color : '#3a3040'; ctx.fillRect(x0 + i * gap, Math.round(y), k, k); });
 }
 const SHRINE_ROOMS = ROOMS.filter((r) => INFO.get(r.id)!.things.some((t) => t.ch === 'S'));
+/** How many screens wide the map is: the citadel's twelve, or (once the heroes have crossed the water) the Windward
+ *  Belfry's too. */
+const BASE_SCREENS = Math.max(...ROOMS.filter((r) => !isBelfryRoom(r.id)).map((r) => r.gx + r.w));
+const ALL_SCREENS = Math.max(...ROOMS.map((r) => r.gx + r.w));
+function mapScreens(g: BellspireGame) { return g.flag('belfry:visited') || isBelfryRoom(g.room.id) ? ALL_SCREENS : BASE_SCREENS; }
 const DOOR_COLOR: Record<string, string> = { d: ABILITIES.dash.color, j: ABILITIES.double.color, k: ABILITIES.wallkick.color, l: ABILITIES.lantern.color, c: ABILITIES.chime.color, u: '#c9a46a', b: '#b85050' };
 
 type MapIcon = { id: string; x: number; y: number; lit: boolean };
@@ -1029,7 +1060,7 @@ function MapCanvas({ g, travelMode, onTravel, navRef }: { g: BellspireGame; trav
   const why = sel ? g.whyNotTravel(sel) : null;
   return (
     <div className="bs-map-col">
-      <div className="bs-map-box" ref={boxRef}><canvas ref={ref} className="bs-map" width={12 * 26 + 16} height={9 * 16 + 16} aria-label="Map of the Bellspire" onClick={tap} /></div>
+      <div className="bs-map-box" ref={boxRef}><canvas ref={ref} className="bs-map" width={mapScreens(g) * 26 + 16} height={9 * 16 + 16} aria-label="Map of the Bellspire" onClick={tap} /></div>
       {room && (
         <div className="bs-shrine-pick" role="dialog" aria-label={SHRINE_NAMES[room.id]}>
           <b>{lit.includes(room.id) ? SHRINE_NAMES[room.id] : 'Unlit shrine'}</b> <small>{AREAS[room.area].name}</small>

@@ -39,6 +39,15 @@ export const WEAPON_LOOK: Record<string, { blade?: Ramp; lift?: number; lamp?: R
     lamp: ramp([0, '#3a2408'], [0.3, '#9a6a18'], [0.55, '#e0b040'], [0.8, '#fff2a8']),
     arc: 'rgba(255,200,90,0.95)', light: [1, 0.78, 0.4], lightMul: 1, ring: 'rgba(255,205,70,0.95)',
   },
+  // the Windward Belfry's weapons: the Condor Talon's storm-white hooked blade, the Carillon Staff's pale bell-silver
+  // shaft with its cyan note-light (both clear of every coat, the outfits included)
+  'condor-talon': { lift: 0.1, blade: ramp([0, '#20283a'], [0.2, '#6a7c98'], [0.4, '#c4d4ea'], [0.62, '#f4f9ff'], [0.85, '#ffffff']), glint: true, arc: 'rgba(214,236,255,0.95)' },
+  'carillon-staff': {
+    lift: 0.18,
+    blade: ramp([0, '#2a3a44'], [0.15, '#7c98a4'], [0.32, '#c4dce4'], [0.55, '#eef8fb'], [0.8, '#ffffff']),
+    lamp: ramp([0, '#0a3240'], [0.3, '#1e8aa8'], [0.55, '#62e4ff'], [0.8, '#d8faff']),
+    arc: 'rgba(120,236,255,0.95)', light: [0.55, 0.95, 1], lightMul: 1.2, ring: 'rgba(110,230,255,0.95)',
+  },
   'star-lamp': {
     lift: 0.18,
     blade: ramp([0, '#3a4058'], [0.15, '#98a4c4'], [0.32, '#d8e0f4'], [0.55, '#f4f8ff'], [0.8, '#ffffff']),
@@ -46,6 +55,14 @@ export const WEAPON_LOOK: Record<string, { blade?: Ramp; lift?: number; lamp?: R
     arc: 'rgba(255,248,215,0.95)', light: [1, 0.97, 0.88], lightMul: 1.25,
   },
 };
+/** The two Windward Belfry outfits are painted whole, as their own strips (with part maps): a hero wearing one is
+ *  drawn from that strip, its blade or staff recoloured as usual and the outfit left as painted. */
+export const OUTFIT: Record<string, { hero: HeroId; strip: string }> = {
+  'windward-jacket': { hero: 'dora', strip: 'dora-windward' },
+  'highland-cloak': { hero: 'enzo', strip: 'enzo-highland' },
+};
+/** The strip a hero is drawn from in this coat. */
+export const stripFor = (hero: HeroId, coat: string): string => (OUTFIT[coat]?.hero === hero ? OUTFIT[coat].strip : hero);
 export const START_LOOK: Record<HeroId, { weapon: string; coat: string }> = {
   dora: { weapon: 'bronze-sword', coat: 'teal-coat' }, enzo: { weapon: 'oak-staff', coat: 'rust-coat' },
 };

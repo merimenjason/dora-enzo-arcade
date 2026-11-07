@@ -3,7 +3,7 @@
 // with one tune per area plus a boss theme and a quiet title theme. Effects for every action. Silent until the first
 // click, tap or key.
 const hz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
-export type Track = 'title' | 'hub' | 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'boss' | 'ending' | 'off';
+export type Track = 'title' | 'hub' | 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft' | 'boss' | 'ending' | 'off';
 type Song = { bpm: number; chords: number[][]; bass: number[]; mel: number[]; drum: string; lead: OscillatorType; pad: number };
 // melodies are 32 eighths, -1 rests; chords one per 8 eighths
 const SONGS: Record<Exclude<Track, 'off'>, Song> = {
@@ -21,6 +21,11 @@ const SONGS: Record<Exclude<Track, 'off'>, Song> = {
     mel: [69, -1, -1, -1, 72, -1, 71, -1, 68, -1, -1, -1, -1, -1, -1, -1, 64, -1, 65, -1, 68, -1, 71, -1, 69, -1, -1, -1, -1, -1, -1, -1] },
   throne: { bpm: 76, chords: [[50, 54, 57, 61], [47, 50, 54, 57], [43, 47, 50, 54], [45, 49, 52, 55]], bass: [38, 35, 31, 33], drum: 'x.......x.......', lead: 'triangle', pad: 0.032,
     mel: [78, -1, -1, 76, 74, -1, 73, -1, 74, -1, -1, -1, 69, -1, -1, -1, 71, -1, 73, -1, 74, -1, 76, -1, 73, -1, -1, -1, -1, -1, -1, -1] },
+  // the Windward Belfry: the Cloudstair a bright, windy huayno-like lilt; the Belfry Loft slow and ringing, in the bells' mode
+  cloud: { bpm: 118, chords: [[57, 60, 64], [55, 59, 62], [53, 57, 60], [52, 55, 59]], bass: [45, 43, 41, 40], drum: 'x..x..x.x..x..x.', lead: 'triangle', pad: 0.018,
+    mel: [81, -1, 79, 76, 74, -1, 76, -1, 79, -1, 76, 74, 72, -1, 69, -1, 72, -1, 74, -1, 76, 79, 76, 74, 72, -1, 71, -1, 69, -1, -1, -1] },
+  loft: { bpm: 66, chords: [[50, 53, 57, 60], [46, 50, 53, 57], [48, 52, 55, 59], [45, 48, 52, 55]], bass: [38, 34, 36, 33], drum: 'x.......x.......', lead: 'sine', pad: 0.036,
+    mel: [74, -1, -1, -1, 81, -1, 79, -1, 77, -1, -1, -1, 74, -1, -1, -1, 72, -1, 74, -1, 77, -1, 76, -1, 74, -1, -1, -1, -1, -1, -1, -1] },
   boss: { bpm: 140, chords: [[52, 55, 59], [52, 55, 59], [48, 52, 55], [50, 53, 57]], bass: [40, 40, 36, 38], drum: 'x.x.x.xxx.x.x.xx', lead: 'square', pad: 0.018,
     mel: [76, 76, -1, 79, -1, 76, 74, -1, 76, -1, 71, -1, 72, 74, 76, -1, 72, -1, 71, -1, 69, -1, 71, 72, 74, -1, 71, -1, 68, -1, 71, -1] },
   ending: { bpm: 80, chords: [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]], bass: [48, 45, 41, 43], drum: 'x.......x.......', lead: 'triangle', pad: 0.03,
@@ -137,6 +142,19 @@ export class BellspireSound {
       case 'level': [72, 79, 84, 91].forEach((m, i) => this.tone(hz(m), t + i * 0.06, 0.25, 0.06, 'square')); break;
       case 'bell': case 'toll': [0, 0.01].forEach((d, k) => { this.tone(hz(57 + k * 12), t + d, 2.2, 0.16 - k * 0.08, 'sine'); this.tone(hz(57) * 2.76, t, 1.2, 0.04, 'sine'); this.tone(hz(57) * 5.4, t, 0.6, 0.02, 'sine'); }); break;
       case 'chime': [84, 88, 91, 96].forEach((m, i) => this.tone(hz(m), t + i * 0.05, 1.2, 0.05, 'sine')); break;
+      // the Windward Belfry
+      case 'rope': this.hiss(t, 0.18, 0.07, 1400, 1.4, 'bandpass', 700); this.tone(hz(64), t + 0.08, 0.12, 0.05, 'triangle', hz(60)); break;
+      case 'swoosh': this.hiss(t, 0.3, 0.09, 700, 0.8, 'bandpass', 2200); break;
+      case 'creak': this.tone(110, t, 0.3, 0.05, 'sawtooth', 140); this.hiss(t, 0.2, 0.03, 500, 2, 'bandpass'); break;
+      case 'clank': this.tone(hz(52) * 2.4, t, 0.25, 0.08, 'square', hz(50) * 2.4); this.hiss(t, 0.06, 0.07, 2600); break;
+      case 'windbell': [79, 83, 86].forEach((m, i) => this.tone(hz(m), t + i * 0.09, 0.9, 0.05, 'sine')); this.hiss(t, 0.5, 0.05, 1800, 0.6, 'bandpass', 600); break;
+      case 'wind': this.hiss(t, 0.7, 0.06, 900, 0.5, 'bandpass', 1500); break;
+      case 'echo': [86, 81, 86, 90].forEach((m, i) => { this.tone(hz(m), t + i * 0.2, 0.7, 0.05 - i * 0.008, 'sine'); }); break;
+      case 'frost': this.hiss(t, 0.2, 0.08, 6000, 1.5, 'bandpass', 3000); [91, 94, 98].forEach((m, i) => this.tone(hz(m), t + i * 0.03, 0.2, 0.025, 'triangle')); break;
+      case 'gale': this.hiss(t, 0.8, 0.13, 500, 0.7, 'bandpass', 2400); this.tone(110, t, 0.6, 0.05, 'sawtooth', 220); break;
+      case 'hail': this.hiss(t, 0.05, 0.05, 5000, 2); this.tone(hz(96), t, 0.04, 0.02, 'square'); break;
+      case 'puff': this.hiss(t, 0.25, 0.06, 1100, 0.7, 'bandpass', 500); break;
+      case 'row': this.hiss(t, 0.3, 0.07, 900, 0.8, 'lowpass', 300); this.tone(hz(57), t + 0.1, 0.2, 0.03, 'triangle'); break;
       case 'clang': this.tone(hz(69) * 2.76, t, 0.6, 0.08, 'sine'); this.tone(hz(69), t, 0.8, 0.08, 'sine'); this.hiss(t, 0.08, 0.08, 3000); break;
       case 'shrine': [67, 72, 76, 79].forEach((m, i) => this.tone(hz(m), t + i * 0.12, 1, 0.06, 'sine')); break;
       case 'door': this.tone(110, t, 0.3, 0.1, 'sawtooth', 70); this.hiss(t, 0.3, 0.05, 600, 1, 'lowpass'); break;

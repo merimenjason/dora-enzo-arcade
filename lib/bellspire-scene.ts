@@ -7,7 +7,7 @@ import {
   type Room, type GameEvent, type HeroId, type Boss, type NumKind,
 } from './bellspire-game';
 import { GUARDIANS, GUARDIAN_AREA } from './bellspire-world';
-import { dressStrip, WEAPON_LOOK, COAT_LOOK, START_LOOK } from './bellspire-gear-art';
+import { dressStrip, WEAPON_LOOK, COAT_LOOK, START_LOOK, OUTFIT, stripFor } from './bellspire-gear-art';
 import { ART, FLAMES, BOXES } from './bellspire-art';
 import { HeroAnimator, type AnimInput, type AnimOut } from './bellspire-anim';
 
@@ -15,7 +15,7 @@ type Img = HTMLImageElement | HTMLCanvasElement;
 /** Extra treatment for a sprite: `rim` adds a dark outline and a lit upper edge in that colour; `tell` flashes it. */
 type SprFx = { rim?: string; tell?: boolean };
 /** Each guardian's rim light, in the colour of its arena's light. */
-const RIM: Record<string, string> = { frog: '#bfe6ff', hydra: '#eaf5a8', puma: '#ffd49a', warden: '#ffe49a', mother: '#b4fff0' };
+const RIM: Record<string, string> = { frog: '#bfe6ff', hydra: '#eaf5a8', puma: '#ffd49a', warden: '#ffe49a', mother: '#b4fff0', condor: '#ffd0a8', clappers: '#c8d8ff', tune: '#a8f4ff' };
 /** A point light; `soft` lights fall off linearly (a wide, even pool), the rest fall off with the square (a hot centre). */
 type Light = { x: number; y: number; r: number; c: [number, number, number]; i: number; soft?: boolean };
 /** how a piece of decor moves: swings from its top, ripples from its top (cloth, nets), or bends from its base (reeds) */
@@ -27,6 +27,10 @@ const SWAY: Record<string, Record<number, Sway>> = {
   towers: { 0: 'pend', 1: 'pend', 3: 'pend', 7: 'cloth' },
   crypt: {},
   throne: { 2: 'pend', 3: 'plant', 6: 'pend', 7: 'plant' },
+  // the Cloudstair: the banner, the prayer cloths, the ichu grass and the chimes move in the wind; the loft's lantern,
+  // chain and rope coil hang and swing
+  cloud: { 1: 'cloth', 2: 'cloth', 4: 'plant', 6: 'pend' },
+  loft: { 0: 'pend', 3: 'pend', 7: 'pend' },
 };
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number; g: number; light?: boolean };
 
@@ -38,8 +42,23 @@ const DECOR: Record<string, { torch: number; candle: number; window: number; bel
   towers: { torch: 4, candle: 6, window: 5, bell: 1, floor: [], wall: [2, 7], ceil: [3], back: 0.45 },
   crypt: { torch: 6, candle: 2, window: -1, bell: -1, floor: [3, 7], wall: [0, 1, 5], ceil: [4], back: 0.92 },
   throne: { torch: 2, candle: 7, window: -1, bell: 6, floor: [1, 3, 4], wall: [5], ceil: [], back: 0.6 },
+  // (the Cloudstair is out under the sky: no back wall, and no pillars standing in the air)
+  cloud: { torch: 0, candle: 6, window: -1, bell: 0, floor: [3, 4, 5, 7], wall: [1, 2], ceil: [], back: 0 },
+  loft: { torch: 0, candle: 2, window: 6, bell: 2, floor: [5], wall: [1, 3, 4], ceil: [7], back: 0.6 },
 };
 const WATER_TINT: Record<string, [number, number, number]> = { halls: [52, 104, 176], docks: [46, 120, 104], throne: [34, 128, 140], hub: [52, 104, 176], towers: [52, 104, 176], crypt: [60, 70, 120] };
+/** The Cloudstair's 'torches' are bell posts that stand on the ground: the floor under a torch mark (world y), or null
+ *  where there is none close below. */
+function postFloor(room: Room, c: number, r: number): number | null {
+  if (AREAS[room.area].tiles !== 'cloud') return null;
+  for (let k = 1; k < 14; k++) if ('#='.includes(rawChar(c, r + k))) return (r + k) * TILE;
+  return null;
+}
+/** How far up (in tiles) to the stone over a spot, for chains to hang from; 0 when there is none close above. */
+function ceilingAbove(c: number, r: number, max = 12): number {
+  for (let k = 0; k < max; k++) if (SOLIDISH.includes(rawChar(c, r - 1 - k))) return k;
+  return 0;
+}
 const hash = (c: number, r: number) => { let h = (c * 374761393 + r * 668265263) >>> 0; h = ((h ^ (h >>> 13)) * 1274126177) >>> 0; return (h ^ (h >>> 16)) >>> 0; };
 const SOLIDISH = '#^';
 
@@ -165,14 +184,14 @@ export class BellspireScene {
   }
 
   async load(base = '/art/bellspire/') {
-    const names = Object.keys(ART).concat(['parchment', 'dora-parts', 'enzo-parts']);
+    const names = Object.keys(ART).concat(['parchment', 'dora-parts', 'enzo-parts', ...Object.values(OUTFIT).map((o) => `${o.strip}-parts`)]);
     await Promise.all([...new Set(names)].map((n) => new Promise<void>((res) => {
       const im = new Image();
       im.onload = () => { this.img.set(n, im); res(); };
       im.onerror = () => res();
       im.src = `${base}${n}.webp`;
     })));
-    for (const n of ['dora', 'enzo', 'foes', 'boss-frog', 'boss-puma', 'boss-mother', 'boss-hydra', 'hydra-head', 'boss-warden']) {
+    for (const n of ['dora', 'enzo', 'foes', 'boss-frog', 'boss-puma', 'boss-mother', 'boss-hydra', 'hydra-head', 'boss-warden', 'boss-condor', 'boss-clapper-a', 'boss-clapper-b', 'boss-bell', ...Object.values(OUTFIT).map((o) => o.strip)]) {
       const im = this.img.get(n);
       if (!im) continue;
       const c = document.createElement('canvas');
@@ -189,11 +208,14 @@ export class BellspireScene {
   /** The strip a hero is drawn from in the gear they wear: the painted strip for the starting gear, else a copy with
    *  the coat, blade, staff and lantern recoloured (made once per combination). */
   dressed(hero: HeroId, weapon: string, coat: string): string {
-    const key = `${hero}@${weapon}@${coat}`;
-    if (weapon === START_LOOK[hero].weapon && coat === START_LOOK[hero].coat && !COAT_LOOK[coat]?.shell && !WEAPON_LOOK[weapon]?.blade) return hero;
+    // the belfry outfits are their own painted strips
+    const strip = stripFor(hero, coat);
+    if (strip !== hero && !this.img.has(strip)) return this.dressed(hero, weapon, START_LOOK[hero].coat);
+    const key = `${strip}@${weapon}@${coat}`;
+    if (weapon === START_LOOK[hero].weapon && (strip !== hero || coat === START_LOOK[hero].coat) && !COAT_LOOK[coat]?.shell && !WEAPON_LOOK[weapon]?.blade) return strip;
     if (this.img.has(key)) return key;
-    const im = this.img.get(hero), pm = this.img.get(`${hero}-parts`);
-    if (!im || !pm || typeof document === 'undefined') return hero;
+    const im = this.img.get(strip), pm = this.img.get(`${strip}-parts`);
+    if (!im || !pm || typeof document === 'undefined') return strip;
     const c = document.createElement('canvas');
     c.width = im.width; c.height = im.height;
     const x = c.getContext('2d', { willReadFrequently: true })!;
@@ -204,7 +226,7 @@ export class BellspireScene {
     const px = p.getContext('2d', { willReadFrequently: true })!;
     px.drawImage(pm, 0, 0);
     const pd = px.getImageData(0, 0, p.width, p.height);
-    this.coatBoxes.set(key, dressStrip(d.data, pd.data, c.width, c.height, ART[hero][0], hero, weapon, coat));
+    this.coatBoxes.set(key, dressStrip(d.data, pd.data, c.width, c.height, ART[strip][0], hero, weapon, coat));
     x.putImageData(d, 0, 0);
     this.img.set(key, c);
     return key;
@@ -393,7 +415,8 @@ export class BellspireScene {
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       if (!air(x, y)) continue;
       if (back > 0) T(6, x * 16, y * 16, back);
-      if (back > 0 && (c0 + x) % 12 === 6) T(7, x * 16, y * 16, Math.min(1, back + 0.25));
+      // (the Belfry Loft's middle layer has its own posts and beams: no extra pillars standing in front of it)
+      if (back > 0 && set !== 'loft' && (c0 + x) % 12 === 6) T(7, x * 16, y * 16, Math.min(1, back + 0.25));
     }
     // decor sprinkled on the back wall
     const decor = this.img.get(`decor-${set}`);
@@ -422,7 +445,17 @@ export class BellspireScene {
     // the map marks that are part of the walls
     for (const t of INFO.get(room.id)!.things) {
       const x = (t.c - c0) * 16 + 8, y = (t.r - r0 + 1) * 16;
-      if (t.ch === 'T') D(dec.torch, x, y + 4);
+      if (t.ch === 'T') {
+        const fy = postFloor(room, t.c, t.r);
+        if (fy !== null) D(dec.torch, x, fy - r0 * 16);
+        else {
+          D(dec.torch, x, y + 4);
+          // a hanging lantern (the loft) hangs from a chain to the beam or stone over it
+          if (set === 'loft') { const up = ceilingAbove(t.c, t.r); if (up) this.drawChain(ctx, x, y + 4 - 28, y - 16 - up * 16); } // (the lantern is painted 30 px tall)
+        }
+      }
+      // a bell hook hangs from a chain to the stone over it (its sprite is drawn live, from the top of its tile)
+      else if (t.ch === 'o') { const up = ceilingAbove(t.c, t.r); if (up) this.drawChain(ctx, x, y - 16 + 2, y - 16 - up * 16); }
       else if (t.ch === 'i') D(dec.candle >= 0 ? dec.candle : 0, x, y);
       else if (t.ch === 'w') { if (dec.window >= 0) D(dec.window, x, y + 16); else this.drawWindow(ctx, x, y); }
       else if (t.ch === 'h') D(dec.bell >= 0 ? dec.bell : 0, x, y + 24);
@@ -434,7 +467,9 @@ export class BellspireScene {
       if (ch === '#') {
         const top = air(x, y - 1) && y > 0, under = air(x, y + 1) && y < H - 1;
         const h = hash(c0 + x, r0 + y);
-        T(top ? 0 : under ? 8 : h % 9 === 0 ? 2 : 1, x * 16, y * 16);
+        // (the Cloudstair's stone has a second top and a second fill, in slots its open sky leaves free)
+        const alt = set === 'cloud' && (h >> 4) % 3 === 0;
+        T(top ? (alt ? 6 : 0) : under ? 8 : h % 9 === 0 ? 2 : alt ? 7 : 1, x * 16, y * 16);
         // edge shading so stone reads as solid mass
         if (!top && !under && (air(x - 1, y) || air(x + 1, y))) { ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(air(x - 1, y) ? x * 16 : x * 16 + 15, y * 16, 1, 16); }
       } else if (ch === '=') T(3, x * 16, y * 16);
@@ -468,6 +503,26 @@ export class BellspireScene {
     ctx.fillStyle = '#4a78a8'; ctx.fillRect(x - 6, y - 38, 12, 28);
     ctx.fillStyle = '#8fc0e8'; ctx.fillRect(x - 4, y - 36, 3, 10);
   }
+  /** An iron chain from (x, yBottom) straight up to yTop (room-canvas pixels): links seen face-on and edge-on in turn,
+   *  with a bracket where it meets the stone. */
+  drawChain(ctx: CanvasRenderingContext2D, x: number, yBottom: number, yTop: number) {
+    x = Math.round(x);
+    for (let y = Math.round(yTop), k = 0; y < yBottom; y += 4, k++) {
+      if (k % 2 === 0) {
+        ctx.fillStyle = '#231d1a'; ctx.fillRect(x - 2, y, 4, 5);
+        ctx.fillStyle = '#6b5d50'; ctx.fillRect(x - 1, y + 1, 1, 3); ctx.fillRect(x + 1, y + 1, 1, 3);
+        ctx.fillStyle = '#231d1a'; ctx.fillRect(x, y + 1, 1, 3);
+      } else {
+        ctx.fillStyle = '#231d1a'; ctx.fillRect(x - 1, y, 2, 5);
+        ctx.fillStyle = '#93826e'; ctx.fillRect(x - 1, y + 1, 1, 3);
+      }
+    }
+    // the bracket bolted to the stone
+    ctx.fillStyle = '#231d1a'; ctx.fillRect(x - 5, Math.round(yTop), 10, 4);
+    ctx.fillStyle = '#7d6c5a'; ctx.fillRect(x - 4, Math.round(yTop), 8, 2);
+    ctx.fillStyle = '#b8a487'; ctx.fillRect(x - 4, Math.round(yTop), 1, 1); ctx.fillRect(x + 3, Math.round(yTop), 1, 1);
+  }
+
   drawSpikes(ctx: CanvasRenderingContext2D, x: number, y: number) {
     for (let i = 0; i < 4; i++) {
       const sx = x + i * 4;
@@ -526,6 +581,7 @@ export class BellspireScene {
     this.drawDynamicTiles(g, ox, oy);
     this.drawLive(g, ox, oy);
     this.drawThings(g, ox, oy);
+    this.drawBelfry(g, ox, oy);
     this.drawPickups(g, ox, oy);
     this.drawEnemies(g, ox, oy);
     if (g.boss) this.drawBoss(g, g.boss, ox, oy);
@@ -644,8 +700,8 @@ export class BellspireScene {
       this.wasOpen.set(d.id, open);
       if (open && was === false) this.opening.set(d.id, 0);
       const x = d.c * TILE + ox, y = d.r * TILE + oy, w = d.w * TILE, h = d.h * TILE;
-      const ab = ({ d: 'dash', j: 'double', k: 'wallkick', l: 'lantern', c: 'chime' } as Record<string, keyof typeof ABILITIES>)[d.ch];
-      const col = ab ? ABILITIES[ab].color : d.ch === 'u' ? '#c9a46a' : '#b85050';
+      const ab = ({ d: 'dash', j: 'double', k: 'wallkick', l: 'lantern', c: 'chime', y: 'rope', n: 'echo' } as Record<string, keyof typeof ABILITIES>)[d.ch];
+      const col = ab ? ABILITIES[ab].color : d.ch === 'u' ? '#c9a46a' : d.ch === 'Z' ? '#9fc4ff' : '#b85050';
       // opening: the rune blazes for a moment, then the door slides away into the wall (a hatch, sideways)
       const ot = this.opening.get(d.id);
       if (open && ot !== undefined && ot < 40) {
@@ -689,6 +745,27 @@ export class BellspireScene {
           ctx.fillStyle = on ? AREAS[GUARDIAN_AREA[b]].color : '#4a3a40'; ctx.fillRect(sx + 1, sy + 1, 5, 5);
           if (on) { ctx.fillStyle = '#fff6d8'; ctx.fillRect(sx + 2, sy + 2, 1, 1); } else { ctx.fillStyle = '#2a2026'; ctx.fillRect(sx + 3, sy + 2, 1, 3); }
         });
+      }
+      else if (d.ch === 'Z') {
+        // the belfry seal: two bell seals, the Hail Condor's and the Twin Clappers', lit once each is calm
+        ctx.fillRect(x + 1, cyr - 1, w - 2, 2); ctx.fillRect(cxr - 1, y + 1, 2, h - 2);
+        ctx.globalAlpha = 1;
+        (['condor', 'clappers'] as const).forEach((b, i) => {
+          const sx = Math.round(d.horiz ? x + ((i + 0.5) * w) / 2 : cxr) - 3, sy = Math.round(d.horiz ? cyr : y + ((i + 0.5) * h) / 2) - 3, on = g.flag(`boss:${b}`);
+          ctx.fillStyle = '#1a1020'; ctx.fillRect(sx, sy, 7, 7);
+          ctx.fillStyle = on ? AREAS[b === 'condor' ? 'cloud' : 'loft'].color : '#4a3a40'; ctx.fillRect(sx + 1, sy + 1, 5, 5);
+          if (on) { ctx.fillStyle = '#fff6d8'; ctx.fillRect(sx + 2, sy + 2, 1, 1); } else { ctx.fillStyle = '#2a2026'; ctx.fillRect(sx + 3, sy + 2, 1, 3); }
+        });
+      } else if (d.ch === 'y') {
+        // a rope knot: a loop with a tail
+        const X = Math.round(cxr), Y = Math.round(cyr);
+        ctx.fillRect(X - 3, Y - 4, 6, 1); ctx.fillRect(X - 3, Y + 1, 6, 1); ctx.fillRect(X - 4, Y - 3, 1, 4); ctx.fillRect(X + 3, Y - 3, 1, 4); ctx.fillRect(X, Y + 2, 1, 4);
+        ctx.fillStyle = '#fff'; ctx.fillRect(X - 1, Y - 2, 2, 2);
+      } else if (d.ch === 'n') {
+        // a note: a stem and a head
+        const X = Math.round(cxr), Y = Math.round(cyr);
+        ctx.fillRect(X + 1, Y - 5, 1, 7); ctx.fillRect(X - 2, Y + 1, 4, 3); ctx.fillRect(X + 1, Y - 5, 3, 1);
+        ctx.fillStyle = '#fff'; ctx.fillRect(X - 1, Y + 2, 1, 1);
       }
       else { ctx.fillRect(Math.round(cxr) - 3, Math.round(cyr) - 3, 6, 6); ctx.fillStyle = '#fff'; ctx.fillRect(Math.round(cxr) - 1, Math.round(cyr) - 1, 2, 2); }
       ctx.globalAlpha = 1;
@@ -803,7 +880,22 @@ export class BellspireScene {
         this.spr('props', 7, x, y);
         const n = room.murals?.[t.i] ?? 0;
         if (!g.flag(`mural:${n}`) && this.t % 60 < 40) { this.ctx.fillStyle = '#ffe27a'; this.ctx.fillRect(x - 1, y - 38, 2, 2); }
-      } else if (t.ch === 'M') this.spr('npcs', Math.floor(this.t / 40) % 2, x, y + 2, g.body.x > x - ox);
+      } else if (t.ch === 'o') this.spr('props2', 0, x, t.r * TILE + oy + 18); // hung from the top of its tile
+      else if (t.ch === 'Q') {
+        // an echo bell glows while its notes hang in the air
+        const lit = g.notes.some((n) => n.key.startsWith(`${room.id}:${t.i}:`));
+        this.spr('props2', lit ? 2 : 1, x, y);
+      } else if (t.ch === 'W') {
+        // a wind bell: its streamers fly the way the wind blows (the art's frame 3 blows east), swinging a while when rung
+        const area = room.area as 'cloud' | 'loft', east = (g.save.wind[area] ?? 1) > 0;
+        const k = `w${t.c},${t.r}`, was = this.wasOpen.get(k);
+        this.wasOpen.set(k, east);
+        if (was !== undefined && was !== east) this.bellSwing.set(k, 40);
+        const sw = this.bellSwing.get(k) ?? 0;
+        if (sw > 0) this.bellSwing.set(k, sw - 1);
+        this.spr('props2', sw > 0 && sw % 10 < 5 ? (east ? 4 : 3) : east ? 3 : 4, x + Math.round(Math.sin(sw * 0.5) * (sw / 20)), y);
+      } else if (t.ch === 'D') this.spr('props2', 6, x + 12, y + 6);
+      else if (t.ch === 'M') this.spr('npcs', Math.floor(this.t / 40) % 2, x, y + 2, g.body.x > x - ox);
       else if (t.ch === 'U') this.spr('npcs', 2 + (Math.floor(this.t / 50) % 2), x, y + Math.sin(this.t * 0.04) * 2, g.body.x < x - ox, 0.85);
       else if (t.ch === 'A') {
         const ctx = this.ctx;
@@ -814,6 +906,63 @@ export class BellspireScene {
     }
     // the coin bag after a wipe
     this.chestSeen = true;
+  }
+
+  /** The Windward Belfry's moving world: the giant swinging bells on their ropes, the echo notes, wind streaks in the
+   *  gusts, and Dora's Bell Rope from her hand to its hook. */
+  drawBelfry(g: BellspireGame, ox: number, oy: number) {
+    const ctx = this.ctx, room = g.room;
+    // swinging bells: a rope from the beam, and the bell turned to its angle about the rope's end
+    const p2 = this.img.get('props2'), a2 = ART.props2;
+    for (const sb of g.swingBells()) {
+      const px = sb.px + ox, py = sb.py + oy, bx = sb.x + ox, by = sb.y + oy;
+      ctx.strokeStyle = '#3a2a1e'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(bx, by); ctx.stroke();
+      ctx.strokeStyle = '#a07a4a'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(bx, by); ctx.stroke();
+      ctx.fillStyle = '#231a1e'; ctx.fillRect(Math.round(px) - 3, Math.round(py) - 2, 6, 4);
+      if (p2 && a2) {
+        ctx.save(); ctx.translate(Math.round(bx), Math.round(by)); ctx.rotate(-sb.ang * 0.6);
+        // the headstock (the part to stand on) is the frame's top: draw the bell hanging below it
+        ctx.drawImage(p2, 5 * a2[0], 0, a2[0], a2[1], -a2[0] / 2, -a2[1] + 56 - 2, a2[0], a2[1]);
+        ctx.restore();
+      }
+    }
+    // echo notes: they fade in one after another, and flicker as they run out
+    for (const n of g.notes) {
+      if (n.room !== room.id || n.t < n.at) continue;
+      const left = n.life - n.t, a = Math.min(1, (n.t - n.at) / 8) * (left < 60 ? (Math.floor(left / 5) % 2 ? 0.35 : 0.9) : 0.9);
+      const x = (n.x0 + n.x1) / 2 + ox, y = n.y + oy;
+      if (p2 && a2) { ctx.globalAlpha = a; this.spr('props2', 7, x, y + 10); ctx.globalAlpha = 1; }
+      else { ctx.fillStyle = `rgba(95,227,255,${a})`; ctx.fillRect(Math.round(n.x0 + ox), Math.round(y), n.x1 - n.x0, 4); }
+      if (this.t % 12 === 0) this.particles.push({ x: x - ox + (Math.random() - 0.5) * 24, y: y - oy, vx: 0, vy: -0.3, life: 0, max: 24, color: '#9ff4ff', size: 1, g: 0, light: true });
+    }
+    // gusts: streaks blowing the way the wind goes
+    const gz = room.gusts, area = room.area as 'cloud' | 'loft';
+    if (gz || g.boss?.calm === false) {
+      const zones: [number, number, number, number, number][] = [];
+      const c0 = room.gx * COLS, r0 = room.gy * ROWS;
+      for (const z of gz ?? []) if ((z as unknown[])[5] !== 'boss') zones.push([c0 + z[0], r0 + z[1], c0 + z[2], r0 + z[3], (g.save.wind[area] ?? 1) * (z[4] as number)]);
+      if (g.boss && !g.boss.calm && g.arenaWind && g.windAt(g.body.x, g.body.y - 10) !== 0) {
+        const rr = g.bossRoomRect(); zones.push([rr.x / TILE, rr.y / TILE, (rr.x + rr.w) / TILE, (rr.y + rr.h) / TILE, g.windAt(g.body.x, g.body.y - 10)]);
+      }
+      ctx.strokeStyle = 'rgba(255,248,236,0.35)'; ctx.lineWidth = 1;
+      for (const [x0, y0, x1, y1, w] of zones) {
+        if (!w) continue;
+        const W = (x1 - x0) * TILE, H = (y1 - y0) * TILE;
+        for (let k = 0; k < Math.min(40, Math.round((W * H) / 2600)); k++) {
+          const h = hash(k, x0 * 7 + y0), sp = 1.5 + (h % 5) * 0.4;
+          const xx = x0 * TILE + ((((h >> 3) % W) + this.t * sp * Math.sign(w) * Math.abs(w)) % W + W) % W, yy = y0 * TILE + ((h >> 9) % H);
+          const L = 6 + (h % 7);
+          ctx.beginPath(); ctx.moveTo(Math.round(xx + ox), Math.round(yy + oy) + 0.5); ctx.lineTo(Math.round(xx + ox - Math.sign(w) * L), Math.round(yy + oy) + 0.5); ctx.stroke();
+        }
+      }
+    }
+    // the Bell Rope, from Dora's raised hand to the hook
+    const b = g.body;
+    if (b.rope && g.lead === 'dora') {
+      const hx = b.x + ox + b.face * 2, hy = b.y - HERO_H - 6 + oy;
+      ctx.strokeStyle = '#3a2414'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(b.rope.hx + ox, b.rope.hy + oy); ctx.stroke();
+      ctx.strokeStyle = '#d99a52'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(b.rope.hx + ox, b.rope.hy + oy); ctx.stroke();
+    }
   }
 
   drawPickups(g: BellspireGame, ox: number, oy: number) {
@@ -846,6 +995,13 @@ export class BellspireScene {
       const y = e.y + oy + 1;
       // a tell shivers, so the warning is easy to see
       if (e.st === 'tell') x += (this.t % 4 < 2 ? 1 : -1);
+      // a clapper hangs on its rope from the tie above its spot (the art is the body only, ring at the top)
+      if (e.kind === 'clapper') {
+        const ctx = this.ctx, ax = e.hx + ox, ay = e.hy - 34 + oy, tx = e.x + ox, ty = e.y + oy + 1 - 28;
+        ctx.strokeStyle = '#2a1c14'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(tx, ty); ctx.stroke();
+        ctx.strokeStyle = '#b08850'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(tx, ty); ctx.stroke();
+        ctx.fillStyle = '#231a1e'; ctx.fillRect(Math.round(ax) - 2, Math.round(ay) - 2, 4, 3);
+      }
       // hurt: a white flash and a squash that springs back
       const hurt = e.flash > 4;
       if (hurt) {
@@ -867,11 +1023,18 @@ export class BellspireScene {
     const ev = this.animEvents[lead]; this.animEvents[lead] = [];
     if (b.jumped) ev.push('jumped');
     if (b.jumped === 'wall') ev.push('kicked');
+    if (b.hooked) ev.push('hooked');
+    if (b.unhooked) ev.push('unhooked');
     return {
       ground: b.ground, vx: b.vx, vy: b.vy, face: b.face, climb: b.climb, swim: b.swim, wade: b.wade, glide: b.glide,
       wallSlide: b.wall !== 0 && !b.ground && b.vy > 0 && g.has('wallkick'), dash: b.dashT > 0, hurt: rt.hurtT > 0, down: false,
       act: act ? { kind: act.kind, n: act.n, t: act.t, wind: sw.wind, active: sw.act, spell: act.spell } : null,
       castHold: rt.castHold > 6, lanternUp: lead === 'enzo' && g.lanternUp, events: ev,
+      // the Windward Belfry: the rope's angle as seen from the way the hero faces, the gust, the float underfoot, hail
+      rope: b.rope ? { ang: b.rope.ang * b.face, av: b.rope.av * b.face } : null,
+      gust: b.ground && Math.abs(b.vx) < 0.3 ? b.gust : 0, ride: g.riding,
+      hail: g.shots.some((s) => !s.friendly && (s.kind === 'hail' || s.kind === 'ice') && Math.abs(s.x - b.x) < 60 && s.y < b.y && b.y - s.y < 120),
+      castLong: rt.castHold >= 40 && g.save.spells.includes('gale'),
     };
   }
 
@@ -1099,6 +1262,28 @@ export class BellspireScene {
       const wf = b.calm ? 4 : st === 'swing' || st === 'swing2' ? 2 : st === 'rest' || st === 'drop' || st.endsWith('Tell') ? 1 : b.flash > 3 ? 3 : 0;
       this.spr('boss-warden', wf, b.x + ox, body.y + body.h + oy + 6, false, calmA, white, fx);
     }
+    else if (b.id === 'condor') {
+      // the Hail Condor: drawn standing on (or diving at) the bottom of its body, facing the heroes
+      this.spr('boss-condor', fr, b.x + ox, b.y + 30 + oy, b.face > 0, calmA, white, fx);
+    } else if (b.id === 'clappers' || b.id === 'tune') {
+      // the clappers and the Out-of-Tune Bell hang from ropes: the rope from the beam, the body turned to its angle
+      const names = b.id === 'tune' ? ['boss-bell'] : ['boss-clapper-a', 'boss-clapper-b'];
+      b.heads.forEach((h, i) => {
+        const name = names[i], a = ART[name];
+        if (!a) return;
+        const quiet = b.calm || h.st === 'calm';
+        const hst = b.id === 'tune' ? st : h.st;
+        const hfr = quiet ? 5 : hst.endsWith('Tell') ? (Math.floor(this.t / 7) % 2 ? 3 : 1) : /swing|slam|clap|toll|sour|crack/.test(hst) ? 2 : b.flash > 3 ? 4 : 0;
+        const bodyH = b.id === 'tune' ? 74 : 48;
+        const topX = h.x + ox, topY = h.y - bodyH / 2 + (b.id === 'tune' ? -4 : 0) + oy;
+        for (const [w, c] of [[3, '#2a1c14'], [1, '#b08850']] as const) { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(h.bx + ox, h.by + oy); ctx.lineTo(topX, topY); ctx.stroke(); }
+        ctx.fillStyle = '#231a1e'; ctx.fillRect(Math.round(h.bx + ox) - 4, Math.round(h.by + oy) - 3, 8, 4);
+        ctx.save(); ctx.translate(Math.round(topX), Math.round(topY)); ctx.rotate(-(h.ang ?? 0));
+        const vis = b.id === 'tune' ? b.vis : 1;
+        this.spr(name, hfr, 0, b.id === 'tune' ? bodyH + 6 : 64, false, (quiet && !b.calm ? 0.8 : calmA) * vis, white && !quiet, quiet ? undefined : { rim: fx.rim, tell: hst.endsWith('Tell') && Math.floor(this.t / 3) % 2 === 0 });
+        ctx.restore();
+      });
+    }
     if (tell && !b.calm) this.text('!', body.x + body.w / 2 + ox, body.y - 10 + oy, '#ffe27a');
     // floor markers for falling bells and lilies
     for (const m of g.markers) {
@@ -1121,6 +1306,20 @@ export class BellspireScene {
       if (s.kind === 'bolt') this.spr('foes', 23, x, y + 24 - 6, s.vx < 0);
       else if (s.kind === 'mud') this.spr('foes', 21, x, y + 24 - 5);
       else if (s.kind === 'bell') this.spr('foes', 20, x, y + 24 - 10);
+      // the Windward Belfry's: hail and icicles, gust puffs, the Gale Wave, plank chunks, shards, cogs and sour notes
+      else if (s.kind === 'hail') this.spr('foes', s.friendly ? 136 : 143, x, y + 6, s.vx < 0);
+      else if (s.kind === 'ice') this.spr('foes', s.r >= 8 ? 143 : 137, x, y + 8, s.vx < 0);
+      else if (s.kind === 'puff') this.spr('foes', 138, x, y + 8, s.vx < 0);
+      else if (s.kind === 'plank') this.spr('foes', 139, x, y + 6);
+      else if (s.kind === 'shard') this.spr('foes', 140, x, y + 6, s.vx < 0);
+      else if (s.kind === 'cog') this.spr('foes', 141, x, y + 7);
+      else if (s.kind === 'sour') this.spr('foes', 142, x, y + 6);
+      else if (s.kind === 'gale') {
+        // a rolling arc of wind
+        const f = s.vx < 0 ? -1 : 1;
+        for (let k = 0; k < 3; k++) { ctx.strokeStyle = `rgba(220,250,255,${0.85 - k * 0.25})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x - f * k * 6, y, s.r - k * 2, f > 0 ? -1.2 : Math.PI - 1.2 + 0.0, f > 0 ? 1.2 : Math.PI + 1.2); ctx.stroke(); }
+        if (this.t % 3 === 0) this.particles.push({ x: s.x, y: s.y + (Math.random() - 0.5) * 20, vx: -f * 0.6, vy: 0, life: 0, max: 16, color: '#e8fbff', size: 1, g: 0 });
+      }
       else if (s.kind === 'bubble') { ctx.strokeStyle = 'rgba(200,250,255,0.9)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, s.r, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = 'rgba(160,230,240,0.3)'; ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillRect(x - 3, y - 3, 2, 2); }
       else {
         const c = s.kind === 'water' ? ['#2a5aa0', '#7ac0ff'] : s.kind === 'seed' ? ['#3a5a1a', '#a8d050'] : s.kind === 'paint' ? ['#7a3010', '#ff9040'] : s.kind === 'lily' ? ['#3a7a50', '#e8fff0'] : ['#444', '#ccc'];
@@ -1195,9 +1394,24 @@ export class BellspireScene {
     const L: Light[] = [];
     const room = g.room, t = this.t;
     const flick = (k: number) => 0.88 + 0.08 * Math.sin(t * 0.21 + k * 1.7) + 0.04 * Math.sin(t * 0.53 + k * 3.1);
+    // each echo note glows cyan as it appears, and dims and flickers as it fades
+    for (const n of g.notes) {
+      if (n.room !== room.id || n.t < n.at) continue;
+      const left = n.life - n.t, k = Math.min(1, (n.t - n.at) / 10) * Math.min(1, left / 60);
+      if (k <= 0) continue;
+      L.push({ x: (n.x0 + n.x1) / 2, y: n.y - 4, r: 58, c: [0.45, 0.95, 1], i: 0.9 * k * (left < 60 && left % 8 < 3 ? 0.6 : 1), soft: true });
+    }
     for (const th of INFO.get(room.id)!.things) {
       const x = th.c * TILE + 8, y = th.r * TILE + 8;
-      if (th.ch === 'T') L.push({ x, y: y - 4, r: 112, c: [1, 0.6, 0.28], i: 1.25 * flick(th.c) });
+      if (th.ch === 'T') {
+        // (a Cloudstair bell post stands on the floor below its mark: its glow is at the post's lamp)
+        const fy = postFloor(room, th.c, th.r);
+        L.push({ x, y: fy !== null ? fy - 44 : y - 4, r: 112, c: [1, 0.6, 0.28], i: 1.25 * flick(th.c) });
+      }
+      // an echo bell: a faint cyan shimmer, bright while its notes hang in the air; a wind bell catches the light,
+      // flaring when it is rung
+      else if (th.ch === 'Q') { const lit = g.notes.some((n) => n.key.startsWith(`${room.id}:${th.i}:`)); L.push({ x, y: y - 6, r: lit ? 96 : 44, c: [0.45, 0.95, 1], i: lit ? 1.1 + 0.15 * Math.sin(t * 0.2) : 0.45 }); }
+      else if (th.ch === 'W') { const sw = this.bellSwing.get(`w${th.c},${th.r}`) ?? 0; L.push({ x, y: y - 10, r: 44 + sw * 1.5, c: [0.85, 0.95, 1], i: 0.4 + sw / 40 }); }
       else if (th.ch === 'i') L.push({ x, y, r: 64, c: [1, 0.7, 0.38], i: 0.95 * flick(th.c + 9) });
       else if (th.ch === 'S') { const lit = g.flag(`shrine:${room.id}`) || g.save.shrine === room.id; L.push({ x, y: y - 8, r: lit ? 110 : 60, c: [1, 0.66, 0.36], i: (lit ? 1.15 : 0.6) * flick(th.c) }); }
       else if (th.ch === 'w') { L.push({ x, y: y + 8, r: 100, c: [0.6, 0.78, 1], i: 0.8 }); L.push({ x: x + 22, y: y + 96, r: 84, c: [0.55, 0.72, 1], i: 0.45, soft: true }); L.push({ x: x + 40, y: y + 170, r: 70, c: [0.55, 0.72, 1], i: 0.3, soft: true }); }

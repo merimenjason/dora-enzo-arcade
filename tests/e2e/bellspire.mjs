@@ -2,8 +2,10 @@
 // action with the real keys (move, jump, drop through a ledge, climb, attack, the Whirl Slash, tag, the Lantern Bolt,
 // dash, the lantern, the Bell Chime, the Ember Ring, use), each locked action saying why, the shrine, Wayra's shop,
 // a mural, the pause menu (map and travel, gear, items, guide, settings and a key rebind), a water bell, a lantern
-// hatch, a boss fight, the ending, the save across a reload and a corrupt save, and phones held sideways and upright
-// with the on-screen pad, all with no page errors and no sideways scrolling. Needs `npm run dev` and Playwright.
+// hatch, a boss fight, the ending, the save across a reload and a corrupt save, the Windward Belfry (Wayra's boat,
+// the wind and its bells, the Bell Rope, the echo notes, the Frost Fan and the Gale Wave, riding a swinging bell, the
+// outfits, the three guardians and the belfry's ending), and phones held sideways and upright with the on-screen pad,
+// all with no page errors and no sideways scrolling. Needs `npm run dev` and Playwright.
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
@@ -605,7 +607,7 @@ try {
   await page.getByRole('button', { name: 'Keep exploring' }).click();
   await until(page, () => window.__bellspire().screen === 'game' && window.__bellspire().state);
   await dbg(page, 'skipDialog');
-  assert.equal(await page.evaluate(() => window.__bellspire().findAll()), 100);
+  assert.equal(await page.evaluate(() => window.__bellspire().findAll(true)), 100);
   for (let i = 0; i < 80 && (await scr(page)) !== 'ending'; i++) { await page.keyboard.press('KeyZ'); await page.waitForTimeout(120); }
   assert.equal(await scr(page), 'ending');
   assert.ok(await page.locator('.bs-end-full').count(), 'the epilogue picture');
@@ -640,6 +642,130 @@ try {
   ok('a corrupt save is ignored');
   assert.ok(await noSideScroll(page));
   await page.context().close();
+
+  // ─── the Windward Belfry: every new action with the real keys ──────────────
+  {
+    const page = await open();
+    await page.goto(`${base}/bellspire`); await page.evaluate((k) => localStorage.removeItem(k), KEY); await page.reload(); await ready(page);
+    await page.getByRole('button', { name: 'New game' }).click();
+    await until(page, () => window.__bellspire().screen === 'game' && window.__bellspire().state);
+    // a save that has finished the citadel: every ability it gives, the Lake Mother calm
+    await game(page, `(g.save.abilities = ['dash','lantern','double','wallkick','chime','glide','deep'], g.save.spells.push('ember','chime'),
+      g.save.flags.push('script:intro','script:firstDark','script:wayra','script:bell','keeper','boss:frog','boss:hydra','boss:puma','boss:warden','boss:mother','script:belfryCall','script:cliff','script:wind','script:echo','script:rope'),
+      g.save.heroes.dora.level = g.save.heroes.enzo.level = 12, g.dialog = null, true)`);
+    // every pose either hero shows, frame by frame
+    await page.evaluate(() => { window.__poses = new Set(); const loop = () => { const a = window.__bellspire().scene?.heroAnim ?? {}; for (const h of ['dora', 'enzo']) if (a[h]) window.__poses.add(`${h}:${a[h].state}`); requestAnimationFrame(loop); }; loop(); });
+    const posed = (k) => page.evaluate((k) => window.__poses.has(k), k);
+    const at = async (room, c, r) => { await dbg(page, 'teleport', room, c, r); await dbg(page, 'skipDialog'); await page.waitForTimeout(300); await dbg(page, 'skipDialog'); };
+    await tagTo(page, 'dora');
+
+    // Wayra's boat: ↑ by it rows across to the foot of the Cloudstair
+    await at('landing', 27, 14);
+    await until(page, () => /boat/.test(window.__bellspire().game.nearbyLabel() ?? ''));
+    await page.keyboard.press('ArrowUp');
+    await until(page, () => window.__bellspire().state.room === 'cliffoot');
+    await dbg(page, 'skipDialog');
+    ok('↑ by Wayra’s boat rows the heroes across the lake to the Cloudstair');
+    // the map widens to take in the belfry
+    await page.keyboard.press('Escape'); await until(page, () => window.__bellspire().menu === 'map');
+    const mw = await page.locator('canvas.bs-map').evaluate((c) => c.width);
+    assert.equal(mw, 19 * 26 + 16, 'the map is wide enough for the belfry');
+    await page.keyboard.press('Escape'); await until(page, () => !window.__bellspire().menu);
+    ok(`the pause map widens to take in the Windward Belfry (${mw} px)`);
+
+    // wind: standing in a gust braces into it; X at a wind bell turns the wind round
+    await at('windgate', 38, 14);
+    await until(page, () => window.__bellspire().scene.heroAnim.dora?.state === 'brace');
+    const w0 = await game(page, 'g.save.wind.cloud');
+    await at('windgate', 43, 14); await game(page, '(g.body.face = 1, true)');
+    await page.keyboard.press('KeyX');
+    await until(page, (w) => window.__bellspire().game.save.wind.cloud === -w, w0);
+    ok('standing in a gust braces into the wind, and X at a wind bell turns the wind round');
+
+    // the Bell Rope: X in the air by a hook catches it (its own throw pose), the swing, and Z lets go
+    await game(page, `(g.save.abilities.push('rope'), true)`);
+    await at('bannerwalk', 9, 14);
+    await game(page, `(() => { const h = g.env.hooks()[0]; g.body.x = h.x - 20; g.body.y = h.y + 60; g.body.ground = false; g.body.vy = -0.5; g.body.vx = 1; return true; })()`);
+    await page.keyboard.press('KeyX');
+    await until(page, () => !!window.__bellspire().game.body.rope);
+    await hold(page, 'ArrowRight', 500);
+    await until(page, () => window.__bellspire().scene.heroAnim.dora?.state === 'ropeSwing');
+    await page.keyboard.press('KeyZ');
+    await until(page, () => !window.__bellspire().game.body.rope);
+    for (const p of ['ropeThrow', 'ropeSwing', 'ropeRelease']) assert.ok(await posed(`dora:${p}`), `Dora shows ${p}`);
+    ok('X in the air by a hook throws the Bell Rope; ←/→ pump the swing; Z lets go (throw, swing and release poses)');
+
+    // the Echo Step: ↑+V by an echo bell lays three notes; Dora climbs them
+    await game(page, `(g.save.abilities.push('echo'), g.save.spells.push('frost', 'gale'), g.save.heroes.enzo.mp = 90, true)`);
+    await at('cairns', 11, 13);
+    await tagTo(page, 'enzo');
+    await chord(page, 'ArrowUp', 'KeyV');
+    await until(page, () => window.__bellspire().game.floatCache.filter((f) => f.kind === 'note').length === 3);
+    assert.ok(await posed('enzo:echo'), 'Enzo has a pose for sounding an echo bell');
+    ok('↑+V by an echo bell lays three notes in the air, with its own pose');
+    // the Frost Fan: V tapped in the air
+    await at('cliffoot', 30, 14);
+    await page.keyboard.down('KeyZ'); await page.waitForTimeout(120);
+    await page.keyboard.press('KeyV'); await page.keyboard.up('KeyZ');
+    await until(page, () => window.__bellspire().game.shots.some((s) => s.kind === 'hail' && s.friendly));
+    await until(page, () => window.__bellspire().game.body.ground);
+    for (const p of ['frostWind', 'frost']) assert.ok(await posed(`enzo:${p}`), `Enzo shows ${p}`);
+    ok('V tapped in the air casts the Frost Fan (wind-up and release poses)');
+    // the Gale Wave: V held long
+    await game(page, '(g.save.heroes.enzo.mp = 90, true)');
+    await page.waitForTimeout(150); await page.keyboard.down('KeyV');
+    await until(page, () => window.__bellspire().game.leadRt.castHold >= 76);
+    await page.keyboard.up('KeyV');
+    await until(page, () => window.__bellspire().game.shots.some((s) => s.kind === 'gale'));
+    for (const p of ['galeWind', 'gale']) assert.ok(await posed(`enzo:${p}`), `Enzo shows ${p}`);
+    ok('V held long casts the Gale Wave (wind-up and release poses)');
+
+    // riding a swinging bell balances on it
+    await at('bellshaft', 20, 47);
+    await game(page, `(() => { const f = g.floatCache.find((f) => f.kind === 'bell'); g.body.x = (f.x0 + f.x1) / 2; g.body.y = f.y - 2; g.body.ground = false; g.body.vy = 0; return true; })()`);
+    await until(page, () => window.__bellspire().game.riding === 'bell');
+    await until(page, () => ['balance', 'noteHop'].includes(window.__bellspire().scene.heroAnim[window.__bellspire().game.lead]?.state));
+    ok('a hero riding a swinging bell balances on it');
+
+    // the outfits are drawn from their own painted strips
+    await game(page, `(g.save.gear.push('windward-jacket', 'highland-cloak'), g.equip('dora', 'coat', 'windward-jacket'), g.equip('enzo', 'coat', 'highland-cloak'), true)`);
+    await page.waitForTimeout(300);
+    const worn = await page.evaluate(() => { const sc = window.__bellspire().scene; return [sc.dressed('dora', sc.worn.dora.weapon, sc.worn.dora.coat), sc.dressed('enzo', sc.worn.enzo.weapon, sc.worn.enzo.coat)]; });
+    assert.ok(worn[0].startsWith('dora-windward') && worn[1].startsWith('enzo-highland'), `outfits drawn from their strips (${worn})`);
+    await page.locator('canvas.bs-canvas').screenshot({ path: '.shots/bellspire/40-belfry-outfits.png' });
+    ok(`the Windward Jacket and the Highland Cloak are drawn from their own painted strips (${worn.join(', ')})`);
+
+    // the three guardians, door to calm, and the belfry ending
+    for (const id of ['condor', 'clappers', 'tune']) {
+      if (id === 'tune') await game(page, `(g.save.flags.push('boss:condor', 'boss:clappers'), true)`);
+      await dbg(page, 'fightBoss', id);
+      const dir = id === 'condor' ? 'ArrowRight' : 'ArrowLeft';
+      await page.keyboard.down(dir);
+      await until(page, () => window.__bellspire().state.boss?.st !== 'wait');
+      await page.keyboard.up(dir);
+      await page.screenshot({ path: `.shots/bellspire/41-belfry-${id}.png` });
+      if (id === 'clappers') {
+        // each clapper gives only to its own hero, and says so
+        await game(page, `(g.dialog = null, true)`);
+        await until(page, () => !['wait', 'intro'].includes(window.__bellspire().state.boss?.st));
+        await game(page, `(g.lead = 'enzo', g.damageBoss(10, 0, 0, false, Object.assign({}, g.boss.hurt.find((h) => h.part === 0))), true)`);
+        await toast(page, /Only Dora/);
+        await game(page, `(g.lead = 'dora', true)`);
+      }
+      if (id === 'clappers') { await game(page, `(g.lead = 'dora', g.damageBoss(99999, 0, 0, false, Object.assign({}, g.boss.hurt.find((h) => h.part === 0))), g.lead = 'enzo', g.damageBoss(99999, 0, 0, true, Object.assign({}, g.boss.hurt.find((h) => h.part === 1))), g.lead = 'dora', true)`); }
+      else await calmBoss(page);
+      if (id !== 'tune') {
+        await until(page, (b) => { const w = window.__bellspire(); if (w.game.dialog) w.game.dialog = null; return w.game.flag(`boss:${b}`); }, id, 30000);
+        ok(`the ${id} fight: walking in starts it, and it can be calmed`);
+      }
+    }
+    await until(page, () => { const w = window.__bellspire(); if (w.game?.dialog) { const t = w.game.dialog.then; w.game.dialog = null; t?.(); } return w.screen === 'ending'; }, null, 30000);
+    await page.getByRole('heading', { name: 'The belfry sings in tune' }).waitFor();
+    await page.screenshot({ path: '.shots/bellspire/42-belfry-ending.png' });
+    ok('calming the Out-of-Tune Bell plays the belfry’s ending page');
+    assert.deepEqual(errors, [], 'no page errors in the belfry');
+    await page.context().close();
+  }
 
   // ─── phones ──────────────────────────────────────────────────────────────
   for (const vp of [{ width: 844, height: 390 }, { width: 390, height: 844 }]) {

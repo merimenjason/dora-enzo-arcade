@@ -5,22 +5,34 @@
 export const COLS = 30, ROWS = 17, TILE = 16;
 export const SCREEN_W = COLS * TILE, SCREEN_H = ROWS * TILE;
 
-export type AreaId = 'hub' | 'halls' | 'docks' | 'towers' | 'crypt' | 'throne';
+export type AreaId = 'hub' | 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft';
 export type WaterArea = 'halls' | 'docks' | 'throne';
 export const WATER_AREAS: WaterArea[] = ['halls', 'docks', 'throne'];
-export const AREAS: Record<AreaId, { name: string; color: string; tiles: 'halls' | 'docks' | 'towers' | 'crypt' | 'throne'; ambient: [number, number, number]; theme: number }> = {
+export const AREAS: Record<AreaId, { name: string; color: string; tiles: 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft'; ambient: [number, number, number]; theme: number }> = {
   hub: { name: 'Lakebed Landing', color: '#c9a46a', tiles: 'halls', ambient: [0.5, 0.46, 0.52], theme: 0 },
   halls: { name: 'Flooded Halls', color: '#4f86d9', tiles: 'halls', ambient: [0.34, 0.4, 0.58], theme: 1 },
   docks: { name: 'Reed Docks', color: '#5cae55', tiles: 'docks', ambient: [0.38, 0.48, 0.44], theme: 2 },
   towers: { name: 'Bell Towers', color: '#d9a93a', tiles: 'towers', ambient: [0.5, 0.42, 0.36], theme: 3 },
   crypt: { name: 'Crypt Murals', color: '#9a5fd0', tiles: 'crypt', ambient: [0.16, 0.12, 0.22], theme: 4 },
   throne: { name: 'Sunken Throne', color: '#2fa8a0', tiles: 'throne', ambient: [0.2, 0.36, 0.4], theme: 5 },
+  // the Windward Belfry: a cliff climb in low golden sun, then a tall timber bell tower of cold louvre light
+  cloud: { name: 'The Cloudstair', color: '#e8895a', tiles: 'cloud', ambient: [0.84, 0.78, 0.74], theme: 6 },
+  loft: { name: 'The Belfry Loft', color: '#7f9fd8', tiles: 'loft', ambient: [0.34, 0.38, 0.5], theme: 7 },
 };
+/** The expansion's two areas: reached only once the Lake Mother is calm, by Wayra's boat. */
+export const BELFRY_AREAS: AreaId[] = ['cloud', 'loft'];
+/** The areas with wind: each keeps one direction (1 blows east, −1 west), turned round by its wind bells. */
+export type WindArea = 'cloud' | 'loft';
+export const WIND_AREAS: WindArea[] = ['cloud', 'loft'];
 
-export type Ability = 'dash' | 'lantern' | 'double' | 'wallkick' | 'chime' | 'glide' | 'deep';
+export type Ability = 'dash' | 'lantern' | 'double' | 'wallkick' | 'chime' | 'glide' | 'deep' | 'rope' | 'echo';
 export type HeroId = 'dora' | 'enzo';
 /** The order the citadel is meant to be opened up in. */
-export const ABILITY_ORDER: Ability[] = ['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide', 'deep'];
+export const ABILITY_ORDER: Ability[] = ['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide', 'deep', 'rope', 'echo'];
+/** The citadel's own seven, before the Windward Belfry. */
+export const BASE_ABILITIES: Ability[] = ABILITY_ORDER.slice(0, 7);
+/** Each ability's icon in the icon strip (the expansion's were painted later, so they sit after the gear). */
+export const abilityIcon = (a: Ability) => (a === 'rope' ? 32 : a === 'echo' ? 33 : 24 + ABILITY_ORDER.indexOf(a));
 export const ABILITIES: Record<Ability, { name: string; hero: HeroId | 'both'; door: string; color: string; how: string; needs: string }> = {
   dash: { name: 'Reed Dash', hero: 'dora', door: 'd', color: '#3f8cff', how: 'Dora dashes with C or L, on the ground or once in the air. A dash slips through attacks.', needs: 'Needs Dora’s Reed Dash' },
   lantern: { name: 'Moonwick', hero: 'enzo', door: 'l', color: '#ff9a3c', how: 'As Enzo, hold ↓ and press V to raise or lower the lantern. Raised, it lights dark rooms and makes ghost-glass solid.', needs: 'Needs the Moonwick: a raised lantern opens this hatch' },
@@ -29,18 +41,22 @@ export const ABILITIES: Record<Ability, { name: string; hero: HeroId | 'both'; d
   chime: { name: 'Bell Chime', hero: 'enzo', door: 'c', color: '#f2c94c', how: 'As Enzo, hold ↑ and press V. The chime rings bells and bell-sealed doors from a distance.', needs: 'Needs the Bell Chime: ring this door with it' },
   glide: { name: 'Lantern Glide', hero: 'enzo', door: 'v', color: '#dfe8ff', how: 'As Enzo, hold jump while falling to glide under the opened lantern.', needs: 'Needs Enzo’s Lantern Glide' },
   deep: { name: 'Deep-Dive Coat', hero: 'both', door: 'q', color: '#2fd3c0', how: 'Both of them can now swim down into the deepest water.', needs: 'Needs the Deep-Dive Coat' },
+  rope: { name: 'Bell Rope', hero: 'dora', door: 'y', color: '#d99a52', how: 'In the air near a bell hook, Dora presses attack to throw the rope and swing. Steer to pump the swing; jump to let go.', needs: 'A rope-knot sigil: needs Dora’s Bell Rope' },
+  echo: { name: 'Echo Step', hero: 'enzo', door: 'n', color: '#5fe3ff', how: 'As Enzo, ring the Bell Chime (↑ + V) by an echo bell: it leaves three glowing notes to stand on for a few seconds.', needs: 'A note sigil: needs Enzo’s Echo Step' },
 };
 
-export type SpellId = 'bolt' | 'ember' | 'chime' | 'whirl';
+export type SpellId = 'bolt' | 'ember' | 'chime' | 'whirl' | 'frost' | 'gale';
 export const SPELLS: Record<SpellId, { name: string; hero: HeroId; mp: number; how: string }> = {
   whirl: { name: 'Whirl Slash', hero: 'dora', mp: 5, how: 'V: Dora spins her sword all around her.' },
   bolt: { name: 'Lantern Bolt', hero: 'enzo', mp: 3, how: 'V: a bolt of lantern fire.' },
   ember: { name: 'Ember Ring', hero: 'enzo', mp: 8, how: 'Hold V, then let go: a ring of embers around Enzo.' },
   chime: { name: 'Bell Chime', hero: 'enzo', mp: 4, how: '↑ + V: rings every bell nearby.' },
+  frost: { name: 'Frost Fan', hero: 'enzo', mp: 5, how: 'In the air, a tap of V throws a fan of three hail shards forward and down.' },
+  gale: { name: 'Gale Wave', hero: 'enzo', mp: 10, how: 'Hold V long past the Ember Ring, then let go: a rolling wave of wind that knocks foes back and rings wind bells.' },
 };
 
 export type Slot = 'weapon' | 'coat' | 'ring' | 'relic';
-export type Perk = 'fast' | 'reach' | 'cheapchime' | 'bright' | 'sturdy' | 'swim' | 'lucky' | 'regen' | 'crit' | 'quick' | 'secrets' | 'xp';
+export type Perk = 'fast' | 'reach' | 'cheapchime' | 'bright' | 'sturdy' | 'swim' | 'lucky' | 'regen' | 'crit' | 'quick' | 'secrets' | 'xp' | 'windward' | 'notes';
 export type Gear = { name: string; slot: Slot; hero?: HeroId; atk?: number; def?: number; mag?: number; hp?: number; mp?: number; perk?: Perk; text: string; icon: number };
 export const GEAR: Record<string, Gear> = {
   'bronze-sword': { name: 'Bronze Sword', slot: 'weapon', hero: 'dora', atk: 2, text: 'Short, light and sharp enough.', icon: 0 },
@@ -51,6 +67,10 @@ export const GEAR: Record<string, Gear> = {
   'star-lamp': { name: 'Star Lamp', slot: 'weapon', hero: 'enzo', atk: 8, mag: 6, perk: 'bright', text: 'A lamp that holds a star. The lantern shines much further.', icon: 5 },
   'teal-coat': { name: 'Teal Explorer Coat', slot: 'coat', def: 1, text: 'Dora’s favourite coat, full of pockets.', icon: 6 },
   'rust-coat': { name: 'Rust Long Coat', slot: 'coat', def: 1, text: 'Enzo’s long coat. Warm, if a bit dusty.', icon: 7 },
+  'condor-talon': { name: 'Condor Talon', slot: 'weapon', hero: 'dora', atk: 13, perk: 'reach', text: 'A curved blade of dark steel with a white feathered guard. Hits hard, with a long arc.', icon: 36 },
+  'carillon-staff': { name: 'Carillon Staff', slot: 'weapon', hero: 'enzo', atk: 10, mag: 10, perk: 'notes', text: 'Three small bells around the lantern. Echo notes last twice as long.', icon: 37 },
+  'windward-jacket': { name: 'Windward Jacket', slot: 'coat', hero: 'dora', def: 5, perk: 'windward', text: 'Dusty-rose quilting and a feathered collar, made for the mountain. Gusts push half as hard.', icon: 34 },
+  'highland-cloak': { name: 'Highland Cloak', slot: 'coat', hero: 'enzo', def: 4, mp: 8, perk: 'windward', text: 'Slate-blue felt with a cream-and-red band. +8 MP, and gusts push half as hard.', icon: 35 },
   'snail-coat': { name: 'Snail-Shell Coat', slot: 'coat', def: 4, perk: 'sturdy', text: 'A coat with a shell on the back. Hits no longer knock the wearer back.', icon: 8 },
   'reed-coat': { name: 'Reedweave Coat', slot: 'coat', def: 2, perk: 'swim', text: 'Woven from golden reeds. Swim a third faster.', icon: 9 },
   'reed-ring': { name: 'Lucky Reed Ring', slot: 'ring', perk: 'lucky', text: 'A ring of green reed with a tiny bud. A quarter more coins.', icon: 11 },
@@ -76,14 +96,21 @@ export const SHOP: { id: string; price: number }[] = [
   { id: 'moon-ring', price: 140 }, { id: 'reed-cutter', price: 150 }, { id: 'bell-staff', price: 160 },
 ];
 
-export type BossId = 'frog' | 'hydra' | 'puma' | 'warden' | 'mother';
+export type BossId = 'frog' | 'hydra' | 'puma' | 'warden' | 'mother' | 'condor' | 'clappers' | 'tune';
 export const BOSSES: Record<BossId, { name: string; title: string; hp: number; atk: number; xp: number; reward: string[] }> = {
   frog: { name: 'The Grand Frog Idol', title: 'Guardian of the Flooded Halls', hp: 220, atk: 8, xp: 120, reward: ['ability:lantern', 'heart'] },
   hydra: { name: 'The Reed Hydra', title: 'Tangle of the Reed Docks', hp: 420, atk: 12, xp: 220, reward: ['spell:ember', 'heart'] },
   puma: { name: 'The Puma of the Murals', title: 'Painted Hunter of the Crypt', hp: 480, atk: 15, xp: 300, reward: ['gear:puma-tooth', 'drop'] },
   warden: { name: 'The Bell Warden', title: 'The Bell That Rang at Midnight', hp: 600, atk: 14, xp: 420, reward: ['ability:glide', 'heart'] },
   mother: { name: 'The Lake Mother', title: 'She Who Sleeps Beneath', hp: 720, atk: 16, xp: 600, reward: [] },
+  condor: { name: 'The Hail Condor', title: 'Storm Above the Cloudstair', hp: 1000, atk: 20, xp: 700, reward: ['ability:echo', 'spell:frost'] },
+  clappers: { name: 'The Twin Clappers', title: 'Two Tongues of One Bell', hp: 820, atk: 17, xp: 800, reward: ['spell:gale', 'drop'] },
+  tune: { name: 'The Out-of-Tune Bell', title: 'The Belfry’s Sour Heart', hp: 1300, atk: 24, xp: 1000, reward: [] },
 };
+/** The Windward Belfry's two guardians: both must be calm before the belfry seal opens on the Out-of-Tune Bell. */
+export const BELFRY_GUARDIANS = ['condor', 'clappers'] as const satisfies readonly BossId[];
+/** Every guardian, citadel and belfry, in story order: the Echo Trials' guardian rush meets all eight. */
+export const ALL_BOSSES: BossId[] = ['frog', 'hydra', 'puma', 'warden', 'mother', 'condor', 'clappers', 'tune'];
 
 /** The four area guardians: each holds one bell seal on the throne door, and all four must be calmed before it opens. */
 export const GUARDIANS = ['frog', 'hydra', 'puma', 'warden'] as const satisfies readonly BossId[];
@@ -94,6 +121,7 @@ export const GUARDIAN_AREA: Record<(typeof GUARDIANS)[number], AreaId> = { frog:
 export const SHRINE_NAMES: Record<string, string> = {
   landing: 'Landing Candle', chapel: 'Chapel Candle', mill: 'Reed Mill Candle', gears: 'Bell Loft Candle',
   cshrine: 'Mural Crypt Candle', tshrine: 'Pearl Throne Candle',
+  cliffoot: 'Cliff Foot Candle', bannerwalk: 'Bannerwalk Candle', loftbase: 'Belfry Candle',
 };
 
 export const MURALS: { panel: number; text: string }[] = [
@@ -107,11 +135,22 @@ export const MURALS: { panel: number; text: string }[] = [
   { panel: 2, text: 'The keeper’s room: one chair, one cup, and a thousand bells, all polished.' },
   { panel: 4, text: 'The paint on this panel is fresh: a bear pulling a bell rope, and the lake draining away.' },
   { panel: 5, text: 'A last little panel, painted very carefully: the bear, the lake spirit and two chinchillas together under the sun.' },
+  // the Windward Belfry's eight (panels 6 to 13)
+  { panel: 6, text: 'The citadel had a twin: a belfry high on the mountain, so the bells could answer each other across the lake.' },
+  { panel: 12, text: 'Some bells were tuned to the air itself. Ring one, and its notes hang there long enough to stand on.' },
+  { panel: 10, text: 'The belfry’s great bell cracked in a hard winter. After that it rang a sour note, and the wind forgot its way.' },
+  { panel: 9, text: 'The great bell had two clappers, iron and glass. Since the crack, they only quarrel.' },
+  { panel: 11, text: 'The bellringers crossed the gorge on ropes, swinging from hook to hook. Children practised on the low ones.' },
+  { panel: 8, text: 'When the bell went sour, a condor of the high storms came to sit on the bridge, and hail followed it.' },
+  { panel: 13, text: 'A panel nobody had finished: the mended bell ringing in tune, and the sun coming up over both belfries.' },
+  { panel: 7, text: 'The people of the lake carried every bell up the cliff on their backs, and strung them up on ropes.' },
 ];
+/** How many murals the citadel itself holds (the rest are the belfry's). */
+export const BASE_MURALS = 10;
 
-export type Who = 'dora' | 'enzo' | 'wayra' | 'ukumari' | 'mother' | 'sign';
+export type Who = 'dora' | 'enzo' | 'wayra' | 'ukumari' | 'mother' | 'sign' | 'bell';
 export type Line = { who: Who; text: string };
-export const NAMES: Record<Who, string> = { dora: 'Dora', enzo: 'Enzo', wayra: 'Wayra', ukumari: 'Ukumari', mother: 'The Lake Mother', sign: '' };
+export const NAMES: Record<Who, string> = { dora: 'Dora', enzo: 'Enzo', wayra: 'Wayra', ukumari: 'Ukumari', mother: 'The Lake Mother', sign: '', bell: 'The Out-of-Tune Bell' };
 export const SCRIPTS: Record<string, Line[]> = {
   intro: [
     { who: 'enzo', text: 'The whole lake drained away in one night. And listen, Dora: bells.' },
@@ -167,6 +206,48 @@ export const SCRIPTS: Record<string, Line[]> = {
   ],
   firstDark: [{ who: 'enzo', text: 'It’s so dark in here. My lantern only lights a little circle.' }],
   ghost: [{ who: 'enzo', text: 'Ghost-glass! It only exists in lantern light. Keep the lantern raised and stay close.' }],
+
+  // ─── the Windward Belfry ───────────────────────────────────────────────
+  /** told to a save that has already calmed the Lake Mother, at the next shrine rest */
+  belfryCall: [
+    { who: 'wayra', text: 'Dora! Enzo! Since the lake settled, I keep hearing a bell from up the mountain. A sour one.' },
+    { who: 'wayra', text: 'There’s a cliff path above the shore. Find my boat by the landing and I’ll row you over.' },
+  ],
+  boatEarly: [{ who: 'wayra', text: 'My boat? Not while the lake is this restless, little ones. Calm whatever lives under it first.' }],
+  cliff: [
+    { who: 'enzo', text: 'The Lake Mother said the citadel had a twin. That must be it, right at the top: the Windward Belfry.' },
+    { who: 'dora', text: 'And that’s the sour bell Wayra heard. Mind the wind up here, Enzo. It pushes.' },
+  ],
+  wind: [{ who: 'enzo', text: 'A wind bell. Ring it, and the wind should turn round. Hit it, or ring it with the Bell Chime.' }],
+  rope: [{ who: 'dora', text: 'A bell rope with a hook on the end. Jump near a bell hook, then press attack to swing!' }],
+  echo: [{ who: 'enzo', text: 'An echo bell. If I ring it with the chime, its notes should hang in the air long enough to climb.' }],
+  condor: [
+    { who: 'dora', text: 'That’s no ordinary condor. It’s carrying the storm with it.' },
+    { who: 'enzo', text: 'The planks won’t hold for long, and the wind keeps changing. Watch its wings: they rise before the hail.' },
+  ],
+  condorDone: [
+    { who: 'enzo', text: 'It’s settled on the bridge post, all its hail gone. And the bell on its neck rang a clear note.' },
+    { who: 'enzo', text: 'I can hear that note in the lantern now. Ring an echo bell with the chime, and I can make steps of it.' },
+  ],
+  clappers: [
+    { who: 'dora', text: 'Two clappers, and they’re both angry. Only a good hard blade is going to dent the iron one.' },
+    { who: 'enzo', text: 'And the glass one only rings for me. Dora takes the iron, I take the glass. Tag between them!' },
+  ],
+  clappersDone: [
+    { who: 'dora', text: 'They’ve stopped quarrelling. Look, they’re just hanging there side by side.' },
+    { who: 'enzo', text: 'All that wind they were stirring up went into the lantern. Hold V a long time, and I can let it go as a Gale Wave.' },
+  ],
+  tune: [
+    { who: 'bell', text: 'BONNNG… WRONG… EVERYTHING RINGS WRONG…' },
+    { who: 'enzo', text: 'It isn’t angry, Dora. It hurts. Every note it rings is out of tune.' },
+    { who: 'dora', text: 'Then let’s ring it back into tune. Watch the wind, and the notes when they come.' },
+  ],
+  tuneDone: [
+    { who: 'bell', text: '…There. That’s the note. I had forgotten how it sounded.' },
+    { who: 'enzo', text: 'Listen, Dora. The citadel is answering it from the lake.' },
+    { who: 'dora', text: 'Both belfries, in tune. Ukumari is going to love this.' },
+  ],
+  trials: [{ who: 'enzo', text: 'The shrine’s candle burns a different colour now. Echo Trials: we can test ourselves against everything we met.' }],
 };
 
 /**
@@ -180,6 +261,11 @@ export const SCRIPTS: Record<string, Line[]> = {
  * boat wreck. Enemies: `F` stone lake-frog, `m` lantern moth, `e` eel serpent, `r` reed-boat sentinel, `K` condor
  * knight, `I` bell imp, `a` drowned armour shell, `z` mud vizcacha, `J` glow jelly, `G` salt golem.
  *
+ * The Windward Belfry adds: `o` a bell hook (Dora's rope catches it), `Q` an echo bell, `W` a wind bell, `P` the pivot
+ * of a giant swinging bell, `D` Wayra's boat; doors `y` a rope-knot sigil (Bell Rope), `n` a note sigil (Echo Step)
+ * and `Z` the belfry seal (open once the Hail Condor and the Twin Clappers are calm); enemies `Y` wind spirit, `X`
+ * hail-hawk, `L` clapper creature, `E` bell-beetle.
+ *
  * Water: `water[area level]` is the row whose middle the surface sits in when that area's water is low (0) or high (1);
  * `null` is dry. Below row `deep` the water is too deep to dive without the Deep-Dive Coat.
  */
@@ -187,6 +273,17 @@ export type Room = {
   id: string; area: AreaId; gx: number; gy: number; w: number; h: number; rows: string[];
   water?: [number | null, number | null]; deep?: number; dark?: boolean;
   chests?: string[]; ability?: Ability; murals?: number[]; boss?: BossId; script?: string;
+  /** gust zones (room tiles, inclusive): [c0, r0, c1, r1, strength]; the push is strength × the area's wind
+   *  direction. `boss` zones blow only while a guardian is fighting. */
+  gusts?: ([number, number, number, number, number] | [number, number, number, number, number, 'boss'])[];
+  /** for each echo bell (`Q`, in order), where its three notes appear: tile offsets from the bell; each note is a
+   *  two-tile ledge you can jump up through */
+  echoes?: [number, number][][];
+  /** for each giant swinging bell (`P`, its pivot, in order): rope length in tiles, swing in radians, period in ticks
+   *  and a phase (0 to 1) */
+  swings?: { len: number; amp: number; period: number; phase: number }[];
+  /** part of the Windward Belfry (counted for 100% only once the expansion's totals are added) */
+  exp?: boolean;
 };
 
 const d = (n: number) => '.'.repeat(n);
@@ -194,6 +291,23 @@ const s = (n: number) => '#'.repeat(n);
 /** A run of rows repeated `n` times. */
 const rep = (n: number, row: string) => Array<string>(n).fill(row);
 const ladderShaft = (col: number, width = 30, ladder = true) => s(col - 1) + '.' + (ladder ? 'H' : '.') + '..' + s(width - col - 3);
+
+/** A room drawn in strokes instead of typed out row by row: it starts as solid stone (or the rows given), then air is
+ *  carved and things are placed. Columns and rows are the room's own, from 0. */
+class Sketch {
+  g: string[][];
+  constructor(w: number, h: number, rows?: string[]) { this.g = rows ? rows.map((r) => [...r]) : Array.from({ length: h * ROWS }, () => Array<string>(w * COLS).fill('#')); }
+  /** fill a rectangle (inclusive) */
+  fill(c0: number, r0: number, c1: number, r1: number, ch: string) { for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) this.g[r][c] = ch; return this; }
+  /** write a string from (c, r) to the right */
+  at(c: number, r: number, str: string) { for (let i = 0; i < str.length; i++) this.g[r][c + i] = str[i]; return this; }
+  /** a column of one tile from r0 to r1 */
+  down(c: number, r0: number, r1: number, ch: string) { return this.fill(c, r0, c, r1, ch); }
+  /** a ladder in a three-wide shaft from r0 down to r1 */
+  shaft(c: number, r0: number, r1: number) { this.fill(c - 1, r0, c + 1, r1, '.'); return this.down(c, r0, r1, 'H'); }
+  rows() { return this.g.map((r) => r.join('')); }
+}
+const sketch = (w: number, h: number, draw: (k: Sketch) => void, rows?: string[]) => { const k = new Sketch(w, h, rows); draw(k); return k.rows(); };
 
 export const ROOMS: Room[] = [
   // ─── Lakebed Landing (the hub) ───────────────────────────────────────────
@@ -796,3 +910,126 @@ export const ROOMS: Room[] = [
     s(30), s(30),
   ] },
 ];
+
+// ─── the Windward Belfry ───────────────────────────────────────────────────
+// East of the citadel on the map, reached by Wayra's boat from the landing once the Lake Mother is calm. The
+// Cloudstair climbs from the shore (gy 8) to the Hail Condor's bridge (gy 4); the Belfry Loft rises from there to the
+// Out-of-Tune Bell at the top (gy 0).
+const room = (id: string, area: AreaId, gx: number, gy: number, w: number, h: number, draw: (k: Sketch) => void, extra: Partial<Room> = {}): Room =>
+  ({ id, area, gx, gy, w, h, exp: true, rows: sketch(w, h, draw), ...extra });
+
+export const BELFRY_ROOMS: Room[] = [
+  // the shore below the cliffs: Wayra's boat, a shrine, and the way up on the right
+  room('cliffoot', 'cloud', 13, 8, 2, 1, (k) => {
+    k.fill(1, 2, 58, 14, '.').fill(59, 12, 59, 14, '.');
+    k.at(30, 11, '=======').at(33, 10, 'C');
+    k.at(4, 14, 'D').at(9, 14, 'iSi').at(20, 14, 'R').at(46, 14, 'E').at(14, 9, 'T').at(52, 9, 'T').at(40, 6, 'Y');
+  }, { chests: ['coins:30'], murals: [10], script: 'cliff' }),
+  // a zigzag of ledges up a windy chimney
+  room('switchback', 'cloud', 15, 7, 1, 2, (k) => {
+    k.fill(1, 2, 28, 31, '.').fill(0, 29, 0, 31, '.').fill(0, 12, 0, 14, '.').fill(1, 15, 3, 15, '#');
+    k.at(6, 29, '=======').at(15, 26, '=======').at(22, 23, '======').at(13, 20, '=======').at(4, 17, '=======');
+    k.at(15, 10, 'X').at(25, 30, 'T');
+  }, { gusts: [[1, 18, 28, 27, 1]] }),
+  // a gorge the wind blows across: ring a wind bell to turn it round and be carried over
+  room('windgate', 'cloud', 13, 7, 2, 1, (k) => {
+    k.fill(1, 2, 58, 14, '.').fill(59, 12, 59, 14, '.');
+    k.fill(26, 15, 35, 15, '.').fill(26, 16, 35, 16, '^');
+    k.shaft(4, 0, 14);
+    k.at(44, 14, 'W').at(12, 14, 'W').at(16, 14, 'C').at(8, 14, 'R').at(30, 7, 'Y').at(50, 9, 'T');
+  }, { chests: ['gear:windward-jacket'], murals: [17], gusts: [[20, 4, 41, 15, 2]], script: 'wind' }),
+  // the Bell Rope's pedestal, a note-sealed way to the cairns, and a rope-knot door on to the gorge
+  room('ropehall', 'cloud', 13, 5, 1, 2, (k) => {
+    k.fill(1, 2, 28, 30, '.').shaft(4, 31, 33);
+    k.at(20, 30, 'A');
+    k.fill(29, 28, 29, 30, '.').down(28, 28, 30, 'n');
+    k.fill(29, 12, 29, 14, '.').down(28, 12, 14, 'y').fill(20, 15, 28, 15, '#').down(19, 15, 30, 'H');
+    k.at(2, 10, '=====').at(4, 9, 'C').at(15, 9, 'o').at(9, 22, 'T');
+  }, { ability: 'rope', chests: ['tea'] }),
+  // off the ropehall behind a note sigil: an echo bell's stair up to a shelf
+  room('cairns', 'cloud', 14, 6, 2, 1, (k) => {
+    k.fill(1, 2, 58, 13, '.').fill(0, 11, 0, 13, '.');
+    k.fill(25, 5, 40, 5, '#');
+    k.at(10, 13, 'Q').at(32, 4, 'C').at(37, 4, 'R').at(45, 13, 'E').at(50, 6, 'Y');
+  }, { chests: ['drop'], murals: [11], echoes: [[[4, -2], [8, -5], [12, -8]]], script: 'echo' }),
+  // a spiked gorge with one tall pillar in it: only the rope crosses
+  room('bannerwalk', 'cloud', 14, 5, 2, 1, (k) => {
+    k.fill(1, 2, 58, 14, '.').fill(0, 12, 0, 14, '.');
+    k.fill(8, 15, 30, 15, '.').fill(8, 16, 30, 16, '^').fill(18, 8, 20, 16, '#');
+    k.shaft(33, 0, 14);
+    k.at(12, 7, 'o').at(25, 7, 'o').at(19, 7, 'C');
+    k.at(44, 14, 'iSi').at(52, 14, 'R').at(24, 3, 'X').at(40, 5, 'X');
+  }, { chests: ['heart'], murals: [14] }),
+  // the Hail Condor's rope bridge
+  room('condorbridge', 'cloud', 15, 4, 3, 1, (k) => {
+    k.fill(1, 2, 88, 11, '.');
+    k.fill(8, 12, 81, 12, '=').fill(8, 13, 81, 15, '.').fill(8, 16, 81, 16, '^');
+    k.shaft(3, 12, 16).at(2, 12, 'bbb');
+    k.shaft(85, 0, 11).at(84, 2, 'bbb');
+    k.at(45, 11, 'O');
+  }, { boss: 'condor', gusts: [[8, 2, 81, 11, 1.2, 'boss']] }),
+
+  // the belfry's foot: a shrine, and an echo bell's stair to the hatch in the ceiling
+  room('loftbase', 'loft', 17, 3, 2, 1, (k) => {
+    k.fill(1, 2, 58, 14, '.').fill(0, 12, 0, 14, '.').shaft(25, 15, 16);
+    k.fill(30, 4, 36, 4, '#').shaft(33, 0, 3);
+    k.at(8, 14, 'iSi').at(50, 14, 'Q').at(4, 14, 'R').at(20, 14, 'E').at(44, 14, 'E').at(15, 3, 'L').at(56, 9, 'T');
+  }, { murals: [15], echoes: [[[-4, -3], [-8, -6], [-12, -9]]] }),
+  // a side loft of louvred windows: notes up, then the rope across
+  room('louvres', 'loft', 16, 3, 1, 1, (k) => {
+    k.fill(1, 2, 28, 14, '.').fill(29, 12, 29, 14, '.');
+    k.fill(1, 6, 4, 6, '#');
+    k.at(22, 14, 'Q').at(10, 3, 'o').at(2, 5, 'C').at(8, 14, 'R');
+  }, { chests: ['gear:highland-cloak'], murals: [12], echoes: [[[-3, -3], [-6, -6], [-3, -9]]] }),
+  // the tall shaft of swinging bells; its doorways lead to the cogworks, the clappers and (sealed) the great bell
+  room('bellshaft', 'loft', 18, 0, 1, 3, (k) => {
+    k.fill(1, 2, 28, 48, '.').shaft(3, 49, 50).at(2, 49, '=').at(4, 49, '=');
+    k.down(27, 15, 48, 'H');
+    k.fill(1, 32, 26, 32, '#').at(28, 32, '=').fill(1, 15, 26, 15, '#').at(28, 15, '=');
+    k.fill(0, 46, 0, 48, '.').fill(0, 29, 0, 31, '.').fill(0, 12, 0, 14, '.').down(1, 12, 14, 'Z');
+    k.at(13, 34, 'P').at(13, 17, 'P');
+    k.at(18, 44, '=======').at(19, 40, 'o').fill(4, 40, 9, 40, '#').at(7, 39, 'C');
+    k.at(14, 24, 'L').at(15, 48, 'E').at(24, 8, 'T').at(4, 28, 'T');
+  }, { chests: ['gear:carillon-staff'], swings: [{ len: 6, amp: 0.6, period: 170, phase: 0 }, { len: 6, amp: 0.7, period: 190, phase: 0.5 }] }),
+  // cogs and a perch: a crooked note path
+  room('cogworks', 'loft', 16, 2, 2, 1, (k) => {
+    k.fill(1, 2, 58, 14, '.').fill(59, 12, 59, 14, '.');
+    k.fill(24, 7, 31, 7, '#');
+    k.at(48, 14, 'Q').at(27, 6, 'C').at(30, 6, 'R').at(12, 2, 'P').at(20, 14, 'E').at(40, 3, 'L');
+  }, { chests: ['gear:condor-talon'], murals: [13], echoes: [[[-5, -3], [-10, -3], [-14, -6]]], swings: [{ len: 7, amp: 0.7, period: 160, phase: 0.25 }] }),
+  // the Twin Clappers
+  room('clapperloft', 'loft', 16, 1, 2, 1, (k) => {
+    k.fill(1, 2, 58, 14, '.').fill(59, 12, 59, 14, '.').down(58, 12, 14, 'b');
+    k.at(8, 10, '='.repeat(15)).at(37, 10, '='.repeat(15));
+    k.at(30, 14, 'O');
+  }, { boss: 'clappers' }),
+  // the top of the belfry: the Out-of-Tune Bell
+  room('belltop', 'loft', 16, 0, 2, 1, (k) => {
+    k.fill(1, 2, 58, 14, '.').fill(59, 12, 59, 14, '.').down(58, 12, 14, 'b');
+    k.at(4, 10, '=========').at(47, 10, '=========');
+    k.at(30, 14, 'O');
+  }, { boss: 'tune', gusts: [[1, 2, 57, 14, 1.1, 'boss']] }),
+
+  // three small rooms in the citadel that only the rope opens (their doors are rope-knot sigils)
+  room('ropeloft', 'halls', 0, 2, 1, 1, (k) => {
+    k.fill(1, 2, 28, 13, '.').fill(29, 3, 29, 5, '.').fill(24, 6, 28, 6, '#').fill(1, 14, 28, 14, '^');
+    k.fill(2, 10, 6, 10, '#').at(4, 9, 'C').at(18, 4, 'o').at(10, 5, 'o').at(14, 11, 'm');
+  }, { chests: ['coins:80'] }),
+  room('ropegallery', 'crypt', 9, 5, 1, 1, (k) => {
+    k.fill(1, 2, 28, 14, '.').fill(0, 12, 0, 14, '.').fill(6, 15, 22, 15, '^');
+    k.at(11, 8, 'o').at(18, 8, 'o').at(26, 14, 'R').at(15, 4, 'I');
+  }, { murals: [16] }),
+  room('ropecellar', 'hub', 6, 4, 1, 1, (k) => {
+    k.fill(1, 2, 28, 14, '.').shaft(21, 0, 14);
+    k.fill(1, 15, 12, 15, '^').at(14, 9, '======').fill(2, 6, 6, 6, '#').at(4, 5, 'C').at(11, 3, 'o').at(26, 9, 'T');
+  }, { chests: ['heart'] }),
+];
+
+// the citadel rooms the rope rooms open off: a rope-knot door in each
+const patch = (id: string, draw: (k: Sketch) => void) => { const r = ROOMS.find((x) => x.id === id)!; r.rows = sketch(r.w, r.h, draw, r.rows); };
+patch('gallery', (k) => { k.fill(0, 3, 0, 5, '.').down(1, 3, 5, 'y').at(1, 6, '==H==').down(3, 7, 14, 'H').at(9, 4, 'o'); });
+patch('cshrine', (k) => { k.fill(29, 12, 29, 14, '.').down(28, 12, 14, 'y'); });
+patch('landing', (k) => { k.at(50, 15, 'yyy').at(50, 16, '.H.'); });
+// Wayra's boat waits at the landing, by her raft
+patch('landing', (k) => { k.at(26, 14, 'D'); });
+ROOMS.push(...BELFRY_ROOMS);

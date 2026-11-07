@@ -9,9 +9,11 @@ import assert from 'node:assert/strict';
 import {
   BellspireGame, MAP_EXITS, freshSave, parseSave, heroStats, xpToNext, ROOMS, INFO, COLS, ROWS, TILE, COMPLETION, ABILITY_ORDER, ABILITIES, BOSSES, GEAR, SHOP,
   rawChar, roomOfTile, groupAt, roomById, NO_INPUT, HEART_HP, TAG_CD, surfaceRow, roomRect as roomRectOf, FOES, foeBox, foeFrame,
+  BASE_ABILITIES, isBelfryRoom, MURALS, NOTE_LIFE, GALE_HOLD,
 } from '../.checks/bellspire-game.js';
 import { Graph, nodeRoom, HeroAnimator, ANIMS, animFrames, heroHas } from '../.checks/bellspire-nav.js';
-import { BOXES, FOE_BODY } from '../.checks/bellspire-art.js';
+import { BOXES, FOE_BODY, ART } from '../.checks/bellspire-art.js';
+import belfry from './bellspire-belfry.mjs';
 
 let checks = 0;
 const ok = (c, m) => { assert.ok(c, m); checks++; };
@@ -44,13 +46,14 @@ for (const r of ROOMS) {
 }
 ok(open > 100, 'the rooms are joined up');
 eq(new Set(ROOMS.map((r) => r.id)).size, ROOMS.length, 'room ids are unique');
-eq(COMPLETION.murals, 10, 'ten murals');
+eq(COMPLETION.murals, 18, 'eighteen murals: ten in the citadel, eight more with the Windward Belfry');
+eq(COMPLETION.base.murals, 10, 'the citadel alone still holds ten');
 ok(ROOMS.every((r) => (r.murals?.length ?? 0) === INFO.get(r.id).things.filter((t) => t.ch === 'R').length), 'every mural mark has its text');
 const muralIds = ROOMS.flatMap((r) => r.murals ?? []);
-eq([...muralIds].sort((a, b) => a - b), [...Array(10).keys()], 'each mural text appears once');
+eq([...muralIds].sort((a, b) => a - b), [...Array(MURALS.length).keys()], 'each mural text appears once');
 ok(ROOMS.every((r) => INFO.get(r.id).things.filter((t) => t.ch === 'C').length === (r.chests?.length ?? 0)), 'every chest has its contents');
 ok(ROOMS.filter((r) => r.ability).every((r) => INFO.get(r.id).things.some((t) => t.ch === 'A')), 'every ability room has its pedestal');
-eq(ROOMS.filter((r) => r.ability).map((r) => r.ability), ['dash', 'double', 'wallkick', 'chime'], 'four pedestals; the lantern and the glide come from bosses and the coat from a chest');
+eq(ROOMS.filter((r) => r.ability).map((r) => r.ability), ['dash', 'double', 'wallkick', 'chime', 'rope'], 'five pedestals; the lantern, the glide and the Echo Step come from guardians and the coat from a chest');
 
 // ─── the gates, with the route planner ────────────────────────────────────
 const start = new BellspireGame(fresh()).body;
@@ -67,6 +70,7 @@ function reachable(abilities, keeper = false, calmed = ['frog', 'hydra', 'puma',
 const ped = (a) => thing('A', (t, r) => r.ability === a);
 const before = (a) => ABILITY_ORDER.slice(0, ABILITY_ORDER.indexOf(a));
 for (const a of ['dash', 'double', 'wallkick', 'chime']) ok(reachable(before(a)).near(ped(a)), `the ${a} pedestal can be reached with what comes before it`);
+const CITADEL = ROOMS.filter((r) => !isBelfryRoom(r.id)), ROPE_ROOMS = ['ropeloft', 'ropegallery', 'ropecellar'];
 const r0 = reachable([]);
 ok(!r0.rooms.has('idol') && !r0.rooms.has('dgate'), 'without the dash: no frog and no docks');
 const r1 = reachable(['dash']);
@@ -77,15 +81,21 @@ ok(!reachable(['dash', 'lantern', 'double', 'wallkick']).rooms.has('warden'), 't
 const r6 = reachable(['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide']);
 ok(!r6.rooms.has('tgate'), 'the Sunken Throne waits behind the Deep-Dive Coat');
 ok(r6.near(thing('C', (t, r) => r.chests?.[t.i] === 'ability:deep')), 'the coat chest is reachable with the glide');
-const r7 = reachable(ABILITY_ORDER, false);
+const r7 = reachable(BASE_ABILITIES, false);
 ok(!r7.rooms.has('mother'), 'the Lake Mother waits until Ukumari opens the door');
-eq(reachable(ABILITY_ORDER, true).rooms.size, ROOMS.length, 'with everything, every room can be reached');
+const rAll = reachable(BASE_ABILITIES, true);
+eq(rAll.rooms.size, CITADEL.length - ROPE_ROOMS.length, 'with the citadel’s seven abilities, every citadel room but the three rope rooms can be reached');
+ok(ROPE_ROOMS.every((id) => !rAll.rooms.has(id)), 'the rope rooms stay shut without the Bell Rope');
+ok(ROOMS.every((r) => !isBelfryRoom(r.id) || !rAll.rooms.has(r.id)), 'the Windward Belfry can’t be walked to: it is across the water');
+const rRope = reachable([...BASE_ABILITIES, 'rope'], true);
+eq(rRope.rooms.size, CITADEL.length, 'with the Bell Rope too, every citadel room can be reached, the rope rooms included');
+for (const id of ROPE_ROOMS) for (const t of INFO.get(id).things.filter((t) => 'CR'.includes(t.ch))) ok(rRope.near(t), `the rope room ${id}'s ${t.ch === 'C' ? 'chest' : 'mural'} can be reached with the rope`);
 // the throne needs all four guardians calm: without any one of them, the planner can't reach the Lake Mother
-for (const miss of ['frog', 'hydra', 'puma', 'warden']) ok(!reachable(ABILITY_ORDER, true, ['frog', 'hydra', 'puma', 'warden'].filter((b) => b !== miss)).rooms.has('mother'), `without the ${miss} calmed, the Lake Mother is out of reach`);
+for (const miss of ['frog', 'hydra', 'puma', 'warden']) ok(!reachable(BASE_ABILITIES, true, ['frog', 'hydra', 'puma', 'warden'].filter((b) => b !== miss)).rooms.has('mother'), `without the ${miss} calmed, the Lake Mother is out of reach`);
 // and every guardian can be reached before the throne, with every ability but no seals open
-{ const pre = reachable(ABILITY_ORDER, false, []); for (const b of ['frog', 'hydra', 'puma', 'warden']) ok(pre.rooms.has(ROOMS.find((r) => r.boss === b).id), `the ${b} can be reached before the throne opens`); }
+{ const pre = reachable(BASE_ABILITIES, false, []); for (const b of ['frog', 'hydra', 'puma', 'warden']) ok(pre.rooms.has(ROOMS.find((r) => r.boss === b).id), `the ${b} can be reached before the throne opens`); }
 // nowhere to get stuck: from every reachable spot there is a way back to the landing (or a shrine to travel from)
-for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['dash', 'lantern', 'double', 'wallkick'], WATERS[1]], [ABILITY_ORDER, WATERS[0]]]) {
+for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['dash', 'lantern', 'double', 'wallkick'], WATERS[1]], [BASE_ABILITIES, WATERS[0]], [[...BASE_ABILITIES, 'rope'], WATERS[0]]]) {
   const G = new Graph({ abilities, water, keeper: true, calmed: ['frog', 'hydra', 'puma', 'warden'] });
   const R = G.reach([G.nodeAt(start.x, start.y)]);
   const back = new Map();
@@ -407,7 +417,7 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
   ok(g.save.heroes.dora.hp > 5, 'some HP');
   g.save.food.tea = 0;
   ok(/No/.test(g.eat('tea') ?? ''), 'no tea left says so');
-  ok(Object.values(GEAR).every((x) => x.icon >= 0 && x.icon < 32), 'every piece of gear has an icon');
+  ok(Object.values(GEAR).every((x) => x.icon >= 0 && x.icon < ART.icons[2]), 'every piece of gear has an icon');
 }
 
 // ─── a boss, from the door to the reward ──────────────────────────────────
@@ -683,7 +693,7 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
     eq(new Set(animFrames('climb', hero)).size, 4, `${hero}: four different climb frames`);
     eq(animFrames('run', hero).length, 6, `${hero}: a six-frame run`);
     eq(animFrames('swim', hero).length, 4, `${hero}: a four-stroke swim`);
-    for (const [s, d] of Object.entries(ANIMS)) for (const f of animFrames(s, hero)) ok(f >= 0 && f < 80, `${hero} ${s}: frame ${f} is on the strip`);
+    for (const [s, d] of Object.entries(ANIMS)) for (const f of animFrames(s, hero)) ok(f >= 0 && f < ART[hero][2], `${hero} ${s}: frame ${f} is on the strip`);
     // on a ladder: the frame moves only while the hero climbs, and holds when they stop
     const up = run(hero, [{ climb: true, ground: false }, ...Array.from({ length: 40 }, () => ({ climb: true, ground: false, vy: -1.5 }))]);
     eq(up[0].state, 'climbOn', `${hero}: stepping onto a ladder has its own frame`);
@@ -732,8 +742,11 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
   }
   // which states each hero can be in: the ones the game never puts a hero in have no frames for that hero
   const NEVER = {
-    dora: ['glide', 'cast', 'castWind', 'lanternUp', 'lanternDown', 'chime'], // the lantern and its spells are Enzo's
-    enzo: ['dash', 'wallSlide', 'wallKick', 'thrust', 'whirl'], // the dash, wall kick, down-thrust and Whirl Slash are Dora's
+    // the lantern and its spells are Enzo's (the Echo Step, Frost Fan and Gale Wave too)
+    dora: ['glide', 'cast', 'castWind', 'lanternUp', 'lanternDown', 'chime', 'echo', 'frostWind', 'frost', 'galeWind', 'gale', 'noteHop'],
+    // the dash, wall kick, down-thrust and Whirl Slash are Dora's, and so is the Bell Rope (and only she lifts a shield
+    // arm to hail: Enzo shelters under the lantern's glow)
+    enzo: ['dash', 'wallSlide', 'wallKick', 'thrust', 'whirl', 'ropeThrow', 'ropeSwing', 'ropeRelease', 'shield'],
   };
   // the one deliberate share: a hard landing recovers through the ordinary landing frame
   const SHARED = [['hardLand', 'land']];
@@ -1053,4 +1066,5 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
   ok(g.drainEvents().some((v) => v.k === 'num' && v.kind === 'heal'), 'resting pops a green heal');
 }
 
+checks += belfry();
 console.log(`bellspire: ${checks} checks passed`);
