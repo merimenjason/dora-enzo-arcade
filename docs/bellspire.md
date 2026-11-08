@@ -272,7 +272,10 @@ never scrolls).
 - **Guardians.** The Molten Founder (1250 HP) lumbers after the lead, pours ladles of bronze, pounds waves along the
   floor, rains marked drops and in phase 3 floods the floor from both walls. A blade only bites where Enzo's frost has
   landed: frost leaves a cold spot for 5 seconds (8 with the helping hand), and a blade on a spot does 1.6 times
-  (other spells 0.3 times); with Enzo knocked out every blow counts. The Glass Choir (1000 HP) is three singers: it
+  (other spells 0.3 times); with Enzo knocked out every blow counts. In this fight Enzo's V on the ground sweeps the
+  Frost Fan low (as by molten bronze), and with the helping hand a prompt over the lead says what to do next: "V frost
+  the Founder", "Shift: tag to Dora, strike the frost!", "Shift: tag to Enzo to frost it" or "X the frosted patch!"
+  (`founderHint`). The Glass Choir (1000 HP) is three singers: it
   sings a song of 3, 4, then 5 notes (with the helping hand slower, and each singer numbered as it sings), then
   listens for 8 seconds (15 with the helping hand) while the heroes strike the singers in the same order. Each right
   note takes 4% of its strength and the whole song 12% and stuns it; a wrong note rings a sour chord (harmless with the

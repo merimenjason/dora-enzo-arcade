@@ -24,18 +24,20 @@ The design and mock-ups are in `docs/game-ideas.md` and `docs/ideas/bellspire-fo
 **Open decisions (ask the user before changing):**
 1. **The Glass Choir is too easy with the helping hand.** Casual bots finish at 99% HP. Founder is 1250 HP / attack 27, Choir 1000 HP / attack 27.
 2. **The Grand Guardian Rush is the hardest thing in the game.** Its casual threshold in the trials bot is 60%, against 75% for the normal rush, and the pro bot never finishes it. Every lost run ends at the Hollow Bell. The medals are 450 / 590 / 780 s.
-3. The full `npm run test:e2e` run is long and can flake under load. Chinchillas vs Zombies timed out once, and the Burrow Express phone touch-draw step failed during the build. Both passed when rerun alone against a production build (`npx vinext start --port 3108` with `E2E_BASE_URL`).
+3. The full `npm run test:e2e` run is long and can flake under load. Chinchillas vs Zombies timed out once, and the Burrow Express phone touch-draw step failed during the build. Both passed when rerun alone against a production build (`npx vinext start --port 3108` with `E2E_BASE_URL`, which those two suites read).
 
 **How to check Bellspire:**
 - `npm run test:bellspire` (5941 checks, including the foundry suite) and `npm run bot:bellspire`.
 - The full bot is `node tests/bellspire-bot.mjs`: 24 seeds, and route bots for seeds 1–3 to the Hollow Bell ending.
 - `node tests/bellspire-trials-bot.mjs`.
-- `npm run test:e2e:bellspire` runs `tests/e2e/bellspire.mjs` (113 checks) and `tests/e2e/bellspire-foundry.mjs` (17 checks at 1280×800, 844×390 and 390×844). It needs a running server; set `E2E_BASE_URL` if it isn't on :3000.
+- `npm run test:e2e:bellspire` runs `tests/e2e/bellspire.mjs` (113 checks) and `tests/e2e/bellspire-foundry.mjs` (19 checks at 1280×800, 844×390 and 390×844). It needs a running server; the Bellspire suites read `BASE_URL` (default :3000), while some older suites such as Burrow Express read `E2E_BASE_URL`.
 
 **Art pipeline:** Codex paints, then `scripts/bellspire-art.py` keys, downscales with nearest-neighbour, palette-passes and builds the atlas into `public/art/bellspire/` and `lib/bellspire-art.ts`.
 - Glass art uses a green key, because magenta ate the violet glass.
 - Each hero has four outfits, on sheets a–l.
 - Strips with missing paintings are skipped.
+
+**The Molten Founder (fixed 08-11-2026):** its blade-only-on-frost rule was unwinnable for Dora in practice: Enzo's V on the ground fired the Lantern Bolt, and frost only came from an air cast, so players never made a frosted patch. Now V on the ground in that fight sweeps the low Frost Fan, and with the helping hand the prompts walk through it (`founderHint`): frost, tag to Dora, strike the frost.
 
 **After the expansion shipped (08-11-2026):** with the helping hand on, prompts now appear by molten bronze ("V frost the bronze" / tag to Enzo, `frostHint`) and by vent slag ("Wait for the vents to puff" / "Mist! Hop across the slag", `ventHint`). The vents room's tunnel was nearly impossible to cross: its low ceiling cut every jump short over three-tile lava. Its ceiling is now a tile higher, the lava strips are one tile wide (`_:::::::_::::::_`), and the Forge Sprint medals were re-set to 41 / 54 / 80 s for the faster route. **Lesson: the route bots and planner passed that room while a human couldn't.** For any new gap, simulate a human jump from a range of take-off points, not only the planner's ideal one.
 

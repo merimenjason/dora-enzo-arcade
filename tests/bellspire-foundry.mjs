@@ -301,6 +301,25 @@ export default function foundry() {
     ok(h2 - b.hp > 30, 'and a blade on the spot bites hard');
     g.save.heroes.enzo.down = true; const h3 = b.hp; g.damageBoss(30, b.x + 80, b.y - 40, false, b.body, 'swing');
     ok(b.hp < h3, 'with Enzo knocked out, every blow counts');
+    eq(g.founderHint(), null, 'no Founder prompts without the helping hand');
+    // the helping hand: V on the ground frosts it, and the prompts walk through frost, tag, strike
+    const f = game(['hammer'], [], { assist: true }); f.fightBoss('founder'); quiet(f);
+    for (let i = 0; i < 300 && f.boss.st === 'wait'; i++) { f.step(I({ left: true })); quiet(f); }
+    for (let i = 0; i < 300 && f.boss.st === 'intro'; i++) { f.step(I()); quiet(f); }
+    lead(f, 'dora');
+    eq(f.founderHint(), 'tagEnzo', 'Dora, nothing frosted: “tag to Enzo to frost it”');
+    lead(f, 'enzo');
+    eq(f.founderHint(), 'frost', 'Enzo: “V frost the Founder”');
+    for (let i = 0; i < 300 && Math.abs(f.boss.x - f.body.x) > 100; i++) { f.step(I(f.boss.x > f.body.x ? { right: true } : { left: true })); quiet(f); }
+    f.step(I(f.boss.x > f.body.x ? { right: true } : { left: true })); f.save.heroes.enzo.mp = 99;
+    f.step(I({ cast: true })); run(f, 30); quiet(f);
+    ok(f.boss.spots.length > 0, 'V on the ground sweeps the Frost Fan low and frosts the Founder');
+    eq(f.founderHint(), 'tagDora', 'then: “tag to Dora, strike the frost!”');
+    lead(f, 'dora');
+    eq(f.founderHint(), 'strike', 'and as Dora: “X the frosted patch!”');
+    const fh = f.boss.hp;
+    for (let i = 0; i < 90 && f.boss; i++) { const d = f.boss.x - f.body.x; f.step(I({ ...(Math.abs(d) > 30 ? (d > 0 ? { right: true } : { left: true }) : {}), attack: i % 8 === 0 })); quiet(f); }
+    ok(f.boss.hp < fh - 50, 'and her blade on the frost bites hard');
     // the Glass Choir: strike the singers in the order they sang
     const c = game(['hammer', 'resonance'], ['boss:founder'], STRICT); c.fightBoss('choir'); quiet(c);
     for (let i = 0; i < 2000 && c.boss.st !== 'listen'; i++) { c.step(I(c.boss.st === 'wait' ? { left: true } : {})); quiet(c); if (c.dialog) c.dialog = null; }

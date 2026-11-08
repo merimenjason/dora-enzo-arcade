@@ -259,6 +259,10 @@ try {
       await until(page, () => !!window.__bellspire().game.boss);
       for (let i = 0; i < 60 && ['wait', 'intro'].includes((await st(page)).boss?.st); i++) { if ((await st(page)).dialog) await page.keyboard.press('KeyZ'); await page.waitForTimeout(100); }
       await page.waitForTimeout(1500);
+      if (id === 'founder') {
+        await page.getByText(/V frost the Founder|tag to Enzo to frost it/).first().waitFor({ timeout: 3000 });
+        ok('the Founder fight shows the helping hand’s frost prompt');
+      }
       await page.screenshot({ path: `.shots/bellspire/87-foundry-${id}.png` });
       await bad(page, `the ${id} fight`);
       if (id === 'hollow') break;

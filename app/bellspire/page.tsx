@@ -622,6 +622,16 @@ export default function BellspirePage() {
     const top = Math.min(q.r * 16 - 30, g.body.y - 46, g.follower.y - 46) - sc2.cam.y;
     shrinePrompt = { text: frost.ask === 'frost' ? `${spell} frost the bronze` : `${tag}: tag to Enzo to frost`, x: (fx - sc2.cam.x) * scale, y: Math.max(26, top) * scale };
   }
+  // fighting the Molten Founder (the helping hand): frost it as Enzo, then strike the frost as Dora
+  const fh = g && !dialog && !shrinePrompt && sceneRef.current ? g.founderHint() : null;
+  if (g && fh && sceneRef.current) {
+    const sc2 = sceneRef.current;
+    const spell = touchOn ? 'Spell' : keyName(settings.keys.cast[0] ?? 'KeyV');
+    const tag = touchOn ? 'Tag' : keyName(settings.keys.tag[0] ?? 'ShiftLeft');
+    const hit = touchOn ? 'Hit' : keyName(settings.keys.attack[0] ?? 'KeyX');
+    const text = { frost: `${spell} frost the Founder`, tagDora: `${tag}: tag to Dora, strike the frost!`, tagEnzo: `${tag}: tag to Enzo to frost it`, strike: `${hit} the frosted patch!` }[fh];
+    shrinePrompt = { text, x: (g.body.x - sc2.cam.x) * scale, y: Math.max(26, Math.min(g.body.y, g.follower.y) - 46 - sc2.cam.y) * scale };
+  }
   // by slag under mist vents (the helping hand): wait for a puff, then go
   const vent = g && !dialog && !shrinePrompt && sceneRef.current ? g.ventHint() : null;
   if (g && vent && sceneRef.current) {

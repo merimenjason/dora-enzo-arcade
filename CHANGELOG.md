@@ -14,6 +14,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Sunken Bellspire**: Dora couldn't hurt the Molten Founder, because Enzo's frost only came out when he cast in the air. Now V on the ground in that fight sweeps the Frost Fan low across the Founder, and with the helping hand on, prompts show the combo: frost it as Enzo, tag to Dora, strike the frosted patch.
 - **Sunken Bellspire**: the vents' tunnel in the Casting Halls was nearly impossible to cross: its low ceiling cut every jump short over three-tile lava strips. The tunnel is a tile higher and the lava strips between the slag are one tile wide.
 
 ## 07-11-2026

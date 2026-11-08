@@ -1000,8 +1000,8 @@ export class BellspireGame {
         else if (held >= 24 && this.save.spells.includes('ember')) this.castEmber();
         else if (held >= 24 && !this.save.spells.includes('ember')) { this.note('Enzo hasn’t learned the Ember Ring yet. A tap of V casts the Lantern Bolt.'); this.castBolt(); }
         else if (!b.ground && !b.swim && this.save.spells.includes('frost')) this.castFrost();
-        // on the ground by molten bronze, the Frost Fan sweeps low across the floor
-        else if (b.ground && this.save.spells.includes('frost') && this.hotChannelNear(5 * TILE)) this.castFrost(true);
+        // on the ground by molten bronze, or facing the Molten Founder, the Frost Fan sweeps low across the floor
+        else if (b.ground && this.save.spells.includes('frost') && (this.hotChannelNear(5 * TILE) || (this.boss?.id === 'founder' && !this.boss.calm))) this.castFrost(true);
         else this.castBolt();
       }
     }
@@ -1462,6 +1462,16 @@ export class BellspireGame {
     if (rawChar(c, r) === ':') return null;
     for (let d = 1; d <= 5; d++) for (const s of [b.face, -b.face]) if (rawChar(c + s * d, r) === ':') return { c: c + s * d, r, ask: this.ventUp() ? 'go' : 'wait' };
     return null;
+  }
+  /** With the helping hand, fighting the Molten Founder: what to do next. Enzo frosts it; once a frosted patch is on
+   *  it, Dora strikes there (tagging between the two as needed). Null outside the fight. */
+  founderHint(): 'frost' | 'tagDora' | 'tagEnzo' | 'strike' | null {
+    const f = this.boss;
+    if (!this.helping() || this.dialog || !f || f.id !== 'founder' || f.calm || f.st === 'wait' || f.st === 'intro') return null;
+    const spots = (f.spots ?? []).length > 0, { enzo, dora } = this.save.heroes;
+    if (enzo.down) return this.lead === 'dora' ? 'strike' : null;
+    if (this.lead === 'enzo') return spots && !dora.down ? 'tagDora' : 'frost';
+    return spots ? 'strike' : 'tagEnzo';
   }
   frostHint(): { q: Channel; ask: 'frost' | 'tag' } | null {
     if (!this.helping() || this.dialog || !this.save.spells.includes('frost') || !this.body.ground) return null;
