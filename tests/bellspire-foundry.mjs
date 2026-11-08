@@ -349,7 +349,7 @@ export default function foundry() {
   // ─── the endings and the totals ───────────────────────────────────────────
   {
     eq(COMPLETION.bosses, 11, 'eleven guardians in all');
-    eq(COMPLETION.murals, MURALS.length, 'every mural counts');
+    eq(COMPLETION.murals, MURALS.length - COMPLETION.orchard.murals, 'every mural through the Foundry counts');
     const g = game(['hammer', 'resonance'], ['boss:founder', 'boss:choir', 'ending', 'belfry:ending', 'epilogue', 'epilogue2']);
     g.setFlag('boss:hollow'); g.drainEvents();
     g.finishFoundry();

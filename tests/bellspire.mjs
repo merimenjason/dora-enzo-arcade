@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import {
   BellspireGame, MAP_EXITS, freshSave, parseSave, heroStats, xpToNext, ROOMS, INFO, COLS, ROWS, TILE, COMPLETION, ABILITY_ORDER, ABILITIES, BOSSES, GEAR, SHOP,
   rawChar, roomOfTile, groupAt, roomById, NO_INPUT, HEART_HP, TAG_CD, surfaceRow, roomRect as roomRectOf, FOES, foeBox, foeFrame,
-  BASE_ABILITIES, isBelfryRoom, MURALS, NOTE_LIFE, GALE_HOLD,
+  BASE_ABILITIES, isBelfryRoom, isOrchardRoom, MURALS, NOTE_LIFE, GALE_HOLD,
 } from '../.checks/bellspire-game.js';
 import { Graph, nodeRoom, HeroAnimator, ANIMS, animFrames, heroHas } from '../.checks/bellspire-nav.js';
 import { BOXES, FOE_BODY, ART } from '../.checks/bellspire-art.js';
@@ -59,7 +59,7 @@ const muralIds = ROOMS.flatMap((r) => r.murals ?? []);
 eq([...muralIds].sort((a, b) => a - b), [...Array(MURALS.length).keys()], 'each mural text appears once');
 ok(ROOMS.every((r) => INFO.get(r.id).things.filter((t) => t.ch === 'C').length === (r.chests?.length ?? 0)), 'every chest has its contents');
 ok(ROOMS.filter((r) => r.ability).every((r) => INFO.get(r.id).things.some((t) => t.ch === 'A')), 'every ability room has its pedestal');
-eq(ROOMS.filter((r) => r.ability && !r.salt).map((r) => r.ability), ['dash', 'double', 'wallkick', 'chime', 'rope', 'hammer'], 'six pedestals; the lantern, the glide, the Echo Step and Resonance come from guardians and the coat from a chest');
+eq(ROOMS.filter((r) => r.ability && !r.salt && !isOrchardRoom(r)).map((r) => r.ability), ['dash', 'double', 'wallkick', 'chime', 'rope', 'hammer'], 'six pedestals through the Foundry');
 
 // ─── the gates, with the route planner ────────────────────────────────────
 const start = new BellspireGame(fresh()).body;
@@ -76,7 +76,7 @@ function reachable(abilities, keeper = false, calmed = ['frog', 'hydra', 'puma',
 const ped = (a) => thing('A', (t, r) => r.ability === a);
 const before = (a) => ABILITY_ORDER.slice(0, ABILITY_ORDER.indexOf(a));
 for (const a of ['dash', 'double', 'wallkick', 'chime']) ok(reachable(before(a)).near(ped(a)), `the ${a} pedestal can be reached with what comes before it`);
-const CITADEL = ROOMS.filter((r) => !isBelfryRoom(r.id) && !r.fd && !r.salt), ROPE_ROOMS = ['ropeloft', 'ropegallery', 'ropecellar'];
+const CITADEL = ROOMS.filter((r) => !isBelfryRoom(r.id) && !r.fd && !r.salt && !isOrchardRoom(r)), ROPE_ROOMS = ['ropeloft', 'ropegallery', 'ropecellar'];
 const r0 = reachable([]);
 ok(!r0.rooms.has('idol') && !r0.rooms.has('dgate'), 'without the dash: no frog and no docks');
 const r1 = reachable(['dash']);
@@ -517,7 +517,7 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
   ok(!ever, 'with the helping hand off there is never a wisp');
   const late = new BellspireGame(fresh(ABILITY_ORDER), {}, 31);
   for (const id of Object.keys(BOSSES)) late.setFlag(`boss:${id}`);
-  late.setFlag('keeper'); late.setFlag('salt:visited');
+  late.setFlag('keeper'); late.setFlag('salt:visited'); late.setFlag('orchard:visited');
   eq(late.nextGoal(), null, 'once everything is done there is nothing left to point at');
   // every ability, but the hydra and the puma skipped: the wisp leads to the nearer one
   const skip = new BellspireGame(fresh(ABILITY_ORDER), {}, 31);

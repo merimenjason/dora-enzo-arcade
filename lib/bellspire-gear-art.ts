@@ -69,6 +69,8 @@ export const WEAPON_LOOK: Record<string, { blade?: Ramp; lift?: number; lamp?: R
 export const OUTFIT: Record<string, { hero: HeroId; strip: string }> = {
   "dora-salt-coat": { hero: "dora", strip: "dora-salt" },
   "enzo-salt-coat": { hero: "enzo", strip: "enzo-salt" },
+  "dora-orchard-coat": { hero: "dora", strip: "dora-orchard" },
+  "enzo-orchard-coat": { hero: "enzo", strip: "enzo-orchard" },
   'windward-jacket': { hero: 'dora', strip: 'dora-windward' },
   'highland-cloak': { hero: 'enzo', strip: 'enzo-highland' },
   // and the Foundry Below's: Dora's Forge Apron, Enzo's Ashwork Smock

@@ -23,6 +23,7 @@ PARTS = []  # the part maps of the frames being scaled (the heroes'), in order
 # the decor frames with open flames (the torch and candle frames the scene uses; the docks light with a lantern post
 # and the throne with a chandelier, so they have none)
 OPEN_FLAMES = {'halls': (6, 0), 'towers': (4, 6), 'crypt': (6, 2), 'loft': (0,), 'cast': (0,), 'glass': (6,), 'salt': (0,), 'haul': (0,)}
+OPEN_FLAMES.update(orchard=(0, 6), rootcellar=(0, 6))
 # the Foundry Below's sheets full of violet and pink glass were painted on flat green, which the magenta key would eat
 GREEN = {'bs-tiles-glass', 'bs-decor-glass', 'bs-mid-glass', 'bs-tiles-fd', 'bs-props-fd', 'bs-foe-cbat', 'bs-foe-gsnail',
          'bs-foes-e', 'bs-boss-choir', 'bs-boss-choir2', 'bs-boss-choir3', 'bs-icons-d'}
@@ -814,13 +815,17 @@ for hero in ('dora', 'enzo'):
     if all(have(f'bs-{hero}-salt-{sh}') for sh in SHEETS):
         salt_frames, salt_parts, salt_lamps = hero_frames(hero, f'{hero}-salt', outfit=True)
         strip(f'{hero}-salt', salt_frames, cw, ch, parts=salt_parts, lamps=salt_lamps)
+    if all(have(f'bs-{hero}-orchard-{sh}') for sh in SHEETS):
+        orchard_frames, orchard_parts, orchard_lamps = hero_frames(hero, f'{hero}-orchard', outfit=True)
+        strip(f'{hero}-orchard', orchard_frames, cw, ch, parts=orchard_parts, lamps=orchard_lamps)
 
 # Each Salt Road action has four poses in ordinary gear and four in its Salt Road outfit.
 for hero in ('dora', 'enzo'):
-    sheet = f'bs-{hero}-salt-work'
-    if have(sheet):
-        frames = [bbox(drop_neighbours(c)) for c in cells(kload(sheet), 4, 2)]
-        strip(f'{hero}-salt-work', [scaled(f, 38 / frames[0].height, 24) for f in frames], 58, 48)
+    for area in ('salt', 'orchard'):
+        sheet = f'bs-{hero}-{area}-work'
+        if have(sheet):
+            frames = [bbox(drop_neighbours(c)) for c in cells(kload(sheet), 4, 2)]
+            strip(f'{hero}-{area}-work', [scaled(f, 38 / frames[0].height, 24) for f in frames], 58, 48)
 
 # ─── enemies: frame A on top, frame B below ───────────────────────────────
 FOE_H = {'frog': 20, 'moth': 15, 'eel': 18, 'reed': 30, 'condor': 30, 'imp': 19, 'shell': 30, 'vizcacha': 18,
@@ -876,6 +881,10 @@ for n, height in (('brine-skater', 15), ('salt-hare', 24), ('pack-tick', 18), ('
         continue
     FOE_H[n] = height
     foes += foe_sheet(n)
+for n, height in (('wall-moth', 17), ('thorn-hare', 23), ('clay-beetle', 20), ('root-mite', 16)):
+    if have(f'bs-foe-{n}'):
+        FOE_H[n] = height
+        foes += foe_sheet(n)
 strip('foes', foes, 64, 48)
 
 # ─── bosses ───────────────────────────────────────────────────────────────
@@ -914,6 +923,10 @@ for n, height in (('weighmaster', 94), ('panback', 65), ('tollkeeper', 105)):
     frames = [bbox(c) for c in cells(kload(f'bs-boss-{n}'), 3, 2)]
     scale = height / frames[0].height
     strip(f'boss-{n}', [scaled(f, scale, 30) for f in frames], 184, 130)
+for n, height in (('bracken-stag', 85), ('rootback', 59), ('graft-mother', 105)):
+    if have(f'bs-boss-{n}'):
+        frames = [bbox(c) for c in cells(kload(f'bs-boss-{n}'), 3, 1)]
+        strip(f'boss-{n}', [scaled(f, height / frames[0].height, 28) for f in frames], 190, 130)
 
 
 def choir(name, sheets, height, cw, ch):
@@ -997,10 +1010,11 @@ for sheet, (cols, rows) in (('bs-icons-a', (4, 4)), ('bs-icons-b', (4, 4)), ('bs
         f = bbox(c)
         s = 20 / max(f.width, f.height)
         icons.append(scaled(f, s, 16))
-if have('bs-icons-salt'):
-    for c in cells(kload('bs-icons-salt'), 4, 2):
-        f = bbox(c)
-        icons.append(scaled(f, 20 / max(f.width, f.height), 16))
+for sheet in ('bs-icons-salt', 'bs-icons-orchard'):
+    if have(sheet):
+        for c in cells(kload(sheet), 4, 2):
+            f = bbox(c)
+            icons.append(scaled(f, 20 / max(f.width, f.height), 16))
 strip('icons', icons, 24, 24, anchor='middle')
 if have('bs-npc-suma'):
     frames = [bbox(c) for c in cells(kload('bs-npc-suma'), 2, 2)]
@@ -1013,6 +1027,13 @@ if have('bs-props-salt'):
             for row, xs in enumerate(edges) for l, r in zip(xs, xs[1:])]
     dims = ((29, 23), (144, 20), (17, 22), (17, 22), (144, 20), (32, 20), (14, 19), (24, 22))
     strip('props-salt', [pixelate(f, w, h, 20, outline=False) for f, (w, h) in zip(figs, dims)], 144, 30)
+if have('bs-npc-killa'):
+    keeper = bbox(kload('bs-npc-killa'))
+    strip('killa', [scaled(keeper, 40 / keeper.height, 24)], 58, 54)
+if have('bs-props-orchard'):
+    frames = [bbox(c) for c in cells(kload('bs-props-orchard'), 4, 2)]
+    dims = ((24, 25), (24, 25), (23, 25), (23, 25), (96, 13), (29, 24), (46, 62), (22, 14))
+    strip('props-orchard', [pixelate(f, w, h, 22, outline=False) for f, (w, h) in zip(frames, dims)], 96, 64)
 ports = []
 for i, c in enumerate(cells(load('bs-portraits'), 3, 2)):
     f = bbox(key(hero_colours(c, 'enzo') if i == 1 else hero_colours(c, 'dora') if i in (0, 5) else c))  # Enzo is second; Dora first and last
@@ -1161,9 +1182,11 @@ DECOR = {
     'glass': [30, 26, 40, 22, 56, 18, 34, 32],
     'salt': [22, 34, 28, 25, 19, 44, 43, 24],
     'haul': [22, 34, 28, 25, 19, 44, 43, 24],
+    'orchard': [26, 39, 18, 23, 24, 36, 18, 37],
+    'rootcellar': [28, 34, 18, 26, 29, 28, 19, 45],
 }
 for area, hs in DECOR.items():
-    if area in ('salt', 'haul') and not all(have(f'bs-{part}-{area}') for part in ('tiles', 'decor', 'bg', 'mid')):
+    if area in ('salt', 'haul', 'orchard', 'rootcellar') and not all(have(f'bs-{part}-{area}') for part in ('tiles', 'decor', 'bg', 'mid')):
         continue
     ts = []
     for c in cells(kload(f'bs-tiles-{area}'), 3, 3):
@@ -1201,6 +1224,15 @@ for area, hs in DECOR.items():
     mid = key(cover(load(f'bs-mid-{area}'), 16, 9), f'bs-mid-{area}' in GREEN)
     m = pixelate(mid, 480, 270, 24, outline=False, clean=False)
     if area == 'cloud': m = calm_mid_cloud(m)
+    if area in ('orchard', 'rootcellar'):
+        # Keep foliage and arch edges behind the walkable planes. Leave the key and coverage untouched.
+        rgba = np.asarray(m).copy()
+        rgb = rgba[..., :3].astype(float)
+        value = rgb @ np.array((0.30, 0.59, 0.11))
+        muted = rgb * 0.64 + value[..., None] * 0.36
+        scales = (0.68, 0.72, 0.84) if area == 'orchard' else (0.76, 0.79, 0.88)
+        rgba[..., :3] = (muted * scales).astype(np.uint8)
+        m = Image.fromarray(rgba)
     m.save(OUT / f'mid-{area}.webp', lossless=True, method=6)
     MANIFEST[f'mid-{area}'] = (480, 270, 1)
     print(f'mid-{area:10}  1 x 480x270')
@@ -1214,11 +1246,15 @@ for n, src in (('title', 'bs-title2'), ('ending', 'bs-ending2'), ('epilogue', 'b
     opaque(n, cover(load(src), 16, 9), 480, 270, 96, kmeans=4)
 if have('bs-ending-salt'):
     opaque('ending4', cover(load('bs-ending-salt'), 16, 9), 480, 270, 72, kmeans=4)
+if have('bs-ending-orchard'):
+    opaque('ending5', cover(load('bs-ending-orchard'), 16, 9), 480, 270, 72, kmeans=4)
 murals = [cover(c, 4, 3) for c in cells(load('bs-murals'), 3, 2)]
 # the Windward Belfry's eight (6-13), painted four to a sheet so each panel is near 4:3
 murals += [cover(c, 4, 3) for sh in ('bs-murals-wb', 'bs-murals-wb2') for c in cells(load(sh), 2, 2)]
 # the Foundry Below's six (14-19)
 murals += [cover(c, 4, 3) for c in cells(load('bs-murals-fd'), 3, 2)]
+if have('bs-murals-orchard'):
+    murals += [cover(c, 4, 3) for c in cells(load('bs-murals-orchard'), 2, 2)]
 ms = []
 for c in murals:
     small = c.convert('RGB').resize((640, 480), Image.LANCZOS).resize((160, 120), Image.BOX)
@@ -1252,7 +1288,8 @@ lines += ['', '// Painted bounds of every frame, [x0, y0, x1, y1] from the draw 
 for k in ('foes', 'dora', 'enzo', 'boss-frog', 'boss-puma', 'boss-mother', 'boss-warden', 'hydra-head',
           'boss-condor', 'boss-clapper-a', 'boss-clapper-b', 'boss-bell', 'dora-windward', 'enzo-highland',
           'dora-forge', 'enzo-ash', 'boss-founder', 'boss-hollow', 'boss-hollowb', 'boss-choir',
-          'dora-salt', 'enzo-salt', 'boss-weighmaster', 'boss-panback', 'boss-tollkeeper'):
+          'dora-salt', 'enzo-salt', 'boss-weighmaster', 'boss-panback', 'boss-tollkeeper',
+          'dora-orchard', 'enzo-orchard', 'boss-bracken-stag', 'boss-rootback', 'boss-graft-mother'):
     if k in BOXES:
         lines.append(f"  '{k}': [" + ', '.join(f'[{a}, {b}, {c}, {d}]' for a, b, c, d in BOXES[k]) + '],')
 lines.append('};')

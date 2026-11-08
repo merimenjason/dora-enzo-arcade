@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 09-11-2026
+
+### Added
+
+- **Sunken Bellspire** adds **The Night Orchard**. After calming the Last Tollkeeper, use the orchard wicket in the Salt Tollhouse. Enzo wakes dormant branches with Lantern Bloom, and Dora cuts their ties with Graft Shear. Cross the Graft Terraces and Root Cellars, find Killa and two orchard outfits, and use both heroes to calm the orchard’s three guardians.
+
 ## 08-11-2026
 
 ### Added

@@ -3,7 +3,7 @@
 import {
   ROOMS, AREAS, COLS, ROWS, TILE, SCREEN_W, SCREEN_H, ABILITIES, ABILITY_ORDER, SPELLS, GEAR, START_EQUIP, FOOD, SHOP, BOSSES, MURALS,
   SCRIPTS, WATER_AREAS, SHRINE_NAMES, GUARDIANS, GUARDIAN_AREA, BELFRY_GUARDIANS, BELFRY_AREAS, WIND_AREAS, ALL_BOSSES, abilityIcon,
-  FOUNDRY_GUARDIANS, FOUNDRY_AREAS, SALT_GUARDIANS, PERK_STATS, RECAST_PERKS, RECAST_PRICE, crystalSpans,
+  FOUNDRY_GUARDIANS, FOUNDRY_AREAS, SALT_GUARDIANS, ORCHARD_GUARDIANS, PERK_STATS, RECAST_PERKS, RECAST_PRICE, crystalSpans, isOrchardRoom,
   type Room, type AreaId, type Ability, type HeroId, type SpellId, type Slot, type FoodId, type BossId, type Line, type WaterArea, type Perk, type WindArea,
 } from './bellspire-world.js';
 import { BOXES, FOE_BODY } from './bellspire-art.js';
@@ -30,6 +30,7 @@ function nearHook(env: Env, b: Body) {
 }
 
 import { SALT_GATE } from './bellspire-salt-world.js';
+import { graftFlag, graftSpans, ORCHARD_EXIT, ORCHARD_GATE, ORCHARD_RETURN } from './bellspire-orchard-world.js';
 import { SaltLift } from './bellspire-salt-lift.js';
 
 export * from './bellspire-world.js';
@@ -69,11 +70,12 @@ export const baseChar = (ch: string) => (TERRAIN.includes(ch) || DOOR_CHARS.incl
 export type Thing = { ch: string; c: number; r: number; i: number; room: string };
 export type Group = { id: string; ch: string; tiles: [number, number][]; horiz: boolean; c: number; r: number; w: number; h: number };
 export type RoomInfo = { room: Room; things: Thing[]; doors: Group[]; walls: Group[]; floats: { c0: number; c1: number; r: number }[]; hooks: { x: number; y: number }[] };
-const THING_CHARS = 'SMRCABOU@Titwhv' + 'oQWPD' + 'FmerKIazJG' + 'YXLE' + 'N%*!12345678?;';
+const THING_CHARS = 'SMRCABOU@Titwhv' + 'oQWPD' + 'FmerKIazJG' + 'YXLE' + 'N%*!12345678?;,q[]{}';
 export const FOE_CHARS: Record<string, FoeKind> = {
   F: 'frog', m: 'moth', e: 'eel', r: 'reed', K: 'condor', I: 'imp', a: 'shell', z: 'vizcacha', J: 'jelly', G: 'golem',
   Y: 'gust', X: 'hawk', L: 'clapper', E: 'beetle',
   1: 'ingot', 2: 'ember', 3: 'cbat', 4: 'gsnail', 5: 'brine-skater', 6: 'salt-hare', 7: 'pack-tick', 8: 'crust-crawler',
+  '[': 'wall-moth', ']': 'thorn-hare', '{': 'clay-beetle', '}': 'root-mite',
 };
 /** Where a bell hook's rope catches: just under the hook's eye. */
 export const hookPoint = (c: number, r: number) => ({ x: c * TILE + 8, y: r * TILE + 4 });
@@ -214,7 +216,7 @@ export const COMPLETION = (() => {
   const count = (exp: boolean | null, fd = true) => {
     let cells = 0, chests = 0, pedestals = 0, murals = 0;
     for (const r of ROOMS) {
-      if (r.salt) continue; // The Foundry epilogue retains its original requirements.
+      if (r.salt || isOrchardRoom(r)) continue; // The Foundry epilogue retains its original requirements.
       if (exp !== null && !!r.exp !== exp) continue;
       if (!fd && r.fd) continue;
       cells += r.w * r.h; murals += r.murals?.length ?? 0;
@@ -224,7 +226,10 @@ export const COMPLETION = (() => {
   };
   const sr = ROOMS.filter((r) => r.salt);
   const salt = { cells: sr.reduce((n, r) => n + r.w * r.h, 0), chests: sr.reduce((n, r) => n + (r.chests?.length ?? 0), 0), bosses: SALT_GUARDIANS.length };
-  return { ...count(null), bosses: ALL_BOSSES.length, salt, base: { ...count(false), bosses: BASE_BOSSES.length }, belfry: { ...count(null, false), bosses: BELFRY_BOSSES.length } };
+  const orchard = ROOMS.filter(isOrchardRoom).reduce((n, r) => ({
+    cells: n.cells + r.w * r.h, chests: n.chests + (r.chests?.length ?? 0), murals: n.murals + (r.murals?.length ?? 0), bosses: n.bosses,
+  }), { cells: 0, chests: 0, murals: 0, bosses: ORCHARD_GUARDIANS.length });
+  return { ...count(null), bosses: ALL_BOSSES.length, salt, orchard, base: { ...count(false), bosses: BASE_BOSSES.length }, belfry: { ...count(null, false), bosses: BELFRY_BOSSES.length } };
 })();
 
 // ─── the Echo Trials (at any lit shrine once the Out-of-Tune Bell is calm) ──────────
@@ -390,7 +395,7 @@ export function heroStats(save: Save, hero: HeroId) {
 
 // ─── enemies ───────────────────────────────────────────────────────────────
 
-export type FoeKind = 'frog' | 'moth' | 'eel' | 'reed' | 'condor' | 'imp' | 'shell' | 'vizcacha' | 'jelly' | 'golem' | 'gust' | 'hawk' | 'clapper' | 'beetle' | 'ingot' | 'ember' | 'cbat' | 'gsnail' | 'brine-skater' | 'salt-hare' | 'pack-tick' | 'crust-crawler';
+export type FoeKind = 'frog' | 'moth' | 'eel' | 'reed' | 'condor' | 'imp' | 'shell' | 'vizcacha' | 'jelly' | 'golem' | 'gust' | 'hawk' | 'clapper' | 'beetle' | 'ingot' | 'ember' | 'cbat' | 'gsnail' | 'brine-skater' | 'salt-hare' | 'pack-tick' | 'crust-crawler' | 'wall-moth' | 'thorn-hare' | 'clay-beetle' | 'root-mite';
 export const FOES: Record<FoeKind, { name: string; hp: number; atk: number; xp: number; coins: number; w: number; h: number; fly?: boolean; swim?: boolean; light?: [number, number, number, number] }> = {
   frog: { name: 'Stone Lake-Frog', hp: 16, atk: 5, xp: 6, coins: 3, w: 22, h: 16 },
   moth: { name: 'Lantern Moth', hp: 5, atk: 3, xp: 3, coins: 1, w: 12, h: 10, fly: true, light: [1, 0.62, 0.25, 46] },
@@ -413,6 +418,10 @@ export const FOES: Record<FoeKind, { name: string; hp: number; atk: number; xp: 
   'salt-hare': { name: 'Salt Hare', hp: 32, atk: 10, xp: 25, coins: 6, w: 18, h: 21 },
   'pack-tick': { name: 'Pack Tick', hp: 22, atk: 10, xp: 24, coins: 5, w: 17, h: 17, fly: true },
   'crust-crawler': { name: 'Crust Crawler', hp: 42, atk: 11, xp: 31, coins: 7, w: 25, h: 17 },
+  'wall-moth': { name: 'Wall Moth', hp: 24, atk: 9, xp: 25, coins: 5, w: 18, h: 16, fly: true },
+  'thorn-hare': { name: 'Thorn Hare', hp: 34, atk: 11, xp: 28, coins: 6, w: 16, h: 22 },
+  'clay-beetle': { name: 'Clay Beetle', hp: 39, atk: 10, xp: 29, coins: 6, w: 22, h: 17 },
+  'root-mite': { name: 'Root Mite', hp: 30, atk: 10, xp: 25, coins: 5, w: 16, h: 14 },
   gsnail: { name: 'Glass Snail', hp: 36, atk: 8, xp: 26, coins: 7, w: 18, h: 16 },
 };
 /** A foe's body frames (idle and moving): from the art, or a stand-in until a kind's own sheet is painted. */
@@ -495,7 +504,7 @@ export type GameEvent =
   | { k: 'hit'; x: number; y: number; big: boolean; color?: string }
   | { k: 'shake'; n: number }
   | { k: 'flash'; color: string; n: number }
-  | { k: 'save' } | { k: 'shop' } | { k: 'mural'; n: number } | { k: 'ending'; full: boolean; belfry?: boolean; foundry?: boolean; salt?: boolean }
+  | { k: 'save' } | { k: 'shop' } | { k: 'mural'; n: number } | { k: 'ending'; full: boolean; belfry?: boolean; foundry?: boolean; salt?: boolean; orchard?: boolean }
   /** Tupa's forge opened; cracked glass shattered; a prism's beam to a door; a channel frosted; a slam landed */
   | { k: 'forge' } | { k: 'shatter'; x: number; y: number } | { k: 'beam'; x: number; y: number; tx: number; ty: number } | { k: 'frost'; x: number; y: number; w: number }
   | { k: 'slam'; x: number; y: number; bounce: boolean }
@@ -522,7 +531,7 @@ type Act = { kind: 'swing' | 'thrust' | 'whirl' | 'cast' | 'tagin' | 'slam'; t: 
 /** An echo bell's note: a ledge of light (x0 to x1 at height y) that shows from `at` until `life` ticks. */
 export type Note = { key: string; room: string; x0: number; x1: number; y: number; t: number; at: number; life: number };
 /** A float as the body sees it this tick: reed platforms, echo notes and the tops of swinging bells. */
-export type Float = { x0: number; x1: number; y: number; key: string; kind: 'reed' | 'note' | 'bell' | 'lift' };
+export type Float = { x0: number; x1: number; y: number; key: string; kind: 'reed' | 'note' | 'bell' | 'lift' | 'branch' };
 /** How long an echo bell's notes stay (ticks), and the gap between one note and the next appearing. */
 export const NOTE_LIFE = 240, NOTE_GAP = 12;
 /** With the helping hand, echo notes last three times as long (12 seconds; on top of the Carillon Staff's double time). */
@@ -738,6 +747,65 @@ export class BellspireGame {
   }
   saltLift: SaltLift | null = null;
   saltWork: { hero: HeroId; until: number; face: 1 | -1 } | null = null;
+  orchardWork: { hero: HeroId; until: number; face: 1 | -1 } | null = null;
+
+  orchardKnown() { return this.flag('boss:tollkeeper') || this.flag('orchard:visited') || isOrchardRoom(this.room); }
+
+  graftTargets() {
+    const origin = roomRect(this.room);
+    return (this.room.grafts ?? []).flatMap((g, index) => {
+      const bloom = graftFlag(this.room.id, index, 'bloom'), shear = graftFlag(this.room.id, index, 'shear');
+      const ripe = this.flag(bloom);
+      const tile = !ripe ? g.bud : g.tie;
+      if (!tile || (ripe && this.flag(shear))) return [];
+      return [{
+        x: origin.x + (tile[0] + 0.5) * TILE, y: origin.y + (tile[1] + 1) * TILE,
+        ability: ripe ? 'shear' as const : 'bloom' as const, flag: ripe ? shear : bloom,
+      }];
+    });
+  }
+
+  private nearGraft(range: number) {
+    return this.graftTargets().filter((p) => Math.abs(p.y - this.body.y) < 27 && Math.abs(p.x - this.body.x) < range)
+      .sort((a, b) => Math.abs(a.x - this.body.x) - Math.abs(b.x - this.body.x))[0];
+  }
+
+  orchardHint(): { x: number; y: number; key: 'up' | 'attack' | 'tag' | null; text: string } | null {
+    if (!this.helping()) return null;
+    const arena = this.orchardControl();
+    const p = arena ?? this.nearGraft(88);
+    if (!p) return null;
+    if (!p.ability) return { ...p, key: null, text: arena?.waiting ?? 'Watch the graft' };
+    if (!this.has(p.ability)) return { ...p, key: null, text: `Find ${ABILITIES[p.ability].name}` };
+    if (Math.abs(p.x - this.body.x) >= 39 || Math.abs(p.y - this.body.y) >= 27) {
+      return { ...p, key: null, text: p.ability === 'bloom' ? 'Go to the golden bud' : 'Go to the ochre tie' };
+    }
+    const who = p.ability === 'bloom' ? 'enzo' : 'dora';
+    if (this.lead !== who) return { ...p, key: 'tag', text: who === 'enzo' ? 'Tag to Enzo to wake the bud' : 'Tag to Dora to cut the tie' };
+    return { ...p, key: who === 'enzo' ? 'up' : 'attack', text: who === 'enzo' ? 'Wake the golden bud' : 'Cut the ochre tie' };
+  }
+
+  useOrchard(ability: 'bloom' | 'shear') {
+    if (!this.body.ground || this.body.climb || (this.leadRt.act && this.leadRt.act.kind !== 'tagin') || this.leadRt.hurtT > 0) return false;
+    const who = ability === 'bloom' ? 'enzo' : 'dora';
+    if (this.lead !== who || !this.has(ability)) return false;
+    const arena = this.orchardControl();
+    const p = arena ?? this.nearGraft(39);
+    if (!p || p.ability !== ability || Math.abs(p.x - this.body.x) >= 39 || Math.abs(p.y - this.body.y) >= 27) return false;
+    if (arena && this.boss) {
+      if (ability === 'bloom') { this.boss.low = 1; this.go('orchardTell', 68 * this.tellMul, true); }
+      else { this.boss.low = 0; this.go('orchardOpen', this.helping() ? 420 : 265); }
+    } else if ('flag' in p) {
+      this.setFlag(p.flag);
+      this.emit({ k: 'save' });
+    }
+    this.orchardWork = { hero: who, face: this.body.x <= p.x ? 1 : -1, until: this.tick + 24 };
+    if (this.leadRt.act?.kind === 'tagin') this.leadRt.act = null;
+    this.body.vx = 0;
+    this.sfx(ability === 'bloom' ? 'chime' : 'shatter', p.x, p.y);
+    this.emit({ k: 'pulse', x: p.x, y: p.y - 12, r: 48, color: [1, 0.74, 0.25] });
+    return true;
+  }
 
   saltKnown() { return this.flag('boss:hollow') || this.flag('salt:visited') || !!this.room.salt; }
 
@@ -765,6 +833,7 @@ export class BellspireGame {
     }
     for (const n of this.notes) if (n.room === this.room.id && n.t >= n.at && n.t < n.life) out.push({ x0: n.x0, x1: n.x1, y: n.y, key: n.key, kind: 'note' });
     for (const sb of this.swingBells()) out.push({ x0: sb.x - 22, x1: sb.x + 22, y: sb.y, key: `p${sb.i}`, kind: 'bell' });
+    if (this.room.grafts) for (const span of graftSpans(this.room, (key) => this.flag(key), TILE, COLS, ROWS)) out.push({ ...span, kind: 'branch' });
     return out;
   }
   /** The giant swinging bells in this room: each one's pivot, angle, and where the top of the bell is (the part to
@@ -925,7 +994,7 @@ export class BellspireGame {
     if (!first) this.emit({ k: 'room', id: room.id });
     if (room.script && !this.flag(`script:${room.script}`) && !first) { this.setFlag(`script:${room.script}`); this.say(SCRIPTS[room.script]); }
     if (room.dark && !this.flag('script:firstDark') && !first) { this.setFlag('script:firstDark'); this.say(SCRIPTS.firstDark); }
-    if (prevRoom !== room) { this.lostT = 0; this.saltWork = null; }
+    if (prevRoom !== room) { this.lostT = 0; this.saltWork = null; this.orchardWork = null; }
   }
 
   spawnBoss(id: BossId) {
@@ -1002,7 +1071,9 @@ export class BellspireGame {
     // actions
     const busy = rt.hurtT > 0;
     if (!busy) {
-      if (pressed.attack && !rt.act && this.canOpenTravel()) {
+      if (pressed.attack && this.useOrchard('shear')) {
+        // The cut is its own action, rather than also doing a normal sword swing.
+      } else if (pressed.attack && !rt.act && this.canOpenTravel()) {
         // attack at a lit shrine, with nothing about to bite: the map opens for travel instead of a swing
         this.emit({ k: 'travelOpen', id: this.room.id });
       } else if (pressed.attack && lead === 'dora' && !b.ground && !b.swim && !b.climb && !b.rope && this.has('rope') && hookInReach(this.env, b)) {
@@ -1043,14 +1114,16 @@ export class BellspireGame {
       if (lead === 'enzo' && this.has('dash')) this.note('Only Dora can dash. Press Shift to tag her in.');
       else if (!this.has('dash')) this.note('Dora hasn’t found the Reed Dash yet.');
     }
-    if (pressed.up && b.ground && !b.climb) this.interact();
+    const workedGraft = pressed.up && b.ground && !b.climb && this.useOrchard('bloom');
+    if (pressed.up && b.ground && !b.climb && !workedGraft) this.interact();
 
     // the body
     const act = rt.act;
     const rooted = (act && act.kind !== 'thrust' && b.ground && act.t < act.dur - 2) || rt.hurtT > 8;
     let dir: -1 | 0 | 1 = inp.left === inp.right ? 0 : inp.left ? -1 : 1;
-    if (rooted && act?.kind === 'cast') dir = 0;
-    const bin: BodyInput = { dir, up: inp.up, down: inp.down, jumpP: pressed.jump && !(act?.kind === 'cast'), jumpH: inp.jump, dashP: pressed.dash, ropeP, slamP };
+    const graftPose = this.orchardWork?.hero === this.lead && this.orchardWork.until - this.tick > 8;
+    if ((rooted && act?.kind === 'cast') || graftPose) dir = 0;
+    const bin: BodyInput = { dir, up: inp.up && !graftPose, down: inp.down, jumpP: pressed.jump && !(act?.kind === 'cast') && !graftPose, jumpH: inp.jump, dashP: pressed.dash, ropeP, slamP };
     const wasSwim = b.swim, faceBefore = b.face;
     const caps = this.caps();
     if (rooted && b.ground && act?.kind === 'swing') { caps.speed *= 0.35; }
@@ -1566,7 +1639,7 @@ export class BellspireGame {
     const info = INFO.get(this.room.id)!;
     let best: Thing | null = null, bd = 1e9;
     for (const t of info.things) {
-      if (!'SMRUCDN?;'.includes(t.ch)) continue;
+      if (!'SMRUCDN?;,q'.includes(t.ch)) continue;
       if (t.ch === 'C' && this.flag(`chest:${this.room.id}:${t.i}`)) continue;
       const dx = Math.abs(t.c * TILE + 8 - b.x), dy = Math.abs((t.r + 1) * TILE - b.y);
       const reach = t.ch === 'M' || t.ch === 'S' || t.ch === 'D' || t.ch === 'N' ? 30 : 20;
@@ -1579,6 +1652,8 @@ export class BellspireGame {
     const t = this.nearby();
     if (!t) return null;
     if (t.ch === '?') return this.room.salt ? 'Return to the Foundry Gate' : this.saltKnown() ? 'Enter the Salt Road' : 'Inspect the old supply door';
+    if (t.ch === ',') return isOrchardRoom(this.room) ? 'Return to the Tollhouse' : this.orchardKnown() ? 'Enter the Night Orchard' : 'Inspect the orchard wicket';
+    if (t.ch === 'q') return 'Talk to Killa';
     return ({ ';': 'Talk to Suma', S: 'Rest and save', M: 'Talk to Wayra', R: 'Read the mural', U: 'Talk to Ukumari', C: 'Open the chest', D: 'Take Wayra’s boat', N: 'Talk to Tupa' } as Record<string, string>)[t.ch] ?? null;
   }
   interact() {
@@ -1595,6 +1670,21 @@ export class BellspireGame {
     if (this.useSaltGuardian()) return;
     const best = this.nearby();
     if (!best) return;
+    if (best.ch === ',') {
+      const back = isOrchardRoom(this.room);
+      if (!back && !this.orchardKnown()) { this.note('The orchard wicket opens after the Tollkeeper is calm.'); return; }
+      if (back) this.teleport(ORCHARD_RETURN, ...ORCHARD_EXIT);
+      else this.teleport(ORCHARD_GATE, 3, 11);
+      this.setFlag('orchard:visited');
+      this.sfx('door');
+      this.emit({ k: 'room', id: this.room.id });
+      return;
+    }
+    if (best.ch === 'q') {
+      this.say([{ who: 'sign', text: 'Killa: Take Lantern Bloom from the pedestal up the steps. Golden buds still listen to Enzo’s light. Dora can cut the ochre ties once the graft is awake.' }]);
+      this.sfx('talk');
+      return;
+    }
     if (best.ch === '?') {
       if (!this.room.salt && !this.saltKnown()) { this.note('Tupa will open the old supply door once the Hollow Bell is calm.'); return; }
       const back = !!this.room.salt;
@@ -2004,6 +2094,7 @@ export class BellspireGame {
           this.foeEnv(e, 0);
           break;
         }
+        case 'wall-moth':
         case 'moth': {
           const near = dist < 150;
           e.hx += near ? clamp(dx, -0.3, 0.3) : (e.tx - e.hx) * 0.01;
@@ -2123,6 +2214,7 @@ export class BellspireGame {
           e.x = ax + Math.sin(e.tx) * len; e.y = ay + Math.cos(e.tx) * len;
           break;
         }
+        case 'clay-beetle':
         case 'beetle': {
           // a wind-up bell-beetle: trundles back and forth, then rolls at a hero in its bell
           if (e.st === 'idle') {
@@ -2201,8 +2293,10 @@ export class BellspireGame {
           break;
         }
         case 'brine-skater':
+        case 'thorn-hare':
         case 'salt-hare':
         case 'pack-tick':
+        case 'root-mite':
         case 'crust-crawler': {
           const kind = e.kind;
           if (e.st === 'idle') {
@@ -2508,6 +2602,7 @@ export class BellspireGame {
     else if (b.id === 'choir') this.bossChoir(b);
     else if (b.id === 'hollow') this.bossHollow(b);
     else if (b.id === 'weighmaster' || b.id === 'panback' || b.id === 'tollkeeper') this.updateSaltGuardian(b);
+    else if (isOrchardRoom(this.room)) this.updateOrchardGuardian(b);
     else this.bossMother(b);
     for (const h of b.harm) if (overlap(me, this.shrink(h, 2))) { this.hurtLead(BOSSES[b.id].atk, h.x + h.w / 2); break; }
     // falling things marked on the floor
@@ -2556,6 +2651,15 @@ export class BellspireGame {
       this.ended = true;
       this.emit({ k: 'save' });
       this.emit({ k: 'ending', full: false, salt: true });
+    });
+    else if (b.id === 'graft-mother') this.say([
+      { who: 'enzo', text: 'Look at the branches, Dora. All the way up the hill.' },
+      { who: 'sign', text: 'At dawn Killa carried the first basket down to the caravan road.' },
+    ], () => {
+      this.setFlag('orchard:ending');
+      this.ended = true;
+      this.emit({ k: 'save' });
+      this.emit({ k: 'ending', full: false, orchard: true });
     });
     else this.say(done, () => this.emit({ k: 'save' }));
     this.planks.clear(); this.arenaWind = { dir: 1, str: 1 }; this.notes = this.notes.filter((nn) => !nn.key.startsWith('tune:'));
@@ -3178,6 +3282,57 @@ export class BellspireGame {
     void rr;
   }
 
+  orchardControl() {
+    const b = this.boss;
+    if (!b || !isOrchardRoom(this.room) || b.calm || b.st === 'wait' || b.st === 'intro' || b.st === 'orchardOpen') return null;
+    const side = b.id === 'graft-mother' ? b.side : -1;
+    const distance = b.id === 'bracken-stag' ? 144 : 128;
+    return {
+      x: b.sx + side * distance, y: b.sy,
+      ability: b.st === 'orchardRest' ? 'bloom' as const : b.st === 'orchardCaught' ? 'shear' as const : null,
+      waiting: b.id === 'bracken-stag' ? 'Let the stag catch its antlers' : b.id === 'rootback' ? 'Wait for its shell to lift' : 'Wait for the roots to settle',
+    };
+  }
+
+  private updateOrchardGuardian(b: Boss) {
+    const side = b.id === 'graft-mother' ? b.side : -1;
+    const shell = { x: b.x - 36, y: b.y - 56, w: 72, h: 56 };
+    b.body = shell;
+    if (b.st === 'intro') {
+      if (b.t >= b.dur) this.go('orchardRest', 120);
+      return;
+    }
+    if (b.st === 'orchardRest') {
+      // A periodic sweep gives the player a reason to use the high ledges. Waking a bud instead
+      // makes the same attack catch on the graft and opens the next part of the fight.
+      if (b.t >= b.dur) this.go('orchardTell', 76 * this.tellMul, true);
+      return;
+    }
+    if (b.st === 'orchardTell') {
+      b.face = side;
+      if (b.t >= b.dur) this.go('orchardRush', b.id === 'graft-mother' ? 54 : 32);
+      return;
+    }
+    if (b.st === 'orchardRush') {
+      const width = b.id === 'bracken-stag' ? 91 : b.id === 'rootback' ? 58 : 99;
+      if (b.id === 'bracken-stag') b.x = b.sx + side * Math.min(80, b.t * 2.7);
+      if (!b.low || b.id === 'graft-mother') b.harm.push({ x: side < 0 ? b.x - width : b.x, y: b.sy - 21, w: width, h: 21 });
+      if (b.t >= b.dur) {
+        if (b.low) this.go('orchardCaught', Infinity);
+        else { b.x = b.sx; this.go('orchardRest', 160); }
+      }
+      return;
+    }
+    if (b.st === 'orchardOpen') {
+      b.hurt.push({ x: b.x - 36, y: b.y - 48, w: 72, h: 48 });
+      if (b.t >= b.dur) {
+        b.x = b.sx;
+        if (b.id === 'graft-mother') b.side = b.side === 1 ? -1 : 1;
+        this.go('orchardRest', 140);
+      }
+    }
+  }
+
   /** The Molten Founder: a walking furnace with a ladle. Only frosted spots take a blade (see damageBoss). */
   saltGuardianControl() {
     const b = this.boss;
@@ -3536,6 +3691,10 @@ export class BellspireGame {
       const { x, y } = roomRect(this.room), lift = this.saltLift;
       return { room: this.room.id, x: x + p.x, y: y + (p.x === lift.plan.station ? lift.plan.low : lift.y) - 18 };
     }
+    if (isOrchardRoom(this.room)) {
+      const graft = this.nearGraft(144);
+      if (graft && this.has(graft.ability)) return { room: this.room.id, x: graft.x, y: graft.y - 18 };
+    }
     const find = (pred: (t: Thing, r: Room) => boolean) => { for (const i of INFO.values()) for (const t of i.things) if (pred(t, i.room)) return t; return null; };
     const steps: [() => boolean, (t: Thing, r: Room) => boolean][] = [
       [() => this.has('dash'), (t, r) => t.ch === 'A' && r.ability === 'dash'],
@@ -3564,6 +3723,10 @@ export class BellspireGame {
       [() => this.has('ballast'), (t, r) => t.ch === 'A' && r.ability === 'ballast'],
       [() => this.has('catch'), (t, r) => t.ch === 'A' && r.ability === 'catch'],
       ...SALT_GUARDIANS.map((id): [() => boolean, (t: Thing, r: Room) => boolean] => [() => this.flag(`boss:${id}`), (t, r) => t.ch === 'O' && r.boss === id]),
+      [() => this.flag('orchard:visited'), (t, r) => t.ch === ',' && r.id === ORCHARD_RETURN],
+      [() => this.has('bloom'), (t, r) => t.ch === 'A' && r.ability === 'bloom'],
+      [() => this.has('shear'), (t, r) => t.ch === 'A' && r.ability === 'shear'],
+      ...ORCHARD_GUARDIANS.map((id): [() => boolean, (t: Thing, r: Room) => boolean] => [() => this.flag(`boss:${id}`), (t, r) => t.ch === 'O' && r.boss === id]),
     ];
     if (ABILITY_ORDER.slice(0, 7).every((a) => this.has(a)) && this.restless().length) {
       // every ability owned but seals still shut: the nearest restless guardian
@@ -3607,6 +3770,14 @@ export class BellspireGame {
   /** Where the maps mark the wisp's lead: the next goal, or Wayra's boat on this shore when the goal is across the
    *  water (as the wisp itself leads). */
   private saltPortalGoal(goal: { room: string; x: number; y: number }) {
+    const hereIsOrchard = isOrchardRoom(this.room), targetIsOrchard = isOrchardRoom(roomById(goal.room));
+    if (hereIsOrchard && targetIsOrchard) return goal;
+    if (hereIsOrchard !== targetIsOrchard) {
+      const id = hereIsOrchard ? ORCHARD_GATE : ORCHARD_RETURN;
+      const wicket = INFO.get(id)!.things.find((t) => t.ch === ',')!;
+      if (hereIsOrchard || this.room.salt) return { room: id, x: wicket.c * TILE + 8, y: wicket.r * TILE };
+      goal = { room: id, x: wicket.c * TILE + 8, y: wicket.r * TILE };
+    }
     const targetIsSalt = !!roomById(goal.room)?.salt;
     if (targetIsSalt === !!this.room.salt) return goal;
     const portalRoom = targetIsSalt ? 'fgate' : SALT_GATE;
@@ -3683,7 +3854,7 @@ export class BellspireGame {
     return { x: mx * TILE + 8, y: my * TILE + 4 };
   }
   /** Is the guiding wisp shown: the helping hand on (never in Strict), its own setting not off, and a goal left. */
-  wispOn() { return this.settings.assist && !this.settings.strict && this.settings.wisp !== false && !this.flag('boss:tollkeeper'); }
+  wispOn() { return this.settings.assist && !this.settings.strict && this.settings.wisp !== false && (this.flag('orchard:visited') ? !this.flag('boss:graft-mother') : !this.flag('boss:tollkeeper')); }
   /** The guiding wisp: while the helping hand is on it is always there, a little ahead of the lead along the way to
    *  the next goal (over the goal itself once it is in this room). It keeps clear of the heroes' faces, drifts up to
    *  a corner in a guardian's arena, and never touches the game: it only moves. */
@@ -3840,14 +4011,14 @@ export class BellspireGame {
     const tally = (exp: boolean | null) => {
       let chests = 0, peds = 0, murals = 0, cells = 0;
       for (const info of INFO.values()) {
-        if (info.room.salt || exp !== null && !!info.room.exp !== exp) continue;
+        if (info.room.salt || isOrchardRoom(info.room) || exp !== null && !!info.room.exp !== exp) continue;
         for (const t of info.things) {
           if (t.ch === 'C' && this.flag(`chest:${info.room.id}:${t.i}`)) chests++;
           if (t.ch === 'A' && info.room.ability && this.has(info.room.ability)) peds++;
         }
         for (const n of info.room.murals ?? []) if (this.flag(`mural:${n}`)) murals++;
       }
-      for (const k of this.save.seen) { const r = CELLS.get(k); if (r && !r.salt && (exp === null || !!r.exp === exp)) cells++; }
+      for (const k of this.save.seen) { const r = CELLS.get(k); if (r && !r.salt && !isOrchardRoom(r) && (exp === null || !!r.exp === exp)) cells++; }
       return { cells, chests, peds, murals };
     };
     const all = tally(null), base = tally(false);
@@ -3874,7 +4045,13 @@ export class BellspireGame {
     for (const cell of this.save.seen) if (CELLS.get(cell)?.salt) saltCells++;
     for (const info of INFO.values()) if (info.room.salt) for (const t of info.things) if (t.ch === 'C' && this.flag(`chest:${info.room.id}:${t.i}`)) saltChests++;
     const salt = { cells: saltCells, chests: saltChests, bosses: SALT_GUARDIANS.filter((id) => this.flag(`boss:${id}`)).length };
-    return { ...all, bosses, got, total, salt, pct: Math.floor((got / total) * 100), base: { ...base, bosses: baseBosses, got: bgot, total: btotal, pct: Math.floor((bgot / btotal) * 100) }, belfry };
+    const orchard = { cells: 0, chests: 0, murals: 0, bosses: ORCHARD_GUARDIANS.filter((id) => this.flag(`boss:${id}`)).length };
+    for (const cell of this.save.seen) { const r = CELLS.get(cell); if (r && isOrchardRoom(r)) orchard.cells++; }
+    for (const info of INFO.values()) if (isOrchardRoom(info.room)) {
+      for (const t of info.things) if (t.ch === 'C' && this.flag(`chest:${info.room.id}:${t.i}`)) orchard.chests++;
+      for (const n of info.room.murals ?? []) if (this.flag(`mural:${n}`)) orchard.murals++;
+    }
+    return { ...all, bosses, got, total, salt, orchard, pct: Math.floor((got / total) * 100), base: { ...base, bosses: baseBosses, got: bgot, total: btotal, pct: Math.floor((bgot / btotal) * 100) }, belfry };
   }
 
   /** A copy of the save for storing: the hero's place is the last shrine. During an Echo Trial it is the save as it
