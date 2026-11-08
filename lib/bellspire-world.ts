@@ -2,6 +2,8 @@
 // Each map cell is one screen of 30×17 tiles of 16 px. A room covers a rectangle of cells and its tiles sit at fixed
 // world coordinates, so walking off one room's edge lands in the room next door.
 
+import { saltRooms, type SaltLiftPlan } from './bellspire-salt-world.js';
+
 export const COLS = 30, ROWS = 17, TILE = 16;
 /** A humming crystal's bridge: the slabs its path lays (in world pixels), from the crystal's tile. A slab is two tiles
  *  wide and reaches on to the next one on its row when that one is close, so a row of slabs is one walkway. */
@@ -19,10 +21,10 @@ export function crystalSpans(c: number, r: number, path: [number, number][]): { 
 }
 export const SCREEN_W = COLS * TILE, SCREEN_H = ROWS * TILE;
 
-export type AreaId = 'hub' | 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft' | 'cast' | 'glass';
+export type AreaId = 'hub' | 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft' | 'cast' | 'glass' | 'salt' | 'haul';
 export type WaterArea = 'halls' | 'docks' | 'throne';
 export const WATER_AREAS: WaterArea[] = ['halls', 'docks', 'throne'];
-export const AREAS: Record<AreaId, { name: string; color: string; tiles: 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft' | 'cast' | 'glass'; ambient: [number, number, number]; theme: number }> = {
+export const AREAS: Record<AreaId, { name: string; color: string; tiles: 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft' | 'cast' | 'glass' | 'salt' | 'haul'; ambient: [number, number, number]; theme: number }> = {
   hub: { name: 'Lakebed Landing', color: '#c9a46a', tiles: 'halls', ambient: [0.5, 0.46, 0.52], theme: 0 },
   halls: { name: 'Flooded Halls', color: '#4f86d9', tiles: 'halls', ambient: [0.34, 0.4, 0.58], theme: 1 },
   docks: { name: 'Reed Docks', color: '#5cae55', tiles: 'docks', ambient: [0.38, 0.48, 0.44], theme: 2 },
@@ -34,6 +36,8 @@ export const AREAS: Record<AreaId, { name: string; color: string; tiles: 'halls'
   loft: { name: 'The Belfry Loft', color: '#7f9fd8', tiles: 'loft', ambient: [0.34, 0.38, 0.5], theme: 7 },
   // the Foundry Below: a bell foundry in the warm dark under the citadel, then caverns of glowing volcanic glass
   cast: { name: 'The Casting Halls', color: '#d8652e', tiles: 'cast', ambient: [0.42, 0.28, 0.2], theme: 8 },
+  salt: { name: 'Evaporation Steps', color: '#b6b3c9', tiles: 'salt', ambient: [0.48, 0.48, 0.58], theme: 10 },
+  haul: { name: 'The Mule Galleries', color: '#aa947e', tiles: 'haul', ambient: [0.35, 0.30, 0.28], theme: 11 },
   glass: { name: 'The Glasswork Caves', color: '#b04fc4', tiles: 'glass', ambient: [0.3, 0.18, 0.34], theme: 9 },
 };
 /** The second expansion's two areas: under the Sunken Throne, behind a seal that cracks once the Out-of-Tune Bell is calm. */
@@ -44,17 +48,19 @@ export const BELFRY_AREAS: AreaId[] = ['cloud', 'loft'];
 export type WindArea = 'cloud' | 'loft';
 export const WIND_AREAS: WindArea[] = ['cloud', 'loft'];
 
-export type Ability = 'dash' | 'lantern' | 'double' | 'wallkick' | 'chime' | 'glide' | 'deep' | 'rope' | 'echo' | 'hammer' | 'resonance';
+export type Ability = 'dash' | 'lantern' | 'double' | 'wallkick' | 'chime' | 'glide' | 'deep' | 'rope' | 'echo' | 'hammer' | 'resonance' | 'ballast' | 'catch';
 export type HeroId = 'dora' | 'enzo';
 /** The order the citadel is meant to be opened up in. */
-export const ABILITY_ORDER: Ability[] = ['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide', 'deep', 'rope', 'echo', 'hammer', 'resonance'];
+export const ABILITY_ORDER: Ability[] = ['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide', 'deep', 'rope', 'echo', 'hammer', 'resonance', 'ballast', 'catch'];
 /** The citadel's own seven, before the Windward Belfry. */
 export const BASE_ABILITIES: Ability[] = ABILITY_ORDER.slice(0, 7);
 /** The citadel's and the Windward Belfry's nine, before the Foundry Below. */
 export const BELFRY_ABILITIES: Ability[] = ABILITY_ORDER.slice(0, 9);
 /** Each ability's icon in the icon strip (the expansion's were painted later, so they sit after the gear). */
-export const abilityIcon = (a: Ability) => (a === 'rope' ? 32 : a === 'echo' ? 33 : a === 'hammer' ? 40 : a === 'resonance' ? 41 : 24 + ABILITY_ORDER.indexOf(a));
+export const abilityIcon = (a: Ability) => (a === 'rope' ? 32 : a === 'echo' ? 33 : a === 'hammer' ? 40 : a === 'resonance' ? 41 : a === 'ballast' ? 48 : a === 'catch' ? 49 : 24 + ABILITY_ORDER.indexOf(a));
 export const ABILITIES: Record<Ability, { name: string; hero: HeroId | 'both'; door: string; color: string; how: string; needs: string }> = {
+  ballast: { name: 'Shoulder Shift', hero: 'dora', door: '', color: '#c7bbc1', how: 'Use the ballast station as Dora to call a cargo lift down.', needs: 'Dora needs Shoulder Shift.' },
+  catch: { name: 'Lift Catch', hero: 'enzo', door: '', color: '#d8b17b', how: 'Use the brass catch as Enzo to lock a lift level at the lower landing.', needs: 'Enzo needs Lift Catch.' },
   dash: { name: 'Reed Dash', hero: 'dora', door: 'd', color: '#3f8cff', how: 'Dora dashes with C or L, on the ground or once in the air. A dash slips through attacks.', needs: 'Needs Dora’s Reed Dash' },
   lantern: { name: 'Moonwick', hero: 'enzo', door: 'l', color: '#ff9a3c', how: 'As Enzo, hold ↓ and press V to raise or lower the lantern. Raised, it lights dark rooms and makes ghost-glass solid.', needs: 'Needs the Moonwick: a raised lantern opens this hatch' },
   double: { name: 'Wind Leap', hero: 'dora', door: 'j', color: '#4fcf6a', how: 'Dora jumps again in mid-air.', needs: 'Needs Dora’s Wind Leap' },
@@ -82,6 +88,8 @@ export type Slot = 'weapon' | 'coat' | 'ring' | 'relic';
 export type Perk = 'fast' | 'reach' | 'cheapchime' | 'bright' | 'sturdy' | 'swim' | 'lucky' | 'regen' | 'crit' | 'quick' | 'secrets' | 'xp' | 'windward' | 'notes' | 'cool' | 'tempered' | 'keen' | 'focus';
 export type Gear = { name: string; slot: Slot; hero?: HeroId; atk?: number; def?: number; mag?: number; hp?: number; mp?: number; perk?: Perk; text: string; icon: number };
 export const GEAR: Record<string, Gear> = {
+  'dora-salt-coat': { name: 'Salt-Road Wrap', slot: 'coat', hero: 'dora', def: 7, text: 'A plum caravan tunic with felt gaiters.', icon: 50 },
+  'enzo-salt-coat': { name: 'Waxed Haul Coat', slot: 'coat', hero: 'enzo', def: 7, text: 'A slate coat with a broad ochre hem.', icon: 51 },
   'bronze-sword': { name: 'Bronze Sword', slot: 'weapon', hero: 'dora', atk: 2, text: 'Short, light and sharp enough.', icon: 0 },
   'reed-cutter': { name: 'Reed-Cutter', slot: 'weapon', hero: 'dora', atk: 5, perk: 'fast', text: 'A curved green blade. Swings come round faster.', icon: 1 },
   moonsteel: { name: 'Moonsteel Blade', slot: 'weapon', hero: 'dora', atk: 9, perk: 'reach', text: 'Silver and cold. A longer arc.', icon: 2 },
@@ -130,7 +138,7 @@ export const SHOP: { id: string; price: number }[] = [
   { id: 'moon-ring', price: 140 }, { id: 'reed-cutter', price: 150 }, { id: 'bell-staff', price: 160 },
 ];
 
-export type BossId = 'frog' | 'hydra' | 'puma' | 'warden' | 'mother' | 'condor' | 'clappers' | 'tune' | 'founder' | 'choir' | 'hollow';
+export type BossId = 'frog' | 'hydra' | 'puma' | 'warden' | 'mother' | 'condor' | 'clappers' | 'tune' | 'founder' | 'choir' | 'hollow' | 'weighmaster' | 'panback' | 'tollkeeper';
 export const BOSSES: Record<BossId, { name: string; title: string; hp: number; atk: number; xp: number; reward: string[] }> = {
   frog: { name: 'The Grand Frog Idol', title: 'Guardian of the Flooded Halls', hp: 220, atk: 8, xp: 120, reward: ['ability:lantern', 'heart'] },
   hydra: { name: 'The Reed Hydra', title: 'Tangle of the Reed Docks', hp: 420, atk: 12, xp: 220, reward: ['spell:ember', 'heart'] },
@@ -142,6 +150,9 @@ export const BOSSES: Record<BossId, { name: string; title: string; hp: number; a
   tune: { name: 'The Out-of-Tune Bell', title: 'The Belfry’s Sour Heart', hp: 1300, atk: 24, xp: 1000, reward: [] },
   founder: { name: 'The Molten Founder', title: 'Smith of the Casting Halls', hp: 1250, atk: 27, xp: 1100, reward: ['ability:resonance', 'heart'] },
   choir: { name: 'The Glass Choir', title: 'Three Voices in the Glass', hp: 1000, atk: 27, xp: 1200, reward: ['gear:ladle-staff', 'drop'] },
+  weighmaster: { name: 'Whiteback Weighmaster', title: 'The Last Pack Llama', hp: 660, atk: 22, xp: 1350, reward: ['heart'] },
+  panback: { name: 'Panback Armadillo', title: 'Keeper of the Weighing Pan', hp: 820, atk: 24, xp: 1450, reward: ['drop'] },
+  tollkeeper: { name: 'The Last Tollkeeper', title: 'Guardian of the Caravan Road', hp: 1000, atk: 25, xp: 1750, reward: ['heart'] },
   hollow: { name: 'The Hollow Bell', title: 'The Bell Cast Without a Voice', hp: 1600, atk: 26, xp: 1500, reward: [] },
 };
 /** The Foundry Below's two guardians: both must be calm before the deep seal opens on the Hollow Bell. */
@@ -149,6 +160,7 @@ export const FOUNDRY_GUARDIANS = ['founder', 'choir'] as const satisfies readonl
 /** The Windward Belfry's two guardians: both must be calm before the belfry seal opens on the Out-of-Tune Bell. */
 export const BELFRY_GUARDIANS = ['condor', 'clappers'] as const satisfies readonly BossId[];
 /** Every guardian, citadel and belfry, in story order: the Echo Trials' guardian rush meets all eight. */
+export const SALT_GUARDIANS = ['weighmaster', 'panback', 'tollkeeper'] as const satisfies readonly BossId[];
 export const ALL_BOSSES: BossId[] = ['frog', 'hydra', 'puma', 'warden', 'mother', 'condor', 'clappers', 'tune', 'founder', 'choir', 'hollow'];
 
 /** The four area guardians: each holds one bell seal on the throne door, and all four must be calmed before it opens. */
@@ -158,6 +170,7 @@ export const GUARDIAN_AREA: Record<(typeof GUARDIANS)[number], AreaId> = { frog:
 /** Lore murals: the painted panels (`panel` indexes the six paintings). */
 /** Each candle shrine's own name, shown on the map, the shrine card and on arrival. */
 export const SHRINE_NAMES: Record<string, string> = {
+  'salt-gate': 'Salt Gate Candle', 'salt-mulegate': 'Mule Gate Candle', 'salt-toll-road': 'Toll Road Candle',
   landing: 'Landing Candle', chapel: 'Chapel Candle', mill: 'Reed Mill Candle', gears: 'Bell Loft Candle',
   cshrine: 'Mural Crypt Candle', tshrine: 'Pearl Throne Candle',
   cliffoot: 'Cliff Foot Candle', bannerwalk: 'Bannerwalk Candle', loftbase: 'Belfry Candle',
@@ -389,6 +402,8 @@ export type Room = {
   /** for each humming crystal (`*`, in order), the slabs of its bridge: tile offsets from the crystal; each slab is a
    *  two-tile ledge you can jump up through, lit one after another */
   crystals?: [number, number][][];
+  salt?: boolean;
+  saltLift?: SaltLiftPlan;
 };
 
 const d = (n: number) => '.'.repeat(n);
@@ -1253,3 +1268,5 @@ export const FOUNDRY_ROOMS: Room[] = [
 // the seal in the floor by the Pearl Throne Candle, over the ladder down to the foundry
 patch('tshrine', (k) => { k.at(20, 15, '999').at(20, 16, '.H.'); });
 ROOMS.push(...FOUNDRY_ROOMS);
+patch('fgate', (k) => { k.at(26, 14, '?'); });
+ROOMS.push(...saltRooms());

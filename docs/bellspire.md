@@ -304,6 +304,27 @@ never scrolls).
   Guardian Rush. In New Game+ the foundry's guardians each gain an attack too: the Founder pours twice, the Hollow
   Bell drops six blanks.
 
+## The Salt Road
+
+After the Hollow Bell is calm, use the old supply door on the east side of the Foundry Gate Candle room. The door
+at the Salt Gate returns to the Foundry. The expansion adds 24 screens in 12 rooms across the Evaporation Steps
+and the Mule Galleries, with three candle shrines and a separate ending. Earlier completion and epilogue totals
+still apply to their original areas. The Salt Road ending counts its own 24 screens, three chests and three guardians.
+
+- **Shoulder Shift and Lift Catch.** Take Dora's ability from the Salt Gate pedestal and Enzo's from the first lift
+  room. Use the ballast as Dora to lower the deck and raise its counterpan. Tag to Enzo and use the catch to hold it
+  level. Walk to the middle, then use the deck once both heroes are aboard. The deck stops level with both floors,
+  so boarding and leaving are ordinary walks. You can use the deck from the other landing to return.
+- **Helping hand.** The outlined deck marks where the lift will land. The prompt uses your actual key bindings and
+  shows the next action, including when to wait for the follower. If a hero steps into the shaft, they return to
+  the lower landing. The wisp leads through the supply door after the Foundry and rests after the Tollkeeper.
+- **Guardians.** Set the stop and draw the Whiteback Weighmaster into a charge to expose its flank. Raise the
+  weighing pan beneath Panback Armadillo as Enzo to expose its belly. Shift the Last Tollkeeper's counterweight as
+  Dora, then strike the side under the raised shield. The first two guardians keep the way onward shut while active.
+- **Inhabitants and rewards.** Suma keeps the salt tallies. Brine Skaters glide and lunge, Salt Hares kick shards,
+  Pack Ticks drop from overhead, and Crust Crawlers fold up before they charge. The Salt-Road Wrap is Dora's plum
+  tunic and the Waxed Haul Coat is Enzo's slate coat with ochre trim.
+
 ## Echo Trials
 
 Once the Out-of-Tune Bell is calm, resting at a shrine plays a short scene (Enzo, then Dora) and the **Trials** page in

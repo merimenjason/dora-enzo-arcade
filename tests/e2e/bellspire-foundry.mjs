@@ -79,8 +79,8 @@ try {
   await at('fgate', 4, 14);
   await page.keyboard.press('Escape'); await until(page, () => window.__bellspire().menu === 'map');
   const after = await page.locator('canvas.bs-map').evaluate((c) => c.height);
-  const before = Math.max(...ROOMS.filter((r) => !r.fd).map((r) => r.gy + r.h)) * 16 + 16;
-  assert.equal(after, Math.max(...ROOMS.map((r) => r.gy + r.h)) * 16 + 16, 'the map is tall enough for the foundry');
+  const before = Math.max(...ROOMS.filter((r) => !r.fd && !r.salt).map((r) => r.gy + r.h)) * 16 + 16;
+  assert.equal(after, Math.max(...ROOMS.filter((r) => !r.salt).map((r) => r.gy + r.h)) * 16 + 16, 'the map shows the foundry while the Salt Road is locked');
   assert.ok(after > before, `the map grows down to take in the foundry (${before} → ${after} px)`);
   const fit = await page.locator('.bs-map-box').evaluate((b) => ({ sw: b.scrollWidth, cw: b.clientWidth, sh: b.scrollHeight, ch: b.clientHeight, cv: b.querySelector('canvas').getBoundingClientRect(), w: b.querySelector('canvas').width, h: b.querySelector('canvas').height }));
   assert.ok(fit.sw <= fit.cw + 1 && fit.sh <= fit.ch + 1, `the whole map fits its box with no scrolling (${fit.sw}×${fit.sh} in ${fit.cw}×${fit.ch})`);
@@ -209,8 +209,11 @@ try {
     await game(page, '(g.boss = null, g.dialog = null, g.setHp("enzo", 99), true)');
     await at('anvilhall', 21, 14);
     const y0 = (await st(page)).y;
-    await page.keyboard.down('KeyZ'); await page.waitForTimeout(220);
-    await page.keyboard.down('ArrowDown'); await page.keyboard.press('KeyX'); await page.keyboard.up('ArrowDown');
+    await page.keyboard.down('KeyZ');
+    await until(page, (y) => window.__bellspire().game.body.y < y - 12, y0);
+    await page.keyboard.down('ArrowDown'); await page.keyboard.press('KeyX');
+    await until(page, () => window.__bellspire().game.hero.dora.act?.kind === 'slam');
+    await page.keyboard.up('ArrowDown');
     let top = y0;
     for (let i = 0; i < 40; i++) { top = Math.min(top, (await st(page)).y); await page.waitForTimeout(40); }
     await page.keyboard.up('KeyZ');
@@ -225,8 +228,9 @@ try {
     await tagTo(page, 'enzo');
     await at('prism', 2, 14);
     await game(page, '(g.save.heroes.enzo.mp = 99, true)');
-    await page.keyboard.down('ArrowUp'); await page.keyboard.press('KeyV'); await page.keyboard.up('ArrowUp');
+    await page.keyboard.down('ArrowUp'); await page.keyboard.press('KeyV');
     await until(page, () => window.__bellspire().game.notes.some((n) => n.key.startsWith('prism:x')));
+    await page.keyboard.up('ArrowUp');
     await page.waitForTimeout(400); await shot('85-crystal-bridge-1280x800');
     assert.ok(await posed('enzo:resWind') || await posed('enzo:resRing'), 'Enzo rings out with Resonance');
     ok('↑ + V by a humming crystal: Resonance lays the crystal bridge over the lava');
@@ -234,8 +238,9 @@ try {
     const beam = INFO.get('crucible').doors.find((d) => d.ch === '&');
     assert.ok(!(await game(page, `g.doorOpen(${JSON.stringify(beam)})`)), 'the crucible’s beam door is shut');
     await game(page, '(g.save.heroes.enzo.mp = 99, true)');
-    await page.keyboard.down('ArrowUp'); await page.keyboard.press('KeyV'); await page.keyboard.up('ArrowUp');
+    await page.keyboard.down('ArrowUp'); await page.keyboard.press('KeyV');
     await until(page, (d) => window.__bellspire().game.doorOpen(d), beam);
+    await page.keyboard.up('ArrowUp');
     await page.waitForTimeout(300); await shot('86-prism-beam-1280x800');
     await page.waitForTimeout(500);
     assert.ok(await posed('enzo:resBeam'), `Enzo holds the beam pose (${JSON.stringify(await page.evaluate(() => [...window.__poses].filter((p) => p.startsWith('enzo'))))})`);

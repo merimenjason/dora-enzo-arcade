@@ -48,6 +48,8 @@ const DECOR: Record<string, { torch: number; candle: number; window: number; bel
   // the Foundry Below: furnaces for torches; crucibles and crane hooks hang from the roof, anvils, moulds and ingots on
   // the floors (the Casting Halls); crystal clusters, spires and fungus, stalactites overhead (the Glasswork Caves)
   cast: { torch: 0, candle: 0, window: -1, bell: -1, floor: [2, 3, 4, 7], wall: [5], ceil: [1, 6], back: 0.62 },
+  salt: { torch: 0, candle: 0, window: -1, bell: -1, floor: [1, 2, 3, 7], wall: [], ceil: [], back: 0 },
+  haul: { torch: 0, candle: 0, window: -1, bell: -1, floor: [1, 3, 4, 7], wall: [6], ceil: [5], back: 0.38 },
   glass: { torch: 6, candle: 6, window: -1, bell: -1, floor: [0, 1, 3, 4, 5, 7], wall: [], ceil: [2], back: 0.7 },
 };
 const WATER_TINT: Record<string, [number, number, number]> = { halls: [52, 104, 176], docks: [46, 120, 104], throne: [34, 128, 140], hub: [52, 104, 176], towers: [52, 104, 176], crypt: [60, 70, 120] };
@@ -197,7 +199,7 @@ export class BellspireScene {
       im.onerror = () => res();
       im.src = `${base}${n}.webp`;
     })));
-    for (const n of ['dora', 'enzo', 'foes', 'boss-frog', 'boss-puma', 'boss-mother', 'boss-hydra', 'hydra-head', 'boss-warden', 'boss-condor', 'boss-clapper-a', 'boss-clapper-b', 'boss-bell', 'boss-founder', 'boss-hollow', 'boss-hollowb', 'boss-choir', ...Object.values(OUTFIT).map((o) => o.strip)]) {
+    for (const n of ['dora', 'enzo', 'foes', 'boss-frog', 'boss-puma', 'boss-mother', 'boss-hydra', 'hydra-head', 'boss-warden', 'boss-condor', 'boss-clapper-a', 'boss-clapper-b', 'boss-bell', 'boss-founder', 'boss-hollow', 'boss-hollowb', 'boss-choir', 'boss-weighmaster', 'boss-panback', 'boss-tollkeeper', ...Object.values(OUTFIT).map((o) => o.strip)]) {
       const im = this.img.get(n);
       if (!im) continue;
       const c = document.createElement('canvas');
@@ -604,6 +606,7 @@ export class BellspireScene {
     this.drawLive(g, ox, oy);
     this.drawThings(g, ox, oy);
     this.drawBelfry(g, ox, oy);
+    if (room.salt) this.drawSaltMachinery(g, rr.x + ox, rr.y + oy);
     this.drawPickups(g, ox, oy);
     this.drawEnemies(g, ox, oy);
     if (g.boss) this.drawBoss(g, g.boss, ox, oy);
@@ -618,6 +621,14 @@ export class BellspireScene {
     this.drawLight(g, cx, cy);
     // the guided rope's marks (the helping hand) stay bright in the dark: they're a guide, not part of the room
     this.drawRopeGuide(g, ox, oy);
+    if (g.saltLift && g.helping() && g.saltLift.phase !== 'arrived' && g.saltLift.y !== g.saltLift.targetY) {
+      const { plan, targetY } = g.saltLift;
+      ctx.save();
+      ctx.strokeStyle = '#d3cabc';
+      ctx.setLineDash([3, 4]);
+      ctx.strokeRect(rr.x + ox + plan.left + 0.5, rr.y + oy + targetY + 0.5, plan.right - plan.left - 1, 6);
+      ctx.restore();
+    }
     if (this.edgeCanvas) ctx.drawImage(this.edgeCanvas, rr.x - cx, rr.y - cy);
     // beyond a room smaller than the view: the dark
     {
@@ -889,6 +900,41 @@ export class BellspireScene {
     if (alpha !== 1) ctx.globalAlpha = 1;
   }
 
+  drawSaltMachinery(g: BellspireGame, ox: number, oy: number) {
+    const ctx = this.ctx, lift = g.saltLift;
+    const { x: rx, y: ry } = roomRect(g.room);
+    const image = this.img.get('props-salt'), art = ART['props-salt'];
+    if (!image || !art) return;
+    const [cw, ch] = art;
+    const pan = (frame: number, left: number, right: number, y: number, alpha: number) => {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#776769';
+      for (const x of [left + 7, right - 8]) ctx.fillRect(Math.round(ox + x), Math.round(oy + 30), 2, y - 30);
+      ctx.drawImage(image, cw * frame + (cw - 144) / 2, ch - 20, 144, 20, Math.round(ox + left), Math.round(oy + y), right - left, 13);
+      ctx.restore();
+    };
+    if (lift) {
+      const { plan, y } = lift, { left, right, low, high, counter, station, direction } = plan;
+      pan(4, counter - 29, counter + 29, low + high - y - 40, 0.58);
+      pan(1, left, right, y, 1);
+      const notch = lift.phase === 'parked' ? -12 : 8;
+      ctx.fillStyle = '#78656b';
+      ctx.fillRect(Math.round(ox + station - 29), Math.round(oy + low - 2), 55, 2);
+      this.spr('props-salt', 0, ox + station + direction * notch, oy + low);
+      this.spr('props-salt', lift.locked ? 3 : 2, ox + station + direction * 29, oy + low);
+    }
+    const guardian = g.saltGuardianControl(), b = g.boss;
+    if (!guardian || !b) return;
+    const x = guardian.x - rx + ox, y = guardian.y - ry + oy;
+    if (guardian.kind === 'stop') {
+      this.spr('props-salt', b.low ? 5 : 0, x + 24, y);
+    } else {
+      this.spr('props-salt', b.low || b.st === 'panRise' ? 3 : 2, x, y);
+      if (guardian.kind === 'pan') pan(1, b.sx - rx - 51, b.sx - rx + 51, b.y - ry, 0.92);
+    }
+  }
+
   drawLive(g: BellspireGame, ox: number, oy: number) {
     const set = TILESET(g.room), img = this.img.get(`decor-${set}`), art = ART[`decor-${set}`], fl = this.img.get('flames');
     if (!img || !art) return;
@@ -938,6 +984,8 @@ export class BellspireScene {
       const x = t.c * TILE + 8 + ox, y = (t.r + 1) * TILE + oy;
       if (x < -80 || x > this.vw + 80 || y < -40 || y > this.vh + 80) continue;
       if (t.ch === 'S') this.spr('props', g.flag(`shrine:${room.id}`) || g.save.shrine === room.id ? 1 : 0, x, y);
+      else if (t.ch === '?') this.spr('props-salt', g.saltKnown() ? 2 : 5, x, y);
+      else if (t.ch === ';') this.spr('suma', g.dialog ? 2 : Math.floor(this.t / 28) % 2, x, y);
       else if (t.ch === 'B') {
         // a rung water bell swings, and rings out
         const k = `${t.c},${t.r}`, sw = this.bellSwing.get(k) ?? 0;
@@ -1373,7 +1421,16 @@ export class BellspireScene {
     this.ghosts = this.ghosts.filter((gh) => gh.t < 12);
     const rt = g.hero[lead];
     const blink = rt.inv > 0 && rt.hurtT === 0 && rt.inv < 60 && this.t % 6 < 3;
-    this.drawHero(lead, out, b.x + ox, b.y + oy + 1, blink ? 0.35 : 1);
+    const work = g.saltWork, workSheet = `${lead}-salt-work`;
+    if (work && work.hero === lead && work.until > g.tick && b.ground && !rt.hurtT && !rt.act && Math.abs(b.vx) < 0.4 && this.img.has(workSheet)) {
+      const worn = this.worn[lead], outfit = worn.coat === `${lead}-salt-coat`;
+      if (worn.weapon === START_LOOK[lead].weapon && (outfit || worn.coat === START_LOOK[lead].coat)) {
+        const frame = Math.min(3, Math.floor((24 - (work.until - g.tick)) / 6)) + (outfit ? 4 : 0);
+        this.spr(workSheet, frame, b.x + ox, b.y + oy + 1, work.face < 0);
+      } else {
+        this.drawHero(lead, { ...out, frame: 39, flip: work.face < 0 }, b.x + ox, b.y + oy + 1, 1);
+      }
+    } else this.drawHero(lead, out, b.x + ox, b.y + oy + 1, blink ? 0.35 : 1);
     this.trinkets(g, lead, out, b.x + ox, b.y + oy + 1, blink ? 0.35 : 1);
     this.dust(out, b.x, b.y);
     // the swing's arc
@@ -1477,7 +1534,13 @@ export class BellspireScene {
     const fr = b.calm ? 5 : st.endsWith('Tell') ? (Math.floor(this.t / 7) % 2 ? 3 : 1) : atk ? 2 : b.flash > 3 ? 4 : 0;
     const body = b.body;
     const fx: SprFx = { rim: b.calm ? undefined : RIM[b.id], tell: tell && !b.calm };
-    if (b.id === 'founder') {
+    if (b.id === 'weighmaster' || b.id === 'panback' || b.id === 'tollkeeper') {
+      const f = b.calm ? 5 : b.id === 'tollkeeper'
+        ? st === 'open' ? (b.low === -1 ? 2 : 3) : st === 'sweep' ? 4 : st.endsWith('Tell') ? 1 : 0
+        : st === 'stagger' || st === 'panRise' ? 3 : st === 'panDown' || st === 'back' ? 4 : st === 'charge' || st === 'roll' ? 2 : st.endsWith('Tell') ? 1 : 0;
+      this.sprXf(`boss-${b.id}`, f, b.x + ox, b.y + oy + 1, b.id !== 'tollkeeper' && b.face > 0, calmA, white,
+        { rim: b.calm ? undefined : '#f0e7c9', tell }, 1, 1);
+    } else if (b.id === 'founder') {
       // the Molten Founder: ladle up on its tells, poured on a pour, the fist for a pound; its frost spots glitter on it
       const f = b.calm ? 5 : st === 'pourTell' || st === 'twinTell' ? (Math.floor(this.t / 7) % 2 ? 1 : 3) : st === 'poundTell' || st === 'floodTell' || st === 'rainTell' ? 3 : st === 'pour' || st === 'pound' || st === 'flood' ? 2 : b.flash > 3 ? 4 : 0;
       this.sprXf('boss-founder', f, b.x + ox, b.y + oy + 2, b.face > 0, calmA, white, fx, 1, st === 'pound' ? 0.94 : 1);

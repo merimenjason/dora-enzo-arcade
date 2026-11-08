@@ -22,7 +22,7 @@ BOXES = {}  # name: per-frame painted bounds (x0, y0, x1, y1) from the draw poin
 PARTS = []  # the part maps of the frames being scaled (the heroes'), in order
 # the decor frames with open flames (the torch and candle frames the scene uses; the docks light with a lantern post
 # and the throne with a chandelier, so they have none)
-OPEN_FLAMES = {'halls': (6, 0), 'towers': (4, 6), 'crypt': (6, 2), 'loft': (0,), 'cast': (0,), 'glass': (6,)}
+OPEN_FLAMES = {'halls': (6, 0), 'towers': (4, 6), 'crypt': (6, 2), 'loft': (0,), 'cast': (0,), 'glass': (6,), 'salt': (0,), 'haul': (0,)}
 # the Foundry Below's sheets full of violet and pink glass were painted on flat green, which the magenta key would eat
 GREEN = {'bs-tiles-glass', 'bs-decor-glass', 'bs-mid-glass', 'bs-tiles-fd', 'bs-props-fd', 'bs-foe-cbat', 'bs-foe-gsnail',
          'bs-foes-e', 'bs-boss-choir', 'bs-boss-choir2', 'bs-boss-choir3', 'bs-icons-d'}
@@ -811,6 +811,16 @@ for hero in ('dora', 'enzo'):
     strip(hero, frames, cw, ch, parts=parts, lamps=lamps)
     for wname, oframes, oparts, olamps in outs:
         strip(wname, oframes, cw, ch, parts=oparts, lamps=olamps)
+    if all(have(f'bs-{hero}-salt-{sh}') for sh in SHEETS):
+        salt_frames, salt_parts, salt_lamps = hero_frames(hero, f'{hero}-salt', outfit=True)
+        strip(f'{hero}-salt', salt_frames, cw, ch, parts=salt_parts, lamps=salt_lamps)
+
+# Each Salt Road action has four poses in ordinary gear and four in its Salt Road outfit.
+for hero in ('dora', 'enzo'):
+    sheet = f'bs-{hero}-salt-work'
+    if have(sheet):
+        frames = [bbox(drop_neighbours(c)) for c in cells(kload(sheet), 4, 2)]
+        strip(f'{hero}-salt-work', [scaled(f, 38 / frames[0].height, 24) for f in frames], 58, 48)
 
 # ─── enemies: frame A on top, frame B below ───────────────────────────────
 FOE_H = {'frog': 20, 'moth': 15, 'eel': 18, 'reed': 30, 'condor': 30, 'imp': 19, 'shell': 30, 'vizcacha': 18,
@@ -861,6 +871,11 @@ for n in FOE_FD:
 cs = [bbox(c) for c in cells(kload('bs-foes-e'), 4, 2)]
 for c, hgt in zip(cs, (10, 12, 12, 14, 16, 14, 12, 16)):
     foes.append(scaled(c, hgt / c.height, 16))
+for n, height in (('brine-skater', 15), ('salt-hare', 24), ('pack-tick', 18), ('crust-crawler', 19)):
+    if not have(f'bs-foe-{n}'):
+        continue
+    FOE_H[n] = height
+    foes += foe_sheet(n)
 strip('foes', foes, 64, 48)
 
 # ─── bosses ───────────────────────────────────────────────────────────────
@@ -893,6 +908,12 @@ boss('boss-bell', 'bs-boss-bell', 120, 200, 160, fit=True)
 boss('boss-founder', 'bs-boss-founder', 100, 220, 140)
 boss('boss-hollow', 'bs-boss-hollow', 120, 200, 160)
 boss('boss-hollowb', 'bs-boss-hollowb', 110, 200, 160)
+for n, height in (('weighmaster', 94), ('panback', 65), ('tollkeeper', 105)):
+    if not have(f'bs-boss-{n}'):
+        continue
+    frames = [bbox(c) for c in cells(kload(f'bs-boss-{n}'), 3, 2)]
+    scale = height / frames[0].height
+    strip(f'boss-{n}', [scaled(f, scale, 30) for f in frames], 184, 130)
 
 
 def choir(name, sheets, height, cw, ch):
@@ -976,7 +997,22 @@ for sheet, (cols, rows) in (('bs-icons-a', (4, 4)), ('bs-icons-b', (4, 4)), ('bs
         f = bbox(c)
         s = 20 / max(f.width, f.height)
         icons.append(scaled(f, s, 16))
+if have('bs-icons-salt'):
+    for c in cells(kload('bs-icons-salt'), 4, 2):
+        f = bbox(c)
+        icons.append(scaled(f, 20 / max(f.width, f.height), 16))
 strip('icons', icons, 24, 24, anchor='middle')
+if have('bs-npc-suma'):
+    frames = [bbox(c) for c in cells(kload('bs-npc-suma'), 2, 2)]
+    strip('suma', [scaled(f, 43 / frames[0].height, 24) for f in frames], 64, 58)
+if have('bs-props-salt'):
+    sheet = kload('bs-props-salt')
+    # The painted deck spans its nominal column, so slice at the actual gutters rather than cropping its end.
+    edges = ((0, .233, .564, .75, 1), (0, .31, .565, .75, 1))
+    figs = [bbox(sheet.crop((int(l * sheet.width), row * sheet.height // 2, int(r * sheet.width), (row + 1) * sheet.height // 2)))
+            for row, xs in enumerate(edges) for l, r in zip(xs, xs[1:])]
+    dims = ((29, 23), (144, 20), (17, 22), (17, 22), (144, 20), (32, 20), (14, 19), (24, 22))
+    strip('props-salt', [pixelate(f, w, h, 20, outline=False) for f, (w, h) in zip(figs, dims)], 144, 30)
 ports = []
 for i, c in enumerate(cells(load('bs-portraits'), 3, 2)):
     f = bbox(key(hero_colours(c, 'enzo') if i == 1 else hero_colours(c, 'dora') if i in (0, 5) else c))  # Enzo is second; Dora first and last
@@ -1123,8 +1159,12 @@ DECOR = {
     # red crystals, purple crystals, crystal stalactite, glowing lava boulder, obsidian spire, cave fungus, glassblower's
     # lamp (lit), bottle and pipe rack
     'glass': [30, 26, 40, 22, 56, 18, 34, 32],
+    'salt': [22, 34, 28, 25, 19, 44, 43, 24],
+    'haul': [22, 34, 28, 25, 19, 44, 43, 24],
 }
 for area, hs in DECOR.items():
+    if area in ('salt', 'haul') and not all(have(f'bs-{part}-{area}') for part in ('tiles', 'decor', 'bg', 'mid')):
+        continue
     ts = []
     for c in cells(kload(f'bs-tiles-{area}'), 3, 3):
         sq = cover(c, 1, 1)
@@ -1172,6 +1212,8 @@ for n, src in (('title', 'bs-title2'), ('ending', 'bs-ending2'), ('epilogue', 'b
                ('ending2', 'bs-ending-wb'), ('epilogue2', 'bs-epilogue-wb'), ('ending3', 'bs-ending-fd'),
                ('epilogue3', 'bs-epilogue-fd')):
     opaque(n, cover(load(src), 16, 9), 480, 270, 96, kmeans=4)
+if have('bs-ending-salt'):
+    opaque('ending4', cover(load('bs-ending-salt'), 16, 9), 480, 270, 72, kmeans=4)
 murals = [cover(c, 4, 3) for c in cells(load('bs-murals'), 3, 2)]
 # the Windward Belfry's eight (6-13), painted four to a sheet so each panel is near 4:3
 murals += [cover(c, 4, 3) for sh in ('bs-murals-wb', 'bs-murals-wb2') for c in cells(load(sh), 2, 2)]
@@ -1209,7 +1251,8 @@ lines += ['', '// Painted bounds of every frame, [x0, y0, x1, y1] from the draw 
           'export const BOXES: Record<string, [number, number, number, number][]> = {']
 for k in ('foes', 'dora', 'enzo', 'boss-frog', 'boss-puma', 'boss-mother', 'boss-warden', 'hydra-head',
           'boss-condor', 'boss-clapper-a', 'boss-clapper-b', 'boss-bell', 'dora-windward', 'enzo-highland',
-          'dora-forge', 'enzo-ash', 'boss-founder', 'boss-hollow', 'boss-hollowb', 'boss-choir'):
+          'dora-forge', 'enzo-ash', 'boss-founder', 'boss-hollow', 'boss-hollowb', 'boss-choir',
+          'dora-salt', 'enzo-salt', 'boss-weighmaster', 'boss-panback', 'boss-tollkeeper'):
     if k in BOXES:
         lines.append(f"  '{k}': [" + ', '.join(f'[{a}, {b}, {c}, {d}]' for a, b, c, d in BOXES[k]) + '],')
 lines.append('};')
@@ -1221,7 +1264,8 @@ lines.append('};')
 lines += ['', '// For each foe kind, the frames that show its body (idle and moving, not the reach of an attack): the first is',
           '// the one its hitbox is taken from.', 'export const FOE_BODY: Record<string, number[]> = {']
 for k, v in FOE_BODY.items():
-    lines.append(f"  {k}: [{', '.join(map(str, v))}],")
+    prop = k if k.isidentifier() else repr(k)
+    lines.append(f"  {prop}: [{', '.join(map(str, v))}],")
 lines.append('};')
 (ROOT / 'lib' / 'bellspire-art.ts').write_text('\n'.join(lines) + '\n')
 total = sum(f.stat().st_size for f in OUT.glob('*.webp'))
