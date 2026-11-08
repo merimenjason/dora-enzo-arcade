@@ -9,7 +9,7 @@ Play at `/second-show`. The inspector is here to close the troupe. Dora can bow,
 
 Sixteen authored acts, three difficulties and three ribbons per act. Clear the act, meet par, and find the old playbill. Settings can move playbills and reset the current attempt while preserving progression. Progress uses `second-show-v1` in the browser.
 
-Choose one action per hero. **Queue beat** lets you plan up to three pairs, showing the forecast at the next queued positions. **Play the scene** (Enter) commits the scene; Z removes the last queued pair or undoes the last committed beat. Q switches heroes. The helping hand uses the current binding. On touch, use the buttons; on a gamepad, use D-pad up/down to browse, left/right to change hero, A to select, B to undo and Start to play. The inspector only moves after a beat commits.
+Choose one action per hero. **Queue beat** lets you plan up to three pairs, showing the forecast at the next queued positions. **Play the scene** (Enter) commits the scene; Z removes the last queued pair or undoes the last committed beat. Q switches heroes. The helping hand uses the current binding. On touch, use the buttons; on a gamepad, use D-pad up/down to browse, left/right to change hero, A to select, B to undo, X to queue, Start to play or advance from results, and Select for the menu. The inspector only moves after a beat commits.
 
 `npm run test:second-show` covers all 48 act/difficulty pairs and save replay. `npm run bot:second-show` measures recoverability with 12–18 frames to react and imperfect choices. Use `BASE_URL=http://localhost:3109 npm run test:e2e:second-show` against a production preview for real keyboard/touch actions, gamepad mapping, queuing and a finale clear.
 

@@ -123,7 +123,8 @@ export async function checkBrowser(rules, debug){
       const activeHero=(await state()).hero;
       await press('Hold');assert.equal((await state()).draft[activeHero],'wait');
       await draft(first[0]);
-      if(rules.maxPlan>1){await press(/^Queue beat/);
+      if(rules.maxPlan>1){
+        await pad(2);
         assert.equal((await state()).queue.length,1);await press('Undo');
         assert.equal((await state()).queue.length,0);
         for(const pair of first.slice(0,3)){await draft(pair);await press(/^Queue beat/);turns++;}
@@ -132,9 +133,14 @@ export async function checkBrowser(rules, debug){
         await execute(first.slice(3));
       }else await execute(first);
       assert.equal((await state()).state.phase,'clear');assert.equal((await state()).save.unlocked,1);
+      const firstClear=(await state()).save;
+      await press('Next');assert.equal((await state()).save.level,1);
+      await page.evaluate(([id,save])=>localStorage.setItem(id+'-v1',JSON.stringify(save)),[rules.id,firstClear]);
       await page.reload();await ready();await press('Continue');
       assert.equal((await state()).state.phase,'clear');
-      await press('Next');assert.equal((await state()).save.level,1);
+      await pad(9);assert.equal((await state()).save.level,1);
+      await pad(8);assert.equal((await state()).screen,'title');
+      await pad(0);assert.equal((await state()).screen,'play');assert.equal((await state()).save.level,1);
       await activate(page.getByTestId('commit'));await press('Undo');
       await activate(page.getByTestId('commit'));await press('Settings');await press('Story');
       await press('Restart');await press('Back');assert.equal((await state()).state.turn,0);

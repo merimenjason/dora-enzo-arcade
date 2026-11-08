@@ -75,24 +75,38 @@ export default function Cabinet<S extends State,M extends Mission>({rules,loadAr
   const swap=()=>{setHero(h=>h==='dora'?'enzo':'dora');setCursor(0);};
   const changeCursor=(by:number)=>setCursor(c=>Math.max(0,Math.min((actions[hero].length||1)-1,c+by)));
   const selectCursor=()=>{const a=actions[hero][cursor];if(a)choose(hero,a.id);};
+  const queueBeat=()=>{
+    if(rules.maxPlan<=1||queue.length>=rules.maxPlan||!outcome)return;
+    setQueue([...queue,draft]);setDraft(emptyChoice());setCursor(0);
+  };
   const dispatch=useRef<(input:string)=>void>(null);
   dispatch.current=(code)=>{
     if(code==='Escape'&&confirm){setConfirm(undefined);return;}
-    if(screen!=='play'||confirm){
-      const scope=confirm?root.current?.querySelector('[role="alertdialog"]'):root.current;
+    if(code==='Escape'&&screen==='play'){setScreen('title');return;}
+    if(screen!=='play'||confirm||state.phase!=='playing'){
+      if(code===save.keys.undo&&!confirm){
+        if(screen==='help'||screen==='settings'){setScreen(back);return;}
+        if(screen==='campaign'){setScreen('title');return;}
+        if(screen==='play'){undo();return;}
+      }
+      const scope=confirm?root.current?.querySelector('[role="alertdialog"]'):
+        screen==='play'?root.current?.querySelector('[data-game-result]'):root.current;
       const controls=Array.from(scope?.querySelectorAll<HTMLElement>('a[href], button:not(:disabled)')??[]);
       const current=controls.indexOf(document.activeElement as HTMLElement);
-      if(code==='ArrowUp'||code==='ArrowDown')controls[(current+(code==='ArrowUp'?-1:1)+controls.length)%controls.length]?.focus();
-      if(code==='PadA') (controls[current]??controls[0])?.click();
+      if(controls.length&&(code==='ArrowUp'||code==='ArrowDown')){
+        controls[current<0?(code==='ArrowUp'?controls.length-1:0):(current+(code==='ArrowUp'?-1:1)+controls.length)%controls.length].focus();
+      }
+      const first=screen==='title'&&!confirm?root.current?.querySelector<HTMLElement>('[data-pad-default] button'):controls[0];
+      if(code==='PadA'||code===save.keys.step) (controls[current]??first)?.click();
       return;
     }
     if(code===save.keys.step)commit();
     else if(code===save.keys.undo)undo();
     else if(code===save.keys.swap)swap();
-    else if(!confirm&&code==='ArrowDown')changeCursor(1);
-    else if(!confirm&&code==='ArrowUp')changeCursor(-1);
+    else if(code==='ArrowDown')changeCursor(1);
+    else if(code==='ArrowUp')changeCursor(-1);
     else if(code==='PadA'||code==='ArrowRight')selectCursor();
-    else if(code==='Escape'){setConfirm(undefined);setScreen('title');}
+    else if(code==='PadX')queueBeat();
   };
   useEffect(()=>{
     const onKey=(event:KeyboardEvent)=>{
@@ -117,7 +131,7 @@ export default function Cabinet<S extends State,M extends Mission>({rules,loadAr
     let frame=0,last=new Set<number>();
     const poll=()=>{
       const pad=Array.from(navigator.getGamepads?.()??[]).find(Boolean);
-      const codes: Record<number,string>={0:'PadA',1:save.keys.undo,9:save.keys.step,12:'ArrowUp',13:'ArrowDown',14:save.keys.swap,15:save.keys.swap};
+      const codes: Record<number,string>={0:'PadA',1:save.keys.undo,2:'PadX',8:'Escape',9:save.keys.step,12:'ArrowUp',13:'ArrowDown',14:save.keys.swap,15:save.keys.swap};
       const now=new Set<number>();
       if(pad)for(const [k,code] of Object.entries(codes)){
         const i=Number(k);if(pad.buttons[i]?.pressed){now.add(i);if(!last.has(i)&&!capture)dispatch.current?.(code);}
@@ -166,7 +180,7 @@ export default function Cabinet<S extends State,M extends Mission>({rules,loadAr
       {screen==='title'&&<section className={styles.title} style={{backgroundImage:`linear-gradient(90deg,rgba(13,12,22,.98),rgba(13,12,22,.52)),url(/art/${rules.id}/field-0.webp)`}}>
         <div><p className={styles.eyebrow}>A Dora &amp; Enzo game</p><h1>{rules.title}</h1><p>{rules.caption}</p>
           <p className={styles.titleCopy}>{rules.chapters[0]}</p>
-          <div className={styles.group}>
+          <div className={styles.group} data-pad-default="">
             {save.active?button('Continue',()=>setScreen('play')):button('Start',()=>start(0))}
             {button('Chapters',()=>setScreen('campaign'))}
           </div>
@@ -187,7 +201,7 @@ export default function Cabinet<S extends State,M extends Mission>({rules,loadAr
         <p>Choose an action for each hero. They act in the same turn. {rules.id==='faultline'?'Enzo sets his brace before Dora crosses.':'Dora goes first.'} Holding is always allowed.</p>
         <div className={styles.chapters}>{HEROES.map(h=><section key={h}><h2>{heroName[h]}</h2><p>{rules.heroHelp[h]}</p></section>)}</div>
         <p><kbd>{labelKey(save.keys.step)}</kbd> Play turn · <kbd>{labelKey(save.keys.undo)}</kbd> Undo · <kbd>{labelKey(save.keys.swap)}</kbd> Switch hero.</p>
-        <p>Tab and Enter work on every button, or use ↑/↓ to browse actions and → to choose. Tap on touchscreens. On a gamepad, D-pad left/right switches hero, up/down browses actions, A selects, B undoes and Start plays.</p>
+        <p>Tab and Enter work on every button, or use ↑/↓ to browse actions and → to choose. Tap on touchscreens. On a gamepad, D-pad left/right switches hero, up/down browses actions, A selects, B undoes, X queues a beat in The Second Show, Start plays, and Select opens the menu.</p>
         {rules.maxPlan>1&&<p>Queue up to three beats. The next beat uses the last queued positions. Play the scene to commit them.</p>}
         {button('Back',()=>setScreen(back))}
       </section>}
@@ -236,11 +250,11 @@ export default function Cabinet<S extends State,M extends Mission>({rules,loadAr
                 return rules.actions(index,before,h).find(a=>a.id===p[h])?.text??'Hold';
               }).join(' · ')}</li>)}</ol></div>}
               <div className={styles.group}>
-                {rules.maxPlan>1&&<button disabled={queue.length>=rules.maxPlan||!outcome} onClick={()=>{setQueue([...queue,draft]);setDraft(emptyChoice());setCursor(0);}}>Queue beat ({queue.length}/{rules.maxPlan})</button>}
+                {rules.maxPlan>1&&<button disabled={queue.length>=rules.maxPlan||!outcome} onClick={queueBeat}>Queue beat ({queue.length}/{rules.maxPlan})</button>}
                 <button className={styles.primary} onClick={commit} data-testid="commit">{rules.stepLabel}</button>
                 <button disabled={!state.turn&&!queue.length} onClick={undo}>Undo</button>
               </div>
-            </>:<div className={styles.result} role="status"><p className={styles.eyebrow}>{state.phase==='clear'?'Chapter record':'Try another plan'}</p>
+            </>:<div className={styles.result} role="status" data-game-result=""><p className={styles.eyebrow}>{state.phase==='clear'?'Chapter record':'Try another plan'}</p>
               <h2>{state.phase==='clear'?'Cleared': 'Out of turns or chances'}</h2>
               {state.phase==='clear'&&index===rules.missions.length-1&&<p>{rules.ending}</p>}
               {state.phase==='clear'&&<p>{save.records[`${save.difficulty}:${index}`]} / 3 ribbons · {state.turn} turns</p>}

@@ -9,7 +9,7 @@ Play at `/faultline`. Every third turn after the first shock, one of three vulne
 
 Sixteen authored rescues, three difficulties and three ribbons per rescue. Clear the rescue for the first ribbon, meet par for the second, and recover the village ledger for the third. Settings can move hidden collectibles and reset the current attempt without dropping unlocked rescues or ribbons. Progress uses `faultline-v1` in the browser.
 
-Choose one action per hero. **Advance aftershock** plays the turn (Enter), **Undo** rolls one back (Z), and Q switches the action list between heroes. The helping hand uses the current binding. On touch, use the buttons; on a gamepad, use D-pad up/down to browse, left/right to change hero, A to select, B to undo and Start to advance. No decision expires while you read.
+Choose one action per hero. **Advance aftershock** plays the turn (Enter), **Undo** rolls one back (Z), and Q switches the action list between heroes. The helping hand uses the current binding. On touch, use the buttons; on a gamepad, use D-pad up/down to browse, left/right to change hero, A to select, B to undo, Start to advance or continue from results, and Select for the menu. No decision expires while you read.
 
 `npm run test:faultline` covers all 48 mission/difficulty pairs and save replay. `npm run bot:faultline` measures recoverability with 12–18 frames to react and imperfect choices. Use `BASE_URL=http://localhost:3109 npm run test:e2e:faultline` against a production preview for real keyboard/touch actions, gamepad mapping, progression and a finale clear.
 
