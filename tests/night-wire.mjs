@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import { nightWire as rules } from '../.checks/night-wire-game.js';
+import { checkCampaign } from './arcade-originals-common.mjs';
+
+let state=rules.start(1,'standard',91);
+const turn=(s,dora='wait',enzo='wait')=>rules.step(1,s,{dora,enzo});
+assert.equal(rules.actions(1,state,'enzo').some(a=>a.id==='plug:0'),false,'unanswered calls cannot be patched');
+state=turn(state,'go:3','hear:0');
+assert.deepEqual(state.known,[],'a cut caller cannot be heard');
+const jumper=turn(state,'bypass','hear:0');
+assert.deepEqual(jumper.known,[0],'same turn work restores a caller');
+assert.deepEqual(jumper.faults,[3],'a jumper does not consume a fuse or repair permanently');
+assert.deepEqual(turn(jumper,'wait','plug:0').delivered,[0],'jumper is live on the following turn');
+const expired=turn(turn(jumper),'wait','plug:0');
+assert.deepEqual(expired.delivered,[],'a cord alone cannot overcome an expired jumper');
+const fixed=turn(state,'fix','hear:0');
+assert.equal(fixed.fuses,0);
+assert.deepEqual(fixed.faults,[]);
+assert.deepEqual(fixed.known,[0]);
+assert.notEqual(rules.start(0,'standard',91).archive, rules.start(0,'standard',92).archive);
+checkCampaign(rules);
