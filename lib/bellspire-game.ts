@@ -248,7 +248,7 @@ export const TRIALS: TrialDef[] = [
   { id: 'run:throne', name: 'Sunken Throne Run', kind: 'run', area: 'throne', from: 'tshrine', text: 'Out to the garden, then back to the throne gate.', goals: [{ room: 'garden', c: 15, r: 14 }, { room: 'tgate', c: 15, r: 6 }], medals: [68, 90, 135] },
   { id: 'run:cloud', name: 'Cloudstair Run', kind: 'run', area: 'cloud', from: 'cliffoot', text: 'Up the Cloudstair with the wind at your back, to the bannerwalk.', goals: [{ room: 'windgate', c: 25, r: 14 }, { room: 'cairns', c: 29, r: 13 }, { room: 'bannerwalk', c: 31, r: 14 }], wind: { cloud: -1, loft: 1 }, medals: [93, 124, 186] },
   { id: 'rush:grand', name: 'Grand Guardian Rush', kind: 'rush', text: 'All eleven guardians, the foundry’s three as well. One heal between each.', goals: [], medals: [450, 590, 780] },
-  { id: 'run:cast', name: 'Forge Sprint', kind: 'run', area: 'cast', from: 'fgate', text: 'Through the molten channels and down the vents to the crucible hall.', goals: [{ room: 'channel', c: 30, r: 14 }, { room: 'vents', c: 26, r: 31 }, { room: 'crucible', c: 45, r: 14 }], medals: [64, 80, 110] },
+  { id: 'run:cast', name: 'Forge Sprint', kind: 'run', area: 'cast', from: 'fgate', text: 'Through the molten channels and down the vents to the crucible hall.', goals: [{ room: 'channel', c: 30, r: 14 }, { room: 'vents', c: 26, r: 31 }, { room: 'crucible', c: 45, r: 14 }], medals: [41, 54, 80] },
   { id: 'run:glass', name: 'Glass Echo', kind: 'run', area: 'glass', from: 'caveshrine', text: 'Past the glass snails and up the glass stair on the crystals’ bridge.', goals: [{ room: 'snails', c: 50, r: 14 }, { room: 'glassstair', c: 4, r: 31 }, { room: 'glassstair', c: 4, r: 14 }], medals: [20, 26, 36] },
   { id: 'run:loft', name: 'Belfry Loft Run', kind: 'run', area: 'loft', from: 'loftbase', text: 'Up the bell shaft and the cogworks to the top of the belfry.', goals: [{ room: 'bellshaft', c: 15, r: 31 }, { room: 'cogworks', c: 30, r: 6 }, { room: 'belltop', c: 30, r: 14 }], medals: [52, 69, 103] },
 ];
@@ -1450,6 +1450,25 @@ export class BellspireGame {
     if (t.ch !== '!' && this.notes.some((n) => n.key.startsWith(pre) && n.t < n.life - 60)) return null;
     if (this.lead === 'enzo') return 'ring';
     return this.save.heroes.enzo.down ? null : 'tag';
+  }
+  /** With the helping hand and the Frost Fan learned: a hot molten channel close by on the ground, and what it asks for
+   *  (frost it as Enzo, or tag to Enzo as Dora). Null without one. */
+  /** With the helping hand: slag in the floor close by on the hero's own level, in a room with mist vents, and whether
+   *  to wait for a puff or go now (it's hard while they puff). Null without any, or once the hero stands on slag. */
+  ventHint(): { c: number; r: number; ask: 'wait' | 'go' } | null {
+    if (!this.helping() || this.dialog || !this.body.ground) return null;
+    if (!INFO.get(this.room.id)!.things.some((t) => t.ch === '%')) return null;
+    const b = this.body, c = Math.floor(b.x / TILE), r = Math.round(b.y / TILE);
+    if (rawChar(c, r) === ':') return null;
+    for (let d = 1; d <= 5; d++) for (const s of [b.face, -b.face]) if (rawChar(c + s * d, r) === ':') return { c: c + s * d, r, ask: this.ventUp() ? 'go' : 'wait' };
+    return null;
+  }
+  frostHint(): { q: Channel; ask: 'frost' | 'tag' } | null {
+    if (!this.helping() || this.dialog || !this.save.spells.includes('frost') || !this.body.ground) return null;
+    const q = this.hotChannelNear(5 * TILE);
+    if (!q) return null;
+    if (this.lead === 'enzo') return { q, ask: 'frost' };
+    return this.save.heroes.enzo.down ? null : { q, ask: 'tag' };
   }
   /** With the helping hand: the echo bell in this room when its notes are the way on (the way to the goal leads well
    *  above the heroes and above the bell's first note, and its notes aren't standing), for the wisp and the maps. */

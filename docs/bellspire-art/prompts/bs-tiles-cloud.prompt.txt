@@ -1,0 +1,20 @@
+Generated with the built-in image generation tool.
+
+Use case: stylized-concept. Create ONE square 1024x1024 image: a production tile sheet for an entirely original side-view pixel-art platformer, Cloudstair.
+The attached approved screenshot is a STYLE AND PALETTE reference ONLY: use its golden weathered sandstone, cream snow, ochre highlights and slate blue shadow colors, and Andean mountain architecture. Do not copy its composition. No characters, chinchillas, health bars, minimaps or interface.
+
+LAYOUT: exactly 3 columns by 3 rows of nine equal square tiles, touching edge-to-edge, filling the entire canvas. No gaps, gutters, frames, tile borders, labels or surrounding margin. Each square is ONE BIG 16 by 16 pixel tile, enlarged to fill its ninth of the sheet. Thus the overall sheet looks like a 48 by 48 pixel artwork enlarged to 1024 square: HUGE chunky crisp square pixels. Use a rich but limited 16-bit game palette with clean dark outlines, careful hand-placed pixel shading and highlights. Every mark obeys this coarse pixel grid. Absolutely no antialiasing, blur, smooth gradients, painterly brushwork, tiny detailed texture or subpixel lines. Prioritize the coarse 16x16 tile construction even though the stylistic reference is detailed.
+
+EXACT TILE ORDER, left to right, top row first:
+1. Top-left: ground block of weathered golden sandstone fills the WHOLE tile up to the very top edge, with a lip of cream snow and short golden ichu grass growing directly out of the stone at the top. NO sky, background, empty space or dark band above the ground. Solid stone below. Left and right edges repeat seamlessly.
+2. Top-middle: plain solid wall fill of cut sandstone blocks, filling entire tile, seamless in every direction.
+3. Top-right: the same solid sandstone wall fill, carved with a geometric stepped-diamond Andean pattern. Seamless repeating tile.
+4. Middle-left: a thin horizontal sandstone ledge platform fills ONLY the TOP quarter of the tile, its upper surface flush to the tile top. The entire lower three quarters is flat exact pure magenta #FF00FF with zero texture or shading.
+5. Middle-middle: a rope ladder, two vertical ochre rope sides and horizontal wooden rungs. All negative space between and around the rungs is flat exact pure magenta #FF00FF. Simple coarse pixel construction.
+6. Middle-right: cracked crumbling sandstone wall block, with chips missing from its silhouette and bold pixel cracks. Missing chips reveal flat pure magenta #FF00FF.
+7. Bottom-left: solid dark recessed background sandstone wall fill, MUCH darker and lower in contrast than every other stone tile; muted slate blue shadows.
+8. Bottom-middle: a vertical section of a CARVED SQUARE STONE bell-post shaft, with stepped-diamond carving; shaft centered with flat exact pure magenta #FF00FF at both sides. It is stone, not wood; no bell or crossbeam needed.
+9. Bottom-right: solid decorative frieze band block with a stepped-diamond woven geometric pattern in muted red, cream, teal and golden sandstone.
+
+The area mood is windswept high mountain cliffs at golden sunset, with warm gold sandstone and cream snow, Andean carved stone and textile motifs. This is solely a material TILE SHEET, so do not draw a scenic panorama, distant mountains, sun, bridges or banners beyond what the specified tiles contain.
+Absolutely no text anywhere: no letters, words, numerals, runes, logos, watermark or fake writing. Geometric stepped-diamond decoration only.

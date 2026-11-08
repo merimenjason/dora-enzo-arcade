@@ -612,6 +612,23 @@ export default function BellspirePage() {
     const top = Math.min(echoT.r * 16 - 30, g.body.y - 46, g.follower.y - 46) - sc2.cam.y;
     shrinePrompt = { text: echoAsk === 'ring' ? `${up} + ${spell} ring` : `${tag}: tag to Enzo to ring`, x: (echoT.c * 16 + 8 - sc2.cam.x) * scale, y: Math.max(26, top) * scale };
   }
+  // by hot molten bronze (the helping hand): how to frost it, over the channel's near end and above both heroes' heads
+  const frost = g && !dialog && !shrinePrompt && sceneRef.current ? g.frostHint() : null;
+  if (g && frost && sceneRef.current) {
+    const sc2 = sceneRef.current, q = frost.q;
+    const spell = touchOn ? 'Spell' : keyName(settings.keys.cast[0] ?? 'KeyV');
+    const tag = touchOn ? 'Tag' : keyName(settings.keys.tag[0] ?? 'ShiftLeft');
+    const fx = Math.max(q.c0 * 16 + 8, Math.min((q.c1 + 1) * 16 - 8, g.body.x));
+    const top = Math.min(q.r * 16 - 30, g.body.y - 46, g.follower.y - 46) - sc2.cam.y;
+    shrinePrompt = { text: frost.ask === 'frost' ? `${spell} frost the bronze` : `${tag}: tag to Enzo to frost`, x: (fx - sc2.cam.x) * scale, y: Math.max(26, top) * scale };
+  }
+  // by slag under mist vents (the helping hand): wait for a puff, then go
+  const vent = g && !dialog && !shrinePrompt && sceneRef.current ? g.ventHint() : null;
+  if (g && vent && sceneRef.current) {
+    const sc2 = sceneRef.current;
+    const top = Math.min(vent.r * 16 - 30, g.body.y - 46, g.follower.y - 46) - sc2.cam.y;
+    shrinePrompt = { text: vent.ask === 'go' ? 'Mist! Hop across the slag' : 'Wait for the vents to puff', x: (vent.c * 16 + 8 - sc2.cam.x) * scale, y: Math.max(26, top) * scale };
+  }
   const hint = g && !dialog && !shrinePrompt ? g.nearbyLabel() : null;
   // the minimap fades when the lead walks up under the top-right corner
   const sc = sceneRef.current;

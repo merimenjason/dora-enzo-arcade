@@ -1,0 +1,16 @@
+Generated with built-in image generation tool.
+
+Create exactly ONE square image, 1024x1024 pixels, a finished layered paper cut-out craft illustration like a handmade diorama. Felt, card stock and torn-paper layers, visible paper fibres, soft drop shadows between layers, warm cosy palette.
+
+COMPOSITION: Four trading-card-style animal portrait pictures arranged in an exact 2 by 2 grid. Canvas divided at x=512 and y=512 into four equal square quadrants touching edge to edge. No borders, frames, gaps, margins, separators or visible card edges. Each quadrant contains exactly one centred head-and-shoulders portrait, looking at the viewer, with head in the upper-middle and entire face and curved beak fully visible. Hats and scarves never cover the face. In EVERY quadrant repeat the same background: soft blue paper sky with layered paper snowy mountains low behind the shoulders. No elements cross from one portrait into another.
+
+SUBJECT: All four are friendly cartoon ANDEAN FLAMINGOS, four clearly different individuals / team-mates. Pale pink feathered birds, characteristic long slender curved necks, curved black-tipped flamingo beaks, darker pink layered wing feathers at the shoulders. Species has long thin pink legs, but this is head-and-shoulders framing so legs remain outside the crop. No mammals, no chinchillas, no fur, no mammalian ears: translate any fur/muzzle wording into flamingo feathers and beak-area plumage. Friendly expressive large eyes and attractive handcrafted feather layering. Keep viewer-facing eyes and full beak readable, slight natural head angle permitted.
+
+TOP LEFT: young and cheerful, light blush-pink feathers, round youthful face, bright happy open expression, knitted bobble hat, red-and-cream striped knitted scarf.
+TOP RIGHT: older and wise, softer grey-pink face plumage around the beak, longer narrower mature face, gentle knowing smile, small round wire glasses with eyes clearly visible, plain mustard-yellow knitted scarf.
+BOTTOM LEFT: sporty and determined, deeper richer rose-pink feathers, more angular face, confident friendly determined expression, fluffy ear muffs, green-and-white checked knitted scarf.
+BOTTOM RIGHT: cheeky grinning individual, tousled tuft of messy pink feathers visible on top around a little knitted beanie, distinctive playful grin and expressive brows, plum-purple knitted scarf with white polka dots.
+
+REFERENCE: Attached chinchilla image is ONLY a guide to the friendly, cosy, appealing cartoon art world and character charm. DO NOT draw chinchillas or their anatomy or outfits. The requested final medium is strongly tactile layered paper and felt craft, with beautiful visible fibres and cast shadows, not a smooth digital painting.
+
+Absolutely NO text anywhere: no letters, words, numbers, logos, signs, watermarks, scribbles or blurry fake writing. Exactly four flamingos, exactly four equal edge-to-edge square portraits, one single output image.

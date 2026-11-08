@@ -1,0 +1,12 @@
+Built-in image generation tool. Output: bs-enzo-s-i.png (1536x1024).
+
+Use case: precise-object-edit.
+Create ONE edited image, exactly 1536x1024 pixels.
+Input image 1 (bs-enzo-i.png) is the EDIT TARGET. Input image 2 (fb-outfits.png) is an OUTFIT REFERENCE ONLY: use only the grey chinchilla's bottom-row clothing, never its character proportions, pose, layout or background.
+
+Edit image 1 with extremely strict preservation: Keep EVERYTHING exactly the same except clothing. Preserve all eight frames at the same exact canvas positions, same poses, size, scale, silhouettes of heads and tails, expressions, grey fur, ears, dark brown eyes, fluffy grey tails, hands and their positions. Preserve every wooden staff and glowing brass lantern with exactly their original geometry, orientation, hand grip and position. Preserve the flat pure #FF00FF magenta background. Keep the original 4 columns by 2 rows arrangement with original spacing. No sprite resizing or repositioning.
+
+ONLY replace each rust-red coat and bare lower legs/feet with Enzo's Ashwork Smock outfit from the grey chinchilla at the bottom of image 2: long charcoal-brown heat-proof smock, brass rectangular buckles down the front and on a belt, soot-grey hood folded down on the shoulders, dark wrapped trousers, short brown boots. Translate the outfit onto the existing poses exactly, with proper foreshortening and folds for each of the eight original actions. Hood always DOWN; both original ears fully visible. Front buckles instead of the original round coat buttons. Back-facing frame shows the folded hood and rear smock construction. Take ONLY clothing design from image 2.
+
+Style: detailed 16-bit hi-bit pixel art like a modern original indie pixel-art action game, crisp clearly visible square pixels, rich limited palette, clean dark outlines, careful hand-placed pixel shading and highlights. No anti-aliasing, blur, gradients or painterly brushwork. No copying existing games.
+No additional accessories: no hat, cap, goggles or scarf. No magenta anywhere on sprites. Absolutely no text: no letters, words, numbers, runes, logos, symbols or fake writing. Brass buckles are plain functional rectangular hardware. Output exactly one 1536x1024 image.

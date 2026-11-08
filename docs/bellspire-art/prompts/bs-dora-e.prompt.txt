@@ -1,0 +1,19 @@
+Create ONE 1536x1024 landscape PNG sprite sheet. Use case: identity-preserve pixel-art game animation. Input image is the character identity and rendering-style reference, NOT the requested poses. Paint eight NEW poses, following this exact specification.
+
+Detailed 16-bit hi-bit pixel art like a modern original indie action game: visibly square crisp pixels, rich limited palette, clean dark outlines, careful hand-placed pixel highlights/shading, NO antialiasing, blur, gradients or painterly brushwork. Copy no existing game.
+
+Dora must be EXACTLY the reference character: cream-white chinchilla, huge round pink-inner ears, red eyes, cream fluffy curled tail, cute small muzzle and eyelashes, knee-length dark teal explorer coat with gold buttons, brown belt/gold buckle, short bright steel sword with bronze hilt. Match reference pixel size, palette, outline thickness, proportions AND scale: standing ear-tip-to-foot height approximately 334 pixels on this 1536x1024 sheet, exactly as the reference. All poses maintain identical anatomical scale; crouching naturally lowers height. No accessories such as goggles, hat, headphones, scarf, bag or satchel.
+
+Layout: 4 columns x 2 rows, exactly eight separate complete full-body sprites, each centered in its 384x512 cell with ample empty magenta margins. Never crop any ear, tail, foot, sword, hand or orb. Flat opaque pure #FF00FF background EVERYWHERE outside sprites. No shadows, ground, floor line, scenery, walls, ladders, props, borders or grid lines. No magenta on sprites. No text whatsoever: no letters, words, numbers, symbols, runes, logos or fake writing.
+
+Reading order left to right top row then bottom row:
+1. Side view facing RIGHT, standing idle breathing in, chest slightly lifted, ears upright, sword held LOW in front.
+2. Same side-facing-right standing pose as frame 1, same placement, but both eyes CLOSED in a blink.
+3. Side view facing RIGHT idle fidget, both hands holding sword up before her face, inspecting its blade.
+4. Side view facing RIGHT, smiling, sword held horizontally level, running ONE finger along the flat side of blade.
+5. Side view facing RIGHT kneeling on one knee resting, eyes closed, both hands resting on sword hilt, sword vertical with point at implied ground level. No visible ground.
+6. Standing seen DIRECTLY FROM BEHIND, looking upward, show back of head, both ears, back of teal coat and fluffy tail, sword at her side.
+7. Side view facing RIGHT holding one round luminous orb high above head with BOTH hands, triumphant, sword hanging at belt. Represent glow ONLY with bright solid pixel highlights within orb, no halo, sparkles, rays or effects outside it.
+8. Side view facing RIGHT kneeling and leaning forward, both hands reaching forward and UP as though lifting a heavy invisible lid. Show exertion in pose. NO lid, chest or prop drawn; only Dora.
+
+Only Dora repeated eight times, with her sword and the explicitly requested orb in frame 7. No motion lines, sparkles, dust, or effects. Preserve her existing design meticulously.

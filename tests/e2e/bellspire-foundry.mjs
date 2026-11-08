@@ -141,6 +141,8 @@ try {
     await until(page, () => !!window.__bellspire().game.hotChannelNear(4 * 16));
     await page.keyboard.up('ArrowRight');
     await page.waitForTimeout(150);
+    await page.getByText('V frost the bronze').waitFor({ timeout: 3000 });
+    await shot('81-frost-prompt-1280x800');
     await page.keyboard.press('KeyV');
     await until(page, () => window.__bellspire().game.frozen.size > 0);
     await page.waitForTimeout(250);
@@ -150,7 +152,19 @@ try {
     const hp = await game(page, 'g.leadSave.hp'), x0 = (await st(page)).x;
     await page.keyboard.down('ArrowRight'); await page.waitForTimeout(1600); await page.keyboard.up('ArrowRight');
     assert.ok((await st(page)).x > x0 + 120 && (await game(page, 'g.leadSave.hp')) >= hp, 'and walks across the crust unhurt');
-    ok('V on the ground by molten bronze: the Frost Fan sweeps low, cools it to a crust, and Enzo walks over it');
+    ok('a “V frost the bronze” prompt by hot bronze; V on the ground by molten bronze: the Frost Fan sweeps low, cools it to a crust, and Enzo walks over it');
+  }
+
+  // ─── the vents' tunnel: the prompt follows the puffs, and the jumps are fair ───
+  {
+    await at('vents', 5, 31);
+    await page.getByText(/Wait for the vents to puff|Mist! Hop across the slag/).first().waitFor({ timeout: 3000 });
+    await until(page, () => window.__bellspire().game.ventHint()?.ask === 'wait', undefined, 8000);
+    await page.getByText('Wait for the vents to puff').waitFor({ timeout: 3000 });
+    await until(page, () => window.__bellspire().game.ventHint()?.ask === 'go', undefined, 8000);
+    await page.getByText('Mist! Hop across the slag').waitFor({ timeout: 3000 });
+    await shot('83-vent-prompt-1280x800');
+    ok('by the vents’ slag: “Wait for the vents to puff”, then “Mist! Hop across the slag”');
   }
 
   // ─── the forge heat ───────────────────────────────────────────────────────

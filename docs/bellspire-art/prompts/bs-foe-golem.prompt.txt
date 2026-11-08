@@ -1,0 +1,17 @@
+Use case: stylized-concept. Generate exactly ONE image, a production pixel-art animation sprite sheet at exactly 1536x1024 landscape.
+REFERENCE: attached image is a character-design and pixel-style reference only. Use ONLY its salt crystal golem (the second column of the reference: standing above, arms overhead below). Do not include any other creature or object.
+Create NEW animation frames of that exact same salt golem: hulking blocky angular white and pale pink salt crystals, darker dusty pink/lavender facet shadows, thick very dark plum outline, small pale blue/cyan glowing eye slit in a blunt left-facing rocky head, tall uneven crystalline dorsal/shoulder spikes, enormous segmented crystal forearms and clenched fists, thick short legs and broad blocky feet. Preserve the reference's exact design, colours, chunky square pixel size, outline thickness, and anatomical scale in every frame. Entirely original creature, no existing game character.
+STYLE: detailed 16-bit hi-bit pixel art for a modern indie action platformer. Clearly visible crisp square pixels; rich limited palette; hand-placed stepped pixel shading and highlights. Hard edges only. No anti-aliasing, blur, smooth gradients, painterly brushwork or 3D rendering. Do not use magenta in sprites.
+LAYOUT: four columns by two rows, exactly eight separate full-body sprites total, ONE golem in each invisible 384x512 cell. Cells are x=0–383,384–767,768–1151,1152–1535 and y=0–511,512–1023. Centre each sprite within its cell with generous magenta space around all extremities. Uniform character scale across all eight, approximately the reference's standing height of 380 pixels and width of 290 pixels. Do not shrink later frames. Overhead reach and crouching change silhouette, never body proportions. Every sprite entirely inside its own cell and uncropped.
+All eight golems seen exactly side-on, facing LEFT, including wind-up and attack; never front-facing. Keep the same left-facing head profile in every frame.
+FRAME ORDER left-to-right top row then bottom row:
+1: relaxed idle stance, huge fists hanging low.
+2: breathing idle, chest slightly fuller and torso slightly raised.
+3: heavy walk cycle contact: leftward forward leg planted, trailing leg stretched back, arms counter-swing.
+4: heavy walk cycle passing: body raised slightly, trailing leg lifting and passing, forward knee bent.
+5: heavy walk cycle opposite contact: opposite leg planted forward, other leg stretched back, opposite arm counter-swing.
+6: heavy walk cycle opposite passing: opposite knee raised passing the support leg, arm swing reversed.
+7: wind-up: BOTH massive crystal fists raised high overhead, legs braced, head still left-facing profile. Maintain reference proportions.
+8: attack impact pose: torso hinged and crouched forward toward LEFT, BOTH fists smashed down together in front of the feet on an IMAGINARY ground level. Fists low at the feet baseline, bent knees, head facing left. No drawn ground or impact effects.
+BACKGROUND: perfectly flat pure solid magenta RGB 255,0,255 (#FF00FF) across the whole canvas. No shadows, ground, floor line, walls, ladders, props, grid lines, borders, motion lines, particles, effects or other objects.
+Absolutely no text: no letters, words, digits, runes, logos, symbols or fake writing anywhere.

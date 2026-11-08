@@ -119,6 +119,7 @@ export default function foundry() {
     ok(g.hazardTile(q.c0 + 2, q.r), 'molten bronze burns');
     at(g, 'channel', q.c0 - lr.gx * COLS - 2, 14);
     ok(g.hotChannelNear(5 * TILE) === q, 'standing by it, Enzo is close enough to cool it');
+    eq(g.frostHint(), null, 'no frost prompt without the helping hand');
     g.save.heroes.enzo.mp = 99;
     g.step(I({ cast: true })); run(g, 2);
     ok(g.frozen.has(q.id), 'a Frost Fan on the ground cools the channel into a crust');
@@ -131,7 +132,15 @@ export default function foundry() {
     // the helping hand: longer, and never melting under a hero
     const h = game([], [], { assist: true }); lead(h, 'enzo');
     at(h, 'channel', q.c0 - lr.gx * COLS - 2, 14); h.save.heroes.enzo.mp = 99;
+    eq(h.frostHint(), { q, ask: 'frost' }, 'with the helping hand, Enzo by hot bronze: “V frost the bronze”');
+    const hd = game([], [], { assist: true }); lead(hd, 'dora'); at(hd, 'channel', q.c0 - lr.gx * COLS - 2, 14);
+    eq(hd.frostHint()?.ask, 'tag', 'Dora by it: “tag to Enzo to frost”');
+    hd.save.heroes.enzo.down = true;
+    eq(hd.frostHint(), null, 'not with Enzo knocked out');
+    const hf = game([], [], { assist: true }); lead(hf, 'enzo'); at(hf, 'channel', q.c0 - lr.gx * COLS - 12, 14);
+    eq(hf.frostHint(), null, 'nothing from well back from the bronze');
     h.step(I({ cast: true })); run(h, 2);
+    eq(h.frostHint(), null, 'and none once it is a crust');
     ok(h.frozen.get(q.id) > FROST_T * FROST_ASSIST - 10, 'with the helping hand the crust lasts half as long again');
     h.teleport('channel', q.c0 - lr.gx * COLS + 4, 14); quiet(h);
     run(h, FROST_T * FROST_ASSIST + 60);
@@ -159,6 +168,14 @@ export default function foundry() {
     let up = 0, down = 0;
     for (let i = 0; i < VENT_P; i++) { g.step(I()); quiet(g); if (g.hazardTile(slag.c, slag.r)) down++; else up++; }
     ok(up > 100 && down > 100, `slag is hard while the vents puff (${up} ticks) and molten between (${down})`);
+    eq(g.ventHint(), null, 'no vent prompt without the helping hand');
+    // the helping hand: at the edge of the vents' tunnel, wait for a puff, then go
+    const v = game([], [], { assist: true }); at(v, 'vents', 5, 31);
+    let waits = 0, goes = 0;
+    for (let i = 0; i < VENT_P; i++) { v.step(I()); quiet(v); const h = v.ventHint(); if (h?.ask === 'wait') waits++; if (h?.ask === 'go') goes++; ok(!h || (h.ask === 'go') === v.ventUp(), 'the prompt follows the puffs'); }
+    ok(waits > 0 && goes > 0, `by the slag: “Wait for the vents to puff”, then “Mist! Hop across the slag” (${waits}/${goes})`);
+    const vf = game([], [], { assist: true }); at(vf, 'vents', 20, 20);
+    eq(vf.ventHint(), null, 'none up in the cavern, away from the slag');
     // heat: in a hot zone it builds; full, it burns; with the helping hand it never knocks a hero out
     const hot = (settings) => {
       const h = game([], [], settings); at(h, 'crucible', 20, 14);

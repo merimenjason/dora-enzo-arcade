@@ -37,6 +37,22 @@ The design and mock-ups are in `docs/game-ideas.md` and `docs/ideas/bellspire-fo
 - Each hero has four outfits, on sheets a–l.
 - Strips with missing paintings are skipped.
 
+**After the expansion shipped (08-11-2026):** with the helping hand on, prompts now appear by molten bronze ("V frost the bronze" / tag to Enzo, `frostHint`) and by vent slag ("Wait for the vents to puff" / "Mist! Hop across the slag", `ventHint`). The vents room's tunnel was nearly impossible to cross: its low ceiling cut every jump short over three-tile lava. Its ceiling is now a tile higher, the lava strips are one tile wide (`_:::::::_::::::_`), and the Forge Sprint medals were re-set to 41 / 54 / 80 s for the faster route. **Lesson: the route bots and planner passed that room while a human couldn't.** For any new gap, simulate a human jump from a range of take-off points, not only the planner's ideal one.
+
+**Matching the Bellspire art style (read before painting a new expansion).** A Codex mock-up such as the "Moonroot Conservatory" concept is a mood board, not the in-game look. If you drop paintings like that straight in, the expansion won't match. The in-game style comes from the pipeline:
+1. **Paint each asset as its own sheet on a flat key colour.** That means tiles, mid layer, decor, props, foes, bosses, hero outfit sheets a–l, icons and portraits. Use magenta, or flat green for anything violet or pink. Do not paint whole composed scenes with a HUD.
+   - **Prompts:** `docs/bellspire-art/` holds every Bellspire Codex job (`jobs.txt`, `<id>|<size>|<prompt>`), the longer prompt files (`prompts/`), the hero reference (`ref-pair.png`) and the runner (`gen.sh <id> [refs...]`). Copy the shared style preamble ("Detailed 16-bit hi-bit pixel art…") word for word.
+   - **New outfits are edits of the base hero sheets.** The full-size source paintings (`bs-dora-a…l.png`, `bs-enzo-a…l.png` and the rest, about 860 MB) are only on this machine, in `/private/tmp/claude-501/-Users-jasonchua-repos/33d8a532-f034-47dc-b58c-44abd4e3c2c6/scratchpad/art2`, and could be wiped by a reboot. Ask the user whether they've been backed up before relying on them.
+2. **Run `python3 scripts/bellspire-art.py <folder>` to turn the paintings into pixel art.**
+   - It keys out the background, box-downscales to the in-game pixel size, and snaps to a small palette with no dithering (about 24 colours for sprites).
+   - It adds a 1-pixel ink outline (`INK = (34,24,32)`).
+   - It packs the strips and regenerates `lib/bellspire-art.ts`.
+   - Add any new sheet with violet or pink glass to the script's `GREEN` set.
+3. **Keep to the game's real resolution.** It's about 270 lines tall. The scene's lightmap darkens rooms and lights them with candles, torches and the lantern. So the mock-up's density of tiny flowers, vines and banners won't survive the downscale. Paint fewer, bigger, readable shapes.
+4. **Heroes:** use `ref-pair.png` for face and fur only. Dora is cream-white and Enzo is grey; the outfits change per area. Keep the existing hero sprite size and proportions, not the mock-up's.
+5. **HUD and UI stay as they are.** Use the portrait bars, the minimap and the menu button. The mock-up's title banner and HUD are not the game's.
+6. **Judge the art in the game, not on the painting.** Compare a screenshot from `tests/e2e/bellspire-foundry.mjs` (`.shots/bellspire/`) with the Casting Halls before accepting a sheet, and never ship stand-in art.
+
 **How the user wants work done (learned over many sessions):**
 - **Art:** all game art is Codex-painted, including in-game sprites, and gets the pixel pass. Never ship stand-in or placeholder art: stop and say so instead.
 - **Animation:** every action gets its own animation (ladders, landings, slams, interactions). Don't reuse the jump pose.

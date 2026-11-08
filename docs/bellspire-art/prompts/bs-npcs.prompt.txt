@@ -1,0 +1,18 @@
+Generate exactly ONE original sprite-sheet image, 1536x1024 pixels, landscape 3:2. Use case: stylized-concept. Asset type: production pixel-art game sprite sheet for a side-view platformer set in a drowned Andean bell citadel.
+
+STYLE: Detailed 16-bit hi-bit pixel art like a modern indie pixel-art action game, entirely original, copying no existing game. Crisp clearly visible square pixel clusters, rich but limited palette, clean dark outlines, careful stepped pixel shading and hand-placed highlights. NO anti-aliasing, blur, gradients, painterly brushwork or smooth illustration. Express all glow/translucency using discrete hard-edged pixel colors, not blur.
+
+LAYOUT: Exactly 4 columns by 2 rows, 8 separate sprites total. Each invisible cell is 384x512 pixels. Center each complete sprite in its own cell with generous empty magenta padding on all sides; no element may cross a cell edge or be cropped. Perfectly flat solid opaque pure magenta #FF00FF background, uniformly filling every empty pixel. No shadows, ground, floor line, borders or visible grid lines. Do not use magenta in any sprite. Everything is seen EXACTLY FROM THE SIDE, facing RIGHT, strict side-profile, no three-quarter views. Small objects too are side-view elevations.
+
+CONTENT IN EXACT READING ORDER, left to right, top row first:
+Top row column 1: A friendly vicuña merchant with fluffy cinnamon wool, long slender vicuña neck and ears, wearing an Andean woven shawl without writing, standing on a little bundled totora reed raft. A small lantern on a short pole attached to the raft. Entire raft, lantern, pole, ears and feet inside cell.
+Top row column 2: The SAME vicuña merchant, SAME shawl and raft and lantern, now waving with one raised foreleg, facing right.
+Top row column 3: Ukumari, a big kindly ghostly spectacled BEAR bellringer spirit, translucent pale blue body, cream spectacle eye markings of a spectacled bear, strict right-facing side profile, holding a hanging bell rope. Entire rope visible and terminated within cell, no bell overhead needed.
+Top row column 4: The SAME ghostly spectacled bear with SAME colors and markings, pulling the bell rope with both paws, eyes closed and smiling, strict right-facing side profile. Entire rope contained in cell.
+Bottom row column 1: A small bright light-wisp: glowing pale-gold sphere of light with a soft-looking tapering tail to the left rendered as crisp stepped pixels, traveling right.
+Bottom row column 2: A glowing white-blue ghost-glass platform block, translucent appearance with bright crisp edges; side-view rectangle, no isometric top or extra faces.
+Bottom row column 3: A pile of gold coins in side view, plain unmarked coin faces, carefully placed golden pixel highlights.
+Bottom row column 4: A glowing blue-white ability orb with a small recognizable physical bell shape suspended inside it. Glow stays in hard pixel clusters.
+
+The attached reference contains chinchillas only and is NOT a character or style reference for this image. Do NOT draw ANY chinchillas or rodent characters. Vicuñas must be recognizable Andean camelids, and Ukumari must be a spectacled bear.
+ABSOLUTELY NO TEXT anywhere: no letters, words, numbers, runes, logos, glyphs, emblems, decorative symbols or fake writing. The physical bell inside the orb is the only requested bell-shaped object.

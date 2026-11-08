@@ -1,0 +1,21 @@
+Built-in image generation tool.
+
+Generate exactly ONE image, landscape 1536x1024 pixels.
+Use case: illustration-story. Asset: nine-character portrait sheet.
+Style: original 1950s MID-CENTURY CARTOON illustration, flat graphic shapes, limited retro mustard yellow, teal, coral and cream palette, warm off-black ink outlines of even weight, very subtle printed paper grain confined to the characters. Mid-century public-health-poster sensibility, simple geometric bodies, big expressive eyes. No specific studio imitation. NO green or mint green anywhere on characters; use teal instead.
+Backdrop: perfectly flat solid pure bright green #00FF00 everywhere behind characters, absolutely uniform without texture, gradients or shadows.
+Composition: exactly nine separate head-and-shoulders / chest-up friendly smiling animal portraits in a rigorously spaced 3 columns by 3 rows layout. Each centered within its invisible cell, generous empty green space around each portrait, no touching or overlap. Consistent head scale, heads fill most of each cell, complete ears and head ornaments visible, all facing viewer with large expressive eyes. No cell outlines, no borders, no frames, no grid lines. Implied cell centers x=256,768,1280 and y=171,512,853 on a 1536x1024 canvas.
+Top row, left to right:
+1. Pudu: tiny round deer, short spike antlers, reddish-brown fur, chest-up.
+2. Guanaco: slender camelid, long neck, tan back and pale cream belly, head and upper neck only.
+3. Mountain vizcacha: grey rabbit-like rodent, long upright ears, long whiskers, dark dorsal stripe visible toward back of neck/shoulder.
+Middle row, left to right:
+4. Pink Andean flamingo: head and top of long curved neck, black-tipped bent beak.
+5. Fluffy cream alpaca with woolly topknot.
+6. Culpeo fox: orange-red fur, pale muzzle, big ears.
+Bottom row, left to right:
+7. Armadillo with NO FUR: smooth domed armour shell with horizontal tan bands visible at shoulders, armoured head shield, long pointed snout, small upright ears. Make the armour graphic and clearly hairless.
+8. Andean condor wearing tiny gold crown: black feathers, white feather ruff round neck, bald reddish-grey head, hooked beak, friendly expressive smile.
+9. Round owl health inspector: teal bowler hat, mustard waistcoat, coral bow tie.
+Reference clarification: attached reference contains chinchilla heroes only; do NOT depict either reference character. No chinchillas in this sheet. Use the requested flat mid-century style, not the reference's plush rendering.
+Absolutely NO TEXT of any kind: no letters, words, numbers, captions, labels, logos, signs, watermarks, or fake writing. No props other than specified crown and owl clothing. No scenery. Exactly nine portraits.

@@ -1,0 +1,22 @@
+Use case: stylized-concept. Create ONE production terrain tile atlas for an entirely original side-view indie pixel-art action game set in the Foundry Below, an ancient bell foundry and volcanic glass caves. Output PNG, 1536x1024.
+The two attached screenshots are STYLE AND PALETTE REFERENCES ONLY: use their dark outlines, bronze/amber fire, charcoal stone, plum/red glass and violet crystal colors. Do NOT reproduce screenshot layouts, characters, chinchillas, creatures, scenery, or any interface.
+Composition: exactly twelve solid terrain texture cells in a 4-column by 3-row regular grid, left-to-right then top-to-bottom. Cells directly touch with zero gutters, zero border, zero margin, no background showing. Fill the entire image. Every cell is one chunky 16x16 logical-pixel tile enlarged massively, not a miniature scene, not a collection of smaller tiles. Huge clearly visible square pixel clusters; keep the same coarse pixel scale throughout the whole atlas. Flat orthographic side-view tiles, not isometric. No empty space above surfaces: liquid or material reaches every edge of its cell.
+Tile order:
+TOP ROW, left to right:
+1. Molten bronze POOL SURFACE: yellow-orange liquid metal up to the top edge, bright rippled skin, brightest pale-gold highlight lip along the very top, orange-gold metal below. Entire cell filled with metal.
+2. Same molten bronze pool surface as tile 1, identical palette and top level, with ripples shifted horizontally as a second animation frame. Entire cell filled with metal.
+3. DEEP molten bronze FILL: orange and gold with broad slow swirls, continuous repeatable texture across all edges, no top lip.
+4. COOLED bronze crust block: solid dark brown-bronze, rough chunky facets, pale frosty blue-grey sheen along the top edge. Entire cell solid material.
+MIDDLE ROW:
+5. Same cooled bronze crust as tile 4, now with warm orange cracks glowing through the dark crust, about to melt, frosty top fading.
+6. Iron vent grate embedded in solid stone floor: thick dark iron parallel bars and near-black gaps between bars, stone edges, all opaque.
+7. Pale blue-grey cold-mist-hardened stone patch, smooth broad facets with a faint icy frosty sheen, no mist clouds, full-cell stone texture.
+8. Riveted bronze bounce plate: polished bronze plate with a shallow domed spring appearance and simple rivets around its edge; fills the cell with bronze material.
+BOTTOM ROW:
+9. Deep purple-red volcanic glass block, chunky fractured planes with bright red-pink cracks.
+10. Glowing pale violet crystal slab, a solid bridge plank of light, perfectly flat top edge, faceted lavender body filling the cell, restrained near-white highlights.
+11. Door block, full-cell dark crystal lattice bars, with a sealed glowing eye-shaped physical gemstone embedded in the middle. Gem is a simple horizontal almond silhouette with a central facet. No drawn icon, lettering, glyph, pupil, face, or emblem. Dark opaque crystalline material behind bars.
+12. Lava POOL SURFACE: red-orange and distinctly darker and redder than the bronze tiles; dark crusty skin across the top, molten red-orange below, fills the entire cell.
+
+Style: detailed 16-bit hi-bit pixel art translated into extremely chunky 16x16 tile designs. Crisp hard-edged visibly square pixels, careful hand-placed highlights, rich but limited unified palette, clean dark outlines for material details. Strict flat color steps only, NO anti-aliasing, NO blur, NO smooth gradients, NO painterly brushwork, NO photographic texture. Strong readable silhouettes within the full solid tiles. One shared palette across all twelve tiles. NO GREEN ANYWHERE.
+Absolutely no text anywhere: no letters, words, numbers, runes, logos, symbols, watermarks, labels, or fake writing. Do not label or number the tiles. No UI. No characters. Only the twelve full-bleed terrain tiles.

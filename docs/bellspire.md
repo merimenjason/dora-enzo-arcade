@@ -241,10 +241,14 @@ never scrolls).
   Enzo, V tapped on the ground within 5 tiles of a hot channel sweeps the Frost Fan low across the floor (its own
   poses); in the air, the fan's hail cools a channel it lands on. Either cools up to four channels within 7 tiles to a
   crust for 10 seconds (`FROST_T`), which glows for its last 2 seconds and melts. With the helping hand the crust lasts
-  half as long again and never melts under a hero standing on it.
+  half as long again and never melts under a hero standing on it. With the helping hand, a prompt over a hot channel
+  within 5 tiles says "V frost the bronze" to Enzo or "Shift: tag to Enzo to frost" to Dora, in the player's own keys
+  (`frostHint`).
 - **Vents and slag.** Mist vents puff on one clock per room (`VENT_P`, 5.5 seconds): while they puff (2.5 seconds, 4
   with the helping hand) the slag around them is hard to stand on; between puffs it burns. With the helping hand,
-  slag stays hard under a hero standing on it.
+  slag stays hard under a hero standing on it, and a prompt over slag within 5 tiles says "Wait for the vents to puff"
+  or "Mist! Hop across the slag" (`ventHint`). The vents' tunnel is four tiles high, with one-tile lava strips between
+  its two slag beds, so the jump is easy and the timing is the puzzle.
 - **Forge heat.** In a room's hot zones a heat gauge builds by the HUD (full in about 10 seconds; with the helping hand
   0.6 times as fast, and half as fast in the Forge Apron or the Ashwork Smock, the `cool` perk). It falls in the shade,
   and a vent's mist or a shrine empties it. Full, it burns 6% of the lead's HP a second (it blinks); with the helping
@@ -553,7 +557,7 @@ heart still once it cracks, and both keep to the stones, or the ledges while the
 
 The Grand Guardian Rush's casual bot finished 13 of 16 seeds (447 to 632 s; gold 450, silver 590, bronze 780; it
 must finish 60%, against the Guardian Rush's 75%, since it ends on the Hollow Bell); the pro bot fell to the Hollow
-Bell every time. In New Game+ the casual bot won every foundry guardian within three tries in 24 of 24 seeds. The Forge Sprint's planner line is 60.7 s (gold 64) and the Glass Echo's 17 s (gold 20).
+Bell every time. In New Game+ the casual bot won every foundry guardian within three tries in 24 of 24 seeds. The Forge Sprint's planner line is 33.8 s (gold 41) and the Glass Echo's 17 s (gold 20).
 
 The echo bells' human-paced bots (`node tests/bellspire-echo.mjs --bots`, and the 95% check in `tests/bellspire.mjs`)
 start as Enzo 2 to 5 tiles from each echo bell. They walk up and react 12 to 15 ticks late, ring it, tag to Dora a

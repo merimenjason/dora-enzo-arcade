@@ -1,0 +1,17 @@
+Use case: stylized-concept. Generate ONE original game sprite sheet image, exact canvas 1536 x 1024 pixels, landscape 3:2. Detailed 16-bit hi-bit pixel art for a modern indie side-view action platformer: crisp clearly visible square pixels, rich but limited palette, clean dark outlines, carefully hand-placed stepped pixel highlights and shading. Absolutely no anti-aliasing, blur, smooth gradients, or painterly brushwork. All glow and translucency must be suggested through discrete hard-edged pixel color clusters, with NO blurred halos.
+
+Layout: 4 columns by 2 rows of separate sprites, eight sprites total. Each invisible cell is 384x512 pixels. Centers: top row (192,256),(576,256),(960,256),(1344,256); bottom row (192,768),(576,768),(960,768),(1344,768). Center each sprite in its cell with generous empty magenta space on every side, entirely contained with no cropping or overlaps. Larger creatures may occupy about 250x320 pixels; small projectiles remain much smaller. Perfectly uniform solid opaque pure magenta #FF00FF background across the entire image. No shadows, ground, floor lines, borders, grid lines, panels, or scenery. Do not use any magenta on the sprites.
+
+Original creatures and projectiles themed around a drowned Andean lake citadel. Every creature faces LEFT, all sprites seen EXACTLY FROM THE SIDE, orthographic side elevation, no three-quarter view, no frontal view. No chinchillas or other reference-image characters: the supplied reference is irrelevant and must not influence this artwork.
+
+Exact reading order left-to-right, top row first:
+Top-left: glow jelly, round translucent teal jellyfish with its bell EXPANDED and short trailing tentacles; soft light expressed with hard pixel highlights.
+Top second: hulking salt golem built from chunky blocky white and pale-pink salt crystals, glowing pale-blue eyes visible in its left-facing profile, standing with arms lowered.
+Top third: one SMALL bronze bell falling, bell mouth DOWN, slightly tilted, aged bronze with discrete bright metallic pixels. Plain unmarked bronze, no inscriptions.
+Top right: one round ball of wet brown mud with a few hanging drips, dark outline and small wet highlights.
+Bottom left: SAME teal glow jelly species as directly above, bell CONTRACTED and pulsing brighter, tentacles streaming downward.
+Bottom second: SAME salt golem design and colors as directly above, facing left, raising BOTH bulky crystal fists OVERHEAD in a powerful smash preparation pose; whole raised fists fit within its cell.
+Bottom third: one glowing jagged WHITE salt-crystal shard pointing LEFT, with pale ice-blue shaded facets and a dark pixel outline.
+Bottom right: one round orb of WARM ORANGE lantern fire with a bright golden cream core and stepped pixel orange rim, isolated compact fire projectile.
+
+Absolutely no text anywhere: no letters, words, numbers, runes, logos, symbols, inscriptions, or fake writing. Only these eight separate sprites on #FF00FF. Entirely original designs that copy no existing game.

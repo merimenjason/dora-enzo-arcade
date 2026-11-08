@@ -8,6 +8,14 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Sunken Bellspire**: the **Foundry Below** expansion. Calming the Out-of-Tune Bell cracks a seal under the Pearl Throne Candle, and the heroes go down into the Casting Halls and the Glasswork Caves: 24 new screens of molten channels Enzo's Frost Fan cools into a crust, mist vents whose puffs harden the slag, a forge heat gauge (with the helping hand on it never knocks a hero out), Dora's Bell Hammer (↓ + attack in the air slams down, shatters cracked glass and springs her high off bronze plates) and Enzo's Resonance (↑ + V lines up crystal bridges over the lava and sends prism beams that open beam doors). Four new foes, three new guardians (the Molten Founder, the Glass Choir and the Hollow Bell) with a new ending and a third epilogue, Tupa the bellfounder's forge where gear can be recast with a perk, the Forge Apron and Ashwork Smock outfits, two new weapons, six more murals, the Forge Sprint and Glass Echo trials and a Grand Guardian Rush of all eleven guardians. New Game+ includes the foundry, the map and its guide grow to show it, and the full map now fits its box instead of overflowing when drawn at 1.29×.
 
+### Changed
+
+- **Sunken Bellspire**: with the helping hand on, the Foundry Below now tells you what to do by molten bronze ("V frost the bronze", or tag to Enzo) and by the vents' slag ("Wait for the vents to puff", then "Mist! Hop across the slag"). The Forge Sprint's medals are now 41 / 54 / 80 seconds.
+
+### Fixed
+
+- **Sunken Bellspire**: the vents' tunnel in the Casting Halls was nearly impossible to cross: its low ceiling cut every jump short over three-tile lava strips. The tunnel is a tile higher and the lava strips between the slag are one tile wide.
+
 ## 07-11-2026
 
 ### Added

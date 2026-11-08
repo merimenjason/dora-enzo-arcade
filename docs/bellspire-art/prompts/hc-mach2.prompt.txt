@@ -1,0 +1,22 @@
+Use case: stylized-concept.
+Create ONE landscape 1536x1024 PNG sprite sheet of clinic furniture in an original 1950s MID-CENTURY CARTOON style: flat graphic shapes, limited retro palette of mustard yellow, teal, coral (orange-red, never pink), mint green and cream, warm off-black ink outlines of even weight, very subtle printed paper grain restricted to objects, mid-century public-health-poster design sensibility, simple geometric bodies, playful bouncy squash-and-stretch shape language. Furniture only, no characters or animals.
+
+CRITICAL CAMERA: every object uses the SAME classic ISOMETRIC game angle, viewed from above at about 30 degrees and rotated 45 degrees, one front corner pointing straight toward the viewer, both left and right sides visible. Orthographic parallel edges, consistent orientation across all eight objects. These are furniture assets for an isometric management game.
+
+CRITICAL LAYOUT: exactly four columns by two rows, eight separate furniture groups, each centered within its own 384x512 cell, ample empty magenta margins on every side, no overlap between groups. Each group fits entirely inside its cell on an invisible square footprint; whole objects with legs, accessories and canopy never cropped. No drawn footprints. No grid lines or borders.
+
+BACKGROUND: perfectly flat solid pure magenta #FF00FF, edge to edge. No shadows, no ground, no floor, no texture on background, no gradient. NO pink or magenta anywhere on objects.
+
+TOP ROW left to right:
+1. BRIGHT LAMP: giant mustard sun-lamp on tall angled stand, big round glowing cream bulb (flat illustrated cream glow contained in the lamp), and a cushioned stool beside its base.
+2. RECEPTION DESK: curved mid-century coral and cream reception counter, graphic starburst on front, little brass bell and a vase on top.
+3. EXAM TABLE: padded teal examination table on tapered wooden legs, small mint cart holding bottles beside it.
+4. STAFF-ROOM SOFA: curvy mustard mid-century sofa with tapered legs and two round cushions.
+
+BOTTOM ROW left to right:
+5. Little round coffee table with chunky retro coffee machine and two mugs on top.
+6. HEATER: cozy cream and coral retro radiator heater with glowing orange grille, glow contained inside grille.
+7. VENDING CART: little mint drinks cart, striped coral-and-cream canopy, bottles and big round glass drink dispenser.
+8. Tall teal medicine cabinet with glass doors showing round bottles.
+
+Absolutely NO text anywhere: no letters, words, numbers, logos, signs, labels, or fake blurry writing. NO chinchillas, NO people, NO creatures. The supplied chinchilla reference is only context about heroes who use this furniture; do not reproduce it or its rendering style. Use the flat mid-century cartoon style requested here. Exactly eight groups with all listed accessories, in the prescribed reading order.

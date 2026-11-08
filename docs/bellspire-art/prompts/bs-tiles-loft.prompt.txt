@@ -1,0 +1,21 @@
+Mode: built-in image_gen
+
+Use case: stylized-concept. Generate exactly ONE square 1024x1024 PNG game tile atlas.
+Reference image role: use the attached wb-loft.png ONLY for pixel style, palette and timber-and-bronze Belfry Loft area materials. Do not copy its composition, creatures, chinchillas, health bars, minimap or interface.
+
+Primary request: An entirely original side-view platformer tileset for the inside of a huge timber-and-bronze bell tower. Nine equal square tiles in a strict edge-to-edge 3 by 3 grid, no gutters, no margins, no border lines. The full image is the tile atlas itself, no presentation scene. Each tile fills exactly one ninth. Treat each tile as ONE very chunky 16x16 source-pixel sprite, enlarged with nearest-neighbor scaling to occupy its entire square; about 21 display pixels per source pixel. This extreme coarse pixel size is essential: 48x48 logical pixels across the entire sheet. Flat square pixel clusters, clean dark outlines, deliberate hand-placed highlights. Detailed 16-bit hi-bit game-art sensibility within this strict chunky 16x16 source resolution, rich but limited palette. No antialiasing, blur, gradients, smooth shading, painterly texture, fine subpixel details or perspective.
+
+Palette/material reference: dark timber browns, brass and bronze fittings and rivets, warm lantern orange highlights and cold steel blue shadows from louvred windows. The wider world has beams/cross-braces, cogs, catwalks, ladders, bells and lanterns, but this sheet must contain ONLY the nine specifically requested tile materials below.
+
+Read order left to right, top row first:
+TOP LEFT: ground block, solid dark timber body, top edge with a brass-plated timber lip; left and right edges repeat seamlessly horizontally.
+TOP CENTER: plain solid dark timber plank and beam wall fill. Opaque full square; repeats seamlessly in every direction.
+TOP RIGHT: the same opaque timber wall fill carved with a geometric stepped-diamond Andean pattern, seamlessly repeating. Pure ornament, no writing.
+MIDDLE LEFT: a thin horizontal timber ledge platform with bronze/brass fittings, occupying ONLY the TOP QUARTER (4 source-pixel rows) of its square. All of the lower three quarters is perfectly flat pure magenta #FF00FF, nothing else.
+MIDDLE CENTER: wooden ladder with two vertical timber rails and horizontal wooden rungs. Flat pure magenta #FF00FF everywhere around the rails and in the open spaces between the rungs.
+MIDDLE RIGHT: cracked crumbling timber wall block with chips missing, coarse stair-stepped cracks, chipped-away areas use flat pure magenta #FF00FF.
+BOTTOM LEFT: dark recessed background timber wall, opaque full square, MUCH darker and lower contrast than all other wall tiles, near-black brown and muted cold blue shadows.
+BOTTOM CENTER: a centered vertical dark timber post with brass corner plates and rivets, continuous from top to bottom. Flat pure magenta #FF00FF at BOTH sides of the narrow post.
+BOTTOM RIGHT: decorative frieze BAND BLOCK filling the square, dark timber with brass/ochre stepped-diamond woven ornamental band running horizontally.
+
+Constraints: orthographic side view; huge visible square pixels on consistent grid; magenta areas must be exactly solid #FF00FF, no texture or shadows. Absolutely no text anywhere: no letters, words, numbers, runes, logos, watermarks or glyphs or fake writing. Geometric stepped-diamond ornament is allowed and requested. No characters, no creatures, no interface. No extra tiles. Output one 1024x1024 image.
