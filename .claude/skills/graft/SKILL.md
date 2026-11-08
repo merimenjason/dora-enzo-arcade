@@ -58,9 +58,9 @@ Precomputed call/reference edges, not a text search. Symbol can be bare
 (`Foo`), qualified (`Class.method`), or package-qualified (`pkg.Fn`).
 - default `--direction in`: **who calls/references** this; run before you
   rename, delete, or change its signature.
-- `--direction out`: **what this symbol itself calls/depends on** (the old `callees`).
-- `--depth N`: walk transitively N hops for the **full blast radius** (the old
-  `impact`); `--depth 2` is the usual "what breaks if I touch this".
+- `--direction out`: **what this symbol itself calls/depends on**.
+- `--depth N`: walk transitively N hops for the **full blast radius**;
+  `--depth 2` is the usual "what breaks if I touch this".
 - `--depth all`: the **entire connected closure** — every source reachable
   through the edges. Reach for this before a **refactor, rename, or any
   multi-file change**: it surfaces the sibling and downstream files (platform
@@ -109,8 +109,9 @@ you already know where you're working, narrow with `graft ask "<task>" --in <sco
 
 ## Spend the fewest calls
 - A node's `covers:` list already gives exact `file:line` for every symbol, so
-  cite straight from it. The spans are generated from source and authoritative;
-  don't re-open or re-grep files to "double-check".
+  cite straight from it. The spans are generated from source, so there is no
+  need to re-open or re-grep files to "double-check" them, except for a file
+  you have edited this turn, whose card can lag (see Lifecycle above).
 - When the task already names the file or symbol to change, go straight there:
   `graft grep "<symbol>"` for the exact `file:line`, then edit. Reserve
   `graft ask` for when you don't yet know where the code lives — an `ask`
