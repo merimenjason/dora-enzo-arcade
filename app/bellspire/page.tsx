@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BellspireGame, parseSave, heroStats, xpToNext, SAVE_KEY, NGP_SAVE_KEY, TRIALS, RUSH, MEDALS, medalFor, ngpReady, newGamePlusSave, NO_INPUT, ROOMS, AREAS, GEAR, SHOP, FOOD, SPELLS, ABILITIES, ABILITY_ORDER,
   BOSSES, MURALS, NAMES, INFO, COMPLETION, roomAt, rawChar, roomById, MAP_EXITS, VIEW_W, VIEW_H, SHRINE_NAMES, isBelfryRoom,
-  RECAST_PERKS, RECAST_PRICE, isFoundryRoom,
+  RECAST_PERKS, RECAST_PRICE, isFoundryRoom, roomRect,
   type Input, type Save, type HeroId, type Slot, type FoodId, type GameEvent, type Settings as GameSettings, type Medal,
 } from '@/lib/bellspire-game';
 import { BellspireScene } from '@/lib/bellspire-scene';
@@ -110,7 +110,7 @@ export default function BellspirePage() {
   const [mural, setMural] = useState<number | null>(null);
   const [banner, setBanner] = useState<{ text: string; icon?: number; key: number } | null>(null);
   const [areaBanner, setAreaBanner] = useState<{ text: string; key: number } | null>(null);
-  const [ending, setEnding] = useState<{ full: boolean; pct: number; belfry?: boolean; foundry?: boolean } | null>(null);
+  const [ending, setEnding] = useState<{ full: boolean; pct: number; belfry?: boolean; foundry?: boolean; salt?: boolean } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [rebind, setRebind] = useState<Action | null>(null);
   const [equipPick, setEquipPick] = useState<{ hero: HeroId; slot: Slot } | null>(null);
@@ -218,7 +218,7 @@ export default function BellspirePage() {
       else if (e.k === 'mural') setMural(e.n);
       else if (e.k === 'item') setBanner({ text: e.text, icon: e.icon, key: Date.now() });
       else if (e.k === 'room') writeSave();
-      else if (e.k === 'ending') { writeSave(); setEnding({ full: e.full, pct: g.completion().pct, belfry: !!e.belfry, foundry: !!e.foundry }); setScreen('ending'); snd?.setTrack('ending'); }
+      else if (e.k === 'ending') { writeSave(); setEnding({ full: e.full, pct: g.completion().pct, belfry: !!e.belfry, foundry: !!e.foundry, salt: !!e.salt }); setScreen('ending'); snd?.setTrack('ending'); }
       else if (e.k === 'down') snd?.play('down');
       else if (e.k === 'travelOpen') { setTravelMode(true); setMsg(null); setMenu('map'); }
       else if (e.k === 'trialStart') { setMenu(null); setTrialResult(null); }
@@ -552,6 +552,20 @@ export default function BellspirePage() {
 
   if (screen === 'ending' && ending && g) {
     const c = g.completion();
+    if (ending.salt) return (
+      <main className="bs-shell bs-end" data-ready="true">
+        <div className="bs-end-art bs-end-salt" />
+        <div className="bs-end-panel">
+          <h2>The Salt Road is open</h2>
+          <p>The first pack bells ring before dawn. Suma counts the loads as the llamas take the old road east.</p>
+          <p className="bs-end-stats">{c.salt.cells}/{COMPLETION.salt.cells} screens · {c.salt.chests}/{COMPLETION.salt.chests} chests · {c.salt.bosses}/{COMPLETION.salt.bosses} guardians</p>
+          <div className="bs-title-btns">
+            <button type="button" className="bs-btn bs-btn-main" onClick={() => startGame(g.snapshot(), slotRef.current)}>Keep exploring</button>
+            <button type="button" className="bs-btn" onClick={toTitle}>Title</button>
+          </div>
+        </div>
+      </main>
+    );
     // the citadel's ending counts the citadel; the Windward Belfry's counts the citadel and belfry; the Foundry
     // Below's counts everything
     const shown = ending.foundry ? { pct: c.pct, chests: c.chests, murals: c.murals, of: COMPLETION }
@@ -574,6 +588,7 @@ export default function BellspirePage() {
             ? (ending.full ? <p className="bs-end-epi">Everything found, citadel and belfry! Turn the page for the second epilogue: the whole mountain ringing at sunset.</p> : <p>Find everything in the citadel and the belfry (100%), and the second epilogue plays the moment you do. Your save is kept, so you can keep exploring.</p>)
             : ending.full ? <p className="bs-end-epi">Everything found! Turn the page for the epilogue: a picnic on the shore with Wayra, Ukumari and the Lake Mother.</p> : <p>Find everything (100%), and the epilogue plays the moment you do. The pause map shows what’s left. Your save is kept, so you can keep exploring.</p>}
           {!ending.belfry && !ending.foundry && <p className="bs-end-next">Wayra’s boat waits at the landing: high above the lake, the Windward Belfry is out of tune.</p>}
+          {ending.foundry && <p className="bs-end-next">Tupa has opened the old salt supply door at the Foundry Gate Candle.</p>}
           {ending.belfry && <p className="bs-end-next">Under the Pearl Throne, a seal in the floor has cracked: something deep below is ringing out of tune.</p>}
           <div className="bs-title-btns">
             <button type="button" className="bs-btn bs-btn-main" onClick={() => { const s = readSave(slotRef.current); if (s) { s.flags = s.flags.filter((f) => f !== 'ending'); startGame(s, slotRef.current); } }}>Keep exploring</button>
@@ -638,6 +653,17 @@ export default function BellspirePage() {
     const sc2 = sceneRef.current;
     const top = Math.min(vent.r * 16 - 30, g.body.y - 46, g.follower.y - 46) - sc2.cam.y;
     shrinePrompt = { text: vent.ask === 'go' ? 'Mist! Hop across the slag' : 'Wait for the vents to puff', x: (vent.c * 16 + 8 - sc2.cam.x) * scale, y: Math.max(26, top) * scale };
+  }
+  const guardian = !dialog ? g?.saltGuardianHint() : null;
+  const salt = !dialog && g?.helping() ? (g.saltPrompt() ?? guardian) : null;
+  if (g && salt && sceneRef.current) {
+    const sc2 = sceneRef.current;
+    const key = salt.key === 'up' ? (touchOn ? '▲' : keyName(settings.keys.up[0] ?? 'ArrowUp').replace(/^Up$/, '↑'))
+      : salt.key === 'tag' ? (touchOn ? 'Tag' : keyName(settings.keys.tag[0] ?? 'ShiftLeft'))
+      : salt.key === 'attack' ? (touchOn ? 'Hit' : keyName(settings.keys.attack[0] ?? 'KeyX')) : '';
+    const worldX = guardian && salt === guardian ? salt.x : roomRect(g.room).x + salt.x;
+    if (!g.saltLift?.crossed || Math.abs(g.body.x - worldX) < 144) shrinePrompt = { text: key ? `${key} · ${salt.text}` : salt.text, x: Math.max(85, Math.min(sc2.vw - 85, worldX - sc2.cam.x)) * scale,
+      y: Math.max(26, Math.min(g.body.y, g.follower.y) - 46 - sc2.cam.y) * scale };
   }
   const hint = g && !dialog && !shrinePrompt ? g.nearbyLabel() : null;
   // the minimap fades when the lead walks up under the top-right corner
@@ -880,6 +906,7 @@ export default function BellspirePage() {
           <p className="bs-pct">{c.pct}% explored</p>
           <p className="bs-small-print bs-stats-line">Guardians {c.bosses} of {of.bosses} · Rooms {c.cells} of {of.cells} · Chests {c.chests} of {of.chests} · Murals {c.murals} of {of.murals}</p>
           <p className="bs-small-print bs-seals">Throne seals: {g.sealsOpen()} of 4 open</p>
+          {g.saltKnown() && <p className="bs-small-print bs-stats-line">Salt Road · {all.salt.cells}/{COMPLETION.salt.cells} screens · {all.salt.chests}/{COMPLETION.salt.chests} chests · {all.salt.bosses}/{COMPLETION.salt.bosses} guardians</p>}
           <ul className="bs-legend" aria-label="Map key">
             <li><i className="lg-stub" />A way into a room not seen yet</li>
             <li><i className="lg-area" style={{ background: `linear-gradient(90deg, ${AREAS.docks.color} 50%, ${AREAS.crypt.color} 50%)` }} />The way into another area, in its colour</li>
@@ -888,6 +915,7 @@ export default function BellspirePage() {
             <li><i className="lg-chest" />A chest not opened yet</li>
             <li><i className="lg-mural" />A mural not read yet</li>
             <li><i className="lg-seal" />The throne’s four bell seals</li>
+            {g.saltKnown() && <li><i className="lg-lock" style={{ background: '#c7bbc1' }} />The Salt Road begins at the supply door in the Foundry Gate.</li>}
             {g.wispOn() && <li><i className="lg-wisp" />Where the wisp is leading</li>}
             {g.belfryKnown() && <li><i className="lg-boat" />Wayra’s boat (↑ to row across)</li>}
             {g.belfryKnown() && <li><i className="lg-belfry" />The Windward Belfry, not explored yet</li>}
@@ -898,7 +926,7 @@ export default function BellspirePage() {
           </ul>
           <h4>Travel between shrines</h4>
           <ul className="bs-travel">
-            {ROOMS.filter((r) => INFO.get(r.id)!.things.some((t) => t.ch === 'S')).map((r) => {
+            {ROOMS.filter((r) => (!r.salt || g.saltKnown()) && INFO.get(r.id)!.things.some((t) => t.ch === 'S')).map((r) => {
               const lit = shrines.includes(r.id);
               return (
                 <li key={r.id}>
@@ -1177,9 +1205,10 @@ const ALL_SCREENS = Math.max(...ROOMS.map((r) => r.gx + r.w));
 function mapScreens(g: BellspireGame) { return g.belfryKnown() ? ALL_SCREENS : BASE_SCREENS; }
 /** How many screens tall: the citadel and belfry's nine, or with the Foundry Below (once its seal has cracked, or the
  *  heroes have been down there) its four rows under the citadel too. */
-const BASE_ROWS = Math.max(...ROOMS.filter((r) => !r.fd).map((r) => r.gy + r.h));
+const BASE_ROWS = Math.max(...ROOMS.filter((r) => !r.fd && !r.salt).map((r) => r.gy + r.h));
+const FOUNDRY_ROWS = Math.max(...ROOMS.filter((r) => !r.salt).map((r) => r.gy + r.h));
 const ALL_ROWS = Math.max(...ROOMS.map((r) => r.gy + r.h));
-function mapRows(g: BellspireGame) { return g.foundryKnown() ? ALL_ROWS : BASE_ROWS; }
+function mapRows(g: BellspireGame) { return g.saltKnown() ? ALL_ROWS : g.foundryKnown() ? FOUNDRY_ROWS : BASE_ROWS; }
 const DOOR_COLOR: Record<string, string> = { d: ABILITIES.dash.color, j: ABILITIES.double.color, k: ABILITIES.wallkick.color, l: ABILITIES.lantern.color, c: ABILITIES.chime.color, y: ABILITIES.rope.color, n: ABILITIES.echo.color, '8': ABILITIES.hammer.color, '&': ABILITIES.resonance.color, u: '#c9a46a', b: '#b85050', Z: '#9fc4ff', '9': '#e0703a', V: '#e0703a' };
 /** The Windward Belfry's cells, by area (for its silhouette before it is explored). */
 const BELFRY_CELLS = new Map<string, string>();
@@ -1362,6 +1391,10 @@ function drawMap(ctx: CanvasRenderingContext2D, g: BellspireGame, CW: number, CH
         ctx.fillStyle = '#e8c06a'; ctx.fillRect(px - 2 * k, py - 3 * k, 4 * k + 1, 3 * k + 1);
         ctx.fillStyle = '#5fc4c0'; ctx.fillRect(px - k, py - 2 * k, 2 * k + 1, k);
         ctx.fillStyle = '#b8583a'; ctx.fillRect(px - k, py - k, 2 * k + 1, k);
+      }
+      else if (th.ch === '?' && g.saltKnown()) {
+        ctx.fillStyle = '#1a1020'; ctx.fillRect(px - 3, py - 3, 7, 7);
+        ctx.fillStyle = '#c7bbc1'; ctx.fillRect(px - 2, py - 2, 5, 5);
       }
       else if (th.ch === 'M') { ctx.fillStyle = '#ff9a3c'; ctx.fillRect(px - 1, py - 1, small ? 2 : 3, small ? 2 : 3); }
       else if (th.ch === 'O' && !g.flag(`boss:${r.boss}`)) { ctx.fillStyle = '#1a1020'; ctx.fillRect(px - 3, py - 3, 7, 7); ctx.fillStyle = '#e8484f'; ctx.fillRect(px - 2, py - 2, 5, 5); }

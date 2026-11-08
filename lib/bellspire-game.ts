@@ -3,7 +3,7 @@
 import {
   ROOMS, AREAS, COLS, ROWS, TILE, SCREEN_W, SCREEN_H, ABILITIES, ABILITY_ORDER, SPELLS, GEAR, START_EQUIP, FOOD, SHOP, BOSSES, MURALS,
   SCRIPTS, WATER_AREAS, SHRINE_NAMES, GUARDIANS, GUARDIAN_AREA, BELFRY_GUARDIANS, BELFRY_AREAS, WIND_AREAS, ALL_BOSSES, abilityIcon,
-  FOUNDRY_GUARDIANS, FOUNDRY_AREAS, PERK_STATS, RECAST_PERKS, RECAST_PRICE, crystalSpans,
+  FOUNDRY_GUARDIANS, FOUNDRY_AREAS, SALT_GUARDIANS, PERK_STATS, RECAST_PERKS, RECAST_PRICE, crystalSpans,
   type Room, type AreaId, type Ability, type HeroId, type SpellId, type Slot, type FoodId, type BossId, type Line, type WaterArea, type Perk, type WindArea,
 } from './bellspire-world.js';
 import { BOXES, FOE_BODY } from './bellspire-art.js';
@@ -28,6 +28,9 @@ function nearHook(env: Env, b: Body) {
   }
   return { ...best, far: !will };
 }
+
+import { SALT_GATE } from './bellspire-salt-world.js';
+import { SaltLift } from './bellspire-salt-lift.js';
 
 export * from './bellspire-world.js';
 export { HERO_W, HERO_H, type Body } from './bellspire-physics.js';
@@ -56,7 +59,7 @@ export function rawChar(c: number, r: number): string {
   if (!room) return '#';
   return room.rows[r - room.gy * ROWS]?.[c - room.gx * COLS] ?? '#';
 }
-export const DOOR_CHARS = 'djlkcubynZ89&V';
+export const DOOR_CHARS = 'djlkcubynZ89&V>';
 /** The doors an ability opens by touch (or, for the lantern and the chime, by light and by ringing). */
 export const DOOR_ABILITY: Record<string, Ability> = { d: 'dash', j: 'double', k: 'wallkick', l: 'lantern', c: 'chime', y: 'rope', n: 'echo', '8': 'hammer', '&': 'resonance' };
 export const TERRAIN = '#=Hgx^f~_:+';
@@ -66,11 +69,11 @@ export const baseChar = (ch: string) => (TERRAIN.includes(ch) || DOOR_CHARS.incl
 export type Thing = { ch: string; c: number; r: number; i: number; room: string };
 export type Group = { id: string; ch: string; tiles: [number, number][]; horiz: boolean; c: number; r: number; w: number; h: number };
 export type RoomInfo = { room: Room; things: Thing[]; doors: Group[]; walls: Group[]; floats: { c0: number; c1: number; r: number }[]; hooks: { x: number; y: number }[] };
-const THING_CHARS = 'SMRCABOU@Titwhv' + 'oQWPD' + 'FmerKIazJG' + 'YXLE' + 'N%*!1234';
+const THING_CHARS = 'SMRCABOU@Titwhv' + 'oQWPD' + 'FmerKIazJG' + 'YXLE' + 'N%*!12345678?;';
 export const FOE_CHARS: Record<string, FoeKind> = {
   F: 'frog', m: 'moth', e: 'eel', r: 'reed', K: 'condor', I: 'imp', a: 'shell', z: 'vizcacha', J: 'jelly', G: 'golem',
   Y: 'gust', X: 'hawk', L: 'clapper', E: 'beetle',
-  1: 'ingot', 2: 'ember', 3: 'cbat', 4: 'gsnail',
+  1: 'ingot', 2: 'ember', 3: 'cbat', 4: 'gsnail', 5: 'brine-skater', 6: 'salt-hare', 7: 'pack-tick', 8: 'crust-crawler',
 };
 /** Where a bell hook's rope catches: just under the hook's eye. */
 export const hookPoint = (c: number, r: number) => ({ x: c * TILE + 8, y: r * TILE + 4 });
@@ -211,6 +214,7 @@ export const COMPLETION = (() => {
   const count = (exp: boolean | null, fd = true) => {
     let cells = 0, chests = 0, pedestals = 0, murals = 0;
     for (const r of ROOMS) {
+      if (r.salt) continue; // The Foundry epilogue retains its original requirements.
       if (exp !== null && !!r.exp !== exp) continue;
       if (!fd && r.fd) continue;
       cells += r.w * r.h; murals += r.murals?.length ?? 0;
@@ -218,7 +222,9 @@ export const COMPLETION = (() => {
     }
     return { cells, chests, pedestals, murals };
   };
-  return { ...count(null), bosses: ALL_BOSSES.length, base: { ...count(false), bosses: BASE_BOSSES.length }, belfry: { ...count(null, false), bosses: BELFRY_BOSSES.length } };
+  const sr = ROOMS.filter((r) => r.salt);
+  const salt = { cells: sr.reduce((n, r) => n + r.w * r.h, 0), chests: sr.reduce((n, r) => n + (r.chests?.length ?? 0), 0), bosses: SALT_GUARDIANS.length };
+  return { ...count(null), bosses: ALL_BOSSES.length, salt, base: { ...count(false), bosses: BASE_BOSSES.length }, belfry: { ...count(null, false), bosses: BELFRY_BOSSES.length } };
 })();
 
 // ─── the Echo Trials (at any lit shrine once the Out-of-Tune Bell is calm) ──────────
@@ -384,7 +390,7 @@ export function heroStats(save: Save, hero: HeroId) {
 
 // ─── enemies ───────────────────────────────────────────────────────────────
 
-export type FoeKind = 'frog' | 'moth' | 'eel' | 'reed' | 'condor' | 'imp' | 'shell' | 'vizcacha' | 'jelly' | 'golem' | 'gust' | 'hawk' | 'clapper' | 'beetle' | 'ingot' | 'ember' | 'cbat' | 'gsnail';
+export type FoeKind = 'frog' | 'moth' | 'eel' | 'reed' | 'condor' | 'imp' | 'shell' | 'vizcacha' | 'jelly' | 'golem' | 'gust' | 'hawk' | 'clapper' | 'beetle' | 'ingot' | 'ember' | 'cbat' | 'gsnail' | 'brine-skater' | 'salt-hare' | 'pack-tick' | 'crust-crawler';
 export const FOES: Record<FoeKind, { name: string; hp: number; atk: number; xp: number; coins: number; w: number; h: number; fly?: boolean; swim?: boolean; light?: [number, number, number, number] }> = {
   frog: { name: 'Stone Lake-Frog', hp: 16, atk: 5, xp: 6, coins: 3, w: 22, h: 16 },
   moth: { name: 'Lantern Moth', hp: 5, atk: 3, xp: 3, coins: 1, w: 12, h: 10, fly: true, light: [1, 0.62, 0.25, 46] },
@@ -403,6 +409,10 @@ export const FOES: Record<FoeKind, { name: string; hp: number; atk: number; xp: 
   ingot: { name: 'Ingot Walker', hp: 30, atk: 9, xp: 22, coins: 6, w: 18, h: 18 },
   ember: { name: 'Ember Wisp', hp: 14, atk: 7, xp: 18, coins: 4, w: 14, h: 14, fly: true, light: [1, 0.55, 0.2, 50] },
   cbat: { name: 'Crystal Bat', hp: 16, atk: 8, xp: 20, coins: 5, w: 18, h: 14, fly: true, light: [0.85, 0.45, 1, 34] },
+  'brine-skater': { name: 'Brine Skater', hp: 25, atk: 9, xp: 22, coins: 5, w: 25, h: 14 },
+  'salt-hare': { name: 'Salt Hare', hp: 32, atk: 10, xp: 25, coins: 6, w: 18, h: 21 },
+  'pack-tick': { name: 'Pack Tick', hp: 22, atk: 10, xp: 24, coins: 5, w: 17, h: 17, fly: true },
+  'crust-crawler': { name: 'Crust Crawler', hp: 42, atk: 11, xp: 31, coins: 7, w: 25, h: 17 },
   gsnail: { name: 'Glass Snail', hp: 36, atk: 8, xp: 26, coins: 7, w: 18, h: 16 },
 };
 /** A foe's body frames (idle and moving): from the art, or a stand-in until a kind's own sheet is painted. */
@@ -485,7 +495,7 @@ export type GameEvent =
   | { k: 'hit'; x: number; y: number; big: boolean; color?: string }
   | { k: 'shake'; n: number }
   | { k: 'flash'; color: string; n: number }
-  | { k: 'save' } | { k: 'shop' } | { k: 'mural'; n: number } | { k: 'ending'; full: boolean; belfry?: boolean; foundry?: boolean }
+  | { k: 'save' } | { k: 'shop' } | { k: 'mural'; n: number } | { k: 'ending'; full: boolean; belfry?: boolean; foundry?: boolean; salt?: boolean }
   /** Tupa's forge opened; cracked glass shattered; a prism's beam to a door; a channel frosted; a slam landed */
   | { k: 'forge' } | { k: 'shatter'; x: number; y: number } | { k: 'beam'; x: number; y: number; tx: number; ty: number } | { k: 'frost'; x: number; y: number; w: number }
   | { k: 'slam'; x: number; y: number; bounce: boolean }
@@ -512,7 +522,7 @@ type Act = { kind: 'swing' | 'thrust' | 'whirl' | 'cast' | 'tagin' | 'slam'; t: 
 /** An echo bell's note: a ledge of light (x0 to x1 at height y) that shows from `at` until `life` ticks. */
 export type Note = { key: string; room: string; x0: number; x1: number; y: number; t: number; at: number; life: number };
 /** A float as the body sees it this tick: reed platforms, echo notes and the tops of swinging bells. */
-export type Float = { x0: number; x1: number; y: number; key: string; kind: 'reed' | 'note' | 'bell' };
+export type Float = { x0: number; x1: number; y: number; key: string; kind: 'reed' | 'note' | 'bell' | 'lift' };
 /** How long an echo bell's notes stay (ticks), and the gap between one note and the next appearing. */
 export const NOTE_LIFE = 240, NOTE_GAP = 12;
 /** With the helping hand, echo notes last three times as long (12 seconds; on top of the Carillon Staff's double time). */
@@ -680,6 +690,10 @@ export class BellspireGame {
     if (g.ch === 'Z') return BELFRY_GUARDIANS.every((b) => this.flag(`boss:${b}`));
     if (g.ch === '9') return this.flag('boss:tune');
     if (g.ch === 'V') return FOUNDRY_GUARDIANS.every((b) => this.flag(`boss:${b}`));
+    if (g.ch === '>') {
+      const id = roomOfTile(g.c, g.r)?.boss;
+      return !!id && this.flag(`boss:${id}`);
+    }
     if (g.ch === 'b') return !(this.boss && this.boss.st !== 'wait' && roomOfTile(g.c, g.r) === this.room);
     return this.flag(`door:${g.id}`);
   }
@@ -722,9 +736,28 @@ export class BellspireGame {
     const row = surfaceRow(room, this.save.water);
     return row === null ? null : surfaceY(room, row);
   }
+  saltLift: SaltLift | null = null;
+  saltWork: { hero: HeroId; until: number; face: 1 | -1 } | null = null;
+
+  saltKnown() { return this.flag('boss:hollow') || this.flag('salt:visited') || !!this.room.salt; }
+
+  saltPrompt() {
+    const lift = this.saltLift;
+    if (!lift) return null;
+    const { x, y } = roomRect(this.room);
+    const ask = lift.prompt(this.body, this.body.x - x, this.body.y - y, this.lead, this.follower.x - x, this.follower.y - y);
+    if (!this.has('ballast') && lift.phase === 'parked') return { ...ask, key: null, text: 'Find Shoulder Shift at the Salt Gate' };
+    if (!this.has('catch') && lift.phase === 'catch') return { ...ask, key: null, text: 'Take Lift Catch from the pedestal' };
+    return ask;
+  }
+
   floatList(): Float[] {
     const info = INFO.get(this.room.id)!, out: Float[] = [];
     const surf = this.waterY.get(this.room.id);
+    if (this.saltLift) {
+      const { x, y } = roomRect(this.room), { plan, y: deck } = this.saltLift;
+      out.push({ x0: x + plan.left, x1: x + plan.right, y: y + deck, key: 'salt-lift', kind: 'lift' });
+    }
     for (const f of info.floats) {
       const rest = f.r * TILE + 10;
       const y = surf !== undefined ? Math.min(rest, surf - 3) : rest;
@@ -872,6 +905,7 @@ export class BellspireGame {
     this.planks.clear(); this.arenaWind = { dir: 1, str: 1 }; this.notes = this.notes.filter((n) => !n.key.startsWith('tune:'));
     this.pickups = this.pickups.filter((p) => p.kind === 'bag');
     this.waterY.clear();
+    if (prevRoom !== room || !this.saltLift) this.saltLift = room.saltLift ? new SaltLift(room.saltLift, this.flag(`salt:crossed:${room.id}`)) : null;
     const row = surfaceRow(room, this.save.water);
     if (row !== null) this.waterY.set(room.id, surfaceY(room, row));
     this.floatCache = this.floatList();
@@ -891,7 +925,7 @@ export class BellspireGame {
     if (!first) this.emit({ k: 'room', id: room.id });
     if (room.script && !this.flag(`script:${room.script}`) && !first) { this.setFlag(`script:${room.script}`); this.say(SCRIPTS[room.script]); }
     if (room.dark && !this.flag('script:firstDark') && !first) { this.setFlag('script:firstDark'); this.say(SCRIPTS.firstDark); }
-    if (prevRoom !== room) this.lostT = 0;
+    if (prevRoom !== room) { this.lostT = 0; this.saltWork = null; }
   }
 
   spawnBoss(id: BossId) {
@@ -1023,12 +1057,21 @@ export class BellspireGame {
     // ride a float: reed platforms bob with the water, swinging bells carry the heroes along their arc
     const onFloat = b.ground && b.onOneway ? this.floatCache.find((f) => Math.abs(f.y - b.y) < 0.6 && b.x + HERO_W / 2 > f.x0 && b.x - HERO_W / 2 < f.x1) : undefined;
     this.riding = onFloat?.kind ?? '';
+    this.saltLift?.step();
     this.floatCache = this.floatList();
     if (onFloat) {
       const now = this.floatCache.find((f) => f.key === onFloat.key);
       if (now) {
         const dx = now.x0 - onFloat.x0;
         if (dx && boxClear(this.env, b.x + dx - HERO_W / 2, now.y - HERO_H, b.x + dx + HERO_W / 2, now.y - 0.01)) b.x += dx;
+        if (now.kind === 'lift') {
+          const dy = now.y - onFloat.y;
+          const { x0, x1 } = now;
+          if (this.follower.x >= x0 && this.follower.x <= x1 && Math.abs(this.follower.y - onFloat.y) < 5) {
+            this.follower.y += dy;
+            for (const pt of this.trail) if (pt.x >= x0 && pt.x <= x1 && Math.abs(pt.y - onFloat.y) < 5) pt.y += dy;
+          }
+        }
         b.y = now.y;
       }
     }
@@ -1064,6 +1107,19 @@ export class BellspireGame {
 
     // follower
     this.updateFollower();
+    if (this.saltLift) {
+      const lift = this.saltLift, { x, y } = roomRect(this.room);
+      const lx = b.x - x, ly = b.y - y;
+      if (lx > lift.plan.left && lx < lift.plan.right && ly > lift.plan.low + 8) {
+        this.teleport(this.room.id, Math.floor(lift.plan.station / TILE), 14);
+        this.note('Back at the lower landing.');
+      } else if (b.ground && lift.phase === 'arrived' && !lift.crossed && lift.onUpper(lx, ly)) {
+        lift.crossed = true;
+        this.setFlag(`salt:crossed:${this.room.id}`);
+        this.sfx('calm');
+        this.emit({ k: 'save' });
+      }
+    }
 
     // the world
     this.updateEnemies();
@@ -1510,7 +1566,7 @@ export class BellspireGame {
     const info = INFO.get(this.room.id)!;
     let best: Thing | null = null, bd = 1e9;
     for (const t of info.things) {
-      if (!'SMRUCDN'.includes(t.ch)) continue;
+      if (!'SMRUCDN?;'.includes(t.ch)) continue;
       if (t.ch === 'C' && this.flag(`chest:${this.room.id}:${t.i}`)) continue;
       const dx = Math.abs(t.c * TILE + 8 - b.x), dy = Math.abs((t.r + 1) * TILE - b.y);
       const reach = t.ch === 'M' || t.ch === 'S' || t.ch === 'D' || t.ch === 'N' ? 30 : 20;
@@ -1522,11 +1578,37 @@ export class BellspireGame {
   nearbyLabel(): string | null {
     const t = this.nearby();
     if (!t) return null;
-    return ({ S: 'Rest and save', M: 'Talk to Wayra', R: 'Read the mural', U: 'Talk to Ukumari', C: 'Open the chest', D: 'Take Wayra’s boat', N: 'Talk to Tupa' } as Record<string, string>)[t.ch] ?? null;
+    if (t.ch === '?') return this.room.salt ? 'Return to the Foundry Gate' : this.saltKnown() ? 'Enter the Salt Road' : 'Inspect the old supply door';
+    return ({ ';': 'Talk to Suma', S: 'Rest and save', M: 'Talk to Wayra', R: 'Read the mural', U: 'Talk to Ukumari', C: 'Open the chest', D: 'Take Wayra’s boat', N: 'Talk to Tupa' } as Record<string, string>)[t.ch] ?? null;
   }
   interact() {
+    const salt = this.saltPrompt();
+    if (salt?.key === 'up' && this.saltLift) {
+      const { x, y } = roomRect(this.room);
+      const phase = this.saltLift.phase;
+      if (this.saltLift.use(this.body, this.body.x - x, this.body.y - y, this.lead, this.follower.x - x, this.follower.y - y)) {
+        if (phase === 'parked' || phase === 'catch') this.saltWork = { hero: this.lead, until: this.tick + 24, face: this.saltLift.plan.direction };
+        this.sfx('door');
+      }
+      return;
+    }
+    if (this.useSaltGuardian()) return;
     const best = this.nearby();
     if (!best) return;
+    if (best.ch === '?') {
+      if (!this.room.salt && !this.saltKnown()) { this.note('Tupa will open the old supply door once the Hollow Bell is calm.'); return; }
+      const back = !!this.room.salt;
+      this.teleport(back ? 'fgate' : SALT_GATE, back ? 25 : 5, 14);
+      this.setFlag('salt:visited');
+      this.sfx('door');
+      this.emit({ k: 'room', id: this.room.id });
+      return;
+    }
+    if (best.ch === ';') {
+      this.say([{ who: 'sign', text: 'Suma: Take Shoulder Shift from this pedestal, then find Lift Catch by the first hoist. Dora moves the ballast. Enzo locks the lift level. Both of you ride.' }]);
+      this.sfx('talk');
+      return;
+    }
     if (best.ch === 'S') this.rest();
     else if (best.ch === 'M') {
       if (!this.flag('script:wayra')) { this.setFlag('script:wayra'); this.say(SCRIPTS.wayra, () => this.emit({ k: 'shop' })); }
@@ -2118,6 +2200,35 @@ export class BellspireGame {
           this.foeEnv(e, 0);
           break;
         }
+        case 'brine-skater':
+        case 'salt-hare':
+        case 'pack-tick':
+        case 'crust-crawler': {
+          const kind = e.kind;
+          if (e.st === 'idle') {
+            if (kind === 'pack-tick') {
+              e.x = e.hx; e.y = e.hy; e.vx = 0; e.vy = 0;
+            } else {
+              if (this.ledgeAhead(e, e.face)) e.face = e.face === 1 ? -1 : 1;
+              e.vx = e.face * (kind === 'brine-skater' ? 0.85 : 0.38);
+              if (this.foeEnv(e, 0)) e.face = e.face === 1 ? -1 : 1;
+            }
+            if (Math.abs(dx) < (kind === 'pack-tick' ? 56 : 92) && Math.abs(dy) < 115 && e.cd <= 0) {
+              e.st = 'tell'; e.t = 0; e.face = toward; e.vx = 0;
+            }
+          } else if (e.st === 'tell' && e.t > (this.helping() ? 37 : 26)) {
+            e.st = 'strike'; e.t = 0;
+            e.vx = e.face * (kind === 'brine-skater' ? 4.4 : kind === 'crust-crawler' ? 3.1 : 1.5);
+            e.vy = kind === 'salt-hare' ? -2.7 : 0;
+            if (kind === 'salt-hare') this.hostile('shard', e.x + e.face * 10, e.y - 10, e.face * 2.4, -1.8, 0.12, f.atk, 4, 78);
+          } else if (e.st === 'strike') {
+            if (this.foeEnv(e, 0) || e.t > 38) { e.st = kind === 'pack-tick' ? 'back' : 'idle'; e.t = 0; e.cd = 105; }
+          } else if (e.st === 'back') {
+            e.x += (e.hx - e.x) * 0.12; e.y += (e.hy - e.y) * 0.12;
+            if (e.t > 36) { e.st = 'idle'; e.cd = 100; e.t = 0; }
+          }
+          break;
+        }
         case 'jelly': {
           const near = dist < 110;
           e.hx += near ? clamp(dx, -0.25, 0.25) : 0;
@@ -2365,7 +2476,7 @@ export class BellspireGame {
       // the fight starts once both heroes are through the door
       const rr = this.bossRoomRect();
       // (the frog's, the clappers' and the bell's doors are on the east: the fight starts a few steps inside)
-      const fromEast = this.room.id === 'idol' || this.room.id === 'clapperloft' || this.room.id === 'belltop' || this.room.id === 'choir';
+      const fromEast = this.room.id === 'idol' || this.room.id === 'clapperloft' || this.room.id === 'belltop' || this.room.id === 'choir' || b.id === 'panback';
       // and never while a hero is still climbing up under a boss door that would shut over them (the condor bridge's
       // hatch from the bannerwalk)
       const under = INFO.get(this.room.id)!.doors.some((d) => d.ch === 'b' && this.body.x >= d.c * TILE && this.body.x <= (d.c + d.w) * TILE && this.body.y > d.r * TILE + 2);
@@ -2374,7 +2485,7 @@ export class BellspireGame {
         this.bossEntry = { x: this.body.x, y: this.body.y };
         b.st = 'intro'; b.t = 0; b.dur = 90;
         this.emit({ k: 'boss', id: b.id });
-        if (!this.flag(`script:boss:${b.id}`)) { this.setFlag(`script:boss:${b.id}`); this.say(SCRIPTS[b.id]); }
+        if (!this.flag(`script:boss:${b.id}`)) { this.setFlag(`script:boss:${b.id}`); this.say(SCRIPTS[b.id] ?? []); }
       }
       b.hurt = []; b.harm = [];
       return;
@@ -2396,6 +2507,7 @@ export class BellspireGame {
     else if (b.id === 'founder') this.bossFounder(b);
     else if (b.id === 'choir') this.bossChoir(b);
     else if (b.id === 'hollow') this.bossHollow(b);
+    else if (b.id === 'weighmaster' || b.id === 'panback' || b.id === 'tollkeeper') this.updateSaltGuardian(b);
     else this.bossMother(b);
     for (const h of b.harm) if (overlap(me, this.shrink(h, 2))) { this.hurtLead(BOSSES[b.id].atk, h.x + h.w / 2); break; }
     // falling things marked on the floor
@@ -2439,6 +2551,12 @@ export class BellspireGame {
       this.say(done, () => this.finish());
     } else if (b.id === 'tune') this.say(done, () => this.finishBelfry());
     else if (b.id === 'hollow') this.say(done, () => this.finishFoundry());
+    else if (b.id === 'tollkeeper') this.say([{ who: 'sign', text: 'The toll gate opens. By dawn the salt caravans have a road again.' }, { who: 'enzo', text: 'Listen, Dora. Those bells are from the mules.' }], () => {
+      this.setFlag('salt:ending');
+      this.ended = true;
+      this.emit({ k: 'save' });
+      this.emit({ k: 'ending', full: false, salt: true });
+    });
     else this.say(done, () => this.emit({ k: 'save' }));
     this.planks.clear(); this.arenaWind = { dir: 1, str: 1 }; this.notes = this.notes.filter((nn) => !nn.key.startsWith('tune:'));
   }
@@ -3061,6 +3179,132 @@ export class BellspireGame {
   }
 
   /** The Molten Founder: a walking furnace with a ladle. Only frosted spots take a blade (see damageBoss). */
+  saltGuardianControl() {
+    const b = this.boss;
+    if (!b || !this.room.salt || b.calm || b.st === 'wait' || b.st === 'intro') return null;
+    const rr = roomRect(this.room);
+    const kind: 'pan' | 'shield' | 'stop' = b.id === 'panback' ? 'pan' : b.id === 'tollkeeper' ? 'shield' : 'stop';
+    const x = rr.x + (kind === 'pan' ? 736 : kind === 'shield' ? 192 : 124);
+    return { kind, x, y: rr.y + 240 };
+  }
+
+  saltGuardianHint() {
+    const b = this.boss, control = this.saltGuardianControl();
+    if (!b || !control || !this.helping()) return null;
+    if (b.st === 'stagger') return { key: 'attack', text: b.id === 'panback' ? 'Strike the exposed belly' : 'Strike the exposed flank', x: b.x };
+    if (b.id === 'weighmaster' && b.low) return { key: null, text: 'Stand behind the ballast stop', x: control.x - 44 };
+    if (b.id === 'tollkeeper' && b.low && b.st === 'open') return { key: null, text: b.low === -1 ? 'Strike from the open left side' : 'Strike from the open right side', x: b.x + b.low * 40 };
+    if (Math.abs(this.body.x - control.x) > 45 || !this.body.ground) return { key: null, text: control.kind === 'stop' ? 'Go to the ballast stop' : 'Go to the lift lever', x: control.x };
+    const hero = control.kind === 'pan' ? 'enzo' : 'dora';
+    if (this.lead !== hero && !this.save.heroes[hero].down) return { key: 'tag', text: hero === 'dora' ? 'Tag to Dora' : 'Tag to Enzo', x: control.x };
+    if (b.id === 'panback' && b.st !== 'perched') return { key: null, text: 'Wait for the armadillo to settle on the pan', x: control.x };
+    if (b.id === 'tollkeeper' && b.st !== 'rest') return { key: null, text: 'Wait for the shields to settle', x: control.x };
+    return { key: 'up', text: { stop: 'Set the ballast stop', pan: 'Raise the pan under its shell', shield: 'Shift the counterweight to lift a shield' }[control.kind], x: control.x };
+  }
+
+  useSaltGuardian() {
+    const b = this.boss, control = this.saltGuardianControl();
+    if (!b || !control || !this.body.ground || Math.abs(this.body.x - control.x) > 45 || Math.abs(this.body.y - control.y) > 4) return false;
+    const hero = control.kind === 'pan' ? 'enzo' : 'dora';
+    if (this.lead !== hero && !this.save.heroes[hero].down) {
+      this.note(hero === 'dora' ? 'Tag to Dora to shift the ballast.' : 'Tag to Enzo to raise the pan.');
+      return true;
+    }
+    if (b.id === 'weighmaster' && b.low === 0 && this.has('ballast')) {
+      b.low = 1;
+    } else if (b.id === 'panback' && b.st === 'perched' && this.has('catch')) {
+      this.go('panRise', 34);
+    } else if (b.id === 'tollkeeper' && b.st === 'rest' && this.has('ballast')) {
+      b.low = b.side;
+      b.side = b.side === 1 ? -1 : 1;
+      this.go('open', this.helping() ? 560 : 350);
+    } else return true;
+    this.saltWork = { hero: this.lead, until: this.tick + 24, face: this.body.x <= control.x ? 1 : -1 };
+    this.sfx('door', control.x, control.y);
+    return true;
+  }
+
+  updateSaltGuardian(b: Boss) {
+    const rr = roomRect(this.room), floor = rr.y + 240, lead = this.body, sp = this.bossSpeed;
+    const atlas = `boss-${b.id}`;
+    const exposed = (rect: Rect) => { b.hurt.push(rect); };
+    const dangerous = (rect: Rect) => { b.harm.push(rect); };
+    const square = (w: number, h: number, shift = 0): Rect => ({ x: b.x - w / 2 + shift, y: b.y - h, w, h });
+    const movingBack = (speed: number) => {
+      const dx = b.sx - b.x;
+      b.x += Math.sign(dx) * Math.min(Math.abs(dx), speed * sp);
+      if (Math.abs(dx) <= speed * sp) this.go(b.id === 'panback' ? 'perched' : 'rest', 48);
+    };
+    if (b.id === 'weighmaster') {
+      switch (b.st) {
+        case 'intro': if (b.t >= b.dur) this.go('rest', 45); break;
+        case 'rest': if (b.t >= b.dur) { b.face = lead.x < b.x ? -1 : 1; this.go('chargeTell', (b.phase > 1 ? 49 : 65) * this.tellMul, true); } break;
+        case 'chargeTell': if (b.t >= b.dur) this.go('charge', 160); break;
+        case 'charge': {
+          const edge = rr.x + (b.face === -1 ? 62 : rr.w - 62);
+          const nx = b.x + b.face * 4.2 * sp;
+          if (b.low && b.face === -1 && nx <= rr.x + 196) {
+            b.x = rr.x + 196;
+            this.emit({ k: 'shake', n: 3 });
+            this.sfx('land', b.x, floor);
+            this.go('stagger', this.helping() ? 480 : 300);
+          } else {
+            b.x = b.face === -1 ? Math.max(edge, nx) : Math.min(edge, nx);
+            dangerous(bossArtBox(b, atlas, b.x, b.y, b.face > 0, 0.88));
+            if (b.x === edge || b.t >= b.dur) this.go('back', 0);
+          }
+          break;
+        }
+        case 'stagger':
+          exposed(square(100, 71));
+          if (b.t >= b.dur) this.go('back', 0);
+          break;
+        case 'back': movingBack(4.1); break;
+      }
+    } else if (b.id === 'panback') {
+      switch (b.st) {
+        case 'intro': if (b.t >= b.dur) this.go('perched', 120); break;
+        case 'perched':
+          if (b.t >= b.dur + (this.helping() ? 80 : 0)) { b.face = lead.x < b.x ? -1 : 1; this.go('rollTell', 50 * this.tellMul, true); }
+          break;
+        case 'rollTell': if (b.t >= b.dur) this.go('roll', 64); break;
+        case 'roll':
+          b.x = clamp(b.x + b.face * 4.5 * sp, rr.x + 90, rr.x + rr.w - 90);
+          dangerous(square(70, 46));
+          if (b.t >= b.dur) this.go('back', 0);
+          break;
+        case 'back': movingBack(5); break;
+        case 'panRise':
+          b.y = floor - Math.round(24 * clamp(b.t / b.dur, 0, 1));
+          if (b.t >= b.dur) this.go('stagger', this.helping() ? 510 : 300);
+          break;
+        case 'stagger':
+          exposed({ x: b.x - 60, y: b.y - 58, w: 120, h: 64 });
+          if (b.t >= b.dur) this.go('panDown', 35);
+          break;
+        case 'panDown':
+          b.y = floor - Math.round(24 * (1 - clamp(b.t / b.dur, 0, 1)));
+          if (b.t >= b.dur) this.go('perched', 120);
+          break;
+      }
+    } else {
+      switch (b.st) {
+        case 'intro': if (b.t >= b.dur) this.go('rest', 0); break;
+        case 'open':
+          exposed(square(72, 85, b.low * 34));
+          if (b.t >= b.dur) { b.low = 0; this.go('sweepTell', 55 * this.tellMul, true); }
+          break;
+        case 'sweepTell':
+          if (b.t >= b.dur) {
+            this.go('sweep', 65);
+            for (const dir of [-1, 1] as const) this.waves.push({ x: b.x + dir * 38, y: floor, dir, speed: 3 * sp, life: 145, h: 12, dmg: BOSSES.tollkeeper.atk });
+          }
+          break;
+        case 'sweep': if (b.t >= b.dur) this.go('rest', 0); break;
+      }
+    }
+  }
+
   bossFounder(b: Boss) {
     const rr = this.bossRoomRect(), floor = this.floorY(), lead = this.body, sp = this.bossSpeed, atk = BOSSES.founder.atk;
     for (const p of b.spots ?? []) p.t -= sp;
@@ -3287,6 +3531,11 @@ export class BellspireGame {
   /** The next thing the story wants: the abilities and guardians in their order, then the coat, Ukumari and the
    * Lake Mother. Null once everything is done. */
   nextGoal(): { room: string; x: number; y: number } | null {
+    if (this.saltLift && !this.saltLift.crossed) {
+      const p = this.saltPrompt()!;
+      const { x, y } = roomRect(this.room), lift = this.saltLift;
+      return { room: this.room.id, x: x + p.x, y: y + (p.x === lift.plan.station ? lift.plan.low : lift.y) - 18 };
+    }
     const find = (pred: (t: Thing, r: Room) => boolean) => { for (const i of INFO.values()) for (const t of i.things) if (pred(t, i.room)) return t; return null; };
     const steps: [() => boolean, (t: Thing, r: Room) => boolean][] = [
       [() => this.has('dash'), (t, r) => t.ch === 'A' && r.ability === 'dash'],
@@ -3311,6 +3560,10 @@ export class BellspireGame {
       [() => this.flag('boss:founder'), (t, r) => t.ch === 'O' && r.boss === 'founder'],
       [() => this.flag('boss:choir'), (t, r) => t.ch === 'O' && r.boss === 'choir'],
       [() => this.flag('boss:hollow'), (t, r) => t.ch === 'O' && r.boss === 'hollow'],
+      [() => this.flag('salt:visited'), (t, r) => t.ch === '?' && r.id === 'fgate'],
+      [() => this.has('ballast'), (t, r) => t.ch === 'A' && r.ability === 'ballast'],
+      [() => this.has('catch'), (t, r) => t.ch === 'A' && r.ability === 'catch'],
+      ...SALT_GUARDIANS.map((id): [() => boolean, (t: Thing, r: Room) => boolean] => [() => this.flag(`boss:${id}`), (t, r) => t.ch === 'O' && r.boss === id]),
     ];
     if (ABILITY_ORDER.slice(0, 7).every((a) => this.has(a)) && this.restless().length) {
       // every ability owned but seals still shut: the nearest restless guardian
@@ -3353,11 +3606,20 @@ export class BellspireGame {
   }
   /** Where the maps mark the wisp's lead: the next goal, or Wayra's boat on this shore when the goal is across the
    *  water (as the wisp itself leads). */
+  private saltPortalGoal(goal: { room: string; x: number; y: number }) {
+    const targetIsSalt = !!roomById(goal.room)?.salt;
+    if (targetIsSalt === !!this.room.salt) return goal;
+    const portalRoom = targetIsSalt ? 'fgate' : SALT_GATE;
+    const gate = INFO.get(portalRoom)!.things.find((t) => t.ch === '?')!;
+    return { room: portalRoom, x: gate.c * TILE + 8, y: gate.r * TILE };
+  }
+
   mapGoal(): { room: string; x: number; y: number } | null {
     const echo = this.echoGuide();
     if (echo) return echo;
-    const goal = this.nextGoal();
-    if (!goal) return null;
+    const target = this.nextGoal();
+    if (!target) return null;
+    const goal = this.saltPortalGoal(target);
     const here = BELFRY_ROOMS_SET.has(this.room.id);
     return BELFRY_ROOMS_SET.has(goal.room) !== here ? this.boatAt(here ? 'cliffoot' : 'landing') : goal;
   }
@@ -3365,6 +3627,10 @@ export class BellspireGame {
    *  belfry still has rooms not seen or the next goal is over there. In the belfry: the nearest room not seen yet in
    *  the first area with any (the Cloudstair, then the Belfry Loft), or with everything seen, the boat back. */
   mapTarget(): { kind: 'boat' | 'area'; area?: string; x: number; y: number } | null {
+    if (this.flag('boss:hollow')) {
+      const goal = this.mapGoal();
+      return goal ? { kind: 'area', area: roomById(goal.room).area, x: goal.x, y: goal.y } : null;
+    }
     if (!this.belfryKnown()) return null;
     const seen = new Set(this.save.seen), here = BELFRY_ROOMS_SET.has(this.room.id);
     const unseen = (area: string) => ROOMS.filter((r) => r.area === area).flatMap((r) => {
@@ -3389,8 +3655,9 @@ export class BellspireGame {
   /** Where the wisp should float: the goal itself when it is in this room, else the doorway towards it (a search over
    * rooms, skipping doorways behind doors that are shut). */
   wayToGoal(): { x: number; y: number } | null {
-    let goal = this.nextGoal();
-    if (!goal) return null;
+    const target = this.nextGoal();
+    if (!target) return null;
+    let goal = this.saltPortalGoal(target);
     // the belfry is across the water: first, Wayra's boat on this side
     if (BELFRY_ROOMS_SET.has(goal.room) !== BELFRY_ROOMS_SET.has(this.room.id)) {
       const boat = INFO.get(BELFRY_ROOMS_SET.has(this.room.id) ? 'cliffoot' : 'landing')!.things.find((t) => t.ch === 'D')!;
@@ -3416,9 +3683,7 @@ export class BellspireGame {
     return { x: mx * TILE + 8, y: my * TILE + 4 };
   }
   /** Is the guiding wisp shown: the helping hand on (never in Strict), its own setting not off, and a goal left. */
-  // (on after the citadel's ending too, even from a save that kept the ending flag: it leads on to the belfry; off
-  // once the Out-of-Tune Bell is calm, with nothing left to lead to)
-  wispOn() { return this.settings.assist && !this.settings.strict && this.settings.wisp !== false && !this.flag('boss:hollow'); }
+  wispOn() { return this.settings.assist && !this.settings.strict && this.settings.wisp !== false && !this.flag('boss:tollkeeper'); }
   /** The guiding wisp: while the helping hand is on it is always there, a little ahead of the lead along the way to
    *  the next goal (over the goal itself once it is in this room). It keeps clear of the heroes' faces, drifts up to
    *  a corner in a guardian's arena, and never touches the game: it only moves. */
@@ -3575,14 +3840,14 @@ export class BellspireGame {
     const tally = (exp: boolean | null) => {
       let chests = 0, peds = 0, murals = 0, cells = 0;
       for (const info of INFO.values()) {
-        if (exp !== null && !!info.room.exp !== exp) continue;
+        if (info.room.salt || exp !== null && !!info.room.exp !== exp) continue;
         for (const t of info.things) {
           if (t.ch === 'C' && this.flag(`chest:${info.room.id}:${t.i}`)) chests++;
           if (t.ch === 'A' && info.room.ability && this.has(info.room.ability)) peds++;
         }
         for (const n of info.room.murals ?? []) if (this.flag(`mural:${n}`)) murals++;
       }
-      for (const k of this.save.seen) { const r = CELLS.get(k); if (r && (exp === null || !!r.exp === exp)) cells++; }
+      for (const k of this.save.seen) { const r = CELLS.get(k); if (r && !r.salt && (exp === null || !!r.exp === exp)) cells++; }
       return { cells, chests, peds, murals };
     };
     const all = tally(null), base = tally(false);
@@ -3605,7 +3870,11 @@ export class BellspireGame {
     const belfry = { cells: all.cells - fd.cells, chests: all.chests - fd.chests, peds: all.peds - fd.peds, murals: all.murals - fd.murals, bosses: belfBosses, got: fgot, total: ftotal, pct: Math.floor((fgot / ftotal) * 100) };
     const got = all.cells + all.chests + all.peds + all.murals + bosses, total = C.cells + C.chests + C.pedestals + C.murals + C.bosses;
     const bgot = base.cells + base.chests + base.peds + base.murals + baseBosses, B = C.base, btotal = B.cells + B.chests + B.pedestals + B.murals + B.bosses;
-    return { ...all, bosses, got, total, pct: Math.floor((got / total) * 100), base: { ...base, bosses: baseBosses, got: bgot, total: btotal, pct: Math.floor((bgot / btotal) * 100) }, belfry };
+    let saltCells = 0, saltChests = 0;
+    for (const cell of this.save.seen) if (CELLS.get(cell)?.salt) saltCells++;
+    for (const info of INFO.values()) if (info.room.salt) for (const t of info.things) if (t.ch === 'C' && this.flag(`chest:${info.room.id}:${t.i}`)) saltChests++;
+    const salt = { cells: saltCells, chests: saltChests, bosses: SALT_GUARDIANS.filter((id) => this.flag(`boss:${id}`)).length };
+    return { ...all, bosses, got, total, salt, pct: Math.floor((got / total) * 100), base: { ...base, bosses: baseBosses, got: bgot, total: btotal, pct: Math.floor((bgot / btotal) * 100) }, belfry };
   }
 
   /** A copy of the save for storing: the hero's place is the last shrine. During an Echo Trial it is the save as it

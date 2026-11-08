@@ -915,7 +915,10 @@ function runBosses() {
 const seeds = QUICK ? 8 : 24;
 let checks = 0;
 const report = [];
-for (const id of Object.keys(BOSSES)) {
+// This runner covers the original through-Foundry boss presets. The Salt Road
+// encounters use the interaction sequences in tests/bellspire-salt.mjs.
+if (ONLY) assert.ok(ONLY in PRESET, `No boss bot preset for ${ONLY}`);
+for (const id of Object.keys(PRESET)) {
   if (ONLY && id !== ONLY) continue;
   for (const [label, assist, need] of [['casual', true, 0.85], ['pro', false, 0.7]]) {
     let wins = 0, tries = 0, ticks = 0, first = 0, lows = 0;

@@ -594,7 +594,10 @@ export default function belfry() {
     const g2 = new BellspireGame(done(['rope', 'echo'], ['ending', 'boss:condor', 'boss:clappers', 'boss:tune']), { assist: true }, 1);
     ok(g2.wispOn(), 'and still on once the Out-of-Tune Bell is calm: it leads down to the Foundry Below');
     const g3 = new BellspireGame(done(['rope', 'echo', 'hammer', 'resonance'], ['ending', 'boss:condor', 'boss:clappers', 'boss:tune', 'boss:founder', 'boss:choir', 'boss:hollow']), { assist: true }, 1);
-    ok(!g3.wispOn(), 'and out once the Hollow Bell is calm');
+    ok(g3.wispOn(), 'and still on once the Hollow Bell is calm: it leads to the Salt Road');
+    eq(g3.nextGoal()?.room, 'fgate', 'the next stop is the supply door in the Foundry Gate');
+    g3.setFlag('boss:tollkeeper');
+    ok(!g3.wispOn(), 'and out once the Last Tollkeeper is calm');
   }
   // the condor's door: climbing up the shaft under the bridge's hatch does not start the fight (the hatch would shut
   // over the heroes' heads); stepping out onto the bridge does

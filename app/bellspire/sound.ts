@@ -3,7 +3,7 @@
 // with one tune per area plus a boss theme and a quiet title theme. Effects for every action. Silent until the first
 // click, tap or key.
 const hz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
-export type Track = 'title' | 'hub' | 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft' | 'cast' | 'glass' | 'boss' | 'ending' | 'off';
+export type Track = 'title' | 'hub' | 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft' | 'cast' | 'glass' | 'salt' | 'haul' | 'boss' | 'ending' | 'off';
 type Song = { bpm: number; chords: number[][]; bass: number[]; mel: number[]; drum: string; lead: OscillatorType; pad: number };
 // melodies are 32 eighths, -1 rests; chords one per 8 eighths
 const SONGS: Record<Exclude<Track, 'off'>, Song> = {
@@ -32,6 +32,10 @@ const SONGS: Record<Exclude<Track, 'off'>, Song> = {
     mel: [69, -1, 72, -1, 71, 69, 68, -1, 69, -1, -1, -1, 64, -1, -1, -1, 65, -1, 68, -1, 71, -1, 72, 71, 69, -1, -1, -1, -1, -1, -1, -1] },
   glass: { bpm: 72, chords: [[52, 56, 59, 63], [49, 52, 56, 59], [45, 49, 52, 56], [47, 51, 54, 57]], bass: [40, 37, 33, 35], drum: 'x.......x...x...', lead: 'sine', pad: 0.05,
     mel: [83, -1, -1, 80, 78, -1, 76, -1, 75, -1, -1, -1, 71, -1, -1, -1, 73, -1, 76, -1, 78, -1, 80, -1, 78, -1, -1, -1, -1, -1, -1, -1] },
+  salt: { bpm: 84, chords: [[48, 52, 55], [45, 48, 52], [46, 50, 53], [43, 47, 50]], bass: [36, 33, 34, 31], drum: 'x....x..x...x...', lead: 'triangle', pad: 0.022,
+    mel: [72, -1, 76, -1, 79, -1, 76, 74, -1, 72, -1, 67, -1, -1, -1, -1, 69, -1, 72, 74, -1, 77, 76, -1, 74, -1, 71, -1, 67, -1, -1, -1] },
+  haul: { bpm: 102, chords: [[45, 48, 52], [48, 52, 55], [43, 47, 50], [40, 43, 47]], bass: [33, 36, 31, 28], drum: 'x..x..x.x...x...', lead: 'triangle', pad: 0.026,
+    mel: [69, -1, -1, 72, -1, 76, -1, 74, 72, -1, 67, -1, 69, -1, -1, -1, 67, -1, 71, -1, 74, 72, -1, 71, 67, -1, 64, -1, -1, -1, -1, -1] },
   boss: { bpm: 140, chords: [[52, 55, 59], [52, 55, 59], [48, 52, 55], [50, 53, 57]], bass: [40, 40, 36, 38], drum: 'x.x.x.xxx.x.x.xx', lead: 'square', pad: 0.018,
     mel: [76, 76, -1, 79, -1, 76, 74, -1, 76, -1, 71, -1, 72, 74, 76, -1, 72, -1, 71, -1, 69, -1, 71, 72, 74, -1, 71, -1, 68, -1, 71, -1] },
   ending: { bpm: 80, chords: [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]], bass: [48, 45, 41, 43], drum: 'x.......x.......', lead: 'triangle', pad: 0.03,

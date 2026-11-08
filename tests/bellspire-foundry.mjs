@@ -385,7 +385,8 @@ export default function foundry() {
     const old = JSON.parse(JSON.stringify(done())); delete old.recast;
     const og = new BellspireGame(parseSave(JSON.stringify(old)), {}, 1);
     ok(og.save.recast && og.foundryKnown(), 'a save from before the foundry loads, and the map knows the seal has cracked');
-    ok(ABILITY_ORDER.slice(-2).join() === 'hammer,resonance', 'the two new abilities come last');
+    const hammer = ABILITY_ORDER.indexOf('hammer');
+    ok(hammer >= 0 && ABILITY_ORDER[hammer + 1] === 'resonance' && ABILITY_ORDER[hammer + 2] === 'ballast', 'the Foundry abilities come before the Salt Road abilities');
     void GEAR; void BOSSES; void rawChar;
   }
   return checks;

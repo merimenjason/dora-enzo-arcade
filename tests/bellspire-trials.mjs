@@ -39,7 +39,7 @@ export default function trials() {
 
   // ─── the trials themselves ───────────────────────────────────────────────
   eq(TRIALS.filter((t) => t.kind === 'rush').map((t) => t.id), ['rush', 'rush:grand'], 'the Guardian Rush, and the Grand Rush once the foundry is calm');
-  eq(new Set(TRIALS.filter((t) => t.kind === 'run').map((t) => t.area)), new Set(Object.keys(AREAS)), 'and a run in every area');
+  eq(new Set(TRIALS.filter((t) => t.kind === 'run').map((t) => t.area)), new Set(ROOMS.filter((r) => !r.salt).map((r) => r.area)), 'and a run in each of the original through-Foundry areas');
   eq(RUSH, ALL_BOSSES.slice(0, 8), 'the rush meets the first eight guardians in story order');
   eq(GRAND_RUSH, ALL_BOSSES, 'the Grand Rush all eleven');
   for (const t of TRIALS) {
