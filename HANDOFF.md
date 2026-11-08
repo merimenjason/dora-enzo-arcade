@@ -1,8 +1,52 @@
-# Handoff · 20-10-2026
+# Handoff · 08-11-2026
 
 Where Dora & Enzo's Arcade stands, how the newest games fit together, how to check your work, and what is worth doing next. For the arcade as a whole, start with [`README.md`](README.md); for how the code is laid out and the traps to avoid, [`CLAUDE.md`](CLAUDE.md); for the documentation and changelog rules, [`AGENTS.md`](AGENTS.md).
 
 This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are folded in below.
+
+## Start here (handover to Codex, 08-11-2026)
+
+**Last shipped:** `1aa48d0` "Sunken Bellspire: the Foundry Below expansion" is live (CI green on `main`, `/bellspire` returns 200). It's pushed to both `claude/pass-graphics-2` and `main`, which point at the same commit. The working tree is clean apart from an untracked `.shots/` folder of e2e screenshots; don't commit that.
+
+**The Foundry Below** is Bellspire's second expansion, after the Windward Belfry. Calming the Out-of-Tune Bell cracks a seal under the Pearl Throne Candle room. Beyond it are the Casting Halls and the Glasswork Caves: 13 rooms and 24 screens at map rows 9–12. What's in it:
+- **Hazards:** molten channels that Enzo's Frost Fan cools into platforms, which reheat; mist vents; slag; and a forge heat gauge. With the helping hand on, the gauge can never knock you out.
+- **New abilities:** Dora's Bell Hammer is an air slam that breaks glass and bounces off plates. Enzo's Resonance builds crystal bridges and opens prism-beam doors.
+- **Characters:** four new foes, and Tupa (they/them), whose forge recasts gear to add a perk (`PERK_TEXT` stays `Record<Perk,string>`).
+- **Unlockables:** two outfits (Forge Apron, Ashwork Smock), two weapons and six murals.
+- **Guardians:**
+  - The Molten Founder only takes hits where it's frosted.
+  - The Glass Choir: ring its notes back.
+  - The Hollow Bell has two forms and leads to the third ending and epilogue.
+- **Extras:** the trials Forge Sprint, Glass Echo and Grand Guardian Rush, foundry New Game+, and map-guide entries.
+
+The design and mock-ups are in `docs/game-ideas.md` and `docs/ideas/bellspire-foundry-*.webp`. The player-facing rules and numbers are in `docs/bellspire.md`.
+
+**Open decisions (ask the user before changing):**
+1. **The Glass Choir is too easy with the helping hand.** Casual bots finish at 99% HP. Founder is 1250 HP / attack 27, Choir 1000 HP / attack 27.
+2. **The Grand Guardian Rush is the hardest thing in the game.** Its casual threshold in the trials bot is 60%, against 75% for the normal rush, and the pro bot never finishes it. Every lost run ends at the Hollow Bell. The medals are 450 / 590 / 780 s.
+3. The full `npm run test:e2e` run is long and can flake under load. Chinchillas vs Zombies timed out once, and the Burrow Express phone touch-draw step failed during the build. Both passed when rerun alone against a production build (`npx vinext start --port 3108` with `E2E_BASE_URL`).
+
+**How to check Bellspire:**
+- `npm run test:bellspire` (5941 checks, including the foundry suite) and `npm run bot:bellspire`.
+- The full bot is `node tests/bellspire-bot.mjs`: 24 seeds, and route bots for seeds 1–3 to the Hollow Bell ending.
+- `node tests/bellspire-trials-bot.mjs`.
+- `npm run test:e2e:bellspire` runs `tests/e2e/bellspire.mjs` (113 checks) and `tests/e2e/bellspire-foundry.mjs` (17 checks at 1280×800, 844×390 and 390×844). It needs a running server; set `E2E_BASE_URL` if it isn't on :3000.
+
+**Art pipeline:** Codex paints, then `scripts/bellspire-art.py` keys, downscales with nearest-neighbour, palette-passes and builds the atlas into `public/art/bellspire/` and `lib/bellspire-art.ts`.
+- Glass art uses a green key, because magenta ate the violet glass.
+- Each hero has four outfits, on sheets a–l.
+- Strips with missing paintings are skipped.
+
+**How the user wants work done (learned over many sessions):**
+- **Art:** all game art is Codex-painted, including in-game sprites, and gets the pixel pass. Never ship stand-in or placeholder art: stop and say so instead.
+- **Animation:** every action gets its own animation (ladders, landings, slams, interactions). Don't reuse the jump pose.
+- **Dora and Enzo:** they dress for each game, with no signature items. You tell them apart by fur: Dora cream-white, Enzo grey.
+- **Opponents:** cast ones that fit the game. Use Grumbles only when they are the premise.
+- **Difficulty:** tune for humans. Use human-delay bots, keep the helping hand (assist) on by default, and prefer turn-based for complex sports.
+- **Testing:** click every new player action in a real browser before shipping. A dead button is a ship blocker.
+- **Shipping:** before pushing, run typecheck, `npm test`, the build and the game's e2e. Pushing to `main` deploys (see `CLAUDE.md`).
+- **Changelog:** add a `CHANGELOG.md` entry in the same commit, under `## DD-MM-YYYY`.
+- **Usage:** the user watches usage. Run targeted tests while building and the full e2e suite once near the end.
 
 ## Start here (fresh session, 20-10-2026)
 
@@ -114,6 +158,7 @@ Game 94, `/bellspire`, a metroidvania in true low-resolution pixel art (about 27
 - **Rules and numbers:** `docs/bellspire.md`; the map in `lib/bellspire-world.ts`, physics in `lib/bellspire-physics.ts`, the engine in `lib/bellspire-game.ts`, the route planner and wisp in `lib/bellspire-nav.ts`, drawing and lighting in `lib/bellspire-scene.ts`.
 - **Tests:** `npm run test:bellspire`, `npm run bot:bellspire`, `node tests/e2e/bellspire.mjs` (dev server running; uses `window.__bellspire()`).
 - **Art:** Codex paintings given a pixel pass (keyed, nearest-neighbour downscale, fixed palette) by `scripts/bellspire-art.py` into `public/art/bellspire/`, with the atlas map generated into `lib/bellspire-art.ts`. Dora and Enzo dress for the world: Dora cream-white in a teal coat, Enzo grey in a rust coat.
+- **Expansions:** the Windward Belfry (07-11-2026) and the Foundry Below (08-11-2026, `1aa48d0`). See the Codex handover at the top of this file for the Foundry Below's contents and open balance questions.
 
 ## Burrow Clinic · 06-11-2026
 
