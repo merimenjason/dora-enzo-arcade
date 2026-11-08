@@ -23,7 +23,20 @@ try {
       const cur = await page.evaluate(() => window.__bellspire().game.body.x);
       const dir = cur < x ? 'ArrowRight' : 'ArrowLeft';
       await page.keyboard.down(dir);
-      try { await wait(([x, dir]) => dir === 'ArrowRight' ? window.__bellspire().game.body.x >= x : window.__bellspire().game.body.x <= x, [x, dir]); }
+      try {
+        // hop the salt-crystal spikes on the way, the way a player would
+        for (let i = 0; i < 400; i++) {
+          const st = await page.evaluate(([x, dir]) => {
+            const g = window.__bellspire().game, b = g.body, d = dir === 'ArrowRight' ? 1 : -1;
+            const at = (px) => g.room.rows[Math.floor((b.y - 1) / 16) - g.room.gy * 17]?.[Math.floor(px / 16) - g.room.gx * 30];
+            return { done: d > 0 ? b.x >= x : b.x <= x, spike: b.ground && (at(b.x + d * 22) === '^' || at(b.x + d * 30) === '^') };
+          }, [x, dir]);
+          if (st.done) break;
+          if (st.spike) { await page.keyboard.down('KeyZ'); await page.waitForTimeout(220); await page.keyboard.up('KeyZ'); }
+          else await page.waitForTimeout(16);
+        }
+        await wait(([x, dir]) => dir === 'ArrowRight' ? window.__bellspire().game.body.x >= x : window.__bellspire().game.body.x <= x, [x, dir]);
+      }
       finally { await page.keyboard.up(dir); }
     };
     await walk(26 * 16 + 7);

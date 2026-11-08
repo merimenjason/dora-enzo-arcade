@@ -321,6 +321,10 @@ still apply to their original areas. The Salt Road ending counts its own 24 scre
 - **Guardians.** Set the stop and draw the Whiteback Weighmaster into a charge to expose its flank. Raise the
   weighing pan beneath Panback Armadillo as Enzo to expose its belly. Shift the Last Tollkeeper's counterweight as
   Dora, then strike the side under the raised shield. The first two guardians keep the way onward shut while active.
+- **Hazards and light.** One-tile strips of salt-crystal spikes cross the floors, always well apart, so each is a
+  single running hop (a hero is hurt the moment its front touches a spike, so even two tiles would leave a narrow
+  take-off window). The Mule Galleries are lit like ordinary rooms, with wall torches, not as dark rooms: their
+  plum-grey stone vanished under the dark-room lighting.
 - **Inhabitants and rewards.** Suma keeps the salt tallies. Brine Skaters glide and lunge, Salt Hares kick shards,
   Pack Ticks drop from overhead, and Crust Crawlers fold up before they charge. The Salt-Road Wrap is Dora's plum
   tunic and the Waxed Haul Coat is Enzo's slate coat with ochre trim.

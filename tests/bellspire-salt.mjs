@@ -8,8 +8,20 @@ const game = () => {
 };
 const wait = (g, ticks) => { for (let i = 0; i < ticks; i++) g.step(NO_INPUT); };
 const tap = (g, key) => { g.step({ ...NO_INPUT, [key]: true }); g.step(NO_INPUT); };
+// walking, a player hops a strip of salt-crystal spikes ahead on the floor (a jump held for a moment)
+const hop = (g, keys) => {
+  const dir = keys.right ? 1 : keys.left ? -1 : 0;
+  if (!dir || !g.body.ground) return false;
+  const c = Math.floor((g.body.x + dir * 22) / TILE), r = Math.floor((g.body.y - 1) / TILE);
+  return rawChar(c, r) === '^';
+};
 const advance = (g, test, keys = {}, limit = 900) => {
-  for (let i = 0; i < limit && !test(); i++) g.step({ ...NO_INPUT, ...keys });
+  let held = 0;
+  for (let i = 0; i < limit && !test(); i++) {
+    if (held === 0 && hop(g, keys)) held = 14;
+    g.step({ ...NO_INPUT, ...keys, jump: held > 0 });
+    if (held > 0) held--;
+  }
   assert.ok(test(), `timed out in ${g.room.id} at ${g.body.x}, ${g.body.y}: ${JSON.stringify(g.saltPrompt())}`);
 };
 const stand = (g, room, c, r = 14) => { g.teleport(room, c, r); wait(g, 12); };
