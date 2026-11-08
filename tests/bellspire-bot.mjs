@@ -13,6 +13,7 @@
 // Then the Echo Trials' and New Game+'s bots (tests/bellspire-trials-bot.mjs).
 // Run after compiling the engine into .checks/. `--quick` runs fewer seeds.
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
 import { BellspireGame, freshSave, parseSave, trialById, BOSSES, TILE, HERO_W, HERO_H, ROOMS, INFO, ABILITY_ORDER, roomById, roomRect, groupAt, rawChar, isBelfryRoom, NOTE_LIFE, WIND_AREAS, SCRIPTS, MURALS, COLS, ROWS, channelAt, isFoundryRoom, CHANNELS, VENT_P } from '../.checks/bellspire-game.js';
 import { Graph, stateKey, nodeRoom, NOTES } from '../.checks/bellspire-nav.js';
 
@@ -993,7 +994,7 @@ if (process.argv[1]?.endsWith('bellspire-bot.mjs')) {
   // (in its own process: it imports this file's bots, which can't be imported while this file is still running)
   if (!ONLY && !process.argv.includes('--route-only')) {
     const { spawnSync } = await import('node:child_process');
-    const r = spawnSync(process.execPath, [new URL('./bellspire-trials-bot.mjs', import.meta.url).pathname, ...process.argv.slice(2)], { stdio: 'inherit' });
+    const r = spawnSync(process.execPath, [fileURLToPath(new URL('./bellspire-trials-bot.mjs', import.meta.url)), ...process.argv.slice(2)], { stdio: 'inherit' });
     if (r.status !== 0) process.exit(r.status ?? 1);
   }
 }
