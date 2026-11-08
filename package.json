@@ -242,7 +242,7 @@
     "test:clinic": "tsc lib/clinic-levels.ts lib/clinic-path.ts lib/clinic-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/clinic.mjs",
     "bot:clinic": "tsc lib/clinic-levels.ts lib/clinic-path.ts lib/clinic-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/clinic-bot.mjs",
     "test:e2e:clinic": "node tests/e2e/clinic.mjs",
-    "test:bellspire": "tsc lib/bellspire-game.ts lib/bellspire-nav.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/bellspire.mjs && node tests/bellspire-salt.mjs",
+    "test:bellspire": "tsc lib/bellspire-game.ts lib/bellspire-nav.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/bellspire.mjs && node tests/bellspire-salt.mjs && node tests/bellspire-orchard.mjs",
     "bot:bellspire": "tsc lib/bellspire-game.ts lib/bellspire-nav.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/bellspire-bot.mjs",
     "test:e2e:bellspire": "node tests/e2e/bellspire.mjs && node tests/e2e/bellspire-foundry.mjs && node tests/e2e/bellspire-salt.mjs",
     "test:overclock": "tsc lib/overclock-game.ts lib/overclock-anim.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/overclock.mjs",

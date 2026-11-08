@@ -6,7 +6,8 @@ import {
   rawChar, groupAt, roomRect, hexRgb, surfaceY, surfaceRow, SWING, foeFrame, CHANNELS, VENT_P,
   type Room, type GameEvent, type HeroId, type Boss, type NumKind,
 } from './bellspire-game';
-import { GUARDIANS, GUARDIAN_AREA } from './bellspire-world';
+import { GUARDIANS, GUARDIAN_AREA, isOrchardRoom } from './bellspire-world';
+import { graftFlag } from './bellspire-orchard-world';
 import { dressStrip, WEAPON_LOOK, COAT_LOOK, START_LOOK, OUTFIT, stripFor } from './bellspire-gear-art';
 import { ART, FLAMES, BOXES } from './bellspire-art';
 import { HeroAnimator, type AnimInput, type AnimOut } from './bellspire-anim';
@@ -50,6 +51,8 @@ const DECOR: Record<string, { torch: number; candle: number; window: number; bel
   cast: { torch: 0, candle: 0, window: -1, bell: -1, floor: [2, 3, 4, 7], wall: [5], ceil: [1, 6], back: 0.62 },
   salt: { torch: 0, candle: 0, window: -1, bell: -1, floor: [1, 2, 3, 7], wall: [], ceil: [], back: 0 },
   haul: { torch: 0, candle: 0, window: -1, bell: -1, floor: [1, 3, 4, 7], wall: [6], ceil: [5], back: 0.38 },
+  orchard: { torch: 0, candle: 6, window: -1, bell: -1, floor: [2, 3, 4], wall: [1], ceil: [5], back: 0 },
+  rootcellar: { torch: 0, candle: 6, window: -1, bell: -1, floor: [2, 3, 4], wall: [1], ceil: [7], back: 0.26 },
   glass: { torch: 6, candle: 6, window: -1, bell: -1, floor: [0, 1, 3, 4, 5, 7], wall: [], ceil: [2], back: 0.7 },
 };
 const WATER_TINT: Record<string, [number, number, number]> = { halls: [52, 104, 176], docks: [46, 120, 104], throne: [34, 128, 140], hub: [52, 104, 176], towers: [52, 104, 176], crypt: [60, 70, 120] };
@@ -607,6 +610,7 @@ export class BellspireScene {
     this.drawThings(g, ox, oy);
     this.drawBelfry(g, ox, oy);
     if (room.salt) this.drawSaltMachinery(g, rr.x + ox, rr.y + oy);
+    if (isOrchardRoom(room)) this.drawGrafts(g, ox, oy);
     this.drawPickups(g, ox, oy);
     this.drawEnemies(g, ox, oy);
     if (g.boss) this.drawBoss(g, g.boss, ox, oy);
@@ -900,6 +904,25 @@ export class BellspireScene {
     if (alpha !== 1) ctx.globalAlpha = 1;
   }
 
+  private drawGrafts(g: BellspireGame, ox: number, oy: number) {
+    const r = roomRect(g.room), name = 'props-orchard', im = this.img.get(name), art = ART[name];
+    if (!im || !art) return;
+    for (const [index, graft] of (g.room.grafts ?? []).entries()) {
+      const active = g.flag(graftFlag(g.room.id, index, 'bloom'));
+      const cut = g.flag(graftFlag(g.room.id, index, 'shear'));
+      const prop = ([c, y]: readonly [number, number], frame: number) =>
+        this.spr(name, frame, r.x + (c + 0.5) * TILE + ox, r.y + (y + 1) * TILE + oy);
+      prop(graft.bud, active ? 1 : 0);
+      if (graft.tie) prop(graft.tie, cut ? 3 : 2);
+    }
+    const [cw, ch] = art;
+    for (const f of g.floatCache) if (f.kind === 'branch') {
+      this.ctx.drawImage(im, cw * 4, ch - 13, cw, 13, Math.round(f.x0 + ox), Math.round(f.y + oy), f.x1 - f.x0, 13);
+    }
+    const arena = g.orchardControl();
+    if (arena) this.spr(name, arena.ability === 'shear' ? 2 : g.boss?.low ? 1 : 0, arena.x + ox, arena.y + oy);
+  }
+
   drawSaltMachinery(g: BellspireGame, ox: number, oy: number) {
     const ctx = this.ctx, lift = g.saltLift;
     const { x: rx, y: ry } = roomRect(g.room);
@@ -986,6 +1009,8 @@ export class BellspireScene {
       if (t.ch === 'S') this.spr('props', g.flag(`shrine:${room.id}`) || g.save.shrine === room.id ? 1 : 0, x, y);
       else if (t.ch === '?') this.spr('props-salt', g.saltKnown() ? 2 : 5, x, y);
       else if (t.ch === ';') this.spr('suma', g.dialog ? 2 : Math.floor(this.t / 28) % 2, x, y);
+      else if (t.ch === ',') this.spr('props-orchard', 6, x, y);
+      else if (t.ch === 'q') this.spr('killa', 0, x, y);
       else if (t.ch === 'B') {
         // a rung water bell swings, and rings out
         const k = `${t.c},${t.r}`, sw = this.bellSwing.get(k) ?? 0;
@@ -1421,10 +1446,12 @@ export class BellspireScene {
     this.ghosts = this.ghosts.filter((gh) => gh.t < 12);
     const rt = g.hero[lead];
     const blink = rt.inv > 0 && rt.hurtT === 0 && rt.inv < 60 && this.t % 6 < 3;
-    const work = g.saltWork, workSheet = `${lead}-salt-work`;
+    const work = g.orchardWork && g.orchardWork.until > g.tick ? g.orchardWork : g.saltWork;
+    const workArea = work === g.orchardWork ? 'orchard' : 'salt';
+    const workSheet = `${lead}-${workArea}-work`;
     if (work && work.hero === lead && work.until > g.tick && b.ground && !rt.hurtT && !rt.act && Math.abs(b.vx) < 0.4 && this.img.has(workSheet)) {
-      const worn = this.worn[lead], outfit = worn.coat === `${lead}-salt-coat`;
-      if (worn.weapon === START_LOOK[lead].weapon && (outfit || worn.coat === START_LOOK[lead].coat)) {
+      const worn = this.worn[lead], outfit = worn.coat === `${lead}-${workArea}-coat`;
+      if (workArea === 'orchard' || (worn.weapon === START_LOOK[lead].weapon && (outfit || worn.coat === START_LOOK[lead].coat))) {
         const frame = Math.min(3, Math.floor((24 - (work.until - g.tick)) / 6)) + (outfit ? 4 : 0);
         this.spr(workSheet, frame, b.x + ox, b.y + oy + 1, work.face < 0);
       } else {
@@ -1534,7 +1561,11 @@ export class BellspireScene {
     const fr = b.calm ? 5 : st.endsWith('Tell') ? (Math.floor(this.t / 7) % 2 ? 3 : 1) : atk ? 2 : b.flash > 3 ? 4 : 0;
     const body = b.body;
     const fx: SprFx = { rim: b.calm ? undefined : RIM[b.id], tell: tell && !b.calm };
-    if (b.id === 'weighmaster' || b.id === 'panback' || b.id === 'tollkeeper') {
+    if (isOrchardRoom(g.room)) {
+      const frame = st === 'orchardTell' ? 1 : st === 'orchardRush' || st === 'orchardCaught' || st === 'orchardOpen' ? 2 : 0;
+      const open = st === 'orchardOpen';
+      this.sprXf(`boss-${b.id}`, frame, b.x + ox, b.y + oy + 1, b.face > 0, calmA, white, { rim: open ? '#ffd386' : '#a88f65', tell }, 1, 1);
+    } else if (b.id === 'weighmaster' || b.id === 'panback' || b.id === 'tollkeeper') {
       const f = b.calm ? 5 : b.id === 'tollkeeper'
         ? st === 'open' ? (b.low === -1 ? 2 : 3) : st === 'sweep' ? 4 : st.endsWith('Tell') ? 1 : 0
         : st === 'stagger' || st === 'panRise' ? 3 : st === 'panDown' || st === 'back' ? 4 : st === 'charge' || st === 'roll' ? 2 : st.endsWith('Tell') ? 1 : 0;
@@ -1854,6 +1885,9 @@ export class BellspireScene {
       const ab = ({ d: 'dash', j: 'double', k: 'wallkick', l: 'lantern', c: 'chime' } as Record<string, keyof typeof ABILITIES>)[d.ch];
       if (ab) L.push({ x: (d.c + d.w / 2) * TILE, y: (d.r + d.h / 2) * TILE, r: 40, c: hexRgb(ABILITIES[ab].color), i: 0.7 });
     }
+    for (const p of g.graftTargets()) L.push({ x: p.x, y: p.y - 17, r: 42, c: [1, 0.75, 0.29], i: 0.7 });
+    const graft = g.orchardControl();
+    if (graft) L.push({ x: graft.x, y: graft.y - 17, r: 65, c: [1, 0.74, 0.29], i: graft.ability ? 1 : 0.45 });
     for (const e of g.enemies) { const f = FOES[e.kind]; if (e.alive && !e.hidden && f.light) L.push({ x: e.x, y: e.y - f.h / 2, r: f.light[3], c: [f.light[0], f.light[1], f.light[2]], i: 0.9 }); }
     for (const s of g.shots) if (s.kind === 'bolt') L.push({ x: s.x, y: s.y, r: 50, c: [1, 0.7, 0.35], i: 1.1 }); else if (s.kind === 'bell') L.push({ x: s.x, y: s.y, r: 30, c: [1, 0.8, 0.4], i: 0.6 });
     if (g.embers) { const c = g.lead === 'enzo' ? g.body : g.follower; L.push({ x: c.x, y: c.y - 12, r: 80, c: [1, 0.55, 0.25], i: 1.1 }); }

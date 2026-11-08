@@ -162,7 +162,7 @@
 .bs-shop-coins{color:var(--gold);display:flex;align-items:center;gap:6px}
 .bs-buy{min-width:110px}
 .bs-mural{align-items:center;text-align:center;max-width:560px}
-.bs-mural-art{display:block;width:min(480px,100%);aspect-ratio:4/3;background:url('/art/bellspire/murals.webp') 0 0/2000% 100% no-repeat;image-rendering:pixelated;box-shadow:0 0 0 2px var(--bronze2)}
+.bs-mural-art{display:block;width:min(480px,100%);aspect-ratio:4/3;background-image:url('/art/bellspire/murals.webp');background-repeat:no-repeat;image-rendering:pixelated;box-shadow:0 0 0 2px var(--bronze2)}
 .bs-mural p{font-size:18px}
 
 /* ─── touch pad ─── */
@@ -280,3 +280,4 @@
 .bs-legend .lg-arrow{width:0;height:0;background:none;box-shadow:none;border-style:solid;border-width:5px 0 5px 8px;border-color:transparent transparent transparent #ffcf6a;margin:0 2px}
 
 .bs-end-art.bs-end-salt{background-image:url("/art/bellspire/ending4.webp")}
+.bs-end-art.bs-end-orchard{background-image:url("/art/bellspire/ending5.webp")}

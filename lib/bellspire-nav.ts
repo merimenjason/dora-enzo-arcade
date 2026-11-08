@@ -2,7 +2,8 @@
 // (`stepBody`) through short input "macros" (walk a tile, a jump with a given hold and steer, a dash, a wall kick, a
 // swim stroke...) and records where each one comes to rest. Those resting places are the graph's nodes, so any edge
 // it finds is a move a player can make, and the bots replay exactly these inputs.
-import { ROOMS, COLS, ROWS, TILE, crystalSpans, WATER_AREAS, WIND_AREAS, GUARDIANS, BELFRY_GUARDIANS, FOUNDRY_GUARDIANS, type Ability, type WaterArea, type WindArea, type Room, type HeroId } from './bellspire-world.js';
+import { ROOMS, COLS, ROWS, TILE, crystalSpans, isOrchardRoom, WATER_AREAS, WIND_AREAS, GUARDIANS, BELFRY_GUARDIANS, FOUNDRY_GUARDIANS, type Ability, type WaterArea, type WindArea, type Room, type HeroId } from './bellspire-world.js';
+import { graftSpans } from './bellspire-orchard-world.js';
 import { newBody, stepBody, boxClear, support, hookInReach, HERO_W, HERO_H, RUN, type Body, type BodyInput, type Caps, type Env } from './bellspire-physics.js';
 
 // the map grid, wide enough for the Windward Belfry east of the citadel
@@ -15,7 +16,7 @@ for (let i = 0; i < ROOMS.length; i++) {
   for (let y = 0; y < r.rows.length; y++) for (let x = 0; x < r.rows[y].length; x++) {
     const c = r.gx * COLS + x, rr = r.gy * ROWS + y;
     const ch = r.rows[y][x];
-    GRID[rr * GW + c] = ('#=Hgx^f' + 'djlkcubynZ' + '~_:+89&V').includes(ch) ? ch.charCodeAt(0) : 46;
+    GRID[rr * GW + c] = ('#=Hgx^f' + 'djlkcubynZ' + '~_:+89&V').includes(ch) || (ch === '>' && isOrchardRoom(r)) ? ch.charCodeAt(0) : 46;
     ROOM_AT[rr * GW + c] = i;
   }
 }
@@ -65,7 +66,7 @@ const hookNear = (x: number, y: number) => HOOKS.some((h) => Math.abs(h.x - x) <
 
 /** What the planner assumes about the world: abilities, the water in each area, and a few story flags (Ukumari met,
  *  and which guardians are calm: the throne door needs both, all four seals lit). */
-export type NavState = { abilities: Ability[]; water: Record<WaterArea, 0 | 1>; keeper: boolean; calmed: string[]; broken?: Set<string>; wind?: Record<WindArea, 1 | -1>; beams?: Set<string> };
+export type NavState = { abilities: Ability[]; water: Record<WaterArea, 0 | 1>; keeper: boolean; calmed: string[]; broken?: Set<string>; wind?: Record<WindArea, 1 | -1>; beams?: Set<string>; grafts?: ReadonlySet<string> };
 export const throneOpen = (s: Pick<NavState, 'keeper' | 'calmed'>) => s.keeper && GUARDIANS.every((b) => s.calmed.includes(b));
 /** The belfry seal: open once the Hail Condor and the Twin Clappers are calm. */
 export const belfryOpen = (s: Pick<NavState, 'calmed'>) => BELFRY_GUARDIANS.every((b) => s.calmed.includes(b));
@@ -73,10 +74,14 @@ export const belfryOpen = (s: Pick<NavState, 'calmed'>) => BELFRY_GUARDIANS.ever
 export const foundryOpen = (s: Pick<NavState, 'calmed'>) => s.calmed.includes('tune');
 export const deepOpen = (s: Pick<NavState, 'calmed'>) => FOUNDRY_GUARDIANS.every((b) => s.calmed.includes(b));
 export const windOf = (s: NavState, a: WindArea) => s.wind?.[a] ?? 1;
-export const stateKey = (s: NavState) => `${[...s.abilities].sort().join('+')}|${WATER_AREAS.map((a) => s.water[a]).join('')}|${throneOpen(s) ? 1 : 0}|${WIND_AREAS.map((a) => windOf(s, a)).join('')}|${belfryOpen(s) ? 1 : 0}${foundryOpen(s) ? 1 : 0}${deepOpen(s) ? 1 : 0}`;
+export const stateKey = (s: NavState) => `${[...s.abilities].sort().join('+')}|${WATER_AREAS.map((a) => s.water[a]).join('')}|${throneOpen(s) ? 1 : 0}|${WIND_AREAS.map((a) => windOf(s, a)).join('')}|${belfryOpen(s) ? 1 : 0}${foundryOpen(s) ? 1 : 0}${deepOpen(s) ? 1 : 0}|${[...s.grafts ?? []].sort().join(',')}|${s.calmed.filter((id) => id === 'bracken-stag' || id === 'rootback').sort().join(',')}`;
 
 export function navEnv(s: NavState): Env {
   const has = (a: Ability) => s.abilities.includes(a);
+  const orchardGateOpen = (c: number, r: number) => {
+    const room = ROOMS[ROOM_AT[r * GW + c]];
+    return !!room?.boss && s.calmed.includes(room.boss);
+  };
   const doorOpen = (ch: string) => ch === 'b' || (ch === 'd' && has('dash')) || (ch === 'j' && has('double')) || (ch === 'k' && has('wallkick')) || (ch === 'l' && has('lantern')) || (ch === 'c' && has('chime')) || (ch === 'u' && throneOpen(s))
     || (ch === 'y' && has('rope')) || (ch === 'n' && has('echo')) || (ch === 'Z' && belfryOpen(s))
     || (ch === '8' && has('hammer')) || (ch === '&' && has('resonance')) || (ch === '9' && foundryOpen(s)) || (ch === 'V' && deepOpen(s));
@@ -85,6 +90,7 @@ export function navEnv(s: NavState): Env {
     if (t === HASH || t === SPIKE || t === MOLTEN || t === LAVA || t === SLAG || t === PLATE) return true;
     if (t === BRK) return !s.broken?.has(`${c},${r}`);
     if (t === GLASS) return has('lantern');
+    if (t === CH('>')) return !orchardGateOpen(c, r);
     const d = DOORS[t];
     if (d === '&' && FAR_BEAM.has(`${c},${r}`)) return !s.beams?.has(`${c},${r}`);
     if (d) return !doorOpen(d);
@@ -93,12 +99,14 @@ export function navEnv(s: NavState): Env {
   const ladder = (c: number, r: number) => {
     const t = at(c, r);
     if (t === LAD) return true;
+    if (t === CH('>')) return orchardGateOpen(c, r) && (at(c, r - 1) === LAD || at(c, r + 1) === LAD);
     const d = DOORS[t];
     return !!d && doorOpen(d) && (at(c, r - 1) === LAD || at(c, r + 1) === LAD) && at(c - 1, r) !== LAD;
   };
   const floats: { x0: number; x1: number; y: number }[] = [];
   const surf = new Map<number, number | null>();
   ROOMS.forEach((room, i) => {
+    if (room.grafts) floats.push(...graftSpans(room, (flag) => s.grafts?.has(flag) ?? false, TILE, COLS, ROWS));
     const row = waterRow(room, s.water);
     surf.set(i, row === null ? null : (room.gy * ROWS + row) * TILE + 8);
     for (let y = 0; y < room.rows.length; y++) {

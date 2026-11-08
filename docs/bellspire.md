@@ -329,6 +329,24 @@ still apply to their original areas. The Salt Road ending counts its own 24 scre
   Pack Ticks drop from overhead, and Crust Crawlers fold up before they charge. The Salt-Road Wrap is Dora's plum
   tunic and the Waxed Haul Coat is Enzo's slate coat with ochre trim.
 
+## The Night Orchard
+
+After the Last Tollkeeper is calm, use the orchard wicket on the east side of the Salt Tollhouse. The return wicket
+is next to the Orchard Wicket Candle. The Graft Terraces and Root Cellars cover 24 screens in 12 rooms, with three
+travel candles. The Orchard’s mural and guardian totals are separate from the Foundry and Salt Road. See the
+[room-by-room design](bellspire-night-orchard.md) for the main and optional routes.
+
+- **Lantern Bloom.** Pick it up in the Orchard Wicket. As Enzo, stand next to a golden bud and press Use. The branch
+  settles into a permanent platform. The first one is above the safe basin in the Nursery Wall.
+- **Graft Shear.** Pick it up at the Graft Terraces. After Enzo opens the bud, stand near its ochre tie as Dora and
+  press Attack. The released limb gives you a higher route without removing the first branch. The helping hand
+  shows the next action and your current bindings. Dormant and completed grafts look different.
+- **Guardians.** Enzo wakes the marked bud. Watch for the Stag’s charge, the Rootback’s lifted shell, or the Mother’s
+  roots. When it catches, use Dora to cut the tie and open the guardian to attacks. The Mother of Grafts alternates
+  sides. High ledges give you room to move while the roots are active.
+- **Killa and the orchard outfits.** Killa tends the first steps. Dora’s Harvest Tunic is ochre with a brown hem.
+  Enzo’s Graft Keeper’s Coat is olive with a pale sage hem. Look for the chests in the Nursery and Pruning Walk.
+
 ## Echo Trials
 
 Once the Out-of-Tune Bell is calm, resting at a shrine plays a short scene (Enzo, then Dora) and the **Trials** page in

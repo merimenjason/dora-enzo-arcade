@@ -6,7 +6,7 @@
 // foundry adds is seen on screen. Needs `npm run dev` and Playwright.
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
-import { INFO, COLS, ROWS, ROOMS, RECAST_PERKS, roomById } from '../../.checks/bellspire-game.js';
+import { INFO, COLS, ROWS, ROOMS, RECAST_PERKS, isOrchardRoom, roomById } from '../../.checks/bellspire-game.js';
 
 const base = process.env.BASE_URL ?? 'http://localhost:3000';
 const KEY = 'bellspire-v1';
@@ -79,8 +79,9 @@ try {
   await at('fgate', 4, 14);
   await page.keyboard.press('Escape'); await until(page, () => window.__bellspire().menu === 'map');
   const after = await page.locator('canvas.bs-map').evaluate((c) => c.height);
-  const before = Math.max(...ROOMS.filter((r) => !r.fd && !r.salt).map((r) => r.gy + r.h)) * 16 + 16;
-  assert.equal(after, Math.max(...ROOMS.filter((r) => !r.salt).map((r) => r.gy + r.h)) * 16 + 16, 'the map shows the foundry while the Salt Road is locked');
+  const throughFoundry = ROOMS.filter((r) => !r.salt && !isOrchardRoom(r));
+  const before = Math.max(...throughFoundry.filter((r) => !r.fd).map((r) => r.gy + r.h)) * 16 + 16;
+  assert.equal(after, Math.max(...throughFoundry.map((r) => r.gy + r.h)) * 16 + 16, 'the map shows the Foundry while later areas are locked');
   assert.ok(after > before, `the map grows down to take in the foundry (${before} → ${after} px)`);
   const fit = await page.locator('.bs-map-box').evaluate((b) => ({ sw: b.scrollWidth, cw: b.clientWidth, sh: b.scrollHeight, ch: b.clientHeight, cv: b.querySelector('canvas').getBoundingClientRect(), w: b.querySelector('canvas').width, h: b.querySelector('canvas').height }));
   assert.ok(fit.sw <= fit.cw + 1 && fit.sh <= fit.ch + 1, `the whole map fits its box with no scrolling (${fit.sw}×${fit.sh} in ${fit.cw}×${fit.ch})`);

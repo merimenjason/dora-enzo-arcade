@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import {
   BellspireGame, freshSave, parseSave, ROOMS, INFO, COLS, ROWS, TILE, BOSSES, NO_INPUT, AREAS, SHRINE_NAMES, ABILITY_ORDER, ALL_BOSSES, SCRIPTS,
   SAVE_KEY, NGP_SAVE_KEY, TRIALS, RUSH, GRAND_RUSH, RUSH_HEAL, TRIAL_FOOD, MEDALS, NGP_HP, NGP_HIT, medalFor, trialById, trialSecs, ngpReady, newGamePlusSave,
-  roomById,
+  roomById, isOrchardRoom,
 } from '../.checks/bellspire-game.js';
 
 export default function trials() {
@@ -39,7 +39,7 @@ export default function trials() {
 
   // ─── the trials themselves ───────────────────────────────────────────────
   eq(TRIALS.filter((t) => t.kind === 'rush').map((t) => t.id), ['rush', 'rush:grand'], 'the Guardian Rush, and the Grand Rush once the foundry is calm');
-  eq(new Set(TRIALS.filter((t) => t.kind === 'run').map((t) => t.area)), new Set(ROOMS.filter((r) => !r.salt).map((r) => r.area)), 'and a run in each of the original through-Foundry areas');
+  eq(new Set(TRIALS.filter((t) => t.kind === 'run').map((t) => t.area)), new Set(ROOMS.filter((r) => !r.salt && !isOrchardRoom(r)).map((r) => r.area)), 'and a run in each of the original through-Foundry areas');
   eq(RUSH, ALL_BOSSES.slice(0, 8), 'the rush meets the first eight guardians in story order');
   eq(GRAND_RUSH, ALL_BOSSES, 'the Grand Rush all eleven');
   for (const t of TRIALS) {
