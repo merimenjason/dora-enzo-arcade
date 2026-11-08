@@ -236,6 +236,7 @@
 .bs-legend .lg-lock{width:8px;height:8px}
 .bs-legend .lg-skull{width:7px;height:7px;background:#e8484f}
 .bs-legend .lg-chest{width:10px;height:8px;background:linear-gradient(#ffd04a 0 3px,#9a5a26 3px)}
+.bs-legend .lg-mural{width:10px;height:8px;background:linear-gradient(#5fc4c0 0 4px,#b8583a 4px);box-shadow:inset 0 0 0 2px #e8c06a}
 .bs-legend .lg-seal{width:15px;height:4px;background:repeating-linear-gradient(90deg,#4f86d9 0 3px,#1a1020 3px 4px,#5cae55 4px 7px,#1a1020 7px 8px,#9a5fd0 8px 11px,#1a1020 11px 12px,#d9a93a 12px 15px)}
 .bs-legend .lg-wisp{width:7px;height:7px;background:#e8fdff;box-shadow:0 0 6px 2px rgba(150,240,255,.6)}
 .bs-toggle.bs-off{opacity:.55}

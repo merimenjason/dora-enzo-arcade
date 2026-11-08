@@ -2,7 +2,7 @@
 // (`stepBody`) through short input "macros" (walk a tile, a jump with a given hold and steer, a dash, a wall kick, a
 // swim stroke...) and records where each one comes to rest. Those resting places are the graph's nodes, so any edge
 // it finds is a move a player can make, and the bots replay exactly these inputs.
-import { ROOMS, COLS, ROWS, TILE, WATER_AREAS, WIND_AREAS, GUARDIANS, BELFRY_GUARDIANS, FOUNDRY_GUARDIANS, type Ability, type WaterArea, type WindArea, type Room, type HeroId } from './bellspire-world.js';
+import { ROOMS, COLS, ROWS, TILE, crystalSpans, WATER_AREAS, WIND_AREAS, GUARDIANS, BELFRY_GUARDIANS, FOUNDRY_GUARDIANS, type Ability, type WaterArea, type WindArea, type Room, type HeroId } from './bellspire-world.js';
 import { newBody, stepBody, boxClear, support, hookInReach, HERO_W, HERO_H, RUN, type Body, type BodyInput, type Caps, type Env } from './bellspire-physics.js';
 
 // the map grid, wide enough for the Windward Belfry east of the citadel
@@ -44,7 +44,7 @@ for (const room of ROOMS) {
     const c = room.gx * COLS + x, r = room.gy * ROWS + y;
     if (ch === 'o') HOOKS.push({ x: c * TILE + 8, y: r * TILE + 4 });
     if (ch === 'Q') { for (const [dc, dr] of room.echoes?.[q] ?? []) NOTES.push({ x0: (c + dc) * TILE, x1: (c + dc + 2) * TILE, y: (r + dr) * TILE, bx: c * TILE + 8, by: r * TILE, need: 'echo' }); q++; }
-    if (ch === '*') { for (const [dc, dr] of room.crystals?.[k] ?? []) NOTES.push({ x0: (c + dc) * TILE, x1: (c + dc + 2) * TILE, y: (r + dr) * TILE, bx: c * TILE + 8, by: r * TILE, need: 'resonance' }); k++; }
+    if (ch === '*') { for (const sp of crystalSpans(c, r, room.crystals?.[k] ?? [])) NOTES.push({ ...sp, bx: c * TILE + 8, by: r * TILE, need: 'resonance' }); k++; }
     if (ch === '+') PLATES.push({ x: c * TILE + 8, y: r * TILE });
   }));
 }

@@ -87,10 +87,11 @@ try {
   assert.ok(fit.cv.width / fit.w <= 1.29 + 0.01 && Math.abs(fit.cv.width / fit.cv.height - fit.w / fit.h) < 0.02, `drawn at up to 1.29×, unsqueezed (${(fit.cv.width / fit.w).toFixed(2)}×)`);
   const gd = await dbg(page, 'mapGuide');
   assert.ok(gd.foundry && gd.foundry.labels?.length >= 2, `the map guide names the Casting Halls and the Glasswork Caves (${JSON.stringify(gd.foundry?.labels)})`);
+  await page.getByText('A mural not read yet').waitFor({ timeout: 3000 });
   await page.locator('.bs-map-box').screenshot({ path: '.shots/bellspire/80-foundry-map-1280x800.png' });
   await bad(page, 'the map with the foundry');
   await page.keyboard.press('Escape'); await until(page, () => !window.__bellspire().menu);
-  ok(`the seal is open, and the map grows to the foundry (${after}px) and fits its box at ${(fit.cv.width / fit.w).toFixed(2)}×`);
+  ok(`the seal is open, and the map grows to the foundry (${after}px) and fits its box at ${(fit.cv.width / fit.w).toFixed(2)}×; its legend marks murals not read yet`);
 
   // ─── Tupa's forge: every button ───────────────────────────────────────────
   {

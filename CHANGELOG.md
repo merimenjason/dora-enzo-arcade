@@ -10,10 +10,12 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Sunken Bellspire**: the map and the minimap now mark murals you haven't read yet with a little framed painting.
 - **Sunken Bellspire**: with the helping hand on, the Foundry Below now tells you what to do by molten bronze ("V frost the bronze", or tag to Enzo) and by the vents' slag ("Wait for the vents to puff", then "Mist! Hop across the slag"). The Forge Sprint's medals are now 41 / 54 / 80 seconds.
 
 ### Fixed
 
+- **Sunken Bellspire**: the crystal bridge over the prism hall's lava was nearly impossible to cross, a run of jumps between slabs that only cleared from each slab's very edge. The slabs now join into one walkway that reaches the far floor.
 - **Sunken Bellspire**: Dora couldn't hurt the Molten Founder, because Enzo's frost only came out when he cast in the air. Now V on the ground in that fight sweeps the Frost Fan low across the Founder, and with the helping hand on, prompts show the combo: frost it as Enzo, tag to Dora, strike the frosted patch.
 - **Sunken Bellspire**: the vents' tunnel in the Casting Halls was nearly impossible to cross: its low ceiling cut every jump short over three-tile lava strips. The tunnel is a tile higher and the lava strips between the slag are one tile wide.
 

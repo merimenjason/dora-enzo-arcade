@@ -261,6 +261,9 @@ never scrolls).
   10 seconds (three times as long with the helping hand); the prism hall's two crystals lay the same bridge from
   either end. ↑ + V by a prism sends a beam that opens the beam doors within 8 tiles (`BEAM_REACH`); one of them, the
   crucible's, is a shortcut back opened from the Glass Candle's side. Without Resonance a crystal only hums.
+- **Crystal bridges.** A crystal's slabs join into one walkway along a row (`crystalSpans`, shared by the game and the
+  planner): in the prism hall it is one jump up onto the bridge, a walk across the lava, and a step down onto the far
+  floor, from either end. (The slabs used to sit four tiles apart, a jump that only cleared from a slab's last pixel.)
 - **Tupa** (they/them), the bellfounder at the Foundry Gate. ↑ talks (the first time, an introduction), then opens
   the forge: for 120 coins Tupa recasts a piece of gear with one perk (cool, tempered +3 defence, keen +3 attack,
   focus +3 magic, lucky or regen). One recast to a piece; a new one melts the old. A recast the piece already has, or

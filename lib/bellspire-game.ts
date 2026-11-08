@@ -3,7 +3,7 @@
 import {
   ROOMS, AREAS, COLS, ROWS, TILE, SCREEN_W, SCREEN_H, ABILITIES, ABILITY_ORDER, SPELLS, GEAR, START_EQUIP, FOOD, SHOP, BOSSES, MURALS,
   SCRIPTS, WATER_AREAS, SHRINE_NAMES, GUARDIANS, GUARDIAN_AREA, BELFRY_GUARDIANS, BELFRY_AREAS, WIND_AREAS, ALL_BOSSES, abilityIcon,
-  FOUNDRY_GUARDIANS, FOUNDRY_AREAS, PERK_STATS, RECAST_PERKS, RECAST_PRICE,
+  FOUNDRY_GUARDIANS, FOUNDRY_AREAS, PERK_STATS, RECAST_PERKS, RECAST_PRICE, crystalSpans,
   type Room, type AreaId, type Ability, type HeroId, type SpellId, type Slot, type FoodId, type BossId, type Line, type WaterArea, type Perk, type WindArea,
 } from './bellspire-world.js';
 import { BOXES, FOE_BODY } from './bellspire-art.js';
@@ -1389,9 +1389,9 @@ export class BellspireGame {
     const life = CRYSTAL_LIFE * (this.perk('enzo', 'notes') ? 2 : 1) * (this.helping() ? NOTE_ASSIST : 1);
     const pre = `${this.room.id}:x${t.i}:`;
     this.notes = this.notes.filter((n) => !n.key.startsWith(pre));
-    path.forEach(([dc, dr], k) => {
-      const c = t.c + dc, r = t.r + dr;
-      this.notes.push({ key: `${pre}${k}`, room: this.room.id, x0: c * TILE, x1: (c + 2) * TILE, y: r * TILE, t: 0, at: k * CRYSTAL_GAP, life: life + k * CRYSTAL_GAP });
+    // (the slabs join into one walkway along a row: see crystalSpans)
+    crystalSpans(t.c, t.r, path).forEach(({ x0, x1, y }, k) => {
+      this.notes.push({ key: `${pre}${k}`, room: this.room.id, x0, x1, y, t: 0, at: k * CRYSTAL_GAP, life: life + k * CRYSTAL_GAP });
     });
     this.sfx('crystal', x, y); this.emit({ k: 'notes', x, y }); this.emit({ k: 'pulse', x, y, r: 120, color: [0.8, 0.55, 1] });
     if (!this.flag('rang:crystal')) { this.setFlag('rang:crystal'); this.note(`The crystals line up into a bridge for ${this.helping() ? 'about half a minute' : 'about ten seconds'}. Go!`, true); }

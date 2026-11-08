@@ -3,6 +3,20 @@
 // world coordinates, so walking off one room's edge lands in the room next door.
 
 export const COLS = 30, ROWS = 17, TILE = 16;
+/** A humming crystal's bridge: the slabs its path lays (in world pixels), from the crystal's tile. A slab is two tiles
+ *  wide and reaches on to the next one on its row when that one is close, so a row of slabs is one walkway. */
+export function crystalSpans(c: number, r: number, path: [number, number][]): { x0: number; x1: number; y: number }[] {
+  const cols = path.map(([dc, dr]) => [c + dc, r + dr]);
+  return cols.map(([sc, sr]) => {
+    let x0 = sc * TILE, x1 = (sc + 2) * TILE;
+    for (const [c2, r2] of cols) {
+      if (r2 !== sr) continue;
+      if (c2 > sc + 2 && c2 <= sc + 6) x1 = Math.max(x1, c2 * TILE);
+      if (c2 + 2 < sc && c2 + 2 >= sc - 4) x0 = Math.min(x0, (c2 + 2) * TILE);
+    }
+    return { x0, x1, y: sr * TILE };
+  });
+}
 export const SCREEN_W = COLS * TILE, SCREEN_H = ROWS * TILE;
 
 export type AreaId = 'hub' | 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft' | 'cast' | 'glass';
@@ -1198,7 +1212,8 @@ export const FOUNDRY_ROOMS: Room[] = [
     k.at(3, 14, '*').at(56, 14, '*').at(20, 6, '3').at(40, 6, '3').at(1, 9, 'T');
   }, {
     heat: [[6, 6, 53, 14]], script: 'crystal',
-    crystals: [[4, 10, 16, 22, 28, 34, 40, 46].map((dc) => [dc, -1] as [number, number]), [-7, -13, -19, -25, -31, -37, -43, -49].map((dc) => [dc, -1] as [number, number])],
+    // (both crystals lay the same slabs, the last reaching the far floor; see crystalSpans: one walkway)
+    crystals: [[4, 10, 16, 22, 28, 34, 40, 46, 49].map((dc) => [dc, -1] as [number, number]), [-4, -7, -13, -19, -25, -31, -37, -43, -49].map((dc) => [dc, -1] as [number, number])],
   }),
   // a tall glass stair: ledges up to the snail gallery, then a crystal's stair up to the Glass Choir
   fdroom('glassstair', 'glass', 9, 9, 1, 3, (k) => {

@@ -1107,9 +1107,9 @@ export class BellspireScene {
       if (n.room !== room.id || n.t < n.at) continue;
       const left = n.life - n.t, a = Math.min(1, (n.t - n.at) / 8) * (left < 60 ? (Math.floor(left / 5) % 2 ? 0.35 : 0.9) : 0.9);
       const x = (n.x0 + n.x1) / 2 + ox, y = n.y + oy;
-      // (a crystal bridge's slab: two glowing tiles)
+      // (a crystal bridge's slab: a row of glowing tiles, two wide, or wider with the helping hand)
       const fd = this.img.get('tiles-fd');
-      if (n.key.includes(':x') && fd) { ctx.globalAlpha = a; ctx.drawImage(fd, 9 * 16, 0, 16, 16, Math.round(n.x0 + ox), Math.round(y), 16, 16); ctx.drawImage(fd, 9 * 16, 0, 16, 16, Math.round(n.x0 + ox) + 16, Math.round(y), 16, 16); ctx.globalAlpha = 1; }
+      if (n.key.includes(':x') && fd) { ctx.globalAlpha = a; for (let sx = n.x0; sx < n.x1; sx += 16) ctx.drawImage(fd, 9 * 16, 0, 16, 16, Math.round(sx + ox), Math.round(y), 16, 16); ctx.globalAlpha = 1; }
       else if (p2 && a2) { ctx.globalAlpha = a; this.spr('props2', 7, x, y + 10); ctx.globalAlpha = 1; }
       else { ctx.fillStyle = `rgba(95,227,255,${a})`; ctx.fillRect(Math.round(n.x0 + ox), Math.round(y), n.x1 - n.x0, 4); }
       if (this.t % 12 === 0) this.particles.push({ x: x - ox + (Math.random() - 0.5) * 24, y: y - oy, vx: 0, vy: -0.3, life: 0, max: 24, color: '#9ff4ff', size: 1, g: 0, light: true });

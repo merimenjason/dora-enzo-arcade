@@ -886,6 +886,7 @@ export default function BellspirePage() {
             <li><i className="lg-lock" style={{ background: ABILITIES.dash.color }} />A shut door, in the colour of what opens it</li>
             <li><i className="lg-skull" />A guardian still restless</li>
             <li><i className="lg-chest" />A chest not opened yet</li>
+            <li><i className="lg-mural" />A mural not read yet</li>
             <li><i className="lg-seal" />The throne’s four bell seals</li>
             {g.wispOn() && <li><i className="lg-wisp" />Where the wisp is leading</li>}
             {g.belfryKnown() && <li><i className="lg-boat" />Wayra’s boat (↑ to row across)</li>}
@@ -1303,7 +1304,7 @@ function drawBelfryGuide(ctx: CanvasRenderingContext2D, g: BellspireGame, seen: 
 
 type MapIcon = { id: string; x: number; y: number; lit: boolean };
 /** Draw the explored map at cell size CW×CH from (ox, oy): rooms by area, ways out into unexplored rooms, shrines
- *  (big candles, lit or grey), chests, Wayra, guardians and locked doors, and where the heroes are. Returns the
+ *  (big candles, lit or grey), chests, murals not read yet, Wayra, guardians and locked doors, and where the heroes are. Returns the
  *  shrine icons, for tapping. */
 function drawMap(ctx: CanvasRenderingContext2D, g: BellspireGame, CW: number, CH: number, ox: number, oy: number, t: number, sel: string | null, small: boolean): MapIcon[] {
   const seen = new Set(g.save.seen), lit = g.litShrines(), icons: MapIcon[] = [];
@@ -1353,6 +1354,14 @@ function drawMap(ctx: CanvasRenderingContext2D, g: BellspireGame, CW: number, CH
         ctx.fillStyle = '#1a1020'; ctx.fillRect(px - 3 * k, py - 3 * k, 6 * k + 1, 5 * k + 1);
         ctx.fillStyle = '#9a5a26'; ctx.fillRect(px - 2 * k, py - 2 * k, 4 * k + 1, 3 * k + 1);
         ctx.fillStyle = '#ffd04a'; ctx.fillRect(px - 2 * k, py - 2 * k, 4 * k + 1, k); ctx.fillRect(px, py - k, k, k);
+      }
+      else if (th.ch === 'R' && !g.flag(`mural:${r.murals?.[th.i] ?? 0}`)) {
+        // a mural not read yet: a little framed painting (a gold frame round a teal sky over a rust hill)
+        const k = small ? 1 : 2;
+        ctx.fillStyle = '#1a1020'; ctx.fillRect(px - 3 * k, py - 4 * k, 6 * k + 1, 5 * k + 1);
+        ctx.fillStyle = '#e8c06a'; ctx.fillRect(px - 2 * k, py - 3 * k, 4 * k + 1, 3 * k + 1);
+        ctx.fillStyle = '#5fc4c0'; ctx.fillRect(px - k, py - 2 * k, 2 * k + 1, k);
+        ctx.fillStyle = '#b8583a'; ctx.fillRect(px - k, py - k, 2 * k + 1, k);
       }
       else if (th.ch === 'M') { ctx.fillStyle = '#ff9a3c'; ctx.fillRect(px - 1, py - 1, small ? 2 : 3, small ? 2 : 3); }
       else if (th.ch === 'O' && !g.flag(`boss:${r.boss}`)) { ctx.fillStyle = '#1a1020'; ctx.fillRect(px - 3, py - 3, 7, 7); ctx.fillStyle = '#e8484f'; ctx.fillRect(px - 2, py - 2, 5, 5); }
