@@ -89,10 +89,21 @@ function camClamp(t: number, lo: number, span: number, view: number) {
 }
 
 /** A standable edge that reads against a busy painting: a warm lit lip on top and a soft shadow under the plank. */
-function ledgeEdge(ctx: CanvasRenderingContext2D, x: number, y: number, w: number) {
-  ctx.fillStyle = 'rgba(255,226,160,0.85)'; ctx.fillRect(x, y, w, 1);
+function ledgeEdge(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, lip = 'rgba(255,226,160,0.85)') {
+  ctx.fillStyle = lip; ctx.fillRect(x, y, w, 1);
   ctx.fillStyle = 'rgba(20,12,8,0.55)'; ctx.fillRect(x, y + 1, w, 1);
   ctx.fillStyle = 'rgba(10,6,4,0.32)'; ctx.fillRect(x, y + 13, w, 3);
+}
+
+/** A sheet of ice over a floor tile: a pale glassy band, a bright rim, a darker seam where it meets the stone, and the odd glint. */
+function iceGlaze(ctx: CanvasRenderingContext2D, x: number, y: number, h: number) {
+  ctx.fillStyle = 'rgba(206,234,248,0.92)'; ctx.fillRect(x, y, 16, 4);
+  ctx.fillStyle = 'rgba(150,196,226,0.85)'; ctx.fillRect(x, y + 4, 16, 2);
+  ctx.fillStyle = 'rgba(70,104,150,0.55)'; ctx.fillRect(x, y + 6, 16, 1);
+  ctx.fillStyle = 'rgba(250,254,255,0.95)'; ctx.fillRect(x, y, 16, 1);
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  if (h % 3 === 0) ctx.fillRect(x + (h >> 3) % 12 + 1, y + 2, 3, 1);
+  if (h % 5 === 1) ctx.fillRect(x + (h >> 5) % 13 + 1, y + 4, 2, 1);
 }
 
 export class BellspireScene {
@@ -511,11 +522,15 @@ export class BellspireScene {
         // edge shading so stone reads as solid mass
         if (!top && !under && (air(x - 1, y) || air(x + 1, y))) { ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(air(x - 1, y) ? x * 16 : x * 16 + 15, y * 16, 1, 16); }
       } else if (ch === SLICK) {
-        T(8, x * 16, y * 16);
+        // slick ice: the area's own stone under a glaze in its palette (the sheet's flat cyan tile clashed with the painting)
+        const top = air(x, y - 1) && y > 0;
+        T(top ? 0 : 1, x * 16, y * 16);
+        if (top) iceGlaze(ctx, x * 16, y * 16, hash(c0 + x, r0 + y));
       } else if (ch === '=') {
         T(3, x * 16, y * 16);
         // the orchard's painted backdrops are as busy as its planks, so its ledges get a lit top and a shadow under
-        if (glacier || set === 'orchard' || set === 'rootcellar') ledgeEdge(ctx, x * 16, y * 16, 16);
+        if (set === 'orchard' || set === 'rootcellar') ledgeEdge(ctx, x * 16, y * 16, 16);
+        else if (glacier) ledgeEdge(ctx, x * 16, y * 16, 16, 'rgba(232,246,255,0.9)');
       }
       else if (ch === 'H') T(4, x * 16, y * 16);
       else if (ch === '^') this.drawSpikes(ctx, x * 16, y * 16);

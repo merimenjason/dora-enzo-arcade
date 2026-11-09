@@ -93,7 +93,7 @@ for(const r of GLACIER_ROOMS) {
   eq(g.glacier.state(0),'water');
   tick(g,{},GLACIER_TIMING.helpWater); eq(g.glacier.state(0),'frozen','Meltwater refreezes on its own');
   tick(g,{},GLACIER_TIMING.helpIce); eq(g.glacier.state(0),'plug','it resets from a safe distance');
-  g.teleport(names.slide,16,14);tag(g,'dora');stance(g,16,14);
+  g.teleport(names.slide,22,14);tag(g,'dora');stance(g,22,14);
   tick(g,{right:true},20);ok(g.body.vx>2.5);
   tick(g,{right:true,down:true,attack:true});eq(g.body.vx,0);ok(g.body.iceBraking);
 }
@@ -250,23 +250,59 @@ for(const [key,id,c] of [['vicuna',names.vicuna,18],['osjollo',names.cat,25],['w
 console.table(dodges);
 console.log(`Glacier Stair: ${checks} assertions; ${GLACIER_ROOMS.length} authored rooms and three two-hero guardian openings.`);
 
+// The steps added on 09-11-2026 (the landing platforms, Phuyu's mesa, the Thaw blocks, the Slide's stair and shelf, the
+// gallery outcrop): from a standstill on the low side, hold the way up and jump (a 12-tick press), for both heroes in
+// strict mode, from take-off points 4 px apart. Every step is a single tile; each needs a window of at least 16 px.
+const RISES=[
+  ['glacier-landing',48,1,14],['glacier-landing',21,-1,14],
+  ['glacier-camp',30,1,14],['glacier-camp',38,-1,14],
+  ['glacier-first-thaw',3,1,14],['glacier-first-thaw',10,-1,14],['glacier-first-thaw',51,1,14],['glacier-first-thaw',56,-1,14],
+  ['glacier-slide',6,1,14],['glacier-slide',8,1,13],['glacier-slide',21,-1,14],['glacier-slide',15,-1,13],
+  ['glacier-mirrors',14,-1,14],['glacier-mirrors',8,1,14],
+];
+const riseWindows=[];
+for(const [id,wall,dir,low] of RISES)for(const hero of ['dora','enzo']){
+  let width=0;
+  for(let d=0;d<=64;d+=4){
+    const g=testGame(hero);g.teleport(id,wall-dir*2,low);
+    const o=roomRect(g.room),face=o.x+(dir>0?wall:wall+1)*TILE;
+    stance(g,wall-dir*2,low);Object.assign(g.body,{x:face-dir*(7+d),vx:0});
+    const inp=dir>0?{right:true}:{left:true};
+    tick(g,{...inp,jump:true},12);
+    let up=false;
+    for(let i=0;i<80&&!up;i++){tick(g,inp);up=g.body.ground&&g.body.y===o.y+low*TILE&&dir*(g.body.x-face)>0;}
+    if(up)width+=4;
+  }
+  ok(width>=16,`${id} step at column ${wall}: ${hero} needs 16 px, saw ${width}`);
+  riseWindows.push({room:id,step:wall,dir,hero,px:width});
+}
+console.table(riseWindows);
+
 // From the old-save root lift to the ending using only inputs. The fixture sets the player's earned
 // Orchard/Foundry progress and equipment; after initial placement there are no teleports or puzzle flags.
 {
   const save=glacierSave('dora',false);
-  for(const h of Object.values(save.heroes)){h.level=28;h.hp=200;h.mp=100;}
-  save.gear.push('moonsteel');save.equip.dora.weapon='moonsteel';
+  // the level the route bot reaches by the Foundry's last guardian, in starting gear: no stat padding
+  for(const h of Object.values(save.heroes))h.level=16;
   for(const r of GLACIER_ROOMS)if(r.boss)save.flags.push('script:boss:'+r.boss);
   const g=new BellspireGame(save,{assist:true,wisp:false},123);
   g.teleport(GLACIER_RETURN,33,14);
   const seen=[g.room.id];
   const remember=()=>{if(!seen.includes(g.room.id))seen.push(g.room.id);};
+  // walks like a player: held direction, and a short jump when a step stops the hero
   function walkTo(room,c,limit=1400){
     const x=roomRect(roomById(room)).x+(c+.5)*TILE;
     const d=Math.sign(x-g.body.x), inp=d>0?{right:true}:{left:true};
-    if(Math.abs(g.body.x-x)>2)wait(g,()=>d*(g.body.x-x)>=-2,limit,inp);
+    let held=0,stuck=0;
+    for(let i=0;i<limit&&Math.abs(g.body.x-x)>2&&d*(g.body.x-x)<-2;i++){
+      stuck=g.body.ground&&Math.abs(g.body.vx)<0.2?stuck+1:0;
+      if(stuck>4&&!held){held=14;stuck=0;hops++;}
+      tick(g,{...inp,jump:held>0});if(held>0)held--;
+    }
+    ok(Math.abs(g.body.x-x)<=2||d*(g.body.x-x)>=-2,'reached column '+c+' of '+room);
     eq(g.room.id,room,'room edge led to '+room);remember();
   }
+  let hops=0;
   function holdUpUntil(test){wait(g,test,280,{up:true});tick(g);}
   function downShaft(room,c,to){
     walkTo(room,c);
@@ -304,8 +340,11 @@ console.log(`Glacier Stair: ${checks} assertions; ${GLACIER_ROOMS.length} author
   tag(g,'enzo');walkTo(names.thaw,19);mirror();
   walkTo(names.slide,24);gap(names.slide,32,1);walkTo(names.slide,53);
   downShaft(names.slide,54,names.vicuna);
-  wait(g,()=>state(g)==='glacierRest',280);mirror();
-  wait(g,()=>state(g)==='glacierOpen',320);attackOpened(names.vicuna);
+  const cycles={};
+  for(cycles.vicuna=0;cycles.vicuna<8&&g.boss;cycles.vicuna++){
+    tag(g,'enzo');wait(g,()=>state(g)==='glacierRest',400);mirror();
+    wait(g,()=>state(g)==='glacierOpen',400);attackOpened(names.vicuna);
+  }
   eq(g.boss,null,'vicuña calmed on the route');
   walkTo(names.serac,51);tick(g,{},8);ok(g.has('icepick'));
   walkTo(names.serac,39);gap(names.serac,36,-1);
@@ -317,10 +356,13 @@ console.log(`Glacier Stair: ${checks} assertions; ${GLACIER_ROOMS.length} author
   walkTo(names.gallery,38);holdUpUntil(()=>g.body.ground&&g.body.y<=roomRect(g.room).y+11*TILE);
   mirror(1);walkTo(names.gallery,5);wait(g,()=>g.body.ground,100);
   downShaft(names.gallery,4,names.cat);
-  walkTo(names.cat,17);wait(g,()=>state(g)==='glacierRest',300);
-  mirror();frost(names.cat,32);walkTo(names.cat,36);tag(g,'dora');
-  holdUpUntil(()=>g.body.ground&&g.body.y<=roomRect(g.room).y+8*TILE);
-  wait(g,()=>state(g)==='glacierOpen',250);attackOpened(names.cat);
+  for(cycles.osjollo=0;cycles.osjollo<8&&g.boss;cycles.osjollo++){
+    if(cycles.osjollo){tag(g,'enzo');wait(g,()=>g.body.ground,120,{down:true});}
+    walkTo(names.cat,17);wait(g,()=>state(g)==='glacierRest',400);
+    mirror();frost(names.cat,32);walkTo(names.cat,36);tag(g,'dora');
+    holdUpUntil(()=>g.body.ground&&g.body.y<=roomRect(g.room).y+8*TILE);
+    wait(g,()=>state(g)==='glacierOpen',400);attackOpened(names.cat);
+  }
   eq(g.boss,null,'mountain cat calmed on the route');
   walkTo(names.cat,52);wait(g,()=>g.body.ground&&g.body.y>=roomRect(g.room).y+15*TILE,175,{down:true});tick(g);
   walkTo(GLACIER_VAULT_FROM,14);tag(g,'enzo');mirror();frost(GLACIER_VAULT_FROM,19);
@@ -335,12 +377,13 @@ console.log(`Glacier Stair: ${checks} assertions; ${GLACIER_ROOMS.length} author
   ok(g.save.gear.includes('dora-glacier-coat')&&g.save.gear.includes('enzo-glacier-coat'),'both optional outfits earned');
   walkTo(GLACIER_VAULT,47);tap(g,{up:true});ok(g.flag('mural:27'));
   walkTo(GLACIER_VAULT,3);wait(g,()=>g.body.ground,120);tap(g,{up:true});eq(g.room.id,GLACIER_VAULT_FROM);
-  for(let phase=0;phase<5&&(phase===0||g.boss);phase++){
+  for(cycles.warden=0;cycles.warden<12&&(cycles.warden===0||g.boss);cycles.warden++){
     walkTo(names.gate,29);tag(g,'enzo');
     wait(g,()=>state(g)==='glacierTell',400);mirror();attackOpened(names.gate);
   }
   eq(g.boss,null,'Warden calmed on the route');
   for(let i=0;i<8&&g.dialog;i++)tap(g,{jump:true});
   ok(g.flag('glacier:ending'));eq(seen.filter(id=>id.startsWith('glacier-')).length,12);
-  console.log(`Glacier full route: ${seen.length-1} expansion rooms, 3 guardians, 2 outfits and ending, ${g.tick} engine ticks; ${checks} total assertions.`);
+  const hp=Object.entries(g.save.heroes).map(([k,v])=>`${k} ${v.hp}`).join(', ');
+  console.log(`Glacier full route at level 16 in starting gear: ${seen.length-1} expansion rooms, ${hops} hops, guardian cycles ${JSON.stringify(cycles)}, 2 outfits and ending, ${g.tick} engine ticks (${hp} HP at the end); ${checks} total assertions.`);
 }
