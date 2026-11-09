@@ -4,6 +4,12 @@ Where Dora & Enzo's Arcade stands, how the newest games fit together, how to che
 
 This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are folded in below.
 
+## Next new game: the magnum opus (09-11-2026)
+
+The brief for the next flagship game is [`docs/codex-magnum-opus.md`](docs/codex-magnum-opus.md): what went wrong with
+the three node-board games (Faultline Rescue, The Night Wire and The Second Show, removed on 09-11-2026) and the
+Salt Road, the hard rules, the content floor, the proof required, and a short prompt to paste into Codex.
+
 ## Start here (handover to Codex, 08-11-2026)
 
 **Last shipped:** `1aa48d0` "Sunken Bellspire: the Foundry Below expansion" is live (CI green on `main`, `/bellspire` returns 200). It's pushed to both `claude/pass-graphics-2` and `main`, which point at the same commit. The working tree is clean apart from an untracked `.shots/` folder of e2e screenshots; don't commit that.
