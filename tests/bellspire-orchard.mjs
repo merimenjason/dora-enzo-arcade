@@ -198,6 +198,36 @@ export function testOrchard() {
     eq(h.boss.st, 'orchardOpen', `${bossId}: Dora opens the flank`);
     ok(h.boss.hurt.length > 0, `${bossId}: the open flank is hittable`);
   }
+  // Each arena's low ledges sit inside its guardian's floor sweep: a hero who hops up (a real jump from the floor
+  // below) rides the sweep out unhurt, and the same sweep hurts a hero left on the floor beside one of them (the
+  // Stag's east ledge is out of its sweep, there for height).
+  for (const bossId of ORCHARD_GUARDIANS) {
+    const room = orchard.find((r) => r.boss === bossId), rows = room.rows;
+    const ledges = [];
+    for (let c = 0; c < rows[13].length; c++) if (rows[13][c] === '=' && rows[13][c - 1] !== '=') ledges.push(c + 1);
+    ok(ledges.length > 0, `${bossId}: its arena has a low ledge`);
+    for (const lead of ['dora', 'enzo']) {
+    let floorHit = false;
+    for (const col of ledges) for (const up of [true, false]) {
+      const h = new BellspireGame(orchardSave(lead), { assist: true, wisp: false }, 17);
+      h.setFlag(`script:boss:${bossId}`);
+      h.teleport(room.id, col, 14);
+      for (let i = 0; i < 450 && h.boss?.st !== 'orchardRest'; i++) advance(h);
+      if (bossId === 'graft-mother') h.boss.side = col + room.gx * COLS < INFO.get(room.id).things.find((t) => t.ch === 'O').c ? -1 : 1;
+      if (up) { advance(h, { jump: true }, 14); advance(h, {}, 30); }
+      const onLedge = h.body.ground && Math.round(h.body.y / TILE) === (room.gy * ROWS) + 13;
+      if (up) ok(onLedge, `${bossId} (${lead}): a jump lands on the ledge at column ${col}`);
+      const hp = h.save.heroes[lead].hp;
+      h.boss.t = h.boss.dur;
+      let swept = false;
+      for (let i = 0; i < 260 && !(swept && h.boss.st === 'orchardRest'); i++) { advance(h); if (h.boss.st === 'orchardRush') swept = true; }
+      ok(swept, `${bossId}: the sweep came`);
+      if (up) eq(h.save.heroes[lead].hp, hp, `${bossId} (${lead}): the ledge at column ${col} rides out the sweep`);
+      else if (h.save.heroes[lead].hp < hp) floorHit = true;
+    }
+    ok(floorHit, `${bossId} (${lead}): the floor beside a ledge is in the sweep`);
+    }
+  }
   const jumps = measureJumps();
   for (const row of jumps) for (const hero of ['dora', 'enzo']) ok(row[hero].width >= 16, `${row.name}: ${hero} needs 16 px, saw ${row[hero].width}`);
   console.log(`Night Orchard: ${checks} engine assertions; ${jumps.length} jump windows per hero.`);

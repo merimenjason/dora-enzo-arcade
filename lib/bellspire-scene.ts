@@ -83,6 +83,13 @@ function camClamp(t: number, lo: number, span: number, view: number) {
   return span <= view ? lo + (span - view) / 2 : Math.max(lo, Math.min(lo + span - view, t));
 }
 
+/** A standable edge that reads against a busy painting: a warm lit lip on top and a soft shadow under the plank. */
+function ledgeEdge(ctx: CanvasRenderingContext2D, x: number, y: number, w: number) {
+  ctx.fillStyle = 'rgba(255,226,160,0.85)'; ctx.fillRect(x, y, w, 1);
+  ctx.fillStyle = 'rgba(20,12,8,0.55)'; ctx.fillRect(x, y + 1, w, 1);
+  ctx.fillStyle = 'rgba(10,6,4,0.32)'; ctx.fillRect(x, y + 13, w, 3);
+}
+
 export class BellspireScene {
   view: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
@@ -497,7 +504,11 @@ export class BellspireScene {
         T(top ? (alt ? 6 : 0) : under ? 8 : h % 9 === 0 ? 2 : alt ? 7 : 1, x * 16, y * 16);
         // edge shading so stone reads as solid mass
         if (!top && !under && (air(x - 1, y) || air(x + 1, y))) { ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(air(x - 1, y) ? x * 16 : x * 16 + 15, y * 16, 1, 16); }
-      } else if (ch === '=') T(3, x * 16, y * 16);
+      } else if (ch === '=') {
+        T(3, x * 16, y * 16);
+        // the orchard's painted backdrops are as busy as its planks, so its ledges get a lit top and a shadow under
+        if (set === 'orchard' || set === 'rootcellar') ledgeEdge(ctx, x * 16, y * 16, 16);
+      }
       else if (ch === 'H') T(4, x * 16, y * 16);
       else if (ch === '^') this.drawSpikes(ctx, x * 16, y * 16);
       // the Foundry Below's fixed tiles: bounce plates, and the lava's surface (its glow and bubbles are drawn live)
@@ -918,6 +929,7 @@ export class BellspireScene {
     const [cw, ch] = art;
     for (const f of g.floatCache) if (f.kind === 'branch') {
       this.ctx.drawImage(im, cw * 4, ch - 13, cw, 13, Math.round(f.x0 + ox), Math.round(f.y + oy), f.x1 - f.x0, 13);
+      ledgeEdge(this.ctx, Math.round(f.x0 + ox), Math.round(f.y + oy), f.x1 - f.x0);
     }
     const arena = g.orchardControl();
     if (arena) this.spr(name, arena.ability === 'shear' ? 2 : g.boss?.low ? 1 : 0, arena.x + ox, arena.y + oy);
