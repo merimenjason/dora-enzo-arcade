@@ -327,7 +327,9 @@ still apply to their original areas. The Salt Road ending counts its own 24 scre
   plum-grey stone vanished under the dark-room lighting.
 - **Inhabitants and rewards.** Suma keeps the salt tallies. Brine Skaters glide and lunge, Salt Hares kick shards,
   Pack Ticks drop from overhead, and Crust Crawlers fold up before they charge. The Salt-Road Wrap is Dora's plum
-  tunic and the Waxed Haul Coat is Enzo's slate coat with ochre trim.
+  tunic and the Waxed Haul Coat is Enzo's slate coat with ochre trim. Both have **Caravan stamina**: HP slowly comes
+  back (3 every two seconds) outside guardian fights. The Weighmaster gives Enzo the **Tally Bell Staff** (ATK 13,
+  MAG 15, MP slowly comes back) and the Panback Armadillo gives Dora the **Saltglass Sabre** (ATK 20, critical hits).
 
 ## The Night Orchard
 
@@ -349,7 +351,10 @@ travel candles. The Orchard’s mural and guardian totals are separate from the 
 - **Readable edges.** Orchard and root-cellar ledges, and every grafted branch, are drawn with a lit top lip and a
   shadow under, so they stand out from the painted backdrops.
 - **Killa and the orchard outfits.** Killa tends the first steps. Dora’s Harvest Tunic is ochre with a brown hem.
-  Enzo’s Graft Keeper’s Coat is olive with a pale sage hem. Look for the chests in the Nursery and Pruning Walk.
+  Enzo’s Graft Keeper’s Coat is olive with a pale sage hem. Look for the chests in the Nursery and Pruning Walk. Both
+  have **Harvest**: foes drop healing more often (40% instead of 22%), and each drop restores 10 instead of 4. The
+  Bracken Stag gives Enzo the **Bloomwood Staff** (ATK 14, MAG 17, +3 MAG) and the Rootback gives Dora the
+  **Graftwood Blade** (ATK 21, faster swings).
 
 ## The Glacier Stair
 

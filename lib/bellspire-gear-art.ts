@@ -51,6 +51,29 @@ export const WEAPON_LOOK: Record<string, { blade?: Ramp; lift?: number; lamp?: R
   // the Foundry Below's weapons: the Obsidian Edge's black glass with a forge-orange edge, the Ladle Staff's bronze
   // with its molten lamp
   'obsidian-edge': { lift: 0.12, blade: ramp([0, '#1c1428'], [0.2, '#4e3e66'], [0.42, '#9a84bc'], [0.66, '#ffa060'], [0.88, '#fff0d8']), glint: true, arc: 'rgba(255,150,80,0.95)' },
+  // the expansions' weapons: pink salt glass, olive-gold graftwood and glacier ice with sun-gold (Dora); slate and
+  // salt-lamp pink, pale birch and blossom gold, brass and sun yellow (Enzo)
+  'salt-sabre': { lift: 0.12, blade: ramp([0, '#3a1e2a'], [0.2, '#9a5a72'], [0.42, '#e8a8bc'], [0.66, '#ffe0ea'], [0.88, '#fffafc']), glint: true, arc: 'rgba(255,200,220,0.95)' },
+  'graft-blade': { lift: 0.12, blade: ramp([0, '#2a2a10'], [0.2, '#6a7a2a'], [0.42, '#b8c060'], [0.66, '#e8d080'], [0.88, '#fff8d8']), arc: 'rgba(210,230,110,0.95)' },
+  'sun-blade': { lift: 0.12, blade: ramp([0, '#1a2a48'], [0.2, '#4a7ab8'], [0.42, '#a8d8f8'], [0.66, '#fff0b0'], [0.88, '#ffffff']), glint: true, arc: 'rgba(255,240,170,0.95)' },
+  'tally-staff': {
+    lift: 0.18,
+    blade: ramp([0, '#3a3a44'], [0.15, '#8a8c98'], [0.32, '#c4c6d0'], [0.55, '#ece8e0'], [0.8, '#fffaf0']),
+    lamp: ramp([0, '#4a1a2a'], [0.3, '#c0607a'], [0.55, '#ffa0b8'], [0.8, '#ffe8f0']),
+    arc: 'rgba(255,170,195,0.95)', light: [1, 0.72, 0.78], lightMul: 1.1,
+  },
+  'bloom-staff': {
+    lift: 0.18,
+    blade: ramp([0, '#5a5040'], [0.15, '#b0a488'], [0.32, '#e4dcc4'], [0.55, '#f8f4e8'], [0.8, '#ffffff']),
+    lamp: ramp([0, '#4a3008'], [0.3, '#c08a20'], [0.55, '#ffd050'], [0.8, '#fff6c0']),
+    arc: 'rgba(255,220,110,0.95)', light: [1, 0.86, 0.45], lightMul: 1.15,
+  },
+  'sun-lamp': {
+    lift: 0.18,
+    blade: ramp([0, '#6a4410'], [0.12, '#d8a038'], [0.28, '#f8d878'], [0.5, '#fff4c8'], [0.8, '#ffffff']),
+    lamp: ramp([0, '#5a3a04'], [0.3, '#e0a020'], [0.55, '#ffe060'], [0.8, '#fffbe0']),
+    arc: 'rgba(255,230,120,0.95)', light: [1, 0.94, 0.62], lightMul: 1.3, ring: 'rgba(255,225,110,0.95)',
+  },
   'ladle-staff': {
     lift: 0.18,
     blade: ramp([0, '#8a2a18'], [0.15, '#f0664a'], [0.32, '#ff9a7c'], [0.55, '#ffd0c0'], [0.8, '#fff6f2']),

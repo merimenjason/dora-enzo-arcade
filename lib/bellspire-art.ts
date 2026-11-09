@@ -135,6 +135,7 @@ export const ART: Record<string, [number, number, number]> = {
   'ending-glacier': [480, 270, 1],
   'mural-glacier': [160, 120, 1],
   'icons-glacier': [24, 24, 4],
+  'icons-late': [24, 24, 6],
   'dora-glacier-work': [64, 54, 8],
   'dora-glacier-work-base': [64, 54, 8],
   'dora-glacier': [56, 49, 96],

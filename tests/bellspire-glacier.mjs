@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { BellspireGame, ABILITY_ORDER, COMPLETION, INFO, NO_INPUT, TILE, COLS, ROWS, freshSave, roomRect, roomById } from '../.checks/bellspire-game.js';
+import { BellspireGame, ABILITY_ORDER, COMPLETION, INFO, NO_INPUT, TILE, COLS, ROWS, freshSave, roomRect, roomById, ROOMS, GEAR, BOSSES } from '../.checks/bellspire-game.js';
 import { GLACIER_ROOMS, GLACIER_GATE, GLACIER_RETURN, ROOT_LIFT, GLACIER_VAULT, GLACIER_VAULT_FROM, GLACIER_VAULT_DOOR } from '../.checks/bellspire-glacier-world.js';
 import { GLACIER_TELL, GLACIER_TIMING } from '../.checks/bellspire-glacier.js';
 import { navEnv, Graph } from '../.checks/bellspire-nav.js';
@@ -249,6 +249,73 @@ for(const [key,id,c] of [['vicuna',names.vicuna,18],['osjollo',names.cat,25],['w
 }
 console.table(dodges);
 console.log(`Glacier Stair: ${checks} assertions; ${GLACIER_ROOMS.length} authored rooms and three two-hero guardian openings.`);
+
+// The expansions' weapons (09-11-2026): each area's first guardian gives Enzo a staff, its second Dora a blade; each
+// outclasses the one before it, and an older save that already calmed those guardians is handed them on load.
+{
+  const LATE = [['weighmaster', 'tally-staff'], ['panback', 'salt-sabre'], ['bracken-stag', 'bloom-staff'], ['rootback', 'graft-blade'], ['glass-vicuna', 'sun-lamp'], ['serac-osjollo', 'sun-blade']];
+  for (const [boss, id] of LATE) ok(BOSSES[boss].reward.includes('gear:' + id), `${BOSSES[boss].name} gives the ${GEAR[id].name}`);
+  const power = (id) => { const x = GEAR[id]; return (x.atk ?? 0) + (x.mag ?? 0) + (x.perk === 'keen' || x.perk === 'focus' ? 3 : 0); };
+  for (const [hero, line] of [['dora', ['obsidian-edge', 'salt-sabre', 'graft-blade', 'sun-blade']], ['enzo', ['ladle-staff', 'tally-staff', 'bloom-staff', 'sun-lamp']]])
+    for (let i = 1; i < line.length; i++) ok(power(line[i]) > power(line[i - 1]) && GEAR[line[i]].hero === hero, `${GEAR[line[i]].name} outclasses the ${GEAR[line[i - 1]].name}`);
+  const old = glacierSave('dora');
+  old.flags.push('boss:weighmaster', 'boss:panback', 'boss:tollkeeper', 'boss:bracken-stag', 'boss:rootback', 'boss:graft-mother');
+  old.gear = old.gear.filter((g) => !LATE.some(([, id]) => id === g));
+  const g = new BellspireGame(old, { assist: true, wisp: false }, 5);
+  for (const [, id] of LATE.slice(0, 4)) ok(g.save.gear.includes(id), 'an older save is handed the ' + GEAR[id].name);
+  for (const [, id] of LATE.slice(4)) ok(!g.save.gear.includes(id), 'but not the Glacier weapons before their guardians are calm: ' + id);
+  eq(g.equip('dora', 'weapon', 'graft-blade'), null, 'Dora can wield the Graftwood Blade');
+  eq(g.equip('enzo', 'weapon', 'bloom-staff'), null, 'Enzo can wield the Bloomwood Staff');
+}
+
+// The expansion coats' perks (09-11-2026): Caravan stamina (Salt Road), Harvest (Night Orchard), Sure grip (Glacier Stair).
+const coatPerks = {};
+{
+  const wear = (g, coats) => { for (const [h, id] of Object.entries(coats)) { g.save.gear.push(id); eq(g.equip(h, 'coat', id), null, 'equips ' + id); } };
+  // Sure grip: release the run on flat ice at full speed; the slide to a stop is about half as long
+  const slide = (hero, grip) => {
+    const g = testGame(hero); if (grip) wear(g, { [hero]: hero + '-glacier-coat' });
+    g.teleport(names.slide, 22, 14); tag(g, hero); stance(g, 22, 14);
+    tick(g, { right: true }, 24); const x0 = g.body.x;
+    wait(g, () => Math.abs(g.body.vx) < 0.05, 200); return g.body.x - x0;
+  };
+  for (const hero of ['dora', 'enzo']) {
+    const plain = slide(hero, false), grip = slide(hero, true);
+    ok(grip > 0 && grip <= plain * 0.6, `${hero}: a slide in the Glacier coat (${grip.toFixed(1)} px) is at most 60% of one without (${plain.toFixed(1)} px)`);
+    coatPerks[hero + ' slide px'] = `${plain.toFixed(0)} → ${grip.toFixed(0)}`;
+  }
+  // Caravan stamina: HP comes back away from guardians, never while one is awake
+  const mend = (coats, room, c) => {
+    const g = testGame('dora'); if (coats) wear(g, coats);
+    g.teleport(room, c, 14); stance(g, c, 14);
+    if (g.boss) { g.setFlag('script:boss:' + g.boss.id); g.boss.st = 'glacierRest'; g.boss.t = 0; g.boss.dur = 1e5; }
+    for (const h of ['dora', 'enzo']) g.save.heroes[h].hp = 20;
+    tick(g, {}, 600);
+    return g.save.heroes.dora.hp - 20 + g.save.heroes.enzo.hp - 20;
+  };
+  const salt = { dora: 'dora-salt-coat', enzo: 'enzo-salt-coat' };
+  const gained = mend(salt, names.slide, 22);
+  eq(mend(null, names.slide, 22), 0, 'no HP comes back without the Salt Road coats');
+  ok(gained >= 24, `Caravan stamina brings HP back (${gained} over ten seconds for the pair)`);
+  eq(mend(salt, names.vicuna, 6), 0, 'no Caravan stamina while a guardian is awake');
+  coatPerks['stamina HP / 10 s'] = gained;
+  // Harvest: the same foes, the same seeds; drops are a superset and heal more
+  const harvest = (coats) => {
+    let n = 0, heal = 0;
+    for (const room of ROOMS) for (let seed = 1; seed <= 3; seed++) {
+      const g = new BellspireGame(glacierSave('dora'), { assist: false, wisp: false }, seed); if (coats) wear(g, coats);
+      g.teleport(room.id, 5, 14);
+      for (const e of g.enemies.filter((e) => e.alive)) g.damageFoe(e, 9999, 1, false);
+      for (const p of g.pickups) if (p.kind === 'hp' || p.kind === 'mp') { n++; heal += p.amount; }
+    }
+    return { n, heal };
+  };
+  const base = harvest(null), more = harvest({ dora: 'dora-orchard-coat', enzo: 'enzo-orchard-coat' });
+  ok(base.n > 20 && more.n >= base.n * 1.5, `Harvest drops more often (${base.n} → ${more.n} over the same foes)`);
+  ok(more.heal >= base.heal * 3, `and they heal more (${base.heal} → ${more.heal})`);
+  coatPerks['harvest drops (heal)'] = `${base.n} (${base.heal}) → ${more.n} (${more.heal})`;
+}
+console.table(coatPerks);
 
 // The steps added on 09-11-2026 (the landing platforms, Phuyu's mesa, the Thaw blocks, the Slide's stair and shelf, the
 // gallery outcrop, and the Cold Vault's two-ledge lookout): from a standstill on the low side, hold the way up and jump (a 12-tick press), for both heroes in
