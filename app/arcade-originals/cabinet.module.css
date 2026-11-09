@@ -72,3 +72,20 @@
  .desk {order:4}
  .story {order:5}
 }
+.hits {position:absolute;inset:0;pointer-events:none;z-index:1}
+.cabinet .hits button {position:absolute;pointer-events:auto;width:12%;height:30%;min-height:0;padding:0;transform:translate(-50%,-72%);background:none;border:0;border-radius:40%}
+.cabinet .hits button:hover {background:#fff2}
+.cabinet .hits .edgeHit {width:7%;height:12%;transform:translate(-50%,-50%);border-radius:50%}
+.callouts {position:absolute;z-index:2;left:50%;top:8px;transform:translateX(-50%);list-style:none;margin:0;padding:0;display:grid;gap:4px;pointer-events:none;width:min(92%,460px)}
+.callouts li {opacity:0;background:#141320ee;border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-weight:700;font-size:clamp(.7rem,1.5vw,.95rem);text-align:center;animation:callout 4.2s ease forwards}
+.callouts li[data-tone='warning'] {border-color:#ff9a7a;color:#ffd5c4}.callouts li[data-tone='good'] {border-color:var(--accent);color:var(--accent)}
+@keyframes callout {0% {opacity:0;transform:translateY(-6px)} 8% {opacity:1;transform:none} 80% {opacity:1} 100% {opacity:0}}
+@media (prefers-reduced-motion:reduce) {.callouts li {animation:none;opacity:1}}
+.coach {position:absolute;z-index:3;inset:auto 4% 4% 4%;background:#141320f2;border:2px solid var(--accent);border-radius:8px;padding:10px 14px;display:grid;gap:6px;font-size:clamp(.72rem,1.5vw,.95rem)}
+.coach ol {margin:0;padding-left:20px;line-height:1.45}.coach button {justify-self:start}
+.step {font-size:.95rem;line-height:1.4;padding:8px 10px;border-radius:6px;border:2px solid var(--accent);background:var(--ground)}
+.step b {display:inline-block;margin-right:6px;padding:1px 7px;border-radius:4px;background:var(--accent);color:var(--deep);font-size:.78rem;text-transform:uppercase;letter-spacing:.06em}
+.cabinet .primary[data-armed='true'] {animation:armed 1.4s ease-in-out infinite}
+@keyframes armed {50% {box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 35%,transparent)}}
+@media (prefers-reduced-motion:reduce) {.cabinet .primary[data-armed='true'] {animation:none}}
+.howto {margin:0;padding-left:22px;line-height:1.6}

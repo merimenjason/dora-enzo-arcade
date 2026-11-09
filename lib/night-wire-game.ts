@@ -63,7 +63,7 @@ function actions(m:Case,s:Wire,h:'dora'|'enzo'):Action[] {
   m.calls.forEach((c,i)=>{
     if(s.delivered.includes(i)||!available(c,s))return;
     if(!s.known.includes(i))out.push({id:`hear:${i}`,text:`Answer ${spots[c[0]].name}`,to:c[0]});
-    else if(!s.cords.includes(i))out.push({id:`plug:${i}`,text:`Patch ${spots[c[0]].name} to ${spots[c[1]].name}`,to:c[1]});
+    else if(!s.cords.includes(i))out.push({id:`plug:${i}`,text:`Patch ${spots[c[0]].name} to ${spots[c[1]].name}`,to:c[1],edge:[c[0],c[1]]});
   });
   if(!s.bonus)out.push({id:'archive',text:`Listen to the old line at ${spots[s.archive].name}`,to:s.archive});
   return out;

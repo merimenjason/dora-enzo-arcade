@@ -1573,7 +1573,7 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Play:** Keep the footbridges open one aftershock at a time. Enzo braces spans while Dora walks stranded neighbors back to shelter. Sixteen missions in four chapters, three difficulties and optional ribbons.
 
-**Controls:** Choose one action per hero, then play the turn. Enter plays, Z undoes and Q switches hero by default; Settings can change the keys. Tab and Enter, touch, and standard gamepads work. The helping hand is on by default.
+**Controls:** Plan the turn on the map: pick a glowing ring (or a ◆ on a path) for Dora, then for Enzo, then play the turn. Each hero also has an action list. Enter plays, Z undoes and Q switches hero by default; Settings can change the keys. Tab and Enter, touch, and standard gamepads work. The helping hand is on by default.
 
 **Tests:** `npm run test:faultline`, `npm run bot:faultline`, and `BASE_URL=http://localhost:3109 npm run test:e2e:faultline` against the built server.
 
@@ -1583,7 +1583,7 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Play:** Listen to callers, patch their dispatches and repair the cables before a ferry reaches the breakwater. Sixteen missions in four chapters, three difficulties and optional ribbons.
 
-**Controls:** Choose one action per hero, then play the turn. Enter plays, Z undoes and Q switches hero by default; Settings can change the keys. Tab and Enter, touch, and standard gamepads work. The helping hand is on by default.
+**Controls:** Plan the turn on the map: pick a glowing ring (or a ◆ on a path) for Dora, then for Enzo, then play the turn. Each hero also has an action list. Enter plays, Z undoes and Q switches hero by default; Settings can change the keys. Tab and Enter, touch, and standard gamepads work. The helping hand is on by default.
 
 **Tests:** `npm run test:night-wire`, `npm run bot:night-wire`, and `BASE_URL=http://localhost:3109 npm run test:e2e:night-wire` against the built server.
 
@@ -1593,7 +1593,7 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Play:** Dora makes the audience look one way while Enzo slips painted murals out through the wings. Plan up to three beats ahead. Sixteen missions in four chapters, three difficulties and optional ribbons.
 
-**Controls:** Choose one action per hero, then play the turn. Enter plays, Z undoes and Q switches hero by default; Settings can change the keys. Tab and Enter, touch, and standard gamepads work. The helping hand is on by default.
+**Controls:** Plan the turn on the map: pick a glowing ring (or a ◆ on a path) for Dora, then for Enzo, then play the turn. Each hero also has an action list. Enter plays, Z undoes and Q switches hero by default; Settings can change the keys. Tab and Enter, touch, and standard gamepads work. The helping hand is on by default.
 
 **Tests:** `npm run test:second-show`, `npm run bot:second-show`, and `BASE_URL=http://localhost:3109 npm run test:e2e:second-show` against the built server.
 

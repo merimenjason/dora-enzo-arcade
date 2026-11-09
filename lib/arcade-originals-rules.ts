@@ -2,7 +2,8 @@
 export type Hero = 'dora' | 'enzo';
 export type Difficulty = 'story' | 'standard' | 'expert';
 export type Phase = 'playing' | 'clear' | 'lost';
-export type Action = { id: string; text: string; to?: number };
+/** `to` is the board spot the action points at; `edge`, when set, is the link it acts on (the board puts a marker there). */
+export type Action = { id: string; text: string; to?: number; edge?: Edge };
 export type Choice = { dora: string; enzo: string };
 export type Spot = { name: string; x: number; y: number };
 export type Edge = readonly [number, number];

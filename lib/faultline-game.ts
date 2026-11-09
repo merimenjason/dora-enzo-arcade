@@ -57,8 +57,8 @@ function actions(m: Rescue, s: Faultline, hero: 'dora' | 'enzo'): Action[] {
     joints[m.chapter].forEach(([a,b], i) => {
       const label = `${spots[a].name} → ${spots[b].name}`;
       if (s.blocked.includes(i)) {
-        if (s.kits && (s.enzo === a || s.enzo === b)) result.push({id:`patch:${i}`,text:`Shore up ${label}`,to:s.enzo});
-      } else if (s.braced !== i && (s.enzo === m.enzo || [a,b].includes(s.enzo))) result.push({id:`brace:${i}`,text:`Brace ${label}`,to:s.enzo});
+        if (s.kits && (s.enzo === a || s.enzo === b)) result.push({id:`patch:${i}`,text:`Shore up ${label}`,to:s.enzo,edge:[a,b]});
+      } else if (s.braced !== i && (s.enzo === m.enzo || [a,b].includes(s.enzo))) result.push({id:`brace:${i}`,text:`Brace ${label}`,to:s.enzo,edge:[a,b]});
     });
   }
   return result;
