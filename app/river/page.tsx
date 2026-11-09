@@ -168,10 +168,15 @@ export default function RiverPage() {
 
   useEffect(() => {
     let frame = 0, last = 0, carry = 0, displayTick = 0, padButtons: boolean[] = [];
+    let canReadGamepads = typeof navigator.getGamepads === 'function';
     const draw = (now: number) => {
       const g = game.current;
       const { screen, settings } = runtime.current;
-      const pad = Array.from(navigator.getGamepads?.() ?? []).find(Boolean);
+      let pad: Gamepad | null | undefined;
+      if (canReadGamepads) {
+        try { pad = Array.from(navigator.getGamepads()).find(Boolean); }
+        catch { canReadGamepads = false; } // Embedded browsers may block gamepads; keep other controls running.
+      }
       const buttons = pad?.buttons.map(b => b.pressed) ?? [];
       if (pad && (buttons.some(Boolean) || pad.axes.some(axis => Math.abs(axis) > .22))) showControls('pad');
       const pressed = (n: number) => !!buttons[n] && !padButtons[n];
@@ -186,8 +191,8 @@ export default function RiverPage() {
         if (pressed(9)) setScreen('pause');
         const key = (act: Action) => held.current.has(settings.keys[act]);
         const alt = (code: string) => !Object.values(settings.keys).includes(code) && held.current.has(code);
-        const x = Number(key('right') || alt('KeyD') || buttons[15]) - Number(key('left') || alt('KeyA') || buttons[14]);
-        const y = Number(key('down') || alt('KeyS') || buttons[13]) - Number(key('up') || alt('KeyW') || buttons[12]);
+        const x = Number(key('right') || alt('KeyD') || !!buttons[15]) - Number(key('left') || alt('KeyA') || !!buttons[14]);
+        const y = Number(key('down') || alt('KeyS') || !!buttons[13]) - Number(key('up') || alt('KeyW') || !!buttons[12]);
         const axis = (n: number) => Math.abs(n) > .19 ? n : 0;
         carry += last ? Math.min(55, now - last) : 16;
         while (carry >= 1000 / 60) {

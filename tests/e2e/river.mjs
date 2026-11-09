@@ -14,12 +14,57 @@ const browser=await chromium.launch();
 const modes=process.env.RIVER_VIEWPORT ? views.filter(v=>v[0]===Number(process.env.RIVER_VIEWPORT)):views;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 
+async function dragRight(page,mobile){
+  const box=await page.getByRole('button',{name:'Drag to move'}).boundingBox();
+  const x=Math.round(box.x+box.width/2), y=Math.round(box.y+box.height/2);
+  await mobile.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+  await mobile.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+24,y}]});
+  try{await page.waitForTimeout(125);}
+  finally{await mobile.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
+}
+
+async function deniedGamepads(width,height){
+  const touch=width<1000;
+  const context=await browser.newContext({viewport:{width,height},hasTouch:touch,isMobile:touch,deviceScaleFactor:1});
+  try{
+    await context.route('**/river',async route=>{
+      const response=await route.fetch();
+      await route.fulfill({response,headers:{...response.headers(),'permissions-policy':'gamepad=()'}});
+    });
+    const page=await context.newPage(), errors=[];
+    page.on('pageerror',e=>errors.push(e.message));
+    await page.goto(base+'/river');
+    assert.equal(await page.evaluate(()=>{
+      try{navigator.getGamepads();return '';}catch(e){return e.name;}
+    }),'SecurityError','browser is actually blocking gamepad access');
+    const mobile=touch?await context.newCDPSession(page):null;
+    for(const label of ['Begin the river','Continue']){
+      await page.getByRole('button',{name:label}).click();
+      await page.locator('[data-screen=play]').waitFor();
+      const x=await page.evaluate(()=>window.__river().game.player.x);
+      if(mobile)await dragRight(page,mobile);
+      else{
+        await page.keyboard.down(label==='Continue'?'KeyD':'ArrowRight');
+        try{await page.waitForFunction(x=>window.__river().game.player.x>x+6,x,{timeout:2000});}
+        finally{await page.keyboard.up(label==='Continue'?'KeyD':'ArrowRight');}
+      }
+      assert.ok(await page.evaluate(x=>window.__river().game.player.x>x+6,x),label+' moved with gamepads blocked');
+      if(label==='Begin the river')await page.reload();
+    }
+    assert.deepEqual(errors,[]);
+    console.log(`River movement ${width}x${height}: ${touch?'touch':'arrow keys and WASD'} on new and resumed saves with gamepad access blocked.`);
+  }finally{await context.close();}
+}
+
 async function exercise(width,height){
   const touch=width<1000;
   const context=await browser.newContext({viewport:{width,height},hasTouch:touch,isMobile:touch,deviceScaleFactor:1});
   await context.addInitScript(()=>{
     const held=new Set();
-    Object.defineProperty(navigator,'getGamepads',{value:()=>[{axes:[0,0],buttons:Array.from({length:17},(_,i)=>({pressed:held.has(i)}))}]});
+    const native=navigator.getGamepads.bind(navigator);
+    let connected=false;
+    Object.defineProperty(navigator,'getGamepads',{value:()=>connected?[{axes:[0,0],buttons:Array.from({length:17},(_,i)=>({pressed:held.has(i)}))}]:native()});
+    window.__riverConnectPad=on=>{connected=on;held.clear();};
     window.__riverPad=(i,on)=>on?held.add(i):held.delete(i);
   });
   const page=await context.newPage(), errors=[];
@@ -68,15 +113,6 @@ async function exercise(width,height){
   const action=async(name,code)=>{
     if(touch)await button(name);else await press(code);
     await page.waitForTimeout(105);
-  };
-  const stick=async(dx,dy,ms)=>{
-    const box=await useButton('Drag to move').boundingBox();
-    const x=Math.round(box.x+box.width/2), y=Math.round(box.y+box.height/2);
-    await mobile.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
-    await mobile.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+dx,y:y+dy}]});
-    await page.waitForTimeout(ms);
-    await mobile.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-    real++;
   };
   const markers=(type)=>page.evaluate(type=>window.__river().game.get(type),type);
   async function go(target,{sail=false,radius=15,limit=78}={}){
@@ -162,17 +198,24 @@ async function exercise(width,height){
     await button('Use: E');await press('KeyR');
     assert.equal((await status()).settings.keys.use,'KeyR');
     await button('Back');await start();
-    if(mobile){
-      const x=(await status()).actor.x;
-      await stick(24,0,125);
-      assert.ok((await status()).actor.x>x,'real touch drag moved Dora');
+    const spawnX=(await status()).actor.x;
+    if(mobile){await dragRight(page,mobile);real++;}
+    else{
+      await page.keyboard.down('ArrowRight');real++;
+      try{await page.waitForFunction(x=>window.__river().game.player.x>x+6,spawnX,{timeout:2000});}
+      finally{await page.keyboard.up('ArrowRight');}
     }
+    assert.ok((await status()).actor.x>spawnX+6,'Dora moved without a connected gamepad');
     await action('Hop','Space');
     assert.ok((await status()).actor.air>0,'hop actually started');
     await action('Brace / pole','KeyF');
     assert.ok((await status()).actor.guard>0,'brace actually started');
+    await page.evaluate(()=>window.__riverConnectPad(true));
+    const beforePad=(await status()).actor.x;
+    await pad(15);assert.ok((await status()).actor.x>beforePad+4,'D-pad moved Dora');
     await pad(3);assert.equal((await status()).lead,'enzo');
     await pad(3);assert.equal((await status()).lead,'dora');
+    await page.evaluate(()=>window.__riverConnectPad(false));
     await gate((await markers('g'))[0],'KeyR');
     assert.equal((await status()).gates[0],true);
     if(!touch)assert.match(await page.locator('.rv-prompt').innerText(),/R/);
@@ -302,5 +345,8 @@ async function exercise(width,height){
     console.log(`River browser ${width}x${height}: ${real} input activations, tutorial, two boss phases, remapping, menus, save and controller tag.`);
   }finally{await context.close();}
 }
-try{for(const [width,height] of modes)await exercise(width,height);}
+try{
+  for(const [width,height] of modes)await deniedGamepads(width,height);
+  for(const [width,height] of modes)await exercise(width,height);
+}
 finally{await browser.close();}
