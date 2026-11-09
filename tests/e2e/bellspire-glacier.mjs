@@ -110,7 +110,7 @@ async function play(viewport) {
     await until(s=>s.room===GLACIER_GATE,'root lift took the heroes up');checks++;
     await walk(point(GLACIER_GATE,8));await tap('up');
     await until(s=>s.dialog,'Phuyu talks');ok(await page.getByText('Phuyu',{exact:true}).isVisible(),'Phuyu has dialogue');await dismiss();
-    await walk(point(GLACIER_GATE,28));await until(s=>s.vx>1,'Dora carried ice momentum after release');checks++;
+    await stage(GLACIER_GATE,23);await walk(point(GLACIER_GATE,30));await until(s=>s.vx>1,'Dora carried ice momentum after release');checks++;
     await stage('glacier-camp',24);await walk(point('glacier-camp',25));await until(s=>s.abilities.includes('sunmirror'),'Sun Mirror picked up');checks++;
 
     await stage('glacier-first-thaw',19);
@@ -127,7 +127,7 @@ async function play(viewport) {
     await stage('glacier-mirrors',34,10);await tap('up');await until(s=>s.fall==='water','second mirror reached shadowed fall');checks+=2;
 
     await stage('glacier-serac',51);await until(s=>s.abilities.includes('icepick'),'Ice Pick picked up');checks++;
-    await tag('dora');await stage('glacier-slide',13);
+    await tag('dora');await stage('glacier-slide',22);
     await page.keyboard.down('ArrowRight');
     try{
       await until(s=>s.vx>2.5,'built speed on ice');
@@ -192,7 +192,7 @@ async function capture(viewport) {
     await page.goto(base+'/bellspire');await page.getByRole('button',{name:'Continue',exact:true}).click();
     const rooms=[
       ['orchard-grafts',19,14],
-      [GLACIER_GATE,16,14],['glacier-camp',24,14],['glacier-first-thaw',27,14],['glacier-slide',30,14],
+      [GLACIER_GATE,10,14],['glacier-camp',24,14],['glacier-first-thaw',27,14],['glacier-slide',30,14],
       ['glacier-vicuna',23,14],['glacier-serac',27,14],['glacier-frozen',32,14],['glacier-mirrors',33,10],
       ['glacier-osjollo',35,14],[GLACIER_VAULT_FROM,20,14],[GLACIER_VAULT,32,7],['glacier-sun-gate',39,14],
     ];
