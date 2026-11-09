@@ -6,13 +6,11 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
-- Three new turn-based games: **Faultline Rescue** (escort neighbors over unstable bridges), **The Night Wire** (repair the harbor switchboard and get the ferry home), and **The Second Show** (use stage cues to get murals past an inspector). Each has sixteen missions, a helping hand, undo, and keyboard, touch and gamepad controls.
-
 - **Sunken Bellspire** adds **The Night Orchard**. After calming the Last Tollkeeper, use the orchard wicket in the Salt Tollhouse. Enzo wakes dormant branches with Lantern Bloom, and Dora cuts their ties with Graft Shear. Cross the Graft Terraces and Root Cellars, find Killa and two orchard outfits, and use both heroes to calm the orchard’s three guardians.
 
-### Changed
+### Removed
 
-- **Faultline Rescue**, **The Night Wire** and **The Second Show** are played on the map now: pick a glowing ring for Dora, then one for Enzo (or a ◆ on a path), then play the turn. A numbered guide says what to do next, arrows show the plan, the heroes are bigger and take turns walking, threatened paths shake and collapsed ones crumble, results pop up on the board, and the first mission explains how a turn works.
+- **Faultline Rescue**, **The Night Wire** and **The Second Show**, added earlier today, are gone from the arcade. They were hard to follow and played much the same, so the arcade is back to ninety-five games.
 
 ## 08-11-2026
 

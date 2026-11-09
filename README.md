@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of ninety-eight original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of ninety-five original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -105,9 +105,6 @@ Listed in arcade-menu order.
 | 93 | Burrow Clinic | `/clinic` | Hospital management sim |
 | 94 | The Sunken Bellspire | `/bellspire` | Castle explorer (metroidvania) |
 | 95 | Overclock | `/overclock` | Run-and-gun platformer |
-| 96 | Faultline Rescue | `/faultline` | Turn-based rescue tactics |
-| 97 | The Night Wire | `/night-wire` | Switchboard puzzle |
-| 98 | The Second Show | `/second-show` | Turn-based heist |
 
 ## Run
 
@@ -1569,37 +1566,6 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/overclock.md`](docs/overclock.md) covers the code layout, controls, progression and stage changes, assist, the art pipeline, the save format, the tests and the `window.__overclock()` debug hook.
 
-### 96 · Faultline Rescue (`/faultline`)
-
-**Play:** Keep the footbridges open one aftershock at a time. Enzo braces spans while Dora walks stranded neighbors back to shelter. Sixteen missions in four chapters, three difficulties and optional ribbons.
-
-**Controls:** Plan the turn on the map: pick a glowing ring (or a ◆ on a path) for Dora, then for Enzo, then play the turn. Each hero also has an action list. Enter plays, Z undoes and Q switches hero by default; Settings can change the keys. Tab and Enter, touch, and standard gamepads work. The helping hand is on by default.
-
-**Tests:** `npm run test:faultline`, `npm run bot:faultline`, and `BASE_URL=http://localhost:3109 npm run test:e2e:faultline` against the built server.
-
-**Docs:** [`docs/faultline.md`](docs/faultline.md).
-
-### 97 · The Night Wire (`/night-wire`)
-
-**Play:** Listen to callers, patch their dispatches and repair the cables before a ferry reaches the breakwater. Sixteen missions in four chapters, three difficulties and optional ribbons.
-
-**Controls:** Plan the turn on the map: pick a glowing ring (or a ◆ on a path) for Dora, then for Enzo, then play the turn. Each hero also has an action list. Enter plays, Z undoes and Q switches hero by default; Settings can change the keys. Tab and Enter, touch, and standard gamepads work. The helping hand is on by default.
-
-**Tests:** `npm run test:night-wire`, `npm run bot:night-wire`, and `BASE_URL=http://localhost:3109 npm run test:e2e:night-wire` against the built server.
-
-**Docs:** [`docs/night-wire.md`](docs/night-wire.md).
-
-### 98 · The Second Show (`/second-show`)
-
-**Play:** Dora makes the audience look one way while Enzo slips painted murals out through the wings. Plan up to three beats ahead. Sixteen missions in four chapters, three difficulties and optional ribbons.
-
-**Controls:** Plan the turn on the map: pick a glowing ring (or a ◆ on a path) for Dora, then for Enzo, then play the turn. Each hero also has an action list. Enter plays, Z undoes and Q switches hero by default; Settings can change the keys. Tab and Enter, touch, and standard gamepads work. The helping hand is on by default.
-
-**Tests:** `npm run test:second-show`, `npm run bot:second-show`, and `BASE_URL=http://localhost:3109 npm run test:e2e:second-show` against the built server.
-
-**Docs:** [`docs/second-show.md`](docs/second-show.md).
-
-
 ## Validation
 
 ```sh
@@ -1614,12 +1580,12 @@ npm run test:e2e:newest  # the recent games and interrupted-input / progress reg
 
 Run `npm test` before the browser suites to generate the compiled engines they use. `tests/e2e/newest-quality.mjs` adds checks for cancelled Poof Panic gestures and focus-loss pausing, Barrage controls released between turns and native keyboard slider controls, and Tactics and Barrage progress saved before the final animation finishes. It also checks that a Tactics run reward is banked once when resumed and that Summit Shuffle explains its separate hero card pools. `tests/e2e/older-quality.mjs` does the same for Chinchilla Clash, Hay Maze Defence and Chinchillas vs Zombies: a result saved in the frame the game ends, a cancelled Clash card drag, pausing when the tab is hidden, and portrait and landscape layouts from 320 to 844 pixels wide. `npm run test:e2e:older` runs it with those three games' own suites.
 
-The planned **Whisker Ware** artwork package is ready for its game implementation: [`docs/whisker-ware-integration.md`](docs/whisker-ware-integration.md) documents the loader API and scene wiring. `npm run test:whisker-ware-art` checks its loader/assets/crops (also in `npm test`); `npm run test:e2e:whisker-ware-art` starts an isolated Playwright art harness and needs no dev server. It is not a playable cabinet yet.
+The planned **Whisker Ware** artwork package is ready for its game implementation: [`docs/whisker-ware-integration.md`](docs/whisker-ware-integration.md) documents the loader API and scene wiring. `npm run test:whisker-ware-art` checks its loader/assets/crops (also in `npm test`); `npm run test:e2e:whisker-ware-art` starts an isolated Playwright art harness and needs no dev server. It is not a playable cabinet yet, so the game count remains 34.
 
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`, and give it one or two genres in `app/arcade-genres.ts` for the menu's filter (`tests/readme.mjs` checks every game has one). Update the count in the homepage copy and metadata, every arcade-card count assertion in the browser suites, and the number words in `tests/readme.mjs`. Add the new route to `tests/e2e/panel-contrast.mjs` and `tests/e2e/arcade-navigation.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`, and give it one or two genres in `app/arcade-genres.ts` for the menu's filter (`tests/readme.mjs` checks every game has one). Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Seventy-three ways/` assertion in `tests/e2e/dust-bath.mjs`, the 73-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
