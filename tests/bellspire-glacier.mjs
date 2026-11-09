@@ -251,17 +251,18 @@ console.table(dodges);
 console.log(`Glacier Stair: ${checks} assertions; ${GLACIER_ROOMS.length} authored rooms and three two-hero guardian openings.`);
 
 // The steps added on 09-11-2026 (the landing platforms, Phuyu's mesa, the Thaw blocks, the Slide's stair and shelf, the
-// gallery outcrop): from a standstill on the low side, hold the way up and jump (a 12-tick press), for both heroes in
-// strict mode, from take-off points 4 px apart. Every step is a single tile; each needs a window of at least 16 px.
+// gallery outcrop, and the Cold Vault's two-ledge lookout): from a standstill on the low side, hold the way up and jump (a 12-tick press), for both heroes in
+// strict mode, from take-off points 4 px apart. Steps are one tile and the vault's one-way ledges two; each needs a window of at least 16 px.
 const RISES=[
   ['glacier-landing',48,1,14],['glacier-landing',21,-1,14],
   ['glacier-camp',30,1,14],['glacier-camp',38,-1,14],
   ['glacier-first-thaw',3,1,14],['glacier-first-thaw',10,-1,14],['glacier-first-thaw',51,1,14],['glacier-first-thaw',56,-1,14],
   ['glacier-slide',6,1,14],['glacier-slide',8,1,13],['glacier-slide',21,-1,14],['glacier-slide',15,-1,13],
   ['glacier-mirrors',14,-1,14],['glacier-mirrors',8,1,14],
+  ['glacier-vault',9,-1,14,2],['glacier-vault',10,1,12,2],
 ];
 const riseWindows=[];
-for(const [id,wall,dir,low] of RISES)for(const hero of ['dora','enzo']){
+for(const [id,wall,dir,low,rise=1] of RISES)for(const hero of ['dora','enzo']){
   let width=0;
   for(let d=0;d<=64;d+=4){
     const g=testGame(hero);g.teleport(id,wall-dir*2,low);
@@ -270,7 +271,7 @@ for(const [id,wall,dir,low] of RISES)for(const hero of ['dora','enzo']){
     const inp=dir>0?{right:true}:{left:true};
     tick(g,{...inp,jump:true},12);
     let up=false;
-    for(let i=0;i<80&&!up;i++){tick(g,inp);up=g.body.ground&&g.body.y===o.y+low*TILE&&dir*(g.body.x-face)>0;}
+    for(let i=0;i<80&&!up;i++){tick(g,inp);up=g.body.ground&&g.body.y===o.y+(low+1-rise)*TILE&&dir*(g.body.x-face)>0;}
     if(up)width+=4;
   }
   ok(width>=16,`${id} step at column ${wall}: ${hero} needs 16 px, saw ${width}`);
