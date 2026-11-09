@@ -172,7 +172,7 @@ export async function checkBrowser(rules, debug){
       assert.deepEqual([...verbs].sort(),[...variant.verbs].sort(),`${rules.id} action kinds`);
       assert.ok(!(await page.locator('body').innerText()).match(/\bNaN\b|undefined|\[object Object\]/));
       await activate(page.getByRole('link',{name:'← Arcade'}));await page.waitForURL(base+'/');
-      assert.equal(await page.locator('.arcade-card').count(),98);
+      assert.equal(await page.locator('.arcade-card').count(),99);
       assert.deepEqual(errors,[]);
       console.log(`${rules.title} ${width}×${height}: ${actions} real button inputs, ${turns} planned actions, ${verbs.size} action kinds; first mission, finale and input checks passed`);
       await context.close();

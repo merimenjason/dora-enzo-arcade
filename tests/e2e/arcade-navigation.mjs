@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 const browser = await chromium.launch();
 try {
- for (const route of ['chin-x-pit','fighter','escape','kart','hop','soccer','survival','adventure','checkpoint','checkpoint-remake','dust-bath','mountain-retreat','paw-buster','fluff-forge','fluffstevania','express','moonlight','pinball','detectives','hunt','putt','roll','pawhaven','faultline','night-wire','second-show']) {
+ for (const route of ['chin-x-pit','fighter','escape','kart','hop','soccer','survival','adventure','checkpoint','checkpoint-remake','dust-bath','mountain-retreat','paw-buster','fluff-forge','fluffstevania','express','moonlight','pinball','detectives','hunt','putt','roll','pawhaven','faultline','night-wire','second-show', 'river']) {
   const page = await browser.newPage();
   page.setDefaultTimeout(20000);
   await page.goto(`http://localhost:3000/${route}`);
@@ -11,8 +11,8 @@ try {
   assert.equal(await link.getAttribute('href'), '/');
   await link.click();
   await page.waitForSelector('.arcade-grid');
-  assert.equal(await page.locator('.arcade-card').count(),98);
-  console.log(`PASS ${route} → main arcade (98 game cards)`);
+  assert.equal(await page.locator('.arcade-card').count(),99);
+  console.log(`PASS ${route} → main arcade (99 game cards)`);
   await page.close();
  }
  {
@@ -33,7 +33,7 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('.arcade-card').length < 86);
   assert.equal(await page.locator('.arcade-card').count(), want);
   await page.locator('.arcade-filter button', { hasText: 'All' }).click();
-  assert.equal(await page.locator('.arcade-card').count(), 98);
+  assert.equal(await page.locator('.arcade-card').count(), 99);
   assert.ok(!page.url().includes('genre'));
   console.log(`PASS the genre filter (${want} puzzle games), kept in the address`);
   await page.close();

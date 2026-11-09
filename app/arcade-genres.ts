@@ -112,4 +112,5 @@ export const GENRE_OF: Record<string, GenreId[]> = {
  '/faultline': ['strategy', 'puzzle'],
  '/night-wire': ['puzzle', 'adventure'],
  '/second-show': ['strategy', 'puzzle'],
+ '/river': ['adventure', 'action'],
 };

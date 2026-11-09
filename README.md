@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of ninety-eight original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of ninety-nine original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -108,6 +108,7 @@ Listed in arcade-menu order.
 | 96 | Faultline Rescue | `/faultline` | Turn-based rescue tactics |
 | 97 | The Night Wire | `/night-wire` | Switchboard puzzle |
 | 98 | The Second Show | `/second-show` | Turn-based heist |
+| 99 | The River Remembers | `/river` | Watershed action adventure |
 
 ## Run
 
@@ -1598,6 +1599,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:second-show`, `npm run bot:second-show`, and `BASE_URL=http://localhost:3109 npm run test:e2e:second-show` against the built server.
 
 **Docs:** [`docs/second-show.md`](docs/second-show.md).
+
+### 99 · The River Remembers (`/river`)
+
+**Play:** Open a dry Andean watershed. Dora turns sluices and braces against wildlife. Enzo poles a reed skiff and ties off on the far bank. Six districts, 42 authored reaches, six two-phase guardians, 24 water marks and the Spring Run after the ending.
+
+**Controls:** Arrow keys or WASD to move. E uses, Q tags, F braces or poles, Space hops, and Esc pauses. Remappable keys, touch controls, standard gamepads and a helping hand enabled by default.
+
+**Tests:** `npm run test:river`, `npm run bot:river`, and `BASE_URL=http://localhost:3109 npm run test:e2e:river` against the production build.
+
+**Docs:** [`docs/river-remembers.md`](docs/river-remembers.md).
 
 
 ## Validation

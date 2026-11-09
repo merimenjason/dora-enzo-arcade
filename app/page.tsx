@@ -100,14 +100,15 @@ const GAMES=[
  {href:'/faultline',title:'Faultline Rescue',tag:'NEW · RESCUE TACTICS',blurb:'Keep the footbridges open one aftershock at a time. Enzo braces spans while Dora walks stranded neighbors back to shelter.',color:'#edb26b',art:'',cover:'/art/faultline/field-0.webp'},
  {href:'/night-wire',title:'The Night Wire',tag:'NEW · SWITCHBOARD MYSTERY',blurb:'Listen to callers, patch their dispatches and repair the cables before a ferry reaches the breakwater.',color:'#90ddcf',art:'',cover:'/art/night-wire/field-0.webp'},
  {href:'/second-show',title:'The Second Show',tag:'NEW · STAGE HEIST',blurb:'Dora makes the audience look one way while Enzo slips painted murals out through the wings. Plan up to three beats ahead.',color:'#f3a9d2',art:'',cover:'/art/second-show/field-0.webp'},
+ {href:'/river',title:'The River Remembers',tag:'NEW · WATERSHED ADVENTURE',blurb:'Turn the sluices as Dora and steer a reed skiff as Enzo to restore six reaches of an Andean watershed.',color:'#76c6ad',art:'',cover:'/art/river/cover.webp'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">NINETY-EIGHT ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Ninety-eight ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, ninety-eight cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">NINETY-NINE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Ninety-nine ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, ninety-nine cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <ArcadeGrid games={GAMES}/>
