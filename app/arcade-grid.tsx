@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { GENRES, GENRE_OF, type GenreId } from './arcade-genres';
 
-type Game = { href: string; title: string; tag: string; blurb: string; color: string; art: string; cover?: string };
+type Game = { href: string; title: string; tag: string; blurb: string; color: string; art: string };
 type Pick = GenreId | 'all';
 
 export default function ArcadeGrid({ games }: { games: Game[] }) {
@@ -28,7 +28,7 @@ export default function ArcadeGrid({ games }: { games: Game[] }) {
   </div>
   <nav className="arcade-grid" aria-label="Choose a game">
    {games.map((game, i) => (pick === 'all' || GENRE_OF[game.href]?.includes(pick)) && <a key={game.href} href={game.href} className="arcade-card" style={{ '--game-color': game.color } as React.CSSProperties}>
-    <span className="arcade-art" aria-hidden="true">{game.cover ? <img src={game.cover} alt="" loading="lazy" width={72} height={45} style={{objectFit:"cover",borderRadius:4,imageRendering:"pixelated"}}/> : game.art}</span>
+    <span className="arcade-art" aria-hidden="true">{game.art}</span>
     <span className="arcade-number">{String(i + 1).padStart(2, '0')}</span>
     <strong>{game.title}</strong>
     <small>{game.tag}</small>

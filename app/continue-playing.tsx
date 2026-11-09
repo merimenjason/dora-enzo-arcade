@@ -2,7 +2,7 @@
 // "Continue playing": remembers the last cabinet picked on this device and puts it one tap away.
 import { useEffect, useState } from 'react';
 
-type Game = { href: string; title: string; color: string; art: string; cover?: string };
+type Game = { href: string; title: string; color: string; art: string };
 const KEY = 'arcade-last-game-v1';
 
 export default function ContinuePlaying({ games }: { games: Game[] }) {
@@ -24,7 +24,7 @@ export default function ContinuePlaying({ games }: { games: Game[] }) {
  }, [games]);
  if (!last) return null;
  return <a href={last.href} className="arcade-continue" style={{ '--game-color': last.color } as React.CSSProperties}>
-  <span className="arcade-art" aria-hidden="true">{last.cover ? <img src={last.cover} alt="" width={48} height={30} style={{objectFit:"cover",borderRadius:4,imageRendering:"pixelated"}}/> : last.art}</span>
+  <span className="arcade-art" aria-hidden="true">{last.art}</span>
   <span><small>CONTINUE PLAYING</small><strong>{last.title}</strong></span>
   <span className="arcade-play">PLAY →</span>
  </a>;
