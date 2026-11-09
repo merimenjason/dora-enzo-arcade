@@ -343,7 +343,11 @@ travel candles. The Orchard’s mural and guardian totals are separate from the 
   shows the next action and your current bindings. Dormant and completed grafts look different.
 - **Guardians.** Enzo wakes the marked bud. Watch for the Stag’s charge, the Rootback’s lifted shell, or the Mother’s
   roots. When it catches, use Dora to cut the tie and open the guardian to attacks. The Mother of Grafts alternates
-  sides. High ledges give you room to move while the roots are active.
+  sides. High ledges give you room to move while the roots are active, and each arena has low ledges two tiles up,
+  set inside the guardian's floor sweep: hop onto one to ride out an attack you didn't catch (the Stag's east ledge is
+  out of its sweep, there for height). `tests/bellspire-orchard.mjs` proves it for both heroes with a real jump.
+- **Readable edges.** Orchard and root-cellar ledges, and every grafted branch, are drawn with a lit top lip and a
+  shadow under, so they stand out from the painted backdrops.
 - **Killa and the orchard outfits.** Killa tends the first steps. Dora’s Harvest Tunic is ochre with a brown hem.
   Enzo’s Graft Keeper’s Coat is olive with a pale sage hem. Look for the chests in the Nursery and Pruning Walk.
 

@@ -8,6 +8,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Sunken Bellspire** adds **The Night Orchard**. After calming the Last Tollkeeper, use the orchard wicket in the Salt Tollhouse. Enzo wakes dormant branches with Lantern Bloom, and Dora cuts their ties with Graft Shear. Cross the Graft Terraces and Root Cellars, find Killa and two orchard outfits, and use both heroes to calm the orchard’s three guardians.
 
+### Changed
+
+- **Sunken Bellspire**: the Night Orchard's three guardian arenas have low ledges to hop onto and ride out a sweep, and its ledges and grafted branches have a lit edge, so they stand out from the busy painted backdrops.
+
 ### Removed
 
 - **Faultline Rescue**, **The Night Wire** and **The Second Show**, added earlier today, are gone from the arcade. They were hard to follow and played much the same, so the arcade is back to ninety-five games.
