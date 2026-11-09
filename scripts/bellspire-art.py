@@ -825,8 +825,13 @@ def glacier_assets():
             inset = max(1, tile.width // 80)
             tile = tile.crop((inset, inset, tile.width - inset, tile.height - inset))
             rgba.paste(tile.resize((64, 64), Image.LANCZOS).resize((16, 16), Image.BOX), (16 * i, 0))
-        quant = rgba.convert('RGB').quantize(colors=36, dither=Image.Dither.NONE).convert('RGBA')
-        quant.putalpha(rgba.getchannel('A').point(lambda a: 255 if a > 110 else 0))
+        # tile 9, the slick ice, takes its own palette: shared with the sheet, its pale glaze and glints fold into the snow
+        quant = Image.new('RGBA', rgba.size)
+        for x0, x1, colours in ((0, 128, 36), (128, 144, 24)):
+            part = rgba.crop((x0, 0, x1, 16))
+            q = part.convert('RGB').quantize(colors=colours, dither=Image.Dither.NONE).convert('RGBA')
+            q.putalpha(part.getchannel('A').point(lambda a: 255 if a > 110 else 0))
+            quant.paste(q, (x0, 0))
         quant.save(OUT / f'tiles-{area}.webp', lossless=True, method=6)
         MANIFEST[f'tiles-{area}'] = (16, 16, 9)
         heights = (29, 49, 17, 25, 33, 19, 17, 24) if area == 'icefalls' else (29, 24, 24, 38, 40, 16, 17, 15)

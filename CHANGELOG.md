@@ -12,9 +12,15 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Sunken Bellspire**: the Glacier Stair's slick floors in Ice Falls and Blue Hollows now have painted clear pale-blue ice over each area's own stone, with a bright rim and small glints that match the surrounding art.
+
 - **Sunken Bellspire**: the Glacier Stair's ice floors now look like a glaze over the painted stone instead of flat cyan slabs, its ledges have a cool lit edge, and the flat rooms have steps: platforms at the Root Lift Landing, a mesa at Phuyu's Camp, stone blocks at the First Thaw, a stair onto an ice shelf on The Slide, an outcrop in the Mirror Gallery, two ledges in the Glass-Horn Vicuña's arena, and a two-ledge lookout in the Cold Vault.
 
 - **Sunken Bellspire**: the Night Orchard's three guardian arenas have low ledges to hop onto and ride out a sweep, and its ledges and grafted branches have a lit edge, so they stand out from the busy painted backdrops.
+
+### Fixed
+
+- **Sunken Bellspire**: scenery no longer floats in the Night Orchard and the Glacier Stair. Grass tufts, rock pillars, bushes and hanging fruit were drawn as if hung on a back wall or ceiling, but these areas have painted open backdrops, so they hung in mid-air.
 
 ### Removed
 
