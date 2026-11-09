@@ -23,7 +23,7 @@ Use **Up** by a socket as Enzo. The helping hand names the correct hero and uses
 
 Untimed puzzle states are saved. Timed and guardian terrain resets when the room is entered. The engine and route planner both read the authored fall rectangles and use the same movement code; an icy ladder is only a ladder to Dora with the pick. Timed actions are proven in the full engine replay, which plays at level 16 in starting gear (the level the route bot reaches by the Foundry's last guardian) and repeats each guardian's opening until it is calmed: two openings each. Every single-tile step is swept for both heroes from take-off points 4 px apart; the narrowest window is 28 px.
 
-Slick ice is drawn as the area's own floor stone under a pale glaze, with lit edges on its one-way ledges, so it matches the painted backdrops.
+Slick ice is painted as the area's own floor stone under a thin sheet of pale ice (tile 9 of each glacier tile sheet), and its one-way ledges have lit edges, so both match the painted backdrops. The art script gives that tile its own palette so its glaze and glints aren't merged into the snow. Rebuilding with `--glacier` re-picks the shared palette of tiles 1–8, which shifts their colours slightly (the Ice Falls snow cap goes warmer); check the tile sheets before committing a rebuild.
 
 The art sources are in `~/bellspire-art-src`. [Production prompts](bellspire-art/glacier-jobs.txt) accompany the normal `python3 scripts/bellspire-art.py ~/bellspire-art-src` pipeline. Add `--glacier` to rebuild only Glacier assets when iterating. Both outfits repaint the full 96-frame Bellspire set and have separate painted frames for the new moves.
 
