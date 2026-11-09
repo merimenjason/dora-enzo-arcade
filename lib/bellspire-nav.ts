@@ -3,6 +3,8 @@
 // swim stroke...) and records where each one comes to rest. Those resting places are the graph's nodes, so any edge
 // it finds is a move a player can make, and the bots replay exactly these inputs.
 import { ROOMS, COLS, ROWS, TILE, crystalSpans, isOrchardRoom, WATER_AREAS, WIND_AREAS, GUARDIANS, BELFRY_GUARDIANS, FOUNDRY_GUARDIANS, type Ability, type WaterArea, type WindArea, type Room, type HeroId } from './bellspire-world.js';
+import { glacierTile, isGlacierRoom, SLICK, type FallState } from './bellspire-glacier-world.js';
+import { savedFall } from './bellspire-glacier.js';
 import { graftSpans } from './bellspire-orchard-world.js';
 import { newBody, stepBody, boxClear, support, hookInReach, HERO_W, HERO_H, RUN, type Body, type BodyInput, type Caps, type Env } from './bellspire-physics.js';
 
@@ -16,7 +18,7 @@ for (let i = 0; i < ROOMS.length; i++) {
   for (let y = 0; y < r.rows.length; y++) for (let x = 0; x < r.rows[y].length; x++) {
     const c = r.gx * COLS + x, rr = r.gy * ROWS + y;
     const ch = r.rows[y][x];
-    GRID[rr * GW + c] = ('#=Hgx^f' + 'djlkcubynZ' + '~_:+89&V').includes(ch) || (ch === '>' && isOrchardRoom(r)) ? ch.charCodeAt(0) : 46;
+    GRID[rr * GW + c] = ('#=Hgx^f' + 'djlkcubynZ' + '~_:+89&V-').includes(ch) || (ch === '>' && (isOrchardRoom(r) || isGlacierRoom(r))) ? ch.charCodeAt(0) : 46;
     ROOM_AT[rr * GW + c] = i;
   }
 }
@@ -66,7 +68,7 @@ const hookNear = (x: number, y: number) => HOOKS.some((h) => Math.abs(h.x - x) <
 
 /** What the planner assumes about the world: abilities, the water in each area, and a few story flags (Ukumari met,
  *  and which guardians are calm: the throne door needs both, all four seals lit). */
-export type NavState = { abilities: Ability[]; water: Record<WaterArea, 0 | 1>; keeper: boolean; calmed: string[]; broken?: Set<string>; wind?: Record<WindArea, 1 | -1>; beams?: Set<string>; grafts?: ReadonlySet<string> };
+export type NavState = { abilities: Ability[]; water: Record<WaterArea, 0 | 1>; keeper: boolean; calmed: string[]; broken?: Set<string>; wind?: Record<WindArea, 1 | -1>; beams?: Set<string>; grafts?: ReadonlySet<string>; glacierFalls?: ReadonlyMap<string, FallState> };
 export const throneOpen = (s: Pick<NavState, 'keeper' | 'calmed'>) => s.keeper && GUARDIANS.every((b) => s.calmed.includes(b));
 /** The belfry seal: open once the Hail Condor and the Twin Clappers are calm. */
 export const belfryOpen = (s: Pick<NavState, 'calmed'>) => BELFRY_GUARDIANS.every((b) => s.calmed.includes(b));
@@ -74,9 +76,15 @@ export const belfryOpen = (s: Pick<NavState, 'calmed'>) => BELFRY_GUARDIANS.ever
 export const foundryOpen = (s: Pick<NavState, 'calmed'>) => s.calmed.includes('tune');
 export const deepOpen = (s: Pick<NavState, 'calmed'>) => FOUNDRY_GUARDIANS.every((b) => s.calmed.includes(b));
 export const windOf = (s: NavState, a: WindArea) => s.wind?.[a] ?? 1;
-export const stateKey = (s: NavState) => `${[...s.abilities].sort().join('+')}|${WATER_AREAS.map((a) => s.water[a]).join('')}|${throneOpen(s) ? 1 : 0}|${WIND_AREAS.map((a) => windOf(s, a)).join('')}|${belfryOpen(s) ? 1 : 0}${foundryOpen(s) ? 1 : 0}${deepOpen(s) ? 1 : 0}|${[...s.grafts ?? []].sort().join(',')}|${s.calmed.filter((id) => id === 'bracken-stag' || id === 'rootback').sort().join(',')}`;
+export const stateKey = (s: NavState) => `${[...s.abilities].sort().join('+')}|${WATER_AREAS.map((a) => s.water[a]).join('')}|${throneOpen(s) ? 1 : 0}|${WIND_AREAS.map((a) => windOf(s, a)).join('')}|${belfryOpen(s) ? 1 : 0}${foundryOpen(s) ? 1 : 0}${deepOpen(s) ? 1 : 0}|${[...s.grafts ?? []].sort().join(',')}|${s.calmed.filter((id) => ['bracken-stag', 'rootback', 'glass-vicuna', 'serac-osjollo', 'sun-gate'].includes(id)).sort().join(',')}|${[...s.glacierFalls ?? []].sort().map(([k,v]) => k + '=' + v).join(',')}`;
 
-export function navEnv(s: NavState): Env {
+export function navEnv(s: NavState, hero: HeroId = 'dora'): Env {
+  const iceTile = (c: number, r: number) => {
+    const room = ROOMS[ROOM_AT[r * GW + c]];
+    if (!room?.glacier) return null;
+    return glacierTile(room, c, r, COLS, ROWS, i => s.glacierFalls?.get(`${room.id}:${i}`) ?? savedFall(room, i, () => false));
+  };
+  const hasIcePick = hero === 'dora' && s.abilities.includes('icepick');
   const has = (a: Ability) => s.abilities.includes(a);
   const orchardGateOpen = (c: number, r: number) => {
     const room = ROOMS[ROOM_AT[r * GW + c]];
@@ -87,7 +95,7 @@ export function navEnv(s: NavState): Env {
     || (ch === '8' && has('hammer')) || (ch === '&' && has('resonance')) || (ch === '9' && foundryOpen(s)) || (ch === 'V' && deepOpen(s));
   const solid = (c: number, r: number) => {
     const t = at(c, r);
-    if (t === HASH || t === SPIKE || t === MOLTEN || t === LAVA || t === SLAG || t === PLATE) return true;
+    if (t === CH(SLICK) || (r >= 20 * ROWS && iceTile(c, r)?.solid) || t === HASH || t === SPIKE || t === MOLTEN || t === LAVA || t === SLAG || t === PLATE) return true;
     if (t === BRK) return !s.broken?.has(`${c},${r}`);
     if (t === GLASS) return has('lantern');
     if (t === CH('>')) return !orchardGateOpen(c, r);
@@ -98,7 +106,7 @@ export function navEnv(s: NavState): Env {
   };
   const ladder = (c: number, r: number) => {
     const t = at(c, r);
-    if (t === LAD) return true;
+    if (t === LAD || (hasIcePick && r >= 20 * ROWS && iceTile(c, r)?.climb)) return true;
     if (t === CH('>')) return orchardGateOpen(c, r) && (at(c, r - 1) === LAD || at(c, r + 1) === LAD);
     const d = DOORS[t];
     return !!d && doorOpen(d) && (at(c, r - 1) === LAD || at(c, r + 1) === LAD) && at(c - 1, r) !== LAD;
@@ -122,7 +130,7 @@ export function navEnv(s: NavState): Env {
   // tests check a real climb inside the notes' few seconds)
   floats.push(...NOTES.filter((n) => has(n.need)));
   return {
-    solid, ladder,
+    solid, ladder, ice: (c, r) => r >= 20 * ROWS && at(c, r) === CH(SLICK),
     wind: (x, y) => {
       const i = roomIndexAt(x, y);
       const room = ROOMS[i];
@@ -151,7 +159,7 @@ export function capsFor(s: NavState, hero: HeroId, assist = false): Caps {
   return {
     speed: RUN[hero], dash: hero === 'dora' && has('dash'), double: hero === 'dora' && has('double'), wallkick: hero === 'dora' && has('wallkick'),
     glide: hero === 'enzo' && has('glide'), deep: has('deep'), swimMul: 1, coyote: assist ? 9 : 6, buffer: assist ? 9 : 6,
-    rope: hero === 'dora' && has('rope'), ropeAssist: assist && hero === 'dora' && has('rope'), slam: hero === 'dora' && has('hammer'),
+    rope: hero === 'dora' && has('rope'), ropeAssist: assist && hero === 'dora' && has('rope'), slam: hero === 'dora' && has('hammer'), icePick: hero === 'dora' && has('icepick'),
   };
 }
 
@@ -400,7 +408,7 @@ export function simulate(env: Env, s: NavState, from: Node, m: Macro, trace?: Bo
     if (t >= 1) {
       const n = restNode(b, t, m, s);
       if (n && !(n.mode === 'ground' && n.key === from.key && m.name.startsWith('walk') && t < 30)) {
-        if (n.mode === 'ground' && inp.dir !== 0) continue;
+        if (n.mode === 'ground' && (inp.dir !== 0 || env.ice?.(n.c, n.r) && Math.abs(b.vx) > 0.12)) continue;
         return { node: n, ticks: t + 1 };
       }
     }
@@ -418,6 +426,7 @@ export class Graph {
   private gr: Macro[] | null = null;
   private ga: Macro[] | null = null;
   private gs: Macro[] | null = null;
+  private enzoIceEnv?: Env;
   macrosFor(n: Node): Macro[] {
     if (n.mode === 'ground' && this.s.abilities.includes('hammer') && plateNear(n.x, n.y)) return (this.gs ??= [...groundMacros(this.s), ...slamMacros(this.s)]);
     const rope = this.s.abilities.includes('rope') && hookNear(n.x, n.y);
@@ -437,7 +446,8 @@ export class Graph {
     const out: Edge[] = [];
     const seen = new Set<number>();
     for (const m of this.macrosFor(n)) {
-      const res = simulate(this.env, this.s, n, m, undefined, this.assist);
+      const env = m.hero === 'enzo' && n.r >= 20 * ROWS ? this.enzoIceEnv ??= navEnv(this.s, 'enzo') : this.env;
+      const res = simulate(env, this.s, n, m, undefined, this.assist);
       if (!res || res.node.key === n.key || seen.has(res.node.key)) continue;
       seen.add(res.node.key);
       if (!this.nodes.has(res.node.key)) this.nodes.set(res.node.key, res.node);

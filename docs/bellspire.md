@@ -351,6 +351,12 @@ travel candles. The Orchard’s mural and guardian totals are separate from the 
 - **Killa and the orchard outfits.** Killa tends the first steps. Dora’s Harvest Tunic is ochre with a brown hem.
   Enzo’s Graft Keeper’s Coat is olive with a pale sage hem. Look for the chests in the Nursery and Pruning Walk.
 
+## The Glacier Stair
+
+After calming the Mother of Grafts, use the root lift on the high east ledge of her chamber. The Ice Falls and Blue Hollows span 12 rooms and 24 screens. Phuyu lends Enzo the Sun Mirror at the camp. Turn a powered socket to melt an ice plug, tap Frost Fan to freeze the waterfall again, and climb the ribbed ice with Dora’s Ice Pick. On a slick floor Dora can hold Down + Attack to stop a slide. The optional Cold Vault holds both winter outfits, a heart and a mural.
+
+The Glass-Horn Vicuña skids into a melted fall, the Serac Osjollo returns to a perch above a refrozen fall, and the Sun Gate Warden opens when its own light is reflected. Enzo creates each opening and Dora deals the damage. The [room-by-room Glacier Stair guide](bellspire-glacier-stair.md) describes the route, timing and tests.
+
 ## Echo Trials
 
 Once the Out-of-Tune Bell is calm, resting at a shrine plays a short scene (Enzo, then Dora) and the **Trials** page in

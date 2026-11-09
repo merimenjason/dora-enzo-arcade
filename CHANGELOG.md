@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Sunken Bellspire** adds **The Glacier Stair**. Take the root lift above the Night Orchard into 12 rooms of sunlit ice and blue caverns. Enzo turns sunlight onto ice plugs; Dora uses the Ice Pick to stop a slide or climb a frozen fall. Meet Phuyu, calm three guardians, and find two winter outfits in the optional Cold Vault.
+
 - **Sunken Bellspire** adds **The Night Orchard**. After calming the Last Tollkeeper, use the orchard wicket in the Salt Tollhouse. Enzo wakes dormant branches with Lantern Bloom, and Dora cuts their ties with Graft Shear. Cross the Graft Terraces and Root Cellars, find Killa and two orchard outfits, and use both heroes to calm the orchard’s three guardians.
 
 ### Changed

@@ -10,6 +10,7 @@ export const GLIDE_FALL = 0.6;
 export const SWIM_SINK = 1.1, SWIM_STROKE = 2.7, SWIM_EXIT_V = 5.4, SWIM_SPEED = 1.35;
 export const CLIMB_V = 1.6;
 export const RUN = { dora: 2.0, enzo: 1.75 } as const;
+const ICE_SPEED = 1.65, ICE_ACCEL = 0.24, ICE_COAST = 0.065, ICE_REVERSE = 0.22;
 /** The Bell Rope: how far from Dora's hands a hook can be caught, the rope's shortest and longest length, the pump
  *  that steering gives each tick, the swing's widest angle and the kick a jump off the rope adds. */
 export const ROPE_REACH = 64, ROPE_MIN = 30, ROPE_MAX = 72, ROPE_PUMP = 0.0022, ROPE_MAX_ANG = 1.4, ROPE_KICK = 3.2;
@@ -42,6 +43,8 @@ export interface Env {
   hooks?(): { x: number; y: number }[];
   /** A bronze bounce plate here (a slam landing on one bounces). Optional: none without it. */
   bouncy?(c: number, r: number): boolean;
+  /** A solid floor tile whose top is slick. Omitted in rooms without ice. */
+  ice?(c: number, r: number): boolean;
 }
 
 export type Caps = {
@@ -53,6 +56,8 @@ export type Caps = {
   ropeAssist?: boolean;
   /** the Bell Hammer (Dora): ↓ + attack in the air slams down */
   slam?: boolean;
+  /** Dora's Ice Pick can anchor her on slick ground. */
+  icePick?: boolean;
 };
 
 export type Body = {
@@ -78,18 +83,19 @@ export type Body = {
   /** the Bell Hammer: ticks into a slam (0 when not slamming); set by `stepBody` on the tick a slam lands
    *  (`slamHit`, with whether it bounced off a plate), and the bounce's grace from the jump cut */
   slam: number; slamHit: boolean; bounced: boolean; bounceT: number;
+  iceBraking: boolean;
 };
 
 export type Fly = { x0: number; y0: number; x1: number; y1: number; arc: number; dur: number; t: number; kind: 'hook' | 'ledge'; hx: number; hy: number; dir: 1 | -1; home?: boolean };
 export type RopeAim = { kind: 'hook' | 'ledge'; x: number; y: number; hx: number; hy: number; path: { x: number; y: number }[]; fly: Fly };
-export type BodyInput = { dir: -1 | 0 | 1; up: boolean; down: boolean; jumpP: boolean; jumpH: boolean; dashP: boolean; ropeP?: boolean; slamP?: boolean };
+export type BodyInput = { dir: -1 | 0 | 1; up: boolean; down: boolean; jumpP: boolean; jumpH: boolean; dashP: boolean; ropeP?: boolean; slamP?: boolean; iceBrakeH?: boolean };
 
 export function newBody(x: number, y: number): Body {
   return {
     x, y, vx: 0, vy: 0, ground: false, onOneway: false, coyote: 0, jumpBuf: 0, airJumps: 0, airDash: true, dashT: 0, dashCd: 0, dashDir: 1,
     kickT: 0, kickDir: 1, dropT: 0, climb: false, swim: false, wade: false, glide: false, wall: 0, face: 1,
     landed: false, jumped: '', hazard: false, bonk: false, dashed: false, rope: null, hooked: false, unhooked: false, gust: 0,
-    fly: null, homeX: NaN, homeY: NaN, skipX: NaN, skipY: NaN, slam: 0, slamHit: false, bounced: false, bounceT: 0,
+    fly: null, homeX: NaN, homeY: NaN, skipX: NaN, skipY: NaN, slam: 0, slamHit: false, bounced: false, bounceT: 0, iceBraking: false,
   };
 }
 
@@ -134,6 +140,15 @@ export function support(env: Env, b: Body): 'solid' | 'oneway' | 'float' | null 
   }
   if (b.dropT <= 0) for (const f of env.floats()) if (Math.abs(f.y - y) < 0.01 && b.x + HERO_W / 2 > f.x0 && b.x - HERO_W / 2 < f.x1) return 'float';
   return null;
+}
+
+export function onIce(env: Env, b: Body): boolean {
+  if (!env.ice || !b.ground || b.y % T !== 0) return false;
+  const r = b.y / T, center = Math.floor(b.x / T);
+  if (env.ice(center, r)) return true;
+  // Keep the ice under the outer boot until the hero actually leaves the ledge.
+  const [c0, c1] = colsOf(b.x - HERO_W / 2, b.x + HERO_W / 2);
+  return ((c0 !== center && env.ice(c0, r)) || (c1 !== center && env.ice(c1, r))) && !env.solid(center, r);
 }
 
 /** The hook the rope would catch from here, if any: the nearest one above Dora's hands within reach. */
@@ -365,7 +380,7 @@ function swing(b: Body, inp: BodyInput, env: Env, caps: Caps) {
 /** Move one tick. Returns nothing; the result flags are on the body. */
 export function stepBody(b: Body, inp: BodyInput, env: Env, caps: Caps) {
   b.landed = false; b.jumped = ''; b.hazard = false; b.bonk = false; b.dashed = false; b.hooked = false; b.unhooked = false; b.gust = 0;
-  b.slamHit = false; b.bounced = false;
+  b.slamHit = false; b.bounced = false; b.iceBraking = false;
   if (b.bounceT > 0) b.bounceT--;
   if (caps.ropeAssist) {
     // the guided rope: a flight runs on its own; in the air by a hook, the rope catches itself (or with X)
@@ -449,8 +464,12 @@ export function stepBody(b: Body, inp: BodyInput, env: Env, caps: Caps) {
     return;
   }
 
+  const slick = !b.swim && !b.wade && onIce(env, b);
+  b.iceBraking = Boolean(slick && caps.icePick && inp.iceBrakeH);
+  if (b.iceBraking) b.dashT = 0;
+
   // dash
-  if (inp.dashP && caps.dash && b.dashCd <= 0 && b.dashT <= 0 && (b.ground || b.airDash || b.swim)) {
+  if (!b.iceBraking && inp.dashP && caps.dash && b.dashCd <= 0 && b.dashT <= 0 && (b.ground || b.airDash || b.swim)) {
     b.dashT = DASH_T; b.dashCd = DASH_CD; b.dashDir = inp.dir !== 0 ? inp.dir : b.face; b.face = b.dashDir; b.dashed = true;
     if (!b.ground) b.airDash = false;
     b.glide = false;
@@ -462,7 +481,9 @@ export function stepBody(b: Body, inp: BodyInput, env: Env, caps: Caps) {
 
   // horizontal
   const swimSpeed = SWIM_SPEED * caps.swimMul;
-  if (b.dashT > 0) {
+  if (b.iceBraking) {
+    b.vx = 0;
+  } else if (b.dashT > 0) {
     b.dashT--;
     b.vx = b.dashDir * (b.swim ? DASH_V * 0.6 : DASH_V);
     b.vy = b.swim ? b.vy * 0.5 : 0;
@@ -470,8 +491,9 @@ export function stepBody(b: Body, inp: BodyInput, env: Env, caps: Caps) {
     const top = b.swim ? swimSpeed : b.wade ? caps.speed * 0.78 : caps.speed;
     const w = b.swim ? 0 : (env.wind?.(b.x, b.y - HERO_H / 2) ?? 0) * (caps.windMul ?? 1);
     b.gust = w;
-    const target = dir * top + (b.ground ? (dir !== 0 ? w * WIND_RUN : 0) : w * WIND_AIR);
-    const acc = b.swim ? 0.18 : b.ground ? 0.5 : 0.36;
+    const target = dir * top * (slick ? ICE_SPEED : 1) + (b.ground ? (dir !== 0 ? w * WIND_RUN : 0) : w * WIND_AIR);
+    const acc = slick ? dir === 0 ? ICE_COAST : b.vx * dir < 0 ? ICE_REVERSE : ICE_ACCEL
+      : b.swim ? 0.18 : b.ground ? 0.5 : 0.36;
     if (Math.abs(b.vx) > Math.abs(target) && Math.abs(b.vx) > top && Math.sign(b.vx) === Math.sign(target) && !b.ground) b.vx -= Math.sign(b.vx) * 0.08;
     else if (b.vx < target) b.vx = Math.min(target, b.vx + acc);
     else if (b.vx > target) b.vx = Math.max(target, b.vx - acc);

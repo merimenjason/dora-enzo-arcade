@@ -281,3 +281,7 @@
 
 .bs-end-art.bs-end-salt{background-image:url("/art/bellspire/ending4.webp")}
 .bs-end-art.bs-end-orchard{background-image:url("/art/bellspire/ending5.webp")}
+
+.bs-end-glacier{background-image:url('/art/bellspire/ending-glacier.webp')}
+.bs-mural-glacier{background-image:url('/art/bellspire/mural-glacier.webp');background-size:100% 100%}
+.bs-phuyu{width:55px;height:55px;background-image:url('/art/bellspire/phuyu-portrait.webp');background-size:100% 100%}

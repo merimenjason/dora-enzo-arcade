@@ -4,6 +4,7 @@
 // (Map, Gear, Items, Trials, Guide, Settings). Wayra's shop and the murals open as panels. Keyboard (remappable), a gamepad,
 // and on touch screens an on-screen pad. Rules in lib/bellspire-game.ts, drawing in lib/bellspire-scene.ts.
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { GLACIER_MURAL, GLACIER_NAMES, isGlacierRoom } from '@/lib/bellspire-glacier-world';
 import { isOrchardRoom } from '../../lib/bellspire-world';
 import {
   BellspireGame, parseSave, heroStats, xpToNext, SAVE_KEY, NGP_SAVE_KEY, TRIALS, RUSH, MEDALS, medalFor, ngpReady, newGamePlusSave, NO_INPUT, ROOMS, AREAS, GEAR, SHOP, FOOD, SPELLS, ABILITIES, ABILITY_ORDER,
@@ -68,6 +69,10 @@ function epilogueEarned(s: Save | null) {
 
 // (strip sizes come from the art manifest, so a strip that grows never squeezes its frames)
 function Icon({ i, size = 2, title }: { i: number; size?: number; title?: string }) {
+  if (i >= 64) {
+    const [w, h, n] = ART['icons-glacier'];
+    return <span className="bs-icon" title={title} style={{ width: w * size, height: h * size, backgroundImage: 'url(/art/bellspire/icons-glacier.webp)', backgroundSize: `${n * w * size}px ${h * size}px`, backgroundPosition: `${-(i - 64) * w * size}px 0` }} />;
+  }
   const [w, h, n] = ART.icons;
   return <span className="bs-icon" title={title} style={{ width: w * size, height: h * size, backgroundSize: `${n * w * size}px ${h * size}px`, backgroundPosition: `${-i * w * size}px 0` }} />;
 }
@@ -111,7 +116,7 @@ export default function BellspirePage() {
   const [mural, setMural] = useState<number | null>(null);
   const [banner, setBanner] = useState<{ text: string; icon?: number; key: number } | null>(null);
   const [areaBanner, setAreaBanner] = useState<{ text: string; key: number } | null>(null);
-  const [ending, setEnding] = useState<{ full: boolean; pct: number; belfry?: boolean; foundry?: boolean; salt?: boolean; orchard?: boolean } | null>(null);
+  const [ending, setEnding] = useState<{ full: boolean; pct: number; belfry?: boolean; foundry?: boolean; salt?: boolean; orchard?: boolean; glacier?: boolean } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [rebind, setRebind] = useState<Action | null>(null);
   const [equipPick, setEquipPick] = useState<{ hero: HeroId; slot: Slot } | null>(null);
@@ -126,6 +131,7 @@ export default function BellspirePage() {
   const [travelMode, setTravelMode] = useState(false);
   const travelRef = useRef<{ id: string; t: number } | null>(null);
   const mapNavRef = useRef<((k: 'left' | 'right' | 'ok') => void) | null>(null);
+  const padReadable = useRef(true);
   const padNav = useRef({ left: false, right: false, ok: false });
   /** the item highlighted in the gear list (its preview and comparison), and what was equipped while the menu was open */
   const [gearSel, setGearSel] = useState<string | null>(null);
@@ -218,8 +224,11 @@ export default function BellspirePage() {
       else if (e.k === 'forge') { setForge(true); setForgeSel(null); setMsg(null); }
       else if (e.k === 'mural') setMural(e.n);
       else if (e.k === 'item') setBanner({ text: e.text, icon: e.icon, key: Date.now() });
-      else if (e.k === 'room') writeSave();
-      else if (e.k === 'ending') { writeSave(); setEnding({ full: e.full, pct: g.completion().pct, belfry: !!e.belfry, foundry: !!e.foundry, salt: !!e.salt, orchard: !!e.orchard }); setScreen('ending'); snd?.setTrack('ending'); }
+      else if (e.k === 'room') {
+        writeSave();
+        if (GLACIER_NAMES[e.id]) setAreaBanner({ text: GLACIER_NAMES[e.id], key: Date.now() });
+      }
+      else if (e.k === 'ending') { writeSave(); setEnding({ full: e.full, pct: g.completion().pct, belfry: !!e.belfry, foundry: !!e.foundry, salt: !!e.salt, orchard: !!e.orchard, glacier: !!e.glacier }); setScreen('ending'); snd?.setTrack('ending'); }
       else if (e.k === 'down') snd?.play('down');
       else if (e.k === 'travelOpen') { setTravelMode(true); setMsg(null); setMenu('map'); }
       else if (e.k === 'trialStart') { setMenu(null); setTrialResult(null); }
@@ -330,7 +339,12 @@ export default function BellspirePage() {
   const padPrev = useRef(false);
   const readPad = () => {
     const out: Record<Action, boolean> = { ...NO_INPUT };
-    const pads = typeof navigator !== 'undefined' && navigator.getGamepads ? navigator.getGamepads() : [];
+    // Keyboard and touch still run when an embedded browser denies the optional Gamepad API.
+    let pads: (Gamepad | null)[] = [];
+    if (padReadable.current) {
+      try { pads = Array.from(navigator.getGamepads?.() ?? []); }
+      catch { padReadable.current = false; }
+    }
     for (const p of pads) {
       if (!p) continue;
       const b = (i: number) => !!p.buttons[i]?.pressed;
@@ -553,6 +567,20 @@ export default function BellspirePage() {
 
   if (screen === 'ending' && ending && g) {
     const c = g.completion();
+    if (ending.glacier) return (
+      <main className="bs-shell bs-end" data-ready="true">
+        <div className="bs-end-art bs-end-glacier" />
+        <div className="bs-end-panel">
+          <h2>The Pass in the Sun</h2>
+          <p>At dawn, the first caravans climbed from the orchard to the open Sun Gate.</p>
+          <p className="bs-end-stats">{c.glacier.cells}/{COMPLETION.glacier.cells} screens · {c.glacier.chests}/{COMPLETION.glacier.chests} chests · {c.glacier.bosses}/{COMPLETION.glacier.bosses} guardians</p>
+          <div className="bs-title-btns">
+            <button type="button" className="bs-btn bs-btn-main" onClick={() => startGame(g.snapshot(), slotRef.current)}>Keep exploring</button>
+            <button type="button" className="bs-btn" onClick={toTitle}>Title</button>
+          </div>
+        </div>
+      </main>
+    );
     if (ending.orchard) return (
       <main className="bs-shell bs-end" data-ready="true">
         <div className="bs-end-art bs-end-orchard" />
@@ -692,6 +720,16 @@ export default function BellspirePage() {
       y: Math.max(26, orchard.y - sc2.cam.y - 47) * scale,
     };
   }
+  const glacier = !dialog ? g?.glacierHint() : null;
+  if (glacier && sceneRef.current && Math.abs((g?.body.x ?? 0) - glacier.x) < 145) {
+    const sc = sceneRef.current;
+    const touchNames: Partial<Record<Action, string>> = { up: '▲', down: '▼', tag: 'Tag', cast: 'Spell', attack: 'Hit', jump: 'Jump' };
+    const glyph: Record<string, string> = { ArrowUp: '↑', ArrowDown: '↓' };
+    const keys = glacier.keys.map(k => touchOn ? touchNames[k] : glyph[settings.keys[k][0]] ?? keyName(settings.keys[k][0] ?? k)).join(' + ');
+    shrinePrompt = { text: keys ? `${keys} · ${glacier.text}` : glacier.text,
+      x: Math.max(88, Math.min(sc.vw - 88, glacier.x - sc.cam.x)) * scale,
+      y: Math.max(26, glacier.y - sc.cam.y - 47) * scale };
+  }
   const hint = g && !dialog && !shrinePrompt ? g.nearbyLabel() : null;
   // the minimap fades when the lead walks up under the top-right corner
   const sc = sceneRef.current;
@@ -743,7 +781,7 @@ export default function BellspirePage() {
           {banner && <div className="bs-banner" key={banner.key} onAnimationEnd={() => setBanner(null)}>{banner.icon !== undefined && <Icon i={banner.icon} size={1.5} />}<span>{banner.text}</span></div>}
           {line && (
             <button type="button" className={`bs-dialog ${g && sceneRef.current && g.body.y - sceneRef.current.cam.y > sceneRef.current.vh * 0.55 ? 'bs-dialog-top' : ''}`} onClick={() => taps.current.add('jump')}>
-              {line.who !== 'sign' && <Portrait who={PORTRAIT[line.who] ?? 0} size={1.1} />}
+              {line.who === 'phuyu' ? <span className="bs-portrait bs-phuyu" /> : line.who !== 'sign' && <Portrait who={PORTRAIT[line.who] ?? 0} size={1.1} />}
               <span className="bs-dialog-text">{line.who !== 'sign' && <b>{NAMES[line.who]}</b>}{line.text}</span>
               <span className="bs-dialog-next">▼</span>
             </button>
@@ -874,8 +912,13 @@ export default function BellspirePage() {
       {mural !== null && (
         <div className="bs-modal" onClick={() => setMural(null)}>
           <div className="bs-sheet bs-mural">
-            <span className="bs-mural-art" style={{ backgroundSize: `${ART.murals[2] * 100}% 100%`, backgroundPosition: `${(MURALS[mural].panel / (ART.murals[2] - 1)) * 100}% 0` }} />
-            <p>{MURALS[mural].text}</p>
+            {mural === GLACIER_MURAL ? <>
+              <span className="bs-mural-art bs-mural-glacier" />
+              <p>{MURALS[mural].text}</p>
+            </> : <>
+              <span className="bs-mural-art" style={{ backgroundSize: `${ART.murals[2] * 100}% 100%`, backgroundPosition: `${((MURALS[mural].panel) / (ART.murals[2] - 1)) * 100}% 0` }} />
+              <p>{MURALS[mural].text}</p>
+            </>}
             <small>Mural {mural + 1} of {MURALS.length}</small>
             <button type="button" className="bs-btn bs-close" onClick={() => setMural(null)}>Close</button>
           </div>
@@ -934,6 +977,7 @@ export default function BellspirePage() {
           <p className="bs-small-print bs-stats-line">Guardians {c.bosses} of {of.bosses} · Rooms {c.cells} of {of.cells} · Chests {c.chests} of {of.chests} · Murals {c.murals} of {of.murals}</p>
           <p className="bs-small-print bs-seals">Throne seals: {g.sealsOpen()} of 4 open</p>
           {g.saltKnown() && <p className="bs-small-print bs-stats-line">Salt Road · {all.salt.cells}/{COMPLETION.salt.cells} screens · {all.salt.chests}/{COMPLETION.salt.chests} chests · {all.salt.bosses}/{COMPLETION.salt.bosses} guardians</p>}
+          {g.glacierKnown() && <p className="bs-small-print bs-stats-line">Glacier Stair · {all.glacier.cells}/{COMPLETION.glacier.cells} screens · {all.glacier.chests}/{COMPLETION.glacier.chests} chests · {all.glacier.bosses}/{COMPLETION.glacier.bosses} guardians</p>}
           {g.orchardKnown() && <p className="bs-small-print bs-stats-line">Night Orchard · {all.orchard.cells}/{COMPLETION.orchard.cells} screens · {all.orchard.chests}/{COMPLETION.orchard.chests} chests · {all.orchard.bosses}/{COMPLETION.orchard.bosses} guardians</p>}
           <ul className="bs-legend" aria-label="Map key">
             <li><i className="lg-stub" />A way into a room not seen yet</li>
@@ -944,6 +988,7 @@ export default function BellspirePage() {
             <li><i className="lg-mural" />A mural not read yet</li>
             <li><i className="lg-seal" />The throne’s four bell seals</li>
             {g.saltKnown() && <li><i className="lg-lock" style={{ background: '#c7bbc1' }} />The Salt Road begins at the supply door in the Foundry Gate.</li>}
+            {g.glacierKnown() && <li><i className="lg-lock" style={{ background: '#95d7ea' }} />The Glacier Stair begins at the root lift in the Mother of Grafts’ chamber.</li>}
             {g.orchardKnown() && <li><i className="lg-lock" style={{ background: '#f3c659' }} />The Night Orchard begins at the wicket in the Salt Tollhouse.</li>}
             {g.wispOn() && <li><i className="lg-wisp" />Where the wisp is leading</li>}
             {g.belfryKnown() && <li><i className="lg-boat" />Wayra’s boat (↑ to row across)</li>}
@@ -955,7 +1000,7 @@ export default function BellspirePage() {
           </ul>
           <h4>Travel between shrines</h4>
           <ul className="bs-travel">
-            {ROOMS.filter((r) => (!r.salt || g.saltKnown()) && (!isOrchardRoom(r) || g.orchardKnown()) && INFO.get(r.id)!.things.some((t) => t.ch === 'S')).map((r) => {
+            {ROOMS.filter((r) => (!r.salt || g.saltKnown()) && (!isOrchardRoom(r) || g.orchardKnown()) && (!isGlacierRoom(r) || g.glacierKnown()) && INFO.get(r.id)!.things.some((t) => t.ch === 'S')).map((r) => {
               const lit = shrines.includes(r.id);
               return (
                 <li key={r.id}>
@@ -1234,11 +1279,12 @@ const ALL_SCREENS = Math.max(...ROOMS.map((r) => r.gx + r.w));
 function mapScreens(g: BellspireGame) { return g.belfryKnown() ? ALL_SCREENS : BASE_SCREENS; }
 /** How many screens tall: the citadel and belfry's nine, or with the Foundry Below (once its seal has cracked, or the
  *  heroes have been down there) its four rows under the citadel too. */
-const BASE_ROWS = Math.max(...ROOMS.filter((r) => !r.fd && !r.salt && !isOrchardRoom(r)).map((r) => r.gy + r.h));
-const FOUNDRY_ROWS = Math.max(...ROOMS.filter((r) => !r.salt && !isOrchardRoom(r)).map((r) => r.gy + r.h));
-const SALT_ROWS = Math.max(...ROOMS.filter((r) => !isOrchardRoom(r)).map((r) => r.gy + r.h));
+const BASE_ROWS = Math.max(...ROOMS.filter((r) => !r.fd && !r.salt && !isOrchardRoom(r) && !isGlacierRoom(r)).map((r) => r.gy + r.h));
+const FOUNDRY_ROWS = Math.max(...ROOMS.filter((r) => !r.salt && !isOrchardRoom(r) && !isGlacierRoom(r)).map((r) => r.gy + r.h));
+const SALT_ROWS = Math.max(...ROOMS.filter((r) => !isOrchardRoom(r) && !isGlacierRoom(r)).map((r) => r.gy + r.h));
 const ALL_ROWS = Math.max(...ROOMS.map((r) => r.gy + r.h));
-function mapRows(g: BellspireGame) { return g.orchardKnown() ? ALL_ROWS : g.saltKnown() ? SALT_ROWS : g.foundryKnown() ? FOUNDRY_ROWS : BASE_ROWS; }
+const ORCHARD_ROWS = Math.max(...ROOMS.filter(isOrchardRoom).map(r => r.gy + r.h));
+function mapRows(g: BellspireGame) { return g.glacierKnown() ? ALL_ROWS : g.orchardKnown() ? ORCHARD_ROWS : g.saltKnown() ? SALT_ROWS : g.foundryKnown() ? FOUNDRY_ROWS : BASE_ROWS; }
 const DOOR_COLOR: Record<string, string> = { d: ABILITIES.dash.color, j: ABILITIES.double.color, k: ABILITIES.wallkick.color, l: ABILITIES.lantern.color, c: ABILITIES.chime.color, y: ABILITIES.rope.color, n: ABILITIES.echo.color, '8': ABILITIES.hammer.color, '&': ABILITIES.resonance.color, u: '#c9a46a', b: '#b85050', Z: '#9fc4ff', '9': '#e0703a', V: '#e0703a' };
 /** The Windward Belfry's cells, by area (for its silhouette before it is explored). */
 const BELFRY_CELLS = new Map<string, string>();

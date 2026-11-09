@@ -7,6 +7,9 @@ import {
   type Room, type GameEvent, type HeroId, type Boss, type NumKind,
 } from './bellspire-game';
 import { GUARDIANS, GUARDIAN_AREA, isOrchardRoom } from './bellspire-world';
+import { ICE_WALL, SLICK } from './bellspire-glacier-world';
+import { glacierPoint } from './bellspire-glacier';
+import { onIce } from './bellspire-physics';
 import { graftFlag } from './bellspire-orchard-world';
 import { dressStrip, WEAPON_LOOK, COAT_LOOK, START_LOOK, OUTFIT, stripFor } from './bellspire-gear-art';
 import { ART, FLAMES, BOXES } from './bellspire-art';
@@ -52,6 +55,8 @@ const DECOR: Record<string, { torch: number; candle: number; window: number; bel
   salt: { torch: 0, candle: 0, window: -1, bell: -1, floor: [1, 2, 3, 7], wall: [], ceil: [], back: 0 },
   haul: { torch: 0, candle: 0, window: -1, bell: -1, floor: [1, 3, 4, 7], wall: [6], ceil: [5], back: 0.38 },
   orchard: { torch: 0, candle: 6, window: -1, bell: -1, floor: [2, 3, 4], wall: [1], ceil: [5], back: 0 },
+  icefalls: { torch: 0, candle: 6, window: -1, bell: -1, floor: [1, 2, 4, 5, 7], wall: [2], ceil: [], back: 0 },
+  bluehollows: { torch: 0, candle: 6, window: -1, bell: -1, floor: [1, 5, 6], wall: [3], ceil: [2], back: 0.11 },
   rootcellar: { torch: 0, candle: 6, window: -1, bell: -1, floor: [2, 3, 4], wall: [1], ceil: [7], back: 0.26 },
   glass: { torch: 6, candle: 6, window: -1, bell: -1, floor: [0, 1, 3, 4, 5, 7], wall: [], ceil: [2], back: 0.7 },
 };
@@ -69,7 +74,7 @@ function ceilingAbove(c: number, r: number, max = 12): number {
   return 0;
 }
 const hash = (c: number, r: number) => { let h = (c * 374761393 + r * 668265263) >>> 0; h = ((h ^ (h >>> 13)) * 1274126177) >>> 0; return (h ^ (h >>> 16)) >>> 0; };
-const SOLIDISH = '#^';
+const SOLIDISH = '#^-';
 
 // a 3×5 pixel font for the few words drawn in the world
 const GLYPHS: Record<string, string> = {
@@ -437,6 +442,7 @@ export class BellspireScene {
     c.width = rr.w; c.height = rr.h;
     const ctx = c.getContext('2d')!;
     ctx.imageSmoothingEnabled = false;
+    const glacier = !!room.glacier;
     const set = TILESET(room), tiles = this.img.get(`tiles-${set}`), dec = DECOR[set];
     const c0 = room.gx * COLS, r0 = room.gy * ROWS, W = room.w * COLS, H = room.h * ROWS;
     const T = (i: number, x: number, y: number, a = 1) => { if (!tiles) return; if (a !== 1) ctx.globalAlpha = a; ctx.drawImage(tiles, i * 16, 0, 16, 16, x, y, 16, 16); if (a !== 1) ctx.globalAlpha = 1; };
@@ -501,13 +507,15 @@ export class BellspireScene {
         const h = hash(c0 + x, r0 + y);
         // (the Cloudstair's stone has a second top and a second fill, in slots its open sky leaves free)
         const alt = set === 'cloud' && (h >> 4) % 3 === 0;
-        T(top ? (alt ? 6 : 0) : under ? 8 : h % 9 === 0 ? 2 : alt ? 7 : 1, x * 16, y * 16);
+        T(top ? (alt ? 6 : 0) : under ? (glacier ? 1 : 8) : h % 9 === 0 ? 2 : alt ? 7 : 1, x * 16, y * 16);
         // edge shading so stone reads as solid mass
         if (!top && !under && (air(x - 1, y) || air(x + 1, y))) { ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(air(x - 1, y) ? x * 16 : x * 16 + 15, y * 16, 1, 16); }
+      } else if (ch === SLICK) {
+        T(8, x * 16, y * 16);
       } else if (ch === '=') {
         T(3, x * 16, y * 16);
         // the orchard's painted backdrops are as busy as its planks, so its ledges get a lit top and a shadow under
-        if (set === 'orchard' || set === 'rootcellar') ledgeEdge(ctx, x * 16, y * 16, 16);
+        if (glacier || set === 'orchard' || set === 'rootcellar') ledgeEdge(ctx, x * 16, y * 16, 16);
       }
       else if (ch === 'H') T(4, x * 16, y * 16);
       else if (ch === '^') this.drawSpikes(ctx, x * 16, y * 16);
@@ -594,7 +602,11 @@ export class BellspireScene {
     const set = TILESET(room);
 
     // far backdrop and mid silhouettes, with parallax
-    const bg = this.img.get(`bg-${set}`);
+    const landmark: Record<string, string> = {
+      'glacier-landing': 'roots', 'glacier-camp': 'camp', 'glacier-slide': 'seracs', 'glacier-serac': 'seracs',
+      'glacier-mirrors': 'gallery', 'glacier-sun-gate': 'gate',
+    };
+    const bg = this.img.get(`bg-glacier-${landmark[room.id]}`) ?? this.img.get(`bg-${set}`);
     const px = rr.w > this.vw ? (this.cam.x - rr.x) / (rr.w - this.vw) : 0.5, py = rr.h > this.vh ? (this.cam.y - rr.y) / (rr.h - this.vh) : 0.5;
     if (bg) {
       // cover the whole view, with a little room to drift for parallax
@@ -609,7 +621,7 @@ export class BellspireScene {
     ctx.drawImage(this.roomCanvas!, rr.x - cx, rr.y - cy);
     // in a boss fight the room behind the action sinks into shadow, so the guardian stands out from the busy scenery
     const fighting = !!g.boss && !g.boss.calm && g.boss.st !== 'wait';
-    this.bossDim += ((fighting ? 1 : 0) - this.bossDim) * 0.05;
+    this.bossDim += ((fighting ? room.glacier ? 0.42 : 1 : 0) - this.bossDim) * 0.05;
     if (this.bossDim > 0.01) {
       // drain most of the colour, then darken
       ctx.globalCompositeOperation = 'saturation'; ctx.fillStyle = `rgba(128,128,128,${(this.bossDim * 0.7).toFixed(3)})`; ctx.fillRect(0, 0, this.vw, this.vh);
@@ -617,6 +629,7 @@ export class BellspireScene {
     }
     const ox = -cx, oy = -cy;
     this.drawDynamicTiles(g, ox, oy);
+    if (room.glacier) this.drawGlacier(g, ox, oy);
     this.drawLive(g, ox, oy);
     this.drawThings(g, ox, oy);
     this.drawBelfry(g, ox, oy);
@@ -1013,6 +1026,53 @@ export class BellspireScene {
     }
   }
 
+  drawGlacier(g: BellspireGame, ox: number, oy: number) {
+    const ctx = this.ctx, room = g.room, origin = roomRect(room), ice = g.glacier;
+    if (!ice) return;
+    const art = ART['falls-glacier'], image = this.img.get('falls-glacier');
+    if (art && image) for (const [i, f] of (room.glacier?.falls ?? []).entries()) {
+      const state = ice.state(i), frame = state === 'plug' ? 0 : state === 'water' ? 1 : 2;
+      const x = origin.x + f.c * TILE + ox, y = origin.y + f.top * TILE + oy, w = f.w * TILE, h = (f.bottom - f.top) * TILE;
+      if (state === 'water') ctx.globalAlpha = 0.72 + 0.08 * Math.sin(this.t * 0.25);
+      if (state === 'frozen' && ice.left(i, g.tick) < 145) ctx.globalAlpha = this.t % 14 < 7 ? 0.72 : 1;
+      ctx.drawImage(image, frame * art[0], 0, art[0], art[1], x, y, w, h);
+      ctx.globalAlpha = 1;
+      if (state === 'water') {
+        // Falling droplets are effects, not collision. The painted ribbons stay within the shared fall rectangle.
+        ctx.fillStyle = '#bdefff';
+        for (let j = 0; j < 7; j++) ctx.fillRect(x + (j * 11 + 3) % w, y + (this.t * 3 + j * 19) % h, 1, 3);
+      }
+    }
+    if (art && image) for (let r = 0; r < room.rows.length; r++) for (let c = 0; c < room.rows[r].length; c++) {
+      if (room.rows[r][c] !== ICE_WALL || room.rows[r - 1]?.[c] === ICE_WALL) continue;
+      let end = r + 1;
+      while (room.rows[end]?.[c] === ICE_WALL) end++;
+      ctx.drawImage(image, 2 * art[0], 0, art[0], art[1], origin.x + c * TILE + ox, origin.y + r * TILE + oy, TILE, (end - r) * TILE);
+    }
+    for (const [i, socket] of (room.glacier?.sockets ?? []).entries()) {
+      const p = glacierPoint(room, socket.at[0], socket.at[1] + 1);
+      const lit = ice.lit(i), powered = ice.powered(i, g.boss?.id === 'sun-gate' && (g.boss.st === 'glacierTell' || g.boss.st === 'glacierRush'));
+      if ((lit || powered) && socket.path.length > 1) {
+        ctx.save();
+        ctx.strokeStyle = lit ? 'rgba(255,205,105,0.72)' : 'rgba(255,218,160,0.23)';
+        ctx.lineWidth = lit ? 6 : 3;
+        ctx.beginPath();
+        const path = lit ? socket.path : socket.path.slice(0, 2);
+        path.forEach(([c, r], j) => { const q = glacierPoint(room, c, r); if (j) ctx.lineTo(q.x + ox, q.y + oy); else ctx.moveTo(q.x + ox, q.y + oy); });
+        ctx.stroke();
+        ctx.strokeStyle = lit ? '#fff2be' : 'rgba(255,234,190,0.45)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.restore();
+      }
+      this.spr('props-glacier', lit ? 1 : 0, p.x + ox, p.y + oy, false, lit || powered ? 1 : 0.72);
+    }
+    for (const i of ice.icicles) {
+      if (i.stage === 'spent') continue;
+      const shake = i.stage === 'tell' ? (i.t % 6 < 3 ? -2 : 2) : 0;
+      this.spr('props-glacier', 2, i.x + ox + shake, i.y + oy + 26, false, 1, false,
+        i.stage === 'tell' ? { rim: '#fff0ad', tell: i.t % 8 < 4 } : undefined);
+    }
+  }
+
   drawThings(g: BellspireGame, ox: number, oy: number) {
     const room = g.room;
     for (const t of INFO.get(room.id)!.things) {
@@ -1023,6 +1083,9 @@ export class BellspireScene {
       else if (t.ch === ';') this.spr('suma', g.dialog ? 2 : Math.floor(this.t / 28) % 2, x, y);
       else if (t.ch === ',') this.spr('props-orchard', 6, x, y);
       else if (t.ch === 'q') this.spr('killa', 0, x, y);
+      else if (t.ch === '(') this.spr('props-glacier', 3, x, y, false, g.glacierKnown() ? 1 : 0.57);
+      else if (t.ch === ')') this.spr('phuyu', 0, x, y);
+      else if (t.ch === '/') this.spr('props-glacier', 4, x, y);
       else if (t.ch === 'B') {
         // a rung water bell swings, and rings out
         const k = `${t.c},${t.r}`, sw = this.bellSwing.get(k) ?? 0;
@@ -1458,10 +1521,19 @@ export class BellspireScene {
     this.ghosts = this.ghosts.filter((gh) => gh.t < 12);
     const rt = g.hero[lead];
     const blink = rt.inv > 0 && rt.hurtT === 0 && rt.inv < 60 && this.t % 6 < 3;
+    const glacierOutfit = this.worn[lead].coat === `${lead}-glacier-coat`;
+    const glacierSheet = `${lead}-glacier-work${glacierOutfit ? '' : '-base'}`;
+    const direction = Number(g.prev.right) - Number(g.prev.left);
+    const slide = g.glacier && onIce(g.env, b) && Math.abs(b.vx) > 0.65 && direction * b.vx <= 0;
+    const iceFrame = b.iceBraking ? 2 + (Math.floor(this.t / 6) % 2) : g.glacierClimbing ? (g.prev.up || g.prev.down ? 4 + (Math.floor(this.t / 7) % 2) : 6)
+      : lead === 'enzo' && g.glacierWork > g.tick ? 2 + Math.min(3, Math.floor((27 - g.glacierWork + g.tick) / 7))
+      : slide ? Math.floor(this.t / 6) % 2 : -1;
     const work = g.orchardWork && g.orchardWork.until > g.tick ? g.orchardWork : g.saltWork;
     const workArea = work === g.orchardWork ? 'orchard' : 'salt';
     const workSheet = `${lead}-${workArea}-work`;
-    if (work && work.hero === lead && work.until > g.tick && b.ground && !rt.hurtT && !rt.act && Math.abs(b.vx) < 0.4 && this.img.has(workSheet)) {
+    if (iceFrame >= 0 && this.img.has(glacierSheet) && !rt.hurtT) {
+      this.spr(glacierSheet, iceFrame, b.x + ox, b.y + oy + 1, b.face < 0, blink ? 0.35 : 1);
+    } else if (work && work.hero === lead && work.until > g.tick && b.ground && !rt.hurtT && !rt.act && Math.abs(b.vx) < 0.4 && this.img.has(workSheet)) {
       const worn = this.worn[lead], outfit = worn.coat === `${lead}-${workArea}-coat`;
       if (workArea === 'orchard' || (worn.weapon === START_LOOK[lead].weapon && (outfit || worn.coat === START_LOOK[lead].coat))) {
         const frame = Math.min(3, Math.floor((24 - (work.until - g.tick)) / 6)) + (outfit ? 4 : 0);
@@ -1573,7 +1645,18 @@ export class BellspireScene {
     const fr = b.calm ? 5 : st.endsWith('Tell') ? (Math.floor(this.t / 7) % 2 ? 3 : 1) : atk ? 2 : b.flash > 3 ? 4 : 0;
     const body = b.body;
     const fx: SprFx = { rim: b.calm ? undefined : RIM[b.id], tell: tell && !b.calm };
-    if (isOrchardRoom(g.room)) {
+    if (g.room.glacier) {
+      const frame = b.calm ? 5 : st.endsWith('Tell') ? 1 : st === 'glacierRush' ? 2 : st === 'glacierDrop' ? 3
+        : st === 'glacierOpen' ? (b.id === 'sun-gate' ? 3 : b.id === 'glass-vicuna' ? 3 : 4) : 0;
+      const open = st === 'glacierOpen';
+      this.sprXf(`boss-${b.id}`, frame, b.x + ox, b.y + oy + 1, b.id !== 'sun-gate' && b.face > 0, calmA, false,
+        { rim: open ? '#c0f3ff' : '#ffe1a1', tell }, 1, 1);
+      if (b.id === 'sun-gate' && st === 'glacierRush') for (const h of b.harm) {
+        ctx.strokeStyle = '#ffcd72'; ctx.lineWidth = 4; ctx.beginPath();
+        ctx.moveTo(b.x - 9 + ox, b.y - 42 + oy); ctx.lineTo(h.x + h.w / 2 + ox, h.y + 6 + oy); ctx.stroke();
+        ctx.strokeStyle = '#fff7d7'; ctx.lineWidth = 1; ctx.stroke();
+      }
+    } else if (isOrchardRoom(g.room)) {
       const frame = st === 'orchardTell' ? 1 : st === 'orchardRush' || st === 'orchardCaught' || st === 'orchardOpen' ? 2 : 0;
       const open = st === 'orchardOpen';
       this.sprXf(`boss-${b.id}`, frame, b.x + ox, b.y + oy + 1, b.face > 0, calmA, white, { rim: open ? '#ffd386' : '#a88f65', tell }, 1, 1);
