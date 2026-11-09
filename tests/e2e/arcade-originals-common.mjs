@@ -106,6 +106,8 @@ export async function checkBrowser(rules, debug){
       assert.deepEqual((await state()).state,snapshot.state,'decision remains legal after 21 frames');
       await page.keyboard.press('KeyK');assert.equal((await state()).state.turn,1);
       await page.keyboard.press('KeyJ');assert.equal((await state()).state.turn,0);
+      assert.equal((await state()).hero,'dora','a played turn hands the plan back to Dora');
+      await pad(15);assert.equal((await state()).hero,'enzo');
       await pad(15);assert.equal((await state()).hero,'dora');
       await pad(13);await pad(0);
       const doraFirst=rules.actions(0,(await state()).state,'dora')[1]?.id??'wait';
@@ -175,6 +177,44 @@ export async function checkBrowser(rules, debug){
       assert.equal(await page.locator('.arcade-card').count(),98);
       assert.deepEqual(errors,[]);
       console.log(`${rules.title} ${width}×${height}: ${actions} real button inputs, ${turns} planned actions, ${verbs.size} action kinds; first mission, finale and input checks passed`);
+      await context.close();
+    }
+  }finally{await browser.close();}
+}
+
+// The board plays a whole turn by itself: the coach card, rings for Dora (picking a move hands over to Enzo),
+// Enzo's rings or ◆ path markers, then the turn button. Tapped on touch sizes, clicked on desktop.
+export async function checkMap(rules, debug){
+  const browser=await chromium.launch();
+  try{
+    for(const [width,height] of sizes){
+      const touch=width!==1280;
+      const context=await browser.newContext({viewport:{width,height},hasTouch:touch,isMobile:touch,deviceScaleFactor:1});
+      const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+      const state=()=>page.evaluate(name=>window[name](),debug);
+      const hit=(locator)=>touch?locator.tap():locator.click();
+      await page.goto(`${base}/${rules.id}`);await page.locator('main[data-ready="true"]').waitFor();
+      await hit(page.getByRole('button',{name:'Start',exact:true}));
+      const coach=page.getByRole('dialog',{name:'How a turn works'});
+      assert.equal(await coach.count(),1,'the first mission opens with the coach card');
+      await hit(page.getByRole('button',{name:'Got it'}));assert.equal(await coach.count(),0);
+      assert.match(await page.locator('[data-step]').innerText(),/step 1/i);
+      await hit(page.locator('[aria-label^="Map: "]:not([aria-label="Map: Hold"])').filter({hasText:''}).first());
+      let s=await state();
+      assert.notEqual(s.draft.dora,'wait','a ring on the map plans Dora');
+      if(s.draft.dora.startsWith('go:'))assert.equal(s.hero,'enzo','a planned move hands over to Enzo');
+      else await hit(page.locator('button[data-hero="enzo"]'));
+      const enzo=page.locator('[data-edge-action], [aria-label^="Map: "]:not([aria-label="Map: Hold"])').first();
+      await hit(enzo);s=await state();
+      assert.notEqual(s.draft.enzo,'wait','a ring or ◆ on the map plans Enzo');
+      assert.match(await page.locator('[data-step]').innerText(),/step 3/i);
+      await hit(page.getByTestId('commit'));
+      assert.equal((await state()).state.turn,1);assert.equal((await state()).hero,'dora');
+      await page.reload();await page.locator('main[data-ready="true"]').waitFor();
+      await hit(page.getByRole('button',{name:'Continue',exact:true}));
+      assert.equal(await coach.count(),0,'the coach card shows once');
+      assert.deepEqual(errors,[]);
+      console.log(`${rules.title} ${width}×${height}: a whole turn played on the board`);
       await context.close();
     }
   }finally{await browser.close();}
