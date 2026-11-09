@@ -814,6 +814,11 @@ def hero_frames(hero, prefix, outfit=False, SHEETS=SHEETS):
     return frames, parts, lamps
 
 
+def late_weapon_icons():
+    icons = [bbox(drop_neighbours(f)) for f in cells(kload('bs-icons-late'), 3, 2)]
+    strip('icons-late', [scaled(f, 20 / max(f.size), 24) for f in icons], 24, 24, anchor='center')
+
+
 def glacier_assets():
     for name in ('roots', 'camp', 'seracs', 'gallery', 'gate'):
         if have(f'bs-bg-glacier-{name}'):
@@ -859,6 +864,8 @@ def glacier_assets():
     opaque('mural-glacier', cover(load('bs-mural-glacier'), 4, 3), 160, 120, 48)
     icons = [bbox(drop_neighbours(f)) for f in cells(kload('bs-icons-glacier'), 4, 1)]
     strip('icons-glacier', [scaled(f, 20 / max(f.size), 24) for f in icons], 24, 24, anchor='center')
+    if have('bs-icons-late'):
+        late_weapon_icons()
     for hero in ('dora', 'enzo'):
         for suffix in ('', '-base'):
             if not have(f'bs-{hero}-glacier-work{suffix}'):
@@ -872,15 +879,25 @@ def glacier_assets():
             strip(f'{hero}-glacier', frames, 56, 49, parts=parts, lamps=lamps)
 
 
-if '--glacier' in sys.argv[2:]:
+if '--glacier' in sys.argv[2:] or '--late-icons' in sys.argv[2:]:
     # Run the same production importer without rewriting established areas during art iteration.
-    glacier_assets()
+    if '--late-icons' in sys.argv[2:]:
+        late_weapon_icons()
+    else:
+        glacier_assets()
     manifest = ROOT / 'lib' / 'bellspire-art.ts'
     old = manifest.read_text()
     header, rest = old.split('};', 1)
     header = '\n'.join(line for line in header.split('\n') if not any(line.startswith(f"  '{k}':") for k in MANIFEST))
-    header = header.rstrip('\n') + '\n' + ''.join(f"  '{k}': [{w}, {h}, {n}],\n" for k, (w, h, n) in MANIFEST.items())
-    manifest.write_text(header + '};' + rest)
+    lines = header.rstrip('\n').split('\n')
+    for k, (w, h, n) in MANIFEST.items():
+        entry = f"  '{k}': [{w}, {h}, {n}],"
+        if k == 'icons-late':
+            i = next(i for i, line in enumerate(lines) if line.startswith("  'icons-glacier':"))
+            lines.insert(i + 1, entry)
+        else:
+            lines.append(entry)
+    manifest.write_text('\n'.join(lines) + '\n};' + rest)
     sys.exit(0)
 
 for hero in ('dora', 'enzo'):

@@ -423,7 +423,7 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
   ok(g.save.heroes.dora.hp > 5, 'some HP');
   g.save.food.tea = 0;
   ok(/No/.test(g.eat('tea') ?? ''), 'no tea left says so');
-  ok(Object.values(GEAR).every((x) => x.icon >= 0 && x.icon < ART.icons[2] + (ART['icons-glacier']?.[2] ?? 0)), 'every piece of gear has an icon');
+  ok(Object.values(GEAR).every((x) => x.icon >= 0 && x.icon < ART.icons[2] + (ART['icons-glacier']?.[2] ?? 0) + (ART['icons-late']?.[2] ?? 0)), 'every piece of gear has an icon');
 }
 
 // ─── a boss, from the door to the reward ──────────────────────────────────

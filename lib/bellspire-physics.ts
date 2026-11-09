@@ -52,6 +52,8 @@ export type Caps = {
   coyote: number; buffer: number;
   /** the Bell Rope (Dora); how much of a gust reaches the body (1 is all of it; the Windward Jacket takes less) */
   rope?: boolean; windMul?: number;
+  /** Sure grip (the Glacier Stair coats): ice coasts and turns twice as quickly, so a slide is half as long */
+  grip?: boolean;
   /** the guided Bell Rope (the helping hand): hooks catch themselves, the swing keeps itself, a jump flies to a target */
   ropeAssist?: boolean;
   /** the Bell Hammer (Dora): ↓ + attack in the air slams down */
@@ -492,7 +494,7 @@ export function stepBody(b: Body, inp: BodyInput, env: Env, caps: Caps) {
     const w = b.swim ? 0 : (env.wind?.(b.x, b.y - HERO_H / 2) ?? 0) * (caps.windMul ?? 1);
     b.gust = w;
     const target = dir * top * (slick ? ICE_SPEED : 1) + (b.ground ? (dir !== 0 ? w * WIND_RUN : 0) : w * WIND_AIR);
-    const acc = slick ? dir === 0 ? ICE_COAST : b.vx * dir < 0 ? ICE_REVERSE : ICE_ACCEL
+    const acc = slick ? (dir === 0 ? ICE_COAST : b.vx * dir < 0 ? ICE_REVERSE : ICE_ACCEL) * (caps.grip && dir * b.vx <= 0 ? 2 : 1)
       : b.swim ? 0.18 : b.ground ? 0.5 : 0.36;
     if (Math.abs(b.vx) > Math.abs(target) && Math.abs(b.vx) > top && Math.sign(b.vx) === Math.sign(target) && !b.ground) b.vx -= Math.sign(b.vx) * 0.08;
     else if (b.vx < target) b.vx = Math.min(target, b.vx + acc);

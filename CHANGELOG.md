@@ -12,6 +12,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Sunken Bellspire**: the expansions' gear now matters. The Salt Road, Night Orchard and Glacier Stair coats each have a perk for their area: **Caravan stamina** (HP slowly comes back outside guardian fights), **Harvest** (foes drop more healing) and **Sure grip** (slide half as far on ice). Six new weapons, a staff for Enzo from each area's first guardian and a blade for Dora from its second: the Tally Bell Staff and Saltglass Sabre, the Bloomwood Staff and Graftwood Blade, and the Sunpass Lamp and Sunpass Blade. Saves that already calmed those guardians receive the weapons on load.
+
 - **Sunken Bellspire**: the Glacier Stair's slick floors in Ice Falls and Blue Hollows now have painted clear pale-blue ice over each area's own stone, with a bright rim and small glints that match the surrounding art.
 
 - **Sunken Bellspire**: the Glacier Stair's ice floors now look like a glaze over the painted stone instead of flat cyan slabs, its ledges have a cool lit edge, and the flat rooms have steps: platforms at the Root Lift Landing, a mesa at Phuyu's Camp, stone blocks at the First Thaw, a stair onto an ice shelf on The Slide, an outcrop in the Mirror Gallery, two ledges in the Glass-Horn Vicuña's arena, and a two-ledge lookout in the Cold Vault.

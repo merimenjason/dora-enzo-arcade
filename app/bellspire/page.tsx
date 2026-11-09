@@ -69,6 +69,10 @@ function epilogueEarned(s: Save | null) {
 
 // (strip sizes come from the art manifest, so a strip that grows never squeezes its frames)
 function Icon({ i, size = 2, title }: { i: number; size?: number; title?: string }) {
+  if (i >= 68) {
+    const [w, h, n] = ART['icons-late'];
+    return <span className="bs-icon" title={title} style={{ width: w * size, height: h * size, backgroundImage: 'url(/art/bellspire/icons-late.webp)', backgroundSize: `${n * w * size}px ${h * size}px`, backgroundPosition: `${-(i - 68) * w * size}px 0` }} />;
+  }
   if (i >= 64) {
     const [w, h, n] = ART['icons-glacier'];
     return <span className="bs-icon" title={title} style={{ width: w * size, height: h * size, backgroundImage: 'url(/art/bellspire/icons-glacier.webp)', backgroundSize: `${n * w * size}px ${h * size}px`, backgroundPosition: `${-(i - 64) * w * size}px 0` }} />;
@@ -1180,6 +1184,7 @@ const PERK_TEXT: Record<Perk, string> = {
   crit: 'Some hits land twice as hard', quick: 'Runs a little faster', secrets: 'Cracked walls shine', xp: 'A quarter more XP',
   windward: 'Gusts push half as hard', notes: 'Echo notes last twice as long',
   cool: 'The forge heat builds half as fast', tempered: '+3 DEF', keen: '+3 ATK', focus: '+3 MAG',
+  mend: 'HP slowly comes back outside guardian fights', harvest: 'Foes drop more healing', grip: 'Slides half as far on ice',
 };
 /** What wearing an item would change for a hero: each stat before and after, and perks gained or lost. */
 function compareGear(save: Save, hero: HeroId, slot: Slot, id: string) {

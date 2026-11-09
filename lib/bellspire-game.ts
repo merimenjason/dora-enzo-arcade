@@ -632,6 +632,8 @@ export class BellspireGame {
     // an old save where Ukumari opened the throne before every guardian was calm: the seals hold it shut again
     // (unless the story is already over)
     if (this.flag('keeper') && !this.flag('ending') && !this.flag('boss:mother') && this.restless().length) this.save.flags = this.save.flags.filter((f) => f !== 'keeper');
+    // a save from before the expansions' weapons (09-11-2026): guardians already calm still hand over their gear
+    for (const [id, boss] of Object.entries(BOSSES)) if (this.flag(`boss:${id}`)) for (const r of boss.reward) if (r.startsWith('gear:') && !this.save.gear.includes(r.slice(5))) this.save.gear.push(r.slice(5));
     if (this.save.heroes.dora.down && this.save.heroes.enzo.down) { this.save.heroes.dora.down = false; this.save.heroes.dora.hp = 1; this.lead = 'dora'; }
     const start = this.shrineSpot(this.save.shrine) ?? this.startSpot();
     this.room = roomOfPoint(start.x, start.y - 4)!;
@@ -984,7 +986,7 @@ export class BellspireGame {
       wallkick: h === 'dora' && this.has('wallkick'), glide: h === 'enzo' && this.has('glide'), deep: this.has('deep'), slam: h === 'dora' && this.has('hammer'),
       swimMul: this.perk(h, 'swim') ? 1.3 : 1, coyote: this.settings.assist ? 9 : 6, buffer: this.settings.assist ? 9 : 6,
       icePick: h === 'dora' && (this.has('icepick') || this.glacierPracticePick()) && this.glacier !== null,
-      rope: h === 'dora' && this.has('rope'), windMul: this.perk(h, 'windward') ? 0.5 : 1,
+      rope: h === 'dora' && this.has('rope'), windMul: this.perk(h, 'windward') ? 0.5 : 1, grip: this.perk(h, 'grip'),
       // the guided rope is the helping hand's; Strict keeps the free swing
       ropeAssist: h === 'dora' && this.has('rope') && this.settings.assist && !this.settings.strict,
     };
@@ -1426,7 +1428,9 @@ export class BellspireGame {
       this.gainXp(f.xp);
       this.emit({ k: 'num', x: e.x, y: e.y - f.h, n: f.xp, kind: 'xp' });
       this.dropCoins(e.x, e.y - f.h / 2, f.coins);
-      if (this.rand() < 0.22) this.pickups.push({ id: this.nextId++, kind: this.rand() < 0.5 ? 'mp' : 'hp', x: e.x, y: e.y - f.h / 2, vy: -2, amount: 4, t: 0 });
+      // Harvest (the Night Orchard coats): drops come more often and heal more
+      const harvest = ALL_HEROES.some((h) => this.perk(h, 'harvest'));
+      if (this.rand() < (harvest ? 0.4 : 0.22)) this.pickups.push({ id: this.nextId++, kind: this.rand() < 0.5 ? 'mp' : 'hp', x: e.x, y: e.y - f.h / 2, vy: -2, amount: harvest ? 10 : 4, t: 0 });
     }
   }
 
@@ -2055,6 +2059,8 @@ export class BellspireGame {
         const s = this.save.heroes[h];
         if (s.down) continue;
         s.mp += this.perk(h, 'regen') ? 2 : 1;
+        // Caravan stamina (the Salt Road coats): HP too, but never while a guardian is awake
+        if (this.perk(h, 'mend') && !this.boss) s.hp += 3;
         this.clampHero(h);
       }
     }

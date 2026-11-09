@@ -96,15 +96,15 @@ export const SPELLS: Record<SpellId, { name: string; hero: HeroId; mp: number; h
 };
 
 export type Slot = 'weapon' | 'coat' | 'ring' | 'relic';
-export type Perk = 'fast' | 'reach' | 'cheapchime' | 'bright' | 'sturdy' | 'swim' | 'lucky' | 'regen' | 'crit' | 'quick' | 'secrets' | 'xp' | 'windward' | 'notes' | 'cool' | 'tempered' | 'keen' | 'focus';
+export type Perk = 'fast' | 'reach' | 'cheapchime' | 'bright' | 'sturdy' | 'swim' | 'lucky' | 'regen' | 'crit' | 'quick' | 'secrets' | 'xp' | 'windward' | 'notes' | 'cool' | 'mend' | 'harvest' | 'grip' | 'tempered' | 'keen' | 'focus';
 export type Gear = { name: string; slot: Slot; hero?: HeroId; atk?: number; def?: number; mag?: number; hp?: number; mp?: number; perk?: Perk; text: string; icon: number };
 export const GEAR: Record<string, Gear> = {
-  'dora-salt-coat': { name: 'Salt-Road Wrap', slot: 'coat', hero: 'dora', def: 7, text: 'A plum caravan tunic with felt gaiters.', icon: 50 },
-  'enzo-salt-coat': { name: 'Waxed Haul Coat', slot: 'coat', hero: 'enzo', def: 7, text: 'A slate coat with a broad ochre hem.', icon: 51 },
-  'dora-glacier-coat': { name: 'Saffron Pass Coat', slot: 'coat', hero: 'dora', def: 8, text: 'A quilted saffron mountaineer’s coat with burgundy lining.', icon: 66 },
-  'enzo-glacier-coat': { name: 'Indigo Drift Parka', slot: 'coat', hero: 'enzo', def: 8, text: 'Deep indigo wool with pale fleece at the cuffs.', icon: 67 },
-  'dora-orchard-coat': { name: 'Harvest Tunic', slot: 'coat', hero: 'dora', def: 7, text: 'An ochre field tunic with a brown hem.', icon: 58 },
-  'enzo-orchard-coat': { name: 'Graft Keeper’s Coat', slot: 'coat', hero: 'enzo', def: 7, text: 'An olive orchard coat with pale sage trim.', icon: 59 },
+  'dora-salt-coat': { name: 'Salt-Road Wrap', slot: 'coat', hero: 'dora', def: 7, perk: 'mend', text: 'A plum caravan tunic with felt gaiters. Caravan stamina: HP slowly comes back outside guardian fights.', icon: 50 },
+  'enzo-salt-coat': { name: 'Waxed Haul Coat', slot: 'coat', hero: 'enzo', def: 7, perk: 'mend', text: 'A slate coat with a broad ochre hem. Caravan stamina: HP slowly comes back outside guardian fights.', icon: 51 },
+  'dora-glacier-coat': { name: 'Saffron Pass Coat', slot: 'coat', hero: 'dora', def: 8, perk: 'grip', text: 'A quilted saffron mountaineer’s coat with burgundy lining. Sure grip: slide half as far on ice.', icon: 66 },
+  'enzo-glacier-coat': { name: 'Indigo Drift Parka', slot: 'coat', hero: 'enzo', def: 8, perk: 'grip', text: 'Deep indigo wool with pale fleece at the cuffs. Sure grip: slide half as far on ice.', icon: 67 },
+  'dora-orchard-coat': { name: 'Harvest Tunic', slot: 'coat', hero: 'dora', def: 7, perk: 'harvest', text: 'An ochre field tunic with a brown hem. Harvest: foes drop healing more often, and it heals more.', icon: 58 },
+  'enzo-orchard-coat': { name: 'Graft Keeper’s Coat', slot: 'coat', hero: 'enzo', def: 7, perk: 'harvest', text: 'An olive orchard coat with pale sage trim. Harvest: foes drop healing more often, and it heals more.', icon: 59 },
   'bronze-sword': { name: 'Bronze Sword', slot: 'weapon', hero: 'dora', atk: 2, text: 'Short, light and sharp enough.', icon: 0 },
   'reed-cutter': { name: 'Reed-Cutter', slot: 'weapon', hero: 'dora', atk: 5, perk: 'fast', text: 'A curved green blade. Swings come round faster.', icon: 1 },
   moonsteel: { name: 'Moonsteel Blade', slot: 'weapon', hero: 'dora', atk: 9, perk: 'reach', text: 'Silver and cold. A longer arc.', icon: 2 },
@@ -131,6 +131,13 @@ export const GEAR: Record<string, Gear> = {
   'ash-smock': { name: 'Ashwork Smock', slot: 'coat', hero: 'enzo', def: 5, mp: 6, perk: 'cool', text: 'Charcoal felt with brass buckles and a folded hood. +6 MP, and the forge heat builds half as fast.', icon: 43 },
   'obsidian-edge': { name: 'Obsidian Edge', slot: 'weapon', hero: 'dora', atk: 16, perk: 'keen', text: 'A blade of black volcanic glass. Very sharp, and keener still.', icon: 46 },
   'ladle-staff': { name: 'Founder’s Ladle', slot: 'weapon', hero: 'enzo', atk: 11, mag: 13, perk: 'focus', text: 'A staff topped with a little glowing ladle of bronze. Its magic runs hot.', icon: 47 },
+  // the expansions' weapons (09-11-2026): each area's first guardian gives Enzo a staff, its second Dora a blade
+  'tally-staff': { name: 'Tally Bell Staff', slot: 'weapon', hero: 'enzo', atk: 13, mag: 15, perk: 'regen', text: 'Slate-grey wood bound in ochre cord, with a pack bell and a rock-salt lantern. MP slowly comes back.', icon: 68 },
+  'salt-sabre': { name: 'Saltglass Sabre', slot: 'weapon', hero: 'dora', atk: 20, perk: 'crit', text: 'A curved blade of clear pink salt crystal. Some hits land twice as hard.', icon: 69 },
+  'bloom-staff': { name: 'Bloomwood Staff', slot: 'weapon', hero: 'enzo', atk: 14, mag: 17, perk: 'focus', text: 'Pale birch wound with a living vine, with a blossom lantern. Its magic runs hot.', icon: 70 },
+  'graft-blade': { name: 'Graftwood Blade', slot: 'weapon', hero: 'dora', atk: 21, perk: 'fast', text: 'Olive-gold grafted wood with a bronze edge. Swings come round faster.', icon: 71 },
+  'sun-lamp': { name: 'Sunpass Lamp', slot: 'weapon', hero: 'enzo', atk: 16, mag: 20, perk: 'bright', text: 'A brass staff with a sun-disc lantern in a mirror ring. The lantern shines much further.', icon: 72 },
+  'sun-blade': { name: 'Sunpass Blade', slot: 'weapon', hero: 'dora', atk: 24, perk: 'keen', text: 'Clear glacier ice with a gold sun-ray guard. Very sharp, and keener still.', icon: 73 },
   'cinder-charm': { name: 'Cinder Charm', slot: 'relic', perk: 'tempered', text: 'An ember that never goes out, in a little iron cage. Tempered: +3 defence.', icon: 45 },
 };
 /** What each perk adds to the numbers (the rest change how things work): Tupa's recasts use these too. */
@@ -165,14 +172,14 @@ export const BOSSES: Record<BossId, { name: string; title: string; hp: number; a
   tune: { name: 'The Out-of-Tune Bell', title: 'The Belfry’s Sour Heart', hp: 1300, atk: 24, xp: 1000, reward: [] },
   founder: { name: 'The Molten Founder', title: 'Smith of the Casting Halls', hp: 1250, atk: 27, xp: 1100, reward: ['ability:resonance', 'heart'] },
   choir: { name: 'The Glass Choir', title: 'Three Voices in the Glass', hp: 1000, atk: 27, xp: 1200, reward: ['gear:ladle-staff', 'drop'] },
-  weighmaster: { name: 'Whiteback Weighmaster', title: 'The Last Pack Llama', hp: 660, atk: 22, xp: 1350, reward: ['heart'] },
-  panback: { name: 'Panback Armadillo', title: 'Keeper of the Weighing Pan', hp: 820, atk: 24, xp: 1450, reward: ['drop'] },
+  weighmaster: { name: 'Whiteback Weighmaster', title: 'The Last Pack Llama', hp: 660, atk: 22, xp: 1350, reward: ['heart', 'gear:tally-staff'] },
+  panback: { name: 'Panback Armadillo', title: 'Keeper of the Weighing Pan', hp: 820, atk: 24, xp: 1450, reward: ['drop', 'gear:salt-sabre'] },
   tollkeeper: { name: 'The Last Tollkeeper', title: 'Guardian of the Caravan Road', hp: 1000, atk: 25, xp: 1750, reward: ['heart'] },
   hollow: { name: 'The Hollow Bell', title: 'The Bell Cast Without a Voice', hp: 1600, atk: 26, xp: 1500, reward: [] },
-  'bracken-stag': { name: 'The Bracken Stag', title: 'Watcher of the Nursery', hp: 720, atk: 20, xp: 1500, reward: ['drop'] },
-  rootback: { name: 'The Rootback', title: 'Keeper of the Cistern', hp: 860, atk: 22, xp: 1600, reward: ['heart'] },
-  'glass-vicuna': { name: 'The Glass-Horn Vicuña', title: 'The Road Above the Snowline', hp: 720, atk: 22, xp: 1600, reward: [] },
-  'serac-osjollo': { name: 'The Serac Osjollo', title: 'The Hunter in the Blue Ice', hp: 850, atk: 24, xp: 1800, reward: [] },
+  'bracken-stag': { name: 'The Bracken Stag', title: 'Watcher of the Nursery', hp: 720, atk: 20, xp: 1500, reward: ['drop', 'gear:bloom-staff'] },
+  rootback: { name: 'The Rootback', title: 'Keeper of the Cistern', hp: 860, atk: 22, xp: 1600, reward: ['heart', 'gear:graft-blade'] },
+  'glass-vicuna': { name: 'The Glass-Horn Vicuña', title: 'The Road Above the Snowline', hp: 720, atk: 22, xp: 1600, reward: ['gear:sun-lamp'] },
+  'serac-osjollo': { name: 'The Serac Osjollo', title: 'The Hunter in the Blue Ice', hp: 850, atk: 24, xp: 1800, reward: ['gear:sun-blade'] },
   'sun-gate': { name: 'The Sun Gate Warden', title: 'The Face of the High Pass', hp: 980, atk: 26, xp: 2100, reward: [] },
   'graft-mother': { name: 'The Mother of Grafts', title: 'Heart Beneath the Orchard', hp: 1040, atk: 24, xp: 1850, reward: [] },
 };
