@@ -3,11 +3,11 @@
 import {
   ROOMS, AREAS, COLS, ROWS, TILE, SCREEN_W, SCREEN_H, ABILITIES, ABILITY_ORDER, SPELLS, GEAR, START_EQUIP, FOOD, SHOP, BOSSES, MURALS,
   SCRIPTS, WATER_AREAS, SHRINE_NAMES, GUARDIANS, GUARDIAN_AREA, BELFRY_GUARDIANS, BELFRY_AREAS, WIND_AREAS, ALL_BOSSES, abilityIcon,
-  FOUNDRY_GUARDIANS, FOUNDRY_AREAS, SALT_GUARDIANS, ORCHARD_GUARDIANS, PERK_STATS, RECAST_PERKS, RECAST_PRICE, crystalSpans, isOrchardRoom,
+  GLACIER_GUARDIANS, FOUNDRY_GUARDIANS, FOUNDRY_AREAS, SALT_GUARDIANS, ORCHARD_GUARDIANS, PERK_STATS, RECAST_PERKS, RECAST_PRICE, crystalSpans, isOrchardRoom,
   type Room, type AreaId, type Ability, type HeroId, type SpellId, type Slot, type FoodId, type BossId, type Line, type WaterArea, type Perk, type WindArea,
 } from './bellspire-world.js';
 import { BOXES, FOE_BODY } from './bellspire-art.js';
-import { newBody, stepBody, support, hookInReach, ropeAim, GRAV, MAX_FALL, ropeBail, boxClear, ASSIST_REACH, HERO_W, HERO_H, RUN, type Body, type Env, type Caps, type BodyInput, type RopeAim } from './bellspire-physics.js';
+import { newBody, stepBody, support, onIce, hookInReach, ropeAim, GRAV, MAX_FALL, ropeBail, boxClear, ASSIST_REACH, HERO_W, HERO_H, RUN, type Body, type Env, type Caps, type BodyInput, type RopeAim } from './bellspire-physics.js';
 /** The hook the guided rope is coming up to: bright (with a faint rope to it) when her fall as it goes now will bring
  *  her within reach in the next half second, so it will catch; faint when it's near (within twice the reach) but she
  *  needs more height or to get closer. */
@@ -30,6 +30,8 @@ function nearHook(env: Env, b: Body) {
 }
 
 import { SALT_GATE } from './bellspire-salt-world.js';
+import { GlacierTerrain, glacierPoint, savedFall, GLACIER_TELL } from './bellspire-glacier.js';
+import { GLACIER_GATE, GLACIER_RETURN, GLACIER_VAULT, GLACIER_VAULT_DOOR, GLACIER_VAULT_FROM, ROOT_LIFT, SLICK, glacierTile, isGlacierRoom } from './bellspire-glacier-world.js';
 import { graftFlag, graftSpans, ORCHARD_EXIT, ORCHARD_GATE, ORCHARD_RETURN } from './bellspire-orchard-world.js';
 import { SaltLift } from './bellspire-salt-lift.js';
 
@@ -63,14 +65,14 @@ export function rawChar(c: number, r: number): string {
 export const DOOR_CHARS = 'djlkcubynZ89&V>';
 /** The doors an ability opens by touch (or, for the lantern and the chime, by light and by ringing). */
 export const DOOR_ABILITY: Record<string, Ability> = { d: 'dash', j: 'double', k: 'wallkick', l: 'lantern', c: 'chime', y: 'rope', n: 'echo', '8': 'hammer', '&': 'resonance' };
-export const TERRAIN = '#=Hgx^f~_:+';
+export const TERRAIN = '#=Hgx^f~_:+-|';
 /** The tile under a placed thing is air. */
 export const baseChar = (ch: string) => (TERRAIN.includes(ch) || DOOR_CHARS.includes(ch) ? ch : '.');
 
 export type Thing = { ch: string; c: number; r: number; i: number; room: string };
 export type Group = { id: string; ch: string; tiles: [number, number][]; horiz: boolean; c: number; r: number; w: number; h: number };
 export type RoomInfo = { room: Room; things: Thing[]; doors: Group[]; walls: Group[]; floats: { c0: number; c1: number; r: number }[]; hooks: { x: number; y: number }[] };
-const THING_CHARS = 'SMRCABOU@Titwhv' + 'oQWPD' + 'FmerKIazJG' + 'YXLE' + 'N%*!12345678?;,q[]{}';
+const THING_CHARS = 'SMRCABOU@Titwhv' + 'oQWPD' + 'FmerKIazJG' + 'YXLE' + 'N%*!12345678?;,q[]{}()/';
 export const FOE_CHARS: Record<string, FoeKind> = {
   F: 'frog', m: 'moth', e: 'eel', r: 'reed', K: 'condor', I: 'imp', a: 'shell', z: 'vizcacha', J: 'jelly', G: 'golem',
   Y: 'gust', X: 'hawk', L: 'clapper', E: 'beetle',
@@ -157,9 +159,9 @@ for (const room of ROOMS) {
   for (let x = 0; x < W; x++) edge.push([c0 + x, r0, 0, -1], [c0 + x, r0 + H - 1, 0, 1]);
   for (let y = 0; y < H; y++) edge.push([c0, r0 + y, -1, 0], [c0 + W - 1, r0 + y, 1, 0]);
   for (const [c, r, dx, dy] of edge) {
-    if ('#^'.includes(rawChar(c, r))) continue;
+    if ('#^-'.includes(rawChar(c, r))) continue;
     const n = roomOfTile(c + dx, r + dy);
-    if (n && n.id !== room.id && !'#^'.includes(rawChar(c + dx, r + dy))) list.push({ from: room.id, to: n.id, c, r });
+    if (n && n.id !== room.id && !'#^-'.includes(rawChar(c + dx, r + dy))) list.push({ from: room.id, to: n.id, c, r });
   }
   LINKS.set(room.id, list);
 }
@@ -177,7 +179,7 @@ const FOUNDRY_ROOMS_SET = new Set(ROOMS.filter((r) => r.fd).map((r) => r.id));
 export const isFoundryRoom = (id: string) => FOUNDRY_ROOMS_SET.has(id);
 export const MAP_EXITS: MapExit[] = (() => {
   const out: MapExit[] = [];
-  const open = (c: number, r: number) => !'#^'.includes(rawChar(c, r));
+  const open = (c: number, r: number) => !'#^-'.includes(rawChar(c, r));
   for (const room of ROOMS) for (let y = 0; y < room.h; y++) for (let x = 0; x < room.w; x++) {
     const cx = room.gx + x, cy = room.gy + y;
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
@@ -216,7 +218,7 @@ export const COMPLETION = (() => {
   const count = (exp: boolean | null, fd = true) => {
     let cells = 0, chests = 0, pedestals = 0, murals = 0;
     for (const r of ROOMS) {
-      if (r.salt || isOrchardRoom(r)) continue; // The Foundry epilogue retains its original requirements.
+      if (r.salt || isOrchardRoom(r) || isGlacierRoom(r)) continue; // The Foundry epilogue retains its original requirements.
       if (exp !== null && !!r.exp !== exp) continue;
       if (!fd && r.fd) continue;
       cells += r.w * r.h; murals += r.murals?.length ?? 0;
@@ -229,7 +231,10 @@ export const COMPLETION = (() => {
   const orchard = ROOMS.filter(isOrchardRoom).reduce((n, r) => ({
     cells: n.cells + r.w * r.h, chests: n.chests + (r.chests?.length ?? 0), murals: n.murals + (r.murals?.length ?? 0), bosses: n.bosses,
   }), { cells: 0, chests: 0, murals: 0, bosses: ORCHARD_GUARDIANS.length });
-  return { ...count(null), bosses: ALL_BOSSES.length, salt, orchard, base: { ...count(false), bosses: BASE_BOSSES.length }, belfry: { ...count(null, false), bosses: BELFRY_BOSSES.length } };
+  const glacier = ROOMS.filter(isGlacierRoom).reduce((n, r) => ({
+    cells: n.cells + r.w * r.h, chests: n.chests + (r.chests?.length ?? 0), murals: n.murals + (r.murals?.length ?? 0), bosses: n.bosses,
+  }), { cells: 0, chests: 0, murals: 0, bosses: GLACIER_GUARDIANS.length });
+  return { ...count(null), bosses: ALL_BOSSES.length, salt, orchard, glacier, base: { ...count(false), bosses: BASE_BOSSES.length }, belfry: { ...count(null, false), bosses: BELFRY_BOSSES.length } };
 })();
 
 // ─── the Echo Trials (at any lit shrine once the Out-of-Tune Bell is calm) ──────────
@@ -504,7 +509,7 @@ export type GameEvent =
   | { k: 'hit'; x: number; y: number; big: boolean; color?: string }
   | { k: 'shake'; n: number }
   | { k: 'flash'; color: string; n: number }
-  | { k: 'save' } | { k: 'shop' } | { k: 'mural'; n: number } | { k: 'ending'; full: boolean; belfry?: boolean; foundry?: boolean; salt?: boolean; orchard?: boolean }
+  | { k: 'save' } | { k: 'shop' } | { k: 'mural'; n: number } | { k: 'ending'; full: boolean; belfry?: boolean; foundry?: boolean; salt?: boolean; orchard?: boolean; glacier?: boolean }
   /** Tupa's forge opened; cracked glass shattered; a prism's beam to a door; a channel frosted; a slam landed */
   | { k: 'forge' } | { k: 'shatter'; x: number; y: number } | { k: 'beam'; x: number; y: number; tx: number; ty: number } | { k: 'frost'; x: number; y: number; w: number }
   | { k: 'slam'; x: number; y: number; bounce: boolean }
@@ -713,8 +718,26 @@ export class BellspireGame {
     const dx = c * TILE + 8 - e.x, dy = r * TILE + 8 - e.y;
     return dx * dx + dy * dy < (this.lanternR - 6) ** 2;
   }
+  glacier: GlacierTerrain | null = null;
+  glacierWork = 0;
+  glacierClimbing = false;
+
+  glacierPracticePick() {
+    if (this.room.id !== 'glacier-slide') return false;
+    const c = Math.floor(this.body.x / TILE) - this.room.gx * COLS;
+    return (c >= 12 && c <= 23) || (c >= 37 && c <= 44);
+  }
+
+  glacierKnown() { return this.flag('boss:graft-mother') || this.flag('glacier:visited'); }
+  glacierGeometry(c: number, r: number) {
+    const room = roomOfTile(c, r);
+    if (!room?.glacier) return null;
+    return glacierTile(room, c, r, COLS, ROWS, i => room === this.room && this.glacier ? this.glacier.state(i) : savedFall(room, i, f => this.flag(f)));
+  }
+
   solidTile(c: number, r: number): boolean {
     const ch = rawChar(c, r);
+    if (ch === SLICK || this.glacier && this.glacierGeometry(c, r)?.solid) return true;
     if (ch === '#' || ch === '^' || ch === '~' || ch === '_' || ch === ':' || ch === '+') return true;
     if (ch === 'x') { const g = groupAt(c, r); return !g || !this.wallBroken(g); }
     if (DOOR_CHARS.includes(ch)) { const g = groupAt(c, r); return !g || !this.doorOpen(g); }
@@ -730,6 +753,7 @@ export class BellspireGame {
   ladderTile(c: number, r: number): boolean {
     const ch = rawChar(c, r);
     if (ch === 'H') return true;
+    if (this.glacier && this.lead === 'dora' && this.has('icepick') && this.glacierGeometry(c, r)?.climb) return true;
     if (DOOR_CHARS.includes(ch)) {
       const g = groupAt(c, r);
       if (g && g.horiz && this.doorOpen(g) && (rawChar(c, r - 1) === 'H' || rawChar(c, r + 1) === 'H')) return true;
@@ -876,6 +900,7 @@ export class BellspireGame {
     ladder: (c, r) => this.ladderTile(c, r),
     hazard: (c, r) => this.hazardTile(c, r),
     bouncy: (c, r) => rawChar(c, r) === '+',
+    ice: (c, r) => this.glacier !== null && rawChar(c, r) === SLICK,
     surface: (x, y) => this.surfaceAt(x, y),
     deep: (x, y) => { const room = roomOfPoint(x, y); return room && room.deep !== undefined ? (room.gy * ROWS + room.deep) * TILE : null; },
     floats: () => this.floatCache,
@@ -958,6 +983,7 @@ export class BellspireGame {
       speed: RUN[h] * quick, dash: h === 'dora' && this.has('dash'), double: h === 'dora' && this.has('double'),
       wallkick: h === 'dora' && this.has('wallkick'), glide: h === 'enzo' && this.has('glide'), deep: this.has('deep'), slam: h === 'dora' && this.has('hammer'),
       swimMul: this.perk(h, 'swim') ? 1.3 : 1, coyote: this.settings.assist ? 9 : 6, buffer: this.settings.assist ? 9 : 6,
+      icePick: h === 'dora' && (this.has('icepick') || this.glacierPracticePick()) && this.glacier !== null,
       rope: h === 'dora' && this.has('rope'), windMul: this.perk(h, 'windward') ? 0.5 : 1,
       // the guided rope is the helping hand's; Strict keeps the free swing
       ropeAssist: h === 'dora' && this.has('rope') && this.settings.assist && !this.settings.strict,
@@ -970,6 +996,9 @@ export class BellspireGame {
     if (this.boss?.calm && !this.flag(`boss:${this.boss.id}`)) this.bossDone();
     const prevRoom = this.room;
     this.room = room;
+    this.glacier = room.glacier ? new GlacierTerrain(room, f => this.flag(f), (f, v) => { if (v) this.setFlag(f); else this.save.flags = this.save.flags.filter(k => k !== f); }) : null;
+    this.glacierWork = 0;
+    this.glacierClimbing = false;
     this.enemies = []; this.shots = []; this.waves = []; this.rings = []; this.markers = []; this.arenaWater = null;
     this.planks.clear(); this.arenaWind = { dir: 1, str: 1 }; this.notes = this.notes.filter((n) => !n.key.startsWith('tune:'));
     this.pickups = this.pickups.filter((p) => p.kind === 'bag');
@@ -1057,6 +1086,7 @@ export class BellspireGame {
     for (const n of this.notes) n.t++;
     this.notes = this.notes.filter((n) => n.t < n.life);
     this.updateFrozen();
+    this.updateGlacier();
     for (const [c, t] of this.planks) { if (t <= 1) this.planks.delete(c); else this.planks.set(c, t - 1); }
 
     const lead = this.lead, rt = this.leadRt, b = this.body;
@@ -1064,14 +1094,17 @@ export class BellspireGame {
     if (this.tagCd > 0) this.tagCd--;
 
     // tag (not while Dora hangs on the rope or flies off it: Enzo can't hold it)
-    if (pressed.tag && (b.rope || b.fly)) { this.note('Dora’s on the rope. Tag once she’s on her feet.'); this.sfx('locked'); }
+    if (pressed.tag && this.glacierClimbing) { this.note('Step off the ice before tagging.'); this.sfx('locked'); }
+    else if (pressed.tag && (b.rope || b.fly)) { this.note('Dora’s on the rope. Tag once she’s on her feet.'); this.sfx('locked'); }
     else if (pressed.tag) this.tryTag();
+    const iceBrake = this.lead === 'dora' && (this.has('icepick') || this.glacierPracticePick()) && inp.down && inp.attack && onIce(this.env, b);
     let ropeP = false, slamP = false;
 
     // actions
     const busy = rt.hurtT > 0;
     if (!busy) {
-      if (pressed.attack && this.useOrchard('shear')) {
+      if (iceBrake) { if (rt.act?.kind === 'swing') rt.act = null; }
+      else if (pressed.attack && this.useOrchard('shear')) {
         // The cut is its own action, rather than also doing a normal sword swing.
       } else if (pressed.attack && !rt.act && this.canOpenTravel()) {
         // attack at a lit shrine, with nothing about to bite: the map opens for travel instead of a swing
@@ -1104,6 +1137,7 @@ export class BellspireGame {
         if (held >= GALE_HOLD && this.save.spells.includes('gale')) this.castGale();
         else if (held >= 24 && this.save.spells.includes('ember')) this.castEmber();
         else if (held >= 24 && !this.save.spells.includes('ember')) { this.note('Enzo hasn’t learned the Ember Ring yet. A tap of V casts the Lantern Bolt.'); this.castBolt(); }
+        else if (this.nearGlacierFall('water', 112) && this.save.spells.includes('frost')) this.castGlacierFrost();
         else if (!b.ground && !b.swim && this.save.spells.includes('frost')) this.castFrost();
         // on the ground by molten bronze, or facing the Molten Founder, the Frost Fan sweeps low across the floor
         else if (b.ground && this.save.spells.includes('frost') && (this.hotChannelNear(5 * TILE) || (this.boss?.id === 'founder' && !this.boss.calm))) this.castFrost(true);
@@ -1115,15 +1149,16 @@ export class BellspireGame {
       else if (!this.has('dash')) this.note('Dora hasn’t found the Reed Dash yet.');
     }
     const workedGraft = pressed.up && b.ground && !b.climb && this.useOrchard('bloom');
-    if (pressed.up && b.ground && !b.climb && !workedGraft) this.interact();
+    const workedMirror = pressed.up && b.ground && !b.climb && this.turnGlacierMirror();
+    if (pressed.up && b.ground && !b.climb && !workedGraft && !workedMirror) this.interact();
 
     // the body
     const act = rt.act;
     const rooted = (act && act.kind !== 'thrust' && b.ground && act.t < act.dur - 2) || rt.hurtT > 8;
     let dir: -1 | 0 | 1 = inp.left === inp.right ? 0 : inp.left ? -1 : 1;
-    const graftPose = this.orchardWork?.hero === this.lead && this.orchardWork.until - this.tick > 8;
+    const graftPose = (this.orchardWork?.hero === this.lead && this.orchardWork.until - this.tick > 8) || workedMirror || this.lead === 'enzo' && this.glacierWork - this.tick > 11;
     if ((rooted && act?.kind === 'cast') || graftPose) dir = 0;
-    const bin: BodyInput = { dir, up: inp.up && !graftPose, down: inp.down, jumpP: pressed.jump && !(act?.kind === 'cast') && !graftPose, jumpH: inp.jump, dashP: pressed.dash, ropeP, slamP };
+    const bin: BodyInput = { dir, up: inp.up && !graftPose, down: inp.down, jumpP: pressed.jump && !(act?.kind === 'cast') && !graftPose, jumpH: inp.jump, dashP: pressed.dash, ropeP, slamP, iceBrakeH: iceBrake };
     const wasSwim = b.swim, faceBefore = b.face;
     const caps = this.caps();
     if (rooted && b.ground && act?.kind === 'swing') { caps.speed *= 0.35; }
@@ -1155,6 +1190,7 @@ export class BellspireGame {
     if (lockFace) b.face = faceBefore;
     const climbing = b.climb;
     stepBody(b, bin, this.env, caps);
+    this.glacierClimbing = !!(this.glacier && b.climb && this.glacierGeometry(Math.floor(b.x / TILE), Math.floor((b.y - 9) / TILE))?.climb);
     if (lockFace) b.face = faceBefore;
     if (b.jumped) this.sfx(b.jumped === 'swim' ? 'stroke' : b.jumped === 'wall' ? 'kick' : b.jumped === 'air' ? 'leap' : 'jump');
     if (b.dashed) { this.sfx('dash'); rt.inv = Math.max(rt.inv, 14); }
@@ -1639,7 +1675,7 @@ export class BellspireGame {
     const info = INFO.get(this.room.id)!;
     let best: Thing | null = null, bd = 1e9;
     for (const t of info.things) {
-      if (!'SMRUCDN?;,q'.includes(t.ch)) continue;
+      if (!'SMRUCDN?;,q()/'.includes(t.ch)) continue;
       if (t.ch === 'C' && this.flag(`chest:${this.room.id}:${t.i}`)) continue;
       const dx = Math.abs(t.c * TILE + 8 - b.x), dy = Math.abs((t.r + 1) * TILE - b.y);
       const reach = t.ch === 'M' || t.ch === 'S' || t.ch === 'D' || t.ch === 'N' ? 30 : 20;
@@ -1654,6 +1690,9 @@ export class BellspireGame {
     if (t.ch === '?') return this.room.salt ? 'Return to the Foundry Gate' : this.saltKnown() ? 'Enter the Salt Road' : 'Inspect the old supply door';
     if (t.ch === ',') return isOrchardRoom(this.room) ? 'Return to the Tollhouse' : this.orchardKnown() ? 'Enter the Night Orchard' : 'Inspect the orchard wicket';
     if (t.ch === 'q') return 'Talk to Killa';
+    if (t.ch === '(') return this.room.id === GLACIER_GATE ? 'Take the root lift down' : this.glacierKnown() ? 'Take the root lift up' : 'Inspect the root lift';
+    if (t.ch === ')') return 'Talk to Phuyu';
+    if (t.ch === '/') return this.room.id === GLACIER_VAULT ? 'Return to Meltwater Run' : 'Enter the Cold Vault';
     return ({ ';': 'Talk to Suma', S: 'Rest and save', M: 'Talk to Wayra', R: 'Read the mural', U: 'Talk to Ukumari', C: 'Open the chest', D: 'Take Wayra’s boat', N: 'Talk to Tupa' } as Record<string, string>)[t.ch] ?? null;
   }
   interact() {
@@ -1670,6 +1709,22 @@ export class BellspireGame {
     if (this.useSaltGuardian()) return;
     const best = this.nearby();
     if (!best) return;
+    if (best.ch === '(' || best.ch === '/') {
+      if (best.ch === '(' && !this.glacierKnown()) { this.note('The root lift will wake when the Mother of Grafts is calm.'); return; }
+      if (best.ch === '(') {
+        if (this.room.id === GLACIER_GATE) this.teleport(GLACIER_RETURN, ...ROOT_LIFT);
+        else { this.setFlag('glacier:visited'); this.teleport(GLACIER_GATE, 3, 14); }
+      } else if (this.room.id === GLACIER_VAULT) this.teleport(GLACIER_VAULT_FROM, ...GLACIER_VAULT_DOOR);
+      else this.teleport(GLACIER_VAULT, 3, 14);
+      this.sfx('door'); this.emit({ k: 'save' });
+      return;
+    }
+    if (best.ch === ')') {
+      const camp = this.room.id === 'glacier-camp';
+      this.say([{ who: 'phuyu', text: camp ? 'Take my Sun Mirror, Enzo. Turn it in a brass socket where there is light. The beam will make the ice run.' : 'Welcome above the snowline. Let the ice carry you, then plant your boots on stone. My camp is up the road.' }]);
+      this.sfx('talk');
+      return;
+    }
     if (best.ch === ',') {
       const back = isOrchardRoom(this.room);
       if (!back && !this.orchardKnown()) { this.note('The orchard wicket opens after the Tollkeeper is calm.'); return; }
@@ -2486,6 +2541,9 @@ export class BellspireGame {
     const b = this.boss!;
     if (b.calm || b.st === 'wait' || b.st === 'intro' || b.vis < 0.5) return;
     const part = (h as (Rect & { part?: number }) | undefined)?.part;
+    if (this.glacier && (b.st !== 'glacierOpen' || this.lead !== 'dora' || spell)) {
+      this.sfx('clank', x, y); return;
+    }
     if (b.id === 'founder') {
       // the Molten Founder: Enzo's frost leaves a cold spot where it lands; only there does a blade bite (and hard).
       // Other spells only singe it. With Enzo knocked out, every hit counts, so the fight can't stall
@@ -2570,11 +2628,11 @@ export class BellspireGame {
       // the fight starts once both heroes are through the door
       const rr = this.bossRoomRect();
       // (the frog's, the clappers' and the bell's doors are on the east: the fight starts a few steps inside)
-      const fromEast = this.room.id === 'idol' || this.room.id === 'clapperloft' || this.room.id === 'belltop' || this.room.id === 'choir' || b.id === 'panback';
+      const fromEast = this.room.id === 'idol' || this.room.id === 'clapperloft' || this.room.id === 'belltop' || this.room.id === 'choir' || b.id === 'panback' || b.id === 'glass-vicuna';
       // and never while a hero is still climbing up under a boss door that would shut over them (the condor bridge's
       // hatch from the bannerwalk)
       const under = INFO.get(this.room.id)!.doors.some((d) => d.ch === 'b' && this.body.x >= d.c * TILE && this.body.x <= (d.c + d.w) * TILE && this.body.y > d.r * TILE + 2);
-      const inside = !under && (fromEast ? this.body.x < rr.x + rr.w - 4 * TILE : this.body.x > rr.x + 3 * TILE);
+      const inside = !under && (!this.glacier || this.body.ground && !this.body.climb) && (fromEast ? this.body.x < rr.x + rr.w - 4 * TILE : this.body.x > rr.x + 3 * TILE);
       if (inside) {
         this.bossEntry = { x: this.body.x, y: this.body.y };
         b.st = 'intro'; b.t = 0; b.dur = 90;
@@ -2603,6 +2661,7 @@ export class BellspireGame {
     else if (b.id === 'hollow') this.bossHollow(b);
     else if (b.id === 'weighmaster' || b.id === 'panback' || b.id === 'tollkeeper') this.updateSaltGuardian(b);
     else if (isOrchardRoom(this.room)) this.updateOrchardGuardian(b);
+    else if (this.glacier) this.updateGlacierGuardian(b);
     else this.bossMother(b);
     for (const h of b.harm) if (overlap(me, this.shrink(h, 2))) { this.hurtLead(BOSSES[b.id].atk, h.x + h.w / 2); break; }
     // falling things marked on the floor
@@ -2660,6 +2719,13 @@ export class BellspireGame {
       this.ended = true;
       this.emit({ k: 'save' });
       this.emit({ k: 'ending', full: false, orchard: true });
+    });
+    else if (b.id === 'sun-gate') this.say([
+      { who: 'phuyu', text: 'Look down. You can see the first carts coming up from the orchard.' },
+      { who: 'enzo', text: 'The whole pass is in the sun.' },
+    ], () => {
+      this.setFlag('glacier:ending'); this.ended = true;
+      this.emit({ k: 'save' }); this.emit({ k: 'ending', full: false, glacier: true });
     });
     else this.say(done, () => this.emit({ k: 'save' }));
     this.planks.clear(); this.arenaWind = { dir: 1, str: 1 }; this.notes = this.notes.filter((nn) => !nn.key.startsWith('tune:'));
@@ -3292,6 +3358,185 @@ export class BellspireGame {
       ability: b.st === 'orchardRest' ? 'bloom' as const : b.st === 'orchardCaught' ? 'shear' as const : null,
       waiting: b.id === 'bracken-stag' ? 'Let the stag catch its antlers' : b.id === 'rootback' ? 'Wait for its shell to lift' : 'Wait for the roots to settle',
     };
+  }
+
+  private nearGlacierSocket(range: number) {
+    const b = this.body;
+    const sockets = this.room.glacier?.sockets ?? [];
+    let best: { i: number; x: number; y: number } | null = null, dist = range;
+    for (const [i, s] of sockets.entries()) {
+      const p = glacierPoint(this.room, s.at[0], s.at[1] + 1);
+      const dx = Math.hypot(b.x - p.x, b.y - p.y);
+      if (dx < dist) { dist = dx; best = { i, ...p }; }
+    }
+    return best;
+  }
+
+  nearGlacierFall(state: 'water' | 'frozen', range: number) {
+    if (!this.glacier) return null;
+    const b = this.body;
+    let best: { i: number; x: number; y: number } | null = null, dist = range;
+    for (const [i, f] of (this.room.glacier?.falls ?? []).entries()) {
+      if (this.glacier.state(i) !== state) continue;
+      const o = roomRect(this.room), x0 = o.x + f.c * TILE, x1 = x0 + f.w * TILE;
+      const x = (x0 + x1) / 2, y = Math.min(o.y + f.bottom * TILE, Math.max(o.y + f.top * TILE, b.y));
+      const dx = Math.hypot(Math.max(x0 - b.x, b.x - x1, 0), y - b.y);
+      if (dx < dist) { dist = dx; best = { i, x, y }; }
+    }
+    return best;
+  }
+
+  private glacierBeam() {
+    const b = this.boss;
+    return b?.id === 'sun-gate' && (b.st === 'glacierTell' || b.st === 'glacierRush');
+  }
+
+  turnGlacierMirror() {
+    const t = this.nearGlacierSocket(32);
+    if (!t || !this.glacier) return false;
+    if (this.lead !== 'enzo' || !this.has('sunmirror')) { this.note('Enzo can turn this with the Sun Mirror.'); return true; }
+    if (this.boss?.st === 'intro' || this.boss?.st === 'wait') return true;
+    if (this.boss?.st === 'glacierOpen') return true;
+    if (!this.glacier.turn(t.i, this.tick, this.helping(), this.glacierBeam())) {
+      this.note(this.room.boss === 'sun-gate' ? 'Wait until the Warden’s eye lights up.' : 'No light reaches this socket. Turn the sunlit mirror first.');
+      this.sfx('locked'); return true;
+    }
+    this.body.vx = 0;
+    this.glacierWork = this.tick + 27;
+    this.sfx('chime', t.x, t.y);
+    this.emit({ k: 'pulse', x: t.x, y: t.y - 16, r: 130, color: [1, 0.83, 0.48] });
+    const b = this.boss;
+    if (b?.id === 'glass-vicuna' && b.st === 'glacierRest') this.go('glacierTell', GLACIER_TELL.vicuna, true);
+    if (b?.id === 'serac-osjollo' && !b.low) { b.low = 1; this.go('glacierDrop', 36); }
+    if (b?.id === 'sun-gate') this.go('glacierOpen', this.helping() ? 430 : 325);
+    if (!b && !this.room.glacier?.falls?.some(f => f.timed)) this.emit({ k: 'save' });
+    return true;
+  }
+
+  private castGlacierFrost() {
+    const f = this.nearGlacierFall('water', 112);
+    if (!this.glacier || !f) return;
+    // The terrain cast does no damage and costs no MP, so an empty lantern cannot strand the pair.
+    this.startAct('cast', 0, 'frost');
+    this.glacier.change(f.i, 'frozen', this.tick, this.helping());
+    this.sfx('frost', f.x, f.y - 28);
+    this.emit({ k: 'pulse', x: f.x, y: f.y - 24, r: 95, color: [0.63, 0.95, 1] });
+    if (!this.boss && !this.room.glacier?.falls?.[f.i].timed) this.emit({ k: 'save' });
+  }
+
+  private updateGlacier() {
+    if (!this.glacier) return;
+    const b = this.body, o = roomRect(this.room);
+    this.glacier.update(this.tick, this.helping(), i => {
+      const f = this.room.glacier?.falls?.[i];
+      if (!f) return false;
+      return overlap(this.leadRect(), { x: o.x + f.c * TILE, y: o.y + f.top * TILE, w: f.w * TILE, h: (f.bottom - f.top) * TILE });
+    }, b);
+    for (const i of this.glacier.icicles) {
+      if (i.stage === 'tell' && i.t === 0) this.sfx('crack', i.x, i.y);
+      if (i.stage === 'fall' && overlap(this.leadRect(), { x: i.x - 7, y: i.y, w: 14, h: 26 })) this.hurtLead(19, i.x);
+    }
+  }
+
+  glacierHint(): { x: number; y: number; keys: (keyof Input)[]; text: string } | null {
+    if (!this.glacier || !this.helping() || this.glacierClimbing) return null;
+    const b = this.body, boss = this.boss, lead = this.lead;
+    const at = (text: string, keys: (keyof Input)[] = [], x = b.x, y = b.y) => ({ text, keys, x, y });
+    if (boss?.st === 'glacierOpen') return lead === 'dora' ? at('Strike now', ['attack'], boss.x, boss.y) : at('Tag to Dora to strike', ['tag']);
+    const icicle = this.glacier.icicles.find(i => i.stage === 'tell' && Math.abs(b.x - i.x) < 66);
+    if (icicle) return at('Ice is shaking. Keep moving!', [], icicle.x, b.y);
+    const t = this.nearGlacierSocket(70);
+    const water = this.nearGlacierFall('water', 112);
+    const climbRoom = this.room.id !== 'glacier-first-thaw' && this.room.id !== 'glacier-mirrors' && boss?.id !== 'glass-vicuna';
+    if (water && climbRoom) return lead === 'enzo' ? at('Freeze the fall', ['cast'], water.x, water.y) : at('Tag to Enzo to freeze the fall', ['tag']);
+    const ice = this.nearGlacierFall('frozen', 38);
+    if (climbRoom && ice && this.has('icepick') && b.y > roomRect(this.room).y + (this.room.glacier?.falls?.[ice.i].top ?? 0) * TILE + 4) return lead === 'dora' ? at('Climb the ice', ['up'], ice.x, ice.y) : at('Tag to Dora to climb', ['tag']);
+    const c = Math.floor(b.x / TILE), r = Math.floor((b.y - 9) / TILE);
+    if (this.has('icepick') && [c - 1, c, c + 1].some(cx => this.glacierGeometry(cx, r)?.climb)) {
+      return lead === 'dora' ? at('Grip the ice wall', ['up']) : at('Tag to Dora to grip the ice', ['tag']);
+    }
+    const active = t && (!this.glacier.lit(t.i) || (boss && boss.st === 'glacierTell') || (this.room.glacier?.falls?.some(f => f.timed) && this.glacier.state(0) === 'plug'));
+    if (active && t && this.has('sunmirror')) {
+      if (!this.glacier.powered(t.i, this.glacierBeam())) return at(boss ? 'Wait for the Warden’s eye to shine' : 'This socket is in shadow. Turn the first mirror.', [], t.x, t.y);
+      return lead === 'enzo' ? at('Turn the mirror', ['up'], t.x, t.y) : at('Tag to Enzo to turn the mirror', ['tag']);
+    }
+    if ((this.has('icepick') || this.glacierPracticePick()) && lead === 'dora' && onIce(this.env, b) && Math.abs(b.vx) > 0.8 && !b.iceBraking) return at(this.has('icepick') ? 'Plant the Ice Pick to brake' : 'Try the tethered pick to brake', ['down', 'attack']);
+    if (this.room.id === 'glacier-landing' && onIce(this.env, b) && Math.abs(b.vx) > 0.5) return at('Let go to coast. Stone stops the slide.');
+    return null;
+  }
+
+  private updateGlacierGuardian(b: Boss) {
+    const ice = this.glacier!, o = roomRect(this.room), floor = this.floorY(), hunter = b.id === 'serac-osjollo', gate = b.id === 'sun-gate';
+    const fall = this.room.glacier?.falls?.[0];
+    const fallX = o.x + ((fall?.c ?? 0) + (fall?.w ?? 0) / 2) * TILE;
+    const tell = gate ? GLACIER_TELL.warden : hunter ? GLACIER_TELL.osjollo : GLACIER_TELL.vicuna;
+    const player = this.body;
+    const setBody = () => { b.body = { x: b.x - (gate ? 43 : 35), y: b.y - (gate ? 68 : 51), w: gate ? 86 : 70, h: gate ? 68 : 51 }; };
+    setBody();
+    if (b.st === 'intro') { if (b.t >= b.dur) this.go('glacierRest', 68); return; }
+    if (b.st === 'glacierDrop') {
+      b.x = fallX; b.y = Math.min(floor, b.sy + b.t * b.t * 0.19);
+      if (b.t >= b.dur) { b.y = floor; this.go('glacierRest', 72); }
+      return;
+    }
+    if (b.st === 'glacierRest') {
+      if (hunter && b.low && ice.state(0) === 'frozen' && player.y <= b.sy + 2 && player.x > fallX - TILE) {
+        this.go('glacierPerchTell', tell, true); return;
+      }
+      if (b.t >= b.dur) {
+        b.tx = Math.max(o.x + 10 * TILE, Math.min(o.x + o.w - 10 * TILE, player.x));
+        b.face = !hunter || b.tx < b.x ? -1 : 1;
+        this.go('glacierTell', tell, true);
+      }
+      return;
+    }
+    if (b.st === 'glacierPerchTell') {
+      if (b.t >= b.dur) { b.step = 1; this.go('glacierRush', 36); }
+      return;
+    }
+    if (b.st === 'glacierTell') {
+      if (b.t >= b.dur) { b.step = 0; this.go('glacierRush', gate ? 72 : hunter ? 44 : 59); }
+      return;
+    }
+    if (b.st === 'glacierRush') {
+      const u = Math.min(1, b.t / b.dur);
+      if (gate) {
+        const x = Math.max(o.x + 4 * TILE, b.sx - b.t * (4.7 + 0.25 * b.phase));
+        b.harm.push({ x: x - 13, y: floor - 15, w: 26, h: 15 });
+      } else if (hunter && b.step) {
+        b.x = fallX + (b.sx - fallX) * u; b.y = floor + (b.sy - floor) * u - Math.sin(u * Math.PI) * 41;
+      } else if (hunter) {
+        const start = b.low ? fallX : b.sx, end = b.tx;
+        b.x = start + (end - start) * u;
+        b.y = floor - Math.sin(u * Math.PI) * 75;
+        if (u > 0.68) b.harm.push({ x: b.x - 17, y: floor - 16, w: 34, h: 16 });
+      } else {
+        const end = ice.state(0) === 'water' ? fallX : o.x + 8 * TILE;
+        b.x = b.sx + (end - b.sx) * u; b.y = b.sy; b.face = -1;
+        b.harm.push({ x: b.x - 17, y: floor - 15, w: 34, h: 15 });
+      }
+      if (b.t >= b.dur) {
+        if (hunter && b.step || !hunter && !gate && ice.state(0) === 'water') {
+          b.harm = []; this.go('glacierOpen', this.helping() ? 430 : 325);
+          this.sfx('splash', b.x, b.y);
+        } else {
+          b.x = hunter && b.low ? fallX : b.sx; b.y = hunter && b.low ? floor : b.sy;
+          this.go('glacierRest', 84);
+        }
+      }
+      setBody(); return;
+    }
+    if (b.st === 'glacierOpen') {
+      if (hunter) { b.x = b.sx; b.y = b.sy; }
+      setBody(); b.hurt.push(b.body);
+      if (b.t >= b.dur) {
+        b.x = b.sx; b.y = b.sy; b.low = 0;
+        const inFall = this.nearGlacierFall('frozen', 6) || this.nearGlacierFall('water', 6);
+        ice.resetArena();
+        if (inFall) ice.change(inFall.i, 'frozen', this.tick, this.helping());
+        this.go('glacierRest', 96);
+      }
+    }
   }
 
   private updateOrchardGuardian(b: Boss) {
@@ -4011,14 +4256,14 @@ export class BellspireGame {
     const tally = (exp: boolean | null) => {
       let chests = 0, peds = 0, murals = 0, cells = 0;
       for (const info of INFO.values()) {
-        if (info.room.salt || isOrchardRoom(info.room) || exp !== null && !!info.room.exp !== exp) continue;
+        if (info.room.salt || isOrchardRoom(info.room) || isGlacierRoom(info.room) || exp !== null && !!info.room.exp !== exp) continue;
         for (const t of info.things) {
           if (t.ch === 'C' && this.flag(`chest:${info.room.id}:${t.i}`)) chests++;
           if (t.ch === 'A' && info.room.ability && this.has(info.room.ability)) peds++;
         }
         for (const n of info.room.murals ?? []) if (this.flag(`mural:${n}`)) murals++;
       }
-      for (const k of this.save.seen) { const r = CELLS.get(k); if (r && !r.salt && !isOrchardRoom(r) && (exp === null || !!r.exp === exp)) cells++; }
+      for (const k of this.save.seen) { const r = CELLS.get(k); if (r && !r.salt && !isOrchardRoom(r) && !isGlacierRoom(r) && (exp === null || !!r.exp === exp)) cells++; }
       return { cells, chests, peds, murals };
     };
     const all = tally(null), base = tally(false);
@@ -4051,7 +4296,13 @@ export class BellspireGame {
       for (const t of info.things) if (t.ch === 'C' && this.flag(`chest:${info.room.id}:${t.i}`)) orchard.chests++;
       for (const n of info.room.murals ?? []) if (this.flag(`mural:${n}`)) orchard.murals++;
     }
-    return { ...all, bosses, got, total, salt, orchard, pct: Math.floor((got / total) * 100), base: { ...base, bosses: baseBosses, got: bgot, total: btotal, pct: Math.floor((bgot / btotal) * 100) }, belfry };
+    const glacier = { cells: 0, chests: 0, murals: 0, bosses: GLACIER_GUARDIANS.filter(id => this.flag(`boss:${id}`)).length };
+    for (const cell of this.save.seen) { const r = CELLS.get(cell); if (r && isGlacierRoom(r)) glacier.cells++; }
+    for (const info of INFO.values()) if (isGlacierRoom(info.room)) {
+      for (const t of info.things) if (t.ch === 'C' && this.flag(`chest:${info.room.id}:${t.i}`)) glacier.chests++;
+      for (const n of info.room.murals ?? []) if (this.flag(`mural:${n}`)) glacier.murals++;
+    }
+    return { ...all, bosses, got, total, salt, orchard, glacier, pct: Math.floor((got / total) * 100), base: { ...base, bosses: baseBosses, got: bgot, total: btotal, pct: Math.floor((bgot / btotal) * 100) }, belfry };
   }
 
   /** A copy of the save for storing: the hero's place is the last shrine. During an Echo Trial it is the save as it

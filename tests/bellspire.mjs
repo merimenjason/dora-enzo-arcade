@@ -59,7 +59,7 @@ const muralIds = ROOMS.flatMap((r) => r.murals ?? []);
 eq([...muralIds].sort((a, b) => a - b), [...Array(MURALS.length).keys()], 'each mural text appears once');
 ok(ROOMS.every((r) => INFO.get(r.id).things.filter((t) => t.ch === 'C').length === (r.chests?.length ?? 0)), 'every chest has its contents');
 ok(ROOMS.filter((r) => r.ability).every((r) => INFO.get(r.id).things.some((t) => t.ch === 'A')), 'every ability room has its pedestal');
-eq(ROOMS.filter((r) => r.ability && !r.salt && !isOrchardRoom(r)).map((r) => r.ability), ['dash', 'double', 'wallkick', 'chime', 'rope', 'hammer'], 'six pedestals through the Foundry');
+eq(ROOMS.filter((r) => r.ability && !r.salt && !isOrchardRoom(r) && !r.glacier).map((r) => r.ability), ['dash', 'double', 'wallkick', 'chime', 'rope', 'hammer'], 'six pedestals through the Foundry');
 
 // ─── the gates, with the route planner ────────────────────────────────────
 const start = new BellspireGame(fresh()).body;
@@ -76,7 +76,7 @@ function reachable(abilities, keeper = false, calmed = ['frog', 'hydra', 'puma',
 const ped = (a) => thing('A', (t, r) => r.ability === a);
 const before = (a) => ABILITY_ORDER.slice(0, ABILITY_ORDER.indexOf(a));
 for (const a of ['dash', 'double', 'wallkick', 'chime']) ok(reachable(before(a)).near(ped(a)), `the ${a} pedestal can be reached with what comes before it`);
-const CITADEL = ROOMS.filter((r) => !isBelfryRoom(r.id) && !r.fd && !r.salt && !isOrchardRoom(r)), ROPE_ROOMS = ['ropeloft', 'ropegallery', 'ropecellar'];
+const CITADEL = ROOMS.filter((r) => !isBelfryRoom(r.id) && !r.fd && !r.salt && !isOrchardRoom(r) && !r.glacier), ROPE_ROOMS = ['ropeloft', 'ropegallery', 'ropecellar'];
 const r0 = reachable([]);
 ok(!r0.rooms.has('idol') && !r0.rooms.has('dgate'), 'without the dash: no frog and no docks');
 const r1 = reachable(['dash']);
@@ -423,7 +423,7 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
   ok(g.save.heroes.dora.hp > 5, 'some HP');
   g.save.food.tea = 0;
   ok(/No/.test(g.eat('tea') ?? ''), 'no tea left says so');
-  ok(Object.values(GEAR).every((x) => x.icon >= 0 && x.icon < ART.icons[2]), 'every piece of gear has an icon');
+  ok(Object.values(GEAR).every((x) => x.icon >= 0 && x.icon < ART.icons[2] + (ART['icons-glacier']?.[2] ?? 0)), 'every piece of gear has an icon');
 }
 
 // ─── a boss, from the door to the reward ──────────────────────────────────

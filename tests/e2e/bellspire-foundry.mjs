@@ -79,7 +79,7 @@ try {
   await at('fgate', 4, 14);
   await page.keyboard.press('Escape'); await until(page, () => window.__bellspire().menu === 'map');
   const after = await page.locator('canvas.bs-map').evaluate((c) => c.height);
-  const throughFoundry = ROOMS.filter((r) => !r.salt && !isOrchardRoom(r));
+  const throughFoundry = ROOMS.filter((r) => !r.salt && !isOrchardRoom(r) && !r.glacier);
   const before = Math.max(...throughFoundry.filter((r) => !r.fd).map((r) => r.gy + r.h)) * 16 + 16;
   assert.equal(after, Math.max(...throughFoundry.map((r) => r.gy + r.h)) * 16 + 16, 'the map shows the Foundry while later areas are locked');
   assert.ok(after > before, `the map grows down to take in the foundry (${before} → ${after} px)`);

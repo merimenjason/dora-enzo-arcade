@@ -67,6 +67,8 @@ export const WEAPON_LOOK: Record<string, { blade?: Ramp; lift?: number; lamp?: R
 /** The two Windward Belfry outfits are painted whole, as their own strips (with part maps): a hero wearing one is
  *  drawn from that strip, its blade or staff recoloured as usual and the outfit left as painted. */
 export const OUTFIT: Record<string, { hero: HeroId; strip: string }> = {
+  'dora-glacier-coat': { hero: 'dora', strip: 'dora-glacier' },
+  'enzo-glacier-coat': { hero: 'enzo', strip: 'enzo-glacier' },
   "dora-salt-coat": { hero: "dora", strip: "dora-salt" },
   "enzo-salt-coat": { hero: "enzo", strip: "enzo-salt" },
   "dora-orchard-coat": { hero: "dora", strip: "dora-orchard" },

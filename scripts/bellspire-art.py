@@ -755,6 +755,26 @@ def cover(im, w, h):
     return im.crop((0, y, im.width, y + nh))
 
 
+if '--glacier-lab' in sys.argv[2:]:
+    # The physics review imports just its paintings; don't rewrite any of the campaign's atlas.
+    rgba = Image.new('RGBA', (16 * 9, 16))
+    for i, tile in enumerate(cells(kload('bs-tiles-glacier-lab'), 3, 3)):
+        tile = cover(tile, 1, 1)
+        # The source has an ink line dividing the cells. Keep the painted interior and its top edge.
+        inset = max(1, tile.width // 80)
+        tile = tile.crop((inset, inset, tile.width - inset, tile.height - inset))
+        rgba.paste(tile.resize((64, 64), Image.LANCZOS).resize((16, 16), Image.BOX), (16 * i, 0))
+    quant = rgba.convert('RGB').quantize(colors=28, dither=Image.Dither.NONE).convert('RGBA')
+    quant.putalpha(rgba.getchannel('A').point(lambda a: 255 if a > 110 else 0))
+    quant.save(OUT / 'tiles-glacier-lab.webp', lossless=True, method=6)
+    opaque('bg-glacier-lab', cover(load('bs-bg-glacier-lab'), 16, 9), 480, 270, 48)
+    poses = cells(kload('bs-poses-glacier-lab'), 4, 2)
+    for hero, start in [('dora', 0), ('enzo', 4)]:
+        figs = [bbox(frame) for frame in poses[start:start + 4]]
+        strip(f'{hero}-glacier-lab', [scaled(f, 36 / f.height) for f in figs], 56, 49)
+    sys.exit(0)
+
+
 # ─── the heroes ────────────────────────────────────────────────────────────
 SHEETS = 'abcdefghijkl'
 # the outfits: every sheet painted again in the Windward Belfry's Windward Jacket (Dora) and Highland Cloak (Enzo), and
@@ -793,6 +813,70 @@ def hero_frames(hero, prefix, outfit=False, SHEETS=SHEETS):
         lamps = [z == PART_LAMP for z in PARTS]
     return frames, parts, lamps
 
+
+def glacier_assets():
+    for name in ('roots', 'camp', 'seracs', 'gallery', 'gate'):
+        if have(f'bs-bg-glacier-{name}'):
+            opaque(f'bg-glacier-{name}', cover(load(f'bs-bg-glacier-{name}'), 16, 9), 480, 270, 48)
+    for area in ('icefalls', 'bluehollows'):
+        rgba = Image.new('RGBA', (16 * 9, 16))
+        for i, source in enumerate(cells(kload(f'bs-tiles-{area}'), 3, 3)):
+            tile = cover(source, 1, 1)
+            inset = max(1, tile.width // 80)
+            tile = tile.crop((inset, inset, tile.width - inset, tile.height - inset))
+            rgba.paste(tile.resize((64, 64), Image.LANCZOS).resize((16, 16), Image.BOX), (16 * i, 0))
+        quant = rgba.convert('RGB').quantize(colors=36, dither=Image.Dither.NONE).convert('RGBA')
+        quant.putalpha(rgba.getchannel('A').point(lambda a: 255 if a > 110 else 0))
+        quant.save(OUT / f'tiles-{area}.webp', lossless=True, method=6)
+        MANIFEST[f'tiles-{area}'] = (16, 16, 9)
+        heights = (29, 49, 17, 25, 33, 19, 17, 24) if area == 'icefalls' else (29, 24, 24, 38, 40, 16, 17, 15)
+        figs = [bbox(drop_neighbours(f)) for f in cells(kload(f'bs-decor-{area}'), 4, 2)]
+        strip(f'decor-{area}', [scaled(f, h / f.height, 24) for f, h in zip(figs, heights)], 72, 58)
+        opaque(f'bg-{area}', cover(load(f'bs-bg-{area}'), 16, 9), 480, 270, 48)
+        mid = pixelate(key(cover(load(f'bs-mid-{area}'), 16, 9)), 480, 270, 30, outline=False, clean=False)
+        data = np.asarray(mid).copy()
+        data[..., 3] = np.round(data[..., 3] * (0.66 if area == 'icefalls' else 0.63)).astype(np.uint8)
+        Image.fromarray(data).save(OUT / f'mid-{area}.webp', lossless=True, method=6)
+        MANIFEST[f'mid-{area}'] = (480, 270, 1)
+
+    figs = [bbox(drop_neighbours(f), keep_small=True) for f in cells(kload('bs-props-glacier'), 4, 2)]
+    strip('falls-glacier', [pixelate(f, 32, 96, 30, outline=False) for f in figs[:3]], 32, 96)
+    heights = (35, 35, 27, 40, 35)
+    strip('props-glacier', [scaled(f, h / f.height, 24) for f, h in zip(figs[3:], heights)], 80, 56)
+    for boss_id, max_height, w, h in [('glass-vicuna', 68, 128, 90), ('serac-osjollo', 57, 128, 86), ('sun-gate', 82, 132, 102)]:
+        figs = [bbox(drop_neighbours(f)) for f in cells(kload(f'bs-boss-{boss_id}'), 3, 2)]
+        scale = max_height / figs[0].height
+        strip(f'boss-{boss_id}', [scaled(f, min(scale, (h - 6) / f.height, (w - 6) / f.width), 28) for f in figs], w, h)
+    phuyu = bbox(kload('bs-npc-phuyu'))
+    strip('phuyu', [scaled(phuyu, 46 / phuyu.height)], 63, 52)
+    opaque('phuyu-portrait', cover(load('bs-portrait-phuyu'), 1, 1), 64, 64, 32) if have('bs-portrait-phuyu') else strip('phuyu-portrait', [scaled(phuyu, 61 / phuyu.height)], 64, 64, anchor='center')
+    opaque('ending-glacier', cover(load('bs-ending-glacier'), 16, 9), 480, 270, 72)
+    opaque('mural-glacier', cover(load('bs-mural-glacier'), 4, 3), 160, 120, 48)
+    icons = [bbox(drop_neighbours(f)) for f in cells(kload('bs-icons-glacier'), 4, 1)]
+    strip('icons-glacier', [scaled(f, 20 / max(f.size), 24) for f in icons], 24, 24, anchor='center')
+    for hero in ('dora', 'enzo'):
+        for suffix in ('', '-base'):
+            if not have(f'bs-{hero}-glacier-work{suffix}'):
+                continue
+            paint = key(hero_colours(load(f'bs-{hero}-glacier-work{suffix}'), hero, not suffix))
+            work = [bbox(drop_neighbours(f)) for f in cells(paint, 4, 2)]
+            scale = 38 / work[0].height
+            strip(f'{hero}-glacier-work{suffix}', [scaled(f, scale, 24) for f in work], 64, 54)
+        if all(have(f'bs-{hero}-glacier-{sh}') for sh in SHEETS):
+            frames, parts, lamps = hero_frames(hero, f'{hero}-glacier', outfit=True)
+            strip(f'{hero}-glacier', frames, 56, 49, parts=parts, lamps=lamps)
+
+
+if '--glacier' in sys.argv[2:]:
+    # Run the same production importer without rewriting established areas during art iteration.
+    glacier_assets()
+    manifest = ROOT / 'lib' / 'bellspire-art.ts'
+    old = manifest.read_text()
+    header, rest = old.split('};', 1)
+    header = '\n'.join(line for line in header.split('\n') if not any(line.startswith(f"  '{k}':") for k in MANIFEST))
+    header = header.rstrip('\n') + '\n' + ''.join(f"  '{k}': [{w}, {h}, {n}],\n" for k, (w, h, n) in MANIFEST.items())
+    manifest.write_text(header + '};' + rest)
+    sys.exit(0)
 
 for hero in ('dora', 'enzo'):
     frames, parts, lamps = hero_frames(hero, hero)
@@ -1277,6 +1361,9 @@ p.quantize(colors=20, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
 MANIFEST['parchment'] = (128, 128, 1)
 
 # ─── the manifest ─────────────────────────────────────────────────────────
+if have('bs-props-glacier'):
+    glacier_assets()
+
 lines = ['// Generated by scripts/bellspire-art.py: each art strip\'s cell width, cell height and frame count.',
          'export const ART: Record<string, [number, number, number]> = {']
 for k, (w, h, n) in MANIFEST.items():

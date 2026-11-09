@@ -5,6 +5,8 @@
 import { saltRooms, type SaltLiftPlan } from './bellspire-salt-world.js';
 import { ORCHARD_EXIT, ORCHARD_RETURN, ORCHARD_ROOMS, type Graft } from './bellspire-orchard-world.js';
 
+import { GLACIER_RETURN, GLACIER_ROOMS, ROOT_LIFT, type GlacierRoom } from './bellspire-glacier-world.js';
+
 export const COLS = 30, ROWS = 17, TILE = 16;
 /** A humming crystal's bridge: the slabs its path lays (in world pixels), from the crystal's tile. A slab is two tiles
  *  wide and reaches on to the next one on its row when that one is close, so a row of slabs is one walkway. */
@@ -22,7 +24,7 @@ export function crystalSpans(c: number, r: number, path: [number, number][]): { 
 }
 export const SCREEN_W = COLS * TILE, SCREEN_H = ROWS * TILE;
 
-export type AreaId = 'hub' | 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft' | 'cast' | 'glass' | 'salt' | 'haul' | 'orchard' | 'cellar';
+export type AreaId = 'hub' | 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft' | 'cast' | 'glass' | 'salt' | 'haul' | 'orchard' | 'cellar' | 'icefalls' | 'bluehollows';
 export type WaterArea = 'halls' | 'docks' | 'throne';
 export const WATER_AREAS: WaterArea[] = ['halls', 'docks', 'throne'];
 export const AREAS: Record<AreaId, { name: string; color: string; tiles: Exclude<AreaId, 'hub' | 'cellar'> | 'rootcellar'; ambient: [number, number, number]; theme: number }> = {
@@ -41,6 +43,8 @@ export const AREAS: Record<AreaId, { name: string; color: string; tiles: Exclude
   haul: { name: 'The Mule Galleries', color: '#aa947e', tiles: 'haul', ambient: [0.35, 0.30, 0.28], theme: 11 },
   orchard: { name: 'The Graft Terraces', color: '#b5ad4d', tiles: 'orchard', ambient: [0.68, 0.66, 0.54], theme: 12 },
   cellar: { name: 'The Root Cellars', color: '#c58259', tiles: 'rootcellar', ambient: [0.61, 0.51, 0.47], theme: 13 },
+  icefalls: { name: 'The Ice Falls', color: '#95d7ea', tiles: 'icefalls', ambient: [1, 0.99, 0.94], theme: 14 },
+  bluehollows: { name: 'The Blue Hollows', color: '#639acb', tiles: 'bluehollows', ambient: [0.77, 0.87, 0.97], theme: 15 },
   glass: { name: 'The Glasswork Caves', color: '#b04fc4', tiles: 'glass', ambient: [0.3, 0.18, 0.34], theme: 9 },
 };
 /** The second expansion's two areas: under the Sunken Throne, behind a seal that cracks once the Out-of-Tune Bell is calm. */
@@ -51,17 +55,19 @@ export const BELFRY_AREAS: AreaId[] = ['cloud', 'loft'];
 export type WindArea = 'cloud' | 'loft';
 export const WIND_AREAS: WindArea[] = ['cloud', 'loft'];
 
-export type Ability = 'dash' | 'lantern' | 'double' | 'wallkick' | 'chime' | 'glide' | 'deep' | 'rope' | 'echo' | 'hammer' | 'resonance' | 'ballast' | 'catch' | 'bloom' | 'shear';
+export type Ability = 'dash' | 'lantern' | 'double' | 'wallkick' | 'chime' | 'glide' | 'deep' | 'rope' | 'echo' | 'hammer' | 'resonance' | 'ballast' | 'catch' | 'bloom' | 'shear' | 'sunmirror' | 'icepick';
 export type HeroId = 'dora' | 'enzo';
 /** The order the citadel is meant to be opened up in. */
-export const ABILITY_ORDER: Ability[] = ['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide', 'deep', 'rope', 'echo', 'hammer', 'resonance', 'ballast', 'catch', 'bloom', 'shear'];
+export const ABILITY_ORDER: Ability[] = ['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide', 'deep', 'rope', 'echo', 'hammer', 'resonance', 'ballast', 'catch', 'bloom', 'shear', 'sunmirror', 'icepick'];
 /** The citadel's own seven, before the Windward Belfry. */
 export const BASE_ABILITIES: Ability[] = ABILITY_ORDER.slice(0, 7);
 /** The citadel's and the Windward Belfry's nine, before the Foundry Below. */
 export const BELFRY_ABILITIES: Ability[] = ABILITY_ORDER.slice(0, 9);
 /** Each ability's icon in the icon strip (the expansion's were painted later, so they sit after the gear). */
-export const abilityIcon = (a: Ability) => (a === 'rope' ? 32 : a === 'echo' ? 33 : a === 'hammer' ? 40 : a === 'resonance' ? 41 : a === 'ballast' ? 48 : a === 'catch' ? 49 : a === 'bloom' ? 56 : a === 'shear' ? 57 : 24 + ABILITY_ORDER.indexOf(a));
+export const abilityIcon = (a: Ability) => (a === 'rope' ? 32 : a === 'echo' ? 33 : a === 'hammer' ? 40 : a === 'resonance' ? 41 : a === 'ballast' ? 48 : a === 'catch' ? 49 : a === 'bloom' ? 56 : a === 'shear' ? 57 : a === 'sunmirror' ? 64 : a === 'icepick' ? 65 : 24 + ABILITY_ORDER.indexOf(a));
 export const ABILITIES: Record<Ability, { name: string; hero: HeroId | 'both'; door: string; color: string; how: string; needs: string }> = {
+  sunmirror: { name: 'Sun Mirror', hero: 'enzo', door: '', color: '#ffe295', how: 'Use as Enzo at a sun socket to melt ice in the reflected beam.', needs: 'Enzo needs Phuyu’s Sun Mirror.' },
+  icepick: { name: 'Ice Pick', hero: 'dora', door: '', color: '#94e5ff', how: 'Dora can climb ribbed ice with Up or hold Down and Attack to stop on a slick floor.', needs: 'Dora needs the Ice Pick from Serac Walk.' },
   bloom: { name: 'Lantern Bloom', hero: 'enzo', door: '', color: '#f3c659', how: 'Use as Enzo near a golden bud to grow a branch.', needs: 'Enzo needs Lantern Bloom.' },
   shear: { name: 'Graft Shear', hero: 'dora', door: '', color: '#c59b64', how: 'Strike an ochre graft tie as Dora after its bud has opened.', needs: 'Dora needs Graft Shear.' },
   ballast: { name: 'Shoulder Shift', hero: 'dora', door: '', color: '#c7bbc1', how: 'Use the ballast station as Dora to call a cargo lift down.', needs: 'Dora needs Shoulder Shift.' },
@@ -95,6 +101,8 @@ export type Gear = { name: string; slot: Slot; hero?: HeroId; atk?: number; def?
 export const GEAR: Record<string, Gear> = {
   'dora-salt-coat': { name: 'Salt-Road Wrap', slot: 'coat', hero: 'dora', def: 7, text: 'A plum caravan tunic with felt gaiters.', icon: 50 },
   'enzo-salt-coat': { name: 'Waxed Haul Coat', slot: 'coat', hero: 'enzo', def: 7, text: 'A slate coat with a broad ochre hem.', icon: 51 },
+  'dora-glacier-coat': { name: 'Saffron Pass Coat', slot: 'coat', hero: 'dora', def: 8, text: 'A quilted saffron mountaineer’s coat with burgundy lining.', icon: 66 },
+  'enzo-glacier-coat': { name: 'Indigo Drift Parka', slot: 'coat', hero: 'enzo', def: 8, text: 'Deep indigo wool with pale fleece at the cuffs.', icon: 67 },
   'dora-orchard-coat': { name: 'Harvest Tunic', slot: 'coat', hero: 'dora', def: 7, text: 'An ochre field tunic with a brown hem.', icon: 58 },
   'enzo-orchard-coat': { name: 'Graft Keeper’s Coat', slot: 'coat', hero: 'enzo', def: 7, text: 'An olive orchard coat with pale sage trim.', icon: 59 },
   'bronze-sword': { name: 'Bronze Sword', slot: 'weapon', hero: 'dora', atk: 2, text: 'Short, light and sharp enough.', icon: 0 },
@@ -145,7 +153,7 @@ export const SHOP: { id: string; price: number }[] = [
   { id: 'moon-ring', price: 140 }, { id: 'reed-cutter', price: 150 }, { id: 'bell-staff', price: 160 },
 ];
 
-export type BossId = 'frog' | 'hydra' | 'puma' | 'warden' | 'mother' | 'condor' | 'clappers' | 'tune' | 'founder' | 'choir' | 'hollow' | 'weighmaster' | 'panback' | 'tollkeeper' | 'bracken-stag' | 'rootback' | 'graft-mother';
+export type BossId = 'frog' | 'hydra' | 'puma' | 'warden' | 'mother' | 'condor' | 'clappers' | 'tune' | 'founder' | 'choir' | 'hollow' | 'weighmaster' | 'panback' | 'tollkeeper' | 'bracken-stag' | 'rootback' | 'graft-mother' | 'glass-vicuna' | 'serac-osjollo' | 'sun-gate';
 export const BOSSES: Record<BossId, { name: string; title: string; hp: number; atk: number; xp: number; reward: string[] }> = {
   frog: { name: 'The Grand Frog Idol', title: 'Guardian of the Flooded Halls', hp: 220, atk: 8, xp: 120, reward: ['ability:lantern', 'heart'] },
   hydra: { name: 'The Reed Hydra', title: 'Tangle of the Reed Docks', hp: 420, atk: 12, xp: 220, reward: ['spell:ember', 'heart'] },
@@ -163,6 +171,9 @@ export const BOSSES: Record<BossId, { name: string; title: string; hp: number; a
   hollow: { name: 'The Hollow Bell', title: 'The Bell Cast Without a Voice', hp: 1600, atk: 26, xp: 1500, reward: [] },
   'bracken-stag': { name: 'The Bracken Stag', title: 'Watcher of the Nursery', hp: 720, atk: 20, xp: 1500, reward: ['drop'] },
   rootback: { name: 'The Rootback', title: 'Keeper of the Cistern', hp: 860, atk: 22, xp: 1600, reward: ['heart'] },
+  'glass-vicuna': { name: 'The Glass-Horn Vicuña', title: 'The Road Above the Snowline', hp: 720, atk: 22, xp: 1600, reward: [] },
+  'serac-osjollo': { name: 'The Serac Osjollo', title: 'The Hunter in the Blue Ice', hp: 850, atk: 24, xp: 1800, reward: [] },
+  'sun-gate': { name: 'The Sun Gate Warden', title: 'The Face of the High Pass', hp: 980, atk: 26, xp: 2100, reward: [] },
   'graft-mother': { name: 'The Mother of Grafts', title: 'Heart Beneath the Orchard', hp: 1040, atk: 24, xp: 1850, reward: [] },
 };
 /** The Foundry Below's two guardians: both must be calm before the deep seal opens on the Hollow Bell. */
@@ -171,6 +182,7 @@ export const FOUNDRY_GUARDIANS = ['founder', 'choir'] as const satisfies readonl
 export const BELFRY_GUARDIANS = ['condor', 'clappers'] as const satisfies readonly BossId[];
 /** Every guardian, citadel and belfry, in story order: the Echo Trials' guardian rush meets all eight. */
 export const SALT_GUARDIANS = ['weighmaster', 'panback', 'tollkeeper'] as const satisfies readonly BossId[];
+export const GLACIER_GUARDIANS = ['glass-vicuna', 'serac-osjollo', 'sun-gate'] as const satisfies readonly BossId[];
 export const ORCHARD_GUARDIANS = ['bracken-stag', 'rootback', 'graft-mother'] as const satisfies readonly BossId[];
 export const ALL_BOSSES: BossId[] = ['frog', 'hydra', 'puma', 'warden', 'mother', 'condor', 'clappers', 'tune', 'founder', 'choir', 'hollow'];
 
@@ -182,6 +194,8 @@ export const GUARDIAN_AREA: Record<(typeof GUARDIANS)[number], AreaId> = { frog:
 /** Each candle shrine's own name, shown on the map, the shrine card and on arrival. */
 export const SHRINE_NAMES: Record<string, string> = {
   'salt-gate': 'Salt Gate Candle', 'salt-mulegate': 'Mule Gate Candle', 'salt-toll-road': 'Toll Road Candle',
+  'glacier-camp': 'Phuyu’s Camp Candle', 'glacier-meltwater': 'Meltwater Candle',
+  'glacier-sun-gate': 'Sun Gate Candle',
   'orchard-wicket': 'Orchard Wicket Candle', 'orchard-cistern': 'Cistern Candle', 'orchard-weir': 'Lantern Weir Candle',
   landing: 'Landing Candle', chapel: 'Chapel Candle', mill: 'Reed Mill Candle', gears: 'Bell Loft Candle',
   cshrine: 'Mural Crypt Candle', tshrine: 'Pearl Throne Candle',
@@ -219,16 +233,29 @@ export const MURALS: { panel: number; text: string }[] = [
   { panel: 20, text: 'The orchard steps once carried more baskets than the road could carry mules.' },
   { panel: 21, text: 'A light wakes the graft. A cut gives it somewhere to grow.' },
   { panel: 22, text: 'The first roots kept watch when the orchard keeper fell asleep.' },
+  { panel: 24, text: 'The vizcacha keepers turned the sun toward the ice, and the caravans went over the high pass again.' },
 ];
 /** How many murals the citadel itself holds (the rest are the belfry's). */
 export const BASE_MURALS = 10;
 /** ...and with the Windward Belfry's: the rest are the Foundry Below's. */
 export const BELFRY_MURALS = 18;
 
-export type Who = 'dora' | 'enzo' | 'wayra' | 'ukumari' | 'mother' | 'sign' | 'bell' | 'tupa' | 'hollow' | 'founder';
+export type Who = 'dora' | 'enzo' | 'wayra' | 'ukumari' | 'mother' | 'sign' | 'bell' | 'tupa' | 'hollow' | 'founder' | 'phuyu';
 export type Line = { who: Who; text: string };
-export const NAMES: Record<Who, string> = { dora: 'Dora', enzo: 'Enzo', wayra: 'Wayra', ukumari: 'Ukumari', mother: 'The Lake Mother', sign: '', bell: 'The Out-of-Tune Bell', tupa: 'Tupa', hollow: 'The Hollow Bell', founder: 'The Molten Founder' };
+export const NAMES: Record<Who, string> = { dora: 'Dora', enzo: 'Enzo', wayra: 'Wayra', ukumari: 'Ukumari', mother: 'The Lake Mother', sign: '', bell: 'The Out-of-Tune Bell', tupa: 'Tupa', hollow: 'The Hollow Bell', founder: 'The Molten Founder', phuyu: 'Phuyu' };
 export const SCRIPTS: Record<string, Line[]> = {
+  'glass-vicuna': [
+    { who: 'enzo', text: 'It plants both hooves before it charges. I can turn the sun into that plug.' },
+    { who: 'dora', text: 'I’ll jump the charge, then strike when it skids into the water.' },
+  ],
+  'serac-osjollo': [
+    { who: 'enzo', text: 'I’ll melt its perch, then freeze the fall with Frost Fan.' },
+    { who: 'dora', text: 'I’ll climb it and meet the cat on the ledge when it leaps back.' },
+  ],
+  'sun-gate': [
+    { who: 'enzo', text: 'Wait for the eye to shine. I can catch its own beam in the mirror.' },
+    { who: 'dora', text: 'I’ll jump the sweep and strike the face when it goes into shadow.' },
+  ],
   'bracken-stag': [
     { who: 'enzo', text: 'That branch could catch its antlers. I’ll wake the bud before it charges.' },
     { who: 'dora', text: 'Then I cut the tie while it’s caught.' },
@@ -432,6 +459,7 @@ export type Room = {
   salt?: boolean;
   saltLift?: SaltLiftPlan;
   grafts?: Graft[];
+  glacier?: GlacierRoom;
 };
 
 export const isOrchardRoom = (room: Room) => room.area === 'orchard' || room.area === 'cellar';
@@ -1301,3 +1329,5 @@ patch('fgate', (k) => { k.at(26, 14, '?'); });
 ROOMS.push(...saltRooms());
 patch(ORCHARD_RETURN, (k) => { k.at(...ORCHARD_EXIT, ','); });
 ROOMS.push(...ORCHARD_ROOMS);
+patch(GLACIER_RETURN, (k) => { k.at(...ROOT_LIFT, '('); });
+ROOMS.push(...GLACIER_ROOMS);
