@@ -1,0 +1,135 @@
+@import url('https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700;800&display=swap');
+/* Salt & Dust: a woven-cloth-and-stamped-copper HUD over a painted isometric salt desert. The stage keeps 16:9 and
+   every HUD size is in container units (cqw: a hundredth of the stage's width), with a floor so text stays readable on
+   small screens. On a phone held upright the panels sit below the picture instead of over it. Every frame, plaque,
+   panel and icon is a Codex painting under public/art/salt-dust/. */
+.sd-shell{--ink:#fff1d8;--dim:#e3c9a6;--copper:#c9773a;--teal:#3fd3c0;--wine:#5c1420;--good:#9ff5d0;--bad:#ffb08a;--face:9cqw;
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#1c110c;color:var(--ink);
+  font-family:Alegreya,Georgia,'Times New Roman',serif;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.sd-shell *{box-sizing:border-box}
+.sd-stage{position:relative;width:min(100vw,177.78vh);aspect-ratio:16/9;container-type:inline-size;background:#2a1a12}
+.sd-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:pointer}
+.sd-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.sd-small{font-size:max(12px,1.05cqw);color:var(--dim)}
+.sd-small a{color:var(--ink)}
+.sd-row{display:flex;flex-wrap:wrap;gap:max(6px,.8cqw);align-items:center}
+.sd-dim{filter:grayscale(1) brightness(.6)}
+
+/* ─── copper plaque buttons ─── */
+.sd-btn{display:inline-flex;align-items:center;justify-content:center;min-height:max(36px,3.6cqw);padding:.3em 1.6em;border:0;cursor:pointer;
+  font:700 max(14px,1.45cqw)/1.1 Alegreya,Georgia,serif;color:#fff3dc;text-decoration:none;text-shadow:0 2px 2px rgba(40,14,4,.9);
+  background:url(/art/salt-dust/ui-plaque.webp) center/100% 100% no-repeat}
+.sd-btn:hover:not(:disabled),.sd-btn.sd-on{background-image:url(/art/salt-dust/ui-plaque-lit.webp)}
+.sd-btn:focus-visible,.sd-opt:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.sd-btn:disabled{filter:grayscale(.8) brightness(.7);cursor:not-allowed}
+.sd-small-btn{font-size:max(12px,1.15cqw);min-height:max(32px,3cqw);padding:.25em 1.2em}
+
+/* ─── woven panels ─── */
+.sd-panel{border-style:solid;border-width:max(14px,2.2cqw);border-image:url(/art/salt-dust/ui-panel.webp) 80 fill / max(14px,2.2cqw) stretch;
+  color:var(--ink);box-shadow:0 .4cqw 1.6cqw rgba(0,0,0,.45)}
+.sd-panel h2{margin:0 0 .3em;font-size:max(15px,1.6cqw);font-weight:800;color:#ffd9a0;letter-spacing:.02em}
+.sd-panel p{margin:0 0 .5em;font-size:max(14px,1.4cqw);line-height:1.35}
+
+/* ─── title and ending ─── */
+.sd-title,.sd-end{position:absolute;inset:0;background:#2a1a12 center/cover no-repeat;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3cqw}
+.sd-title-panel{width:min(94%,56cqw);padding:1.2cqw 2cqw;background:rgba(48,14,20,.82);border:max(2px,.2cqw) solid var(--copper);box-shadow:0 0 0 max(2px,.2cqw) #3a1a0c,0 1cqw 2cqw rgba(0,0,0,.5)}
+.sd-title-panel p{font-size:max(14px,1.4cqw);line-height:1.35;margin:0 0 .7em}
+.sd-check{display:flex;gap:.5em;align-items:center;margin:.7em 0;font-size:max(13px,1.25cqw);cursor:pointer}
+.sd-check input{width:max(16px,1.3cqw);height:max(16px,1.3cqw);accent-color:var(--teal)}
+.sd-end{align-items:flex-end}
+.sd-end{padding-bottom:1.2cqw}
+.sd-end-card{width:min(96%,66cqw)}
+.sd-end-card p{font-size:max(12px,1.2cqw)!important;margin-bottom:.35em!important}
+.sd-end-card h2{font-size:max(14px,1.5cqw)}
+.sd-next{color:#9ff5e4;font-style:italic}
+
+/* ─── the exploring HUD ─── */
+.sd-banner{position:absolute;left:1cqw;top:1cqw;width:25cqw;pointer-events:none}
+.sd-banner img{width:100%;display:block}
+.sd-banner span{position:absolute;left:29%;right:6%;top:18%;bottom:30%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:max(13px,2cqw);color:#ffe6bd;text-shadow:0 2px 2px #200a04;white-space:nowrap}
+.sd-compass{position:absolute;right:1cqw;top:.6cqw;width:7cqw;pointer-events:none}
+.sd-menu-btn{position:absolute;right:8.6cqw;top:1.4cqw;font-size:max(12px,1.2cqw);min-height:max(30px,2.8cqw);padding:.2em 1.2em}
+.sd-hint{position:absolute;left:50%;top:1.2cqw;transform:translateX(-50%);width:max-content;max-width:42cqw;padding:.45em 1em;text-align:center;
+  font-size:max(12px,1.25cqw);line-height:1.3;background:rgba(40,12,16,.86);border:max(1px,.12cqw) solid var(--copper);border-radius:.3cqw;pointer-events:none}
+.sd-toast{position:absolute;left:50%;top:5.6cqw;transform:translateX(-50%);max-width:52cqw;padding:.45em 1em;text-align:center;font-size:max(12px,1.3cqw);
+  background:rgba(14,52,50,.9);border:max(1px,.12cqw) solid var(--teal);border-radius:.3cqw;pointer-events:none}
+.sd-log{top:auto;bottom:13.4cqw;background:rgba(40,12,16,.88);border-color:var(--copper)}
+.sd-party{position:absolute;left:1cqw;bottom:1cqw;display:flex;flex-direction:column;gap:.5cqw;pointer-events:none}
+.sd-member{display:flex;align-items:center;gap:.6cqw}
+.sd-portrait{position:relative;display:inline-block;width:6.4cqw;height:6.4cqw;flex:none}
+.sd-face{position:absolute;inset:11%;background:url(/art/salt-dust/portraits.webp) 0 0/800% 100% no-repeat}
+.sd-frame{position:absolute;inset:0;width:100%;height:100%}
+.sd-member-info{display:flex;flex-direction:column;gap:.2cqw;padding:.3cqw .8cqw;background:rgba(40,12,16,.72);border-radius:.3cqw}
+.sd-member-info b{font-size:max(13px,1.35cqw)}
+.sd-member-info small{font-size:max(11px,.95cqw);color:var(--dim)}
+.sd-bar{position:relative;display:block;width:13cqw;height:1.6cqw}
+.sd-bar>span{position:absolute;left:6%;top:30%;bottom:30%;max-width:88%;background:linear-gradient(#ff9a6a,#c8402a);border-radius:.4cqw}
+.sd-bar img{position:absolute;inset:0;width:100%;height:100%}
+.sd-water{position:absolute;left:50%;bottom:.8cqw;transform:translateX(-50%);display:flex;align-items:center;gap:.6cqw;padding:.3cqw 1.1cqw .3cqw .3cqw;
+  background:rgba(40,12,16,.78);border:max(1px,.12cqw) solid var(--copper);border-radius:3cqw;pointer-events:none}
+.sd-canteen{width:4.6cqw}
+.sd-water-text{font-weight:800;font-size:max(13px,1.55cqw);white-space:nowrap}
+.sd-drops{display:flex;gap:.15cqw}
+.sd-drops img{width:1.35cqw}
+.sd-silver{font-size:max(12px,1.2cqw);color:#e8e2d6;white-space:nowrap;margin-left:.4cqw}
+
+/* ─── dialogue ─── */
+.sd-dialog{position:absolute;left:0;right:0;bottom:0;min-height:36%;max-height:62%;overflow:auto;display:flex;gap:1.6cqw;align-items:flex-start;padding:.4cqw 1.6cqw}
+.sd-dialog .sd-portrait{width:var(--face);height:var(--face)}
+.sd-dialog-body{flex:1;min-width:0}
+.sd-line{font-size:max(14px,1.55cqw)!important;color:#fff6e4}
+.sd-opts{list-style:none;margin:.4em 0 0;padding:0;display:flex;flex-direction:column;gap:.45cqw}
+.sd-opt{position:relative;display:block;width:100%;text-align:left;padding:.45em .9em;cursor:pointer;font:600 max(13px,1.35cqw)/1.25 Alegreya,Georgia,serif;color:var(--ink);
+  background:rgba(70,14,24,.85);border:max(1px,.1cqw) solid #b46a3a;border-radius:.4cqw}
+.sd-opt:hover:not(:disabled){background:#0f5a54;border-color:var(--teal)}
+.sd-opt:disabled{opacity:.55;cursor:not-allowed}
+.sd-checkopt{padding-left:2.6em}
+.sd-knot{position:absolute;left:.5em;top:50%;transform:translateY(-50%);width:1.6em}
+.sd-num{color:#ffcf8a;margin-right:.2em}
+.sd-opt em{font-style:normal;font-size:.9em}
+.sd-pass{color:var(--good)}
+.sd-fail{color:var(--bad)}
+.sd-noface{padding-left:2.4cqw}
+
+/* ─── travel ─── */
+.sd-travel{position:absolute;left:1cqw;top:9.4cqw;width:36cqw}
+
+/* ─── the fight ─── */
+.sd-shell[data-mode='combat'] .sd-party{top:10.4cqw;bottom:auto}
+.sd-shell[data-mode='combat'] .sd-portrait{width:5cqw;height:5cqw}
+.sd-shell[data-mode='combat'] .sd-hint{top:auto;bottom:9.8cqw}
+.sd-order{position:absolute;left:50%;top:.6cqw;transform:translateX(-50%);display:flex;gap:.3cqw;padding:.3cqw 1cqw;background:rgba(40,12,16,.78);border:max(1px,.12cqw) solid var(--copper);border-radius:.4cqw;pointer-events:none}
+.sd-order .sd-portrait{width:5.4cqw;height:5.4cqw}
+.sd-actbar{position:absolute;left:1cqw;bottom:1cqw;display:flex;flex-direction:column;gap:.5cqw;align-items:flex-start}
+.sd-ap{display:flex;align-items:center;gap:.3cqw;padding:.3cqw 1cqw;background:rgba(40,12,16,.82);border:max(1px,.12cqw) solid var(--copper);border-radius:.4cqw}
+.sd-ap span{font-weight:800;font-size:max(14px,1.9cqw);margin-right:.6cqw;white-space:nowrap}
+.sd-ap img{width:2.3cqw}
+.sd-acts{max-width:44cqw}
+.sd-who{font-size:max(11px,1cqw);color:var(--dim);background:rgba(40,12,16,.7);padding:.2em .6em;border-radius:.3cqw}
+.sd-shell[data-mode='combat'] .sd-water{left:auto;right:16cqw;transform:none}
+.sd-endturn{position:absolute;right:1cqw;bottom:1cqw;font-size:max(16px,2cqw);min-height:max(44px,4.6cqw);padding:.3em 2em}
+
+/* ─── menu ─── */
+.sd-menu{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94%,46cqw)}
+
+/* ─── a phone held upright: the picture on top, the panels below it ─── */
+@media (max-aspect-ratio: 4/5){
+  .sd-shell{align-items:flex-start}
+  .sd-dialog,.sd-travel,.sd-menu{position:fixed;left:0;right:0;top:auto;bottom:0;width:auto;transform:none;max-height:58vh}
+  .sd-title,.sd-end{position:fixed;inset:0;align-items:flex-end}
+  .sd-title{background-size:260% auto;background-position:50% 0;background-color:#d9c3bd}
+  .sd-end{background-size:auto 60%;background-position:50% 0;background-color:#3a2030}
+  .sd-party,.sd-water,.sd-actbar,.sd-endturn{position:fixed}
+  .sd-party{left:8px;bottom:auto;top:calc(56.25vw + 8px)}
+  .sd-water{left:8px;right:8px;transform:none;bottom:auto;top:calc(56.25vw + 150px);flex-wrap:wrap;justify-content:center;border-radius:8px}
+  .sd-shell[data-mode='combat'] .sd-water{right:8px;left:8px}
+  .sd-actbar{left:8px;bottom:8px}
+  .sd-endturn{right:8px;bottom:8px}
+  .sd-hint{position:fixed;top:calc(56.25vw + 210px);max-width:94vw}
+  .sd-shell[data-mode='combat'] .sd-hint{top:calc(56.25vw + 210px);bottom:auto}
+  .sd-drops img{width:14px}
+  .sd-canteen{width:36px}
+  .sd-bar{width:120px;height:14px}
+  .sd-portrait{width:48px;height:48px}
+  .sd-dialog .sd-portrait{width:64px;height:64px}
+}

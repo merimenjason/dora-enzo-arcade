@@ -7,6 +7,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 ### Added
 
 - **Cloudsteel**, game 96: a 3D sword duel on a rain-soaked citadel terrace. As Dora, chain three cuts, guard at the gold glint to deflect, roll clear of the bear's jade slam, break a foe's posture for the finisher and call Enzo in with his lantern. Three rounds (Atoq the fox sellsword, his two sword-kin, Ukhu the bear warden), gold, silver and bronze seals, and help on by default. It is the arcade's first game drawn with Three.js's WebGPU renderer, with wet-floor reflections and lantern glow; browsers without WebGPU get WebGL 2.
+- **Salt & Dust** is game 97: the first chapter of an isometric, turn-based RPG on a high-Andean salt flat. Dora and Enzo leave the failing well at Tunupa, bargain with armadillo Wardens and a flamingo water-seller using skill-check replies, choose a route across the flat while the canteen drains, and either talk the fox Dust Runners down or beat them in a grid fight with action points and hit chances. Help is on by default and shows every odd.
 
 ## 09-11-2026
 
