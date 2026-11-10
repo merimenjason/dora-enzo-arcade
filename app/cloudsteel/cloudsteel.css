@@ -25,7 +25,7 @@
 .cs-row{display:flex;flex-wrap:wrap;gap:.7em;align-items:center;margin-top:1em}
 
 .cs-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;visibility:hidden;touch-action:none}
-.cs-on-fight .cs-canvas{visibility:visible}
+.cs-on-fight .cs-canvas,.cs-on-story .cs-canvas{visibility:visible}
 .cs-bg{position:absolute;inset:0}
 .cs-bg img{width:100%;height:100%;object-fit:cover;display:block}
 .cs-card{background:var(--panel);border:1px solid var(--line);border-top:2px solid var(--gold2);padding:18px 22px;backdrop-filter:blur(6px)}
@@ -123,6 +123,35 @@
 .cs-keys b{color:var(--paper)}
 .cs-veil{position:absolute;inset:0;display:grid;place-items:center;background:rgba(6,10,20,.62);text-transform:none;letter-spacing:0;font-family:'Barlow',sans-serif;text-shadow:none;padding:16px}
 .cs-veil .cs-card{width:min(440px,100%);display:flex;flex-direction:column;gap:10px}
+
+/* the climb */
+.cs-area{position:absolute;left:max(16px,env(safe-area-inset-left));top:max(14px,env(safe-area-inset-top));display:flex;flex-direction:column;line-height:1.1}
+.cs-area b{font-family:'Protest Revolution',sans-serif;font-weight:400;text-transform:none;letter-spacing:.03em;color:var(--gold);font-size:1.5em}
+.cs-area span{color:var(--dim);font-size:.9em}
+.cs-near{position:absolute;left:50%;bottom:18%;transform:translateX(-50%);display:flex;align-items:center;gap:.5em;padding:6px 14px 6px 6px;background:rgba(6,10,20,.82);border:1px solid var(--gold);font-weight:700;font-size:1.1em;white-space:nowrap;opacity:0;transition:opacity .12s}
+.cs-near[data-on='1']{opacity:1}
+.cs-near kbd{font:inherit;padding:0 .5em;background:var(--gold);color:#1a1405;text-shadow:none}
+.cs-talk{position:absolute;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(760px,calc(100% - 28px));display:flex;gap:14px;align-items:flex-start;pointer-events:auto;cursor:pointer;
+  background:var(--panel);border:1px solid var(--line);border-top:2px solid var(--gold2);padding:14px 18px;text-transform:none;letter-spacing:0;font-family:'Barlow',sans-serif;text-shadow:none;backdrop-filter:blur(6px)}
+.cs-talk .cs-face{width:72px;height:72px}
+.cs-talk>div{flex:1;min-width:0}
+.cs-who{display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+.cs-talk p{margin:.15em 0 0;font-size:1.12em;animation:cs-line .25s ease-out}
+.cs-narrate p{font-style:italic;color:#d5dbe6}
+@keyframes cs-line{0%{opacity:0;transform:translateY(4px)}100%{opacity:1;transform:none}}
+.cs-more{display:block;text-align:right;font-style:normal;color:var(--dim);font-family:'Barlow Condensed',sans-serif;letter-spacing:.1em;font-size:.9em}
+.cs-choice{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.cs-toast-veil{background:rgba(6,10,20,.4)}
+.cs-toast{text-align:center;align-items:center}
+.cs-toast h3{font-size:1.9em}
+.cs-k-quipu{border-top-color:var(--paper)} .cs-k-lantern{border-top-color:var(--jade)}
+.cs-pack{border:1px solid var(--line);padding:6px 10px;font-size:.92em}
+.cs-pack p{margin:.15em 0}
+.cs-pro{width:min(640px,100%);margin:auto;display:flex;flex-direction:column;gap:8px}
+.cs-shell .cs-tbtns .t-act{background:var(--gold);color:#1a1405} .cs-shell .cs-tbtns .t-lantern{border-color:var(--jade)}
+.cs-on-story .cs-keys{bottom:max(6px,env(safe-area-inset-bottom))}
+.cs-touch .cs-near{bottom:auto;top:42%}
+.cs-touch .cs-area b{font-size:1.2em}
 
 /* touch */
 .cs-touchpad{position:absolute;inset:auto 0 0 0;height:0}
