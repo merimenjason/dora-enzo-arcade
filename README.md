@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of ninety-five original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of ninety-six original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -105,6 +105,7 @@ Listed in arcade-menu order.
 | 93 | Burrow Clinic | `/clinic` | Hospital management sim |
 | 94 | The Sunken Bellspire | `/bellspire` | Castle explorer (metroidvania) |
 | 95 | Overclock | `/overclock` | Run-and-gun platformer |
+| 96 | Salt & Dust | `/salt-dust` | Isometric turn-based RPG |
 
 ## Run
 
@@ -1565,6 +1566,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:overclock` runs 30 engine tests: coyote time and the jump buffer, every move and all 16 powers, weaknesses, gates, assist, capsules, chips, every boss and Lumen's second form, per-frame hitboxes, that every action has its own painted drawing and no stand-in art is left, determinism and the save. `npm run bot:overclock` runs human-paced bots: a route bot finishes every stage; casual and pro bots must beat every boss within 3 attempts, with and without other bosses' cores; and a full-run bot plays to the ending collecting all 18 capsules (`--quick` in `npm test`). `node tests/e2e/overclock.mjs` (dev server running) presses every player action, the hub, two bosses, the ending, the save and the touch pad in a browser at three screen sizes.
 
 **Docs:** [`docs/overclock.md`](docs/overclock.md) covers the code layout, controls, progression and stage changes, assist, the art pipeline, the save format, the tests and the `window.__overclock()` debug hook.
+
+### 96 · Salt & Dust (`/salt-dust`)
+
+**Play:** an isometric, turn-based exploration RPG on a high-Andean salt flat; this is the first playable chapter. Tunupa Well's well is failing and Enzo's divining gauge points across the flat to Coipa Yard, an old salt-train yard the fox Dust Runners have claimed. Talk to Grandmother Wayra, the armadillo Well Wardens and Parina of the flamingo Brine Guild; replies marked like `[Barter 6]` are skill checks on Dora's or Enzo's skills, and passing or failing changes the price of water, who backs you and what you know. Then cross the flat: the straight route is quicker and drinks 2 water a stage, the cactus islands drink 1 a stage and hold a cistern and a stranded caravan. Every stage drains the canteen; run dry and the heat costs health. At the yard, talk Tika and her Runners down (share the spring, show a Guild seal, call out her cracked mast, or pay a toll) or fight them on a grid: 7 or 6 AP a turn, 1 AP a tile, hit chances shown on each foe, Enzo's Mend and a Drink from the canteen. Crank the pump to find the spring and reach the ending card. Help (on by default) shows routes, ranges and the odds of every check.
+
+**Controls:** click or tap to walk, talk and act; 1–9 pick a reply or route; arrows or WASD step; in a fight click a teal tile to move and a Runner to attack, M Mends, Q drinks, Enter or E ends the turn; Esc opens the menu.
+
+**Tests:** `npm run test:salt-dust` runs 23 engine tests (talks and checks, prices, both routes and the water drain, events, every way past Tika, the fight's AP, ranges, hit chances, Mend and Drink, losing and retrying, the ending and the save). `npm run bot:salt-dust` plays the fight like a casual player (it must win at least 85% with help on) and plays the whole chapter with random choices (every seed must reach the ending). `npm run test:e2e:salt-dust` clicks every action in a browser.
+
+**Docs:** [`docs/salt-dust.md`](docs/salt-dust.md) covers the code layout, the story and its checks, the journey, the fight's numbers, the art pipeline, the save format, the tests and the `window.__salt()` hook.
 
 ## Validation
 

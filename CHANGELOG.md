@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 10-11-2026
+
+### Added
+
+- **Salt & Dust** is game 96: the first chapter of an isometric, turn-based RPG on a high-Andean salt flat. Dora and Enzo leave the failing well at Tunupa, bargain with armadillo Wardens and a flamingo water-seller using skill-check replies, choose a route across the flat while the canteen drains, and either talk the fox Dust Runners down or beat them in a grid fight with action points and hit chances. Help is on by default and shows every odd.
+
 ## 09-11-2026
 
 ### Added
