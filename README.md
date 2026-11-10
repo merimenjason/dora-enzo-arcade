@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of ninety-five original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of ninety-six original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -105,6 +105,7 @@ Listed in arcade-menu order.
 | 93 | Burrow Clinic | `/clinic` | Hospital management sim |
 | 94 | The Sunken Bellspire | `/bellspire` | Castle explorer (metroidvania) |
 | 95 | Overclock | `/overclock` | Run-and-gun platformer |
+| 96 | Cloudsteel | `/cloudsteel` | 3D sword duel |
 
 ## Run
 
@@ -1565,6 +1566,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:overclock` runs 30 engine tests: coyote time and the jump buffer, every move and all 16 powers, weaknesses, gates, assist, capsules, chips, every boss and Lumen's second form, per-frame hitboxes, that every action has its own painted drawing and no stand-in art is left, determinism and the save. `npm run bot:overclock` runs human-paced bots: a route bot finishes every stage; casual and pro bots must beat every boss within 3 attempts, with and without other bosses' cores; and a full-run bot plays to the ending collecting all 18 capsules (`--quick` in `npm test`). `node tests/e2e/overclock.mjs` (dev server running) presses every player action, the hub, two bosses, the ending, the save and the touch pad in a browser at three screen sizes.
 
 **Docs:** [`docs/overclock.md`](docs/overclock.md) covers the code layout, controls, progression and stage changes, assist, the art pipeline, the save format, the tests and the `window.__overclock()` debug hook.
+
+### 96 · Cloudsteel (`/cloudsteel`)
+
+**Play:** a third-person 3D sword duel on a rain-soaked terrace of a cloud-forest citadel at night. Dora fights three rounds: Atoq the fox sellsword, two of his sword-kin, then Ukhu, the spectacled-bear Warden of the Bridge. Cuts chain in threes (the third is heavy); after three cuts a foe turns the next one aside and answers. Holding guard blocks steel but fills Dora's own guard bar; pressing guard just as a blow lands, at the gold glint, deflects it, which costs nothing and fills the foe's posture bar. A full posture bar breaks the foe open, and a cut then is the finisher. Ukhu's jade slam shows a jade ring on the ground and cannot be guarded: leave the ring or roll through it. Hits, deflects and dodges fill Enzo's meter; calling him in brings a lantern strike that hurts and staggers everything near. With two foes, only one swings at a time. A fall restarts the round on full health. A crossing earns a gold, silver or bronze seal from damage taken and falls. Help is on by default: slower wind-ups, a wider deflect moment, less damage, full health between rounds and a prompt for when to guard, dodge, finish or call Enzo.
+
+**Controls:** WASD or arrows move (relative to the camera); J or left-click cuts; hold K, Shift or right-click to guard; Space dodges; E calls Enzo; Q or Tab locks on to the next foe; Esc or P pauses. Touch screens get a stick and CUT, GUARD, DODGE and ENZO buttons.
+
+**Tests:** `npm run test:cloudsteel` runs 18 engine tests: blocking and the guard bar, the deflect moment with help on and off, jade attacks, the dodge's safe frames, the parry after three cuts, trading into a wind-up, posture breaks and the finisher, Enzo's tag, foes taking turns, falls and retries, seals, the save and determinism. `npm run bot:cloudsteel` plays human-paced players (they notice a wind-up about 0.27 s late and guard a little early or late): one has to get across every time with help on, a slow one and one with help off nearly always, and a player who never guards rarely earns gold. `npm run test:e2e:cloudsteel` plays it in a browser with the dev server running and presses every control.
+
+**Docs:** [`docs/cloudsteel.md`](docs/cloudsteel.md) covers the code layout, the rules and numbers, help, the renderer (Three.js on WebGPU with a WebGL 2 fallback), the art, the save format, the tests and the `window.__cloudsteel()` debug hook.
 
 ## Validation
 

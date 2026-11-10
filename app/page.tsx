@@ -97,14 +97,15 @@ const GAMES=[
  {href:'/clinic',title:'Burrow Clinic',tag:'NEW · HOSPITAL SIM',blurb:'Dora and Enzo open a clinic for their Andean neighbours. Lay out rooms, hire chinchilla vets and cure Static Fluff, Echo Hiccups and Upside-Down Ears, across six clinics in a 1950s cartoon.',color:'#2fa99a',art:'🏥'},
  {href:'/bellspire',title:'The Sunken Bellspire',tag:'NEW · CASTLE EXPLORER',blurb:'A drowned citadel of bells rises from an Andean lake. Explore it in lit pixel art as Dora with a sword and Enzo with a lantern, ring bells to raise and lower the water, and face five guardians.',color:'#3a7bd5',art:'🔔'},
  {href:'/overclock',title:'Overclock',tag:'NEW · RUN-AND-GUN',blurb:'A 16-bit run-and-gun in a neon city. Tag between Dora\u2019s rapid blaster and Enzo\u2019s charge cannon, reboot eight rogue robot bosses for sixteen powers, ride hover-bikes and climb the Sky Tower.',color:'#ff4fa3',art:'⚡'},
+ {href:'/cloudsteel',title:'Cloudsteel',tag:'NEW · 3D SWORD DUEL',blurb:'A sword duel in full 3D on a rain-soaked citadel terrace. Cut, guard at the gold glint to deflect, roll clear of what cannot be guarded, break a foe\u2019s posture for the finisher and call Enzo in with his lantern. Three rounds: a fox sellsword, his sword-kin and Ukhu the bear warden.',color:'#f2c14e',art:'🗡️'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
    <p className="arcade-eyebrow">NINETY-FIVE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Ninety-five ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, ninety-five cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <h1>Small paws.<br/><em>Ninety-six ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, ninety-six cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <ArcadeGrid games={GAMES}/>
