@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 10-11-2026
+
+### Added
+
+- **Cloudsteel**, game 96: a 3D sword duel on a rain-soaked citadel terrace. As Dora, chain three cuts, guard at the gold glint to deflect, roll clear of the bear's jade slam, break a foe's posture for the finisher and call Enzo in with his lantern. Three rounds (Atoq the fox sellsword, his two sword-kin, Ukhu the bear warden), gold, silver and bronze seals, and help on by default. It is the arcade's first game drawn with Three.js's WebGPU renderer, with wet-floor reflections and lantern glow; browsers without WebGPU get WebGL 2.
+
 ## 09-11-2026
 
 ### Added
