@@ -2,6 +2,16 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 11-11-2026
+
+### Added
+
+- **Cloudsteel** has a story: **the climb**, about half an hour up the cloud fortress to relight the Sun Lamp. Walk freely through the Rain Terrace, the Cloud-Forest Path and the Citadel Gate; talk to Qori, Tupa and the foes you beat, whose lines change as the story goes on; find nine quipus and six upgrades for Dora's sword and Enzo's lantern; wake the sun-stone, the spirit bridge over the gorge, jade seals and the three stones of the worlds with the lantern; and fight six duels, three of them optional, including Titu the puma and Mallku the kin-captain, before Ukhu at the gate. A lost duel can be retried or stepped back from, and the climb saves as you go. The three-round fight is still on the title menu as the terrace duel.
+
+### Changed
+
+- **Cloudsteel**: every figure is now painted, in the duels too, with its own painting for each action, in place of the figures built from shapes. The camera follows Dora while exploring and swings side-on for duels and talk. Old Cloudsteel saves start fresh.
+
 ## 10-11-2026
 
 ### Added

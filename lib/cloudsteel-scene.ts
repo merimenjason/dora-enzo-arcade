@@ -1,204 +1,112 @@
-// Cloudsteel: drawing only. Three.js on the WebGPU renderer (it falls back to WebGL 2 by itself): the rain-soaked
-// terrace with a planar reflection, lantern bloom, the cloud-forest citadel around it, and Dora, Enzo and the foes
-// as jointed figures posed from the fight's state. Every state has its own pose (idle, run, three cuts, guard,
-// deflect, dodge, hit, recoil, broken, finisher, tag, fall, win; wind-ups and strikes per attack for the foes), and
-// figures ease from one pose to the next. Rules in lib/cloudsteel-game.ts.
+// Cloudsteel: drawing only. Three.js on the WebGPU renderer (it falls back to WebGL 2 by itself): the three areas of
+// the climb built from the story's data (lib/cloudsteel-story.ts), with Codex's painted figures stood up in them as
+// cut-out cards. Each card turns to face the camera and picks its painting from what the figure is doing and which
+// way it faces from the camera: front, back or side (the side painting mirrored for the other side) while exploring,
+// and side-on paintings in a duel, where the camera swings round to watch from the side. Every action has its own
+// painting: walk cycles, idles, talking, picking up, the lantern, guard, wind-ups, cuts, lunges, dodges, deflects,
+// hits, staggers, finishers, falls and wins. Rules in lib/cloudsteel-game.ts and lib/cloudsteel-world.ts.
 import * as T from 'three/webgpu';
 import { pass, screenUV, smoothstep, float, vec2, reflector, mx_noise_float, positionWorld } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
-import { ARENA_R, CUTS, DODGE, FINISHER, TAG, type Fight, type FightEvent, type Foe } from './cloudsteel-game';
+import { CUTS, DODGE, FINISHER, TAG, type Fight, type FightEvent, type Foe, type Look } from './cloudsteel-game';
+import { duelToWorld, inShape, LANTERN, PICKUP, type AreaId, type Duel, type Shape, type World, type WorldEvent, type Who } from './cloudsteel-world';
+import { AREAS, DUELS, ITEMS, STONES } from './cloudsteel-story';
+import { SPRITES, SPRITE_PPM, type SpriteSheet } from './cloudsteel-sprites';
 
 const PI = Math.PI, art = (n: string) => `/art/cloudsteel/${n}.webp`;
-const mix = (a: number, b: number, k: number) => a + (b - a) * k, seg = (t: number, a: number, b: number) => Math.min(1, Math.max(0, (t - a) / (b - a))), ease = (s: number) => s * s * (3 - 2 * s), es = (t: number, a: number, b: number) => ease(seg(t, a, b));
+const mix = (a: number, b: number, k: number) => a + (b - a) * k;
+const wrap = (a: number) => { while (a > PI) a -= PI * 2; while (a < -PI) a += PI * 2; return a; };
 const hdr = (r: number, g: number, b: number) => new T.Color().setRGB(r, g, b);
 const std = (color: number, o: T.MeshStandardMaterialParameters = {}) => new T.MeshStandardMaterial({ color, roughness: 0.85, metalness: 0, ...o });
-const furM = (hex: number) => new T.MeshPhysicalMaterial({ color: hex, roughness: 0.95, sheen: 1, sheenRoughness: 0.45, sheenColor: new T.Color(hex).lerp(new T.Color(0xffffff), 0.55) });
 const glowM = (c: T.ColorRepresentation) => new T.MeshBasicMaterial({ color: c, fog: false });
-const box = (w: number, h: number, d: number) => new T.BoxGeometry(w, h, d), sph = (r: number) => new T.SphereGeometry(r, 24, 16), cyl = (a: number, b: number, h: number, n = 20) => new T.CylinderGeometry(a, b, h, n), cap = (r: number, l: number) => new T.CapsuleGeometry(r, l, 6, 14);
+const box = (w: number, h: number, d: number) => new T.BoxGeometry(w, h, d), cyl = (a: number, b: number, h: number, n = 20) => new T.CylinderGeometry(a, b, h, n);
 function mesh(geo: T.BufferGeometry, mat: T.Material, x = 0, y = 0, z = 0, parent?: T.Object3D) { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); parent?.add(m); return m; }
 function canvasTex(w: number, h: number, draw: (g: CanvasRenderingContext2D, w: number, h: number) => void) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d')!, w, h); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t; }
-function loadTex(n: string, repeat = 0) { const t = new T.TextureLoader().load(art(n)); t.colorSpace = T.SRGBColorSpace; if (repeat) { t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(repeat, repeat); } return t; }
-
-// ---------------------------------------------------------------- figures
-/** a pose: every joint angle of a figure. Arms: 0 hangs down, -PI/2 points forward, -PI points up. */
-type Pose = { y: number; lean: number; twist: number; ax: number; az: number; wr: number; bx: number; bz: number; ll: number; lr: number; head: number; tail: number; fall: number };
-const POSE = (): Pose => ({ y: 0, lean: 0.08, twist: 0, ax: -1.05, az: -0.15, wr: 0.2, bx: 0.15, bz: 0.15, ll: 0, lr: 0, head: 0, tail: 0, fall: 0 });
-const KEYS = Object.keys(POSE()) as (keyof Pose)[];
-type Rig = { root: T.Group; body: T.Group; head: T.Group; tail: T.Group; armR: T.Group; armL: T.Group; hand: T.Group; legL: T.Group; legR: T.Group; hip: number; pose: Pose; tip: T.Object3D; extra?: Record<string, T.Object3D> };
-function applyPose(r: Rig, to: Pose, k: number) {
-  const p = r.pose; for (const key of KEYS) p[key] += (to[key] - p[key]) * k;
-  r.body.position.y = r.hip + p.y; r.body.rotation.set(p.lean, p.twist, 0);
-  r.armR.rotation.set(p.ax, 0, p.az); r.hand.rotation.x = p.wr; r.armL.rotation.set(p.bx, 0, -p.bz);
-  r.legL.rotation.x = p.ll; r.legR.rotation.x = p.lr; r.head.rotation.x = p.head; r.tail.rotation.x = p.tail;
-  r.root.rotation.x = -p.fall * 1.45; r.root.position.y = p.fall * 0.32;
+const texCache = new Map<string, T.Texture>(), texWait = new Map<T.Texture, (() => void)[]>();
+function loadTex(n: string, repeat = 0) {
+  const k = `${n}:${repeat}`; let t = texCache.get(k); if (t) return t;
+  const tex: T.Texture = new T.TextureLoader().load(art(n), () => { for (const f of texWait.get(tex) ?? []) f(); texWait.delete(tex); }); t = tex; t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4;
+  if (repeat) { t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(repeat, repeat); }
+  texCache.set(k, t); return t;
 }
-function shadows(o: T.Object3D) { o.traverse((m) => { if ((m as T.Mesh).isMesh) { m.castShadow = true; m.receiveShadow = true; } }); }
-
-type ChinLook = { fur: number; furDark: number; snout: number; coat: number; trim: number; weave: T.Texture; long: boolean };
-function chinchilla(o: ChinLook): Rig {
-  const fur = furM(o.fur), furD = furM(o.furDark), coat = std(0xffffff, { map: o.weave, roughness: 0.8 }), trim = std(o.trim), dark = std(0x14161c, { roughness: 0.15 });
-  const root = new T.Group(), body = new T.Group(); root.rotation.order = 'YXZ'; root.add(body);
-  const legs = [-1, 1].map((s) => { const l = new T.Group(); l.position.set(s * 0.17, 0.46, 0); root.add(l); mesh(cap(0.1, 0.26), trim, 0, -0.2, 0, l); mesh(sph(0.13), fur, 0, -0.39, 0.07, l).scale.set(1, 0.55, 1.6); return l; });
-  mesh(sph(0.42), fur, 0, 0.38, 0, body).scale.set(1, 1.15, 0.92);
-  const cl = o.long ? 1.0 : 0.64, cb = o.long ? 0.6 : 0.49, cy = o.long ? 0.2 : 0.36;
-  mesh(cyl(0.32, cb, cl), coat, 0, cy, 0, body); mesh(cyl(0.445, 0.455, 0.1), trim, 0, 0.2, 0, body);
-  mesh(new T.TorusGeometry(0.27, 0.06, 8, 20), trim, 0, 0.7, 0, body).rotation.x = PI / 2;
-  const head = new T.Group(); head.position.y = 1.08; body.add(head);
-  mesh(sph(0.38), fur, 0, 0, 0, head).scale.set(1.12, 0.95, 1.02);
-  const wM = new T.MeshBasicMaterial({ color: 0xdfe6ee });
-  for (const x of [-1, 1]) {
-    mesh(sph(0.2), fur, x * 0.2, -0.1, 0.14, head);
-    const e = mesh(sph(0.23), fur, x * 0.32, 0.31, -0.04, head); e.scale.set(1, 1.05, 0.3); e.rotation.z = -x * 0.28;
-    const i = mesh(sph(0.16), std(0xd9a9a0), x * 0.32, 0.31, 0, head); i.scale.set(1, 1.05, 0.3); i.rotation.z = -x * 0.28;
-    mesh(sph(0.075), dark, x * 0.16, 0.07, 0.315, head); mesh(sph(0.022), glowM(0xffffff), x * 0.16 + 0.025, 0.1, 0.385, head);
-    for (let k = -1; k <= 1; k++) { const w = mesh(cyl(0.005, 0.002, 0.34, 5), wM, x * 0.36, -0.09 + k * 0.035, 0.3, head); w.rotation.z = PI / 2 + x * k * 0.22; w.rotation.y = -x * 0.35; }
-  }
-  mesh(sph(0.15), std(o.snout), 0, -0.07, 0.31, head).scale.set(1.15, 0.8, 1); mesh(sph(0.045), std(0xb56b6b, { roughness: 0.3 }), 0, -0.03, 0.45, head);
-  const tail = new T.Group(); tail.position.set(0, 0.22, -0.36); body.add(tail);
-  [[0.24, 0, 0], [0.23, 0.13, -0.2], [0.2, 0.34, -0.32], [0.17, 0.56, -0.3], [0.13, 0.72, -0.2]].forEach((p) => mesh(sph(p[0]), furD, 0, p[1], p[2], tail));
-  const arms = [-1, 1].map((s) => { const a = new T.Group(); a.position.set(s * 0.42, 0.74, 0); body.add(a); mesh(cap(0.085, 0.32), coat, 0, -0.24, 0, a); mesh(cyl(0.092, 0.092, 0.09), trim, 0, -0.42, 0, a); mesh(sph(0.09), fur, 0, -0.52, 0, a); return a; });
-  const hand = new T.Group(); hand.position.y = -0.52; arms[1].add(hand);
-  const tip = new T.Object3D(); hand.add(tip);
-  return { root, body, head, tail, armR: arms[1], armL: arms[0], hand, legL: legs[0], legR: legs[1], hip: 0.45, pose: POSE(), tip };
-}
-function foxRig(): Rig {
-  const fur = furM(0xb85a24), cream = furM(0xf0dcc0), lac = std(0x0f4a50, { roughness: 0.18, metalness: 0.6 }), dark = std(0x14161c), gold = std(0xd9a441, { roughness: 0.35, metalness: 0.9 });
-  const root = new T.Group(), body = new T.Group(); root.rotation.order = 'YXZ'; root.add(body);
-  const legs = [-1, 1].map((s) => { const l = new T.Group(); l.position.set(s * 0.16, 0.52, 0); root.add(l); mesh(cap(0.085, 0.34), dark, 0, -0.24, 0, l); mesh(sph(0.11), dark, 0, -0.46, 0.08, l).scale.set(1, 0.55, 1.7); return l; });
-  mesh(sph(0.36), fur, 0, 0.4, 0, body).scale.set(1, 1.3, 0.85); mesh(cyl(0.33, 0.37, 0.6, 8), lac, 0, 0.45, 0.02, body); mesh(cyl(0.385, 0.385, 0.08, 8), gold, 0, 0.2, 0.02, body); mesh(box(0.3, 0.36, 0.06), gold, 0, 0.5, 0.33, body);
-  for (const x of [-0.42, 0.42]) mesh(sph(0.2), lac, x, 0.78, 0, body).scale.set(1.1, 0.6, 1.1);
-  const head = new T.Group(); head.position.y = 1.12; body.add(head);
-  mesh(sph(0.3), fur, 0, 0, 0, head); mesh(new T.ConeGeometry(0.16, 0.5, 14), cream, 0, -0.06, 0.38, head).rotation.x = PI / 2; mesh(sph(0.045), dark, 0, -0.05, 0.63, head);
-  for (const x of [-0.2, 0.2]) { mesh(new T.ConeGeometry(0.12, 0.36, 4), fur, x, 0.36, -0.02, head).rotation.z = -x * 0.8; mesh(sph(0.045), glowM(hdr(2.4, 1.8, 0.6)), x * 0.65, 0.06, 0.25, head); }
-  mesh(cyl(0.31, 0.31, 0.1, 16), lac, 0, 0.16, 0, head);
-  const tail = new T.Group(); tail.position.set(0, 0.25, -0.3); body.add(tail);
-  ([[0.2, 0, 0, fur], [0.25, 0.05, -0.28, fur], [0.23, 0.16, -0.56, fur], [0.16, 0.3, -0.78, cream]] as [number, number, number, T.Material][]).forEach((p) => mesh(sph(p[0]), p[3], 0, p[1], p[2], tail));
-  const arms = [-1, 1].map((s) => { const a = new T.Group(); a.position.set(s * 0.42, 0.74, 0); body.add(a); mesh(cap(0.08, 0.34), fur, 0, -0.26, 0, a); mesh(sph(0.085), dark, 0, -0.54, 0, a); return a; });
-  const hand = new T.Group(); hand.position.y = -0.54; arms[1].add(hand);
-  mesh(box(0.07, 0.02, 1.35), std(0xcfe0ea, { roughness: 0.15, metalness: 1 }), 0, 0, 0.78, hand); mesh(box(0.24, 0.06, 0.06), gold, 0, 0, 0.1, hand);
-  const tip = new T.Object3D(); tip.position.z = 1.4; hand.add(tip);
-  return { root, body, head, tail, armR: arms[1], armL: arms[0], hand, legL: legs[0], legR: legs[1], hip: 0.5, pose: POSE(), tip };
-}
-/** Ukhu: a spectacled bear in jade-and-bronze lacquer with a great glaive */
-function bearRig(): Rig {
-  const fur = furM(0x1c1a1e), cream = furM(0xe8d9b8), jade = std(0x1f6b58, { roughness: 0.2, metalness: 0.55 }), bronze = std(0xb07a35, { roughness: 0.35, metalness: 0.9 }), dark = std(0x0e0e12);
-  const root = new T.Group(), body = new T.Group(); root.rotation.order = 'YXZ'; root.add(body);
-  const legs = [-1, 1].map((s) => { const l = new T.Group(); l.position.set(s * 0.34, 0.86, 0); root.add(l); mesh(cap(0.22, 0.5), fur, 0, -0.38, 0, l); mesh(cyl(0.25, 0.25, 0.3, 10), jade, 0, -0.42, 0, l); mesh(sph(0.24), dark, 0, -0.76, 0.12, l).scale.set(1, 0.5, 1.6); return l; });
-  mesh(sph(0.78), fur, 0, 0.62, 0, body).scale.set(1, 1.12, 0.9);
-  mesh(cyl(0.66, 0.8, 0.95, 10), jade, 0, 0.62, 0.02, body); mesh(cyl(0.82, 0.82, 0.12, 10), bronze, 0, 0.2, 0.02, body); mesh(cyl(0.67, 0.67, 0.1, 10), bronze, 0, 1.06, 0.02, body);
-  mesh(box(0.5, 0.6, 0.08), bronze, 0, 0.66, 0.74, body);
-  for (const x of [-0.82, 0.82]) { mesh(sph(0.38), jade, x, 1.12, 0, body).scale.set(1.1, 0.62, 1.15); mesh(new T.TorusGeometry(0.36, 0.04, 6, 16), bronze, x, 1.08, 0, body).rotation.x = PI / 2; }
-  const head = new T.Group(); head.position.y = 1.62; body.add(head);
-  mesh(sph(0.46), fur, 0, 0, 0, head).scale.set(1.08, 0.95, 1);
-  mesh(sph(0.22), cream, 0, -0.1, 0.36, head).scale.set(1.1, 0.8, 1); mesh(sph(0.08), dark, 0, -0.06, 0.56, head);
-  for (const x of [-1, 1]) {
-    mesh(sph(0.15), fur, x * 0.36, 0.36, -0.05, head).scale.set(1, 1, 0.5);
-    mesh(new T.TorusGeometry(0.11, 0.035, 8, 18), cream, x * 0.19, 0.08, 0.4, head).rotation.y = x * 0.35;
-    mesh(sph(0.055), glowM(hdr(1.9, 1.5, 0.6)), x * 0.19, 0.08, 0.41, head);
-  }
-  mesh(cyl(0.48, 0.5, 0.14, 12), bronze, 0, 0.3, 0, head); mesh(new T.ConeGeometry(0.16, 0.3, 4), jade, 0, 0.5, 0.1, head);
-  const tail = new T.Group(); tail.position.set(0, 0.3, -0.66); body.add(tail); mesh(sph(0.2), fur, 0, 0, 0, tail);
-  const arms = [-1, 1].map((s) => { const a = new T.Group(); a.position.set(s * 0.86, 1.1, 0); body.add(a); mesh(cap(0.2, 0.6), fur, 0, -0.44, 0, a); mesh(cyl(0.23, 0.23, 0.34, 10), jade, 0, -0.56, 0, a); mesh(sph(0.2), dark, 0, -0.94, 0, a); return a; });
-  const hand = new T.Group(); hand.position.y = -0.94; arms[1].add(hand);
-  mesh(cyl(0.055, 0.055, 3.4, 10), std(0x3a2a24), 0, 0, 0.6, hand).rotation.x = PI / 2;
-  const bl = new T.Shape(); bl.moveTo(0, 0); bl.quadraticCurveTo(0.34, 0.5, 0.06, 1.15); bl.quadraticCurveTo(-0.1, 0.5, -0.1, 0);
-  const blade = mesh(new T.ExtrudeGeometry(bl, { depth: 0.04, bevelEnabled: false }), std(0xd4e6ee, { roughness: 0.12, metalness: 1 }), 0.02, 0, 2.28, hand); blade.rotation.set(PI / 2, 0, PI / 2);
-  mesh(cyl(0.11, 0.11, 0.16, 10), bronze, 0, 0, 2.26, hand).rotation.x = PI / 2;
-  const tip = new T.Object3D(); tip.position.z = 3.2; hand.add(tip);
-  return { root, body, head, tail, armR: arms[1], armL: arms[0], hand, legL: legs[0], legR: legs[1], hip: 0.86, pose: POSE(), tip };
+/** a sub-image of a painted grid (2x2 sheets of props, foliage, carvings) */
+function cellTex(n: string, cell: number, cols = 2, rows = 2) {
+  // a clone is flagged for upload at once, before the image is there: share the image only once it has loaded
+  const base = loadTex(n), t = new T.Texture(); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4;
+  t.repeat.set(1 / cols, 1 / rows); t.offset.set((cell % cols) / cols, 1 - (Math.floor(cell / cols) + 1) / rows);
+  const fin = () => { t.source = base.source; t.needsUpdate = true; };
+  if (base.image && (base.image as HTMLImageElement).complete) fin(); else { const l = texWait.get(base) ?? []; l.push(fin); texWait.set(base, l); }
+  return t;
 }
 
-// ---------------------------------------------------------------- poses
-function doraPose(g: Fight, now: number): Pose {
-  const p = POSE(), t = g.t, br = Math.sin(now * 2.4) * 0.03;
-  p.tail = Math.sin(now * 2.6) * 0.12;
-  switch (g.state) {
-    case 'idle': p.y = br; p.ax = -1.1 + br; p.wr = 0.25; break;
-    case 'run': { const s = Math.sin(now * 15); p.lean = 0.38; p.ll = s * 0.95; p.lr = -s * 0.95; p.ax = -0.7 - s * 0.25; p.az = -0.5; p.wr = 1.0; p.bx = s * 0.8; p.y = Math.abs(Math.cos(now * 15)) * 0.07; p.tail = -0.4; break; }
-    case 'cut1': { const c = CUTS[0], k = es(t, c.hit - 3, c.hit + 2), back = es(t, c.hit + 4, c.len); p.twist = mix(mix(0.95, -1.0, k), 0, back); p.ax = -1.45; p.az = mix(mix(-1.15, 0.55, k), -0.15, back); p.wr = 1.25; p.lean = 0.3; p.ll = 0.5; p.lr = -0.45; p.bx = -0.6; break; }
-    case 'cut2': { const c = CUTS[1], k = es(t, c.hit - 3, c.hit + 2), back = es(t, c.hit + 4, c.len); p.twist = mix(mix(-0.95, 0.95, k), 0, back); p.ax = mix(mix(-0.55, -2.35, k), -1.1, back); p.az = mix(mix(0.6, -0.7, k), -0.15, back); p.wr = 1.2; p.lean = 0.22; p.ll = -0.4; p.lr = 0.5; p.bx = 0.5; break; }
-    case 'cut3': { const c = CUTS[2], up = Math.sin(PI * seg(t, 0, c.hit + 2)), k = es(t, c.hit - 3, c.hit + 1), back = es(t, c.hit + 8, c.len); p.y = up * 0.6 - k * 0.18 * (1 - back); p.ax = mix(mix(-3.05, -0.75, k), -1.1, back); p.wr = mix(0.5, 1.3, k); p.lean = mix(mix(-0.2, 0.6, k), 0.08, back); p.ll = up * 0.9; p.lr = up * 0.4; p.bx = mix(-2.6, 0.2, k); p.tail = -0.6 * up; break; }
-    case 'guard': p.y = -0.1; p.lean = 0.12; p.ax = -1.5; p.az = 0.5; p.wr = 0.05; p.bx = -1.25; p.bz = -0.35; p.ll = 0.35; p.lr = -0.3; break;
-    case 'deflect': p.ax = -2.25; p.az = 0.2; p.wr = 0.7; p.lean = -0.18; p.twist = 0.45; p.bx = -0.5; p.ll = -0.3; p.lr = 0.4; break;
-    case 'dodge': { const k = Math.sin(PI * seg(t, 0, DODGE.len)); p.y = -0.32 * k; p.lean = 0.95 * k; p.ax = -0.4; p.az = -0.9; p.wr = 1.3; p.bx = 0.6; p.ll = 1.1 * k; p.lr = -0.8 * k; p.tail = -0.8 * k; break; }
-    case 'hit': p.lean = -0.5; p.ax = -0.25; p.az = -0.95; p.bx = -0.5; p.bz = 0.9; p.head = -0.45; p.lr = 0.4; break;
-    case 'recoil': p.lean = -0.32; p.ax = -2.7; p.az = -0.7; p.wr = 0.3; p.twist = 0.5; p.lr = 0.45; p.ll = -0.2; break;
-    case 'broken': p.y = -0.42 + br; p.lean = 0.72; p.head = 0.5; p.ax = -0.35; p.wr = 1.4; p.bx = -0.2; p.ll = 1.25; p.lr = -0.35; break;
-    case 'finisher': { const w = es(t, 0, FINISHER.hit - 4), k = es(t, FINISHER.hit - 4, FINISHER.hit), f = es(t, FINISHER.hit + 8, FINISHER.len - 4); p.twist = mix(mix(0, 1.25, w), -0.6, k) * (1 - f); p.ax = mix(mix(-1.2, -1.57, k), -2.9, f); p.az = mix(-1.25 * w, 0.1, k); p.wr = mix(1.5, 0.3, f); p.lean = mix(0.4, 0.62, k) * (1 - f); p.y = -0.2 * w * (1 - f); p.ll = 0.7 * (1 - f); p.lr = -0.7 * (1 - f); p.bx = -0.4; break; }
-    case 'tag': { const k = Math.sin(PI * seg(t, 0, TAG.len)); p.bx = -2.7 * k; p.bz = 0.3; p.ax = -0.5; p.az = -0.6; p.wr = 1.2; p.lean = -0.1; p.twist = -0.4 * k; break; }
-    case 'dead': p.fall = es(t, 0, 30); p.ax = -0.2; p.az = -1.1; p.bx = -0.2; p.bz = 1.0; p.head = -0.3; break;
-    case 'win': p.y = Math.abs(Math.sin(now * 5)) * 0.16; p.ax = -3.0; p.wr = 0.2; p.bx = -2.4; p.bz = 0.5; p.head = -0.25; break;
+// ---------------------------------------------------------------- painted figures
+/** a painted figure: a card on the ground that faces the camera and shows one cell of its character's atlas */
+class Card {
+  readonly o = new T.Group(); readonly sheet: SpriteSheet; private geo: T.PlaneGeometry; private uv: T.BufferAttribute; readonly mat: T.MeshStandardMaterial;
+  private plane: T.Mesh; private blob: T.Mesh; frame = ''; mirror = false; private shown = '';
+  y = 0; spin = 0; alpha = 1; bob = 0;
+  constructor(readonly who: string, tex: T.Texture, blobMat: T.Material, scale = 1) {
+    const s = this.sheet = SPRITES[who];
+    const w = (s.cw / SPRITE_PPM) * scale, h = (s.ch / SPRITE_PPM) * scale;
+    this.geo = new T.PlaneGeometry(w, h); this.uv = this.geo.attributes.uv as T.BufferAttribute;
+    // the anchor (under the head, on the ground) at the group's origin
+    this.geo.translate(w / 2 - (s.ax / SPRITE_PPM) * scale, (s.ay / SPRITE_PPM) * scale - h / 2, 0);
+    this.mat = new T.MeshStandardMaterial({ map: tex, transparent: true, alphaTest: 0.06, side: T.DoubleSide, roughness: 1, metalness: 0, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.3 });
+    this.mat.color.setScalar(0.72);
+    this.plane = new T.Mesh(this.geo, this.mat); this.plane.renderOrder = 2; this.o.add(this.plane);
+    this.blob = new T.Mesh(new T.CircleGeometry(0.5 * scale * (who === 'ukhu' ? 1.6 : 1), 24), blobMat); this.blob.rotation.x = -PI / 2; this.blob.position.y = 0.012; this.o.add(this.blob);
   }
-  return p;
-}
-function enzoPose(g: Fight, now: number): Pose {
-  const p = POSE(), e = g.enzo, br = Math.sin(now * 2) * 0.03;
-  p.ax = -1.38 + br; p.az = 0; p.wr = 0; p.bx = -0.2; p.tail = Math.sin(now * 2.1) * 0.12; p.y = br;
-  if (g.phase === 'won') { p.y = Math.abs(Math.sin(now * 5 + 1)) * 0.2; p.ax = -2.7; p.bx = -2.7; p.bz = 0.5; p.head = -0.25; return p; }
-  if (e.state === 'wait') { if (g.tag >= 100) { p.y = Math.abs(Math.sin(now * 6)) * 0.1; p.bx = -2.2; p.bz = 0.4; } else if (g.combo >= 5) { p.bx = -1.2 + Math.sin(now * 8) * 0.3; } return p; }
-  if (e.state === 'leap') { const k = Math.sin(PI * seg(e.t, 0, 22)); p.y = k * 0.9; p.ax = -2.9; p.bx = -2.6; p.lean = 0.3; p.ll = 0.8 * k; p.lr = 0.5 * k; p.tail = -0.7; return p; }
-  if (e.state === 'strike') { const k = es(e.t, 0, 4), back = es(e.t, 14, 30); p.ax = mix(mix(-2.9, -0.7, k), -1.38, back); p.bx = mix(-2.6, -0.7, k); p.lean = mix(0.55 * k, 0.08, back); p.y = -0.18 * k * (1 - back); p.ll = 0.5 * (1 - back); p.lr = -0.4 * (1 - back); return p; }
-  const s = Math.sin(now * 13); p.lean = 0.25; p.ll = s * 0.8; p.lr = -s * 0.8; p.bx = s * 0.6; p.y = Math.abs(Math.cos(now * 13)) * 0.05; return p;
-}
-function foePose(f: Foe, now: number): Pose {
-  const p = POSE(), t = f.t, bear = f.kind === 'bear', br = Math.sin(now * 2.2 + f.id) * 0.03, a = f.atk;
-  p.tail = Math.sin(now * 2.2 + f.id) * 0.15; p.ax = bear ? -1.25 : -1.0; p.wr = bear ? 0.1 : 0.3; if (bear) { p.bx = -0.9; p.bz = -0.5; }
-  const walk = () => { const s = Math.sin(now * (bear ? 7 : 10) + f.id); p.ll = s * (bear ? 0.5 : 0.7); p.lr = -s * (bear ? 0.5 : 0.7); p.y = Math.abs(Math.cos(now * (bear ? 7 : 10) + f.id)) * 0.05; p.lean = 0.15; };
-  const windup = (k: number) => {
-    if (!a) return;
-    if (a.id === 'slash') { p.ax = mix(-1.0, -2.85, k); p.twist = 0.6 * k; p.lean = -0.15 * k; p.wr = 0.4; p.lr = 0.3 * k; }
-    else if (a.id === 'lunge' || a.id === 'thrust') { p.ax = mix(-1.0, -0.85, k); p.az = -0.5 * k; p.wr = mix(0.3, 1.45, k); p.twist = 0.85 * k; p.y = -0.2 * k; p.lean = 0.3 * k; p.ll = 0.6 * k; p.lr = -0.5 * k; if (bear) p.bx = -0.6; }
-    else if (a.id === 'sweep') { p.twist = 1.3 * k; p.ax = -1.4; p.az = -1.25 * k; p.wr = 1.3; p.lean = 0.1; p.ll = 0.4 * k; p.lr = -0.4 * k; p.bx = -1.3; p.bz = -0.6; }
-    else { p.ax = mix(-1.25, -3.05, k); p.bx = mix(-0.9, -3.0, k); p.bz = -0.2; p.wr = 0.25; p.lean = -0.3 * k; p.y = 0.12 * k; }
-  };
-  const strike = () => {
-    if (!a) return;
-    if (a.id === 'slash') { p.ax = -0.55; p.twist = -0.7; p.lean = 0.42; p.wr = 0.9; p.ll = 0.5; p.lr = -0.4; }
-    else if (a.id === 'lunge' || a.id === 'thrust') { p.ax = -1.55; p.wr = 1.5; p.twist = -0.35; p.lean = 0.62; p.y = -0.15; p.ll = 0.9; p.lr = -0.7; if (bear) p.bx = -1.3; }
-    else if (a.id === 'sweep') { p.twist = -1.3; p.ax = -1.4; p.az = 0.75; p.wr = 1.3; p.lean = 0.3; p.ll = -0.4; p.lr = 0.4; p.bx = -1.0; }
-    else { p.ax = -0.45; p.bx = -0.5; p.wr = 1.0; p.lean = 0.72; p.y = -0.28; p.ll = 0.5; p.lr = 0.5; }
-  };
-  switch (f.state) {
-    case 'enter': case 'stalk': walk(); p.y += br; break;
-    case 'windup': windup(ease(seg(t, 0, (a?.windup ?? 30) * 0.7))); break;
-    case 'strike': strike(); break;
-    case 'recover': { strike(); const k = es(t, (a?.recover ?? 30) * 0.45, a?.recover ?? 30), q = POSE(); for (const key of KEYS) p[key] = mix(p[key], key === 'ax' ? (bear ? -1.25 : -1.0) : q[key], k); break; }
-    case 'hit': p.lean = -0.45; p.ax = -0.4; p.az = -0.95; p.head = -0.4; p.lr = 0.4; break;
-    case 'deflected': p.ax = -3.0; p.az = -0.9; p.lean = -0.55; p.twist = 0.5; p.head = -0.3; p.lr = 0.5; p.ll = -0.2; if (bear) { p.bx = -0.2; p.bz = 0.8; } break;
-    case 'broken': p.y = (bear ? -0.6 : -0.42) + br; p.lean = 0.62; p.head = 0.5; p.ax = -0.3; p.wr = 0.1; p.bx = -0.1; p.ll = 1.2; p.lr = -0.3; break;
-    case 'dead': p.fall = es(t, 0, 34); p.ax = -0.2; p.az = -1.1; p.bx = -0.2; p.bz = 1.0; p.head = -0.3; break;
+  set(frame: string, mirror: boolean) { this.frame = frame; this.mirror = mirror; }
+  /** puts the card at (x, z), turned to the camera */
+  update(x: number, z: number, camYaw: number) {
+    this.o.position.set(x, 0, z);
+    this.plane.position.y = this.y + this.bob; this.plane.rotation.set(0, camYaw + PI, this.spin);
+    (this.blob.material as T.MeshBasicMaterial).opacity = 0.5;
+    this.blob.scale.setScalar(Math.max(0.3, 1 - this.y * 0.4));
+    this.mat.opacity = this.alpha;
+    const key = `${this.frame}|${this.mirror}`; if (key === this.shown) return; this.shown = key;
+    const s = this.sheet; let i = s.frames.indexOf(this.frame); if (i < 0) i = 0;
+    const u0 = (i % s.cols) / s.cols, u1 = u0 + 1 / s.cols, v1 = 1 - Math.floor(i / s.cols) / s.rows, v0 = v1 - 1 / s.rows;
+    const [a, b] = this.mirror ? [u1, u0] : [u0, u1];
+    // PlaneGeometry's uv order: top-left, top-right, bottom-left, bottom-right
+    this.uv.setXY(0, a, v1); this.uv.setXY(1, b, v1); this.uv.setXY(2, a, v0); this.uv.setXY(3, b, v0); this.uv.needsUpdate = true;
   }
-  return p;
+  /** the side the card mirrors to face (x, z) on screen, given the camera's right vector */
+  static mirrorFor(face: number, camYaw: number) { return Math.sin(face) * -Math.cos(camYaw) + Math.cos(face) * Math.sin(camYaw) < 0; }
+}
+/** front, back or side painting for a figure facing `face` seen by a camera looking along `camYaw` */
+function view(face: number, camYaw: number): 'front' | 'back' | 'side' {
+  const rel = Math.abs(wrap(face - camYaw)); return rel < PI / 4 ? 'back' : rel > (3 * PI) / 4 ? 'front' : 'side';
 }
 
-// ---------------------------------------------------------------- effects
-/** a brush stroke: thick in the middle, tapered at both ends, brightest at the leading tip */
-function arcGeo(r0: number, r1: number, len: number) {
-  const n = 48, pos: number[] = [], col: number[] = [], idx: number[] = [];
-  for (let i = 0; i <= n; i++) {
-    const k = i / n, a = k * len, w = Math.pow(Math.sin(PI * Math.min(1, k * 1.12)), 0.7), ri = mix(r1 - 0.02, r0, w), c = Math.pow(k, 1.7);
-    pos.push(Math.cos(a) * ri, Math.sin(a) * ri, 0, Math.cos(a) * r1, Math.sin(a) * r1, 0); col.push(c * 0.45, c * 0.45, c * 0.45, c, c, c);
-    if (i < n) { const j = i * 2; idx.push(j, j + 1, j + 2, j + 1, j + 3, j + 2); }
-  }
-  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new T.Float32BufferAttribute(col, 3)); g.setIndex(idx); return g;
-}
-const addMat = (c: T.Color, vertexColors = false) => new T.MeshBasicMaterial({ vertexColors, color: c, transparent: true, opacity: 0, blending: T.AdditiveBlending, side: T.DoubleSide, depthWrite: false, fog: false });
-type Fx = { o: T.Object3D; mat: T.Material; life: number; max: number; grow: number; s0: number; spin: number };
+type Fx = { o: T.Object3D; mat: T.Material; life: number; max: number; grow: number; s0: number };
+type AreaBuild = { group: T.Group; planks: Map<string, T.Mesh>; gates: Map<string, T.Object3D>; stones: Map<string, T.Mesh>; posts: T.Object3D[]; lamps: T.PointLight[]; sunLamp?: T.Mesh; sunLight?: T.PointLight };
+/** what to draw: the terrace duel from the title menu, or the story (with its duel, when one is on) */
+export type View = { kind: 'arena'; fight: Fight } | { kind: 'story'; world: World; fight: Fight | null };
+const ARENA_DUEL: Duel = { ...DUELS[0], id: 'arena' };
 
 export class CloudsteelScene {
   private renderer: T.WebGPURenderer; private scene = new T.Scene(); private cam = new T.PerspectiveCamera(42, 16 / 9, 0.1, 700);
   private pipe: T.RenderPipeline | null = null; private fxOn: boolean;
-  private dora!: Rig; private enzo!: Rig; private foes = new Map<number, Rig>(); private staffL!: T.PointLight; private staffGlow!: T.Sprite;
+  private areas = new Map<AreaId, AreaBuild>(); private area: AreaId | null = null; private pano!: T.MeshBasicMaterial;
+  private cards = new Map<string, Card>(); private blobMat = new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.5, depthWrite: false });
+  private pickups = new Map<string, T.Object3D>(); private staffL!: T.PointLight; private lanternGlow!: T.Sprite; private lanternRing!: T.Mesh;
   private fx: Fx[] = []; private trails: T.Mesh[] = []; private trailBox = new T.Group(); private tagRing!: T.Mesh; private jadeRing!: T.Mesh; private glint!: T.Sprite; private mark!: T.Mesh; private finish!: T.Mesh;
   private sparks!: T.InstancedMesh; private sP: T.Vector3[] = []; private sV: T.Vector3[] = []; private sLife = new Float32Array(140); private sNext = 0; private dum = new T.Object3D();
-  private rainPos!: Float32Array; private rainG!: T.BufferGeometry; private mists: T.Sprite[] = []; private lamps: T.PointLight[] = []; private posts: T.Group[] = [];
-  private softTex!: T.Texture; private inkTex!: T.Texture;
-  private now = 0; private shake = 0; private yaw = PI; private camPos = new T.Vector3(0, 4, 10); private look = new T.Vector3(0, 1.2, 0);
+  private rainPos!: Float32Array; private rainG!: T.BufferGeometry; private rain!: T.LineSegments; private mists: T.Sprite[] = [];
+  private softTex!: T.Texture; private inkTex!: T.Texture; private ghostMat!: T.MeshBasicMaterial; private plankMat!: T.MeshStandardMaterial;
+  private now = 0; private shake = 0; private yaw = PI; private camPos = new T.Vector3(0, 4, 18); private look = new T.Vector3(0, 1.2, 0); private camInit = false;
+  private duel: Duel = ARENA_DUEL; private walked = new Map<string, number>(); private lastPos = new Map<string, { x: number; z: number }>(); private parryT = new Map<number, number>();
+  private talkT = 0; private lastLine: unknown = null; private coldT = 0; private orbit = 0;
+  /** the player turning the camera while exploring: radians a second */
+  turn = 0;
   /** 'webgpu' or 'webgl2', for the settings screen */
   backend: 'webgpu' | 'webgl2' = 'webgl2';
 
   /** the yaw the camera looks along, so the page can turn stick input into world directions */
   get camYaw() { return this.yaw; }
+  /** a drag across the screen turns the exploring camera */
+  turnBy(a: number) { this.yaw += a; }
 
   static async create(canvas: HTMLCanvasElement, fx: boolean) {
     const renderer = new T.WebGPURenderer({ canvas, antialias: true });
@@ -209,119 +117,238 @@ export class CloudsteelScene {
     this.renderer = renderer; this.fxOn = fx;
     this.backend = (renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend ? 'webgpu' : 'webgl2';
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, fx ? 2 : 1.25));
-    renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
-    renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
-    this.scene.fog = new T.FogExp2(0x12283a, 0.016);
-    this.buildWorld(); this.buildFigures(); this.buildEffects();
+    renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
+    this.scene.fog = new T.FogExp2(0x12283a, 0.014);
+    this.buildSky(); this.buildEffects(); this.buildFigures();
     if (fx) {
       const scenePass = pass(this.scene, this.cam, { samples: 4 }), col = scenePass.getTextureNode();
       const vig = float(1).sub(smoothstep(0.35, 0.95, screenUV.sub(0.5).length()).mul(0.55));
+      // bloom only on what is brighter than white: lanterns, sparks and strokes, never the painted faces
       this.pipe = new T.RenderPipeline(renderer); this.pipe.outputNode = col.add(bloom(col, 0.38, 0.5, 1)).mul(vig);
     }
+    this.setArea('terrace');
     this.resize();
   }
   resize() {
     const c = this.renderer.domElement, w = c.clientWidth, h = c.clientHeight; if (!w || !h) return;
-    this.renderer.setSize(w, h, false); this.cam.aspect = w / h; this.cam.fov = w / h < 1 ? 58 : 42; this.cam.updateProjectionMatrix();
+    this.renderer.setSize(w, h, false); this.cam.aspect = w / h; this.cam.fov = w / h < 1 ? 60 : 42; this.cam.updateProjectionMatrix();
   }
   dispose() { this.renderer.dispose(); }
 
-  // ---------------------------------------------------------------- the citadel
-  private buildWorld() {
+  // ---------------------------------------------------------------- sky, mist, rain
+  private buildSky() {
     const sc = this.scene, add = <O extends T.Object3D>(o: O) => { sc.add(o); return o; };
     const sky = canvasTex(1024, 512, (g, w, h) => {
       const l = g.createLinearGradient(0, 0, 0, h); l.addColorStop(0, '#040714'); l.addColorStop(0.3, '#0c1632'); l.addColorStop(0.47, '#12283a'); l.addColorStop(0.53, '#12283a'); l.addColorStop(1, '#070d12'); g.fillStyle = l; g.fillRect(0, 0, w, h);
       for (let i = 0; i < 420; i++) { const y = Math.pow(Math.random(), 1.6) * h * 0.42; g.fillStyle = `rgba(220,232,255,${(0.25 + Math.random() * 0.6) * (1 - y / (h * 0.45))})`; g.fillRect(Math.random() * w, y, Math.random() < 0.12 ? 2 : 1, Math.random() < 0.12 ? 2 : 1); }
     });
-    sky.mapping = T.EquirectangularReflectionMapping; sc.environment = sky; sc.environmentIntensity = 0.6;
+    sky.mapping = T.EquirectangularReflectionMapping; sc.environment = sky; sc.environmentIntensity = 0.5;
     add(mesh(new T.SphereGeometry(300, 32, 16), new T.MeshBasicMaterial({ map: sky, side: T.BackSide, fog: false, depthWrite: false })));
-    // the painted panorama, mirrored so it joins up all the way round
-    const pano = loadTex('backdrop'); pano.wrapS = T.MirroredRepeatWrapping; pano.repeat.x = 2;
-    const ring = add(mesh(new T.CylinderGeometry(150, 150, 110, 48, 1, true), new T.MeshBasicMaterial({ map: pano, color: 0x7888a0, side: T.BackSide, fog: false, depthWrite: false }), 0, -12, 0)); ring.renderOrder = -1;
+    this.pano = new T.MeshBasicMaterial({ color: 0x7888a0, side: T.BackSide, fog: false, depthWrite: false });
+    const ring = add(mesh(new T.CylinderGeometry(160, 160, 120, 48, 1, true), this.pano, 0, -14, -20)); ring.renderOrder = -1;
     this.softTex = canvasTex(128, 128, (g, w) => { const r = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.35, 'rgba(255,255,255,.45)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, w, w); });
     this.inkTex = canvasTex(128, 128, (g, w) => { g.fillStyle = '#fff'; for (let i = 0; i < 26; i++) { const a = Math.random() * PI * 2, d = Math.pow(Math.random(), 0.7) * 46, r = 4 + Math.random() * (i < 6 ? 26 : 9); g.beginPath(); g.arc(w / 2 + Math.cos(a) * d, w / 2 + Math.sin(a) * d, r, 0, PI * 2); g.fill(); } });
+    this.blobMat.map = canvasTex(64, 64, (g, w) => { const r = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); r.addColorStop(0, 'rgba(255,255,255,.9)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, w, w); });
+    this.blobMat.alphaMap = this.blobMat.map; this.blobMat.map = null;
     const moonTex = canvasTex(256, 256, (g, w) => { const r = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); r.addColorStop(0, 'rgba(240,246,255,1)'); r.addColorStop(0.3, 'rgba(232,240,255,1)'); r.addColorStop(0.33, 'rgba(170,200,255,.35)'); r.addColorStop(1, 'rgba(120,170,255,0)'); g.fillStyle = r; g.fillRect(0, 0, w, w); g.fillStyle = 'rgba(150,170,205,.35)'; [[110, 104, 13], [146, 132, 9], [122, 150, 7], [150, 98, 6]].forEach((c) => { g.beginPath(); g.arc(c[0], c[1], c[2], 0, PI * 2); g.fill(); }); });
-    const moon = add(new T.Sprite(new T.SpriteMaterial({ map: moonTex, color: hdr(1.5, 1.7, 2.1), fog: false, transparent: true, depthWrite: false }))); moon.scale.set(40, 40, 1); moon.position.set(-22, 46, -110);
-
-    add(new T.HemisphereLight(0x6f8fd0, 0x10201c, 0.95));
-    const moonL = add(new T.DirectionalLight(0xa9c6ff, 2.4)); moonL.position.set(-9, 16, -12); moonL.castShadow = true;
-    moonL.shadow.mapSize.set(2048, 2048); Object.assign(moonL.shadow.camera, { left: -12, right: 12, top: 12, bottom: -12, near: 1, far: 50 }); moonL.shadow.bias = -0.0015; moonL.shadow.radius = 3;
-    const fill = add(new T.DirectionalLight(0x4f7f8f, 0.6)); fill.position.set(3, 5, 10);
-
-    const stoneT = loadTex('stone', 3), stone = std(0xe4ecf8, { map: stoneT, roughness: 0.8 }), stoneDark = std(0xa8b6cc, { map: stoneT, roughness: 0.85 }), wood = std(0x3a2a24), roof = std(0xc8dcdc, { map: loadTex('roof', 2), roughness: 0.5 }), gold = std(0xd9a441, { roughness: 0.35, metalness: 0.9 }), lampM = glowM(hdr(1.25, 0.64, 0.17));
-    const R = ARENA_R + 1.4;
-    add(mesh(cyl(R, R + 0.6, 1.2, 48), stone, 0, -0.6, 0)).receiveShadow = true;
-    // the rain-soaked floor: the painted paving with a rippled planar reflection on top
-    const floorMat = new T.MeshStandardNodeMaterial({ map: loadTex('floor'), roughness: 0.32, metalness: 0.15 });
-    if (this.fxOn) {
-      const refl = reflector({ resolutionScale: 0.6, samples: 4 }); refl.target.rotateX(-PI / 2); refl.target.position.y = 0.006; sc.add(refl.target);
-      const wp = positionWorld.mul(1.9); refl.uvNode = refl.uvNode!.add(vec2(mx_noise_float(wp), mx_noise_float(wp.add(11.3))).mul(0.0035));
-      floorMat.emissiveNode = refl.rgb.mul(0.28);
-    }
-    const floor = add(mesh(new T.CircleGeometry(R - 0.05, 64), floorMat, 0, 0.006, 0)); floor.rotation.x = -PI / 2; floor.receiveShadow = true;
-    add(mesh(cyl(R + 0.6, 5.5, 34, 14), stoneDark, 0, -18.2, 0));
-    add(mesh(new T.TorusGeometry(R + 0.05, 0.16, 8, 64), stoneDark, 0, 0.1, 0)).rotation.x = PI / 2;
-    [0.35, 1.25, 2.1, 2.9, 4.1, 5.3].forEach((a, i) => {
-      const g = add(new T.Group()); g.position.set(Math.sin(a) * (R - 0.7), 0, -Math.cos(a) * (R - 0.7)); g.rotation.y = -a; this.posts.push(g);
-      mesh(box(0.22, 3.1, 0.22), wood, 0, 1.55, 0, g).castShadow = true; mesh(box(0.2, 0.16, 1.1), wood, 0, 2.95, 0.4, g); mesh(box(1.3, 0.12, 0.5), roof, 0, 3.2, 0, g);
-      mesh(box(0.02, 0.45, 0.02), wood, 0, 2.65, 0.8, g); const l = mesh(box(0.34, 0.46, 0.34), lampM, 0, 2.25, 0.8, g); mesh(box(0.42, 0.06, 0.42), wood, 0, 2.5, 0.8, g); mesh(box(0.42, 0.06, 0.42), wood, 0, 2.0, 0.8, g);
-      const s = new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: 0xffc45e, transparent: true, opacity: 0.22, blending: T.AdditiveBlending, depthWrite: false })); s.scale.set(3, 3, 1); s.position.copy(l.position); g.add(s);
-      if (i % 2 === 0) { const p = new T.PointLight(0xffb44d, 30, 20, 2); p.position.set(0, 2.25, 0.8); g.add(p); this.lamps.push(p); }
-    });
-    for (let i = 0; i < 7; i++) add(mesh(box(5 - i * 0.12, 0.4, 0.9), stone, 0, 0.2 + i * 0.4 - 0.4, -R - 0.2 - i * 0.85)).receiveShadow = true;
-    const temple = add(new T.Group()); temple.position.set(0, 2.4, -R - 10.5);
-    mesh(box(15, 2.4, 8), stone, 0, -1.2, 0, temple); mesh(box(10.5, 3.6, 5.4), stoneDark, 0, 1.8, 0, temple);
-    const tier = (w: number, y: number, s: number) => { const r = mesh(new T.ConeGeometry(w, 1.9 * s, 4), roof, 0, y, 0, temple); r.rotation.y = PI / 4; r.scale.z = 0.62; };
-    tier(9.4, 4.5, 1); mesh(box(6, 2.3, 3.4), stoneDark, 0, 5.9, 0, temple); tier(6, 7.9, 0.9); mesh(box(3, 1.6, 2), stoneDark, 0, 8.9, 0, temple); tier(3.6, 10.4, 0.8);
-    const door = new T.Shape(); door.moveTo(-0.9, 0); door.lineTo(0.9, 0); door.lineTo(0.62, 2.5); door.lineTo(-0.62, 2.5);
-    const doorG = new T.ShapeGeometry(door); [-3.4, 0, 3.4].forEach((x, i) => { const d = mesh(doorG, lampM, x, 0, 2.72, temple); if (i !== 1) { d.scale.set(0.6, 0.6, 1); d.position.y = 0.9; } });
-    [-1.8, 0, 1.8].forEach((x) => mesh(box(0.6, 0.9, 0.1), lampM, x, 5.6, 1.72, temple));
-    const tl = add(new T.PointLight(0xffb44d, 60, 30, 2)); tl.position.set(0, 3.4, -R - 6.5);
-    [-3.6, 3.6].forEach((x) => {
-      const g = add(new T.Group()); g.position.set(x, 0, -R + 0.5);
-      [[1, 0.9, 0.5], [0.8, 0.8, 1.35], [1, 0.7, 2.1], [0.7, 0.7, 2.8]].forEach((d) => { mesh(box(d[0], d[1], d[0]), stoneDark, 0, d[2], 0, g).castShadow = true; });
-      mesh(box(2.6, 0.22, 0.5), stone, 0, 3.3, 0, g).castShadow = true; mesh(new T.ConeGeometry(0.3, 0.7, 4), gold, 0, 3.75, 0.1, g).rotation.x = 0.5;
-      [-0.2, 0.2].forEach((e) => mesh(box(0.14, 0.1, 0.05), lampM, e, 2.9, 0.36, g));
-    });
-    const bridge = add(new T.Group()); bridge.position.set(R - 0.3, 0, 2.5); bridge.rotation.y = -0.35;
-    const ropeM = new T.LineBasicMaterial({ color: 0x6b5a44 });
-    for (const z of [-0.75, 0.75]) { const pts: T.Vector3[] = []; for (let i = 0; i <= 20; i++) { const k = i / 20; pts.push(new T.Vector3(k * 22, 1.1 - Math.sin(k * PI) * 1.5, z)); } bridge.add(new T.Line(new T.BufferGeometry().setFromPoints(pts), ropeM)); mesh(box(0.2, 1.5, 0.2), wood, 0, 0.6, z, bridge); }
-    for (let i = 0; i < 26; i++) { const k = (i + 0.5) / 26; mesh(box(0.6, 0.07, 1.5), wood, k * 22, -Math.sin(k * PI) * 1.5, 0, bridge).rotation.z = -Math.cos(k * PI) * 0.2; }
-    add(mesh(cyl(4, 6, 40, 8), stoneDark, 30, -21, -5.5)); add(mesh(box(3, 2, 3), stoneDark, 30, 0, -5.5)); add(mesh(new T.ConeGeometry(3, 1.4, 4), roof, 30, 2.2, -5.5)).rotation.y = PI / 4;
-    add(mesh(cyl(5, 7, 50, 8), stoneDark, -26, -20, -16));
-    add(mesh(new T.PlaneGeometry(2.2, 30), new T.MeshBasicMaterial({ color: 0x9fe0d0, transparent: true, opacity: 0.35, depthWrite: false }), -23.5, -9, -11.2)).rotation.y = 0.5;
-    for (let i = 0; i < 16; i++) {
-      const s = add(new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: 0x7fd1b4, transparent: true, opacity: 0.06 + Math.random() * 0.07, depthWrite: false })));
-      const a = Math.random() * PI * 2, d = 14 + Math.random() * 26; s.position.set(Math.cos(a) * d, -3 + Math.random() * 5, Math.sin(a) * d - 6); const k = 16 + Math.random() * 20; s.scale.set(k, k * 0.5, 1); s.userData.v = (Math.random() - 0.5) * 0.5; this.mists.push(s);
+    const moon = add(new T.Sprite(new T.SpriteMaterial({ map: moonTex, color: hdr(1.5, 1.7, 2.1), fog: false, transparent: true, depthWrite: false }))); moon.scale.set(40, 40, 1); moon.position.set(-30, 50, -140);
+    add(new T.HemisphereLight(0x7f9fe0, 0x14261f, 1.25));
+    const moonL = add(new T.DirectionalLight(0xa9c6ff, 1.6)); moonL.position.set(-9, 16, -12);
+    // a warm key from the front-left, like the light painted into the figures
+    const key = add(new T.DirectionalLight(0xffc98a, 0.9)); key.position.set(-6, 8, 10);
+    for (let i = 0; i < 18; i++) {
+      const s = add(new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: 0x7fd1b4, transparent: true, opacity: 0.05 + Math.random() * 0.06, depthWrite: false })));
+      const a = Math.random() * PI * 2, d = 26 + Math.random() * 40; s.position.set(Math.cos(a) * d, -6 + Math.random() * 5, Math.sin(a) * d - 30); const k = 20 + Math.random() * 24; s.scale.set(k, k * 0.5, 1); s.userData.v = (Math.random() - 0.5) * 0.6; this.mists.push(s);
     }
     const RN = 1500; this.rainPos = new Float32Array(RN * 6); this.rainG = new T.BufferGeometry();
     for (let i = 0; i < RN; i++) { const x = (Math.random() - 0.5) * 44, y = Math.random() * 22 - 2, z = (Math.random() - 0.5) * 44; this.rainPos.set([x, y, z, x + 0.05, y - 0.6, z], i * 6); }
     this.rainG.setAttribute('position', new T.BufferAttribute(this.rainPos, 3));
-    const rain = add(new T.LineSegments(this.rainG, new T.LineBasicMaterial({ color: 0xa8d8e8, transparent: true, opacity: 0.3 }))); rain.frustumCulled = false;
+    this.rain = add(new T.LineSegments(this.rainG, new T.LineBasicMaterial({ color: 0xa8d8e8, transparent: true, opacity: 0.28 }))); this.rain.frustumCulled = false;
+    this.ghostMat = new T.MeshBasicMaterial({ color: hdr(0.25, 0.6, 0.55), transparent: true, opacity: 0.12, depthWrite: false, fog: false });
+    this.plankMat = new T.MeshStandardMaterial({ map: loadTex('bark', 1), roughness: 0.8, emissive: hdr(0.6, 0.45, 0.12), emissiveIntensity: 0.6 });
   }
 
+  // ---------------------------------------------------------------- the areas
+  /** shows one area, building it the first time */
+  setArea(id: AreaId) {
+    if (this.area === id) return;
+    this.area = id; let b = this.areas.get(id); if (!b) { b = this.buildArea(id); this.areas.set(id, b); }
+    for (const [k, a] of this.areas) a.group.visible = k === id;
+    const pano = loadTex(id === 'terrace' ? 'backdrop' : id === 'forest' ? 'backdrop-forest' : 'backdrop-citadel'); pano.wrapS = T.MirroredRepeatWrapping; pano.repeat.x = 2; this.pano.map = pano; this.pano.needsUpdate = true;
+    (this.scene.fog as T.FogExp2).color.set(id === 'forest' ? 0x10302e : 0x12283a); (this.scene.fog as T.FogExp2).density = id === 'forest' ? 0.02 : 0.014;
+    for (const [, o] of this.pickups) o.parent?.remove(o); this.pickups.clear();
+    this.camInit = false;
+  }
+  private buildArea(id: AreaId): AreaBuild {
+    const A = AREAS[id], g = new T.Group(); this.scene.add(g);
+    const b: AreaBuild = { group: g, planks: new Map(), gates: new Map(), stones: new Map(), posts: [], lamps: [] };
+    const stoneT = loadTex('stone', 3), groundT = id === 'forest' ? loadTex('moss', 4) : stoneT;
+    const ground = std(0xffffff, { map: groundT, roughness: 0.75 }), stone = std(0xe4ecf8, { map: stoneT, roughness: 0.8 }), dark = std(0x8e9cb2, { map: stoneT, roughness: 0.85 });
+    const wood = std(0x3a2a24), roof = std(0xc8dcdc, { map: loadTex('roof', 2), roughness: 0.5 }), gold = std(0xd9a441, { roughness: 0.35, metalness: 0.9 }), lampM = glowM(hdr(1.25, 0.64, 0.17));
+    // the walkable ground, standing on cliffs that drop into the mist
+    A.walk.forEach((s, i) => {
+      const y = -0.002 * i;
+      if (s.k === 'rect') {
+        const w = s.x1 - s.x0, d = s.z1 - s.z0, cx = (s.x0 + s.x1) / 2, cz = (s.z0 + s.z1) / 2;
+        const top = mesh(new T.PlaneGeometry(w, d), ground, cx, y, cz, g); top.rotation.x = -PI / 2;
+        const t = (top.material as T.MeshStandardMaterial); void t;
+        mesh(box(w, 26, d), dark, cx, y - 13.05, cz, g);
+      } else {
+        const top = mesh(new T.CircleGeometry(s.r, 48), ground, s.x, y, s.z, g); top.rotation.x = -PI / 2;
+        mesh(cyl(s.r, s.r * 0.8, 26, 32), dark, s.x, y - 13.05, s.z, g);
+      }
+    });
+    const post = (x: number, z: number, light: boolean) => {
+      const p = new T.Group(); p.position.set(x, 0, z); g.add(p); b.posts.push(p);
+      mesh(box(0.22, 3.1, 0.22), wood, 0, 1.55, 0, p); mesh(box(0.2, 0.16, 1.1), wood, 0, 2.95, 0.4, p); mesh(box(1.3, 0.12, 0.5), roof, 0, 3.2, 0, p);
+      mesh(box(0.02, 0.45, 0.02), wood, 0, 2.65, 0.8, p); const l = mesh(box(0.34, 0.46, 0.34), lampM, 0, 2.25, 0.8, p); mesh(box(0.42, 0.06, 0.42), wood, 0, 2.5, 0.8, p); mesh(box(0.42, 0.06, 0.42), wood, 0, 2.0, 0.8, p);
+      const s = new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: 0xffc45e, transparent: true, opacity: 0.22, blending: T.AdditiveBlending, depthWrite: false })); s.scale.set(3, 3, 1); s.position.copy(l.position); p.add(s);
+      // the lamps sit high and well away from where figures stand, so a face next to one does not blow out
+      if (light) { const pl = new T.PointLight(0xffb44d, 16, 14, 2); pl.position.set(0, 2.6, 0.8); p.add(pl); b.lamps.push(pl); }
+      p.rotation.y = Math.atan2(-x, -z);
+    };
+    let nLamp = 0;
+    const foliage = (cell: number, x: number, z: number, s = 1) => {
+      const t = cellTex('foliage', cell), h = [4.6, 4.2, 1.4, 4.4][cell] * s, w = h * 0.95;
+      const m = new T.MeshStandardMaterial({ map: t, transparent: true, alphaTest: 0.3, side: T.DoubleSide, roughness: 1, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.12 }); m.color.setScalar(0.7);
+      const geo = new T.PlaneGeometry(w, h); geo.translate(0, h / 2 - h * 0.04, 0);
+      // tall plants step out of the way when the camera comes close, like the lamp posts
+      for (const r of [0, PI / 2]) { const p = mesh(geo, m, x, 0, z, g); p.rotation.y = r + (x * 7 + z * 13) % 1; if (cell !== 2) b.posts.push(p); }
+    };
+    for (const p of A.props) {
+      switch (p.kind) {
+        case 'post': post(p.x, p.z, nLamp++ % 2 === 0); break;
+        case 'tree': foliage(1, p.x, p.z, p.s ?? 1); break;
+        case 'fern': foliage(0, p.x, p.z, p.s ?? 1); break;
+        case 'bush': foliage(2, p.x, p.z, p.s ?? 1); break;
+        case 'bamboo': foliage(3, p.x, p.z, p.s ?? 1); break;
+        case 'grove': { // a mossy rock pillar out of the mist with a tree, a fern or bamboo on top
+          const r = 1.3 * (p.s ?? 1), cell = [1, 0, 3, 1, 0][Math.abs(Math.round(p.x * 3 + p.z * 5)) % 5];
+          const top = mesh(new T.CircleGeometry(r, 20), ground, p.x, -0.12, p.z, g); top.rotation.x = -PI / 2;
+          mesh(cyl(r, r * 0.7, 26, 14), dark, p.x, -13.13, p.z, g);
+          foliage(cell, p.x, p.z, (p.s ?? 1) * (cell === 1 ? 1.15 : 1)); break;
+        }
+        case 'arena': this.buildArena(g, p.x, p.z, id); break;
+        case 'temple': {
+          const t = new T.Group(); t.position.set(p.x, 2.4, p.z); g.add(t);
+          mesh(box(15, 2.4, 8), stone, 0, -1.2, 0, t); mesh(box(10.5, 3.6, 5.4), dark, 0, 1.8, 0, t);
+          const tier = (w: number, y: number, s: number) => { const r = mesh(new T.ConeGeometry(w, 1.9 * s, 4), roof, 0, y, 0, t); r.rotation.y = PI / 4; r.scale.z = 0.62; };
+          tier(9.4, 4.5, 1); mesh(box(6, 2.3, 3.4), dark, 0, 5.9, 0, t); tier(6, 7.9, 0.9); mesh(box(3, 1.6, 2), dark, 0, 8.9, 0, t); tier(3.6, 10.4, 0.8);
+          [-3.4, 0, 3.4].forEach((x) => mesh(box(1.4, 2.2, 0.1), lampM, x, 1.2, 2.72, t));
+          mesh(cyl(4, 7, 40, 8), dark, 0, -22, 0, t);
+          break;
+        }
+        case 'bellhouse': {
+          const h = new T.Group(); h.position.set(p.x, 0, p.z); g.add(h);
+          mesh(box(2.8, 2.4, 6), dark, 0, 1.2, 0, h); const r = mesh(new T.ConeGeometry(3.6, 1.6, 4), roof, 0, 3.2, 0, h); r.rotation.y = PI / 4; r.scale.z = 1.9;
+          const bell = mesh(new T.CylinderGeometry(0.25, 0.45, 0.7, 16), std(0x6f8f6a, { metalness: 0.7, roughness: 0.4 }), 1.7, 2.1, 3.6, h); bell.userData.bell = true;
+          mesh(box(0.14, 2.6, 0.14), wood, 1.7, 1.3, 4.3, h); mesh(box(0.14, 2.6, 0.14), wood, 1.7, 1.3, 2.9, h); mesh(box(0.14, 0.14, 1.6), wood, 1.7, 2.6, 3.6, h);
+          break;
+        }
+        case 'stairs': for (let i = 0; i < 8; i++) mesh(box(5.2, 0.18, 1.2), stone, p.x, -0.06 + 0.001 * i, p.z + 3.5 - i * 1.25, g); break;
+        case 'gate': case 'jadegate': case 'jadedoor': {
+          const gid = A.gates.find((o) => Math.abs((o.shape.k === 'rect' ? (o.shape.x0 + o.shape.x1) / 2 : 0) - p.x) < 1.6 && Math.abs((o.shape.k === 'rect' ? (o.shape.z0 + o.shape.z1) / 2 : 0) - p.z) < 1.6)?.id;
+          const side = p.kind === 'jadedoor', w = side ? 4 : 5.6, gr = new T.Group(); gr.position.set(p.x, 0, p.z); if (side) gr.rotation.y = PI / 2; g.add(gr);
+          for (const s of [-1, 1]) mesh(box(1.2, 4.8, 1.6), stone, s * (w / 2 + 0.6), 2.4, 0, gr);
+          mesh(box(w + 2.6, 1, 1.8), stone, 0, 5.2, 0, gr); mesh(new T.ConeGeometry(0.4, 0.9, 4), gold, 0, 6.1, 0, gr);
+          const door = new T.Group(); gr.add(door);
+          mesh(box(w, 4.4, 0.4), wood, 0, 2.2, 0, door);
+          for (let i = 0; i < 4; i++) mesh(box(w, 0.1, 0.45), gold, 0, 0.6 + i * 1.1, 0, door);
+          if (p.kind !== 'gate') { const seal = mesh(new T.CircleGeometry(0.75, 32), glowM(hdr(0.3, 1.6, 0.9)), 0, 2.4, 0.23, door); seal.userData.seal = true; mesh(new T.CircleGeometry(0.75, 32), glowM(hdr(0.3, 1.6, 0.9)), 0, 2.4, -0.23, door).rotation.y = PI; }
+          if (gid) b.gates.set(gid, door);
+          break;
+        }
+        case 'condorgate': {
+          const cg = new T.Group(); cg.position.set(p.x, 0, p.z); g.add(cg);
+          for (const s of [-1, 1]) { mesh(box(2.4, 9, 2.4), stone, s * 4.4, 4.5, 0, cg); mesh(new T.ConeGeometry(1.2, 1.4, 4), gold, s * 4.4, 9.7, 0, cg).rotation.y = PI / 4; }
+          mesh(box(11.4, 1.8, 2.6), stone, 0, 9.4, 0, cg);
+          // stone condor wings over the gate
+          for (const s of [-1, 1]) { const wgt = mesh(box(5.5, 0.5, 0.6), dark, s * 3.2, 11, 0, cg); wgt.rotation.z = s * 0.25; }
+          mesh(cyl(0.7, 0.9, 1.4, 8), gold, 0, 10.9, 0, cg);
+          b.sunLamp = mesh(new T.SphereGeometry(0.9, 24, 16), glowM(hdr(0.18, 0.16, 0.14)), 0, 12.3, 0, cg);
+          b.sunLight = new T.PointLight(0xffc060, 0, 60, 1.6); b.sunLight.position.set(0, 12.3, 1.5); cg.add(b.sunLight);
+          mesh(box(6.4, 7.2, 0.5), std(0x0a1018), 0, 3.6, 0.2, cg);
+          mesh(cyl(30, 18, 40, 10), dark, 0, -20.5, -6, cg);
+          break;
+        }
+        case 'walls': {
+          const wall = (x0: number, z0: number, x1: number, z1: number, h = 6) => { const l = Math.hypot(x1 - x0, z1 - z0), m = mesh(box(l, h, 1.2), stone, (x0 + x1) / 2, h / 2 - 0.2, (z0 + z1) / 2, g); m.rotation.y = -Math.atan2(z1 - z0, x1 - x0); };
+          wall(-14, -5.4, -3.6, -5.4); wall(3.6, -5.4, 14, -5.4); wall(-14, -24.8, -3.2, -24.8, 7); wall(3.2, -24.8, 14, -24.8, 7);
+          wall(-13.8, -24.8, -13.8, -17.6); wall(-13.8, -12.4, -13.8, -5.4); wall(13.8, -24.8, 13.8, -12.6); wall(13.8, -8.4, 13.8, -5.4);
+          for (const [x, z] of [[-14, -5.4], [14, -5.4], [-14, -24.8], [14, -24.8]]) { mesh(box(2.4, 8.5, 2.4), stone, x, 4, z, g); const r = mesh(new T.ConeGeometry(2, 1.8, 4), roof, x, 9.1, z, g); r.rotation.y = PI / 4; }
+          break;
+        }
+        case 'gorge': case 'gorge2': {
+          // the drop: dark water far below, mist drifting in it
+          const horiz = p.kind === 'gorge2', len = horiz ? 10.6 : 17.5;
+          for (let i = 0; i < 6; i++) { const s = new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: 0x9fe0d0, transparent: true, opacity: 0.16, depthWrite: false })); s.position.set(p.x + (horiz ? (i / 5 - 0.5) * len : (Math.sin(i * 3) * 2)), -3 - (i % 3) * 2, p.z + (horiz ? Math.sin(i * 3) * 2 : (i / 5 - 0.5) * len)); s.scale.set(9, 4, 1); g.add(s); this.mists.push(s); s.userData.v = 0; }
+          break;
+        }
+        case 'ropeposts': case 'ropeposts2': {
+          const horiz = p.kind === 'ropeposts2';
+          for (const s of [-1, 1]) { const m = mesh(box(0.2, 1.4, 0.2), wood, p.x + (horiz ? 0 : s * 1.5), 0.7, p.z + (horiz ? s * 1.5 : 0), g); void m; }
+          break;
+        }
+        case 'shrine': { mesh(box(2.4, 2.2, 2.4), dark, p.x, 1.1, p.z, g); const r = mesh(new T.ConeGeometry(2.2, 1.2, 4), roof, p.x, 2.8, p.z, g); r.rotation.y = PI / 4; mesh(box(0.8, 1.1, 0.1), lampM, p.x, 0.9, p.z + 1.22, g); break; }
+      }
+    }
+    // the spirit-bridge planks: a faint shimmer until the lantern wakes them
+    for (const pl of A.planks) {
+      const m = mesh(box(pl.hx * 2 - 0.08, 0.12, pl.hz * 2 - 0.08), this.ghostMat, pl.x, -0.07, pl.z, g); m.userData.lit = 0; b.planks.set(pl.id, m);
+    }
+    // the ropes along the bridges
+    const ropeM = new T.LineBasicMaterial({ color: 0x7a6650 });
+    const rope = (x0: number, z0: number, x1: number, z1: number) => { for (const s of [-1, 1]) { const pts: T.Vector3[] = []; const nx = -(z1 - z0), nz = x1 - x0, l = Math.hypot(nx, nz); for (let i = 0; i <= 24; i++) { const k = i / 24; pts.push(new T.Vector3(mix(x0, x1, k) + nx / l * s * 1.5, 1.1 - Math.sin(k * PI) * 0.6, mix(z0, z1, k) + nz / l * s * 1.5)); } g.add(new T.Line(new T.BufferGeometry().setFromPoints(pts), ropeM)); } };
+    if (id === 'forest') { rope(11, -26.9, 11, -44.7); rope(2.1, -48.5, -9.6, -48.5); }
+    // stones with a carving: the sun-stone and the three worlds
+    for (const s of STONES.filter((o) => o.area === id)) {
+      const cell = { serpent: 0, puma: 1, condor: 2, sun: 3 }[s.glyph], t = cellTex('carvings', cell);
+      const st = new T.Group(); st.position.set(s.x, 0, s.z); st.rotation.y = s.face; g.add(st);
+      mesh(box(1.3, 2.4, 0.9), dark, 0, 1.2, 0, st);
+      const face = mesh(new T.PlaneGeometry(1.15, 1.15), new T.MeshStandardMaterial({ map: t, emissive: hdr(1.6, 1.1, 0.35), emissiveMap: t, emissiveIntensity: 0, roughness: 0.7 }), 0, 1.5, 0.46, st);
+      b.stones.set(s.id, face);
+    }
+    return b;
+  }
+  /** the round paved floor with the wet reflection, where the duels on the terrace and at the gate are fought */
+  private buildArena(g: T.Group, x: number, z: number, id: AreaId) {
+    const R = 9.0, stone = std(0xe4ecf8, { map: loadTex('stone', 3), roughness: 0.8 });
+    const floorMat = new T.MeshStandardNodeMaterial({ map: loadTex('floor'), roughness: 0.32, metalness: 0.15 });
+    if (this.fxOn && id === 'terrace') {
+      const refl = reflector({ resolutionScale: 0.5, samples: 4 }); refl.target.rotateX(-PI / 2); refl.target.position.set(x, 0.008, z); g.add(refl.target);
+      const wp = positionWorld.mul(1.9); refl.uvNode = refl.uvNode!.add(vec2(mx_noise_float(wp), mx_noise_float(wp.add(11.3))).mul(0.0035));
+      floorMat.emissiveNode = refl.rgb.mul(0.3);
+    }
+    const floor = mesh(new T.CircleGeometry(R, 64), floorMat, x, 0.008, z, g); floor.rotation.x = -PI / 2;
+    mesh(new T.TorusGeometry(R + 0.05, 0.16, 8, 64), stone, x, 0.1, z, g).rotation.x = PI / 2;
+  }
+
+  // ---------------------------------------------------------------- the figures
   private buildFigures() {
-    const gold = std(0xd9a441, { roughness: 0.35, metalness: 0.9 });
-    // Dora: cream-white fur, saffron jacket with indigo woven bands, a waist sash, a slim curved blade
-    const d = this.dora = chinchilla({ fur: 0xf3ead6, furDark: 0xe6dac0, snout: 0xfffaf0, coat: 0xe08f14, trim: 0x27348a, weave: loadTex('weave-dora', 2), long: false });
-    const sash = new T.Group(); sash.position.set(0.2, 0.2, -0.4); d.body.add(sash); mesh(box(0.14, 0.5, 0.03), std(0x27348a), 0, -0.22, 0, sash).rotation.x = 0.35; d.extra = { sash };
-    const curve = new T.QuadraticBezierCurve3(new T.Vector3(0, 0, 0.1), new T.Vector3(0, -0.04, 0.75), new T.Vector3(0, 0.2, 1.4));
-    mesh(new T.TubeGeometry(curve, 24, 0.05, 8), std(0xe8f2ff, { roughness: 0.12, metalness: 1, emissive: 0x8a6a20, emissiveIntensity: 0.6 }), 0, 0, 0, d.hand).scale.x = 0.25;
-    mesh(box(0.2, 0.05, 0.05), gold, 0, 0, 0.1, d.hand); mesh(cyl(0.035, 0.035, 0.24), std(0x27348a), 0, 0, -0.02, d.hand).rotation.x = PI / 2; d.tip.position.set(0, 0.15, 1.3);
-    // Enzo: grey fur, long slate-blue coat with gold-and-jade bands, a lantern staff
-    const e = this.enzo = chinchilla({ fur: 0x8d939c, furDark: 0x7a808a, snout: 0xc9cdd3, coat: 0x3a5578, trim: 0x22324a, weave: loadTex('weave-enzo', 2), long: true });
-    mesh(cyl(0.04, 0.04, 2.1, 10), std(0x3a2a24), 0, 0, 0.4, e.hand).rotation.x = PI / 2; mesh(box(0.26, 0.26, 0.32), glowM(hdr(1.9, 1.1, 0.3)), 0, 0, 1.55, e.hand); mesh(box(0.32, 0.32, 0.05), gold, 0, 0, 1.36, e.hand); mesh(box(0.32, 0.32, 0.05), gold, 0, 0, 1.74, e.hand);
-    this.staffL = new T.PointLight(0xffc45e, 14, 12, 2); this.staffL.position.z = 1.55; e.hand.add(this.staffL);
-    this.staffGlow = new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: 0xffc45e, transparent: true, opacity: 0.35, blending: T.AdditiveBlending, depthWrite: false })); this.staffGlow.position.z = 1.55; this.staffGlow.scale.set(1.8, 1.8, 1); e.hand.add(this.staffGlow);
-    for (const r of [d, e]) { shadows(r.root); this.scene.add(r.root); }
+    // Enzo's lantern: a warm light and glow that follow the top of his staff
+    this.staffL = new T.PointLight(0xffc45e, 10, 9, 2); this.scene.add(this.staffL);
+    this.lanternGlow = new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: 0xffc45e, transparent: true, opacity: 0.32, blending: T.AdditiveBlending, depthWrite: false })); this.lanternGlow.scale.set(1.4, 1.4, 1); this.scene.add(this.lanternGlow);
+    this.lanternRing = mesh(new T.RingGeometry(0.92, 1, 64), new T.MeshBasicMaterial({ color: hdr(1.6, 1.2, 0.5), transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, fog: false }), 0, 0.05, 0, this.scene);
+    this.lanternRing.rotation.x = -PI / 2;
+  }
+  private card(key: string, who: string) {
+    let c = this.cards.get(key);
+    if (!c) { c = new Card(who, loadTex(`sprites/${who}`), this.blobMat); this.scene.add(c.o); this.cards.set(key, c); }
+    c.o.visible = true; return c;
+  }
+  /** how far a figure has walked, for its walk cycle */
+  private stride(key: string, x: number, z: number) {
+    const l = this.lastPos.get(key); let d = this.walked.get(key) ?? 0;
+    if (l) { const s = Math.hypot(x - l.x, z - l.z); if (s < 2) d += s; }
+    this.lastPos.set(key, { x, z }); this.walked.set(key, d); return d;
   }
 
+  // ---------------------------------------------------------------- effects
   private buildEffects() {
     const sc = this.scene, gold = hdr(2.4, 1.25, 0.22);
     sc.add(this.trailBox);
-    // one stroke per cut, in Dora's own frame: a flat sweep right to left, a rising backhand, an overhead chop
     const defs: [number, number, number, [number, number, number]][] = [[1.25, 1.85, 3.3, [PI / 2, 0, -0.1]], [1.3, 1.95, 3.4, [PI / 2 - 0.55, 0, 0]], [1.4, 2.2, 3.5, [0, PI / 2, 0.6]]];
-    defs.forEach(([r0, r1, len, rot], i) => { const m = new T.Mesh(arcGeo(r0, r1, len), addMat(gold, true)); m.rotation.set(rot[0], rot[1], rot[2]); if (i === 1) m.scale.x = -1; m.visible = false; m.frustumCulled = false; m.position.y = 1.1; this.trailBox.add(m); this.trails.push(m); });
+    defs.forEach(([r0, r1, len, rot], i) => { const m = new T.Mesh(arcGeo(r0, r1, len), addMat(gold, true)); m.rotation.set(rot[0], rot[1], rot[2]); if (i === 1) m.scale.x = -1; m.visible = false; m.frustumCulled = false; m.position.y = 0.95; this.trailBox.add(m); this.trails.push(m); });
     this.tagRing = mesh(new T.RingGeometry(0.82, 1, 64), addMat(hdr(3.2, 2.2, 0.8)), 0, 0.2, 0, sc); this.tagRing.rotation.x = -PI / 2; this.tagRing.visible = false;
     this.jadeRing = mesh(new T.RingGeometry(0.9, 1, 64), addMat(hdr(0.5, 2.6, 1.6)), 0, 0.06, 0, sc); this.jadeRing.rotation.x = -PI / 2; this.jadeRing.visible = false;
     this.mark = mesh(new T.RingGeometry(0.86, 1, 40), addMat(hdr(1.6, 1.1, 0.4)), 0, 0.05, 0, sc); this.mark.rotation.x = -PI / 2; (this.mark.material as T.MeshBasicMaterial).opacity = 0.7;
@@ -335,66 +362,210 @@ export class CloudsteelScene {
   }
   private puff(x: number, y: number, z: number, size: number, color: T.ColorRepresentation, ink: boolean, life = 0.35) {
     const mat = new T.SpriteMaterial({ map: ink ? this.inkTex : this.softTex, color, transparent: true, opacity: 1, blending: ink ? T.NormalBlending : T.AdditiveBlending, depthWrite: false, fog: false, rotation: Math.random() * 6 });
-    const s = new T.Sprite(mat); s.position.set(x, y, z); s.scale.setScalar(size); this.scene.add(s); this.fx.push({ o: s, mat, life, max: life, grow: ink ? 1.4 : 0.6, s0: size, spin: 0 });
+    // the painted figures are smaller than the old rigs: keep the flashes off their faces
+    if (!ink) { size *= 0.5; mat.opacity = 0.6; mat.color.multiplyScalar(0.6); } y *= 0.8;
+    const s = new T.Sprite(mat); s.position.set(x, y, z); s.scale.setScalar(size); this.scene.add(s); this.fx.push({ o: s, mat, life, max: life, grow: ink ? 1.4 : 0.6, s0: size });
   }
+  /** a point in the fight's frame, in the world */
+  private L(x: number, z: number) { return duelToWorld(this.duel, x, z); }
 
   /** the fight's events, as they happen */
   event(e: FightEvent, g: Fight, reduced = false) {
     const kick = (n: number) => { if (!reduced) this.shake = Math.max(this.shake, n); };
+    const at = (x: number, z: number) => this.L(x, z);
     switch (e.t) {
       case 'swing': { const m = this.trails[e.n]; m.userData.life = 1; break; }
-      case 'hit': this.puff(e.x, 1.2, e.z, 1.3, 0x0c1238, true, 0.45); this.puff(e.x, 1.2, e.z, e.heavy ? 2.2 : 1.4, hdr(1.5, 1.05, 0.45), false); this.burst(e.x, 1.2, e.z, e.heavy ? 22 : 12, 4); kick(e.heavy ? 0.16 : 0.08); break;
-      case 'deflect': this.puff(e.x, 1.5, e.z, 2.8, hdr(1.8, 1.3, 0.55), false, 0.4); this.burst(e.x, 1.5, e.z, 38, 5.5); kick(0.25); break;
-      case 'block': this.puff(e.x, 1.4, e.z, 1.2, hdr(0.8, 0.9, 1.2), false, 0.25); this.burst(e.x, 1.4, e.z, 8, 3); kick(0.1); break;
-      case 'parried': this.puff(e.x, 1.4, e.z, 1.6, hdr(0.9, 1.3, 1.4), false, 0.3); this.burst(e.x, 1.4, e.z, 14, 4); kick(0.12); break;
-      case 'hurt': this.puff(g.x, 1.1, g.z, 1.8, e.jade ? hdr(0.4, 1.6, 1.0) : hdr(1.6, 0.6, 0.3), false, 0.3); this.puff(g.x, 1.0, g.z, 1.2, 0x0c1238, true, 0.4); kick(0.28); break;
-      case 'finisherHit': this.puff(e.x, 1.2, e.z, 4, hdr(2, 1.4, 0.5), false, 0.5); this.puff(e.x, 1.2, e.z, 2.4, 0x0c1238, true, 0.6); this.burst(e.x, 1.2, e.z, 50, 6.5); kick(0.32); break;
-      case 'tagHit': this.tagRing.position.set(e.x, 0.2, e.z); this.tagRing.userData.life = 1; this.puff(e.x, 1.2, e.z, 4.5, hdr(2, 1.5, 0.6), false, 0.5); this.burst(e.x, 1.0, e.z, 50, 6); kick(0.3); break;
-      case 'broken': { const f = g.foe(e.id); if (f) { this.puff(f.x, 1.3, f.z, 3, hdr(1.8, 1.3, 0.5), false, 0.45); this.burst(f.x, 1.3, f.z, 24, 5); } kick(0.2); break; }
-      case 'dead': { const f = g.foe(e.id); if (f) this.puff(f.x, 0.9, f.z, 2.6, 0x0c1238, true, 0.9); break; }
-      case 'guardBroken': this.puff(g.x, 1.2, g.z, 2.2, hdr(0.9, 1, 1.4), false, 0.4); kick(0.22); break;
+      case 'hit': { const p = at(e.x, e.z); this.puff(p.x, 1.1, p.z, 1.2, 0x0c1238, true, 0.45); this.puff(p.x, 1.1, p.z, e.heavy ? 2.1 : 1.3, hdr(1.5, 1.05, 0.45), false); this.burst(p.x, 1.1, p.z, e.heavy ? 22 : 12, 4); kick(e.heavy ? 0.16 : 0.08); break; }
+      case 'deflect': { const p = at(e.x, e.z); this.puff(p.x, 1.3, p.z, 2.6, hdr(1.8, 1.3, 0.55), false, 0.4); this.burst(p.x, 1.3, p.z, 38, 5.5); kick(0.25); break; }
+      case 'block': { const p = at(e.x, e.z); this.puff(p.x, 1.2, p.z, 1.1, hdr(0.8, 0.9, 1.2), false, 0.25); this.burst(p.x, 1.2, p.z, 8, 3); kick(0.1); break; }
+      case 'parried': { const p = at(e.x, e.z); this.parryT.set(e.id, 24); this.puff(p.x, 1.2, p.z, 1.5, hdr(0.9, 1.3, 1.4), false, 0.3); this.burst(p.x, 1.2, p.z, 14, 4); kick(0.12); break; }
+      case 'hurt': { const p = at(g.x, g.z); this.puff(p.x, 1.0, p.z, 1.7, e.jade ? hdr(0.4, 1.6, 1.0) : hdr(1.6, 0.6, 0.3), false, 0.3); this.puff(p.x, 0.9, p.z, 1.1, 0x0c1238, true, 0.4); kick(0.28); break; }
+      case 'finisherHit': { const p = at(e.x, e.z); this.puff(p.x, 1.1, p.z, 4, hdr(2, 1.4, 0.5), false, 0.5); this.puff(p.x, 1.1, p.z, 2.4, 0x0c1238, true, 0.6); this.burst(p.x, 1.1, p.z, 50, 6.5); kick(0.32); break; }
+      case 'tagHit': { const p = at(e.x, e.z); this.tagRing.position.set(p.x, 0.2, p.z); this.tagRing.userData.life = 1; this.puff(p.x, 1.2, p.z, 4.5, hdr(2, 1.5, 0.6), false, 0.5); this.burst(p.x, 1.0, p.z, 50, 6); kick(0.3); break; }
+      case 'broken': { const f = g.foe(e.id); if (f) { const p = at(f.x, f.z); this.puff(p.x, 1.2, p.z, 3, hdr(1.8, 1.3, 0.5), false, 0.45); this.burst(p.x, 1.2, p.z, 24, 5); } kick(0.2); break; }
+      case 'dead': { const f = g.foe(e.id); if (f) { const p = at(f.x, f.z); this.puff(p.x, 0.8, p.z, 2.6, 0x0c1238, true, 0.9); } break; }
+      case 'guardBroken': { const p = at(g.x, g.z); this.puff(p.x, 1.1, p.z, 2.2, hdr(0.9, 1, 1.4), false, 0.4); kick(0.22); break; }
+    }
+  }
+  /** the world's events: the lantern, waking planks and stones, gates, pickups */
+  worldEvent(e: WorldEvent, w: World) {
+    const b = this.areas.get(w.area);
+    switch (e.t) {
+      case 'lantern': this.lanternRing.position.set(e.x, 0.05, e.z); this.lanternRing.userData.life = 1; this.lanternRing.userData.r = e.r; this.puff(w.enzo.x, 2.2, w.enzo.z, 3.4, hdr(2, 1.5, 0.6), false, 0.6); break;
+      case 'plank': { const m = b?.planks.get(e.id); if (m) { m.material = this.plankMat; m.userData.lit = 0.01; this.burst(m.position.x, 0.3, m.position.z, 10, 2); } break; }
+      case 'stone': { const s = b?.stones.get(e.id); if (s) { const p = new T.Vector3(); s.getWorldPosition(p); this.puff(p.x, p.y, p.z, 2.4, hdr(2, 1.5, 0.5), false, 0.6); this.burst(p.x, p.y, p.z, 20, 3); } break; }
+      case 'stonesReset': for (const [, s] of b?.stones ?? []) { const p = new T.Vector3(); s.getWorldPosition(p); this.puff(p.x, p.y, p.z, 1.6, 0x0c1238, true, 0.6); } break;
+      case 'gate': { const d = b?.gates.get(e.id); if (d) { const p = new T.Vector3(); d.getWorldPosition(p); this.burst(p.x, 2.4, p.z, 40, 4); this.puff(p.x, 2.4, p.z, 4, e.id === 'sun' || e.id === 'worlds' ? hdr(2, 1.5, 0.5) : hdr(0.5, 2, 1.2), false, 0.8); } break; }
+      case 'got': { const o = this.pickups.get(e.id); if (o) { this.burst(o.position.x, 0.6, o.position.z, 30, 3); } break; }
+      case 'cold': this.coldT = 0.8; break;
+      case 'travel': this.setArea(e.to); break;
     }
   }
 
-  /** one frame: pose every figure from the fight, run the effects, aim the camera, draw */
-  render(g: Fight, dt: number, reduced = false) {
-    this.now += dt; const now = this.now, k = 1 - Math.exp(-dt * 20), kFast = 1 - Math.exp(-dt * 34);
-    // figures
-    const snap = g.state.startsWith('cut') || g.state === 'deflect' || g.state === 'finisher' || g.state === 'hit' || g.state === 'recoil';
-    applyPose(this.dora, doraPose(g, now), snap ? kFast : k);
-    const spin = g.state === 'dodge' ? es(g.t, 0, DODGE.len) * PI * 2 : g.state === 'cut2' ? 0 : 0;
-    this.dora.root.position.x = g.x; this.dora.root.position.z = g.z; this.dora.root.rotation.y = g.face + spin; this.dora.extra!.sash.rotation.x = 0.3 + Math.sin(now * 7) * 0.2 + (g.state === 'run' ? 0.7 : 0);
-    applyPose(this.enzo, enzoPose(g, now), k); this.enzo.root.position.x = g.enzo.x; this.enzo.root.position.z = g.enzo.z; this.enzo.root.rotation.y = g.enzo.face;
-    const pulse = g.enzo.state === 'strike' ? Math.max(0, 1 - g.enzo.t / 30) : 0; this.staffL.intensity = 14 + pulse * 50; this.staffGlow.scale.setScalar(1.8 + pulse * 3);
-    const seen = new Set<number>();
-    for (const f of g.foes) {
-      if (f.gone) continue; seen.add(f.id);
-      let r = this.foes.get(f.id);
-      if (!r) { r = f.kind === 'bear' ? bearRig() : foxRig(); shadows(r.root); this.scene.add(r.root); this.foes.set(f.id, r); }
-      applyPose(r, foePose(f, now), f.state === 'strike' || f.state === 'hit' || f.state === 'deflected' ? kFast : k);
-      r.root.position.x = f.x; r.root.position.z = f.z; r.root.rotation.y = f.face;
-      if (f.state === 'dead') { const s = 1 - es(f.t, 50, 88); r.root.scale.setScalar(Math.max(0.001, s)); }
-    }
-    for (const [id, r] of this.foes) if (!seen.has(id)) { this.scene.remove(r.root); this.foes.delete(id); }
+  // ---------------------------------------------------------------- one frame
+  render(v: View, dt: number, reduced = false) {
+    this.now += dt; const now = this.now;
+    const w = v.kind === 'story' ? v.world : null, g = v.fight;
+    if (w) this.setArea(w.area); else this.setArea('terrace');
+    const b = this.areas.get(this.area!)!;
+    const fighting = !!g && (!w || w.mode === 'duel');
+    this.duel = w?.duel ?? (w ? this.duel : ARENA_DUEL);
+    for (const [, c] of this.cards) c.o.visible = false;
+    const yaw = this.yaw;
+    const talkLine = w?.mode === 'talk' ? w.line : null;
+    if (talkLine !== this.lastLine) { this.lastLine = talkLine; this.talkT = 0; } else this.talkT += dt;
+    // a speaker moves their mouth while the line is being read out, then rests
+    const speaking = (who: Who) => talkLine?.who === who && this.talkT < Math.min(2.4, 0.4 + (talkLine?.text.length ?? 0) * 0.028);
+    const talkFrame = (who: Who, a: string, bb: string) => speaking(who) ? (Math.floor(this.talkT * 3.2) % 2 ? bb : a) : null;
 
-    // tells: a glint on the weapon as a steel attack is about to land, a jade ring for one that cannot be guarded
+    let dx = 0, dz = 0, ex = 0, ez = 0;
+    if (fighting && g) {
+      // ---------------------------------------- the duel, side-on
+      const p = this.L(g.x, g.z); dx = p.x; dz = p.z;
+      const dc = this.card('dora', 'dora'), fWorld = g.face + this.duel.rot;
+      dc.set(doraFightFrame(g, this.stride('dora', dx, dz)), Card.mirrorFor(fWorld, yaw));
+      dc.y = g.state === 'finisher' && g.t < FINISHER.hit ? Math.sin((g.t / FINISHER.hit) * PI) * 1.1 : 0;
+      dc.spin = g.state === 'dodge' && g.t < 14 ? (Card.mirrorFor(fWorld, yaw) ? 1 : -1) * (g.t / 14) * PI * 2 : 0;
+      dc.alpha = 1; dc.bob = 0; dc.update(dx, dz, yaw);
+      const e = this.L(g.enzo.x, g.enzo.z); ex = e.x; ez = e.z;
+      const ec = this.card('enzo', 'enzo'), eFace = g.enzo.face + this.duel.rot;
+      let ef = 'ready', ey = 0;
+      if (g.enzo.state === 'leap') { ef = 'leap'; ey = Math.sin(Math.min(1, g.enzo.t / 22) * PI) * 1.3; }
+      else if (g.enzo.state === 'strike') ef = g.enzo.t < 24 ? 'strike' : 'ready';
+      else if (g.enzo.state === 'back') ef = walkCycle('walk-side', this.stride('enzo', ex, ez), 0.42);
+      else if (g.phase === 'won') ef = 'cheer';
+      else if (g.state === 'hit' || g.state === 'dead') ef = 'brace';
+      ec.set(ef, Card.mirrorFor(eFace, yaw)); ec.y = ey; ec.spin = 0; ec.alpha = 1; ec.bob = 0; ec.update(ex, ez, yaw);
+      for (const f of g.foes) {
+        if (f.gone) continue;
+        const fp = this.L(f.x, f.z), c = this.card(`foe${f.id}-${f.look}`, f.look);
+        const pt = this.parryT.get(f.id) ?? 0; if (pt > 0) this.parryT.set(f.id, pt - dt * 60);
+        c.set(foeFightFrame(f, this.stride(`foe${f.id}`, fp.x, fp.z), pt > 0), Card.mirrorFor(f.face + this.duel.rot, yaw));
+        c.y = f.look === 'titu' && f.atk?.id === 'pounce' && f.state === 'windup' && f.t > f.atk.windup - 8 ? Math.sin(((f.t - (f.atk.windup - 8)) / 14) * PI) * 0.6 : 0;
+        c.alpha = f.state === 'dead' ? Math.max(0, 1 - Math.max(0, f.t - 40) / 50) : 1; c.spin = 0; c.bob = 0;
+        c.update(fp.x, fp.z, yaw);
+      }
+      this.fightFx(g, dt, now);
+    } else if (w) {
+      // ---------------------------------------- exploring and talking
+      dx = w.x; dz = w.z; ex = w.enzo.x; ez = w.enzo.z;
+      const dc = this.card('dora', 'dora'); dc.y = 0; dc.spin = 0; dc.alpha = 1;
+      const vw = view(w.face, yaw), dWalk = this.stride('dora', dx, dz);
+      let df: string, dm = Card.mirrorFor(w.face, yaw);
+      if (w.mode === 'pickup') { df = w.t < PICKUP.at + 4 ? 'pickup-a' : 'pickup-b'; }
+      else if (w.mode === 'talk') { df = talkFrame('dora', talkLine?.mood ? 'talk-c' : 'talk-a', 'talk-b') ?? 'idle-side'; }
+      else if (w.mode === 'end') { df = 'win'; }
+      else if (w.moving) df = walkCycle(`walk-${vw}`, dWalk, 0.4);
+      else df = `idle-${vw}`;
+      dc.bob = w.moving || w.mode === 'talk' ? 0 : Math.sin(now * 2.2) * 0.008;
+      dc.set(df, dm); dc.update(dx, dz, yaw);
+      const ec = this.card('enzo', 'enzo'); ec.y = 0; ec.spin = 0; ec.alpha = 1;
+      const evw = view(w.enzo.face, yaw), eWalk = this.stride('enzo', ex, ez);
+      let ef: string;
+      if (w.mode === 'lantern') ef = this.coldT > 0 && w.t > LANTERN.at ? 'lantern-sweep' : 'lantern-up';
+      else if (w.mode === 'talk') ef = talkFrame('enzo', talkLine?.mood ? 'talk-b' : 'talk-a', talkLine?.mood ? 'talk-a' : 'talk-b') ?? 'idle-side';
+      else if (w.mode === 'end') ef = 'lantern-up';
+      else if (w.enzo.moving) ef = walkCycle(`walk-${evw}`, eWalk, 0.4);
+      else ef = `idle-${evw}`;
+      ec.bob = w.enzo.moving ? 0 : Math.sin(now * 2 + 1) * 0.008;
+      ec.set(ef, Card.mirrorFor(w.enzo.face, yaw)); ec.update(ex, ez, yaw);
+      // the people of the mountain
+      for (const n of w.npcs()) {
+        const look = n.who, c = this.card(`npc-${n.id}`, look); c.y = 0; c.spin = 0; c.alpha = 1;
+        const facing = w.talk?.who === n.id || n.who === talkLine?.who ? Math.atan2(dx - n.x, dz - n.z) : n.face;
+        let f: string;
+        if (look === 'qori' || look === 'tupa') f = talkFrame(look, 'talk-a', 'talk-b') ?? (view(facing, yaw) === 'front' && w.mode !== 'talk' ? 'idle-front' : 'idle-side');
+        else f = speaking(look) ? 'talk' : 'idle';
+        c.bob = speaking(look) ? Math.abs(Math.sin(this.talkT * 9)) * 0.02 : 0;
+        c.set(f, Card.mirrorFor(facing, yaw)); c.update(n.x, n.z, yaw);
+      }
+      // foes waiting for their duel; after a duel the one who lost talks, then bows
+      for (const d of DUELS.filter((o) => o.area === w.area)) {
+        const after = w.talk?.scene === d.after, waiting = !w.won(d.id) && w.mode !== 'duel';
+        if (!after && !waiting) continue;
+        d.stand.forEach((s, i) => {
+          if (after && i > 0) return;
+          const look = d.foes[i].look, c = this.card(`stand-${d.id}-${i}`, look); c.y = 0; c.spin = 0; c.alpha = 1;
+          const tw: Who = look === 'ukhu' ? 'ukhu' : look === 'atoq' ? 'atoq' : look === 'titu' ? 'titu' : look === 'mallku' ? 'mallku' : 'kin';
+          const facing = w.mode === 'talk' && (after || w.talk?.scene === d.before) ? Math.atan2(dx - s.x, dz - s.z) : s.face;
+          let f = 'idle';
+          if (look === 'ukhu') f = talkFrame('ukhu', 'talk-a', 'talk-b') ?? (after || w.mode === 'end' ? 'bow' : 'idle');
+          else f = speaking(tw) && i === (talkLine && w.talk?.scene === d.before ? Math.min(i, 0) : 0) ? 'talk' : after ? 'bow' : 'idle';
+          c.bob = speaking(tw) ? Math.abs(Math.sin(this.talkT * 9)) * 0.02 : 0;
+          c.set(f, Card.mirrorFor(facing, yaw)); c.update(s.x, s.z, yaw);
+        });
+      }
+      if (w.mode === 'end' && b.sunLamp) {
+        // the Sun Lamp catches
+        const m = b.sunLamp.material as T.MeshBasicMaterial; m.color.lerp(hdr(4, 2.6, 0.9), Math.min(1, dt * 0.8));
+        if (b.sunLight) b.sunLight.intensity = Math.min(900, b.sunLight.intensity + dt * 300);
+      }
+      this.hideFightFx(dt);
+    }
+    // Enzo's lantern light sits at the top of his staff
+    const lanternUp = w?.mode === 'lantern' ? w.enzo.lantern : 0;
+    this.staffL.position.set(ex, 2.3 + lanternUp * 0.6, ez); this.staffL.intensity = 8 + lanternUp * 30;
+    this.lanternGlow.position.set(ex, 2.25 + lanternUp * 0.6, ez); this.lanternGlow.scale.setScalar(1.2 + lanternUp * 1.6);
+    this.coldT = Math.max(0, this.coldT - dt);
+    const lr = (this.lanternRing.userData.life as number) || 0;
+    if (lr > 0) { const l = Math.max(0, lr - dt * 1.1); this.lanternRing.userData.life = l; this.lanternRing.scale.setScalar(0.3 + (1 - l) * ((this.lanternRing.userData.r as number) || LANTERN.r)); (this.lanternRing.material as T.MeshBasicMaterial).opacity = l * 0.9; }
+    // pickups bob and glow
+    if (w && !fighting) {
+      const live = new Set<string>();
+      for (const p of w.pickups()) {
+        live.add(p.id); let o = this.pickups.get(p.id);
+        if (!o) {
+          const it = ITEMS[p.id], cell = it.kind === 'quipu' ? 0 : p.id === 'feather' || p.id === 'edge' ? 1 : p.id === 'jade' ? 2 : 3, t = cellTex('props', cell);
+          o = new T.Group(); o.position.set(p.x, 0, p.z); this.scene.add(o);
+          const card = mesh(new T.PlaneGeometry(0.75, 0.75), new T.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.2, side: T.DoubleSide, color: 0xdddddd }), 0, 0.7, 0, o); card.name = 'card';
+          const glow = new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: it.kind === 'quipu' ? 0xffd27a : 0x9ff0d0, transparent: true, opacity: 0.5, blending: T.AdditiveBlending, depthWrite: false })); glow.scale.set(1.6, 1.6, 1); glow.position.y = 0.7; o.add(glow);
+          this.pickups.set(p.id, o);
+        }
+        const c = o.getObjectByName('card')!; c.position.y = 0.7 + Math.sin(now * 2 + p.x) * 0.08; c.rotation.y = yaw + PI;
+      }
+      for (const [id, o] of this.pickups) if (!live.has(id)) { this.scene.remove(o); this.pickups.delete(id); }
+    }
+    for (const [, o] of this.pickups) o.visible = !fighting;
+    // planks and stones glow up once woken; gates sink away when open
+    if (w) {
+      for (const [id, m] of b.planks) { const lit = w.isLit(id); if (lit && m.material !== this.plankMat) m.material = this.plankMat; m.visible = lit || (w.mode === 'lantern' || Math.sin(now * 1.5 + m.position.x + m.position.z) > -0.2); m.position.y = lit ? -0.06 : -0.08 + Math.sin(now * 2 + m.position.z) * 0.02; }
+      for (const [id, s] of b.stones) { const mat = s.material as T.MeshStandardMaterial, want = w.isLit(id) ? 1.2 : 0; mat.emissiveIntensity += (want - mat.emissiveIntensity) * Math.min(1, dt * 4); }
+      for (const gate of AREAS[w.area].gates) { const d = b.gates.get(gate.id); if (d) { const open = w.gateOpen(gate); d.position.y += ((open ? -4.6 : 0) - d.position.y) * Math.min(1, dt * 1.5); d.visible = d.position.y > -4.5; } }
+    } else { for (const gate of AREAS.terrace.gates) { const d = b.gates.get(gate.id); if (d) d.position.y = 0; } }
+    this.plankMat.emissiveIntensity = 0.5 + Math.sin(now * 2) * 0.1;
+    this.runFx(dt);
+    b.lamps.forEach((l, i) => { l.intensity = 16 + Math.sin(now * 5 + i * 2) * 1.5; });
+    this.camera(v, dt, dx, dz);
+    // nothing tall right in front of the lens
+    for (const post of b.posts) post.visible = Math.hypot(post.position.x - this.camPos.x, post.position.z - this.camPos.z) > 3.6;
+    // rain falls round the camera
+    this.rain.position.set(this.camPos.x, 0, this.camPos.z);
+    if (this.pipe) this.pipe.render(); else this.renderer.render(this.scene, this.cam);
+  }
+
+  private fightFx(g: Fight, dt: number, now: number) {
+    // tells: a glint at the weapon as a steel attack is about to land, a jade ring for one that cannot be guarded
     const threat = g.foes.find((f) => (f.state === 'windup' || f.state === 'strike') && f.atk), gm = this.glint.material as T.SpriteMaterial, jm = this.jadeRing.material as T.MeshBasicMaterial;
     if (threat && threat.atk && threat.state === 'windup') {
-      const a = threat.atk, u = threat.t / a.windup, r = this.foes.get(threat.id);
-      if (r) { r.tip.getWorldPosition(this.glint.position); }
-      gm.color.copy(a.jade ? hdr(0.5, 3, 1.8) : hdr(3, 2.2, 1)); gm.opacity = Math.min(1, u * 1.6); this.glint.scale.setScalar(0.5 + Math.pow(u, 3) * 2.2);
-      if (a.jade) { this.jadeRing.visible = true; this.jadeRing.position.set(threat.x, 0.06, threat.z); this.jadeRing.scale.setScalar(a.range + 0.35); jm.opacity = 0.25 + u * 0.75; } else this.jadeRing.visible = false;
-    } else { gm.opacity = Math.max(0, gm.opacity - dt * 6); jm.opacity = Math.max(0, jm.opacity - dt * 4); if (jm.opacity <= 0) this.jadeRing.visible = false; }
-    // the lock-on ring, and a marker over a foe that is open for the finisher
+      const a = threat.atk, u = threat.t / a.windup, p = this.L(threat.x, threat.z), big = threat.kind === 'bear', fw = threat.face + this.duel.rot;
+      this.glint.position.set(p.x + Math.sin(fw) * (big ? 1.2 : 0.7) - Math.sin(this.yaw) * 0.3, big ? 1.9 : 1.2, p.z + Math.cos(fw) * (big ? 1.2 : 0.7) - Math.cos(this.yaw) * 0.3);
+      gm.color.copy(a.jade ? hdr(0.35, 2, 1.2) : hdr(2, 1.5, 0.7)); gm.opacity = Math.min(1, u * 1.6); this.glint.scale.setScalar(0.3 + Math.pow(u, 3) * 0.9);
+      if (a.jade) { this.jadeRing.visible = true; this.jadeRing.position.set(p.x, 0.06, p.z); this.jadeRing.scale.setScalar(a.range + 0.35 + (a.lunge > 0 ? a.lunge : 0)); jm.opacity = 0.25 + u * 0.75; } else this.jadeRing.visible = false;
+    } else { gm.opacity = Math.max(0, gm.opacity - 0.016 * 6); jm.opacity = Math.max(0, jm.opacity - 0.016 * 4); if (jm.opacity <= 0) this.jadeRing.visible = false; }
     const tg = g.targetFoe; this.mark.visible = !!tg && g.phase !== 'won';
-    if (tg) { const rr = tg.kind === 'bear' ? 1.25 : 0.75; this.mark.position.set(tg.x, 0.05, tg.z); this.mark.scale.setScalar(rr + Math.sin(now * 4) * 0.04); }
+    if (tg) { const p = this.L(tg.x, tg.z), rr = tg.kind === 'bear' ? 1.25 : 0.75; this.mark.position.set(p.x, 0.05, p.z); this.mark.scale.setScalar(rr + Math.sin(now * 4) * 0.04); }
     const open = g.living.find((f) => f.state === 'broken'); this.finish.visible = !!open;
-    if (open) { this.finish.position.set(open.x, (open.kind === 'bear' ? 3.3 : 2.4) + Math.sin(now * 5) * 0.12, open.z); this.finish.rotation.y = now * 3; }
-
-    // strokes and sparks
-    this.trailBox.position.set(g.x, 0, g.z); this.trailBox.rotation.y = g.face;
+    if (open) { const p = this.L(open.x, open.z); this.finish.position.set(p.x, (open.kind === 'bear' ? 3.2 : 2.2) + Math.sin(now * 5) * 0.12, p.z); this.finish.rotation.y = now * 3; }
+    const d = this.L(g.x, g.z); this.trailBox.position.set(d.x, 0, d.z); this.trailBox.rotation.y = g.face + this.duel.rot;
     this.trails.forEach((m, i) => { const life = (m.userData.life as number) || 0, c = CUTS[i], on = g.state === `cut${i + 1}` && g.t >= c.hit - 3; const l = on ? Math.max(0, life - dt * 3.2) : Math.max(0, life - dt * 6); m.userData.life = l; const show = on && l > 0; m.visible = show; (m.material as T.MeshBasicMaterial).opacity = show ? l : 0; });
     const tl = (this.tagRing.userData.life as number) || 0; if (tl > 0) { const l = Math.max(0, tl - dt * 1.7); this.tagRing.userData.life = l; this.tagRing.visible = l > 0; this.tagRing.scale.setScalar(0.5 + (1 - l) * TAG.radius); (this.tagRing.material as T.MeshBasicMaterial).opacity = l; }
+  }
+  private hideFightFx(dt: number) {
+    this.mark.visible = false; this.finish.visible = false; this.jadeRing.visible = false; (this.glint.material as T.SpriteMaterial).opacity = 0;
+    for (const m of this.trails) m.visible = false;
+    const tl = (this.tagRing.userData.life as number) || 0; if (tl > 0) { this.tagRing.userData.life = Math.max(0, tl - dt * 1.7); } else this.tagRing.visible = false;
+  }
+  private runFx(dt: number) {
     for (let i = this.fx.length - 1; i >= 0; i--) { const f = this.fx[i]; f.life -= dt; const u = Math.max(0, f.life / f.max); (f.mat as T.SpriteMaterial).opacity = u; f.o.scale.setScalar(f.s0 * (1 + (1 - u) * f.grow)); if (f.life <= 0) { this.scene.remove(f.o); f.mat.dispose(); this.fx.splice(i, 1); } }
     for (let i = 0; i < 140; i++) {
       if (this.sLife[i] > 0) { this.sLife[i] -= dt; this.sV[i].y -= 9 * dt; this.sP[i].addScaledVector(this.sV[i], dt); this.dum.position.copy(this.sP[i]); this.dum.lookAt(this.sP[i].x + this.sV[i].x, this.sP[i].y + this.sV[i].y, this.sP[i].z + this.sV[i].z); this.dum.scale.setScalar(Math.max(0, Math.min(1, this.sLife[i] * 3))); }
@@ -404,26 +575,114 @@ export class CloudsteelScene {
     this.sparks.instanceMatrix.needsUpdate = true;
     const rp = this.rainPos; for (let i = 0; i < rp.length / 6; i++) { const j = i * 6; let y = rp[j + 1] - 26 * dt; if (y < -3) y += 22; rp[j + 1] = y; rp[j + 4] = y - 0.6; }
     this.rainG.attributes.position.needsUpdate = true;
-    for (const m of this.mists) { m.position.x += (m.userData.v as number) * dt; if (m.position.x > 42) m.position.x = -42; if (m.position.x < -42) m.position.x = 42; }
-    this.lamps.forEach((l, i) => { l.intensity = 30 + Math.sin(now * 5 + i * 2) * 3; });
+    for (const m of this.mists) { m.position.x += (m.userData.v as number) * dt; if (m.position.x > 80) m.position.x = -80; if (m.position.x < -80) m.position.x = 80; }
+  }
 
-    // camera: behind Dora, looking past her at the target
-    const won = g.phase === 'won';
-    let want = this.yaw;
-    if (won) want = this.yaw + dt * 0.35;
-    else if (tg) want = Math.atan2(tg.x - g.x, tg.z - g.z);
-    let dy = want - this.yaw; while (dy > PI) dy -= PI * 2; while (dy < -PI) dy += PI * 2;
-    this.yaw += dy * (won ? 1 : 1 - Math.exp(-dt * 2.6));
-    const dist = (g.phase === 'intro' ? 8.6 : 7.2) + (tg && tg.kind === 'bear' ? 1.2 : 0), h = this.cam.aspect < 1 ? 4.6 : 3.7, side = this.cam.aspect < 1 ? 0.9 : 1.9;
-    const cx = g.x - Math.sin(this.yaw) * dist + Math.cos(this.yaw) * side, cz = g.z - Math.cos(this.yaw) * dist - Math.sin(this.yaw) * side;
-    const kc = 1 - Math.exp(-dt * 5); this.camPos.x += (cx - this.camPos.x) * kc; this.camPos.y += (h - this.camPos.y) * kc; this.camPos.z += (cz - this.camPos.z) * kc;
-    const lx = tg && !won ? mix(g.x, tg.x, 0.5) : g.x, lz = tg && !won ? mix(g.z, tg.z, 0.5) : g.z;
-    this.look.x += (lx - this.look.x) * kc; this.look.z += (lz - this.look.z) * kc; this.look.y = 1.25;
+  // ---------------------------------------------------------------- the camera
+  private camera(v: View, dt: number, dx: number, dz: number) {
+    const w = v.kind === 'story' ? v.world : null, g = v.fight, fighting = !!g && (!w || w.mode === 'duel');
+    let tx: number, tz: number, ty: number, lx: number, lz: number, ly = 1.15, rate = 4;
+    const phone = this.cam.aspect < 1;
+    // side-on framing of two points: the camera sits off the line between them, on whichever side it already is
+    const side = (ax: number, az: number, bx: number, bz: number, extra: number, h: number, away?: { x: number; z: number }) => {
+      const mx = (ax + bx) / 2, mz = (az + bz) / 2, ddx = bx - ax, ddz = bz - az, l = Math.hypot(ddx, ddz) || 1;
+      let nx = ddz / l, nz = -ddx / l; if ((this.camPos.x - mx) * nx + (this.camPos.z - mz) * nz < 0) { nx = -nx; nz = -nz; }
+      // in a duel, watch from the side Enzo is not on, so he never stands in front of the camera
+      if (away) { const e = (away.x - mx) * nx + (away.z - mz) * nz; if (e > 1.2) { nx = -nx; nz = -nz; } }
+      const dist = (Math.max(4.6, l * 1.05 + extra)) * (phone ? 1.7 : 1);
+      return { x: mx + nx * dist, z: mz + nz * dist, y: h, lx: mx, lz: mz };
+    };
+    if (fighting && g) {
+      const tg = g.targetFoe ?? g.living[0], d = this.L(g.x, g.z);
+      if (tg && g.phase !== 'won') { const f = this.L(tg.x, tg.z), s = side(d.x, d.z, f.x, f.z, tg.kind === 'bear' ? 4.4 : 3.6, 2.4, this.L(g.enzo.x, g.enzo.z)); tx = s.x; tz = s.z; ty = s.y; lx = s.lx; lz = s.lz; ly = 1.2; }
+      else { this.orbit += dt * 0.3; tx = d.x + Math.sin(this.orbit) * 7; tz = d.z + Math.cos(this.orbit) * 7; ty = 2.6; lx = d.x; lz = d.z; }
+      rate = 2.4;
+    } else if (w && w.mode === 'talk') {
+      // the speaker and Dora, from the side
+      const who = w.talk?.who ? w.npcs().find((n) => n.id === w.talk!.who) : null;
+      const d = DUELS.find((o) => o.before === w.talk?.scene || o.after === w.talk?.scene && o.area === w.area);
+      const st = STONES.find((s) => s.scene === w.talk?.scene && s.area === w.area), sign = AREAS[w.area].signs.find((s) => s.scene === w.talk?.scene);
+      const o = who ? { x: who.x, z: who.z } : d ? d.stand[0] : st ? { x: st.x, z: st.z } : sign ? { x: sign.x, z: sign.z } : { x: w.enzo.x, z: w.enzo.z };
+      const s = side(dx, dz, o.x, o.z, 3.2, 1.9); tx = s.x; tz = s.z; ty = s.y; lx = s.lx; lz = s.lz; ly = 1.05; rate = 3;
+    } else if (w && w.mode === 'end') {
+      // the end: the camera drifts back so the Lamp and the two of them are both in view
+      this.orbit += dt * 0.1; tx = dx + Math.sin(this.orbit) * 3; tz = dz + 7; ty = 2.2; lx = 0; lz = dz - 9; ly = 3.6; rate = 0.8;
+    } else {
+      // exploring: a follow camera on a tether behind Dora, turned by the player, easing round behind her as she walks
+      if (w && w.moving) { const rel = wrap(w.face - this.yaw); if (Math.abs(rel) < 1.9) this.yaw += rel * Math.min(1, dt * 0.9); }
+      this.yaw += this.turn * dt;
+      const dist = phone ? 8.6 : 6.6, h = phone ? 4.2 : 3.2;
+      tx = dx - Math.sin(this.yaw) * dist; tz = dz - Math.cos(this.yaw) * dist; ty = h; lx = dx + Math.sin(this.yaw) * 1.5; lz = dz + Math.cos(this.yaw) * 1.5; ly = 1.2; rate = 6;
+    }
+    if (!this.camInit) { this.camPos.set(tx, ty, tz); this.look.set(lx, ly, lz); this.camInit = true; }
+    const k = 1 - Math.exp(-dt * rate);
+    this.camPos.x += (tx - this.camPos.x) * k; this.camPos.y += (ty - this.camPos.y) * k; this.camPos.z += (tz - this.camPos.z) * k;
+    this.look.x += (lx - this.look.x) * k; this.look.y += (ly - this.look.y) * k; this.look.z += (lz - this.look.z) * k;
+    // the yaw the camera actually looks along (the cards face it, and the stick is read against it)
+    if (fighting || w?.mode === 'talk' || w?.mode === 'end') this.yaw = Math.atan2(this.look.x - this.camPos.x, this.look.z - this.camPos.z);
     this.cam.position.copy(this.camPos);
     if (this.shake > 0) { this.cam.position.x += (Math.random() - 0.5) * this.shake; this.cam.position.y += (Math.random() - 0.5) * this.shake; this.shake = Math.max(0, this.shake - dt * 0.9); }
     this.cam.lookAt(this.look);
-    // a lantern post right in front of the lens would hide the fight
-    for (const post of this.posts) post.visible = Math.hypot(post.position.x - this.camPos.x, post.position.z - this.camPos.z) > 4.2;
-    if (this.pipe) this.pipe.render(); else this.renderer.render(this.scene, this.cam);
   }
 }
+
+// ---------------------------------------------------------------- which painting
+const walkCycle = (base: string, dist: number, stride: number) => `${base}-${Math.floor(dist / stride) % 4}`;
+function doraFightFrame(g: Fight, walked: number): string {
+  const t = g.t;
+  switch (g.state) {
+    case 'run': return walkCycle('walk-side', walked, 0.5);
+    case 'cut1': return t < CUTS[0].hit - 2 ? 'windup' : 'cut-a';
+    case 'cut2': return 'cut-b';
+    case 'cut3': return t < CUTS[2].hit - 3 ? 'windup' : 'lunge';
+    case 'guard': return 'guard';
+    case 'deflect': return 'deflect';
+    case 'dodge': return t < 16 ? 'dodge' : 'stance';
+    case 'hit': return 'hit';
+    case 'recoil': return 'recoil';
+    case 'broken': return 'stagger';
+    case 'finisher': return t < FINISHER.hit - 2 ? 'fin-a' : 'fin-b';
+    case 'tag': return t < 30 ? 'dash' : 'stance';
+    case 'dead': return 'down';
+    case 'win': return 'win';
+    default: return 'stance';
+  }
+}
+function foeFightFrame(f: Foe, walked: number, parry: boolean): string {
+  if (parry && (f.state === 'stalk' || f.state === 'hit')) return 'parry';
+  const bear = f.look === 'ukhu';
+  const atk = (wind: boolean) => {
+    const id = f.atk?.id ?? '';
+    if (bear) return id === 'slam' ? (wind ? 'slam-wind' : 'slam') : id === 'thrust' ? (wind ? 'thrust-wind' : 'thrust') : (wind ? 'sweep-wind' : 'sweep');
+    const second = id === 'lunge' || id === 'pounce';
+    return second ? (wind ? 'a2-wind' : 'a2') : (wind ? 'a1-wind' : 'a1');
+  };
+  switch (f.state) {
+    case 'enter': case 'stalk': {
+      const n = bear ? 4 : 3, i = Math.floor(walked / (bear ? 0.55 : 0.45)) % (n + 1);
+      // the walk cycle; standing still shows the guard stance
+      return f.state === 'stalk' && (f.t % 40 < 3 || i === n) ? (i === n && bear ? 'walk-3' : 'idle') : `walk-${Math.min(i, n - 1)}`;
+    }
+    case 'windup': return atk(true);
+    case 'strike': return atk(false);
+    case 'recover': return f.t < 10 ? atk(false) : 'recover';
+    case 'hit': return 'hit';
+    case 'deflected': return 'deflected';
+    case 'broken': return 'broken';
+    case 'dead': return 'down';
+  }
+  return 'idle';
+}
+
+function arcGeo(r0: number, r1: number, len: number) {
+  const n = 48, pos: number[] = [], col: number[] = [], idx: number[] = [];
+  for (let i = 0; i <= n; i++) {
+    const k = i / n, a = k * len, w = Math.pow(Math.sin(PI * Math.min(1, k * 1.12)), 0.7), ri = mix(r1 - 0.02, r0, w), c = Math.pow(k, 1.7);
+    pos.push(Math.cos(a) * ri, Math.sin(a) * ri, 0, Math.cos(a) * r1, Math.sin(a) * r1, 0); col.push(c * 0.45, c * 0.45, c * 0.45, c, c, c);
+    if (i < n) { const j = i * 2; idx.push(j, j + 1, j + 2, j + 1, j + 3, j + 2); }
+  }
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new T.Float32BufferAttribute(col, 3)); g.setIndex(idx); return g;
+}
+const addMat = (c: T.Color, vertexColors = false) => new T.MeshBasicMaterial({ vertexColors, color: c, transparent: true, opacity: 0, blending: T.AdditiveBlending, side: T.DoubleSide, depthWrite: false, fog: false });
+export type { Look, Shape };
+export { inShape };

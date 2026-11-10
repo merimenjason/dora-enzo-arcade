@@ -1,15 +1,19 @@
-// Cloudsteel: the rules of the duel. A fixed 60 Hz simulation with no DOM: Dora on a round terrace against three
-// rounds of foes (Atoq the fox sellsword, two of his sword-kin, then Ukhu the bear warden). Steel attacks can be
+// Cloudsteel: the rules of the duel. A fixed 60 Hz simulation with no DOM: Dora in a round of ground against rounds
+// of foes (the terrace duel: Atoq the fox sellsword, two of his sword-kin, then Ukhu the bear warden; the story hands
+// in one encounter at a time, with Dora's sword and Enzo's lantern upgrades). Steel attacks can be
 // guarded, and guarding in the first moments of the press deflects them, which fills the foe's posture; a full
 // posture bar breaks the foe open for a finisher. Jade attacks cannot be guarded and have to be dodged. Hits, deflects
 // and dodges fill the tag meter that calls Enzo in. All randomness comes from the seed, so a seed replays a fight.
-// Drawing is in lib/cloudsteel-scene.ts, the page in app/cloudsteel/page.tsx.
+// The story's world (areas, talking, puzzles) is lib/cloudsteel-world.ts; drawing is in lib/cloudsteel-scene.ts, the
+// page in app/cloudsteel/page.tsx.
 
-export const DT = 1 / 60, ARENA_R = 7.6, SAVE_KEY = 'cloudsteel-v1', TAG_FULL = 100;
+export const DT = 1 / 60, ARENA_R = 7.6, SAVE_KEY = 'cloudsteel-v2', TAG_FULL = 100;
 export type Input = { x: number; z: number; attack: boolean; guard: boolean; dodge: boolean; tag: boolean; swap: boolean };
 export const idleInput = (): Input => ({ x: 0, z: 0, attack: false, guard: false, dodge: false, tag: false, swap: false });
 
-export type FoeKind = 'fox' | 'bear';
+export type FoeKind = 'fox' | 'bear' | 'puma';
+/** whose painting a foe wears: Atoq, a sword-kin, the kin captain, Titu the puma or Ukhu */
+export type Look = 'atoq' | 'kin' | 'mallku' | 'titu' | 'ukhu';
 /** an attack: ticks of wind-up, active ticks, recovery, reach (m), half-angle (rad), damage, posture pressed onto a
  *  guard, whether it is a jade (unguardable) attack, and how far the foe steps in as it strikes */
 export type Attack = { id: string; windup: number; active: number; recover: number; range: number; arc: number; dmg: number; press: number; jade: boolean; lunge: number };
@@ -23,16 +27,32 @@ export const ATTACKS: Record<FoeKind, Attack[]> = {
     { id: 'thrust', windup: 42, active: 6, recover: 40, range: 3.8, arc: 0.4, dmg: 22, press: 45, jade: false, lunge: 1.6 },
     { id: 'slam', windup: 64, active: 6, recover: 60, range: 3.0, arc: Math.PI, dmg: 34, press: 0, jade: true, lunge: 0 },
   ],
+  // the puma's crossing swipe is quick; his pounce leaps in from far off and cannot be guarded
+  puma: [
+    { id: 'swipe', windup: 30, active: 5, recover: 32, range: 2.2, arc: 1.2, dmg: 14, press: 30, jade: false, lunge: 0.8 },
+    { id: 'pounce', windup: 50, active: 8, recover: 54, range: 2.1, arc: 0.9, dmg: 22, press: 0, jade: true, lunge: 3.0 },
+  ],
 };
 export const FOES: Record<FoeKind, { hp: number; posture: number; speed: number; cd: [number, number]; reach: number; radius: number }> = {
   fox: { hp: 130, posture: 100, speed: 2.7, cd: [45, 90], reach: 2.0, radius: 0.45 },
   bear: { hp: 620, posture: 180, speed: 1.9, cd: [40, 80], reach: 2.7, radius: 0.9 },
+  puma: { hp: 210, posture: 120, speed: 3.0, cd: [40, 80], reach: 2.0, radius: 0.5 },
 };
-export const ROUNDS: { title: string; foes: { kind: FoeKind; name: string }[] }[] = [
-  { title: 'Atoq the Sellsword', foes: [{ kind: 'fox', name: 'Atoq the Sellsword' }] },
-  { title: 'The Sword-Kin', foes: [{ kind: 'fox', name: 'Sword-Kin Sami' }, { kind: 'fox', name: 'Sword-Kin Wayra' }] },
-  { title: 'Ukhu, Warden of the Bridge', foes: [{ kind: 'bear', name: 'Ukhu, Warden of the Bridge' }] },
+/** one foe of a round; `hp` overrides the kind's health (the kin captain is tougher than his kin) */
+export type FoeDef = { kind: FoeKind; name: string; look: Look; hp?: number };
+export type Round = { title: string; foes: FoeDef[] };
+/** the terrace duel from the title menu */
+export const ROUNDS: Round[] = [
+  { title: 'Atoq the Sellsword', foes: [{ kind: 'fox', name: 'Atoq the Sellsword', look: 'atoq' }] },
+  { title: 'The Sword-Kin', foes: [{ kind: 'fox', name: 'Sword-Kin Sami', look: 'kin' }, { kind: 'fox', name: 'Sword-Kin Wayra', look: 'kin' }] },
+  { title: 'Ukhu, Warden of the Bridge', foes: [{ kind: 'bear', name: 'Ukhu, Warden of the Bridge', look: 'ukhu' }] },
 ];
+/** what the story's upgrades do in a fight: the rain-tempered edge cuts harder, the condor-feather wrap breaks
+ *  posture faster, the puma-claw guard widens the deflect moment, and the second flame fills Enzo's meter faster and
+ *  makes his lantern hit harder */
+export type Upgrades = { edge: boolean; feather: boolean; claw: boolean; flame: boolean };
+export const noUpgrades = (): Upgrades => ({ edge: false, feather: false, claw: false, flame: false });
+export type FightOpts = { rounds?: Round[]; ups?: Partial<Upgrades> };
 /** Dora's three cuts: length, the tick the cut lands, damage, posture damage, reach */
 export const CUTS = [
   { len: 20, hit: 7, dmg: 5, post: 4, reach: 2.2 },
@@ -43,7 +63,7 @@ export const DODGE = { len: 22, from: 2, to: 15, dist: 3.2 }, FINISHER = { len: 
 export const ENZO_POST = { x: -6.3, z: 2.6 };
 
 export type FoeState = 'enter' | 'stalk' | 'windup' | 'strike' | 'recover' | 'hit' | 'deflected' | 'broken' | 'dead';
-export type Foe = { id: number; kind: FoeKind; name: string; x: number; z: number; face: number; hp: number; maxHp: number; posture: number; maxPosture: number;
+export type Foe = { id: number; kind: FoeKind; look: Look; name: string; x: number; z: number; face: number; hp: number; maxHp: number; posture: number; maxPosture: number;
   state: FoeState; t: number; len: number; cd: number; atk: Attack | null; done: boolean; strafe: number; calm: number; gone: boolean;
   /** cuts taken since its last attack: at three it parries the next one and answers */
   poise: number };
@@ -56,19 +76,23 @@ export type FightEvent =
   | { t: 'strike'; id: number; atk: string } | { t: 'broken'; id: number } | { t: 'guardBroken' } | { t: 'finisher'; id: number } | { t: 'finisherHit'; id: number; x: number; z: number }
   | { t: 'tagReady' } | { t: 'tag' } | { t: 'tagHit'; x: number; z: number } | { t: 'dead'; id: number } | { t: 'clear'; n: number } | { t: 'won' } | { t: 'lost' };
 export type Result = { rank: Rank; seconds: number; deflects: number; bestCombo: number; damage: number; falls: number; score: number };
-export type Save = { v: 1; best: Result | null; wins: number; fights: number; seenHow: boolean; settings: { assist: boolean; sound: boolean; music: boolean; fx: boolean } };
+/** `story` is the story's own save (lib/cloudsteel-world.ts checks it); `climbs` counts finished stories */
+export type Save = { v: 2; best: Result | null; wins: number; fights: number; seenHow: boolean; settings: { assist: boolean; sound: boolean; music: boolean; fx: boolean };
+  story: Record<string, unknown> | null; climbs: number };
 
-export const newSave = (): Save => ({ v: 1, best: null, wins: 0, fights: 0, seenHow: false, settings: { assist: true, sound: true, music: true, fx: true } });
+export const newSave = (): Save => ({ v: 2, best: null, wins: 0, fights: 0, seenHow: false, settings: { assist: true, sound: true, music: true, fx: true }, story: null, climbs: 0 });
 export const serialise = (s: Save) => JSON.stringify(s);
 export function parseSave(raw: string | null): Save {
   const s = newSave();
   if (!raw) return s;
   try {
     const o = JSON.parse(raw);
-    if (!o || o.v !== 1) return s;
+    if (!o || o.v !== 2) return s;
     if (o.best && typeof o.best.score === 'number' && ['gold', 'silver', 'bronze'].includes(o.best.rank)) s.best = o.best;
     s.wins = Math.max(0, o.wins | 0); s.fights = Math.max(0, o.fights | 0); s.seenHow = !!o.seenHow;
     for (const k of ['assist', 'sound', 'music', 'fx'] as const) if (typeof o.settings?.[k] === 'boolean') s.settings[k] = o.settings[k];
+    if (o.story && typeof o.story === 'object' && !Array.isArray(o.story)) s.story = o.story;
+    s.climbs = Math.max(0, o.climbs | 0);
   } catch {}
   return s;
 }
@@ -80,7 +104,7 @@ const wrap = (a: number) => { while (a > Math.PI) a -= Math.PI * 2; while (a < -
 function rng(seed: number) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
 export class Fight {
-  readonly assist: boolean;
+  readonly assist: boolean; readonly rounds: Round[]; readonly ups: Upgrades;
   private rand: () => number;
   tick_ = 0; phase: Phase = 'intro'; phaseT = 0; round = 0;
   // Dora. Angles are yaw: 0 faces +z, and x = sin, z = cos.
@@ -93,20 +117,22 @@ export class Fight {
   stats = { ticks: 0, deflects: 0, bestCombo: 0, damage: 0, falls: 0, hits: 0, finishers: 0, tags: 0 };
   private prev: Input = idleInput(); private bufAttack = 99; private bufDodge = 99;
 
-  constructor(seed: number, assist = true) { this.rand = rng(seed); this.assist = assist; this.startRound(0); }
+  constructor(seed: number, assist = true, opts: FightOpts = {}) {
+    this.rand = rng(seed); this.assist = assist; this.rounds = opts.rounds ?? ROUNDS; this.ups = { ...noUpgrades(), ...opts.ups }; this.startRound(0);
+  }
 
   get over() { return this.phase === 'won' || this.phase === 'lost'; }
-  get deflectWindow() { return this.assist ? 14 : 9; }
+  get deflectWindow() { return (this.assist ? 14 : 9) + (this.ups.claw ? 3 : 0); }
   get living() { return this.foes.filter((f) => f.state !== 'dead'); }
   foe(id: number) { return this.foes.find((f) => f.id === id) ?? null; }
   get targetFoe() { const f = this.foe(this.target); return f && f.state !== 'dead' ? f : null; }
 
   private startRound(n: number) {
     this.round = n; this.phase = 'intro'; this.phaseT = 0; this.foes = []; this.token = -1;
-    const defs = ROUNDS[n].foes;
+    const defs = this.rounds[n].foes;
     defs.forEach((d, i) => {
-      const a = Math.PI + (i - (defs.length - 1) / 2) * 0.7, st = FOES[d.kind];
-      this.foes.push({ id: this.nextId++, kind: d.kind, name: d.name, x: Math.sin(a) * (ARENA_R + 1.2), z: Math.cos(a) * (ARENA_R + 1.2), face: a + Math.PI, hp: st.hp, maxHp: st.hp, posture: 0, maxPosture: st.posture,
+      const a = Math.PI + (i - (defs.length - 1) / 2) * 0.7, st = FOES[d.kind], hp = d.hp ?? st.hp;
+      this.foes.push({ id: this.nextId++, kind: d.kind, look: d.look, name: d.name, x: Math.sin(a) * (ARENA_R + 1.2), z: Math.cos(a) * (ARENA_R + 1.2), face: a + Math.PI, hp, maxHp: hp, posture: 0, maxPosture: st.posture,
         state: 'enter', t: 0, len: 0, cd: 40 + i * 50, atk: null, done: false, strafe: i % 2 ? 1 : -1, calm: 0, gone: false, poise: 0 });
     });
     this.target = this.foes[0].id;
@@ -140,7 +166,7 @@ export class Fight {
     this.target = best ? best.id : -1;
   }
   private addCombo() { this.combo++; this.comboT = 0; if (this.combo > this.stats.bestCombo) this.stats.bestCombo = this.combo; }
-  private addTag(n: number) { const was = this.tag; this.tag = Math.min(TAG_FULL, this.tag + n); if (was < TAG_FULL && this.tag >= TAG_FULL) this.events.push({ t: 'tagReady' }); }
+  private addTag(n: number) { const was = this.tag; this.tag = Math.min(TAG_FULL, this.tag + n * (this.ups.flame ? 1.3 : 1)); if (was < TAG_FULL && this.tag >= TAG_FULL) this.events.push({ t: 'tagReady' }); }
   private addPosture(f: Foe, n: number) {
     if (f.state === 'broken' || f.state === 'dead') return;
     f.posture = Math.min(f.maxPosture, f.posture + n); f.calm = 0;
@@ -159,7 +185,7 @@ export class Fight {
     if (this.phase === 'intro') { if (this.phaseT >= 70) { this.phase = 'fight'; this.phaseT = 0; } }
     else if (this.phase === 'clear') {
       if (this.phaseT >= 110) {
-        if (this.round + 1 >= ROUNDS.length) { this.phase = 'won'; this.phaseT = 0; this.setState('win'); this.events.push({ t: 'won' }); }
+        if (this.round + 1 >= this.rounds.length) { this.phase = 'won'; this.phaseT = 0; this.setState('win'); this.events.push({ t: 'won' }); }
         else { this.hp = this.assist ? this.maxHp : Math.min(this.maxHp, this.hp + 40); this.posture = 0; this.startRound(this.round + 1); }
       }
     }
@@ -242,13 +268,13 @@ export class Fight {
           if (!open) f.poise++;
           this.stats.hits++; this.addCombo(); this.addTag(6);
           this.events.push({ t: 'hit', id: f.id, x: f.x, z: f.z, heavy: cut === 2 });
-          this.addPosture(f, c.post * (open ? 1.3 : 1));
-          this.hurtFoe(f, c.dmg * (f.state === 'broken' ? 1.5 : 1));
-          // nothing stops a foe that has started its swing: cutting into a wind-up is a trade. Otherwise a fox
-          // flinches at every cut and the bear only at the heavy third
+          this.addPosture(f, c.post * (open ? 1.3 : 1) * (this.ups.feather ? 1.25 : 1));
+          this.hurtFoe(f, c.dmg * (f.state === 'broken' ? 1.5 : 1) * (this.ups.edge ? 1.2 : 1));
+          // nothing stops a foe that has started its swing: cutting into a wind-up is a trade. Otherwise a fox or
+          // the puma flinches at every cut and the bear only at the heavy third
           const now = f.state as FoeState;
           if (now === 'dead' || now === 'broken' || now === 'strike' || now === 'windup') continue;
-          if (f.kind === 'fox' || cut === 2) this.setFoe(f, 'hit', cut === 2 ? 26 : 16);
+          if (f.kind !== 'bear' || cut === 2) this.setFoe(f, 'hit', cut === 2 ? 26 : 16);
         }
       }
       if (this.t > c.hit && this.bufAttack < 14) this.queued = true;
@@ -320,7 +346,7 @@ export class Fight {
         this.events.push({ t: 'tagHit', x: e.x, z: e.z });
         for (const o of this.living) {
           if (Math.hypot(o.x - e.x, o.z - e.z) > TAG.radius + FOES[o.kind].radius) continue;
-          this.addCombo(); this.addPosture(o, 50); this.hurtFoe(o, 20);
+          this.addCombo(); this.addPosture(o, this.ups.flame ? 70 : 50); this.hurtFoe(o, this.ups.flame ? 26 : 20);
           const now = o.state as FoeState;
           if (now !== 'dead' && now !== 'broken') this.setFoe(o, 'hit', 50);
         }

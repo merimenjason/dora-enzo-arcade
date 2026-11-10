@@ -1,11 +1,13 @@
 // Cloudsteel sounds, all synthesised with WebAudio: the whoosh of a cut, steel on steel for a guard, a bright ring
 // for a deflect, a rising tone as a foe winds up (a low drone for a jade attack), a gong when posture breaks, the
 // lantern's chime for Enzo, steady rain, and an original slow pentatonic theme on a breathy flute voice over a hand
-// drum (written for this game). Silent until the first click, tap or key.
+// drum (written for this game), with a gentler walking tune for the climb; voices for talk, the lantern's chime, waking
+// planks and stones, gates, pickups and footsteps. Silent until the first click, tap or key.
 const hz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
-export type SongId = 'menu' | 'fight' | 'boss' | 'ending';
+export type SongId = 'menu' | 'explore' | 'fight' | 'boss' | 'ending';
 const SONGS: Record<SongId, { root: number; bpm: number; lead: number[]; bass: number[]; drum: number[] }> = {
   menu: { root: 57, bpm: 76, lead: [0, -99, 3, 5, -99, 7, -99, 5, 3, -99, 0, -99, -2, -99, 0, -99], bass: [0, -99, -99, -99, 7, -99, -99, -99, 5, -99, -99, -99, 7, -99, -99, -99], drum: [1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0] },
+  explore: { root: 62, bpm: 70, lead: [0, -99, -99, 2, 4, -99, 7, -99, 4, -99, 2, -99, 0, -99, -3, -99], bass: [0, -99, -99, -99, -99, -99, -99, -99, -5, -99, -99, -99, -99, -99, -99, -99], drum: [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0] },
   fight: { root: 57, bpm: 118, lead: [12, -99, 10, 7, -99, 5, 7, -99, 3, -99, 5, 7, -99, 10, 7, -99], bass: [0, -99, 0, -99, 7, -99, 0, -99, 5, -99, 5, -99, 3, -99, 7, -99], drum: [2, 0, 1, 0, 1, 0, 1, 1, 2, 0, 1, 0, 1, 1, 1, 0] },
   boss: { root: 53, bpm: 128, lead: [12, 10, -99, 7, 5, -99, 7, 10, 12, -99, 15, -99, 12, 10, 7, -99], bass: [0, 0, -99, 0, 7, -99, 5, -99, 0, 0, -99, 0, 3, -99, 5, 7], drum: [2, 1, 1, 0, 2, 0, 1, 1, 2, 1, 1, 0, 2, 1, 1, 1] },
   ending: { root: 60, bpm: 84, lead: [0, 4, 7, -99, 9, 7, -99, 4, 7, -99, 12, -99, 9, -99, 7, -99], bass: [0, -99, -99, -99, 5, -99, -99, -99, 7, -99, -99, -99, 0, -99, -99, -99], drum: [1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0] },
@@ -56,6 +58,15 @@ export class CloudsteelSound {
   clear() { [0, 5, 7, 12].forEach((s, i) => this.tone(hz(69 + s), 0.3, 'triangle', 0.3, undefined, i * 0.11)); }
   won() { [0, 4, 7, 12, 16].forEach((s, i) => this.tone(hz(64 + s), 0.5, 'triangle', 0.32, undefined, i * 0.14)); }
   lost() { [0, -2, -5, -9].forEach((s, i) => this.tone(hz(62 + s), 0.5, 'triangle', 0.3, undefined, i * 0.2)); }
+  /** a short voice blip for a line of talk: Dora, Enzo, or anyone else */
+  talk(who: number) { const f = [880, 660, 520][who] ?? 520; this.tone(f, 0.06, 'triangle', 0.14, f * 1.12); this.tone(f * 1.5, 0.05, 'sine', 0.08, undefined, 0.05); }
+  lantern() { [0, 7, 12, 16].forEach((s, i) => this.tone(hz(76 + s), 0.6, 'sine', 0.2, undefined, i * 0.06)); this.hiss(0.5, 3000, 1.5, 0.15, 6000); }
+  plank() { this.tone(hz(83), 0.4, 'sine', 0.16, hz(88)); this.tone(220, 0.15, 'triangle', 0.15, 160); }
+  stone() { this.tone(98, 1.2, 'sine', 0.45, 110); [0, 4, 7].forEach((s, i) => this.tone(hz(72 + s), 0.7, 'sine', 0.18, undefined, 0.1 + i * 0.1)); }
+  gate() { this.hiss(1.6, 120, 0.6, 0.6, 60); this.tone(65, 1.6, 'sawtooth', 0.18, 50); [0, 5, 7, 12].forEach((s, i) => this.tone(hz(67 + s), 0.6, 'triangle', 0.22, undefined, 0.6 + i * 0.12)); }
+  got(big: boolean) { (big ? [0, 4, 7, 11, 14] : [0, 7, 12]).forEach((s, i) => this.tone(hz(79 + s), 0.35, 'sine', 0.24, undefined, i * 0.07)); }
+  cold() { this.tone(330, 0.3, 'sine', 0.15, 250); }
+  footstep() { this.hiss(0.05, 900 + Math.random() * 400, 1.5, 0.09); }
   /** rain under everything while a fight is on */
   ambience(on: boolean) {
     const c = this.ctx; if (!c || !this.sfx || !this.noise) return;

@@ -125,9 +125,25 @@ function near(g, f, d = 1.8) { f.x = g.x; f.z = g.z - d; f.face = 0; g.face = Ma
   const s = newSave(); assert.equal(s.settings.assist, true);
   s.wins = 3; s.best = { rank: 'silver', seconds: 80, deflects: 5, bestCombo: 9, damage: 60, falls: 0, score: 3100 }; s.settings.fx = false;
   assert.deepEqual(parseSave(serialise(s)), s);
-  for (const bad of [null, '', '{', '[]', '{"v":2}', '{"v":1,"best":{"rank":"x"},"wins":-4}']) { const p = parseSave(bad); assert.equal(p.v, 1); assert.equal(p.best, null); assert.ok(p.wins >= 0); }
+  for (const bad of [null, '', '{', '[]', '{"v":1}', '{"v":2,"best":{"rank":"x"},"wins":-4}']) { const p = parseSave(bad); assert.equal(p.v, 2); assert.equal(p.story, null); assert.equal(p.best, null); assert.ok(p.wins >= 0); }
   assert.ok(better({ ...s.best, score: 3200 }, s.best)); assert.ok(!better({ ...s.best, score: 3000 }, s.best)); assert.ok(better(s.best, null));
-  ok('the save round-trips, and a broken save falls back to a new one');
+  const t = newSave(); t.story = { v: 1, area: 'forest' }; t.climbs = 2; assert.deepEqual(parseSave(serialise(t)), t);
+  ok('the save round-trips (with a place on the mountain), and a broken or old save falls back to a new one');
+}
+{ // the puma, story duels and the upgrades
+  assert.ok(ATTACKS.puma.some((a) => a.jade) && FOES.puma.hp > 0 && FOES.puma.speed > FOES.fox.speed);
+  const rounds = [{ title: 'Titu', foes: [{ kind: 'puma', name: 'Titu', look: 'titu' }] }];
+  const g = new Fight(5, true, { rounds }); assert.equal(g.foes[0].kind, 'puma'); assert.equal(g.foes[0].look, 'titu');
+  const bot = makeBot({ seed: 3 }); run(g, 60 * 600, (x) => bot(x), (x) => x.over); assert.equal(g.phase, 'won'); assert.equal(g.rounds.length, 1);
+  const two = new Fight(6, true, { rounds: [{ title: 'Mallku', foes: [{ kind: 'fox', name: 'Mallku', look: 'mallku', hp: 200 }, { kind: 'fox', name: 'Rumi', look: 'kin' }] }] });
+  assert.equal(two.foes[0].maxHp, 200); assert.equal(two.foes[1].look, 'kin');
+  // the same cut with the Rain-Tempered Edge does more, and the Feather Wrap breaks posture sooner
+  const hitWith = (ups) => { const f = new Fight(8, true, { ups }); toFight(f); const foe = f.foes[0]; near(f, foe, 1.2); const hp = foe.hp, po = foe.posture; run(f, 40, (x, i) => inp({ attack: i === 0 })); return [hp - foe.hp, foe.posture - po]; };
+  const [d0, p0] = hitWith(undefined), [d1] = hitWith({ edge: true, feather: false, claw: false, flame: false }), [, p2] = hitWith({ edge: false, feather: true, claw: false, flame: false });
+  assert.ok(d0 > 0 && d1 > d0, `edge ${d1} vs ${d0}`); assert.ok(p2 > p0, `feather ${p2} vs ${p0}`);
+  const claw = new Fight(1, true, { ups: { edge: false, feather: false, claw: true, flame: false } }), plain = new Fight(1, true);
+  assert.ok(claw.deflectWindow > plain.deflectWindow);
+  ok('Titu the puma pounces with a jade blow; story duels take their own foes; the sword upgrades cut harder, break sooner and widen the deflect');
 }
 { // determinism
   const a = play(Fight, makeBot({ seed: 21 }), { seed: 77 }), b = play(Fight, makeBot({ seed: 21 }), { seed: 77 });
