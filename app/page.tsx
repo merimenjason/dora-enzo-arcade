@@ -98,14 +98,16 @@ const GAMES=[
  {href:'/bellspire',title:'The Sunken Bellspire',tag:'NEW · CASTLE EXPLORER',blurb:'A drowned citadel of bells rises from an Andean lake. Explore it in lit pixel art as Dora with a sword and Enzo with a lantern, ring bells to raise and lower the water, and face five guardians.',color:'#3a7bd5',art:'🔔'},
  {href:'/overclock',title:'Overclock',tag:'NEW · RUN-AND-GUN',blurb:'A 16-bit run-and-gun in a neon city. Tag between Dora\u2019s rapid blaster and Enzo\u2019s charge cannon, reboot eight rogue robot bosses for sixteen powers, ride hover-bikes and climb the Sky Tower.',color:'#ff4fa3',art:'⚡'},
  {href:'/cloudsteel',title:'Cloudsteel',tag:'NEW · 3D SWORD DUEL',blurb:'A sword duel in full 3D on a rain-soaked citadel terrace. Cut, guard at the gold glint to deflect, roll clear of what cannot be guarded, break a foe\u2019s posture for the finisher and call Enzo in with his lantern. Three rounds: a fox sellsword, his sword-kin and Ukhu the bear warden.',color:'#f2c14e',art:'🗡️'},
+ {href:'/salt-dust',title:'Salt & Dust',tag:'NEW · ISOMETRIC RPG',blurb:'Long after the rains stopped, Dora and Enzo cross a high-Andean salt flat with a draining canteen. Talk past Well Wardens, flamingo merchants and fox raiders with skill checks, or fight on a grid with action points. A first playable chapter.',color:'#d9773a',art:'🏜️'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
    <p className="arcade-eyebrow">NINETY-FIVE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Ninety-six ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, ninety-six cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">NINETY-SIX ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Ninety-seven ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, ninety-seven cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <ArcadeGrid games={GAMES}/>
