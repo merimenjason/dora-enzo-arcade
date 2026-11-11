@@ -3,7 +3,11 @@
 // both depth directions, attack, jump, jump-attack, tag, a double-tap dash, a dash attack, the dash special for both
 // heroes, the Festival double-team, pause and resume) and the same by touch (the stick, a double flick to dash, the
 // three buttons, the special as flick-flick, JUMP, ATTACK); the special's one-time prompt in the player's own keys;
-// the harbour map, a locked district, a stage card, the results card and the save under brinelight-v1. Fails on any
+// the harbour map, a locked district, a stage card, the results card and the save under brinelight-v1. Then the
+// Ropewalk and Shipyard, by keys and again by touch: stepping out of a belt barrel's lane, Enzo punching one to a stop,
+// walking up into a barrel to pick it up, hauling an eel out of its hole, knocking an inker off its post (its ink
+// clears), kicking a cormorant out of its dive, heaving Longshanks over by his stuck leg, and rolling a barrel onto one
+// of Tanglejaw's holes; and area 3 on the map, opening once 2-3 is cleared, with its story panel. Fails on any
 // page error or sideways scroll. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves screenshots.
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
@@ -173,6 +177,101 @@ async function touchActions(page, tag) {
   await page.locator('.bl-overlay button', { hasText: 'Resume' }).tap(); await until(page, '!o.paused');
 }
 
+// ─────────────────────────────── the Ropewalk and Shipyard: every new interaction, by keys and by touch
+/** a quiet arena in an area-3 stage; `boss` brings a boss straight in and waits out its entrance */
+const arena3 = async (page, stage, who = 'dora', setup = '', boss = '') => {
+  await game(page, `o.start("${stage}", 3)`);
+  await until(page, `o.screen === "play" && g && g.stageId === "${stage}"`);
+  await game(page, `(() => { g.tut.stage = 9; g.evI = 99; g.foes = []; g.items = []; g.props = []; g.rolls = []; g.ink = []; g.talk = null;
+    ${boss ? `g.lock = g.cam; g.spawnBoss("${boss}");` : ''} return 1; })()`);
+  if (boss) await until(page, 'g.boss && g.boss.st !== "intro"', 20000);
+  if (await game(page, 'g.active') !== who) await game(page, '(g.doTag(true), 1)');
+  await wait(600);
+  await game(page, `(() => { const p = g.hero(); p.x = g.camL + 300; p.z = 80; p.face = 1; p.hp = 100; g.partner().hp = 100; g.tagCD = 0; g.fest = 0;
+    for (const k in g.stats) if (typeof g.stats[k] === 'number') g.stats[k] = 0;
+    ${setup}
+    return 1; })()`);
+};
+/** the same moves by key or by touch: attack, jump, and holding a direction */
+async function controls(page, how) {
+  if (how === 'keys') {
+    const tap = async (key, ms = 60) => { await page.keyboard.down(key); await wait(ms); await page.keyboard.up(key); };
+    return { how, atk: () => tap('KeyJ'), jmp: () => tap('KeyK'),
+      hold: async (dir, ms) => { const key = { up: 'ArrowUp', down: 'ArrowDown', right: 'ArrowRight', left: 'ArrowLeft' }[dir]; await page.keyboard.down(key); await wait(ms); await page.keyboard.up(key); } };
+  }
+  const cdp = await page.context().newCDPSession(page);
+  const touch = async (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y], i) => ({ x, y, id: i })) });
+  const T = await game(page, '(() => { const t = o.scene.tl; return { s: t.stick, a: t.atk, j: t.jmp }; })()');
+  const press = async (b) => { await touch('touchStart', [[b.x, b.y]]); await wait(70); await touch('touchEnd', []); };
+  return { how, atk: () => press(T.a), jmp: () => press(T.j),
+    hold: async (dir, ms) => {
+      const [dx, dy] = { up: [0, -1], down: [0, 1], right: [1, 0], left: [-1, 0] }[dir];
+      await touch('touchStart', [[T.s.x, T.s.y]]); await touch('touchMove', [[T.s.x + dx * T.s.r * 0.9, T.s.y + dy * T.s.r * 0.9]]); await wait(ms); await touch('touchEnd', []);
+    } };
+}
+async function area3Actions(page, tag, how) {
+  const t = `${tag} ${how}`;
+  let c = await controls(page, how);
+  // the belt: a barrel rumbles and marks lane 2; stepping up a lane lets it roll past
+  await arena3(page, '3-1', 'dora', 'g.sendRoll(2, "barrel", false);');
+  if (how === 'touch') c = await controls(page, how);
+  await until(page, 'g.rolls.length && g.rolls[0].t > 0.3', 4000);
+  await shot(page, `${tag}-belt-tell`);
+  await c.hold('up', 450);
+  ok(await game(page, 'g.hero().z') < 55, `${t}: stepping up a lane out of the barrel's way (z ${Math.round(await game(page, 'g.hero().z'))})`);
+  await until(page, '!g.rolls.length', 8000);
+  ok(await game(page, 'g.hero().hp') === 100, `${t}: the belt barrel rolls past`);
+  // Enzo punches a rolling barrel to a stop
+  await arena3(page, '3-1', 'enzo', 'g.sendRoll(2, "barrel", false);');
+  await until(page, 'g.rolls.length && g.rolls[0].t >= g.rolls[0].tell && g.rolls[0].x - g.hero().x < 210', 6000);
+  await c.atk();
+  await until(page, 'g.learned.stop >= 1', 2000); ok(true, `${t}: Enzo's paw stops a rolling barrel`);
+  await shot(page, `${tag}-belt-stop`);
+  // walking up into a barrel on the boards picks it up
+  await arena3(page, '3-1', 'enzo', 'g.addItem("barrel", g.hero().x, g.hero().z - 40, 0, 0, 0);');
+  await c.hold('up', 400);
+  await until(page, '!!g.hero().hold', 2000); ok(true, `${t}: walking up into a barrel picks it up`);
+  // an eel in its hole: Enzo's paw hauls it out onto the boards
+  await arena3(page, '3-1', 'enzo', 'const f = g.spawnFoe("eel", 1, { lane: 2 }); f.x = f.tx = g.hero().x + 70; f.z = f.tz = 80; f.st = "idle"; f.t = 0; f.cd = 9;');
+  await shot(page, `${tag}-eel`);
+  await c.atk();
+  await until(page, 'g.foes[0].loose', 2000); ok(true, `${t}: Enzo hauls an eel out of its hole`);
+  // an inker on its post squirts ink; Dora knocks it off and the ink clears
+  await arena3(page, '3-2', 'dora', 'const f = g.spawnFoe("octo", 1); f.x = f.tx = g.camL + 400; f.z = f.tz = 20;');
+  await until(page, 'g.foes[0].st === "perch"', 6000); await game(page, '(g.foes[0].cd = 0, 1)');
+  await until(page, 'g.ink.length > 0', 8000);
+  await shot(page, `${tag}-ink`);
+  await game(page, '(() => { const p = g.hero(); p.x = g.foes[0].x - 60; p.z = 20; p.face = 1; p.hp = 100; return 1; })()');
+  await c.atk();
+  await until(page, 'g.foes[0].loose && g.ink.length === 0', 2500); ok(true, `${t}: Dora knocks the inker off its post and the ink clears`);
+  // a cormorant: its ring locks, and Dora's jump kick knocks it out of the sky
+  await arena3(page, '3-2', 'dora', 'const f = g.spawnFoe("cormorant", 1); f.x = g.hero().x + 150; f.h = 185; f.st = "hover"; f.t = 0; f.cd = 0;');
+  await until(page, 'g.foes[0].st === "wind"', 6000);
+  await shot(page, `${tag}-cormorant`);
+  await game(page, '(() => { const p = g.hero(), f = g.foes[0]; p.x = f.x - 40; p.face = 1; return 1; })()');
+  await c.jmp(); await wait(90); await c.atk();
+  await until(page, '["crash", "down", "ko"].includes(g.foes[0]?.st) || !g.foes.length || g.foes[0].hp < g.foes[0].max', 2500);
+  ok(true, `${t}: Dora kicks a cormorant out of its dive`);
+  // Longshanks: his stomp sticks a leg in the planks, and Enzo's paw beside it heaves him over
+  await arena3(page, '3-2', 'enzo', '', 'longshanks');
+  await game(page, '(() => { const b = g.boss, p = g.hero(); p.inv = 9; b.st = "stomp"; b.t = 0; b.tx = p.x + 70; b.tz = p.z; b.x = b.tx + 95; b.z = p.z; return 1; })()');
+  await shot(page, `${tag}-longshanks-stuck`);
+  await c.atk();
+  await until(page, 'g.boss.st === "heave" || g.boss.st === "toppled"', 2000);
+  await until(page, 'g.boss.st === "toppled"', 3000); ok(true, `${t}: Enzo heaves Longshanks over by his stuck leg`);
+  await shot(page, `${tag}-longshanks-toppled`);
+  // Tanglejaw: Enzo carries a barrel onto one of the holes he isn't in
+  await arena3(page, '3-3', 'enzo', '', 'tanglejaw');
+  await game(page, `(() => { const b = g.boss, p = g.hero(); p.inv = 9;
+    const hi = g.holes.findIndex((h, i) => i !== b.hole), h = g.holes[hi];
+    const it = g.addItem("barrel", p.x, p.z, 0, 0, 0); it.held = true; p.hold = it; p.st = "hold"; p.t = 0;
+    p.x = h.x - 130; p.z = h.z; p.face = 1; window.__hole = hi; return 1; })()`);
+  await shot(page, `${tag}-tanglejaw-carry`);
+  await c.hold('right', 900);
+  await until(page, 'g.holes[window.__hole].plug', 2000); ok(true, `${t}: walking a barrel onto Tanglejaw's hole plugs it`);
+  await shot(page, `${tag}-tanglejaw-plug`);
+}
+
 const sizes = [[1280, 800, false, 'desk'], [390, 844, true, 'portrait'], [844, 390, true, 'landscape']];
 for (const [width, height, mobile, tag] of sizes) {
   const ctx = await browser.newContext({ viewport: { width, height }, isMobile: mobile, hasTouch: true, deviceScaleFactor: 1 });
@@ -200,6 +299,8 @@ for (const [width, height, mobile, tag] of sizes) {
   }
   await keyActions(page, tag);
   await touchActions(page, tag);
+  await area3Actions(page, tag, 'keys');
+  await area3Actions(page, tag, 'touch');
   // the map, a locked district, a stage card; clear a stage and see the card and the save
   await game(page, 'o.start("1-1", 4)'); await until(page, 'g && g.stageId === "1-1"');
   await game(page, '(() => { g.tut.stage = 9; g.mode = "clear"; g.clearT = 3; g.stats.score = 2400; g.stats.time = 70; return 1; })()');
@@ -219,6 +320,28 @@ for (const [width, height, mobile, tag] of sizes) {
   await page.locator('.bl-stage').nth(1).click();
   await until(page, 'o.screen === "play" && g.stageId === "1-2"'); ok(true, `${tag}: a stage card starts its stage`);
   ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${tag}: no sideways scroll in play`);
+  // area 3 on the map: locked until 2-3 is cleared, then 3-1 opens; the shipyard story panel before 3-3
+  await page.keyboard.press('Escape'); await page.locator('.bl-overlay button', { hasText: 'Map' }).click();
+  await page.locator('.bl-map').waitFor();
+  await page.locator('.bl-spot').nth(2).click();
+  ok(await page.locator('.bl-stage').count() === 3 && !(await page.locator('.bl-stage').nth(0).isEnabled()), `${tag}: the Ropewalk's stages wait for 2-3`);
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('brinelight-v1'));
+    for (const id of ['1-1', '1-2', '1-3', '2-1', '2-2', '2-3', '3-1', '3-2']) s.cleared[id] = { score: 1000, time: 90, medal: 1 };
+    localStorage.setItem('brinelight-v1', JSON.stringify(s));
+  });
+  await page.reload(); await page.locator('main[data-ready="true"]').waitFor({ timeout: 90000 });
+  await page.locator('.bl-title button', { hasText: 'Continue' }).click(); await page.locator('.bl-map').waitFor();
+  await page.locator('.bl-spot').nth(2).click();
+  ok(await page.locator('.bl-area').textContent().then((x) => /Ropewalk/.test(x)) && await page.locator('.bl-stage').nth(2).isEnabled(), `${tag}: area 3 opens on the map`);
+  await shot(page, `${tag}-map-area3`);
+  await page.locator('.bl-stage').nth(2).click();
+  await page.locator('.bl-panel').waitFor();
+  ok(/Tanglejaw/.test(await page.locator('.bl-panel').textContent()), `${tag}: the shipyard story panel before the drydock`);
+  await shot(page, `${tag}-panel-shipyard`);
+  await page.locator('.bl-panel button', { hasText: 'Go' }).click();
+  await until(page, 'o.screen === "play" && g.stageId === "3-3"'); ok(true, `${tag}: 3-3 starts`);
+  ok((await page.evaluate(() => JSON.parse(localStorage.getItem('brinelight-v1')))).v === 1, `${tag}: still the brinelight-v1 save`);
   await ctx.close();
 }
 await browser.close();

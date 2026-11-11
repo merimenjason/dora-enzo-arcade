@@ -14,7 +14,7 @@
 // assist on, the tagger must clear every stage. `--quick` runs fewer seeds. Run after compiling the engine into
 // .checks/ (npm test does).
 import assert from 'node:assert/strict';
-import { BrineGame, STAGES, NO_INPUT, foeWants } from '../.checks/brinelight-game.js';
+import { BrineGame, STAGES, NO_INPUT, LANE_Z, foeWants } from '../.checks/brinelight-game.js';
 
 const QUICK = process.argv.includes('--quick');
 const ONLY = process.argv.find((a) => a.startsWith('--stage='))?.slice(8);
@@ -43,6 +43,7 @@ export function playStage(stage, seed, assist, persona) {
       p: { x: p.x, z: p.z, h: p.h, st: p.st, name: p.name, hp: p.hp },
       foes: g.foes.filter((f) => g.hittable(f) && f.st !== 'ko').map((f) => ({ x: f.x, z: f.z, h: f.h, kind: f.kind, st: f.st, want: foeWants(f), lane: f.lane, grab: f.daze > 0 || (f.kind === 'hermit' && f.shell) })),
       boss: g.boss && { x: g.boss.x, z: g.boss.z, h: g.boss.h, st: g.boss.st, kind: g.boss.kind, tz: g.boss.tz, tx: g.boss.tx },
+      rolls: g.rolls.filter((c) => c.kind === 'barrel').map((c) => ({ id: c, z: LANE_Z[c.lane], x: c.x })),
       prompt: g.prompt, fest: g.fest, combo: g.combo.n, door: g.secretDoor(), lock: g.lock, cam: g.cam, len: g.len, partnerOk: g.partner().hp > 0 && g.partner().ready,
     };
   };
@@ -64,7 +65,7 @@ export function playStage(stage, seed, assist, persona) {
       if (!tgt && boss) tgt = { x: boss.x, z: boss.z, h: boss.h, kind: boss.kind, st: boss.st, want: null };
       // movement toward the target, offset so we stand beside it
       let mx = 0, mz = 0;
-      const danger = boss && (['rock', 'roll', 'tell', 'shriek', 'dive', 'wingtell', 'swoop', 'stomp', 'crouch', 'hop'].includes(boss.st));
+      const danger = boss && (['rock', 'roll', 'tell', 'shriek', 'dive', 'wingtell', 'swoop', 'stomp', 'crouch', 'hop', 'stomptell', 'sweepw', 'bubble', 'whipw'].includes(boss.st));
       if (tgt) {
         // Enzo grabs by walking into a dazed foe or a shelled hermit without pressing Attack; the masher never bothers
         held.grabbing = persona !== 'masher' && p.name === 'enzo' && p.st !== 'hold' && tgt.grab && !boss && r() < 0.9;
@@ -78,16 +79,30 @@ export function playStage(stage, seed, assist, persona) {
         if (v.door !== null && r() < P.secret / 60 && Math.abs(v.door - p.x) < 300) { held.secret = true; }
         if (held.secret && v.door !== null) { mx = Math.abs(v.door - p.x) > 10 ? Math.sign(v.door - p.x) : 0; mz = -1; }
       }
+      // carrying out a prompt that points somewhere (a barrel to pick up, a hole to plug): walk there, don't punch
+      if (held.goto && held.goto.n > 0) {
+        held.goto.n--; held.grabbing = true;
+        mx = Math.abs(held.goto.x - p.x) > 16 ? Math.sign(held.goto.x - p.x) : 0; mz = Math.abs(held.goto.z - p.z) > 10 ? Math.sign(held.goto.z - p.z) : 0;
+      }
+      // a barrel rumbling down the belt in my lane: some people step out of it (once each), the masher never does
+      for (const c of v.rolls) {
+        if (held.seenRoll?.has(c.id) || Math.abs(c.z - p.z) > 30 || c.x < p.x - 40) continue;
+        (held.seenRoll ??= new Set()).add(c.id);
+        if (r() < P.dodge) held.laneMove = { mz: p.z > 80 ? -1 : 1, n: 26 };
+      }
+      if (held.laneMove && held.laneMove.n > 0) { held.laneMove.n--; mz = held.laneMove.mz; }
       // dodging a marked lane or a dive shadow
       if (danger && r() < P.dodge * 0.15) held.dodgeT = 30;
-      if (held.dodgeT > 0 && boss) { held.dodgeT--; const tz = boss.st === 'rock' || boss.st === 'roll' || boss.st === 'wingtell' || boss.st === 'swoop' ? boss.z : boss.tz ?? boss.z; mz = p.z > tz ? 1 : -1; if (Math.abs(p.z - tz) > 70) mz = 0; if (p.name === 'dora' && (boss.st === 'roll' || boss.st === 'swoop') && Math.abs(boss.x - p.x) < 220) inp.jmpP = true; }
+      if (held.dodgeT > 0 && boss) { held.dodgeT--; const tz = boss.st === 'rock' || boss.st === 'roll' || boss.st === 'wingtell' || boss.st === 'swoop' ? boss.z : boss.tz ?? boss.z; mz = p.z > tz ? 1 : -1; if (Math.abs(p.z - tz) > 70) mz = 0; if ((boss.st === 'roll' || boss.st === 'swoop' || boss.st === 'sweepw' || boss.st === 'whipw') && Math.abs(boss.x - p.x) < 260 && (p.name === 'dora' || boss.st !== 'roll')) inp.jmpP = true; }
       // human hands: a press every so often, with fumbles
       if (frame >= nextPress && g.mode === 'play' && tapPlan.length === 0) {
         nextPress = frame + Math.round(60 / P.rate * (0.7 + r() * 0.6));
         const pr = v.prompt;
         const follow = pr && r() < P.followPrompt;
         const near = tgt && Math.abs(tgt.x - p.x) < 150 && Math.abs(tgt.z - p.z) < 40;
-        if (follow && pr.act === 'tag') inp.tagP = true;
+        if (follow && (pr.act === 'grab' || pr.act === 'plug') && pr.x !== undefined && boss) held.goto = { x: pr.x, z: pr.z, n: 50 };
+        else if (follow && pr.act === 'move' && Math.abs(pr.dir) === 2) held.laneMove = { mz: Math.sign(pr.dir), n: 24 };
+        else if (follow && pr.act === 'tag') inp.tagP = true;
         else if (follow && pr.act === 'jmp') { inp.jmpP = true; held.airAtk = 10 + Math.round(r() * 8); }
         else if (follow && pr.act === 'dbl' && r() < P.dbl) { inp.atkP = true; inp.jmpP = true; }
         else if (follow && pr.act === 'special' && (p.st === 'idle' || p.st === 'walk') && r() < Math.max(0.5, P.special)) tapPlan = planSpecial(pr.dir || 1, r);
@@ -168,5 +183,10 @@ if (MAIN && !ONLY) {
   assert.ok(avg('casual', 'retries') <= 1, 'a casual player rarely retries in area 1');
   assert.ok(avg('masher', 'clear') >= 0.7, 'a masher gets through area 1 with assist on');
   for (const st of stages) assert.ok(table[`on|tagger|${st}`].clear >= 0.9, `the tagger clears ${st}`);
+  // area 3 is a step up, but with assist on the casual player and the tagger still get through without retrying
+  for (const st of ['3-1', '3-2', '3-3']) {
+    for (const p of ['casual', 'tagger']) assert.ok(table[`on|${p}|${st}`].clean >= 0.9, `the ${p} clears ${st} without a retry`);
+    assert.ok(table[`on|masher|${st}`].clear >= 0.8, `the masher gets through ${st}`);
+  }
   console.log('brinelight bots ok');
 }

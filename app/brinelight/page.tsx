@@ -22,6 +22,7 @@ const PANELS: Record<string, string> = {
   'panel-intro': 'Festival night in Brinelight, and Pinchwell’s crab gang has snuffed every lantern in the harbour. Dora and Enzo mean to light them all again, one string at a time.',
   'panel-quay': 'Clamps the Dockboss holds the pier from inside his barrel. Enzo can rip the barrel off him; Dora can keep him up in the air once he’s out.',
   'panel-market': 'The Gull Admiral rules the awnings. Dora knocks him out of his dives; Enzo pins him to the boards.',
+  'panel-shipyard': 'Old Tanglejaw lurks under the drydock with three holes to strike from. Enzo rolls barrels over two of them; out of the last one, Dora gives him a kicking.',
 };
 const MEDAL = ['', 'Bronze', 'Silver', 'Gold'];
 

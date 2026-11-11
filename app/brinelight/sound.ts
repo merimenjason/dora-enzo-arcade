@@ -1,10 +1,10 @@
 // Brinelight sounds, all synthesised with WebAudio: soft thumps for kicks and paws, a bright tink for the wrong hero,
-// splashes, lantern chimes, and three small tunes scheduled ahead of time: an accordion jig for Lantern Quay, a
-// tarantella for the Fish Market, and a lower, steadier boss march. A light echo bus gives the harbour some air.
+// splashes, lantern chimes, and small tunes scheduled ahead of time: an accordion jig for Lantern Quay, a
+// tarantella for the Fish Market, a hauling work song for the Ropewalk and Shipyard, and a lower, steadier boss march. A light echo bus gives the harbour some air.
 // Silent until the first input.
 const mtof = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 
-export type Tune = 'jig' | 'tarantella' | 'boss' | 'map' | null;
+export type Tune = 'jig' | 'tarantella' | 'worksong' | 'boss' | 'map' | null;
 
 const TUNES: Record<Exclude<Tune, null>, { bpm: number; lead: number[]; bass: number[]; lt: OscillatorType; swing: number }> = {
   // D major jig in 6/8: a three-beat lilt
@@ -15,6 +15,10 @@ const TUNES: Record<Exclude<Tune, null>, { bpm: number; lead: number[]; bass: nu
   tarantella: { bpm: 150, lt: 'triangle', swing: 0,
     lead: [76, 77, 76, 75, 76, 72, 69, 72, 74, 76, 77, 74, 72, 71, 69, 0, 69, 71, 72, 74, 76, 79, 77, 76, 74, 72, 71, 72, 69, 0, 0, 0],
     bass: [45, 52, 45, 52, 50, 57, 45, 52, 44, 52, 45, 52, 50, 53, 52, 44] },
+  // the Ropewalk work song in G mixolydian: a call and a heave, with a mallet on the anvil every other beat
+  worksong: { bpm: 112, lt: 'square', swing: 0,
+    lead: [67, 0, 71, 72, 74, 0, 72, 71, 69, 0, 65, 0, 67, 0, 0, 0, 74, 0, 74, 76, 77, 76, 74, 72, 71, 72, 69, 65, 67, 0, 0, 0],
+    bass: [43, 43, 50, 43, 41, 41, 48, 41, 43, 43, 50, 43, 41, 45, 38, 43] },
   // the boss march: low, steady, a minor-key brass figure
   boss: { bpm: 118, lt: 'sawtooth', swing: 0,
     lead: [62, 0, 62, 65, 67, 0, 65, 62, 60, 0, 60, 62, 63, 62, 60, 58, 62, 0, 62, 65, 67, 70, 69, 67, 65, 0, 63, 62, 60, 0, 0, 0],
@@ -129,6 +133,10 @@ export class BrineSound {
       case 'festFull': [784, 988, 1175, 1568].forEach((f, i) => T(f, f * 1.01, 0.3, 'triangle', 0.1, i * 0.05, 0.4)); N(0.4, 2000, 8000, 0.06, 'highpass'); break;
       case 'netDrop': N(0.3, 1200, 300, 0.2, 'bandpass', 1); T(220, 110, 0.25, 'triangle', 0.1, 0.12); break;
       case 'regrow': T(200, 400, 0.4, 'triangle', 0.06); break;
+      // the Ropewalk: an eel's bubbles, an inker's squirt, a barrel thunking into a hole
+      case 'bubble': for (let i = 0; i < 3; i++) T(380 + i * 140, 720 + i * 160, 0.07, 'sine', 0.1, i * 0.08); break;
+      case 'squirt': N(0.3, 1400, 300, 0.24, 'lowpass', 1); T(260, 120, 0.2, 'sine', 0.14); break;
+      case 'thunk': T(130, 60, 0.25, 'sine', 0.7); N(0.12, 900, 250, 0.3, 'lowpass'); T(420, 300, 0.1, 'triangle', 0.08, 0.04); break;
       // the specials: a rising whistle into a spin for Dora, a falling bass with a big thud for Enzo
       case 'comet': N(0.45, 800, 6000, 0.2, 'bandpass', 2); T(520, 1560, 0.35, 'triangle', 0.12, 0, 0.4); break;
       case 'anchor': T(300, 900, 0.18, 'triangle', 0.1); T(200, 50, 0.6, 'sine', 0.3, 0.2); N(0.5, 500, 80, 0.2, 'lowpass', 1, 0.2); break;
@@ -141,12 +149,13 @@ export class BrineSound {
     if (this.next < C.currentTime) this.next = C.currentTime + 0.05;
     while (this.next < C.currentTime + 0.25) {
       const n = this.n, t = this.next, m = tn.lead[n % tn.lead.length];
-      if (m) this.note(m, t, step * 0.9, tn.lt, tn.lt === 'sawtooth' ? 0.18 : 0.45, true);
+      if (m) this.note(m, t, step * 0.9, tn.lt, tn.lt === 'sawtooth' ? 0.18 : tn.lt === 'square' ? 0.16 : 0.45, true);
       const b = tn.bass[Math.floor(n / 2) % tn.bass.length];
       if (n % 2 === 0) this.note(b, t, step * 1.8, 'sine', 0.75, false);
       else if (this.tune !== 'map') this.note(b + 12 + (n % 4 === 1 ? 4 : 7), t, step * 0.5, 'square', 0.06, false);
       if (this.tune === 'boss' && n % 4 === 0) this.drum(t, 0.6);
       if (this.tune === 'tarantella' && n % 2 === 1) this.shaker(t);
+      if (this.tune === 'worksong' && n % 4 === 2) { this.drum(t, 0.45); this.anvil(t); }
       this.next += step; this.n++;
     }
   }
@@ -162,6 +171,14 @@ export class BrineSound {
     o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.15);
     g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
     o.connect(g); g.connect(this.mus!); o.start(t); o.stop(t + 0.22);
+  }
+  private anvil(t: number) {
+    const C = this.ctx!;
+    for (const [f, v] of [[1180, 0.07], [2950, 0.04]] as const) {
+      const o = C.createOscillator(), g = C.createGain(); o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+      o.connect(g); g.connect(this.mus!); o.start(t); o.stop(t + 0.27);
+    }
   }
   private shaker(t: number) {
     const C = this.ctx!; if (!this.noise) return;

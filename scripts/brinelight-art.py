@@ -143,12 +143,23 @@ grid('props', ['lantern-lit', 'lantern-dark', 'barrel', 'fishcrate', 'lobsterpot
 grid('props2', ['cart', 'hatch', 'hatch-open', 'ice', 'net-hang', 'net-down', 'charm', 'snack', 'bun', 'crate-cracked', 'scroll', 'debris'], 4, 3, 'cart', 86)
 grid('props3', ['stall-ice', 'stall-lobster', 'awning', 'fishboxes', 'basket', 'brine', 'driedfish', 'truck', 'mussels', 'netcoil', 'brazier', 'bell'], 4, 3, 'stall-ice', 92)
 grid('strings', ['string-dark', 'string-lit'], 1, 2, 'string-dark', 220, clean=False)
+# area 3: the Ropewalk and Shipyard. Stretched-out eel and Tanglejaw frames include their hole, so the sheet scale sets
+# how far a lunge reaches (eel 170 units, Tanglejaw 300 to 340 in the engine); an inker's perch frames include its post.
+grid('eel', ['eel-peek', 'eel-duck', 'eel-lunge', 'eel-reach', 'eel-tired', 'eel-hurt', 'eel-held', 'eel-thrown', 'eel-down', 'eel-walk1', 'eel-walk2', 'eel-hole'], 4, 3, 'eel-peek', 81)
+grid('cormorant', ['cormorant-fly1', 'cormorant-fly2', 'cormorant-aim', 'cormorant-dive', 'cormorant-stuck', 'cormorant-hurt', 'cormorant-down', 'cormorant-waddle'], 4, 2, 'cormorant-fly1', 110)
+grid('octo', ['octo-perch', 'octo-puff', 'octo-squirt', 'octo-fall', 'octo-walk1', 'octo-walk2', 'octo-slap', 'octo-hurt', 'octo-down', 'octo-ink', 'octo-post', 'octo-idle'], 4, 3, 'octo-post', 95, green=True)
+grid('longshanks', ['longshanks-idle', 'longshanks-walk1', 'longshanks-walk2', 'longshanks-raise', 'longshanks-stomp', 'longshanks-crouch', 'longshanks-sweep', 'longshanks-toppled', 'longshanks-thurt', 'longshanks-tdizzy', 'longshanks-climb', 'longshanks-down'], 4, 3, 'longshanks-idle', 260)
+grid('tanglejaw', ['tanglejaw-peek', 'tanglejaw-tell', 'tanglejaw-lunge', 'tanglejaw-strike', 'tanglejaw-stuck', 'tanglejaw-hurt', 'tanglejaw-whip', 'tanglejaw-roar', 'tanglejaw-sink', 'tanglejaw-down', 'tanglejaw-hole', 'tanglejaw-plug'], 4, 3, 'tanglejaw-peek', 180)
+grid('props4', ['bobbin', 'tarbarrel', 'scaffold', 'ropecoil', 'planks', 'pulley', 'anchor', 'sawhorse', 'paints', 'figurehead', 'winch', 'lamppost'], 4, 3, 'tarbarrel', 64)
+grid('npcs2', ['npc-hal', 'npc-hal-talk', 'npc-hal-cheer', 'face-hal'], 2, 2, 'npc-hal', 120)
 
 # a few props are painted at another size than their sheet-mates: per-frame world heights
 FIX = {'lantern-lit': 36, 'lantern-dark': 36, 'barrel': 64, 'fishcrate': 46, 'lobsterpot': 54, 'bollard': 44, 'crate': 58, 'rope': 30,
        'hatch': 34, 'hatch-open': 40, 'ice': 58, 'net-hang': 96, 'net-down': 34, 'charm': 40, 'snack': 30, 'bun': 30, 'crate-cracked': 58, 'scroll': 30, 'debris': 26,
        'stall-ice': 92, 'stall-lobster': 92, 'awning': 230, 'fishboxes': 84, 'basket': 52, 'brine': 70, 'driedfish': 62, 'truck': 84, 'mussels': 40, 'netcoil': 40, 'brazier': 52, 'bell': 130,
        'npc-twins': 118, 'npc-twins-cheer': 124, 'npc-barnaby': 120, 'face-mabel': 120, 'face-twins': 120, 'face-barnaby': 120,
+       'bobbin': 92, 'tarbarrel': 64, 'scaffold': 170, 'ropecoil': 40, 'planks': 52, 'pulley': 120, 'anchor': 112, 'sawhorse': 66, 'paints': 48, 'figurehead': 96, 'winch': 112, 'lamppost': 210,
+       'face-hal': 120, 'npc-hal-cheer': 124,
        'dora-face': 140, 'enzo-face': 140, 'hermit-shell': 70, 'hermit-shellside': 60, 'hermit-soft': 52, 'clamps-barrel': 96}
 for n, w in FIX.items():
     if n in FRAMES: SCALEK[n] = w * PX / FRAMES[n][0].shape[0]
@@ -185,6 +196,7 @@ Image.fromarray(FRAMES['medal'][0]).resize((240, round(240 * FRAMES['medal'][0].
 GROUPS = [('dora', lambda n: n.startswith('dora-')), ('enzo', lambda n: n.startswith('enzo-')),
           ('foes', lambda n: n.split('-')[0] in ('crab', 'gull', 'hermit', 'puffer', 'shrimp', 'lobster', 'jelly', 'urchin')),
           ('bosses', lambda n: n.split('-')[0] in ('brute', 'knuckles', 'clamps', 'admiral')),
+          ('area3', lambda n: n.split('-')[0] in ('eel', 'cormorant', 'octo', 'longshanks', 'tanglejaw')),
           ('ui', lambda n: n.startswith('btn-') or n in ('stick-base', 'stick-knob', 'ring', 'bar', 'bossbar', 'go', 'icon-lantern', 'keycap', 'medal') or n.startswith('face-')),
           ('props', lambda n: True)]
 assigned = {}
@@ -236,13 +248,16 @@ def strip(file, name, width, overlap=220):
     im = im.resize((width, round(im.height * s)), Image.LANCZOS)
     im.save(OUT / f'floor-{name}.webp', 'WEBP', quality=80, method=6)
     BG['floor-' + name] = list(im.size)
-for f, n in (('quay', 'quay'), ('breakwater', 'breakwater'), ('street', 'street'), ('market', 'market')): strip(f, n, 1100)
+for f, n in (('quay', 'quay'), ('breakwater', 'breakwater'), ('street', 'street'), ('market', 'market'),
+             ('ropewalk', 'ropewalk'), ('shipyard', 'shipyard'), ('drydock', 'drydock')): strip(f, n, 1100)
 def plain(file, name, size, q=78):
     im = Image.open(SRC / f'{file}.png').convert('RGB').resize(size, Image.LANCZOS)
     im.save(OUT / f'{name}.webp', 'WEBP', quality=q, method=6); BG[name] = list(im.size)
 for f, n in (('far', 'far-harbour'), ('townfar', 'far-town'), ('alleyfar', 'far-alley'), ('marketfar', 'far-market'), ('squarefar', 'far-square'),
-             ('far2', 'far-harbour2'), ('far3', 'far-harbour3'), ('townfar2', 'far-town2'), ('marketfar2', 'far-market2'), ('squarefar2', 'far-square2')): plain(f, n, (1344, 896))
-for f in ('title', 'map', 'panel-intro', 'panel-quay', 'panel-market'): plain(f, f, (1536, 1024), 80)
+             ('far2', 'far-harbour2'), ('far3', 'far-harbour3'), ('townfar2', 'far-town2'), ('marketfar2', 'far-market2'), ('squarefar2', 'far-square2'),
+             ('ropewalkfar', 'far-ropewalk'), ('ropewalkfar2', 'far-ropewalk2'), ('shipyardfar', 'far-shipyard'), ('shipyardfar2', 'far-shipyard2'),
+             ('drydockfar', 'far-drydock'), ('drydockfar2', 'far-drydock2'), ('loftfar', 'far-loft')): plain(f, n, (1344, 896))
+for f in ('title', 'map', 'panel-intro', 'panel-quay', 'panel-market', 'panel-shipyard'): plain(f, f, (1536, 1024), 80)
 
 # ─────────────────────────────── the TypeScript index
 lines = [
