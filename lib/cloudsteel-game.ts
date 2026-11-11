@@ -76,11 +76,12 @@ export type FightEvent =
   | { t: 'strike'; id: number; atk: string } | { t: 'broken'; id: number } | { t: 'guardBroken' } | { t: 'finisher'; id: number } | { t: 'finisherHit'; id: number; x: number; z: number }
   | { t: 'tagReady' } | { t: 'tag' } | { t: 'tagHit'; x: number; z: number } | { t: 'dead'; id: number } | { t: 'clear'; n: number } | { t: 'won' } | { t: 'lost' };
 export type Result = { rank: Rank; seconds: number; deflects: number; bestCombo: number; damage: number; falls: number; score: number };
-/** `story` is the story's own save (lib/cloudsteel-world.ts checks it); `climbs` counts finished stories */
-export type Save = { v: 2; best: Result | null; wins: number; fights: number; seenHow: boolean; settings: { assist: boolean; sound: boolean; music: boolean; fx: boolean };
+/** `story` is the story's own save (lib/cloudsteel-world.ts checks it); `climbs` counts finished stories; `quest` shows
+ *  the quest arrow in the climb */
+export type Save = { v: 2; best: Result | null; wins: number; fights: number; seenHow: boolean; settings: { assist: boolean; sound: boolean; music: boolean; fx: boolean; quest: boolean };
   story: Record<string, unknown> | null; climbs: number };
 
-export const newSave = (): Save => ({ v: 2, best: null, wins: 0, fights: 0, seenHow: false, settings: { assist: true, sound: true, music: true, fx: true }, story: null, climbs: 0 });
+export const newSave = (): Save => ({ v: 2, best: null, wins: 0, fights: 0, seenHow: false, settings: { assist: true, sound: true, music: true, fx: true, quest: true }, story: null, climbs: 0 });
 export const serialise = (s: Save) => JSON.stringify(s);
 export function parseSave(raw: string | null): Save {
   const s = newSave();
@@ -90,7 +91,8 @@ export function parseSave(raw: string | null): Save {
     if (!o || o.v !== 2) return s;
     if (o.best && typeof o.best.score === 'number' && ['gold', 'silver', 'bronze'].includes(o.best.rank)) s.best = o.best;
     s.wins = Math.max(0, o.wins | 0); s.fights = Math.max(0, o.fights | 0); s.seenHow = !!o.seenHow;
-    for (const k of ['assist', 'sound', 'music', 'fx'] as const) if (typeof o.settings?.[k] === 'boolean') s.settings[k] = o.settings[k];
+    // a setting the save does not have yet (the quest arrow, before it existed) keeps its default
+    for (const k of ['assist', 'sound', 'music', 'fx', 'quest'] as const) if (typeof o.settings?.[k] === 'boolean') s.settings[k] = o.settings[k];
     if (o.story && typeof o.story === 'object' && !Array.isArray(o.story)) s.story = o.story;
     s.climbs = Math.max(0, o.climbs | 0);
   } catch {}

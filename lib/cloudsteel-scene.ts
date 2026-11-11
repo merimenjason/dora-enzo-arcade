@@ -4,12 +4,13 @@
 // way it faces from the camera: front, back or side (the side painting mirrored for the other side) while exploring,
 // and side-on paintings in a duel, where the camera swings round to watch from the side. Every action has its own
 // painting: walk cycles, idles, talking, picking up, the lantern, guard, wind-ups, cuts, lunges, dodges, deflects,
-// hits, staggers, finishers, falls and wins. Rules in lib/cloudsteel-game.ts and lib/cloudsteel-world.ts.
+// hits, staggers, finishers, falls and wins. While exploring, a painted chevron on the ground points the way to the next
+// step of the story. Rules in lib/cloudsteel-game.ts and lib/cloudsteel-world.ts.
 import * as T from 'three/webgpu';
 import { pass, screenUV, smoothstep, float, vec2, reflector, mx_noise_float, positionWorld } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import { CUTS, DODGE, FINISHER, TAG, type Fight, type FightEvent, type Foe, type Look } from './cloudsteel-game';
-import { duelToWorld, inShape, LANTERN, PICKUP, type AreaId, type Duel, type Prop, type Shape, type World, type WorldEvent, type Who } from './cloudsteel-world';
+import { duelToWorld, GoalGuide, inShape, LANTERN, nextGoal, PICKUP, type AreaId, type Goal, type Duel, type Prop, type Shape, type World, type WorldEvent, type Who } from './cloudsteel-world';
 import { AREAS, DUELS, ITEMS, STONES } from './cloudsteel-story';
 import { SPRITES, SPRITE_PPM, type SpriteSheet } from './cloudsteel-sprites';
 import { DECOR, type DecorItem } from './cloudsteel-decor';
@@ -197,6 +198,15 @@ export class CloudsteelScene {
   private now = 0; private shake = 0; private yaw = PI; private camPos = new T.Vector3(0, 4, 18); private look = new T.Vector3(0, 1.2, 0); private camInit = false;
   private duel: Duel = ARENA_DUEL; private walked = new Map<string, number>(); private lastPos = new Map<string, { x: number; z: number }>(); private parryT = new Map<number, number>();
   private talkT = 0; private lastLine: unknown = null; private coldT = 0; private orbit = 0;
+  // the quest arrow: a chevron on the ground ahead of Dora, a medallion on the goal
+  private guide = new GoalGuide(); private chev!: T.Mesh; private goalMark!: T.Mesh;
+  /** show the quest arrow (the Settings toggle) */
+  quest = true;
+  /** where the goal is on screen, for the page's edge pointer: fractions of the width and height, and the angle (radians,
+   *  0 to the right, counter-clockwise) the pointer should point; null when the goal is on screen or there is none */
+  goalEdge: { x: number; y: number; ang: number } | null = null;
+  /** the chevron or the goal's medallion is on the ground (for the browser tests) */
+  get questShown() { return this.chev.visible || this.goalMark.visible; }
   /** the player turning the camera while exploring: radians a second */
   turn = 0;
   /** 'webgpu' or 'webgl2', for the settings screen */
@@ -541,6 +551,12 @@ export class CloudsteelScene {
     this.staffL = new T.PointLight(0xffc45e, 10, 9, 2); this.scene.add(this.staffL);
     this.lanternRing = mesh(new T.RingGeometry(0.92, 1, 64), new T.MeshBasicMaterial({ color: hdr(1.6, 1.2, 0.5), transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, fog: false }), 0, 0.05, 0, this.scene);
     this.lanternRing.rotation.x = -PI / 2;
+    // the quest arrow, painted: a chevron that lies on the ground, and a medallion over the goal
+    const flat = (n: string, w: number, h: number) => {
+      const t = loadTex(n), g = new T.PlaneGeometry(w, h); g.rotateX(-PI / 2);
+      const m = mesh(g, new T.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, fog: false, color: hdr(1.15, 1.05, 0.9) }), 0, 0.05, 0, this.scene); m.renderOrder = 1; m.visible = false; return m;
+    };
+    this.chev = flat('quest-chevron', 0.82, 0.6); this.goalMark = flat('quest-mark', 1.3, 1.3);
   }
   private card(key: string, who: string) {
     let c = this.cards.get(key);
@@ -716,6 +732,7 @@ export class CloudsteelScene {
       }
       this.hideFightFx(dt);
     }
+    this.questArrow(w, now);
     // Enzo's lantern light sits at the top of his staff
     const lanternUp = w?.mode === 'lantern' ? w.enzo.lantern : 0;
     this.staffL.position.set(ex, 2.3 + lanternUp * 0.6, ez); this.staffL.intensity = 8 + lanternUp * 30;
@@ -783,6 +800,28 @@ export class CloudsteelScene {
     const d = this.L(g.x, g.z); this.trailBox.position.set(d.x, 0, d.z); this.trailBox.rotation.y = g.face + this.duel.rot;
     this.trails.forEach((m, i) => { const life = (m.userData.life as number) || 0, c = CUTS[i], on = g.state === `cut${i + 1}` && g.t >= c.hit - 3; const l = on ? Math.max(0, life - dt * 3.2) : Math.max(0, life - dt * 6); m.userData.life = l; const show = on && l > 0; m.visible = show; (m.material as T.MeshBasicMaterial).opacity = show ? l : 0; });
     const tl = (this.tagRing.userData.life as number) || 0; if (tl > 0) { const l = Math.max(0, tl - dt * 1.7); this.tagRing.userData.life = l; this.tagRing.visible = l > 0; this.tagRing.scale.setScalar(0.5 + (1 - l) * TAG.radius); (this.tagRing.material as T.MeshBasicMaterial).opacity = l; }
+  }
+  /** the quest arrow: a chevron on the ground a little ahead of Dora, turned along the way to the goal (round walls and
+   *  gorges), a medallion on the goal itself, and the goal's place for the page's pointer at the edge of the screen */
+  private questArrow(w: World | null, now: number) {
+    const g: Goal | null = w && this.quest && w.mode === 'walk' ? nextGoal(w) : null;
+    this.chev.visible = this.goalMark.visible = false; this.goalEdge = null;
+    if (!w || !g) return;
+    const d = Math.hypot(g.x - w.x, g.z - w.z), dir = this.guide.dir(w, g);
+    if (dir && d > 2.2) {
+      const k = 2.1 + Math.sin(now * 3) * 0.16;
+      this.chev.visible = true; this.chev.position.set(w.x + dir.x * k, 0.05, w.z + dir.z * k); this.chev.rotation.y = Math.atan2(dir.x, dir.z) + PI;
+      (this.chev.material as T.MeshBasicMaterial).opacity = Math.min(1, (d - 2.2) / 1.5) * (0.8 + Math.sin(now * 3) * 0.15);
+    }
+    this.goalMark.visible = d > 1; this.goalMark.position.set(g.x, 0.06 + Math.sin(now * 2) * 0.02, g.z); this.goalMark.rotation.y = now * 0.5;
+    (this.goalMark.material as T.MeshBasicMaterial).opacity = 0.75 + Math.sin(now * 2.5) * 0.2;
+    // on screen or off it: off it (or behind the camera), the pointer sits on the edge on the goal's side
+    this.cam.updateMatrixWorld(); const v = this.tmp.set(g.x, 1, g.z).applyMatrix4(this.cam.matrixWorldInverse);
+    let sx: number, sy: number;
+    if (v.z < -0.1) { const q = this.tmp.set(g.x, 1, g.z).project(this.cam); if (Math.abs(q.x) < 0.9 && Math.abs(q.y) < 0.85) return; sx = q.x; sy = q.y; }
+    else { sx = v.x >= 0 ? 1 : -1; sy = -0.6; }
+    const ang = Math.atan2(sy, sx), cx = Math.cos(ang), cy = Math.sin(ang), m = 0.44, t = Math.min(m / Math.max(1e-3, Math.abs(cx)), m / Math.max(1e-3, Math.abs(cy)));
+    this.goalEdge = { x: 0.5 + cx * t, y: 0.5 - cy * t, ang };
   }
   private hideFightFx(dt: number) {
     this.mark.visible = false; this.finish.visible = false; this.jadeRing.visible = false; (this.glint.material as T.SpriteMaterial).opacity = 0;

@@ -122,7 +122,10 @@ function near(g, f, d = 1.8) { f.x = g.x; f.z = g.z - d; f.face = 0; g.face = Ma
   ok('a fall restarts the round on full health and costs the gold seal');
 }
 { // the save
-  const s = newSave(); assert.equal(s.settings.assist, true);
+  const s = newSave(); assert.equal(s.settings.assist, true); assert.equal(s.settings.quest, true);
+  // a save from before the quest arrow keeps it on
+  assert.equal(parseSave('{"v":2,"settings":{"assist":false,"sound":true,"music":true,"fx":true}}').settings.quest, true);
+  assert.equal(parseSave('{"v":2,"settings":{"quest":false}}').settings.quest, false);
   s.wins = 3; s.best = { rank: 'silver', seconds: 80, deflects: 5, bestCombo: 9, damage: 60, falls: 0, score: 3100 }; s.settings.fx = false;
   assert.deepEqual(parseSave(serialise(s)), s);
   for (const bad of [null, '', '{', '[]', '{"v":1}', '{"v":2,"best":{"rank":"x"},"wins":-4}']) { const p = parseSave(bad); assert.equal(p.v, 2); assert.equal(p.story, null); assert.equal(p.best, null); assert.ok(p.wins >= 0); }

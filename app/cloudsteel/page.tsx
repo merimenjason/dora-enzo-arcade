@@ -1,12 +1,12 @@
 'use client';
 // Cloudsteel: the page. The story (walking the three areas, talking, the lantern, pickups, duels handed to the fight
 // engine), the terrace duel from the title menu, input (keys, mouse, a touch stick and buttons), the fight HUD and
-// the talk box, menus, results, the endings and the save. Rules in lib/cloudsteel-game.ts and lib/cloudsteel-world.ts,
+// the talk box, the quest arrow's label and edge pointer, menus, results, the endings and the save. Rules in lib/cloudsteel-game.ts and lib/cloudsteel-world.ts,
 // the story's content in lib/cloudsteel-story.ts, drawing in lib/cloudsteel-scene.ts.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as G from '@/lib/cloudsteel-game';
 import type { Fight, FightEvent, Result, Save } from '@/lib/cloudsteel-game';
-import { World, idleW, type WInput, type WorldEvent } from '@/lib/cloudsteel-world';
+import { World, idleW, nextGoal, type WInput, type WorldEvent } from '@/lib/cloudsteel-world';
 import { AREAS, ITEMS, NAMES, QUIPUS, type ItemId } from '@/lib/cloudsteel-story';
 import type { AreaId } from '@/lib/cloudsteel-world';
 import type { CloudsteelScene } from '@/lib/cloudsteel-scene';
@@ -68,14 +68,14 @@ export default function CloudsteelPage() {
   const savedAt = useRef(0);
   const hud = useRef<Record<string, HTMLElement | null>>({});
   const H = (k: string) => (el: HTMLElement | null) => { hud.current[k] = el; };
-  const last = useRef({ hp: -1, post: -1, fhp: -1, fpost: -1, foe: -2, combo: -1, tag: -1, prompt: '', broken: false, near: '' });
+  const last = useRef({ hp: -1, post: -1, fhp: -1, fpost: -1, foe: -2, combo: -1, tag: -1, prompt: '', broken: false, near: '', goal: '', edge: '' });
 
   const setScreen = useCallback((s: Screen) => { screenRef.current = s; setScreenState(s); }, []);
   const setPaused = useCallback((p: boolean) => { pausedRef.current = p; setPausedState(p); }, []);
   const persist = useCallback((s: Save) => { saveRef.current = s; setSave({ ...s }); try { localStorage.setItem(G.SAVE_KEY, G.serialise(s)); } catch {} }, []);
   const saveStory = useCallback(() => { const w = worldRef.current; if (!w) return; savedAt.current = performance.now(); persist({ ...saveRef.current, story: w.toSave() as unknown as Record<string, unknown> }); }, [persist]);
   const sfx = () => soundRef.current;
-  const resetHud = () => { last.current = { hp: -1, post: -1, fhp: -1, fpost: -1, foe: -2, combo: -1, tag: -1, prompt: '', broken: false, near: '' }; };
+  const resetHud = () => { last.current = { hp: -1, post: -1, fhp: -1, fpost: -1, foe: -2, combo: -1, tag: -1, prompt: '', broken: false, near: '', goal: '', edge: '' }; };
 
   // ---------------------------------------------------------------- set-up
   useEffect(() => {
@@ -246,6 +246,7 @@ export default function CloudsteelPage() {
       // a deflect or a finisher slows time for a moment
       let dt = real; if (slow.current > 0) { slow.current -= real; dt = real * 0.22; }
       if (pausedRef.current) dt = 0;
+      sc.quest = saveRef.current.settings.quest;
       const k = keys.current; sc.turn = pausedRef.current ? 0 : ((k.has('KeyC') ? 1 : 0) - (k.has('KeyZ') ? 1 : 0)) * 1.8;
       if (dt > 0) {
         acc += dt; let n = 0;
@@ -282,6 +283,11 @@ export default function CloudsteelPage() {
       if (w && !duel) {
         const near = w.mode === 'walk' ? w.near() : null, label = near ? near.label : '';
         if (h.near && L.near !== label) { L.near = label; h.near.dataset.on = label ? '1' : '0'; const t = h.near.querySelector('b'); if (t) t.textContent = label; }
+        // the quest arrow's label, and its pointer at the edge of the screen when the goal is off it
+        const goal = saveRef.current.settings.quest && w.mode === 'walk' ? nextGoal(w)?.label ?? '' : '';
+        if (h.goal && L.goal !== goal) { L.goal = goal; h.goal.dataset.on = goal ? '1' : '0'; h.goal.textContent = goal; }
+        const ge = sc.goalEdge, edge = ge ? `${(ge.x * 100).toFixed(1)}|${(ge.y * 100).toFixed(1)}|${ge.ang.toFixed(2)}` : '';
+        if (h.gptr && L.edge !== edge) { L.edge = edge; h.gptr.dataset.on = ge ? '1' : '0'; if (ge) { h.gptr.style.left = `${ge.x * 100}%`; h.gptr.style.top = `${ge.y * 100}%`; h.gptr.style.transform = `translate(-50%,-50%) rotate(${-ge.ang}rad)`; } }
         return;
       }
       if (!g) return;
@@ -374,7 +380,7 @@ export default function CloudsteelPage() {
   const guardBtn = { onPointerDown: (e: React.PointerEvent) => { e.preventDefault(); held.current.guard = true; sfx()?.unlock(); }, onPointerUp: () => { held.current.guard = false; }, onPointerCancel: () => { held.current.guard = false; }, onPointerLeave: () => { held.current.guard = false; } };
 
   // ---------------------------------------------------------------- menus
-  const setSetting = (k: 'assist' | 'sound' | 'music' | 'fx', v: boolean) => {
+  const setSetting = (k: 'assist' | 'sound' | 'music' | 'fx' | 'quest', v: boolean) => {
     const s = { ...saveRef.current, settings: { ...saveRef.current.settings, [k]: v } }; persist(s);
     if (k === 'sound') sfx()?.setSound(v); if (k === 'music') sfx()?.setMusic(v);
     sfx()?.unlock(); sfx()?.button();
@@ -389,7 +395,8 @@ export default function CloudsteelPage() {
         screen: scr, paused: pausedRef.current, scene: sceneRef.current, save: saveRef.current, done, backend,
         fight: g && (scr === 'fight' || scr === 'story') ? { phase: g.phase, round: g.round, state: g.state, x: g.x, z: g.z, hp: g.hp, posture: g.posture, tag: g.tag, combo: g.combo, target: g.target, face: g.face, stats: { ...g.stats }, enzo: g.enzo.state,
           foes: g.foes.map((f) => ({ id: f.id, kind: f.kind, look: f.look, state: f.state, hp: f.hp, posture: f.posture, x: f.x, z: f.z })) } : null,
-        story: w && scr === 'story' ? { area: w.area, mode: w.mode, t: w.t, tick: w.tick_, talkI: w.talk?.i ?? -1, x: w.x, z: w.z, face: w.face, flags: [...w.flags], got: [...w.gotItems], lit: [...w.lit], won: [...w.wonDuels], near: w.near(), line: w.line, choosing: w.choosing, duel: w.duel?.id ?? null, done: w.done, enzo: { ...w.enzo }, camYaw: sceneRef.current?.camYaw ?? 0 } : null,
+        story: w && scr === 'story' ? { area: w.area, mode: w.mode, t: w.t, tick: w.tick_, talkI: w.talk?.i ?? -1, x: w.x, z: w.z, face: w.face, flags: [...w.flags], got: [...w.gotItems], lit: [...w.lit], won: [...w.wonDuels], near: w.near(), line: w.line, choosing: w.choosing, duel: w.duel?.id ?? null, done: w.done, enzo: { ...w.enzo }, camYaw: sceneRef.current?.camYaw ?? 0,
+          goal: nextGoal(w), goalEdge: sceneRef.current?.goalEdge ?? null, questShown: sceneRef.current?.questShown ?? false } : null,
         debug: {
           tag: (v: number) => { if (g) g.tag = v; },
           foeHp: (v: number) => { if (g) for (const f of g.living) f.hp = v; },
@@ -485,7 +492,8 @@ export default function CloudsteelPage() {
       </>}
       <div className="cs-banner" ref={H('banner')} />
       {story && !inDuel && <>
-        <div className="cs-area"><b>{areaName}</b><span>{w ? `${w.quipus}/${QUIPUS} quipus` : ''}</span></div>
+        <div className="cs-area"><b>{areaName}</b><span>{w ? `${w.quipus}/${QUIPUS} quipus` : ''}</span><em className="cs-goal" ref={H('goal')} data-on="0" /></div>
+        <img className="cs-goal-ptr" ref={H('gptr') as (el: HTMLImageElement | null) => void} data-on="0" src={art('quest-pointer')} alt="" />
         <div className="cs-near" ref={H('near')} data-on="0"><kbd>{touch ? 'ACT' : 'E'}</kbd><b /></div>
         {!talk && !touch && <p className="cs-keys"><b>WASD</b> walk · <b>E</b> or click: talk, pick up, read · <b>F</b> Enzo&apos;s lantern · <b>Z</b>/<b>C</b> or drag: turn the camera · Esc pause</p>}
         {touch && !talk && <div className="cs-touchpad">
@@ -589,13 +597,13 @@ export default function CloudsteelPage() {
         <div className="cs-card"><img className="cs-ico" src={art('icon-guard')} alt="" /><h3>Guard and deflect</h3><p>Hold <b>{touch ? 'GUARD' : 'K or right-click'}</b> to block steel. Press it just as a blow lands, at the <b className="cs-gold">gold glint</b>, to <b>deflect</b>: no harm to you, and the foe’s posture bar fills. Blocking late fills your own guard bar instead.</p></div>
         <div className="cs-card"><img className="cs-ico" src={art('icon-dodge')} alt="" /><h3>Dodge, break, call Enzo</h3><p><b>{touch ? 'DODGE' : 'Space'}</b> rolls. A <b className="cs-jade">jade ring</b> means the blow cannot be guarded: get out or roll through. A full posture bar breaks a foe open: cut then for the finisher. <b>{touch ? 'ENZO' : 'E'}</b> calls Enzo in when his meter is full{touch ? '' : <>; <b>Q</b> switches foe</>}.</p></div>
       </div>
-      <p className="cs-small cs-centre">Help is on: foes wind up more slowly, the deflect moment is wider, and a prompt tells you when to guard, dodge or finish. Turn it off in Settings for the full duel.</p>
+      <p className="cs-small cs-centre">A gold chevron on the ground points to the next step of the climb (Settings: Quest arrow). Help is on: foes wind up more slowly, the deflect moment is wider, and a prompt tells you when to guard, dodge or finish. Turn it off in Settings for the full duel.</p>
     </section>}
 
     {screen === 'settings' && <section className="cs-page">
       <header className="cs-head"><button className="cs-back" onClick={() => go('title')}>‹ Title</button><h2>Settings</h2></header>
       <div className="cs-card cs-settings">
-        {([['assist', 'Help', 'Slower wind-ups, a wider deflect moment, less damage, prompts'], ['sound', 'Sound', ''], ['music', 'Music', ''], ['fx', 'Effects', 'Wet-floor reflections and lantern glow. Turn off on a slow device (reloads the page)']] as const).map(([k, name, note]) =>
+        {([['assist', 'Help', 'Slower wind-ups, a wider deflect moment, less damage, prompts'], ['sound', 'Sound', ''], ['music', 'Music', ''], ['fx', 'Effects', 'Wet-floor reflections and lantern glow. Turn off on a slow device (reloads the page)'], ['quest', 'Quest arrow', 'A gold chevron on the ground points to the next step of the climb']] as const).map(([k, name, note]) =>
           <div className="cs-set" key={k}><span><b>{name}</b>{note && <small>{note}</small>}</span><span className="cs-seg">{[true, false].map((v) => <button key={String(v)} className={s.settings[k] === v ? 'on' : ''} aria-pressed={s.settings[k] === v} onClick={() => { setSetting(k, v); if (k === 'fx' && v !== s.settings.fx) location.reload(); }}>{v ? 'On' : 'Off'}</button>)}</span></div>)}
         <p className="cs-small">{s.climbs} climbs · {s.fights} duels · {s.wins} crossings{backend ? ` · drawn with ${backend}` : ''}</p>
         <button className="cs-danger" onClick={() => { if (window.confirm('Clear your Cloudsteel record and your place on the mountain, and start again?')) { const n = G.newSave(); n.settings = s.settings; n.seenHow = s.seenHow; persist(n); } }}>Clear my record</button>

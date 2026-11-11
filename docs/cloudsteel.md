@@ -1,11 +1,11 @@
 # Cloudsteel
 
-A 3D sword adventure at `/cloudsteel` with painted figures. **The climb** is the story: free roam in four directions through three areas (the Rain Terrace, the Cloud-Forest Path and the Citadel Gate), talking to people, finding quipus and upgrades, waking hidden bridges and sealed gates with Enzo's lantern, and six sword duels (three on the way, three optional) that end at Ukhu, the warden. About half an hour for a first climb. **The terrace duel** on the title menu is the original three-round fight on its own.
+A 3D sword adventure at `/cloudsteel` with painted figures. **The climb** is the story: free roam in four directions through three areas (the Rain Terrace, the Cloud-Forest Path and the Citadel Gate), talking to people, finding quipus and upgrades, waking hidden bridges and sealed gates with Enzo's lantern, and six sword duels (three on the way, three optional) that end at Ukhu, the warden. A quest arrow (a gold chevron on the ground) points the way to the next step. About half an hour for a first climb. **The terrace duel** on the title menu is the original three-round fight on its own.
 
 ## Code layout
 
 - `lib/cloudsteel-game.ts`: the fight. A fixed 60 Hz simulation with no DOM. `new Fight(seed, assist, { rounds?, ups? })` then `tick(input)` once per step; `events` holds what happened in that step. All randomness comes from the seed. Without `rounds` it is the terrace duel's three rounds; a story duel passes its own one round and the sword upgrades Dora carries.
-- `lib/cloudsteel-world.ts`: the climb. Also 60 Hz, no DOM, no randomness. `new World()` then `tick({ x, z, act, lantern, choose })`: walking with wall sliding, the scenes that start by themselves, talk and choices, pickups, the lantern, gates and stones, handing a duel to the page and taking the result back (`endDuel(won, stats)`, `placeFromFight`), Enzo following, and `toSave()` / `World.fromSave()`.
+- `lib/cloudsteel-world.ts`: the climb. Also 60 Hz, no DOM, no randomness. `new World()` then `tick({ x, z, act, lantern, choose })`: walking with wall sliding, the scenes that start by themselves, talk and choices, pickups, the lantern, gates and stones, handing a duel to the page and taking the result back (`endDuel(won, stats)`, `placeFromFight`), Enzo following, and `toSave()` / `World.fromSave()`. `nextGoal(world)` names the next step of the main quest and where it is (or the way out towards it); `GoalGuide` turns that into a direction to walk, round walls and gorges.
 - `lib/cloudsteel-story.ts`: the content. The three areas (walkable shapes, solids, gates, planks, exits, triggers, signs, props and set dressing), the stones, pickups, duels, people and every scene of talk. A scene is a function of the world, so its lines change with what has happened.
 - `lib/cloudsteel-scene.ts`: drawing only. Builds each area from painted stonework, draws every figure and piece of set dressing as a painted card, runs the effects and the cameras.
 - `lib/cloudsteel-sprites.ts`: generated: the layout of each character's sprite atlas.
@@ -28,6 +28,12 @@ The Sun Lamp on the Condor Gate of Phuyu Pukara, the cloud fortress, has gone da
 - Walking is 3.6 m/s. Talk, pick up and read reach 1.9 m (a little more for duellists). The lantern takes 54 ticks and acts at tick 24: planks within its reach, stones within 2.6 m and jade seals within 3.2 m. Picking up takes 72 ticks; the item is kept at tick 32.
 - A duel on the way starts by itself within 6.5 m of its foes. An optional one starts from talk, with a choice: duel now or not now. Losing offers another try on full health or a step back down the path; the foe waits.
 - Lines change with progress: Qori, Tupa and Atoq each say different things as the story moves on, and every beaten optional foe stays to talk.
+
+## The quest arrow
+
+On by default; Settings has a **Quest arrow** switch (saved as `settings.quest`, read with a default of on, so the save version did not change). While Dora walks, a painted gold chevron lies on the ground about 1.5 m ahead of her, bobbing gently, turned along the way to the goal; a painted medallion turns slowly on the goal itself; and the label under the area's name says the step ("Next: wake the sun-stone with the lantern"). When the goal is off the screen (or behind the camera), a painted pointer sits on the screen's edge on its side. All of it hides in talk, duels, the lantern, pickups and the ending.
+
+The steps, from `nextGoal` in `lib/cloudsteel-world.ts`: face Atoq on the plaza; wake the sun-stone; on to the Cloud-Forest Path; wake the spirit bridge (standing on the furthest plank awake, until all are lit); cross it; get past the sword-kin; on to the Citadel Gate; open the jade seal; wake the serpent, puma and condor stones in order (the next one in the sequence); face Ukhu. It never points at an optional duel, a quipu or an upgrade. Between areas it points to the exit on the way. The chevron's direction comes from a distance field over a 0.5 m grid of the area's walkable ground (seeded round the goal and rebuilt when the goal, the area or what is walkable changes, about 10 ms), so it bends round the bell-house and along the bridge instead of pointing through a wall.
 
 ## Painted figures and cameras
 
@@ -92,7 +98,7 @@ The sheets were painted as 2×2 grids on magenta, keyed (with the magenta unmixe
 
 ## Save
 
-`localStorage['cloudsteel-v2']`: `{ v: 2, best: Result | null, wins, fights, seenHow, settings: { assist, sound, music, fx }, story, climbs }`. `story` is the place on the mountain (`World.toSave()`: area, position, flags, items, lit planks and stones, duels won, the stone sequence, stats, done) or null; it is saved after every talk, pickup, gate, duel and area change and every 15 s. `parseSave` falls back to a new save on anything it cannot read, and `World.fromSave` refuses a story it cannot read and drops unknown items and duels. Version 1 saves are ignored.
+`localStorage['cloudsteel-v2']`: `{ v: 2, best: Result | null, wins, fights, seenHow, settings: { assist, sound, music, fx, quest }, story, climbs }`. A save from before the quest arrow has no `quest` and reads it as on. `story` is the place on the mountain (`World.toSave()`: area, position, flags, items, lit planks and stones, duels won, the stone sequence, stats, done) or null; it is saved after every talk, pickup, gate, duel and area change and every 15 s. `parseSave` falls back to a new save on anything it cannot read, and `World.fromSave` refuses a story it cannot read and drops unknown items and duels. Version 1 saves are ignored.
 
 ## Tests
 
@@ -102,7 +108,7 @@ The sheets were painted as 2×2 grids on magenta, keyed (with the magenta unmixe
 
 ## Debug hook
 
-`window.__cloudsteel()` returns `{ screen, paused, scene, save, done, backend, fight, story, debug }`. `fight` has the phase, round, Dora's state and bars, stats and every foe. `story` has the area, mode, position, flags, items, lit planks and stones, duels won, what is near, the current line, whether a choice is open, the duel, Enzo and the camera's yaw, plus `t` (steps in the current mode or line), `tick` (steps in all) and `talkI` (the line's index), which the browser test waits on instead of fixed sleeps. `debug` has `tag(v)`, `foeHp(v)`, `foePosture(v)`, `hp(v)` and `place(x, z)` for fights, and `go(x, z, face?)`, `area(id, x, z, face?)`, `flag(f)`, `give(item)` and `win(duel)` for the climb.
+`window.__cloudsteel()` returns `{ screen, paused, scene, save, done, backend, fight, story, debug }`. `fight` has the phase, round, Dora's state and bars, stats and every foe. `story` has the area, mode, position, flags, items, lit planks and stones, duels won, what is near, the current line, whether a choice is open, the duel, Enzo and the camera's yaw, the quest arrow's goal, `goalEdge` (the pointer) and `questShown` (the chevron), plus `t` (steps in the current mode or line), `tick` (steps in all) and `talkI` (the line's index), which the browser test waits on instead of fixed sleeps. `debug` has `tag(v)`, `foeHp(v)`, `foePosture(v)`, `hp(v)` and `place(x, z)` for fights, and `go(x, z, face?)`, `area(id, x, z, face?)`, `flag(f)`, `give(item)` and `win(duel)` for the climb.
 
 ## Not built yet
 

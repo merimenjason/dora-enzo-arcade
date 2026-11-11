@@ -318,5 +318,88 @@ export class World implements WorldView {
   }
 }
 const round = (v: number) => Math.round(v * 100) / 100;
+
+// ------------------------------------------------------------- the quest arrow
+/** the next thing the main quest needs, and what to do there: walk to it (a duel or an exit starts by itself when Dora
+ *  gets close), or lift the lantern once there. Optional duels and secrets are never the goal */
+export type Goal = { area: AreaId; x: number; z: number; label: string; act: 'walk' | 'lantern' };
+const ORDER: AreaId[] = ['terrace', 'forest', 'citadel'];
+const AREA_TO: Record<AreaId, string> = { terrace: 'the Rain Terrace', forest: 'the Cloud-Forest Path', citadel: 'the Citadel Gate' };
+/** where Dora stands to wake each stone with the lantern */
+const STONE_AT: Record<string, { x: number; z: number }> = { sun: { x: 1.8, z: -22.3 }, serpent: { x: -7, z: -15 }, puma: { x: 0, z: -18 }, condor: { x: 7, z: -15 } };
+const STONE_NAME: Record<string, string> = { serpent: 'the serpent stone (the world below)', puma: 'the puma stone (this world)', condor: 'the condor stone (the world above)' };
+/** the main quest's next step, wherever it is on the mountain; null once the story is over */
+function questStep(w: World): Goal | null {
+  if (w.done) return null;
+  const duel = (id: string, label: string): Goal => { const d = DUELS.find((o) => o.id === id)!; return { area: d.area, x: d.x, z: d.z, label, act: 'walk' }; };
+  if (!w.won('atoq')) return duel('atoq', 'face Atoq on the plaza');
+  if (!w.has('gate:sun')) return { area: 'terrace', ...STONE_AT.sun, label: 'wake the sun-stone with the lantern', act: 'lantern' };
+  if (!w.has('seen:crossed')) {
+    const bridge = AREAS.forest.planks.filter((p) => p.id.startsWith('b'));
+    if (bridge.some((p) => !w.isLit(p.id))) {
+      // stand on the furthest plank already awake (or at the head of the bridge) and lift the lantern again
+      let at = { x: 11, z: -26.6 }; for (const p of bridge) if (w.isLit(p.id)) at = { x: p.x, z: p.z };
+      return { area: 'forest', ...at, label: 'wake the spirit bridge with the lantern', act: 'lantern' };
+    }
+    return { area: 'forest', x: 11, z: -46.6, label: 'cross the spirit bridge', act: 'walk' };
+  }
+  if (!w.won('ambush')) return duel('ambush', 'get past the sword-kin');
+  if (!w.has('gate:outer')) return { area: 'citadel', x: 0, z: -3.2, label: 'open the jade seal with the lantern', act: 'lantern' };
+  if (!w.has('gate:worlds')) { const g = WORLDS_ORDER[w.seq.length] ?? WORLDS_ORDER[0]; return { area: 'citadel', ...STONE_AT[g], label: `wake ${STONE_NAME[g]}`, act: 'lantern' }; }
+  if (!w.won('ukhu')) return duel('ukhu', 'face Ukhu at the Condor Gate');
+  return null;
+}
+/** the quest arrow's goal in the area Dora is in: the next step, or the way out towards it */
+export function nextGoal(w: World): Goal | null {
+  const g = questStep(w); if (!g) return null;
+  if (g.area === w.area) return { ...g, label: `Next: ${g.label}` };
+  const fwd = ORDER.indexOf(g.area) > ORDER.indexOf(w.area);
+  const e = w.areaDef.exits.find((o) => (ORDER.indexOf(o.to) > ORDER.indexOf(w.area)) === fwd);
+  if (!e) return null;
+  const c = e.shape.k === 'rect' ? { x: (e.shape.x0 + e.shape.x1) / 2, z: (e.shape.z0 + e.shape.z1) / 2 } : { x: e.shape.x, z: e.shape.z };
+  return { area: w.area, ...c, label: `Next: ${fwd ? 'on' : 'back'} to ${AREA_TO[e.to]}`, act: 'walk' };
+}
+/** which way to walk towards a goal along the ground (round walls and gorges), from a distance field over a 0.5 m grid
+ *  that is worked out again whenever the goal, the area or what is walkable changes */
+export class GoalGuide {
+  private key = ''; private dist: Float32Array | null = null; private x0 = 0; private z0 = 0; private nx = 0; private nz = 0;
+  private static C = 0.5;
+  dir(w: World, g: Goal): { x: number; z: number } | null {
+    const k = `${w.area}|${g.x},${g.z}|${w.lit.size}|${[...w.flags].filter((f) => f.startsWith('gate:')).length}|${w.wonDuels.size}`;
+    if (k !== this.key) { this.key = k; this.build(w, g); }
+    const C = GoalGuide.C, d = this.dist!, at = (i: number, j: number) => (i < 0 || j < 0 || i >= this.nx || j >= this.nz ? Infinity : d[j * this.nx + i]);
+    const i0 = Math.round((w.x - this.x0) / C), j0 = Math.round((w.z - this.z0) / C);
+    let best = at(i0, j0), bi = i0, bj = j0;
+    // the lowest cell within two steps: the direction downhill
+    for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) { const v = at(i0 + di, j0 + dj) + Math.hypot(di, dj) * C * 0.01; if (v < best) { best = v; bi = i0 + di; bj = j0 + dj; } }
+    if (!isFinite(best) || (bi === i0 && bj === j0)) { const dx = g.x - w.x, dz = g.z - w.z, l = Math.hypot(dx, dz) || 1; return { x: dx / l, z: dz / l }; }
+    const dx = bi * C + this.x0 - w.x, dz = bj * C + this.z0 - w.z, l = Math.hypot(dx, dz) || 1;
+    return { x: dx / l, z: dz / l };
+  }
+  private build(w: World, g: Goal) {
+    const C = GoalGuide.C; let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+    const grow = (a: number, b: number, c: number, d: number) => { x0 = Math.min(x0, a); z0 = Math.min(z0, b); x1 = Math.max(x1, c); z1 = Math.max(z1, d); };
+    for (const s of w.areaDef.walk) if (s.k === 'rect') grow(s.x0, s.z0, s.x1, s.z1); else grow(s.x - s.r, s.z - s.r, s.x + s.r, s.z + s.r);
+    for (const p of w.areaDef.planks) grow(p.x - p.hx, p.z - p.hz, p.x + p.hx, p.z + p.hz);
+    this.x0 = x0 - 1; this.z0 = z0 - 1; this.nx = Math.ceil((x1 - x0 + 2) / C) + 1; this.nz = Math.ceil((z1 - z0 + 2) / C) + 1;
+    const n = this.nx * this.nz, d = this.dist = new Float32Array(n).fill(Infinity), ok = new Uint8Array(n);
+    for (let j = 0; j < this.nz; j++) for (let i = 0; i < this.nx; i++) ok[j * this.nx + i] = w.walkable(this.x0 + i * C, this.z0 + j * C) ? 1 : 0;
+    // seed every walkable cell near the goal (the goal itself may stand in a stone's or a foe's elbow room)
+    const q: number[] = [], gi = (g.x - this.x0) / C, gj = (g.z - this.z0) / C;
+    for (let r = 1.2; !q.length && r < 8; r += 1) for (let j = Math.floor(gj - r / C); j <= Math.ceil(gj + r / C); j++) for (let i = Math.floor(gi - r / C); i <= Math.ceil(gi + r / C); i++) {
+      if (i < 0 || j < 0 || i >= this.nx || j >= this.nz || !ok[j * this.nx + i] || Math.hypot(i - gi, j - gj) * C > r) continue;
+      d[j * this.nx + i] = Math.hypot(i - gi, j - gj) * C; q.push(j * this.nx + i);
+    }
+    // Dijkstra-ish relaxation over eight neighbours (a plain queue, re-queued on improvement: the grid is small)
+    for (let h = 0; h < q.length; h++) {
+      const c = q[h], i = c % this.nx, j = (c / this.nx) | 0;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        if (!di && !dj) continue; const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= this.nx || b >= this.nz) continue;
+        const o = b * this.nx + a; if (!ok[o] || (di && dj && (!ok[j * this.nx + a] || !ok[b * this.nx + i]))) continue;
+        const v = d[c] + (di && dj ? Math.SQRT2 : 1) * C; if (v < d[o] - 1e-4) { d[o] = v; q.push(o); }
+      }
+    }
+  }
+}
 /** who to name in the prompt for an optional duel */
 const DUEL_WHO: Record<string, string> = { kin1: 'the Sword-Kin', titu: 'Titu', mallku: 'Mallku' };

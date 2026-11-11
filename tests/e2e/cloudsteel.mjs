@@ -6,7 +6,9 @@
 // picking up, reading a stone, the lantern by F and L, a gate opening, an optional duel turned down and fought, a
 // required duel lost, stepped back from, lost again, retried and won, the pause pack, save and leave, continue, travel
 // between areas, the last duel, the ending and the finale's buttons. Phones held either way: the fight's stick and four
-// buttons, and the climb's stick, ACT, LANTERN, talk taps and choice buttons. No page errors, no sideways scrolling.
+// buttons, and the climb's stick, ACT, LANTERN, talk taps and choice buttons. The quest arrow at 1280x800, 844x390 and
+// 390x844, by keys and clicks on the desktop and by taps on the phones: the Quest arrow setting off and on (the label,
+// the chevron and the edge pointer). No page errors, no sideways scrolling.
 // Needs a running server (`npm run dev`, or `npx vinext start` on a build) and Playwright; set BASE_URL to point at it.
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
@@ -176,7 +178,7 @@ try {
 
   // settings
   await p.getByRole('button', { name: 'Settings' }).click();
-  for (const [name, key] of [['Help', 'assist'], ['Sound', 'sound'], ['Music', 'music']]) {
+  for (const [name, key] of [['Help', 'assist'], ['Sound', 'sound'], ['Music', 'music'], ['Quest arrow', 'quest']]) {
     const row = p.locator('.cs-set', { hasText: name }).first();
     await row.getByRole('button', { name: 'Off' }).click(); assert.equal((await st(p)).save.settings[key], false); await row.getByRole('button', { name: 'On' }).click(); assert.equal((await st(p)).save.settings[key], true);
   }
@@ -365,6 +367,31 @@ try {
     await tryPress(m, () => m.locator('.t-cut').tap(), (f) => f.state.startsWith('cut'), `phone ${tag}: CUT in a story duel`);
     for (const sel of ['.t-cut', '.t-guard', '.t-dodge', '.t-tag', '.cs-hero', '.cs-tagbox', '.cs-foe']) { const b = await m.locator(sel).boundingBox(); assert.ok(b && b.x >= 0 && b.y >= 0 && b.x + b.width <= vp.width + 1 && b.y + b.height <= vp.height + 1, `${sel} fits in a story duel`); }
     await noScroll(m); ok(`phone ${tag}, the climb: taps read on, the stick walks, ACT talks, LANTERN lifts the lantern, the choice buttons answer, and the duel's buttons fit`);
+    await m.close();
+  }
+  for (const [tag, vp, phone] of [['1280x800', { width: 1280, height: 800 }, false], ['844x390', { width: 844, height: 390 }, true], ['390x844', { width: 390, height: 844 }, true]]) {
+    // the quest arrow, by keys and clicks on the desktop and by taps on a phone
+    const m = await open(vp, phone, seen); await m.goto(base + '/cloudsteel'); await ready(m);
+    const hit = (loc) => phone ? loc.tap() : loc.click(), sy = async () => (await st(m)).story;
+    const waitS = async (fn, what, ms = 30000) => { const t0 = Date.now(); for (;;) { const s = await sy(); if (s && fn(s)) return s; if (Date.now() - t0 > ms) assert.fail(`${tag}: timed out waiting for ${what}`); await m.waitForTimeout(40); } };
+    const pause = () => phone ? m.locator('.cs-pausebtn').tap() : m.keyboard.press('Escape');
+    // the Quest arrow setting: off, then the climb shows no label, chevron or pointer
+    await hit(m.getByRole('button', { name: 'Settings' })); const row = m.locator('.cs-set', { hasText: 'Quest arrow' });
+    await hit(row.getByRole('button', { name: 'Off' })); assert.equal((await st(m)).save.settings.quest, false); await hit(m.locator('.cs-back'));
+    await hit(m.getByRole('button', { name: 'Begin the climb' })); await hit(m.getByRole('button', { name: /Start the climb/ }));
+    await readOn(m, () => phone ? m.locator('.cs-talk').tap() : m.keyboard.press('KeyE'), `${tag}: the opening talk`); await waitS((s) => s.mode === 'walk' && s.t > 5, 'walking');
+    await frames(m, 6); assert.equal(await m.locator('.cs-goal').getAttribute('data-on'), '0'); assert.equal((await sy()).questShown, false); assert.equal(await m.locator('.cs-goal-ptr').getAttribute('data-on'), '0');
+    await pause(); await hit(m.getByRole('button', { name: 'Save and leave' }));
+    await hit(m.getByRole('button', { name: 'Settings' })); await hit(row.getByRole('button', { name: 'On' })); assert.equal((await st(m)).save.settings.quest, true); await hit(m.locator('.cs-back'));
+    await hit(m.getByRole('button', { name: 'Continue the climb' })); await waitS((s) => s.mode === 'walk', 'walking again');
+    // on: the label names the next step; facing it, the chevron and the medallion are on the ground; turned away, the pointer sits on the screen's edge
+    await dbg(m, 'go', 0, 4, Math.PI); await frames(m, 30);
+    assert.equal(await m.locator('.cs-goal').getAttribute('data-on'), '1'); assert.match(await m.locator('.cs-goal').textContent(), /^Next: face Atoq/); assert.equal((await sy()).questShown, true);
+    assert.ok((await sy()).goal.label.startsWith('Next:'));
+    await dbg(m, 'go', 0, 4, 0); await m.waitForFunction(() => document.querySelector('.cs-goal-ptr')?.dataset.on === '1', null, { timeout: 15000 });
+    const pb = await m.locator('.cs-goal-ptr').boundingBox(); assert.ok(pb && pb.x >= -30 && pb.y >= -30 && pb.x + pb.width <= vp.width + 30 && pb.y + pb.height <= vp.height + 30, 'the pointer sits on the edge');
+    await dbg(m, 'go', 0, 4, Math.PI); await m.waitForFunction(() => document.querySelector('.cs-goal-ptr')?.dataset.on === '0', null, { timeout: 15000 });
+    await noScroll(m); ok(`${tag}: the Quest arrow setting turns the label, the chevron and the edge pointer off and on`);
     await m.close();
   }
   assert.deepEqual(errors, [], 'no page errors');
