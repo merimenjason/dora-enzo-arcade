@@ -111,4 +111,5 @@ export const GENRE_OF: Record<string, GenreId[]> = {
  '/overclock': ['action'],
  '/cloudsteel': ['action'],
  '/salt-dust': ['adventure', 'strategy'],
+ '/brinelight': ['action', 'arcade'],
 };

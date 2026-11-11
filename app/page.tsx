@@ -99,15 +99,16 @@ const GAMES=[
  {href:'/overclock',title:'Overclock',tag:'NEW · RUN-AND-GUN',blurb:'A 16-bit run-and-gun in a neon city. Tag between Dora\u2019s rapid blaster and Enzo\u2019s charge cannon, reboot eight rogue robot bosses for sixteen powers, ride hover-bikes and climb the Sky Tower.',color:'#ff4fa3',art:'⚡'},
  {href:'/cloudsteel',title:'Cloudsteel',tag:'NEW · 3D SWORD ADVENTURE',blurb:'Climb a cloud-forest citadel in the rain to relight the Sun Lamp. Explore three areas, talk your way up, find quipus and upgrades, wake hidden bridges and sealed gates with Enzo\u2019s lantern, and duel a fox sellsword, a puma, the kin-captain and Ukhu the bear warden: guard at the gold glint to deflect, break their posture, finish them.',color:'#f2c14e',art:'🗡️'},
  {href:'/salt-dust',title:'Salt & Dust',tag:'NEW · ISOMETRIC RPG',blurb:'Long after the rains stopped, Dora and Enzo cross a high-Andean salt flat with a draining canteen. Talk past Well Wardens, flamingo merchants and fox raiders with skill checks, or fight on a grid with action points. A first playable chapter.',color:'#d9773a',art:'🏜️'},
+ {href:'/brinelight',title:'Brinelight',tag:'NEW · TAG-TEAM BRAWLER',blurb:'Festival night, and a crab gang has snuffed the harbour lanterns. Dora kicks what flies, Enzo cracks what wears a shell: tag between them mid-combo, dash into a special, and light Lantern Quay and the Fish Market again.',color:'#ffb347',art:'🏮'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
    <p className="arcade-eyebrow">NINETY-FIVE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <p className="arcade-eyebrow">NINETY-SIX ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Ninety-seven ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, ninety-seven cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">NINETY-EIGHT ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Ninety-eight ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, ninety-eight cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <ArcadeGrid games={GAMES}/>
