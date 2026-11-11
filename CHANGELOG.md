@@ -22,6 +22,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Cloudsteel**: Dora's heavy third cut has its own wind-up, a low two-handed coil before the lunge, instead of borrowing her first cut's. At the end of the climb she and Enzo have their own poses, looking up as he raises the lantern, and the closing shot frames the whole Sun Lamp over them.
 
+### Documentation
+
+- **Handoff**: `HANDOFF.md` now starts with where things stand on 11-11-2026: Cloudsteel and its story mode, Salt & Dust, the Bellspire expansion hints and epilogues, what is known but not fixed, and why Cloudsteel uses painted figures.
+
 ## 10-11-2026
 
 ### Added
