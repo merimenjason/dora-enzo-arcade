@@ -36,7 +36,13 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 - **Art:** 42 Codex jobs in `docs/brinelight-art/jobs.txt`, the style guide in `docs/brinelight-art/style.md`, `docs/brinelight-art/gen.sh` to paint and `scripts/brinelight-art.py` to key, scale and pack into `public/art/brinelight/` (6.6 MB). The source paintings are not in the repo; repaint a sheet with `gen.sh` and rerun the packer.
 - **Checks:** `npm run test:brinelight` (24 engine tests), `npm run bot:brinelight` (four human-delay bots, 24 seeds; `npm test` runs `--quick`), `npm run test:e2e:brinelight` (130 checks with real keys and touches at three sizes).
 - **What is left:** areas 3 to 6 (the Ropewalk and Shipyard, the Lighthouse Rocks, the Smugglers' Caves, Pinchwell's Breakwater Fort) are on the map and in `AREAS` with `ready: false` and their bosses named. Each needs stages and scenes, a floor strip and far painting, new foes, a boss, a tune and a story panel; `docs/brinelight.md` lists every place to touch. Gamepads and the sound have not been tried by a person, and nothing has run on a real phone.
-- **Weakest:** Enzo's grab is automatic beside a dazed foe, so a mashing Enzo carries crabs about a lot; bosses are taught only by glints, tinks and the tag prompt; with assist on, even the mashing bot never needs a retry.
+- **Polish (12-11-2026, the follow-up PR):** fixed the five weak spots from the first review.
+  - Enzo grabs by walking into a dazed foe while not attacking; Attack always punches.
+  - Bosses teach without words: ground rings and lane chevrons before every dangerous move, the first wind-up held 1.5×, and a one-time hint icon (face plus key) at each phase.
+  - In area 2 with assist on, the mash punishments grow with wrong hits in a row and ease off after a knockout or retry. `PUNISH` and `PUNISH_CAP` in the engine; retune with `npm run bot:brinelight`.
+  - Five new far paintings (jobs `far2`, `far3`, `townfar2`, `marketfar2`, `squarefar2`) plus `farFlip`.
+  - A taller portrait view (440 units across, about 73% of the screen) over a compact control panel.
+- **Weakest now:** sound and gamepads have not been tried by a person, and nothing has run on a real phone. The boss hint icons can overlap a tag prompt for a moment at a phase change. A soloist who never tags still retries about once in every two or three Fish Market stages with assist on.
 
 ## Next new game: the magnum opus (09-11-2026)
 

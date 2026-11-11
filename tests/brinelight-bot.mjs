@@ -41,7 +41,7 @@ export function playStage(stage, seed, assist, persona) {
     const p = g.hero();
     return {
       p: { x: p.x, z: p.z, h: p.h, st: p.st, name: p.name, hp: p.hp },
-      foes: g.foes.filter((f) => g.hittable(f) && f.st !== 'ko').map((f) => ({ x: f.x, z: f.z, h: f.h, kind: f.kind, st: f.st, want: foeWants(f), lane: f.lane })),
+      foes: g.foes.filter((f) => g.hittable(f) && f.st !== 'ko').map((f) => ({ x: f.x, z: f.z, h: f.h, kind: f.kind, st: f.st, want: foeWants(f), lane: f.lane, grab: f.daze > 0 || (f.kind === 'hermit' && f.shell) })),
       boss: g.boss && { x: g.boss.x, z: g.boss.z, h: g.boss.h, st: g.boss.st, kind: g.boss.kind, tz: g.boss.tz, tx: g.boss.tx },
       prompt: g.prompt, fest: g.fest, combo: g.combo.n, door: g.secretDoor(), lock: g.lock, cam: g.cam, len: g.len, partnerOk: g.partner().hp > 0 && g.partner().ready,
     };
@@ -66,7 +66,9 @@ export function playStage(stage, seed, assist, persona) {
       let mx = 0, mz = 0;
       const danger = boss && (['rock', 'roll', 'tell', 'shriek', 'dive', 'wingtell', 'swoop', 'stomp', 'crouch', 'hop'].includes(boss.st));
       if (tgt) {
-        const side = p.x < tgt.x ? -1 : 1, want = tgt.x + side * (boss && tgt === boss ? 120 : 75);
+        // Enzo grabs by walking into a dazed foe or a shelled hermit without pressing Attack; the masher never bothers
+        held.grabbing = persona !== 'masher' && p.name === 'enzo' && p.st !== 'hold' && tgt.grab && !boss && r() < 0.9;
+        const side = p.x < tgt.x ? -1 : 1, want = tgt.x + side * (boss && tgt === boss ? 120 : held.grabbing ? 30 : 75);
         if (Math.abs(want - p.x) > 14) mx = want > p.x ? 1 : -1;
         if (Math.abs(tgt.z - p.z) > 12) mz = tgt.z > p.z ? 1 : -1;
       } else if (!v.lock) {
@@ -94,7 +96,7 @@ export function playStage(stage, seed, assist, persona) {
         else if (!P.solo && P.chain && v.combo >= 3 && v.partnerOk && r() < P.chain) inp.tagP = true;
         else if (P.special && tapPlan.length === 0 && (p.st === 'idle' || p.st === 'walk') && lineAhead(v) && r() < P.special * 0.5) tapPlan = planSpecial(lineAhead(v), r);
         else if (tgt && tgt.h > 40 && p.name === 'dora' && near) { inp.jmpP = true; held.airAtk = 8 + Math.round(r() * 8); }
-        else if (near) inp.atkP = r() > P.miss;
+        else if (near && !held.grabbing) inp.atkP = r() > P.miss;
         else if (!tgt && r() < 0.05) inp.jmpP = true;
         if (persona === 'masher' && r() < 0.08) inp.jmpP = true;
         if (P.solo && inp.tagP) inp.tagP = false;

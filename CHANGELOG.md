@@ -8,6 +8,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Brinelight** (game 98, `/brinelight`): a two-hero tag-team brawler on a harbour at festival night. Win back the lanterns of Lantern Quay and the Fish Market from Pinchwell's crab gang across six stages, with a tutorial, eight kinds of foe, two mid-bosses (Crusty Magnus, Kid Knuckles), two bosses (Clamps the Dockboss in his barrel, the Gull Admiral), two hidden scenes and sixteen secrets. Dora handles anything that flies; Enzo cracks shells and armour, and grabs and throws. A wrong-hero hit goes *tink* and the partner asks to be tagged in. Tagging mid-combo chains the damage, and a full Festival meter turns Attack + Jump into a double-team. Tap a direction twice to dash; attack during a dash for a dash attack; dash, jump and attack in the air for a special (Dora's Comet Spin through a whole lane, Enzo's Anchor Drop with a shockwave), taught once in your own keys when a line of crabs walks in. It plays with keys, touch (a zoomed view with the controls under it on a phone held upright) and gamepads. Assist is on by default. The harbour map already shows the four districts still to come. Every picture is painted, and the music and sound are synthesised.
 
+### Changed
+
+- **Brinelight**: Enzo grabs by walking into a dazed foe, a shelled hermit, a shell or a barrel, so mashing Attack keeps him punching instead of carrying crabs about; one press still throws. Bosses teach without words: a ring or a run of arrows on the boards before every dangerous move, the first wind-up of each move held a little longer, and at each new phase the face of the hero whose job it is with the key to press. In the Fish Market with assist on, a lobster's counter, spines and a charged jelly bite harder with every wrong hit in a row, so pure mashing sometimes costs a retry while reading the foes stays easy. Each scene has its own far painting (five new ones), and on a phone held upright the play view fills about three quarters of the screen with the controls in a compact panel below.
+
 ## 11-11-2026
 
 ### Added

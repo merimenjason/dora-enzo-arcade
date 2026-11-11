@@ -200,18 +200,79 @@ test('Dora’s kicks tink off a hermit’s shell, and two in a row light Enzo’
   assert.ok(tinks >= 2, 'tinks'); assert.ok(h.hp > hp * 0.5, 'hardly any damage');
   assert.equal(prompt?.who, 'partner'); assert.equal(prompt?.tint, 'grey');
 });
-test('Enzo’s grab pops a hermit’s shell into something to throw or kick', () => {
-  const g = arena('1-2', 'enzo'); const [h] = line(g, 'hermit', 1, 280);
-  run(g, 1, { atkP: true }); run(g, 20);
+test('Enzo grabs by walking in: a hermit’s shell pops into something to throw or kick', () => {
+  const g = arena('1-2', 'enzo'); const [h] = line(g, 'hermit', 1, 330);
+  for (let i = 0; i < 60 && !g.hero().hold; i++) g.step(I({ mx: 1 }));
+  run(g, 20);
   assert.equal(h.shell, false, 'popped');
   const shell = g.items.find((it) => it.kind === 'shell'); assert.ok(shell, 'a loose shell');
   assert.equal(g.hero().hold, h);
   run(g, 1, { atkP: true }); run(g, 40);
   assert.equal(g.hero().hold, null, 'thrown');
   // the loose shell can be picked up and thrown too
-  const p = g.hero(); p.x = shell.x - 60; p.z = shell.z; p.face = 1; shell.h = 0; shell.vx = 0; shell.vh = 0; shell.slide = 0;
-  run(g, 1, { atkP: true }); run(g, 10);
+  const p = g.hero(); p.x = shell.x - 110; p.z = shell.z; p.face = 1; shell.h = 0; shell.vx = 0; shell.vh = 0; shell.slide = 0;
+  for (let i = 0; i < 60 && !shell.held; i++) g.step(I({ mx: 1 }));
   assert.ok(shell.held, 'picked up'); run(g, 1, { atkP: true }); run(g, 30); assert.ok(!shell.held);
+});
+test('a mashing Enzo punches a dazed crab and never picks it up; stopping and walking in grabs it', () => {
+  const g = arena('1-2', 'enzo'); const [c] = line(g, 'crab', 1, 270);
+  let grabbed = false, punches = 0;
+  for (let i = 0; i < 240; i++) {
+    c.daze = Math.max(c.daze, 1); c.hp = 50;
+    g.step(I({ atkP: i % 9 === 0, mx: i % 40 < 10 ? 1 : 0 }));
+    if (g.hero().hold) grabbed = true;
+    if (g.hero().st === 'atk' && g.hero().t === 0) punches++;
+  }
+  assert.ok(!grabbed, 'mashing never grabs'); assert.ok(g.stats.hits >= 10, `punches land (${g.stats.hits})`);
+  run(g, 40);
+  const p = g.hero(); p.x = c.x - 110; p.z = c.z; p.face = 1; c.daze = 2;
+  for (let i = 0; i < 60 && !p.hold; i++) { c.daze = 2; g.step(I({ mx: 1 })); }
+  assert.equal(p.hold, c, 'walking in grabs'); run(g, 1, { atkP: true }); run(g, 30); assert.equal(p.hold, null, 'one press throws');
+  void punches;
+});
+test('bosses teach: the first telegraph is held longer, and each phase opens with a one-time hint', () => {
+  const g = new BrineGame({ stage: '2-2', seed: 3, skipTalk: true });
+  g.tut.stage = 9; g.evI = 99; g.foes = []; g.lock = g.cam; g.spawnBoss('knuckles');
+  let hint = null;
+  for (let k = 0; k < 1200 && !hint; k++) { g.step(I()); hint = g.bossHint; }
+  assert.ok(hint, 'phase 1 hint'); assert.equal(hint.who, 'dora'); assert.equal(hint.act, 'atk'); assert.equal(hint.phase, 1);
+  // time each 'tell' (Kid Knuckles' wind-up) while the heroes stand still and soak it
+  const tells = []; let t0 = -1;
+  for (let k = 0; k < 60 * 40 && tells.length < 3; k++) {
+    g.hero().hp = 100; g.partner().hp = 100; g.hero().inv = 1;
+    g.step(I());
+    if (g.boss.st === 'tell' && t0 < 0) t0 = g.t; if (g.boss.st !== 'tell' && t0 >= 0) { tells.push(g.t - t0); t0 = -1; }
+  }
+  assert.ok(tells.length >= 2, `saw tells (${tells.length})`);
+  assert.ok(tells[0] > tells[1] * 1.35, `first tell longer (${tells.map((t) => t.toFixed(2))})`);
+  // phase 2 brings a new hint once
+  g.boss.hp = g.boss.max * 0.5; let h2 = null;
+  for (let k = 0; k < 200 && !h2; k++) { g.step(I()); if (g.bossHint && g.bossHint.phase === 2) h2 = g.bossHint; }
+  assert.ok(h2, 'phase 2 hint'); assert.equal(h2.who, 'enzo');
+  for (let k = 0; k < 400; k++) g.step(I());
+  assert.equal(g.bossHint, null, 'it fades and does not return');
+});
+test('in the Fish Market with assist on, kicking an urchin again and again stings more each time, then eases off', () => {
+  const sting = (stage, assist, kicks, ko = false) => {
+    const g = arena(stage, 'dora', 200, assist); const [u] = line(g, 'urchin', 1, 265);
+    if (ko) g.koOnce = true;
+    const out = [];
+    for (let k = 0; k < kicks; k++) {
+      const p = g.hero(); p.inv = 0; p.hp = 100; p.x = 200; p.z = 80; p.face = 1; p.st = 'idle'; p.h = 0; u.x = 265; u.z = 80; u.cd = 9; u.st = 'idle';
+      const before = p.hp; run(g, 1, { atkP: true }); run(g, 20);
+      out.push(+(before - g.hero().hp).toFixed(2));
+    }
+    return out;
+  };
+  const a2 = sting('2-1', true, 5);
+  assert.ok(a2[0] > 0, `the spines hurt (${a2})`);
+  assert.ok(a2[4] > a2[0] * 3, `the fifth kick in a row stings far more than the first (${a2})`);
+  const a1 = sting('1-2', true, 5);
+  assert.ok(a1[4] <= a1[0] + 0.01, `not in area 1 (${a1})`);
+  const off = sting('2-1', false, 5);
+  assert.ok(off[4] <= off[0] + 0.01, `not with assist off (${off})`);
+  const eased = sting('2-1', true, 5, true);
+  assert.ok(eased[4] <= eased[0] + 0.01, `eased after a knockout (${eased})`);
 });
 test('gulls in the air are Dora’s: Enzo’s paws miss up there, her jump kick lands', () => {
   const g = arena('1-2', 'enzo'); const [gl] = line(g, 'gull', 1, 280); gl.h = 120; gl.st = 'hover';
