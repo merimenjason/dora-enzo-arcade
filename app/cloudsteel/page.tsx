@@ -389,7 +389,7 @@ export default function CloudsteelPage() {
         screen: scr, paused: pausedRef.current, scene: sceneRef.current, save: saveRef.current, done, backend,
         fight: g && (scr === 'fight' || scr === 'story') ? { phase: g.phase, round: g.round, state: g.state, x: g.x, z: g.z, hp: g.hp, posture: g.posture, tag: g.tag, combo: g.combo, target: g.target, face: g.face, stats: { ...g.stats }, enzo: g.enzo.state,
           foes: g.foes.map((f) => ({ id: f.id, kind: f.kind, look: f.look, state: f.state, hp: f.hp, posture: f.posture, x: f.x, z: f.z })) } : null,
-        story: w && scr === 'story' ? { area: w.area, mode: w.mode, x: w.x, z: w.z, face: w.face, flags: [...w.flags], got: [...w.gotItems], lit: [...w.lit], won: [...w.wonDuels], near: w.near(), line: w.line, choosing: w.choosing, duel: w.duel?.id ?? null, done: w.done, enzo: { ...w.enzo }, camYaw: sceneRef.current?.camYaw ?? 0 } : null,
+        story: w && scr === 'story' ? { area: w.area, mode: w.mode, t: w.t, tick: w.tick_, talkI: w.talk?.i ?? -1, x: w.x, z: w.z, face: w.face, flags: [...w.flags], got: [...w.gotItems], lit: [...w.lit], won: [...w.wonDuels], near: w.near(), line: w.line, choosing: w.choosing, duel: w.duel?.id ?? null, done: w.done, enzo: { ...w.enzo }, camYaw: sceneRef.current?.camYaw ?? 0 } : null,
         debug: {
           tag: (v: number) => { if (g) g.tag = v; },
           foeHp: (v: number) => { if (g) for (const f of g.living) f.hp = v; },

@@ -18,7 +18,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 | #116 | **Cloudsteel polish:** painted stonework, roofs and set dressing in all three areas (the Citadel Gate was bare), a closer duel camera, Dora's own heavy wind-up, and an ending shot that shows the Sun Lamp. |
 
 **Known, not fixed:**
-- Cloudsteel: lanterns and the moon throw large soft glow blobs; the jade seal glows very strongly up close; frame rate on a real phone is untested; the browser test is timing-sensitive under machine load (it passes when run alone).
+- Cloudsteel: frame rate on a real phone is still untested. With 4× CPU throttling at 390×844 in Playwright on a Mac it holds 60 fps before and after the phone tier (the scene's own CPU work is 4 to 5 ms a frame), but throttling cannot slow the GPU, so a phone's fill rate is unmeasured (a software GPU, SwiftShader, as a rough stand-in went from 1.2 to 2.3 fps to 2.5 to 3.7 fps with the tier: relative only); the phone tier (`scene.tier`: pixel ratio 1.5, 2× antialiasing, a smaller reflection, fewer lamp lights) is a precaution. Glows, the jade seal and the browser test's timing were fixed on 11-11-2026.
 - Bellspire: Killa's tawny fur blends into the orchard's orange stone; on phones the ending text panel covers much of each painting. The route bot still covers only the main game (the user said to leave it).
 - Salt & Dust: only chapter 1 exists.
 

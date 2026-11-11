@@ -20,6 +20,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Cloudsteel**: lights glow like lights. The lantern posts, braziers and the moon have small, tight halos instead of large soft blobs, the bloom stays close to what is bright,, and no glow floats over Dora's head from Enzo's lantern. The jade seals on the citadel doors are carved jade now, softly lit up close and glowing more strongly from across the yard.
+- **Cloudsteel**: on phones the scene draws at a lower resolution, with lighter edge smoothing, a smaller reflection on the terrace floor and fewer lamp lights, to keep the frame rate up.
 - **Cloudsteel**: Dora's heavy third cut has its own wind-up, a low two-handed coil before the lunge, instead of borrowing her first cut's. At the end of the climb she and Enzo have their own poses, looking up as he raises the lantern, and the closing shot frames the whole Sun Lamp over them.
 
 ### Documentation

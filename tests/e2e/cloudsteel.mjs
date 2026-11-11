@@ -36,13 +36,44 @@ const fight = async (p) => (await st(p)).fight;
 /** while the controls are checked one by one, the foe would win on time: keep Dora standing */
 let keepAlive = false;
 /** a press while Dora is hit is ignored (as in play), and a blow can land between the check and the press: try a few times */
-const tryPress = async (p, press, fn, what) => { for (let i = 0; i < 6; i++) { await until(p, (f) => f.state === 'idle' || f.state === 'run', 'Dora free'); await press(); try { await until(p, fn, what, 1500); return; } catch { /* again */ } } assert.fail(what); };
+const tryPress = async (p, press, fn, what) => { for (let i = 0; i < 8; i++) { await until(p, (f) => f.state === 'idle' || f.state === 'run', 'Dora free'); await press(); if (await sawState(p, fn)) return; } assert.fail(what); };
+/** watches every frame in the page (a poll from outside can miss a short state such as a cut under load) until `fn`
+ * holds for the fight, or until 45 steps of the game have passed without it */
+const sawState = (p, fn) => p.waitForFunction(([src]) => {
+  const s = window.__cloudsteel(), f = s.fight; if (!f) return false; const w = window;
+  if (w.__seenT0 === undefined) w.__seenT0 = f.stats.ticks;
+  if ((0, eval)(src)(f)) { delete w.__seenT0; return 'yes'; }
+  if (f.stats.ticks - w.__seenT0 > 45) { delete w.__seenT0; return 'no'; }
+  return false;
+}, [fn.toString()], { polling: 'raf', timeout: 60000 }).then((h) => h.jsonValue()).then((v) => v === 'yes');
 const until = async (p, fn, what, ms = 40000) => { const t0 = Date.now(); for (;;) { const f = await fight(p); if (f && fn(f)) return f; if (keepAlive && f && f.phase === 'fight' && f.hp < 60) await p.evaluate(() => window.__cloudsteel().debug.hp(100)); if (Date.now() - t0 > ms) assert.fail(`timed out waiting for ${what}: ${JSON.stringify(f)}`); await p.waitForTimeout(30); } };
 const dbg = (p, name, ...a) => p.evaluate(([n, args]) => window.__cloudsteel().debug[n](...args), [name, a]);
+// Nothing below waits a fixed time for the game: under load a frame can take far longer than usual, so every wait is on
+// the game's own state (its ticks, mode, line), polled through window.__cloudsteel().
+/** the game's step count: the fight's ticks in a fight or duel, otherwise the climb's */
+const tickOf = (p) => p.evaluate(() => { const s = window.__cloudsteel(); return s.fight && (s.screen === 'fight' || s.story?.mode === 'duel') ? s.fight.stats.ticks : s.story ? s.story.tick : 0; });
+/** waits until the game has run `n` more steps (or `ms` passes: a fight that has ended stops counting) */
+const ticks = async (p, n, ms = 5000) => { const t0 = await tickOf(p), d = Date.now(); while ((await tickOf(p)) - t0 < n && Date.now() - d < ms) await p.waitForTimeout(16); };
+/** waits for `n` frames to be drawn, for checks that something did not change */
+const frames = (p, n = 20) => p.evaluate((k) => new Promise((r) => { let i = 0; const f = () => (++i >= k ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); }), n);
+/** advances talk with `press` until it ends or offers a choice: each press waits until the line may be read on (8 steps
+ * after it showed), then for the line to move on, and presses again if the press was lost */
+const readOn = async (p, press, what = 'the talk') => {
+  const sy = async () => (await st(p)).story, t0 = Date.now();
+  for (let i = 0; i < 40 && (await sy())?.mode !== 'talk'; i++) await ticks(p, 2, 500);
+  for (;;) {
+    let s = await sy(); if (!s || s.mode !== 'talk' || s.choosing) return;
+    if (Date.now() - t0 > 60000) assert.fail(`${what} did not end`);
+    if (s.t < 8) { await ticks(p, 8 - s.t, 2000); continue; }
+    const i0 = s.talkI, tk = s.tick; await press();
+    // the line moved on (its count of steps starts again), the talk ended, or the press was lost: try again
+    const d = Date.now(); for (;;) { s = await sy(); if (!s || s.mode !== 'talk' || s.talkI !== i0 || s.t < s.tick - tk || s.choosing || Date.now() - d > 3000) break; await p.waitForTimeout(20); }
+  }
+};
 const seen = { v: 2, best: null, wins: 0, fights: 1, seenHow: true, settings: { assist: true, sound: true, music: true, fx: true }, story: null, climbs: 0 };
 const noScroll = async (p) => assert.ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'no sideways scrolling');
 /** cuts until the round's foes are down (their health set to 1 first) */
-const clearRound = async (p, tap) => { const r = (await until(p, (f) => f.phase === 'fight' && f.foes.every((o) => o.state !== 'enter'), 'foes on the terrace')).round; for (let i = 0; i < 80; i++) { const f = await fight(p); if (!f || f.round !== r || f.phase !== 'fight') return; await dbg(p, 'foeHp', 1); await dbg(p, 'hp', 100); await tap(); await p.waitForTimeout(120); } assert.fail('round not cleared'); };
+const clearRound = async (p, tap) => { const r = (await until(p, (f) => f.phase === 'fight' && f.foes.every((o) => o.state !== 'enter'), 'foes on the terrace')).round; const t0 = Date.now(); while (Date.now() - t0 < 90000) { const f = await fight(p); if (!f || f.round !== r || f.phase !== 'fight') return; await dbg(p, 'foeHp', 1); await dbg(p, 'hp', 100); await tap(); await ticks(p, 7, 1500); } assert.fail('round not cleared'); };
 
 try {
   { // the arcade menu
@@ -89,23 +120,23 @@ try {
   ok(`a wind-up shows "Guard now", and the guard ${g1.stats.deflects ? 'deflects' : 'blocks'} the blow`);
   await dbg(p, 'foePosture', 99);
   // one cut at a time, Dora kept on her feet, until the posture breaks (and before the next cut becomes the finisher)
-  for (let i = 0; i < 40; i++) { const f = await fight(p); if (f.foes[0].state === 'broken') break; await dbg(p, 'hp', 100); await dbg(p, 'foePosture', Math.max(f.foes[0].posture, 99)); if (f.state === 'idle' || f.state === 'run') await p.keyboard.press('KeyJ'); await p.waitForTimeout(90); }
+  for (const t0 = Date.now(); Date.now() - t0 < 60000;) { const f = await fight(p); if (f.foes[0].state === 'broken') break; await dbg(p, 'hp', 100); await dbg(p, 'foePosture', Math.max(f.foes[0].posture, 99)); if (f.state === 'idle' || f.state === 'run') await p.keyboard.press('KeyJ'); await ticks(p, 5, 1500); }
   await until(p, (f) => f.foes[0].state === 'broken', 'posture to break'); assert.equal(await p.locator('.cs-foe').getAttribute('data-broken'), '1');
   await until(p, async () => (await p.locator('.cs-prompt').getAttribute('data-kind')) === 'finish', 'the finish prompt');
   const before = (await fight(p)).foes[0].hp;
-  for (let i = 0; i < 30 && (await fight(p)).stats.finishers === 0; i++) { await p.keyboard.press('KeyJ'); await p.waitForTimeout(120); }
+  for (const t0 = Date.now(); Date.now() - t0 < 60000 && (await fight(p)).stats.finishers === 0;) { await p.keyboard.press('KeyJ'); await ticks(p, 7, 1500); }
   const fin = await until(p, (f) => f.stats.finishers === 1 && f.state !== 'finisher', 'the finisher'); assert.ok(before - fin.foes[0].hp >= 60 || fin.foes[0].state === 'dead');
   ok('a broken posture shows "Finish it", and a cut is the finisher');
 
   // Enzo
-  await p.keyboard.press('KeyE'); await p.waitForTimeout(200); assert.equal((await fight(p)).stats.tags, 0);
+  await p.keyboard.press('KeyE'); await ticks(p, 12); assert.equal((await fight(p)).stats.tags, 0);
   await dbg(p, 'tag', 100); await until(p, async () => (await p.locator('.cs-tagbox').getAttribute('data-full')) === '1', 'the full meter');
   await until(p, (f) => f.state === 'idle' || f.state === 'run', 'Dora free'); await p.keyboard.press('KeyE');
   await until(p, (f) => f.stats.tags === 1, 'E to call Enzo'); await until(p, (f) => f.enzo === 'wait' && f.tag < 100, 'Enzo back at his post');
   ok('E does nothing on an empty meter, and calls Enzo on a full one');
 
   // pause and its buttons
-  await p.keyboard.press('Escape'); assert.equal((await st(p)).paused, true); const t1 = (await fight(p)).stats.ticks; await p.waitForTimeout(300); assert.equal((await fight(p)).stats.ticks, t1);
+  await p.keyboard.press('Escape'); assert.equal((await st(p)).paused, true); const t1 = (await fight(p)).stats.ticks; await frames(p); assert.equal((await fight(p)).stats.ticks, t1);
   await p.getByRole('button', { name: /^Help:/ }).click(); assert.equal((await st(p)).save.settings.assist, false); await p.getByRole('button', { name: /^Help:/ }).click(); assert.equal((await st(p)).save.settings.assist, true);
   await p.getByRole('button', { name: 'Back to the fight' }).click(); assert.equal((await st(p)).paused, false);
   await p.locator('.cs-pausebtn').click(); assert.equal((await st(p)).paused, true); await p.keyboard.press('KeyP'); assert.equal((await st(p)).paused, false);
@@ -153,7 +184,7 @@ try {
   p.once('dialog', (d) => d.accept()); await p.getByRole('button', { name: 'Clear my record' }).click(); assert.equal((await st(p)).save.wins, 0); assert.equal((await st(p)).save.best, null);
   await p.locator('.cs-set', { hasText: 'Effects' }).getByRole('button', { name: 'Off' }).click(); await p.waitForLoadState('load'); await ready(p); assert.equal((await st(p)).save.settings.fx, false);
   await p.getByRole('button', { name: 'Terrace duel' }).click(); if ((await st(p)).screen === 'howto') await p.getByRole('button', { name: /^Start/ }).click();
-  await until(p, (f) => f.phase === 'fight', 'a fight with effects off'); await p.keyboard.press('KeyJ'); await until(p, (f) => f.state.startsWith('cut'), 'a cut with effects off');
+  await until(p, (f) => f.phase === 'fight' && f.foes[0].state !== 'enter', 'a fight with effects off'); keepAlive = true; await tryPress(p, () => p.keyboard.press('KeyJ'), (f) => f.state.startsWith('cut'), 'a cut with effects off'); keepAlive = false;
   ok('every setting switches, the record clears, and the game runs with effects off');
   await p.close();
 
@@ -164,11 +195,13 @@ try {
     const waitS = async (fn, what, ms = 30000) => { const t0 = Date.now(); for (;;) { const s = await sy(); if (s && fn(s)) return s; if (Date.now() - t0 > ms) assert.fail(`timed out waiting for ${what}: ${JSON.stringify(s && { mode: s.mode, area: s.area, x: s.x, z: s.z, line: s.line })}`); await q.waitForTimeout(40); } };
     const lineOf = async () => (await sy()).line?.text;
     /** advances talk with `key` until it ends, or until a choice is offered */
-    const read = async (key = 'KeyE') => { for (let i = 0; i < 30 && (await sy()).mode !== 'talk'; i++) await q.waitForTimeout(40); for (let i = 0; i < 80; i++) { const s = await sy(); if (!s || s.mode !== 'talk' || s.choosing) return; await q.keyboard.press(key); await q.waitForTimeout(170); } assert.fail('the talk did not end'); };
+    const read = (key = 'KeyE') => readOn(q, () => q.keyboard.press(key));
+    /** a new press of E or ACT needs the game to have seen the last one let go: wait a few steps of walking */
+    const settle = () => waitS((s) => s.mode === 'walk' && s.t >= 3, 'Dora to stand free');
     const choose = async (yes) => { await waitS((s) => s.choosing, 'a choice'); await q.keyboard.press(yes ? 'KeyY' : 'KeyN'); };
     const fightIn = async () => (await st(q)).fight;
     const untilF = async (fn, what, ms = 40000) => { const t0 = Date.now(); for (;;) { const f = await fightIn(); if (f && fn(f)) return f; if (f && f.phase === 'fight' && f.hp < 60) await dbg(q, 'hp', 100); if (Date.now() - t0 > ms) assert.fail(`timed out waiting for ${what}: ${JSON.stringify(f && { phase: f.phase, state: f.state })}`); await q.waitForTimeout(30); } };
-    const winDuel = async () => { await untilF((f) => f.phase === 'fight' && f.foes.every((o) => o.state !== 'enter'), 'the duel to start'); for (let i = 0; i < 120 && (await sy()).mode === 'duel'; i++) { await dbg(q, 'foeHp', 1); await dbg(q, 'hp', 100); await q.keyboard.press('KeyJ'); await q.waitForTimeout(140); } assert.notEqual((await sy()).mode, 'duel'); };
+    const winDuel = async () => { await untilF((f) => f.phase === 'fight' && f.foes.every((o) => o.state !== 'enter'), 'the duel to start'); for (const t0 = Date.now(); Date.now() - t0 < 90000 && (await sy()).mode === 'duel';) { await dbg(q, 'foeHp', 1); await dbg(q, 'hp', 100); await q.keyboard.press('KeyJ'); await ticks(q, 8, 1500); } assert.notEqual((await sy()).mode, 'duel'); };
     const near = async (label) => { await q.waitForFunction((l) => { const n = document.querySelector('.cs-near'); return n && n.dataset.on === '1' && n.textContent.includes(l); }, label, { timeout: 10000 }); };
 
     await q.getByRole('button', { name: 'Begin the climb' }).click(); assert.equal((await st(q)).screen, 'prologue');
@@ -177,7 +210,7 @@ try {
     ok('Begin the climb shows the prologue, then the climb opens with Enzo talking');
     // every way to read on
     for (const how of ['KeyE', 'Enter', 'Space', 'KeyJ', 'click']) {
-      const before = await lineOf(); await q.waitForTimeout(200);
+      const before = await lineOf(); await waitS((s) => s.mode !== 'talk' || s.t >= 8, 'the line to be readable');
       if (how === 'click') await q.locator('.cs-talk').click(); else await q.keyboard.press(how);
       await waitS((s) => s.line?.text !== before || s.mode !== 'talk', `${how} to read on`);
       if ((await sy()).mode !== 'talk') break;
@@ -191,8 +224,8 @@ try {
       await waitS((s) => Math.hypot(s.x - a.x, s.z - a.z) > 0.4, `${what} to walk`); await q.keyboard.up(k);
     }
     ok('WASD and the arrows walk Dora');
-    let y0 = (await sy()).camYaw; await q.keyboard.down('KeyZ'); await q.waitForTimeout(400); await q.keyboard.up('KeyZ'); let y1 = (await sy()).camYaw; assert.ok(Math.abs(y1 - y0) > 0.2, 'Z turns');
-    await q.keyboard.down('KeyC'); await q.waitForTimeout(400); await q.keyboard.up('KeyC'); assert.ok(Math.abs((await sy()).camYaw - y1) > 0.2, 'C turns');
+    let y0 = (await sy()).camYaw; await q.keyboard.down('KeyZ'); await waitS((s) => Math.abs(s.camYaw - y0) > 0.2, 'Z to turn'); await q.keyboard.up('KeyZ'); const y1 = (await sy()).camYaw;
+    await q.keyboard.down('KeyC'); await waitS((s) => Math.abs(s.camYaw - y1) > 0.2, 'C to turn'); await q.keyboard.up('KeyC');
     y0 = (await sy()).camYaw; await q.mouse.move(500, 300); await q.mouse.down(); await q.mouse.move(700, 300, { steps: 6 }); await q.mouse.up(); assert.ok(Math.abs((await sy()).camYaw - y0) > 0.3, 'a drag turns'); assert.equal((await sy()).mode, 'walk', 'a drag is not a click');
     ok('Z and C, and a drag across the scene, turn the camera');
 
@@ -217,16 +250,16 @@ try {
     // an optional duel: no by key, no by button, then yes
     await dbg(q, 'go', 26.2, -8.4, Math.PI / 2); await near('Talk to'); await q.keyboard.press('KeyE'); await read(); await waitS((s) => s.choosing, 'the challenge');
     await q.keyboard.press('ArrowRight'); assert.ok(/Not now/.test(await q.locator('.cs-choice .cs-go').textContent())); await q.keyboard.press('KeyE'); await waitS((s) => s.mode === 'walk', 'turning it down by key'); assert.equal((await sy()).duel, null);
-    await q.waitForTimeout(150); await q.keyboard.press('KeyE'); await read(); await waitS((s) => s.choosing, 'the challenge again'); await q.keyboard.press('KeyN'); await waitS((s) => s.mode === 'walk', 'N for no');
-    await q.waitForTimeout(150); await q.keyboard.press('KeyE'); await read(); await waitS((s) => s.choosing, 'the challenge again'); await q.getByRole('button', { name: 'Not now' }).click(); await waitS((s) => s.mode === 'walk', 'the Not now button');
-    await q.waitForTimeout(150); await q.keyboard.press('KeyE'); await read(); await waitS((s) => s.choosing, 'the challenge again'); await q.getByRole('button', { name: /Duel the Sword-Kin/ }).click();
+    await settle(); await q.keyboard.press('KeyE'); await read(); await waitS((s) => s.choosing, 'the challenge again'); await q.keyboard.press('KeyN'); await waitS((s) => s.mode === 'walk', 'N for no');
+    await settle(); await q.keyboard.press('KeyE'); await read(); await waitS((s) => s.choosing, 'the challenge again'); await q.getByRole('button', { name: 'Not now' }).click(); await waitS((s) => s.mode === 'walk', 'the Not now button');
+    await settle(); await q.keyboard.press('KeyE'); await read(); await waitS((s) => s.choosing, 'the challenge again'); await q.getByRole('button', { name: /Duel the Sword-Kin/ }).click();
     await waitS((s) => s.mode === 'duel' && s.duel === 'kin1', 'the duel'); await q.locator('.cs-foe[data-on="1"]').waitFor(); assert.equal((await fightIn()).foes.length, 2);
     ok('an optional duel can be turned down by arrow and E, by N, or by its button, and taken by its button');
     // every fight control inside a story duel
     await untilF((f) => f.phase === 'fight' && f.foes.every((o) => o.state !== 'enter'), 'the foes'); let a = await fightIn();
     await q.keyboard.down('KeyW'); await untilF((f) => Math.hypot(f.x - a.x, f.z - a.z) > 0.4, 'W in a duel'); await q.keyboard.up('KeyW');
     // a foe's blow can land between seeing Dora free and the press, so each press gets a few tries
-    const tryPressQ = async (press, fn, what) => { for (let i = 0; i < 6; i++) { await untilF((f) => f.state === 'idle' || f.state === 'run', 'Dora free'); await press(); try { await untilF(fn, what, 1500); return; } catch { /* try again */ } } assert.fail(what); };
+    const tryPressQ = async (press, fn, what) => { for (let i = 0; i < 8; i++) { await untilF((f) => f.state === 'idle' || f.state === 'run', 'Dora free'); await press(); if (await sawState(q, fn)) return; } assert.fail(what); };
     await tryPressQ(() => q.keyboard.press('KeyJ'), (f) => f.state.startsWith('cut'), 'J to cut'); await untilF((f) => f.state === 'idle' || f.state === 'run', 'the cut to end');
     await q.keyboard.down('KeyK'); await untilF((f) => f.state === 'guard', 'K'); await q.keyboard.up('KeyK'); await untilF((f) => f.state !== 'guard', 'guard down');
     await tryPressQ(() => q.keyboard.press('Space'), (f) => f.state === 'dodge', 'Space to dodge'); await untilF((f) => f.state === 'idle' || f.state === 'run', 'the roll to end');
@@ -251,7 +284,7 @@ try {
     // the pause pack, save and leave, continue
     await q.keyboard.press('Escape'); assert.equal((await st(q)).paused, true); const pack = await q.locator('.cs-pack').textContent();
     assert.ok(/Rain-Tempered Edge/.test(pack) && /Quipus: 1 of 9/.test(pack) && /Duels won: 2 of 6/.test(pack), pack);
-    const ticks = (await sy()).x; await q.waitForTimeout(300); assert.equal((await sy()).x, ticks);
+    const at = (await sy()).tick; await frames(q); assert.equal((await sy()).tick, at);
     await q.getByRole('button', { name: /^Help:/ }).click(); assert.equal((await st(q)).save.settings.assist, false); await q.getByRole('button', { name: /^Help:/ }).click();
     await q.getByRole('button', { name: 'Back to the climb' }).click(); assert.equal((await st(q)).paused, false);
     await q.locator('.cs-pausebtn').click(); assert.equal((await st(q)).paused, true); await q.keyboard.press('KeyP'); assert.equal((await st(q)).paused, false);
@@ -312,7 +345,9 @@ try {
     const m = await open(vp, true, seen); await m.goto(base + '/cloudsteel'); await ready(m); await noScroll(m);
     const sy = async () => (await st(m)).story;
     const waitS = async (fn, what, ms = 30000) => { const t0 = Date.now(); for (;;) { const s = await sy(); if (s && fn(s)) return s; if (Date.now() - t0 > ms) assert.fail(`phone ${tag}: timed out waiting for ${what}`); await m.waitForTimeout(40); } };
-    const tapRead = async () => { for (let i = 0; i < 30 && (await sy()).mode !== 'talk'; i++) await m.waitForTimeout(40); for (let i = 0; i < 80; i++) { const s = await sy(); if (s.mode !== 'talk' || s.choosing) return; await m.locator('.cs-talk').tap(); await m.waitForTimeout(170); } };
+    const tapRead = () => readOn(m, () => m.locator('.cs-talk').tap(), `phone ${tag}: the talk`);
+    const settle = () => waitS((s) => s.mode === 'walk' && s.t >= 3, 'Dora to stand free');
+    const nearM = (l) => m.waitForFunction((x) => { const n = document.querySelector('.cs-near'); return n && n.dataset.on === '1' && n.textContent.includes(x); }, l, { timeout: 15000 });
     await m.getByRole('button', { name: 'Begin the climb' }).tap(); await m.getByRole('button', { name: /Start the climb/ }).tap();
     await waitS((s) => s.mode === 'talk', 'the opening talk'); const b0 = await m.locator('.cs-talk').boundingBox(); assert.ok(b0.x >= 0 && b0.x + b0.width <= vp.width + 1 && b0.y + b0.height <= vp.height + 1, 'the talk box fits');
     await tapRead(); await waitS((s) => s.mode === 'walk', 'tapping through the talk');
@@ -320,14 +355,14 @@ try {
     await dbg(m, 'go', 0, 4, Math.PI); const a0 = await sy(), sb = await m.locator('.cs-stick').boundingBox(), cx = sb.x + sb.width / 2, cy = sb.y + sb.height / 2;
     const cdp = await m.context().newCDPSession(m), touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
     await touch('touchStart', cx, cy); await touch('touchMove', cx, cy - 40); await waitS((s) => Math.hypot(s.x - a0.x, s.z - a0.z) > 0.4, 'the stick to walk'); await touch('touchEnd');
-    await dbg(m, 'go', -4.2, 6.6, -1.9); await m.waitForTimeout(200); await m.locator('.t-act').tap(); await waitS((s) => s.mode === 'talk', 'ACT to talk'); await tapRead();
+    await dbg(m, 'go', -4.2, 6.6, -1.9); await nearM('Talk to Qori'); await m.locator('.t-act').tap(); await waitS((s) => s.mode === 'talk', 'ACT to talk'); await tapRead();
     await waitS((s) => s.mode === 'walk', 'the talk to end'); await m.locator('.t-lantern').tap(); await waitS((s) => s.mode === 'lantern', 'LANTERN'); await waitS((s) => s.mode === 'walk', 'the lantern down');
-    await dbg(m, 'win', 'atoq'); await dbg(m, 'go', 26.2, -8.4, Math.PI / 2); await m.waitForTimeout(200); await m.locator('.t-act').tap(); await tapRead(); await waitS((s) => s.choosing, 'the challenge');
+    await dbg(m, 'win', 'atoq'); await dbg(m, 'go', 26.2, -8.4, Math.PI / 2); await nearM('Talk to'); await m.locator('.t-act').tap(); await tapRead(); await waitS((s) => s.choosing, 'the challenge');
     await m.getByRole('button', { name: 'Not now' }).tap(); await waitS((s) => s.mode === 'walk', 'Not now');
-    await m.waitForTimeout(150); await m.locator('.t-act').tap(); await tapRead(); await waitS((s) => s.choosing, 'the challenge again'); await m.getByRole('button', { name: /Duel the Sword-Kin/ }).tap();
+    await settle(); await m.locator('.t-act').tap(); await tapRead(); await waitS((s) => s.choosing, 'the challenge again'); await m.getByRole('button', { name: /Duel the Sword-Kin/ }).tap();
     await waitS((s) => s.mode === 'duel', 'the duel'); await m.locator('.t-cut').waitFor();
-    const f = async () => (await st(m)).fight; for (let i = 0; i < 200 && !((await f()).phase === 'fight' && (await f()).foes.every((o) => o.state !== 'enter')); i++) await m.waitForTimeout(40);
-    await m.locator('.t-cut').tap(); for (let i = 0; i < 100 && !(await f()).state.startsWith('cut'); i++) await m.waitForTimeout(30); assert.ok((await f()).state.startsWith('cut') || (await f()).stats.ticks > 0);
+    await until(m, (f) => f.phase === 'fight' && f.foes.every((o) => o.state !== 'enter'), `phone ${tag}: the duel to start`);
+    await tryPress(m, () => m.locator('.t-cut').tap(), (f) => f.state.startsWith('cut'), `phone ${tag}: CUT in a story duel`);
     for (const sel of ['.t-cut', '.t-guard', '.t-dodge', '.t-tag', '.cs-hero', '.cs-tagbox', '.cs-foe']) { const b = await m.locator(sel).boundingBox(); assert.ok(b && b.x >= 0 && b.y >= 0 && b.x + b.width <= vp.width + 1 && b.y + b.height <= vp.height + 1, `${sel} fits in a story duel`); }
     await noScroll(m); ok(`phone ${tag}, the climb: taps read on, the stick walks, ACT talks, LANTERN lifts the lantern, the choice buttons answer, and the duel's buttons fit`);
     await m.close();
