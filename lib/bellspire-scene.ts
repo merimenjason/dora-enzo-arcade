@@ -18,6 +18,8 @@ import { HeroAnimator, type AnimInput, type AnimOut } from './bellspire-anim';
 type Img = HTMLImageElement | HTMLCanvasElement;
 /** Extra treatment for a sprite: `rim` adds a dark outline and a lit upper edge in that colour; `tell` flashes it. */
 type SprFx = { rim?: string; tell?: boolean; /** washed over with one colour (the puma's painted twin) */ wash?: string };
+/** Killa against the Night Orchard's warm stone: the guardians' dark outline, with a cool moonlit rim instead of a warm one. */
+const KILLA_FX: SprFx = { rim: '#b8dcff' };
 /** Each guardian's rim light, in the colour of its arena's light. */
 const RIM: Record<string, string> = { frog: '#bfe6ff', hydra: '#eaf5a8', puma: '#ffd49a', warden: '#ffe49a', mother: '#b4fff0', condor: '#ffd0a8', clappers: '#c8d8ff', tune: '#a8f4ff', founder: '#ffc890', choir: '#f0c8ff', hollow: '#ffb070' };
 /** A point light; `soft` lights fall off linearly (a wide, even pool), the rest fall off with the square (a hot centre). */
@@ -1088,7 +1090,8 @@ export class BellspireScene {
       // Suma and Killa: a slow idle pair, and their own talk pair while they are the one speaking
       else if (t.ch === ';') this.spr('suma', g.dialog?.lines[g.dialog.i]?.who === 'suma' ? 2 + (Math.floor(this.t / 14) % 2) : Math.floor(this.t / 28) % 2, x, y);
       else if (t.ch === ',') this.spr('props-orchard', 6, x, y);
-      else if (t.ch === 'q') this.spr('killa', (ART.killa?.[2] ?? 1) < 4 ? 0 : g.dialog?.lines[g.dialog.i]?.who === 'killa' ? 2 + (Math.floor(this.t / 14) % 2) : (this.t % 150 < 132 ? 0 : 1), x, y);
+      // Killa's tawny fur matches the orchard's orange stone: a second dark outline and a cool moonlit rim lift her off it
+      else if (t.ch === 'q') this.spr('killa', (ART.killa?.[2] ?? 1) < 4 ? 0 : g.dialog?.lines[g.dialog.i]?.who === 'killa' ? 2 + (Math.floor(this.t / 14) % 2) : (this.t % 150 < 132 ? 0 : 1), x, y, false, 1, false, KILLA_FX);
       else if (t.ch === '(') this.spr('props-glacier', 3, x, y, false, g.glacierKnown() ? 1 : 0.57);
       else if (t.ch === ')') this.spr('phuyu', 0, x, y);
       else if (t.ch === '/') this.spr('props-glacier', 4, x, y);
