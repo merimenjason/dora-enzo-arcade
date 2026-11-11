@@ -19,6 +19,8 @@ const PI = Math.PI, art = (n: string) => `/art/cloudsteel/${n}.webp`;
 const mix = (a: number, b: number, k: number) => a + (b - a) * k;
 const wrap = (a: number) => { while (a > PI) a -= PI * 2; while (a < -PI) a += PI * 2; return a; };
 const hdr = (r: number, g: number, b: number) => new T.Color().setRGB(r, g, b);
+/** a lantern post's light: kept low, so the lamp warms the stone round it without a bright pool on the wall behind */
+const LAMP = 10;
 const std = (color: number, o: T.MeshStandardMaterialParameters = {}) => new T.MeshStandardMaterial({ color, roughness: 0.85, metalness: 0, ...o });
 const glowM = (c: T.ColorRepresentation) => new T.MeshBasicMaterial({ color: c, fog: false });
 const box = (w: number, h: number, d: number) => new T.BoxGeometry(w, h, d), cyl = (a: number, b: number, h: number, n = 20) => new T.CylinderGeometry(a, b, h, n);
@@ -177,19 +179,19 @@ function view(face: number, camYaw: number): 'front' | 'back' | 'side' {
 
 type Fx = { o: T.Object3D; mat: T.Material; life: number; max: number; grow: number; s0: number };
 type DecorSet = { name: string; items: { x: number; y: number; z: number; s: number }[]; mesh: T.InstancedMesh | null };
-type AreaBuild = { group: T.Group; planks: Map<string, T.Mesh>; gates: Map<string, T.Object3D>; stones: Map<string, T.Mesh>; posts: T.Object3D[]; lamps: T.PointLight[]; decor: DecorSet[]; flames: T.Sprite[]; sunLamp?: T.Mesh; sunLight?: T.PointLight; sunHalo?: T.Sprite };
+type AreaBuild = { group: T.Group; planks: Map<string, T.Mesh>; gates: Map<string, T.Object3D>; stones: Map<string, T.Mesh>; posts: T.Object3D[]; lamps: T.PointLight[]; decor: DecorSet[]; flames: T.Sprite[]; sunLamp?: T.Mesh; sunLight?: T.PointLight; sunHalo?: T.Sprite; seals: { mesh: T.Mesh; mat: T.MeshStandardMaterial }[] };
 /** what to draw: the terrace duel from the title menu, or the story (with its duel, when one is on) */
 export type View = { kind: 'arena'; fight: Fight } | { kind: 'story'; world: World; fight: Fight | null };
 const ARENA_DUEL: Duel = { ...DUELS[0], id: 'arena' };
 
 export class CloudsteelScene {
   private renderer: T.WebGPURenderer; private scene = new T.Scene(); private cam = new T.PerspectiveCamera(42, 16 / 9, 0.1, 700);
-  private pipe: T.RenderPipeline | null = null; private fxOn: boolean;
+  private pipe: T.RenderPipeline | null = null; private fxOn: boolean; private sealTex!: T.Texture;
   private areas = new Map<AreaId, AreaBuild>(); private area: AreaId | null = null; private pano!: T.MeshBasicMaterial;
   private cards = new Map<string, Card>(); private blobMat = new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.5, depthWrite: false });
-  private pickups = new Map<string, T.Object3D>(); private staffL!: T.PointLight; private lanternGlow!: T.Sprite; private lanternRing!: T.Mesh;
+  private pickups = new Map<string, T.Object3D>(); private staffL!: T.PointLight; private lanternRing!: T.Mesh;
   private fx: Fx[] = []; private trails: T.Mesh[] = []; private trailBox = new T.Group(); private tagRing!: T.Mesh; private jadeRing!: T.Mesh; private glint!: T.Sprite; private mark!: T.Mesh; private finish!: T.Mesh;
-  private sparks!: T.InstancedMesh; private sP: T.Vector3[] = []; private sV: T.Vector3[] = []; private sLife = new Float32Array(140); private sNext = 0; private dum = new T.Object3D();
+  private sparks!: T.InstancedMesh; private sP: T.Vector3[] = []; private sV: T.Vector3[] = []; private sLife = new Float32Array(140); private sNext = 0; private dum = new T.Object3D(); private tmp = new T.Vector3();
   private rainPos!: Float32Array; private rainG!: T.BufferGeometry; private rain!: T.LineSegments; private mists: T.Sprite[] = [];
   private kit!: Kit; private softTex!: T.Texture; private inkTex!: T.Texture; private ghostMat!: T.MeshBasicMaterial; private plankMat!: T.MeshStandardMaterial;
   private now = 0; private shake = 0; private yaw = PI; private camPos = new T.Vector3(0, 4, 18); private look = new T.Vector3(0, 1.2, 0); private camInit = false;
@@ -199,6 +201,9 @@ export class CloudsteelScene {
   turn = 0;
   /** 'webgpu' or 'webgl2', for the settings screen */
   backend: 'webgpu' | 'webgl2' = 'webgl2';
+  /** how much the scene draws: 'full' on a desktop, 'phone' on a small touch screen (a lower pixel ratio, lighter
+   * antialiasing, a smaller reflection and fewer lamp lights), 'low' with Effects off (no bloom, no reflection) */
+  readonly tier: 'full' | 'phone' | 'low';
 
   /** the yaw the camera looks along, so the page can turn stick input into world directions */
   get camYaw() { return this.yaw; }
@@ -213,15 +218,18 @@ export class CloudsteelScene {
   private constructor(renderer: T.WebGPURenderer, fx: boolean) {
     this.renderer = renderer; this.fxOn = fx;
     this.backend = (renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend ? 'webgpu' : 'webgl2';
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, fx ? 2 : 1.25));
+    const phone = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 820;
+    this.tier = !fx ? 'low' : phone ? 'phone' : 'full';
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.tier === 'full' ? 2 : this.tier === 'phone' ? 1.5 : 1.25));
     renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
     this.scene.fog = new T.FogExp2(0x12283a, 0.014);
     this.kit = makeKit(); this.buildSky(); this.buildEffects(); this.buildFigures();
     if (fx) {
-      const scenePass = pass(this.scene, this.cam, { samples: 4 }), col = scenePass.getTextureNode();
+      const scenePass = pass(this.scene, this.cam, { samples: phone ? 2 : 4 }), col = scenePass.getTextureNode();
       const vig = float(1).sub(smoothstep(0.35, 0.95, screenUV.sub(0.5).length()).mul(0.55));
-      // bloom only on what is brighter than white: lanterns, sparks and strokes, never the painted faces
-      this.pipe = new T.RenderPipeline(renderer); this.pipe.outputNode = col.add(bloom(col, 0.38, 0.5, 1)).mul(vig);
+      // bloom only on what is brighter than white (sparks, strokes, the far jade seal, the Sun Lamp), never the painted
+      // faces; a small radius keeps it a tight halo round the bright thing instead of a soft blob across the screen
+      this.pipe = new T.RenderPipeline(renderer); this.pipe.outputNode = col.add(bloom(col, 0.3, 0.1, 1.05)).mul(vig);
     }
     this.setArea('terrace');
     this.resize();
@@ -244,11 +252,20 @@ export class CloudsteelScene {
     this.pano = new T.MeshBasicMaterial({ color: 0x7888a0, side: T.BackSide, fog: false, depthWrite: false });
     const ring = add(mesh(new T.CylinderGeometry(160, 160, 120, 48, 1, true), this.pano, 0, -14, -20)); ring.renderOrder = -1;
     this.softTex = canvasTex(128, 128, (g, w) => { const r = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.35, 'rgba(255,255,255,.45)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, w, w); });
+    // the jade seal's face: carved rings round a stepped cross, pale where the carving catches the light
+    this.sealTex = canvasTex(256, 256, (g, w) => {
+      const c = w / 2, r = g.createRadialGradient(c, c, 0, c, c, c); r.addColorStop(0, '#9fe8c8'); r.addColorStop(0.7, '#3f9c78'); r.addColorStop(1, '#1d5c47'); g.fillStyle = r; g.fillRect(0, 0, w, w);
+      g.lineWidth = 7; for (const [k, col] of [[0.9, '#16493a'], [0.83, '#b8f2d8'], [0.62, '#16493a']] as const) { g.strokeStyle = col; g.beginPath(); g.arc(c, c, c * k, 0, PI * 2); g.stroke(); }
+      g.fillStyle = 'rgba(22,73,58,.55)'; for (let i = 0; i < 12; i++) { const a = (i / 12) * PI * 2; g.beginPath(); g.arc(c + Math.cos(a) * c * 0.725, c + Math.sin(a) * c * 0.725, 7, 0, PI * 2); g.fill(); }
+      g.fillStyle = '#e4fff3'; for (const [hw, hh] of [[16, 62], [62, 16], [40, 40]]) g.fillRect(c - hw, c - hh, hw * 2, hh * 2);
+      g.fillStyle = '#2f8466'; g.fillRect(c - 12, c - 12, 24, 24);
+    });
     this.inkTex = canvasTex(128, 128, (g, w) => { g.fillStyle = '#fff'; for (let i = 0; i < 26; i++) { const a = Math.random() * PI * 2, d = Math.pow(Math.random(), 0.7) * 46, r = 4 + Math.random() * (i < 6 ? 26 : 9); g.beginPath(); g.arc(w / 2 + Math.cos(a) * d, w / 2 + Math.sin(a) * d, r, 0, PI * 2); g.fill(); } });
     this.blobMat.map = canvasTex(64, 64, (g, w) => { const r = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); r.addColorStop(0, 'rgba(255,255,255,.9)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, w, w); });
     this.blobMat.alphaMap = this.blobMat.map; this.blobMat.map = null;
-    const moonTex = canvasTex(256, 256, (g, w) => { const r = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); r.addColorStop(0, 'rgba(240,246,255,1)'); r.addColorStop(0.3, 'rgba(232,240,255,1)'); r.addColorStop(0.33, 'rgba(170,200,255,.35)'); r.addColorStop(1, 'rgba(120,170,255,0)'); g.fillStyle = r; g.fillRect(0, 0, w, w); g.fillStyle = 'rgba(150,170,205,.35)'; [[110, 104, 13], [146, 132, 9], [122, 150, 7], [150, 98, 6]].forEach((c) => { g.beginPath(); g.arc(c[0], c[1], c[2], 0, PI * 2); g.fill(); }); });
-    const moon = add(new T.Sprite(new T.SpriteMaterial({ map: moonTex, color: hdr(1.5, 1.7, 2.1), fog: false, transparent: true, depthWrite: false }))); moon.scale.set(40, 40, 1); moon.position.set(-30, 50, -140);
+    // the moon: a crisp disc with a thin halo, only a touch brighter than white so the bloom stays at its rim
+    const moonTex = canvasTex(256, 256, (g, w) => { const r = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); r.addColorStop(0, 'rgba(240,246,255,1)'); r.addColorStop(0.6, 'rgba(232,240,255,1)'); r.addColorStop(0.64, 'rgba(170,200,255,.22)'); r.addColorStop(0.8, 'rgba(120,170,255,.05)'); r.addColorStop(1, 'rgba(120,170,255,0)'); g.fillStyle = r; g.fillRect(0, 0, w, w); g.fillStyle = 'rgba(150,170,205,.35)'; [[104, 96, 22], [160, 136, 15], [122, 168, 12], [166, 88, 10]].forEach((c) => { g.beginPath(); g.arc(c[0], c[1], c[2], 0, PI * 2); g.fill(); }); });
+    const moon = add(new T.Sprite(new T.SpriteMaterial({ map: moonTex, color: hdr(1.0, 1.08, 1.25), fog: false, transparent: true, depthWrite: false }))); moon.scale.set(20, 20, 1); moon.position.set(-30, 50, -140);
     add(new T.HemisphereLight(0x7f9fe0, 0x14261f, 1.25));
     const moonL = add(new T.DirectionalLight(0xa9c6ff, 1.6)); moonL.position.set(-9, 16, -12);
     // a warm key from the front-left, like the light painted into the figures
@@ -278,7 +295,7 @@ export class CloudsteelScene {
   }
   private buildArea(id: AreaId): AreaBuild {
     const A = AREAS[id], g = new T.Group(); this.scene.add(g);
-    const b: AreaBuild = { group: g, planks: new Map(), gates: new Map(), stones: new Map(), posts: [], lamps: [], decor: [], flames: [] };
+    const b: AreaBuild = { group: g, planks: new Map(), gates: new Map(), stones: new Map(), posts: [], lamps: [], decor: [], flames: [], seals: [] };
     const M = this.kit, B = new Batch();
     const ground = id === 'forest' ? M.moss : id === 'citadel' ? M.paving : M.stone, groundTile = id === 'citadel' ? 5 : 4;
     const gold = std(0xd9a441, { roughness: 0.35, metalness: 0.9 }), lampM = glowM(hdr(1.25, 0.64, 0.17));
@@ -299,9 +316,10 @@ export class CloudsteelScene {
       const p = new T.Group(); p.position.set(x, 0, z); g.add(p); b.posts.push(p);
       mesh(boxT(0.24, 3.1, 0.24, 1.2), M.wood, 0, 1.55, 0, p); mesh(boxT(0.2, 0.16, 1.1, 1.2), M.wood, 0, 2.95, 0.4, p); mesh(hipRoof(1.3, 0.6, 0.3, 1.5), M.thatch, 0, 3.08, 0, p);
       mesh(box(0.02, 0.45, 0.02), M.wood, 0, 2.65, 0.8, p); const l = mesh(box(0.34, 0.46, 0.34), lampM, 0, 2.25, 0.8, p); mesh(box(0.42, 0.06, 0.42), M.wood, 0, 2.5, 0.8, p); mesh(box(0.42, 0.06, 0.42), M.wood, 0, 2.0, 0.8, p);
-      const s = new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: 0xffc45e, transparent: true, opacity: 0.22, blending: T.AdditiveBlending, depthWrite: false })); s.scale.set(3, 3, 1); s.position.copy(l.position); p.add(s);
+      // a small halo that hugs the lantern, not a soft blob round the whole post
+      const s = new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: 0xffc45e, transparent: true, opacity: 0.3, blending: T.AdditiveBlending, depthWrite: false })); s.scale.set(1.05, 1.15, 1); s.position.copy(l.position); p.add(s);
       // the lamps sit high and well away from where figures stand, so a face next to one does not blow out
-      if (light) { const pl = new T.PointLight(0xffb44d, 16, 14, 2); pl.position.set(0, 2.6, 0.8); p.add(pl); b.lamps.push(pl); }
+      if (light) { const pl = new T.PointLight(0xffb44d, LAMP, 11, 2); pl.position.set(0, 2.6, 0.8); p.add(pl); b.lamps.push(pl); }
       p.rotation.y = Math.atan2(-x, -z);
     };
     let nLamp = 0;
@@ -326,7 +344,8 @@ export class CloudsteelScene {
     for (const p of A.props) {
       if (p.kind.startsWith('d:') || p.kind.startsWith('w:')) { this.decorProp(p, A, B, b); continue; }
       switch (p.kind) {
-        case 'post': post(p.x, p.z, nLamp++ % 2 === 0); break;
+        // every other post casts light (every third on a phone: each light costs every pixel it might reach)
+        case 'post': post(p.x, p.z, nLamp++ % (this.tier === 'phone' ? 3 : 2) === 0); break;
         case 'tree': foliage(1, p.x, p.z, p.s ?? 1); break;
         case 'fern': foliage(0, p.x, p.z, p.s ?? 1); break;
         case 'bush': foliage(2, p.x, p.z, p.s ?? 1); break;
@@ -370,7 +389,12 @@ export class CloudsteelScene {
           mesh(new T.ConeGeometry(0.35, 0.8, 4), gold, 0, 7.15, 0, gr).rotation.y = PI / 4;
           const door = new T.Group(); gr.add(door);
           mesh(doorGeo(w, 4.4, 0.4), M.door, 0, 2.2, 0, door);
-          if (p.kind !== 'gate') { const seal = mesh(new T.CircleGeometry(0.75, 32), glowM(hdr(0.3, 1.6, 0.9)), 0, 2.4, 0.23, door); seal.userData.seal = true; mesh(new T.CircleGeometry(0.75, 32), glowM(hdr(0.3, 1.6, 0.9)), 0, 2.4, -0.23, door).rotation.y = PI; }
+          // the jade seal: carved jade lit by the scene, whose glow comes up with distance (see render), so it reads as
+          // magic from across the yard without flooding the screen when Dora stands at the door
+          if (p.kind !== 'gate') for (const sd of [1, -1]) {
+            const mat = new T.MeshStandardMaterial({ map: this.sealTex, emissive: hdr(0.25, 1, 0.7), emissiveMap: this.sealTex, emissiveIntensity: 0.5, roughness: 0.3, metalness: 0.1 });
+            const seal = mesh(new T.CircleGeometry(0.75, 40), mat, 0, 2.4, 0.23 * sd, door); if (sd < 0) seal.rotation.y = PI; b.seals.push({ mesh: seal, mat });
+          }
           if (gid) b.gates.set(gid, door);
           break;
         }
@@ -495,7 +519,7 @@ export class CloudsteelScene {
     if (name === 'brazier') {
       // a warm glow over the coals, kept below white so it never blooms over a face
       const f = new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: 0xffa64a, transparent: true, opacity: 0.32, blending: T.AdditiveBlending, depthWrite: false }));
-      f.position.set(p.x, y + h * 0.95, p.z); f.scale.setScalar(1.3 * s); b.group.add(f); b.flames.push(f);
+      f.position.set(p.x, y + h * 0.95, p.z); f.scale.setScalar(0.8 * s); b.group.add(f); b.flames.push(f);
     }
   }
   /** the round paved floor with the wet reflection, where the duels on the terrace and at the gate are fought */
@@ -503,7 +527,7 @@ export class CloudsteelScene {
     const R = 9.0;
     const floorMat = new T.MeshStandardNodeMaterial({ map: loadTex('floor'), roughness: 0.32, metalness: 0.15 });
     if (this.fxOn && id === 'terrace') {
-      const refl = reflector({ resolutionScale: 0.5, samples: 4 }); refl.target.rotateX(-PI / 2); refl.target.position.set(x, 0.008, z); g.add(refl.target);
+      const refl = reflector({ resolutionScale: this.tier === 'phone' ? 0.35 : 0.5, samples: this.tier === 'phone' ? 0 : 4 }); refl.target.rotateX(-PI / 2); refl.target.position.set(x, 0.008, z); g.add(refl.target);
       const wp = positionWorld.mul(1.9); refl.uvNode = refl.uvNode!.add(vec2(mx_noise_float(wp), mx_noise_float(wp.add(11.3))).mul(0.0035));
       floorMat.emissiveNode = refl.rgb.mul(0.3);
     }
@@ -512,9 +536,9 @@ export class CloudsteelScene {
   }
   // ---------------------------------------------------------------- the figures
   private buildFigures() {
-    // Enzo's lantern: a warm light and glow that follow the top of his staff
+    // Enzo's lantern: a warm light that follows the top of his staff. No glow sprite: it would sit on his centre line, not
+    // on the painted lantern at his side, and float as a blob over Dora's head; the painted lantern reads as lit
     this.staffL = new T.PointLight(0xffc45e, 10, 9, 2); this.scene.add(this.staffL);
-    this.lanternGlow = new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: 0xffc45e, transparent: true, opacity: 0.32, blending: T.AdditiveBlending, depthWrite: false })); this.lanternGlow.scale.set(1.4, 1.4, 1); this.scene.add(this.lanternGlow);
     this.lanternRing = mesh(new T.RingGeometry(0.92, 1, 64), new T.MeshBasicMaterial({ color: hdr(1.6, 1.2, 0.5), transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, fog: false }), 0, 0.05, 0, this.scene);
     this.lanternRing.rotation.x = -PI / 2;
   }
@@ -578,7 +602,7 @@ export class CloudsteelScene {
   worldEvent(e: WorldEvent, w: World) {
     const b = this.areas.get(w.area);
     switch (e.t) {
-      case 'lantern': this.lanternRing.position.set(e.x, 0.05, e.z); this.lanternRing.userData.life = 1; this.lanternRing.userData.r = e.r; this.puff(w.enzo.x, 2.2, w.enzo.z, 3.4, hdr(2, 1.5, 0.6), false, 0.6); break;
+      case 'lantern': this.lanternRing.position.set(e.x, 0.05, e.z); this.lanternRing.userData.life = 1; this.lanternRing.userData.r = e.r; this.puff(w.enzo.x, 2.2, w.enzo.z, 2, hdr(2, 1.5, 0.6), false, 0.6); break;
       case 'plank': { const m = b?.planks.get(e.id); if (m) { m.material = this.plankMat; m.userData.lit = 0.01; this.burst(m.position.x, 0.3, m.position.z, 10, 2); } break; }
       case 'stone': { const s = b?.stones.get(e.id); if (s) { const p = new T.Vector3(); s.getWorldPosition(p); this.puff(p.x, p.y, p.z, 2.4, hdr(2, 1.5, 0.5), false, 0.6); this.burst(p.x, p.y, p.z, 20, 3); } break; }
       case 'stonesReset': for (const [, s] of b?.stones ?? []) { const p = new T.Vector3(); s.getWorldPosition(p); this.puff(p.x, p.y, p.z, 1.6, 0x0c1238, true, 0.6); } break;
@@ -695,7 +719,6 @@ export class CloudsteelScene {
     // Enzo's lantern light sits at the top of his staff
     const lanternUp = w?.mode === 'lantern' ? w.enzo.lantern : 0;
     this.staffL.position.set(ex, 2.3 + lanternUp * 0.6, ez); this.staffL.intensity = 8 + lanternUp * 30;
-    this.lanternGlow.position.set(ex, 2.25 + lanternUp * 0.6, ez); this.lanternGlow.scale.setScalar(1.2 + lanternUp * 1.6);
     this.coldT = Math.max(0, this.coldT - dt);
     const lr = (this.lanternRing.userData.life as number) || 0;
     if (lr > 0) { const l = Math.max(0, lr - dt * 1.1); this.lanternRing.userData.life = l; this.lanternRing.scale.setScalar(0.3 + (1 - l) * ((this.lanternRing.userData.r as number) || LANTERN.r)); (this.lanternRing.material as T.MeshBasicMaterial).opacity = l * 0.9; }
@@ -708,7 +731,7 @@ export class CloudsteelScene {
           const it = ITEMS[p.id], cell = it.kind === 'quipu' ? 0 : p.id === 'feather' || p.id === 'edge' ? 1 : p.id === 'jade' ? 2 : 3, t = cellTex('props', cell);
           o = new T.Group(); o.position.set(p.x, 0, p.z); this.scene.add(o);
           const card = mesh(new T.PlaneGeometry(0.75, 0.75), new T.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.2, side: T.DoubleSide, color: 0xdddddd }), 0, 0.7, 0, o); card.name = 'card';
-          const glow = new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: it.kind === 'quipu' ? 0xffd27a : 0x9ff0d0, transparent: true, opacity: 0.5, blending: T.AdditiveBlending, depthWrite: false })); glow.scale.set(1.6, 1.6, 1); glow.position.y = 0.7; o.add(glow);
+          const glow = new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: it.kind === 'quipu' ? 0xffd27a : 0x9ff0d0, transparent: true, opacity: 0.5, blending: T.AdditiveBlending, depthWrite: false })); glow.scale.set(1.1, 1.1, 1); glow.position.y = 0.7; o.add(glow);
           this.pickups.set(p.id, o);
         }
         const c = o.getObjectByName('card')!; c.position.y = 0.7 + Math.sin(now * 2 + p.x) * 0.08; c.rotation.y = yaw + PI;
@@ -724,7 +747,9 @@ export class CloudsteelScene {
     } else { for (const gate of AREAS.terrace.gates) { const d = b.gates.get(gate.id); if (d) d.position.y = 0; } }
     this.plankMat.emissiveIntensity = 0.5 + Math.sin(now * 2) * 0.1;
     this.runFx(dt);
-    b.lamps.forEach((l, i) => { l.intensity = 16 + Math.sin(now * 5 + i * 2) * 1.5; });
+    b.lamps.forEach((l, i) => { l.intensity = LAMP + Math.sin(now * 5 + i * 2) * 0.8; });
+    // the jade seals: soft up close, brighter (just past white, so a small halo) from across the yard, with a slow pulse
+    for (const sl of b.seals) { const d = sl.mesh.getWorldPosition(this.tmp).distanceTo(this.cam.position); sl.mat.emissiveIntensity = (0.45 + 0.85 * Math.min(1, Math.max(0, (d - 4) / 10))) * (1 + Math.sin(now * 2) * 0.08); }
     this.camera(v, dt, dx, dz);
     // nothing tall right in front of the lens
     for (const post of b.posts) post.visible = Math.hypot(post.position.x - this.camPos.x, post.position.z - this.camPos.z) > 3.6;
@@ -736,7 +761,7 @@ export class CloudsteelScene {
       });
       set.mesh.instanceMatrix.needsUpdate = true;
     }
-    b.flames.forEach((f, i) => { (f.material as T.SpriteMaterial).opacity = 0.26 + Math.sin(now * 9 + i * 1.7) * 0.05 + Math.sin(now * 23 + i) * 0.03; });
+    b.flames.forEach((f, i) => { (f.material as T.SpriteMaterial).opacity = 0.28 + Math.sin(now * 9 + i * 1.7) * 0.05 + Math.sin(now * 23 + i) * 0.03; });
     // rain falls round the camera
     this.rain.position.set(this.camPos.x, 0, this.camPos.z);
     if (this.pipe) this.pipe.render(); else this.renderer.render(this.scene, this.cam);

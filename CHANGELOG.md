@@ -20,6 +20,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Cloudsteel**: lights glow like lights. The lantern posts, braziers and the moon have small, tight halos instead of large soft blobs, the bloom stays close to what is bright,, and no glow floats over Dora's head from Enzo's lantern. The jade seals on the citadel doors are carved jade now, softly lit up close and glowing more strongly from across the yard.
+- **Cloudsteel**: on phones the scene draws at a lower resolution, with lighter edge smoothing, a smaller reflection on the terrace floor and fewer lamp lights, to keep the frame rate up.
 - **Cloudsteel**: Dora's heavy third cut has its own wind-up, a low two-handed coil before the lunge, instead of borrowing her first cut's. At the end of the climb she and Enzo have their own poses, looking up as he raises the lantern, and the closing shot frames the whole Sun Lamp over them.
 - **Sunken Bellspire**: Killa no longer melts into the Night Orchard's warm stone. She has a dark outline and a cool, moonlit rim along her edges, so she stands out wherever she waits.
 - **Sunken Bellspire**: on phones, the ending pages show the whole painting. The words used to cover half of it; now they sit under the painting when the phone is upright and beside it when it is sideways. If the words are too long to fit, they scroll, and the Keep exploring and Title buttons stay in view.

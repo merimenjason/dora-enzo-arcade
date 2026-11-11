@@ -72,7 +72,9 @@ On by default (Settings, or the pause menu for the next fight): wind-ups are 25%
 Three.js 0.185 with `WebGPURenderer` (`three/webgpu`), which falls back to WebGL 2 by itself where WebGPU is missing; Settings shows which one is in use. The scene module is loaded with a dynamic import so the server never evaluates it.
 
 - The floor is a `MeshStandardNodeMaterial` with a planar `reflector()` added to its emissive, rippled with noise.
-- Post-processing is a `RenderPipeline`: the scene pass plus `bloom()` on anything brighter than white, and a vignette. Lanterns, sparks and strokes use colours above 1 so they bloom.
+- Post-processing is a `RenderPipeline`: the scene pass plus `bloom()` on anything brighter than white (strength 0.3, radius 0.1, threshold 1.05, so a bloom is a tight halo, not a soft blob), and a vignette. Sparks, strokes, the lantern's ring and the Sun Lamp use colours above 1 so they bloom; the lantern posts' lamps stay just below and carry a small halo sprite that hugs the lamp, and the moon is a crisp disc only a touch past white. Enzo's lantern has a light but no glow sprite (one on his centre line floated over Dora's head, since the painted lantern is at his side).
+- The jade seals on the citadel doors are carved jade (a canvas texture, lit by the scene) whose emissive rises with the camera's distance: soft up close, just past white from across the yard.
+- **Quality tiers** (`scene.tier`): `full` on a desktop; `phone` on a coarse pointer with a screen under 820 px on its short side (pixel ratio at most 1.5 instead of 2, 2× antialiasing instead of 4×, the terrace reflection at 0.35 resolution without its own antialiasing, and a light on every third lamp post instead of every other); `low` with Effects off (no bloom, no reflection, pixel ratio at most 1.25).
 - **Effects** in Settings turns the reflection and bloom off and lowers the pixel ratio for slow devices (it reloads the page).
 - Figures are painted cards (see above) lit by the scene: a `MeshStandardMaterial` with the atlas as its map and a little of it as emissive, colour 0.72, so lanterns warm them without blowing them out and bloom never reaches the faces. Hit flashes are kept small and below white for the same reason.
 - Tells: a glint on the weapon grows through a steel wind-up; a jade ring on the ground marks the slam's reach.
@@ -100,7 +102,7 @@ The sheets were painted as 2×2 grids on magenta, keyed (with the magenta unmixe
 
 ## Debug hook
 
-`window.__cloudsteel()` returns `{ screen, paused, scene, save, done, backend, fight, story, debug }`. `fight` has the phase, round, Dora's state and bars, stats and every foe. `story` has the area, mode, position, flags, items, lit planks and stones, duels won, what is near, the current line, whether a choice is open, the duel, Enzo and the camera's yaw. `debug` has `tag(v)`, `foeHp(v)`, `foePosture(v)`, `hp(v)` and `place(x, z)` for fights, and `go(x, z, face?)`, `area(id, x, z, face?)`, `flag(f)`, `give(item)` and `win(duel)` for the climb.
+`window.__cloudsteel()` returns `{ screen, paused, scene, save, done, backend, fight, story, debug }`. `fight` has the phase, round, Dora's state and bars, stats and every foe. `story` has the area, mode, position, flags, items, lit planks and stones, duels won, what is near, the current line, whether a choice is open, the duel, Enzo and the camera's yaw, plus `t` (steps in the current mode or line), `tick` (steps in all) and `talkI` (the line's index), which the browser test waits on instead of fixed sleeps. `debug` has `tag(v)`, `foeHp(v)`, `foePosture(v)`, `hp(v)` and `place(x, z)` for fights, and `go(x, z, face?)`, `area(id, x, z, face?)`, `flag(f)`, `give(item)` and `win(duel)` for the climb.
 
 ## Not built yet
 
