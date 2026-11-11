@@ -1085,9 +1085,10 @@ export class BellspireScene {
       if (x < -80 || x > this.vw + 80 || y < -40 || y > this.vh + 80) continue;
       if (t.ch === 'S') this.spr('props', g.flag(`shrine:${room.id}`) || g.save.shrine === room.id ? 1 : 0, x, y);
       else if (t.ch === '?') this.spr('props-salt', g.saltKnown() ? 2 : 5, x, y);
-      else if (t.ch === ';') this.spr('suma', g.dialog ? 2 : Math.floor(this.t / 28) % 2, x, y);
+      // Suma and Killa: a slow idle pair, and their own talk pair while they are the one speaking
+      else if (t.ch === ';') this.spr('suma', g.dialog?.lines[g.dialog.i]?.who === 'suma' ? 2 + (Math.floor(this.t / 14) % 2) : Math.floor(this.t / 28) % 2, x, y);
       else if (t.ch === ',') this.spr('props-orchard', 6, x, y);
-      else if (t.ch === 'q') this.spr('killa', 0, x, y);
+      else if (t.ch === 'q') this.spr('killa', (ART.killa?.[2] ?? 1) < 4 ? 0 : g.dialog?.lines[g.dialog.i]?.who === 'killa' ? 2 + (Math.floor(this.t / 14) % 2) : (this.t % 150 < 132 ? 0 : 1), x, y);
       else if (t.ch === '(') this.spr('props-glacier', 3, x, y, false, g.glacierKnown() ? 1 : 0.57);
       else if (t.ch === ')') this.spr('phuyu', 0, x, y);
       else if (t.ch === '/') this.spr('props-glacier', 4, x, y);

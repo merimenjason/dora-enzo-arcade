@@ -46,7 +46,7 @@ The progression is a single low branch over a safe basin, a bloom followed by a 
 
 **Lantern Weir (4,19).** Set up a high graft from a low approach before dropping into the weir. A floor route passes two separated thorn strips with a broad landing between them. The upper route uses the branch and a ladder to avoid the thorns. Both routes return to the dry stone steps at the east end and a candle before the last fight. Players see the complete choice before committing.
 
-**Mother of Grafts (6,19).** The last guardian stands in a sunken root bed with terraces on either side. Enzo’s light opens a gold bud on the side that has just attacked. Dora cuts that side’s tie to expose the core. Once the guard closes, the next attack marks the other side. The high ledges offer a way to switch sides while the floor roots are active. After the final bloom the orchard lamps stay lit and Killa’s grafts feed the road again.
+**Mother of Grafts (6,19).** The last guardian stands in a sunken root bed with terraces on either side. Enzo’s light opens a gold bud on the side that has just attacked. Dora cuts that side’s tie to expose the core. Once the guard closes, the next attack marks the other side. The high ledges offer a way to switch sides while the floor roots are active. After the final bloom the orchard lamps stay lit and Killa’s grafts feed the road again. Killa joins the ending scene and points at the root lift, which has woken on the high east terrace; at 100% of the orchard the epilogue is harvest night (see [the expansions' endings](bellspire.md#the-expansions-endings-and-epilogues)).
 
 ## Art and acceptance
 

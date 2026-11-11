@@ -247,9 +247,9 @@ export const BASE_MURALS = 10;
 /** ...and with the Windward Belfry's: the rest are the Foundry Below's. */
 export const BELFRY_MURALS = 18;
 
-export type Who = 'dora' | 'enzo' | 'wayra' | 'ukumari' | 'mother' | 'sign' | 'bell' | 'tupa' | 'hollow' | 'founder' | 'phuyu';
+export type Who = 'dora' | 'enzo' | 'wayra' | 'ukumari' | 'mother' | 'sign' | 'bell' | 'tupa' | 'hollow' | 'founder' | 'phuyu' | 'killa' | 'suma';
 export type Line = { who: Who; text: string };
-export const NAMES: Record<Who, string> = { dora: 'Dora', enzo: 'Enzo', wayra: 'Wayra', ukumari: 'Ukumari', mother: 'The Lake Mother', sign: '', bell: 'The Out-of-Tune Bell', tupa: 'Tupa', hollow: 'The Hollow Bell', founder: 'The Molten Founder', phuyu: 'Phuyu' };
+export const NAMES: Record<Who, string> = { dora: 'Dora', enzo: 'Enzo', wayra: 'Wayra', ukumari: 'Ukumari', mother: 'The Lake Mother', sign: '', bell: 'The Out-of-Tune Bell', tupa: 'Tupa', hollow: 'The Hollow Bell', founder: 'The Molten Founder', phuyu: 'Phuyu', killa: 'Killa', suma: 'Suma' };
 export const SCRIPTS: Record<string, Line[]> = {
   'glass-vicuna': [
     { who: 'enzo', text: 'It plants both hooves before it charges. I can turn the sun into that plug.' },
