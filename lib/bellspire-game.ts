@@ -54,6 +54,13 @@ export const UNLOCKS = [
 ] as const;
 export type Unlock = (typeof UNLOCKS)[number];
 
+/** What the heroes say on finding the last thing in an expansion, after its ending: then its epilogue. */
+const EXPANSION_FOUND: ['salt' | 'orchard' | 'glacier', Line[]][] = [
+  ['salt', [{ who: 'dora', text: 'That’s every screen and every chest on the Salt Road, Enzo.' }, { who: 'enzo', text: 'Suma said there’d be a festival at the Tollhouse. Let’s go and count bells.' }]],
+  ['orchard', [{ who: 'enzo', text: 'Dora, that’s all of the orchard. Every terrace, every cellar, every mural.' }, { who: 'dora', text: 'Then Killa owes us a basket. Come on, it’s harvest night.' }]],
+  ['glacier', [{ who: 'dora', text: 'That’s the whole Stair, Enzo. Every ice fall, every chest, every mural.' }, { who: 'enzo', text: 'Phuyu’s lighting a fire at the Sun Gate tonight. Everyone’s coming up.' }]],
+];
+
 export type Input = { left: boolean; right: boolean; up: boolean; down: boolean; jump: boolean; attack: boolean; dash: boolean; cast: boolean; tag: boolean };
 export const NO_INPUT: Input = { left: false, right: false, up: false, down: false, jump: false, attack: false, dash: false, cast: false, tag: false };
 
@@ -239,7 +246,7 @@ export const COMPLETION = (() => {
     return { cells, chests, pedestals, murals };
   };
   const sr = ROOMS.filter((r) => r.salt);
-  const salt = { cells: sr.reduce((n, r) => n + r.w * r.h, 0), chests: sr.reduce((n, r) => n + (r.chests?.length ?? 0), 0), bosses: SALT_GUARDIANS.length };
+  const salt = { cells: sr.reduce((n, r) => n + r.w * r.h, 0), chests: sr.reduce((n, r) => n + (r.chests?.length ?? 0), 0), murals: 0, bosses: SALT_GUARDIANS.length };
   const orchard = ROOMS.filter(isOrchardRoom).reduce((n, r) => ({
     cells: n.cells + r.w * r.h, chests: n.chests + (r.chests?.length ?? 0), murals: n.murals + (r.murals?.length ?? 0), bosses: n.bosses,
   }), { cells: 0, chests: 0, murals: 0, bosses: ORCHARD_GUARDIANS.length });
@@ -1699,6 +1706,45 @@ export class BellspireGame {
     }
     return best;
   }
+  /** Killa, the orchard keeper, at the Orchard Wicket: a first meeting with Dora and Enzo, then a word that moves on
+   *  with the story (Lantern Bloom, the Graft Shear, each guardian, then the root lift up to the Glacier Stair). */
+  killaLines(first = false): Line[] {
+    const k = (text: string): Line => ({ who: 'killa', text }), d = (text: string): Line => ({ who: 'dora', text }), e = (text: string): Line => ({ who: 'enzo', text });
+    const meet = first ? [
+      k('Oh! Visitors through the wicket. I’m Killa. I keep what’s left of the orchard.'),
+      d('I’m Dora, and this is Enzo. The Tollkeeper is calm, so the salt road is open again.'),
+      k('Then the caravans will want fruit, and the grafts haven’t flowered in years.'),
+      e('My lantern woke a little golden bud on the way in. Only for a moment.'),
+    ] : [];
+    if (!this.has('bloom')) return [...meet, k('Then you’re the light they have been waiting for. Take Lantern Bloom from the pedestal up the steps, and the golden buds will open for you.')];
+    if (!this.has('shear')) return [...meet, k('Lantern Bloom suits you, Enzo. Now Dora needs my Graft Shear: it’s on the low landing of the Graft Terraces, east of here.'), d('Wake the bud, then cut the ochre tie. I can do that.')];
+    if (!this.flag('boss:bracken-stag')) return [...meet, k('Wake the bud, cut the tie, and the branch above comes down to meet you. The Bracken Stag guards the far end of the terraces.'), e('Its antlers could catch in a branch, if I open one in its path.')];
+    if (!this.flag('boss:rootback')) return [...meet, k('The Stag is grazing quietly for the first time in years. Below the cistern, the Rootback has dug itself into the Root Vault.'), d('Then down the ladders we go.')];
+    if (!this.flag('boss:graft-mother')) return [...meet, k('The Rootback has settled. Only the Mother of Grafts is left, at the bottom of the Root Cellars. She guards one side, then the other.'), e('So we watch which side she strikes from, and open that bud.')];
+    if (!this.flag('glacier:visited')) return [...meet, k('Every lamp in the orchard is lit. And listen: the old root lift in the Mother’s chamber has woken. Climb to the high east terrace of her room and ride it up past the snowline.'), d('The root lift. East terrace. Got it.')];
+    if (!this.flag('boss:sun-gate')) return [...meet, k('Phuyu sent word down the root lift: the Sun Gate is still frozen shut. Mind the ice, both of you.'), e('Phuyu showed us how to turn the sun onto it.')];
+    return [...meet, k('The first carts go up to the pass tomorrow. I packed one basket just for you two.'), d('Thank you, Killa. It smells like summer.')];
+  }
+  /** Suma, the salt road's tally keeper, at the Salt Gate: a first meeting, then a word that moves on with the story
+   *  (her road's two moves and three guardians, then the orchard wicket, and the caravans up to the pass). */
+  sumaLines(first = false): Line[] {
+    const s = (text: string): Line => ({ who: 'suma', text }), d = (text: string): Line => ({ who: 'dora', text }), e = (text: string): Line => ({ who: 'enzo', text });
+    const meet = first ? [
+      s('Halt! Load and weight, please... no, sorry. Habit. I’m Suma. I counted every load on this road until the bells went quiet.'),
+      e('Tupa opened the supply door for us. I’m Enzo, and this is Dora.'),
+      d('What stopped the caravans?'),
+      s('Three guardians took the scales and the lifts. Nobody has been past them since.'),
+    ] : [];
+    if (!this.has('ballast')) return [...meet, s('Take Shoulder Shift from this pedestal, Dora. Then Enzo needs Lift Catch, by the first hoist. Dora moves the ballast. Enzo locks the lift level. Both of you ride.')];
+    if (!this.has('catch')) return [...meet, s('Shoulder Shift suits you. Lift Catch is by the first hoist, Enzo. Dora lowers the deck, you lock it level, then both of you ride.'), e('One shifts, one catches. Like a tally: both sides have to match.')];
+    if (!this.flag('boss:weighmaster')) return [...meet, s('The Whiteback Weighmaster holds the steps. Set the stop and draw it into a charge: its flank opens when it hits.'), d('Make it charge, then strike the side. Got it.')];
+    if (!this.flag('boss:panback')) return [...meet, s('One guardian calm. I’ve marked it on my cord. The Panback Armadillo is down in the galleries: raise the weighing pan under it, Enzo.'), e('And Dora strikes the belly while it’s up.')];
+    if (!this.flag('boss:tollkeeper')) return [...meet, s('Two knots on the cord. Only the Last Tollkeeper is left, in the Tollhouse. Shift its counterweight, Dora, then strike under the raised shield.'), d('Last one. Let’s go.')];
+    if (!this.flag('orchard:visited')) return [...meet, s('The road is open and the loads are moving! And when the Tollkeeper fell, the old orchard wicket swung open on the east side of the Tollhouse. Killa keeps the orchard through there.'), e('An orchard, up here? I want to see that.')];
+    if (!this.flag('boss:graft-mother')) return [...meet, s('Killa’s fruit would sell from here to the lake, if the grafts would flower again.'), d('We’re working on it, Suma.')];
+    if (!this.flag('boss:sun-gate')) return [...meet, s('Salt down to the lake, fruit up from the orchard. Phuyu says the pass will take both, once the Sun Gate opens.'), e('Then we’ll open it.')];
+    return [...meet, s('Seven loads of salt and three of fruit, all the way up to the pass. I’ve never tied so many knots in one day.'), d('You’ll need a longer cord, Suma.')];
+  }
   /** What ↑ does here, for the on-screen hint. */
   nearbyLabel(): string | null {
     const t = this.nearby();
@@ -1752,7 +1798,9 @@ export class BellspireGame {
       return;
     }
     if (best.ch === 'q') {
-      this.say([{ who: 'sign', text: 'Killa: Take Lantern Bloom from the pedestal up the steps. Golden buds still listen to Enzo’s light. Dora can cut the ochre ties once the graft is awake.' }]);
+      const first = !this.flag('script:killa');
+      this.setFlag('script:killa');
+      this.say(this.killaLines(first));
       this.sfx('talk');
       return;
     }
@@ -1766,7 +1814,9 @@ export class BellspireGame {
       return;
     }
     if (best.ch === ';') {
-      this.say([{ who: 'sign', text: 'Suma: Take Shoulder Shift from this pedestal, then find Lift Catch by the first hoist. Dora moves the ballast. Enzo locks the lift level. Both of you ride.' }]);
+      const first = !this.flag('script:suma');
+      this.setFlag('script:suma');
+      this.say(this.sumaLines(first));
       this.sfx('talk');
       return;
     }
@@ -2723,28 +2773,25 @@ export class BellspireGame {
       this.say(done, () => this.finish());
     } else if (b.id === 'tune') this.say(done, () => this.finishBelfry());
     else if (b.id === 'hollow') this.say(done, () => this.finishFoundry());
-    else if (b.id === 'tollkeeper') this.say([{ who: 'sign', text: 'The toll gate opens. By dawn the salt caravans have a road again.' }, { who: 'enzo', text: 'Listen, Dora. Those bells are from the mules.' }], () => {
-      this.setFlag('salt:ending');
-      this.ended = true;
-      this.emit({ k: 'save' });
-      this.emit({ k: 'ending', full: false, salt: true });
-    });
+    else if (b.id === 'tollkeeper') this.say([
+      { who: 'sign', text: 'The toll gate swings open. By dawn the salt caravans have a road again.' },
+      { who: 'suma', text: 'Listen! Pack bells, all the way down the steps. I’m going to need a longer tally cord.' },
+      { who: 'enzo', text: 'Those bells are from the mules, Dora. Hundreds of them.' },
+      { who: 'dora', text: 'And something by the Tollhouse just clicked open. A little wicket, on the east side.' },
+    ], () => this.finishArea('salt'));
     else if (b.id === 'graft-mother') this.say([
       { who: 'enzo', text: 'Look at the branches, Dora. All the way up the hill.' },
+      { who: 'killa', text: 'Every lamp in the orchard is lit. I haven’t seen that since I was small.' },
+      { who: 'dora', text: 'Will the grafts keep, now?' },
+      { who: 'killa', text: 'They’ll keep. And hear that creaking? The root lift up there has woken. It climbs past the snowline.' },
       { who: 'sign', text: 'At dawn Killa carried the first basket down to the caravan road.' },
-    ], () => {
-      this.setFlag('orchard:ending');
-      this.ended = true;
-      this.emit({ k: 'save' });
-      this.emit({ k: 'ending', full: false, orchard: true });
-    });
+    ], () => this.finishArea('orchard'));
     else if (b.id === 'sun-gate') this.say([
       { who: 'phuyu', text: 'Look down. You can see the first carts coming up from the orchard.' },
       { who: 'enzo', text: 'The whole pass is in the sun.' },
-    ], () => {
-      this.setFlag('glacier:ending'); this.ended = true;
-      this.emit({ k: 'save' }); this.emit({ k: 'ending', full: false, glacier: true });
-    });
+      { who: 'dora', text: 'I bet Suma is counting every one of them.' },
+      { who: 'phuyu', text: 'Then come back to camp. There’s tea, and a long way down tomorrow.' },
+    ], () => this.finishArea('glacier'));
     else this.say(done, () => this.emit({ k: 'save' }));
     this.planks.clear(); this.arenaWind = { dir: 1, str: 1 }; this.notes = this.notes.filter((nn) => !nn.key.startsWith('tune:'));
   }
@@ -2761,6 +2808,14 @@ export class BellspireGame {
   /** After the Lake Mother, the moment the last thing is found: a word from the heroes, then the epilogue. Once. */
   checkEpilogue() {
     if (this.ended || this.dialog || this.boss || !this.flag('boss:mother')) return;
+    // an expansion's epilogue, once its ending has played and the last thing in it is found
+    for (const [area, lines] of EXPANSION_FOUND) {
+      if (!this.flag(`${area}:ending`) || this.flag(`${area}:epilogue`) || this.completion()[area].pct < 100) continue;
+      this.setFlag(`${area}:epilogue`);
+      this.emit({ k: 'save' });
+      this.say(lines, () => this.finishArea(area));
+      return;
+    }
     // once the belfry is in tune too, the second epilogue when every last thing (citadel and belfry) is found; it
     // stands for the first as well when both are earned at once
     // once the Hollow Bell is calm, the third epilogue when every last thing (the Foundry Below too) is found
@@ -2833,6 +2888,16 @@ export class BellspireGame {
     const door = UNLOCKS.find((u) => u.room === room.id && u.ch === t.ch);
     if (door) return `Go through ${door.door} to ${door.area}`;
     return `Head for ${place}`;
+  }
+
+  /** An expansion's end (the Salt Road, the Night Orchard, the Glacier Stair): its ending page, with its epilogue
+   *  when everything in that area has been found (its '<area>:epilogue' flag keeps it). Saved first. */
+  finishArea(area: 'salt' | 'orchard' | 'glacier') {
+    const full = this.completion()[area].pct >= 100;
+    this.setFlag(`${area}:ending`); this.ended = true;
+    if (full) this.setFlag(`${area}:epilogue`);
+    this.emit({ k: 'save' });
+    this.emit({ k: 'ending', full, [area]: true });
   }
 
   /** The Windward Belfry's end: the Out-of-Tune Bell in tune again. The second epilogue follows when everything,
@@ -4355,7 +4420,7 @@ export class BellspireGame {
     let saltCells = 0, saltChests = 0;
     for (const cell of this.save.seen) if (CELLS.get(cell)?.salt) saltCells++;
     for (const info of INFO.values()) if (info.room.salt) for (const t of info.things) if (t.ch === 'C' && this.flag(`chest:${info.room.id}:${t.i}`)) saltChests++;
-    const salt = { cells: saltCells, chests: saltChests, bosses: SALT_GUARDIANS.filter((id) => this.flag(`boss:${id}`)).length };
+    const salt = { cells: saltCells, chests: saltChests, murals: 0, bosses: SALT_GUARDIANS.filter((id) => this.flag(`boss:${id}`)).length };
     const orchard = { cells: 0, chests: 0, murals: 0, bosses: ORCHARD_GUARDIANS.filter((id) => this.flag(`boss:${id}`)).length };
     for (const cell of this.save.seen) { const r = CELLS.get(cell); if (r && isOrchardRoom(r)) orchard.cells++; }
     for (const info of INFO.values()) if (isOrchardRoom(info.room)) {
@@ -4368,7 +4433,11 @@ export class BellspireGame {
       for (const t of info.things) if (t.ch === 'C' && this.flag(`chest:${info.room.id}:${t.i}`)) glacier.chests++;
       for (const n of info.room.murals ?? []) if (this.flag(`mural:${n}`)) glacier.murals++;
     }
-    return { ...all, bosses, got, total, salt, orchard, glacier, pct: Math.floor((got / total) * 100), base: { ...base, bosses: baseBosses, got: bgot, total: btotal, pct: Math.floor((bgot / btotal) * 100) }, belfry };
+    // each expansion's share found: screens, chests, murals and guardians against its own totals
+    const pctOf = (a: { cells: number; chests: number; murals: number; bosses: number }, of: { cells: number; chests: number; murals: number; bosses: number }) =>
+      Math.floor(((a.cells + a.chests + a.murals + a.bosses) / (of.cells + of.chests + of.murals + of.bosses)) * 100);
+    const areaPct = { salt: { ...salt, pct: pctOf(salt, C.salt) }, orchard: { ...orchard, pct: pctOf(orchard, C.orchard) }, glacier: { ...glacier, pct: pctOf(glacier, C.glacier) } };
+    return { ...all, bosses, got, total, ...areaPct, pct: Math.floor((got / total) * 100), base: { ...base, bosses: baseBosses, got: bgot, total: btotal, pct: Math.floor((bgot / btotal) * 100) }, belfry };
   }
 
   /** A copy of the save for storing: the hero's place is the last shrine. During an Echo Trial it is the save as it

@@ -286,6 +286,16 @@
 .bs-end-glacier{background-image:url('/art/bellspire/ending-glacier.webp')}
 .bs-mural-glacier{background-image:url('/art/bellspire/mural-glacier.webp');background-size:100% 100%}
 .bs-phuyu{width:55px;height:55px;background-image:url('/art/bellspire/phuyu-portrait.webp');background-size:100% 100%}
+.bs-killa{width:55px;height:55px;background-image:url('/art/bellspire/killa-portrait.webp');background-size:100% 100%}
+.bs-suma{width:55px;height:55px;background-image:url('/art/bellspire/suma-portrait.webp');background-size:100% 100%}
+.bs-end-art.bs-end-salt.bs-end-epilogue{background-image:url('/art/bellspire/epilogue-salt.webp')}
+.bs-end-art.bs-end-orchard.bs-end-epilogue{background-image:url('/art/bellspire/epilogue-orchard.webp')}
+.bs-end-art.bs-end-glacier.bs-end-epilogue{background-image:url('/art/bellspire/epilogue-glacier.webp')}
 .bs-saves .bs-next{display:block;color:var(--gold)}
 .bs-unlock{width:min(480px,100%)}
 .bs-unlock p{margin:0 0 10px}
+/* the expansions' epilogue paintings put their people along the bottom: the words sit in the sky instead */
+@media (min-width:701px){
+  .bs-end-epilogue+.bs-end-panel{top:4vh;bottom:auto}
+  .bs-end-orchard.bs-end-epilogue+.bs-end-panel{left:4vw;right:auto}
+}

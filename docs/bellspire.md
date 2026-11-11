@@ -331,6 +331,10 @@ still apply to their original areas. The Salt Road ending counts its own 24 scre
   tunic and the Waxed Haul Coat is Enzo's slate coat with ochre trim. Both have **Caravan stamina**: HP slowly comes
   back (3 every two seconds) outside guardian fights. The Weighmaster gives Enzo the **Tally Bell Staff** (ATK 13,
   MAG 15, MP slowly comes back) and the Panback Armadillo gives Dora the **Saltglass Sabre** (ATK 20, critical hits).
+- **Suma.** The tally keeper by the Salt Gate pedestal speaks as herself, with her own portrait (`suma-portrait.webp`)
+  and her talk pair of frames while she speaks. The first time, she meets Dora and Enzo and both reply; after that her
+  word moves with the story (`sumaLines()`): Shoulder Shift, Lift Catch, each guardian's trick in turn, then the
+  orchard wicket once the Tollkeeper is calm, Killa's orchard, and the caravans up to the pass.
 
 ## The Night Orchard
 
@@ -351,11 +355,37 @@ travel candles. The Orchard’s mural and guardian totals are separate from the 
   out of its sweep, there for height). `tests/bellspire-orchard.mjs` proves it for both heroes with a real jump.
 - **Readable edges.** Orchard and root-cellar ledges, and every grafted branch, are drawn with a lit top lip and a
   shadow under, so they stand out from the painted backdrops.
+- **Killa.** The orchard keeper at the Orchard Wicket speaks as herself, with her own portrait
+  (`killa-portrait.webp`), a breathing and blinking idle pair and a talk pair of frames while she speaks. The first
+  time she meets Dora and Enzo, who both reply; after that her word moves with the story (`killaLines()`): Lantern
+  Bloom, the Graft Shear, the Bracken Stag, the Rootback, the Mother of Grafts, then the root lift on the high east
+  terrace of the Mother's chamber, the Glacier Stair and the pass.
 - **Killa and the orchard outfits.** Killa tends the first steps. Dora’s Harvest Tunic is ochre with a brown hem.
   Enzo’s Graft Keeper’s Coat is olive with a pale sage hem. Look for the chests in the Nursery and Pruning Walk. Both
   have **Harvest**: foes drop healing more often (40% instead of 22%), and each drop restores 10 instead of 4. The
   Bracken Stag gives Enzo the **Bloomwood Staff** (ATK 14, MAG 17, +3 MAG) and the Rootback gives Dora the
   **Graftwood Blade** (ATK 21, faster swings).
+
+## The expansions' endings and epilogues
+
+Each expansion ends like the Foundry. Calming its last guardian plays a short scene with its people (Suma at the
+Tollhouse, Killa in the orchard, Phuyu at the Sun Gate) in which Dora and Enzo both speak, then its ending page
+(`finishArea()`): its painting, a line of what happened, full stats (that area's share explored, screens, chests,
+murals where it has any, guardians, both heroes' levels and the play time), and what's next (Salt Road: the orchard
+wicket; Night Orchard: the root lift). Each area's share counts its screens, chests, murals and guardians against its
+own totals (`completion().salt.pct` and so on). At 100% the ending page is the epilogue instead, with its own
+painting: the caravan festival at the Tollhouse, harvest night in the orchard, and a fire at the Sun Gate with Phuyu,
+Killa and Suma. If the last thing in an area is found after its ending, Dora and Enzo say so and the epilogue plays,
+once (the `salt:epilogue`, `orchard:epilogue` and `glacier:epilogue` flags). The title screen then offers "See the
+Salt Road epilogue", "See the Night Orchard epilogue" and "See the Glacier Stair epilogue". Old saves keep their
+`<area>:ending` flags, so one that has already found everything in an area sees its epilogue once on loading.
+
+`tests/bellspire-story.mjs` checks Killa's and Suma's lines at every stage, each ending scene, the epilogue at 100%,
+later and only once; `tests/e2e/bellspire-story.mjs` talks to both at every stage, samples Killa's frames while she
+idles and talks, clicks through each ending scene with and without everything found, and opens each title button.
+The art (two portraits, Killa's four frames and three epilogue paintings) was painted by Codex from
+[these prompts](bellspire-art/queue-jobs.txt); `python3 scripts/bellspire-art.py ~/bellspire-art-src --npcs`
+imports only those, without touching any tile sheet.
 
 ## The Glacier Stair
 

@@ -10,6 +10,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Sunken Bellspire**: finding the expansions. When the Hollow Bell, the Last Tollkeeper or the Mother of Grafts is calm, a dialog says what opened and where (the supply door at the Foundry Gate Candle, the orchard wicket in the Salt Tollhouse, the root lift in the Mother of Grafts' chamber), and a gold star marks that door on the map until you go through. The title's save card adds a "Next:" line, and the wisp and map now lead through the Glacier Stair too.
 
+- **Sunken Bellspire**: Killa and Suma have their own portraits and voices. Each meets Dora and Enzo, and both of them reply. After that, Killa's and Suma's advice changes as you progress, ending with Killa pointing you to the root lift. Killa also gets idle and talking animations. The Salt Road, Night Orchard and Glacier Stair now end with a short scene with their people and a full ending page with stats and what's next. Each also has a painted epilogue at 100% (the caravan festival, harvest night, and a fire at the Sun Gate), which can be seen again from the title.
+
 ### Changed
 
 - **Cloudsteel**: every figure is now painted, in the duels too, with its own painting for each action, in place of the figures built from shapes. The camera follows Dora while exploring and swings side-on for duels and talk. Old Cloudsteel saves start fresh.
