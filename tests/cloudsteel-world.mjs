@@ -1,12 +1,13 @@
 // Cloudsteel story tests: walking and walls, the scenes that start by themselves, talk and choices, pickups, the
 // lantern (bridges, deep planks and the Long Wick, the sun-stone, the three worlds in order, jade seals), duels
 // (starting, losing and stepping back, winning, rewards), the save, determinism, and that the whole story can be
-// played through, main path and everything, by a bot that plays the duels like a person.
+// played through, main path and everything, by a bot that plays the duels like a person; and the quest arrow, which a
+// second bot follows from the first step to the Sun Lamp knowing nothing else.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { World, idleW, LANTERN, PICKUP } from '../.checks/cloudsteel-world.js';
+import { World, idleW, LANTERN, PICKUP, nextGoal, GoalGuide } from '../.checks/cloudsteel-world.js';
 import { AREAS, SCENES, NAMES, ITEMS, DUELS, PICKUPS, NPCS, QUIPUS, STONES } from '../.checks/cloudsteel-story.js';
-import { playStory } from './cloudsteel-story-bots.mjs';
+import { playStory, playByGoals } from './cloudsteel-story-bots.mjs';
 
 let n = 0; const ok = (name) => console.log(`ok ${++n} - ${name}`);
 const W = (o = {}) => ({ ...idleW(), ...o });
@@ -116,6 +117,28 @@ const fresh = () => { const w = new World(); tick(w, W()); talk(w); return w; };
   const mins = (r) => ((r.w.stats.ticks + r.w.stats.fightTicks) / 3600).toFixed(1);
   assert.ok(NPCS.length >= 7);
   ok(`the bot plays the story through: main path ${mins(main)} min (3 duels), everything ${mins(all)} min (${DUELS.length} duels, ${QUIPUS} quipus, 6 upgrades); the same seed replays it`);
+}
+{ // the quest arrow
+  const w = fresh(); const g = nextGoal(w); assert.ok(g && g.area === 'terrace' && /^Next: /.test(g.label));
+  // it leads the way round walls, not through them: each step downhill along the ground gets nearer
+  const guide = new GoalGuide(), d0 = Math.hypot(g.x - w.x, g.z - w.z);
+  for (let i = 0; i < 400 && Math.hypot(g.x - w.x, g.z - w.z) > 1.5; i++) { const d = guide.dir(w, g); assert.ok(d && Math.abs(Math.hypot(d.x, d.z) - 1) < 1e-6); w.tick(W({ x: d.x, z: d.z })); if (w.mode !== 'walk') break; }
+  assert.ok(Math.hypot(g.x - w.x, g.z - w.z) < d0, 'following the chevron gets Dora nearer');
+  // in another area, it points to the way there
+  const v = fresh(); v.wonDuels.add('atoq'); v.flags.add('gate:sun'); v.flags.add('seen:crossed'); at(v, 'terrace', 0, 0);
+  const h = nextGoal(v); assert.match(h.label, /^Next: on to the Cloud-Forest Path/); assert.equal(h.area, 'terrace');
+  // the whole main path, following nothing else; never an optional duel or a pickup
+  const optional = DUELS.filter((d) => d.optional), labels = new Set();
+  for (const seed of [1, 2]) {
+    const r = playByGoals({ seed }); assert.ok(r.w.done);
+    for (const q of r.goals) {
+      labels.add(q.label);
+      for (const d of optional) assert.ok(d.area !== q.area || Math.hypot(d.x - q.x, d.z - q.z) > 2, `${q.label} is not the optional duel ${d.id}`);
+      for (const p of PICKUPS) assert.ok(p.area !== q.area || Math.hypot(p.x - q.x, p.z - q.z) > 1, `${q.label} is not the pickup ${p.id}`);
+    }
+    assert.ok(r.goals.length >= 12, `${r.goals.length} goals`);
+  }
+  ok(`the quest arrow leads round walls, to the way on between areas, and through the whole story to the Sun Lamp (${labels.size} different steps), never to an optional duel or a pickup`);
 }
 { // the set dressing and the paintings it and the figures use
   const decor = readFileSync(new URL('../lib/cloudsteel-decor.ts', import.meta.url), 'utf8'), named = new Set([...decor.matchAll(/'([\w-]+)': \{ u0/g)].map((m) => m[1]));

@@ -2,7 +2,7 @@
 // everyone, picks things up, lifts the lantern at bridges, stones and seals, and fights every duel with the
 // human-paced fight bot from cloudsteel-bots.mjs. `full` collects every quipu and upgrade and takes every optional
 // duel; otherwise it keeps to the main path.
-import { World, idleW, LANTERN } from '../.checks/cloudsteel-world.js';
+import { World, idleW, LANTERN, nextGoal } from '../.checks/cloudsteel-world.js';
 import { Fight, idleInput } from '../.checks/cloudsteel-game.js';
 import { makeBot } from './cloudsteel-bots.mjs';
 
@@ -135,5 +135,46 @@ export function playStory({ seed = 1, full = true, assist = true, reaction, jitt
   go(0, -33); settle();
   if (!w.done) throw new Error(`the story did not end: ${log.slice(-3).join('; ')}`);
   return { w, log, ticks };
+}
+/** plays the main path knowing nothing but the quest arrow: walks to `nextGoal`, lifts the lantern where it says to,
+ *  reads every talk and fights every duel. Each goal is checked on the way: it is in Dora's area, there is a way to it
+ *  on foot, and reaching it moves the story on. Returns the goals it was given, in order */
+export function playByGoals({ seed = 1, maxSteps = 200 } = {}) {
+  const w = new World(), log = [], goals = [], opts = { seed, assist: true };
+  let pressed = false, ticks = 0;
+  const step = (inp = idleW()) => {
+    if (w.mode === 'talk') { pressed = !pressed; inp = { ...idleW(), act: pressed, choose: w.choosing ? 2 : 0 }; }
+    w.tick(inp); ticks++;
+    if (w.mode === 'duel') fightDuel(w, opts, log);
+    if (ticks > 60 * 60 * 60) throw new Error(`the arrow led nowhere: ${goals.slice(-3).map((g) => g.label).join('; ')}`);
+  };
+  const settle = () => { let k = 0; while (w.mode !== 'walk' && w.mode !== 'end' && k++ < 6000) step(); };
+  const progress = () => `${w.area}|${[...w.flags].sort()}|${[...w.lit].sort()}|${[...w.wonDuels].sort()}|${w.seq}`;
+  settle();
+  for (let n = 0; n < maxSteps && !w.done; n++) {
+    const g = nextGoal(w); if (!g) throw new Error('no goal before the end');
+    if (g.area !== w.area) throw new Error(`the goal "${g.label}" is in ${g.area}, Dora is in ${w.area}`);
+    if (!path(w, g.x, g.z, 1.2)) throw new Error(`no way on foot to "${g.label}" at ${g.x},${g.z}`);
+    goals.push(g); const before = progress();
+    // walk the way the arrow leads, a step at a time, until the goal is reached or the story moves on
+    for (let k = 0; k < 60 * 120 && progress() === before && !w.done; k++) {
+      settle(); if (progress() !== before || w.done) break;
+      const d = Math.hypot(g.x - w.x, g.z - w.z);
+      if (g.act === 'lantern' && d < 0.5) { step({ ...idleW(), lantern: true }); step(); settle(); break; }
+      if (d < 0.25) break;
+      const p = d < 1.2 ? null : path(w, g.x, g.z, 0.5); if (d >= 1.2 && (!p || p.length < 2)) break;
+      const q = p ? p[Math.min(2, p.length - 1)] : g, dx = q.x - w.x, dz = q.z - w.z, l = Math.hypot(dx, dz) || 1;
+      const x0 = w.x, z0 = w.z; for (let s = 0; s < 6; s++) step({ ...idleW(), x: dx / l, z: dz / l });
+      // wedged on a corner the grid cut: try the directions nearest the one wanted until one moves
+      if (Math.hypot(w.x - x0, w.z - z0) < 0.01 && w.mode === 'walk') {
+        const a0 = Math.atan2(dx, dz);
+        for (const da of [0.5, -0.5, 1, -1, 1.5, -1.5]) { const x1 = w.x, z1 = w.z; for (let s = 0; s < 8; s++) step({ ...idleW(), x: Math.sin(a0 + da), z: Math.cos(a0 + da) }); if (Math.hypot(w.x - x1, w.z - z1) > 0.05) break; }
+      }
+    }
+    settle();
+    if (progress() === before && !w.done) throw new Error(`reaching "${g.label}" did not move the story on (at ${w.area} ${w.x.toFixed(1)},${w.z.toFixed(1)})`);
+  }
+  if (!w.done) throw new Error('the arrow did not lead to the end');
+  return { w, goals, log };
 }
 export { idleInput };
