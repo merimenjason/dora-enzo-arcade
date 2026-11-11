@@ -1,14 +1,15 @@
 // Cloudsteel in the browser. The terrace duel: the title, the first-time guide, every fight control by keyboard and
-// mouse (move, cut, guard, dodge, Enzo's tag, lock-on switch), the prompts, a posture break and finisher, pause and its
+// mouse (move, cut, guard, dodge, swapping to Enzo, lock-on switch), the prompts, a posture break and finisher, pause and its
 // buttons, a fall and the retry, all three rounds to the result and the ending, the record on the title, every
 // setting, a corrupt save. The climb: the prologue, talk advanced by every key, a click and a tap, both answers to a
 // choice by key and by button, walking by WASD and the arrows, turning the camera by key and by drag, talking,
 // picking up, reading a stone, the lantern by F and L, a gate opening, an optional duel turned down and fought, a
 // required duel lost, stepped back from, lost again, retried and won, the pause pack, save and leave, continue, travel
 // between areas, the last duel, the ending and the finale's buttons. Phones held either way: the fight's stick and four
-// buttons, and the climb's stick, ACT, LANTERN, talk taps and choice buttons. The quest arrow at 1280x800, 844x390 and
-// 390x844, by keys and clicks on the desktop and by taps on the phones: the Quest arrow setting off and on (the label,
-// the chevron and the edge pointer). No page errors, no sideways scrolling.
+// buttons, and the climb's stick, ACT, LANTERN, talk taps and choice buttons. The tag team and the quest arrow at
+// 1280x800, 844x390 and 390x844, by keys on the desktop and taps on the phones: the Quest arrow setting off and on (the
+// label, the chevron and the edge pointer), and in a duel the swap, Enzo's sweep, ward and hop, the swap back, and the
+// swap on a full meter that comes in with a strike. No page errors, no sideways scrolling.
 // Needs a running server (`npm run dev`, or `npx vinext start` on a build) and Playwright; set BASE_URL to point at it.
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
@@ -48,7 +49,7 @@ const sawState = (p, fn) => p.waitForFunction(([src]) => {
   if (f.stats.ticks - w.__seenT0 > 45) { delete w.__seenT0; return 'no'; }
   return false;
 }, [fn.toString()], { polling: 'raf', timeout: 60000 }).then((h) => h.jsonValue()).then((v) => v === 'yes');
-const until = async (p, fn, what, ms = 40000) => { const t0 = Date.now(); for (;;) { const f = await fight(p); if (f && fn(f)) return f; if (keepAlive && f && f.phase === 'fight' && f.hp < 60) await p.evaluate(() => window.__cloudsteel().debug.hp(100)); if (Date.now() - t0 > ms) assert.fail(`timed out waiting for ${what}: ${JSON.stringify(f)}`); await p.waitForTimeout(30); } };
+const until = async (p, fn, what, ms = 40000) => { const t0 = Date.now(); for (;;) { const f = await fight(p); if (f && fn(f)) return f; if (keepAlive && f && f.phase === 'fight' && (f.hp < 60 || f.enzoHp < 60)) await p.evaluate(() => { const d = window.__cloudsteel().debug; d.hp(100); d.enzoHp(100); }); if (Date.now() - t0 > ms) assert.fail(`timed out waiting for ${what}: ${JSON.stringify(f)}`); await p.waitForTimeout(30); } };
 const dbg = (p, name, ...a) => p.evaluate(([n, args]) => window.__cloudsteel().debug[n](...args), [name, a]);
 // Nothing below waits a fixed time for the game: under load a frame can take far longer than usual, so every wait is on
 // the game's own state (its ticks, mode, line), polled through window.__cloudsteel().
@@ -75,7 +76,12 @@ const readOn = async (p, press, what = 'the talk') => {
 const seen = { v: 2, best: null, wins: 0, fights: 1, seenHow: true, settings: { assist: true, sound: true, music: true, fx: true }, story: null, climbs: 0 };
 const noScroll = async (p) => assert.ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'no sideways scrolling');
 /** cuts until the round's foes are down (their health set to 1 first) */
-const clearRound = async (p, tap) => { const r = (await until(p, (f) => f.phase === 'fight' && f.foes.every((o) => o.state !== 'enter'), 'foes on the terrace')).round; const t0 = Date.now(); while (Date.now() - t0 < 90000) { const f = await fight(p); if (!f || f.round !== r || f.phase !== 'fight') return; await dbg(p, 'foeHp', 1); await dbg(p, 'hp', 100); await tap(); await ticks(p, 7, 1500); } assert.fail('round not cleared'); };
+const clearRound = async (p, tap) => { const r = (await until(p, (f) => f.phase === 'fight' && f.foes.every((o) => o.state !== 'enter'), 'foes on the terrace')).round; const t0 = Date.now(); while (Date.now() - t0 < 90000) { const f = await fight(p); if (!f || f.round !== r || f.phase !== 'fight') return; await dbg(p, 'foeHp', 1); await dbg(p, 'hp', 100); await nextTo(p, f); await tap(); await ticks(p, 7, 1500); } assert.fail('round not cleared'); };
+/** an archer keeps her distance: stand Dora next to the foe she is locked on to before the cut */
+const nextTo = async (p, f) => { const t = f.foes.find((o) => o.id === f.target && o.state !== 'dead'); if (t && Math.hypot(t.x - f.x, t.z - f.z) > 3) await dbg(p, 'place', t.x, t.z + 1.4); };
+/** the hero in front (Dora or Enzo) is free to act */
+const meFree = (f) => f.me === 'idle' || f.me === 'run';
+const tryMe = async (p, press, fn, what) => { for (let i = 0; i < 8; i++) { await until(p, meFree, 'the hero free'); await press(); if (await sawState(p, fn)) return; } assert.fail(what); };
 
 try {
   { // the arcade menu
@@ -86,7 +92,7 @@ try {
   assert.equal((await st(p)).screen, 'title'); await p.waitForFunction(() => { const i = document.querySelector('.cs-bg img'); return i && i.complete && i.naturalWidth > 0; }); await noScroll(p);
   assert.equal(await p.locator('.cs-home').getAttribute('href'), '/');
   ok('the title shows its painting and a way back to the arcade');
-  await p.getByRole('button', { name: 'How to play' }).click(); assert.equal((await st(p)).screen, 'howto'); assert.equal(await p.locator('.cs-cols .cs-card').count(), 4);
+  await p.getByRole('button', { name: 'How to play' }).click(); assert.equal((await st(p)).screen, 'howto'); assert.equal(await p.locator('.cs-cols .cs-card').count(), 5);
   await p.locator('.cs-back').click(); assert.equal((await st(p)).screen, 'title'); ok('How to play opens and goes back');
   await p.getByRole('button', { name: 'Terrace duel' }).click(); assert.equal((await st(p)).screen, 'howto');
   await p.getByRole('button', { name: /^Start/ }).click(); assert.equal((await st(p)).screen, 'fight'); assert.equal((await st(p)).save.seenHow, true);
@@ -113,8 +119,8 @@ try {
 
   keepAlive = false;
   // the prompt, a block, a posture break, the finisher
-  await until(p, (f) => f.foes[0].state === 'windup', 'a wind-up', 60000);
-  assert.equal(await p.locator('.cs-prompt').getAttribute('data-kind'), 'guard'); assert.ok(await p.locator('.cs-prompt [data-p="guard"]').isVisible());
+  // the prompt is written by the frame after a wind-up starts: wait for it during the wind-up
+  await p.waitForFunction(() => { const s = window.__cloudsteel(), f = s.fight; return f && f.foes[0].state === 'windup' && document.querySelector('.cs-prompt')?.dataset.kind === 'guard'; }, null, { timeout: 60000, polling: 'raf' }); assert.ok(await p.locator('.cs-prompt [data-p="guard"]').isVisible());
   // the next blow, met with the guard already up (a test cannot press in time for every wind-up)
   await until(p, (f) => f.foes[0].state !== 'windup' && f.foes[0].state !== 'strike' && (f.state === 'idle' || f.state === 'run'), 'Dora free, the blow over', 60000);
   await dbg(p, 'hp', 100); await p.keyboard.down('KeyK'); await until(p, (f) => f.state === 'guard', 'the guard up'); await until(p, (f) => f.foes[0].state === 'windup', 'the next wind-up', 60000);
@@ -130,12 +136,16 @@ try {
   const fin = await until(p, (f) => f.stats.finishers === 1 && f.state !== 'finisher', 'the finisher'); assert.ok(before - fin.foes[0].hp >= 60 || fin.foes[0].state === 'dead');
   ok('a broken posture shows "Finish it", and a cut is the finisher');
 
-  // Enzo
-  await p.keyboard.press('KeyE'); await ticks(p, 12); assert.equal((await fight(p)).stats.tags, 0);
+  // the tag team (each move is pressed again at every screen size further down)
+  keepAlive = true;
+  await until(p, meFree, 'Dora free'); await p.keyboard.press('KeyE'); await until(p, (f) => f.hero === 'enzo', 'E to swap'); assert.equal((await fight(p)).stats.tags, 0);
+  assert.equal(await p.locator('.cs-hero b').textContent(), 'Enzo'); assert.equal(await p.locator('.cs-tagbox b').textContent(), 'Dora');
+  await until(p, (f) => f.swapCd === 0, 'the rest after a swap'); await p.keyboard.press('KeyE'); await until(p, (f) => f.hero === 'dora', 'E to swap back');
   await dbg(p, 'tag', 100); await until(p, async () => (await p.locator('.cs-tagbox').getAttribute('data-full')) === '1', 'the full meter');
-  await until(p, (f) => f.state === 'idle' || f.state === 'run', 'Dora free'); await p.keyboard.press('KeyE');
-  await until(p, (f) => f.stats.tags === 1, 'E to call Enzo'); await until(p, (f) => f.enzo === 'wait' && f.tag < 100, 'Enzo back at his post');
-  ok('E does nothing on an empty meter, and calls Enzo on a full one');
+  await until(p, (f) => f.swapCd === 0 && meFree(f), 'Dora free'); await p.keyboard.press('KeyE');
+  await until(p, (f) => f.stats.tags === 1 && f.hero === 'enzo', 'E on a full meter: Enzo in with a strike'); await until(p, (f) => f.me === 'idle' || f.me === 'run' || f.me === 'hit', 'Enzo lands');
+  await until(p, (f) => f.swapCd === 0, 'the rest'); await p.keyboard.press('KeyE'); await until(p, (f) => f.hero === 'dora', 'back to Dora'); keepAlive = false;
+  ok('E swaps Dora and Enzo at any time and back, and on a full meter Enzo comes in with a strike');
 
   // pause and its buttons
   await p.keyboard.press('Escape'); assert.equal((await st(p)).paused, true); const t1 = (await fight(p)).stats.ticks; await frames(p); assert.equal((await fight(p)).stats.ticks, t1);
@@ -145,16 +155,16 @@ try {
   ok('Esc, P and the pause button stop the fight; the pause menu toggles help and resumes');
 
   // a fall and the retry
-  await dbg(p, 'hp', 1); await p.waitForFunction(() => document.querySelector('.cs-veil h2')?.textContent === 'Dora is down', null, { timeout: 90000 });
+  await dbg(p, 'hp', 1); await dbg(p, 'enzoHp', 1); await p.waitForFunction(() => document.querySelector('.cs-veil h2')?.textContent === 'Dora and Enzo are down', null, { timeout: 90000 });
   assert.equal((await fight(p)).phase, 'lost'); await p.keyboard.press('Escape'); assert.equal((await st(p)).paused, false);
   await p.getByRole('button', { name: /try the round again/ }).click(); const re = await fight(p); assert.equal(re.hp, 100); assert.equal(re.stats.falls, 1); assert.equal(re.round, 0);
   ok('a fall offers the round again on full health');
 
   // round two: two foes and the lock-on switch
   const tapJ = () => p.keyboard.press('KeyJ');
-  await clearRound(p, tapJ); const r2 = await until(p, (f) => f.round === 1 && f.phase === 'fight', 'round two'); assert.equal(r2.foes.length, 2);
+  await clearRound(p, tapJ); const r2 = await until(p, (f) => f.round === 1 && f.phase === 'fight', 'round two'); assert.equal(r2.foes.length, 3); assert.equal(r2.foes[2].kind, 'archer');
   await p.keyboard.press('KeyQ'); await until(p, (f) => f.target !== r2.target, 'Q to switch foe'); const t2 = (await fight(p)).target; await p.keyboard.press('Tab'); await until(p, (f) => f.target !== t2, 'Tab to switch foe');
-  ok('round two has two foes, and Q or Tab switches the lock');
+  ok('round two has two foes and an archer, and Q or Tab switches the lock');
   await clearRound(p, tapJ); const r3 = await until(p, (f) => f.round === 2 && f.phase === 'fight', 'round three'); assert.equal(r3.foes[0].kind, 'bear'); assert.ok(/Ukhu/.test(await p.locator('.cs-foe b').textContent()));
   await clearRound(p, tapJ);
   await p.waitForFunction(() => window.__cloudsteel().screen === 'result' && window.__cloudsteel().done, null, { timeout: 60000 });
@@ -202,8 +212,8 @@ try {
     const settle = () => waitS((s) => s.mode === 'walk' && s.t >= 3, 'Dora to stand free');
     const choose = async (yes) => { await waitS((s) => s.choosing, 'a choice'); await q.keyboard.press(yes ? 'KeyY' : 'KeyN'); };
     const fightIn = async () => (await st(q)).fight;
-    const untilF = async (fn, what, ms = 40000) => { const t0 = Date.now(); for (;;) { const f = await fightIn(); if (f && fn(f)) return f; if (f && f.phase === 'fight' && f.hp < 60) await dbg(q, 'hp', 100); if (Date.now() - t0 > ms) assert.fail(`timed out waiting for ${what}: ${JSON.stringify(f && { phase: f.phase, state: f.state })}`); await q.waitForTimeout(30); } };
-    const winDuel = async () => { await untilF((f) => f.phase === 'fight' && f.foes.every((o) => o.state !== 'enter'), 'the duel to start'); for (const t0 = Date.now(); Date.now() - t0 < 90000 && (await sy()).mode === 'duel';) { await dbg(q, 'foeHp', 1); await dbg(q, 'hp', 100); await q.keyboard.press('KeyJ'); await ticks(q, 8, 1500); } assert.notEqual((await sy()).mode, 'duel'); };
+    const untilF = async (fn, what, ms = 40000) => { const t0 = Date.now(); for (;;) { const f = await fightIn(); if (f && fn(f)) return f; if (f && f.phase === 'fight' && f.hp < 60 && f.hp > 1) await dbg(q, 'hp', 100); if (f && f.phase === 'fight' && f.enzoHp < 60 && f.enzoHp > 1) await dbg(q, 'enzoHp', 100); if (Date.now() - t0 > ms) assert.fail(`timed out waiting for ${what}: ${JSON.stringify(f && { phase: f.phase, state: f.state })}`); await q.waitForTimeout(30); } };
+    const winDuel = async () => { await untilF((f) => f.phase === 'fight' && f.foes.every((o) => o.state !== 'enter'), 'the duel to start'); for (const t0 = Date.now(); Date.now() - t0 < 90000 && (await sy()).mode === 'duel';) { await dbg(q, 'foeHp', 1); await dbg(q, 'hp', 100); await dbg(q, 'enzoHp', 100); const f = await fightIn(); if (f && f.hero === 'dora') await nextTo(q, f); await q.keyboard.press('KeyJ'); await ticks(q, 8, 1500); } assert.notEqual((await sy()).mode, 'duel'); };
     const near = async (label) => { await q.waitForFunction((l) => { const n = document.querySelector('.cs-near'); return n && n.dataset.on === '1' && n.textContent.includes(l); }, label, { timeout: 10000 }); };
 
     await q.getByRole('button', { name: 'Begin the climb' }).click(); assert.equal((await st(q)).screen, 'prologue');
@@ -255,7 +265,7 @@ try {
     await settle(); await q.keyboard.press('KeyE'); await read(); await waitS((s) => s.choosing, 'the challenge again'); await q.keyboard.press('KeyN'); await waitS((s) => s.mode === 'walk', 'N for no');
     await settle(); await q.keyboard.press('KeyE'); await read(); await waitS((s) => s.choosing, 'the challenge again'); await q.getByRole('button', { name: 'Not now' }).click(); await waitS((s) => s.mode === 'walk', 'the Not now button');
     await settle(); await q.keyboard.press('KeyE'); await read(); await waitS((s) => s.choosing, 'the challenge again'); await q.getByRole('button', { name: /Duel the Sword-Kin/ }).click();
-    await waitS((s) => s.mode === 'duel' && s.duel === 'kin1', 'the duel'); await q.locator('.cs-foe[data-on="1"]').waitFor(); assert.equal((await fightIn()).foes.length, 2);
+    await waitS((s) => s.mode === 'duel' && s.duel === 'kin1', 'the duel'); await q.locator('.cs-foe[data-on="1"]').waitFor(); assert.equal((await fightIn()).foes.length, 3);
     ok('an optional duel can be turned down by arrow and E, by N, or by its button, and taken by its button');
     // every fight control inside a story duel
     await untilF((f) => f.phase === 'fight' && f.foes.every((o) => o.state !== 'enter'), 'the foes'); let a = await fightIn();
@@ -268,17 +278,18 @@ try {
     await tryPressQ(() => q.mouse.click(640, 400), (f) => f.state.startsWith('cut'), 'a click to cut'); await untilF((f) => f.state === 'idle' || f.state === 'run', 'the cut to end');
     await q.mouse.move(640, 400); await q.mouse.down({ button: 'right' }); await untilF((f) => f.state === 'guard', 'right-click'); await q.mouse.up({ button: 'right' });
     const t0 = (await fightIn()).target; await q.keyboard.press('KeyQ'); await untilF((f) => f.target !== t0, 'Q to switch');
-    await dbg(q, 'tag', 100); await untilF((f) => f.state === 'idle' || f.state === 'run', 'Dora free'); await q.keyboard.press('KeyE'); await untilF((f) => f.stats.tags === 1, 'E for Enzo');
-    assert.equal((await sy()).mode, 'duel', 'E in a duel calls Enzo, it does not talk');
+    await dbg(q, 'tag', 100); await untilF((f) => f.state === 'idle' || f.state === 'run', 'Dora free'); await q.keyboard.press('KeyE'); await untilF((f) => f.stats.tags === 1 && f.hero === 'enzo', 'E for Enzo');
+    assert.equal((await sy()).mode, 'duel', 'E in a duel swaps to Enzo, it does not talk');
+    await untilF((f) => f.swapCd === 0 && (f.me === 'idle' || f.me === 'run'), 'Enzo free'); await q.keyboard.press('KeyE'); await untilF((f) => f.hero === 'dora', 'E back to Dora');
     await winDuel(); await waitS((s) => s.mode === 'talk', 'the talk after'); assert.ok((await sy()).got.includes('edge')); await read(); await q.locator('.cs-toast').waitFor(); await q.getByRole('button', { name: 'Carry on' }).click();
     assert.ok((await sy()).won.includes('kin1')); ok('in a story duel J, K, Space, a click, a right-click, Q and E all work; the win gives the Rain-Tempered Edge');
 
     // a required duel: lose, step back, lose, try again, win
     await dbg(q, 'go', 0, -1.8, Math.PI); await waitS((s) => s.mode === 'talk', 'Atoq to speak'); await read(); await waitS((s) => s.mode === 'duel' && s.duel === 'atoq', 'the Atoq duel');
-    await untilF((f) => f.phase === 'fight', 'the duel'); await dbg(q, 'hp', 1); await q.waitForFunction(() => document.querySelector('.cs-veil h2')?.textContent === 'Dora is down', null, { timeout: 90000 });
+    await untilF((f) => f.phase === 'fight', 'the duel'); await dbg(q, 'hp', 1); await dbg(q, 'enzoHp', 1); await q.waitForFunction(() => document.querySelector('.cs-veil h2')?.textContent === 'Dora and Enzo are down', null, { timeout: 90000 });
     await q.getByRole('button', { name: /Step back down the path/ }).click(); const back = await waitS((s) => s.mode !== 'duel', 'the step back'); assert.ok(Math.hypot(back.x - 0, back.z - 4) < 0.2, 'back at the foot of the plaza'); assert.ok(!back.won.includes('atoq'));
     await waitS((s) => s.mode === 'walk', 'walking again'); await dbg(q, 'go', 0, -1.8, Math.PI); await waitS((s) => s.mode === 'talk', 'Atoq again'); await read(); await waitS((s) => s.mode === 'duel', 'the duel again');
-    await untilF((f) => f.phase === 'fight', 'the duel'); await dbg(q, 'hp', 1); await q.waitForFunction(() => document.querySelector('.cs-veil h2')?.textContent === 'Dora is down', null, { timeout: 90000 });
+    await untilF((f) => f.phase === 'fight', 'the duel'); await dbg(q, 'hp', 1); await dbg(q, 'enzoHp', 1); await q.waitForFunction(() => document.querySelector('.cs-veil h2')?.textContent === 'Dora and Enzo are down', null, { timeout: 90000 });
     await q.getByRole('button', { name: /try the duel again/ }).click(); assert.equal((await fightIn()).hp, 100);
     await winDuel(); await waitS((s) => s.won.includes('atoq') && s.mode === 'talk', 'the talk after Atoq'); await read();
     ok('a lost duel offers a step back down the path or another try; both work, and the win is kept');
@@ -370,7 +381,7 @@ try {
     await m.close();
   }
   for (const [tag, vp, phone] of [['1280x800', { width: 1280, height: 800 }, false], ['844x390', { width: 844, height: 390 }, true], ['390x844', { width: 390, height: 844 }, true]]) {
-    // the quest arrow, by keys and clicks on the desktop and by taps on a phone
+    // the tag team and the quest arrow, by keys on the desktop and by taps on a phone
     const m = await open(vp, phone, seen); await m.goto(base + '/cloudsteel'); await ready(m);
     const hit = (loc) => phone ? loc.tap() : loc.click(), sy = async () => (await st(m)).story;
     const waitS = async (fn, what, ms = 30000) => { const t0 = Date.now(); for (;;) { const s = await sy(); if (s && fn(s)) return s; if (Date.now() - t0 > ms) assert.fail(`${tag}: timed out waiting for ${what}`); await m.waitForTimeout(40); } };
@@ -392,6 +403,25 @@ try {
     const pb = await m.locator('.cs-goal-ptr').boundingBox(); assert.ok(pb && pb.x >= -30 && pb.y >= -30 && pb.x + pb.width <= vp.width + 30 && pb.y + pb.height <= vp.height + 30, 'the pointer sits on the edge');
     await dbg(m, 'go', 0, 4, Math.PI); await m.waitForFunction(() => document.querySelector('.cs-goal-ptr')?.dataset.on === '0', null, { timeout: 15000 });
     await noScroll(m); ok(`${tag}: the Quest arrow setting turns the label, the chevron and the edge pointer off and on`);
+    await pause(); await hit(m.getByRole('button', { name: 'Save and leave' }));
+    // the tag team in a duel
+    await hit(m.getByRole('button', { name: 'Terrace duel' })); await until(m, (f) => f.phase === 'fight' && f.foes[0].state !== 'enter', `${tag}: the fight`); keepAlive = true; await dbg(m, 'calm');
+    const press = (key, sel) => phone ? m.locator(sel).tap() : m.keyboard.press(key);
+    await tryMe(m, () => press('KeyE', '.t-tag'), (f) => f.hero === 'enzo', `${tag}: swap to Enzo`);
+    if (phone) { assert.equal(await m.locator('.t-cut').textContent(), 'SWEEP'); assert.equal(await m.locator('.t-guard').textContent(), 'WARD'); assert.equal(await m.locator('.t-dodge').textContent(), 'HOP'); }
+    await tryMe(m, () => press('KeyJ', '.t-cut'), (f) => f.me === 'sweep', `${tag}: Enzo's sweep`); await until(m, (f) => f.me !== 'sweep', 'the sweep to end');
+    if (phone) {
+      const cdp = await m.context().newCDPSession(m), touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 2 }] });
+      const gb = await m.locator('.t-guard').boundingBox(); await until(m, meFree, 'Enzo free'); await touch('touchStart', gb.x + gb.width / 2, gb.y + gb.height / 2); await until(m, (f) => f.me === 'ward', `${tag}: WARD`); await touch('touchEnd');
+    } else { await until(m, meFree, 'Enzo free'); await m.keyboard.down('KeyK'); await until(m, (f) => f.me === 'ward', `${tag}: K to ward`); await m.keyboard.up('KeyK'); }
+    await until(m, (f) => f.me !== 'ward' && f.wardCd === 0, 'the ward to rest');
+    await tryMe(m, () => press('Space', '.t-dodge'), (f) => f.me === 'hop', `${tag}: Enzo's hop`); await until(m, (f) => f.me !== 'hop', 'the hop to end');
+    await until(m, (f) => f.swapCd === 0, 'the rest'); await tryMe(m, () => press('KeyE', '.t-tag'), (f) => f.hero === 'dora', `${tag}: swap back to Dora`);
+    if (phone) assert.equal(await m.locator('.t-cut').textContent(), 'CUT');
+    await dbg(m, 'tag', 100); await until(m, (f) => f.swapCd === 0, 'the rest'); await tryMe(m, () => press('KeyE', '.t-tag'), (f) => f.stats.tags === 1 && f.hero === 'enzo', `${tag}: swap on a full meter`);
+    await until(m, (f) => f.swapCd === 0 && meFree(f), 'Enzo landed'); await dbg(m, 'tag', 100); await tryMe(m, () => press('KeyE', '.t-tag'), (f) => f.stats.tags === 2 && f.hero === 'dora' && f.me === 'tagin', `${tag}: Dora in on a full meter`);
+    keepAlive = false; await noScroll(m);
+    ok(`${tag}: ${phone ? 'SWAP, SWEEP, WARD and HOP taps' : 'E, J, K and Space'} swap to Enzo, sweep, ward, hop, swap back, and come in with a strike on a full meter, both ways`);
     await m.close();
   }
   assert.deepEqual(errors, [], 'no page errors');

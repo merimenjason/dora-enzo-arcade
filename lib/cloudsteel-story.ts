@@ -155,13 +155,16 @@ export const DUELS: Duel[] = [
   { id: 'atoq', area: 'terrace', title: 'Atoq the Sellsword', x: 0, z: -8, rot: 0, optional: false, retreat: { x: 0, z: 4 }, before: 'atoq-before', after: 'atoq-after',
     foes: [{ kind: 'fox', name: 'Atoq the Sellsword', look: 'atoq' }], stand: [{ x: 0, z: -13, face: S }] },
   { id: 'kin1', area: 'terrace', title: 'The Sword-Kin', x: 25, z: -8, rot: -Math.PI / 2, optional: true, reward: 'edge', retreat: { x: 14, z: -8 }, before: 'kin1-before', after: 'kin1-after',
-    foes: [{ kind: 'fox', name: 'Sword-Kin Sami', look: 'kin' }, { kind: 'fox', name: 'Sword-Kin Wayra', look: 'kin' }], stand: [{ x: 28, z: -9.4, face: W }, { x: 28.4, z: -6.6, face: W }] },
+    foes: [{ kind: 'fox', name: 'Sword-Kin Sami', look: 'kin' }, { kind: 'fox', name: 'Sword-Kin Wayra', look: 'kin' }, { kind: 'archer', name: 'Kin Archer Chaska', look: 'archer' }],
+    stand: [{ x: 28, z: -9.4, face: W }, { x: 28.4, z: -6.6, face: W }, { x: 30.6, z: -10.6, face: W }] },
   { id: 'ambush', area: 'forest', title: 'The Sword-Kin Ambush', x: 10, z: -60, rot: 0, optional: false, retreat: { x: 11, z: -47 }, before: 'ambush-before', after: 'ambush-after',
-    foes: [{ kind: 'fox', name: 'Sword-Kin Illa', look: 'kin' }, { kind: 'fox', name: 'Sword-Kin Kusi', look: 'kin' }], stand: [{ x: 8.6, z: -64.5, face: S }, { x: 11.6, z: -64.8, face: S }] },
+    foes: [{ kind: 'fox', name: 'Sword-Kin Illa', look: 'kin' }, { kind: 'fox', name: 'Sword-Kin Kusi', look: 'kin' }, { kind: 'archer', name: 'Kin Archer Ninan', look: 'archer' }],
+    stand: [{ x: 8.6, z: -64.5, face: S }, { x: 11.6, z: -64.8, face: S }, { x: 10.2, z: -67.6, face: S }] },
   { id: 'titu', area: 'forest', title: 'Titu of the Ferns', x: -18, z: -49, rot: Math.PI / 2, optional: true, reward: 'claw', retreat: { x: -11, z: -48.5 }, before: 'titu-before', after: 'titu-after',
     foes: [{ kind: 'puma', name: 'Titu of the Ferns', look: 'titu' }], stand: [{ x: -21.5, z: -49, face: E }] },
   { id: 'mallku', area: 'citadel', title: 'Mallku, Kin-Captain', x: -27, z: -15, rot: Math.PI / 2, optional: true, reward: 'flame', retreat: { x: -18, z: -15 }, before: 'mallku-before', after: 'mallku-after',
-    foes: [{ kind: 'fox', name: 'Mallku, Kin-Captain', look: 'mallku', hp: 200 }, { kind: 'fox', name: 'Sword-Kin Rumi', look: 'kin' }], stand: [{ x: -31, z: -16.4, face: E }, { x: -31.4, z: -13.4, face: E }] },
+    foes: [{ kind: 'fox', name: 'Mallku, Kin-Captain', look: 'mallku', hp: 200 }, { kind: 'fox', name: 'Sword-Kin Rumi', look: 'kin' }, { kind: 'archer', name: 'Kin Archer Pacha', look: 'archer' }],
+    stand: [{ x: -31, z: -16.4, face: E }, { x: -31.4, z: -13.4, face: E }, { x: -34.2, z: -15, face: E }] },
   { id: 'ukhu', area: 'citadel', title: 'Ukhu, Warden of the Gate', x: 0, z: -39, rot: 0, optional: false, retreat: { x: 0, z: -27 }, before: 'ukhu-before', after: 'ukhu-after',
     foes: [{ kind: 'bear', name: 'Ukhu, Warden of the Gate', look: 'ukhu' }], stand: [{ x: 0, z: -44.5, face: S }] },
 ];
@@ -180,11 +183,11 @@ export const NPCS: Npc[] = [
 ];
 
 /** talk names */
-export const NAMES: Record<string, string> = { dora: 'Dora', enzo: 'Enzo', qori: 'Qori', tupa: 'Tupa', atoq: 'Atoq', kin: 'Sword-Kin', mallku: 'Mallku', titu: 'Titu', ukhu: 'Ukhu', stone: '' };
+export const NAMES: Record<string, string> = { dora: 'Dora', enzo: 'Enzo', qori: 'Qori', tupa: 'Tupa', atoq: 'Atoq', kin: 'Sword-Kin', archer: 'Kin Archer', mallku: 'Mallku', titu: 'Titu', ukhu: 'Ukhu', stone: '' };
 
 const D = (text: string, mood?: 1) => ({ who: 'dora' as const, text, mood }), Z = (text: string, mood?: 1) => ({ who: 'enzo' as const, text, mood });
-const say = (who: 'qori' | 'tupa' | 'atoq' | 'kin' | 'mallku' | 'titu' | 'ukhu' | 'stone') => (text: string, mood?: 1) => ({ who, text, mood });
-const Q = say('qori'), T = say('tupa'), A = say('atoq'), K = say('kin'), M = say('mallku'), P = say('titu'), U = say('ukhu'), X = say('stone');
+const say = (who: 'qori' | 'tupa' | 'atoq' | 'kin' | 'archer' | 'mallku' | 'titu' | 'ukhu' | 'stone') => (text: string, mood?: 1) => ({ who, text, mood });
+const Q = say('qori'), T = say('tupa'), A = say('atoq'), K = say('kin'), B = say('archer'), M = say('mallku'), P = say('titu'), U = say('ukhu'), X = say('stone');
 
 export const SCENES: Record<string, (w: WorldView) => SceneDef> = {
   // ------------------------------------------------------------ the Rain Terrace
@@ -203,6 +206,8 @@ export const SCENES: Record<string, (w: WorldView) => SceneDef> = {
       Z('The forest gate is shut. There is a sun carved on the stone beside it.'),
       Q('A sun-stone. It only wakes for a true flame. Lift your lantern to it, little one, and it will know you.', 1),
       Q('And if you want a longer reach, look behind my bell-house. I hid something there when I was your age. Mind the ledge.'),
+      Q('One more thing. Mallku has hired archers: vizcachas from my own valley, more is the shame. When one draws, a red line runs along the ground to you. Step off it.'),
+      Z('Or stand behind the lantern. Arrows will not pass its light.', 1),
     ], then: [{ flag: 'qori2' }] };
     if (turned(w)) return { lines: [
       Q(w.got('wick') ? 'Ah, you found my wick. My mother wove it from the Lamp\'s own cord. It reaches across gaps that ordinary light cannot.' : 'Behind the bell-house, along the ledge. Go on. An old vizcacha keeps her promises.'),
@@ -241,7 +246,9 @@ export const SCENES: Record<string, (w: WorldView) => SceneDef> = {
   'kin1-before': (w) => ({ lines: w.won('atoq') ? [
     K('You beat Atoq? Then the captain will want you beaten twice.'),
     D('There are two of you.'),
-    K('There are always two of us. Duel the Sword-Kin, chinchilla? Win, and Sami gives up her rain-tempered whetstone.', 1),
+    B('Three. Up here on the rail, with a bow.', 1),
+    Z('Dora, watch for her red line. I will take the arrows on the lantern.'),
+    K('There are always more of us. Duel the Sword-Kin, chinchilla? Win, and Sami gives up her rain-tempered whetstone.', 1),
   ] : [
     K('The captain says nobody passes. Atoq has the plaza. We have the balcony.'),
     D('And if I would rather fight you first?'),
@@ -293,10 +300,12 @@ export const SCENES: Record<string, (w: WorldView) => SceneDef> = {
   'ambush-before': (w) => w.has('met:ambush') ? { lines: [K('Again? The captain will be pleased with us.'), D('Not for long.', 1)] } : { lines: [
     K('That is far enough. Captain\'s orders: the ember goes into the gorge.'),
     K('Atoq went soft. We have not.', 1),
-    D('Enzo, stay by the ferns. Call if you see an opening.'),
-    Z('When my lantern is full, I will be there.', 1),
+    B('Hold still, chinchilla. It makes this quicker.', 1),
+    Z('An archer. When she draws, I take the front: arrows break on the lantern. Swap me in.'),
+    D('Then you take the arrows and I take the blades. Swap when you need me.'),
+    Z('And when my lantern is full, I come in shining.', 1),
   ], then: [{ flag: 'met:ambush' }] },
-  'ambush-after': () => ({ lines: [K('...Go on, then. The captain waits behind a jade door in the citadel\'s west yard. We will not.'), D('Go home, Illa. Kusi. The mist is lifting.', 1)] }),
+  'ambush-after': () => ({ lines: [B('...You did not even stand where I aimed. Not once.'), K('...Go on, then. The captain waits behind a jade door in the citadel\'s west yard. We will not.'), D('Go home, Illa. Kusi. The mist is lifting.', 1)] }),
   'titu-before': (w) => ({ lines: w.has('met:titu') ? [P('Back again. Good. The ferns were getting bored.'), P('Shall we?', 1)] : [
     P('Few find my glade. Fewer find it twice. You walked on a bridge that was not there to reach me.'),
     D('Atoq said you were the best duellist on the mountain.'),

@@ -94,7 +94,7 @@ const fresh = () => { const w = new World(); tick(w, W()); talk(w); return w; };
 { // an optional duel: can be turned down; its reward
   const w = fresh(); w.wonDuels.add('atoq'); at(w, 'terrace', 26.4, -8.6); assert.equal(w.near()?.kind, 'duel');
   tick(w, W()); tick(w, W({ act: true })); talk(w, 2); assert.equal(w.mode, 'walk'); assert.ok(!w.duel, '"Not now" walks away');
-  tick(w, W(), 2); tick(w, W({ act: true })); talk(w, 1); assert.equal(w.mode, 'duel'); assert.equal(w.duel.id, 'kin1'); assert.equal(w.duel.foes.length, 2);
+  tick(w, W(), 2); tick(w, W({ act: true })); talk(w, 1); assert.equal(w.mode, 'duel'); assert.equal(w.duel.id, 'kin1'); assert.equal(w.duel.foes.length, 3); assert.equal(w.duel.foes[2].kind, 'archer');
   const e = []; w.endDuel(true); e.push(...w.events); assert.ok(w.got('edge') && e.some((x) => x.t === 'got' && x.id === 'edge')); assert.ok(w.ups.edge);
   talk(w); assert.ok(w.npcs().some((o) => o.id === 'kin1-after'), 'Sami stays to talk');
   ok('an optional duel can be turned down; winning it gives a sword upgrade, and the foe stays to talk');
@@ -152,9 +152,11 @@ const fresh = () => { const w = new World(); tick(w, W()); talk(w); return w; };
   }
   // every action has its own painting: the heavy cut's wind-up and the ending's poses are not borrowed from another
   const sprites = readFileSync(new URL('../lib/cloudsteel-sprites.ts', import.meta.url), 'utf8'), frames = (who) => JSON.parse(sprites.match(new RegExp(`${who}: \\{[^}]*frames: (\\[[^\\]]*\\])`))[1]);
-  for (const [who, need] of [['dora', ['windup', 'heavy', 'lunge', 'win', 'gaze']], ['enzo', ['lantern-up', 'cheer', 'offer']]]) { const f = frames(who); for (const x of need) assert.ok(f.includes(x), `${who} has ${x}`); assert.equal(new Set(f).size, f.length); }
+  for (const [who, need] of [['dora', ['windup', 'heavy', 'lunge', 'win', 'gaze', 'wait', 'tag-out']], ['enzo', ['lantern-up', 'cheer', 'offer', 'f-stance', 'sweep-wind', 'sweep', 'sweep-end', 'ward', 'ward-hit', 'hop', 'f-hit', 'f-down', 'tag-out']],
+    ['archer', ['idle', 'walk-0', 'walk-1', 'walk-2', 'draw', 'aim', 'release', 'hit', 'broken', 'down', 'bow', 'talk']]]) { const f = frames(who); for (const x of need) assert.ok(f.includes(x), `${who} has ${x}`); assert.equal(new Set(f).size, f.length); }
   const scene = readFileSync(new URL('../lib/cloudsteel-scene.ts', import.meta.url), 'utf8');
   assert.match(scene, /case 'cut3': return t < CUTS\[2\]\.hit - 3 \? 'heavy' : 'lunge';/); assert.match(scene, /mode === 'end'\) \{ df = 'gaze'; \}/); assert.match(scene, /mode === 'end'\) ef = 'offer';/);
-  ok('the set dressing is all painted and clear of the way; the heavy wind-up and the ending have their own paintings');
+  for (const n of ['quest-chevron', 'quest-mark', 'quest-pointer', 'arrow', 'portrait-archer', 'sprites/archer']) assert.ok(readFileSync(new URL(`../public/art/cloudsteel/${n}.webp`, import.meta.url)).length > 1000, `${n} is painted`);
+  ok('the set dressing is all painted and clear of the way; the heavy wind-up, the ending, Enzo\'s moves and the archer have their own paintings');
 }
 console.log(`\n${n} Cloudsteel story tests passed`);

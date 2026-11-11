@@ -10,7 +10,7 @@ export const STORY_V = 1, WALK = 3.6, LANTERN = { len: 54, at: 24, r: 3.5, wick:
 
 export type AreaId = 'terrace' | 'forest' | 'citadel';
 export type Shape = { k: 'rect'; x0: number; z0: number; x1: number; z1: number } | { k: 'circle'; x: number; z: number; r: number };
-export type Who = 'dora' | 'enzo' | 'qori' | 'tupa' | 'atoq' | 'kin' | 'mallku' | 'titu' | 'ukhu' | 'stone';
+export type Who = 'dora' | 'enzo' | 'qori' | 'tupa' | 'atoq' | 'kin' | 'archer' | 'mallku' | 'titu' | 'ukhu' | 'stone';
 /** a line of talk; `mood` picks the speaker's second talking painting */
 export type Line = { who: Who; text: string; mood?: 1 };
 export type Effect = { flag: string } | { give: ItemId } | { end: true };
