@@ -45,7 +45,6 @@ export const ART: Record<string, [number, number, number]> = {
   'icons': [24, 24, 64],
   'suma': [64, 58, 4],
   'props-salt': [144, 30, 8],
-  'killa': [58, 54, 1],
   'props-orchard': [96, 64, 8],
   'portraits': [64, 64, 9],
   'tiles-halls': [16, 16, 9],
@@ -142,6 +141,12 @@ export const ART: Record<string, [number, number, number]> = {
   'enzo-glacier-work': [64, 54, 8],
   'enzo-glacier-work-base': [64, 54, 8],
   'enzo-glacier': [56, 50, 96],
+  'killa': [58, 54, 4],
+  'killa-portrait': [64, 64, 1],
+  'suma-portrait': [64, 64, 1],
+  'epilogue-salt': [480, 270, 1],
+  'epilogue-orchard': [480, 270, 1],
+  'epilogue-glacier': [480, 270, 1],
 };
 
 // Painted bounds of every frame, [x0, y0, x1, y1] from the draw point (the cell's bottom middle; y is up-negative),

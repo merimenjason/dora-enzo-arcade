@@ -60,6 +60,32 @@ function saveLine(s: Save) {
 }
 /** The title card's "Next:" line: an open door not used yet, or the next thing the story wants. */
 function nextLine(s: Save) { return new BellspireGame(s).nextLine(); }
+type AreaId = 'salt' | 'orchard' | 'glacier';
+/** The expansions' ending pages: the title, the ending and epilogue words, and what's next. */
+const AREA_END: Record<AreaId, { name: string; title: string; text: string; epiTitle: string; epi: string; next: string | null }> = {
+  salt: {
+    name: 'Salt Road', title: 'The Salt Road is open',
+    text: 'The first pack bells ring before dawn. Suma counts the loads as the llamas take the old road east.',
+    epiTitle: 'The Caravan Festival',
+    epi: 'That night the Tollhouse rang with pack bells. Suma counted every load twice, laughing, while Dora and Enzo shared the first flatbread baked with new salt.',
+    next: 'Behind the Tollhouse, the orchard wicket on its east side has swung open: the Night Orchard is waiting.',
+  },
+  orchard: {
+    name: 'Night Orchard', title: 'The Orchard Wakes',
+    text: 'By sunrise, the first ripe fruit was on its way down to the caravan road.',
+    epiTitle: 'Harvest Night',
+    epi: 'Lanterns hung in every grafted branch. Killa filled basket after basket for the llamas, and saved the ripest fruit for Dora and Enzo.',
+    next: 'In the Mother of Grafts’ chamber, the root lift on the high east terrace has woken: the Glacier Stair climbs past the snowline.',
+  },
+  glacier: {
+    name: 'Glacier Stair', title: 'The Pass in the Sun',
+    text: 'At dawn, the first caravans climbed from the orchard to the open Sun Gate.',
+    epiTitle: 'A Fire at the Sun Gate',
+    epi: 'Phuyu lit a fire just inside the open gate. Killa and Suma came up with the caravan, and everyone stayed up counting stars over the pass.',
+    next: null,
+  },
+};
+const areaEpiloguesOf = (s: Save | null): AreaId[] => (['salt', 'orchard', 'glacier'] as AreaId[]).filter((a) => s?.flags.includes(`${a}:epilogue`));
 const MEDAL_NAME: Record<Medal, string> = { gold: 'Gold', silver: 'Silver', bronze: 'Bronze' };
 /** Seconds as m:ss.s */
 const clock = (secs: number) => `${Math.floor(secs / 60)}:${(secs % 60).toFixed(1).padStart(4, '0')}`;
@@ -114,6 +140,8 @@ export default function BellspirePage() {
   const [canEpilogue, setCanEpilogue] = useState(false);
   const [canEpilogue2, setCanEpilogue2] = useState(false);
   const [canEpilogue3, setCanEpilogue3] = useState(false);
+  /** the expansions' epilogues this save has earned (seen at 100% of that area) */
+  const [areaEpilogues, setAreaEpilogues] = useState<AreaId[]>([]);
   const [forge, setForge] = useState(false);
   const [forgeSel, setForgeSel] = useState<string | null>(null);
   const [confirmNew, setConfirmNew] = useState(false);
@@ -166,7 +194,7 @@ export default function BellspirePage() {
   useEffect(() => {
     const s = loadSettings();
     setSettings(s);
-    setHasSave(!!readSave()); setCanEpilogue(epilogueEarned(readSave())); setCanEpilogue2(!!readSave()?.flags.includes('epilogue2')); setCanEpilogue3(!!readSave()?.flags.includes('epilogue3'));
+    setHasSave(!!readSave()); setCanEpilogue(epilogueEarned(readSave())); setCanEpilogue2(!!readSave()?.flags.includes('epilogue2')); setCanEpilogue3(!!readSave()?.flags.includes('epilogue3')); setAreaEpilogues(areaEpiloguesOf(readSave()));
     setSaves({ main: readSave('main'), ngp: readSave('ngp') });
     setCoarse(window.matchMedia('(pointer: coarse)').matches);
     soundRef.current = new BellspireSound(s.sound, s.music);
@@ -501,7 +529,7 @@ export default function BellspirePage() {
 
   /** Back to the title, with both saves read afresh. */
   function toTitle() {
-    setCanEpilogue(epilogueEarned(readSave())); setCanEpilogue2(!!readSave()?.flags.includes('epilogue2')); setCanEpilogue3(!!readSave()?.flags.includes('epilogue3'));
+    setCanEpilogue(epilogueEarned(readSave())); setCanEpilogue2(!!readSave()?.flags.includes('epilogue2')); setCanEpilogue3(!!readSave()?.flags.includes('epilogue3')); setAreaEpilogues(areaEpiloguesOf(readSave()));
     setHasSave(!!readSave()); setSaves({ main: readSave('main'), ngp: readSave('ngp') }); setTrialResult(null);
     setScreen('title');
   }
@@ -551,6 +579,13 @@ export default function BellspirePage() {
               gameRef.current = new BellspireGame(s, { assist: settings.assist && !settings.strict, strict: settings.strict, wisp: settings.wisp });
               setEnding({ full: true, pct: gameRef.current.completion().pct, foundry: true }); setScreen('ending'); soundRef.current?.setTrack('ending');
             }}>See the foundry epilogue</button>}
+            {hasSave && areaEpilogues.map((a) => <button key={a} type="button" className="bs-btn" onClick={() => {
+              // an expansion's ending page, with its epilogue
+              const s = readSave(); if (!s) return;
+              slotRef.current = 'main';
+              gameRef.current = new BellspireGame(s, { assist: settings.assist && !settings.strict, strict: settings.strict, wisp: settings.wisp });
+              setEnding({ full: true, pct: gameRef.current.completion().pct, [a]: true }); setScreen('ending'); soundRef.current?.setTrack('ending');
+            }}>See the {AREA_END[a].name} epilogue</button>)}
             <button type="button" className={`bs-btn ${hasSave || saves.ngp ? '' : 'bs-btn-main'}`} onClick={() => (hasSave ? setConfirmNew(true) : startGame(null))}>New game</button>
             <button type="button" className="bs-btn" onClick={() => { setMenu('settings'); }}>Settings</button>
             <a className="bs-btn bs-btn-ghost" href="/">← Arcade</a>
@@ -578,48 +613,29 @@ export default function BellspirePage() {
 
   if (screen === 'ending' && ending && g) {
     const c = g.completion();
-    if (ending.glacier) return (
-      <main className="bs-shell bs-end" data-ready="true">
-        <div className="bs-end-art bs-end-glacier" />
-        <div className="bs-end-panel">
-          <h2>The Pass in the Sun</h2>
-          <p>At dawn, the first caravans climbed from the orchard to the open Sun Gate.</p>
-          <p className="bs-end-stats">{c.glacier.cells}/{COMPLETION.glacier.cells} screens · {c.glacier.chests}/{COMPLETION.glacier.chests} chests · {c.glacier.bosses}/{COMPLETION.glacier.bosses} guardians</p>
-          <div className="bs-title-btns">
-            <button type="button" className="bs-btn bs-btn-main" onClick={() => startGame(g.snapshot(), slotRef.current)}>Keep exploring</button>
-            <button type="button" className="bs-btn" onClick={toTitle}>Title</button>
+    const area: AreaId | null = ending.glacier ? 'glacier' : ending.orchard ? 'orchard' : ending.salt ? 'salt' : null;
+    if (area) {
+      // an expansion's ending: its own painting (the epilogue's at 100%), words, full stats and what's next
+      const e = AREA_END[area], a = c[area], of = COMPLETION[area];
+      return (
+        <main className="bs-shell bs-end" data-ready="true" data-area={area} data-full={ending.full ? 'true' : 'false'}>
+          <div className={`bs-end-art bs-end-${area}${ending.full ? ' bs-end-epilogue' : ''}`} />
+          <div className="bs-end-panel">
+            <h2>{ending.full ? e.epiTitle : e.title}</h2>
+            <p>{ending.full ? e.epi : e.text}</p>
+            <p className="bs-end-stats">{e.name} explored {a.pct}% · {a.cells}/{of.cells} screens · {a.chests}/{of.chests} chests{of.murals ? ` · ${a.murals}/${of.murals} murals` : ''} · {a.bosses}/{of.bosses} guardians · Dora level {g.save.heroes.dora.level} · Enzo level {g.save.heroes.enzo.level} · {formatTime(g.save.time)}</p>
+            {ending.full
+              ? <p className="bs-end-epi">Everything on the {e.name} found! This is its epilogue.</p>
+              : <p>Find everything on the {e.name} (100%), and its epilogue plays the moment you do. The pause map shows what’s left. Your save is kept, so you can keep exploring.</p>}
+            {e.next && <p className="bs-end-next">{e.next}</p>}
+            <div className="bs-title-btns">
+              <button type="button" className="bs-btn bs-btn-main" onClick={() => { const s = readSave(slotRef.current); if (s) startGame(s, slotRef.current); }}>Keep exploring</button>
+              <button type="button" className="bs-btn" onClick={toTitle}>Title</button>
+            </div>
           </div>
-        </div>
-      </main>
-    );
-    if (ending.orchard) return (
-      <main className="bs-shell bs-end" data-ready="true">
-        <div className="bs-end-art bs-end-orchard" />
-        <div className="bs-end-panel">
-          <h2>The Orchard Wakes</h2>
-          <p>By sunrise, the first ripe fruit was on its way down to the caravan road.</p>
-          <p className="bs-end-stats">{c.orchard.cells}/{COMPLETION.orchard.cells} screens · {c.orchard.chests}/{COMPLETION.orchard.chests} chests · {c.orchard.bosses}/{COMPLETION.orchard.bosses} guardians</p>
-          <div className="bs-title-btns">
-            <button type="button" className="bs-btn bs-btn-main" onClick={() => startGame(g.snapshot(), slotRef.current)}>Keep exploring</button>
-            <button type="button" className="bs-btn" onClick={toTitle}>Title</button>
-          </div>
-        </div>
-      </main>
-    );
-    if (ending.salt) return (
-      <main className="bs-shell bs-end" data-ready="true">
-        <div className="bs-end-art bs-end-salt" />
-        <div className="bs-end-panel">
-          <h2>The Salt Road is open</h2>
-          <p>The first pack bells ring before dawn. Suma counts the loads as the llamas take the old road east.</p>
-          <p className="bs-end-stats">{c.salt.cells}/{COMPLETION.salt.cells} screens · {c.salt.chests}/{COMPLETION.salt.chests} chests · {c.salt.bosses}/{COMPLETION.salt.bosses} guardians</p>
-          <div className="bs-title-btns">
-            <button type="button" className="bs-btn bs-btn-main" onClick={() => startGame(g.snapshot(), slotRef.current)}>Keep exploring</button>
-            <button type="button" className="bs-btn" onClick={toTitle}>Title</button>
-          </div>
-        </div>
-      </main>
-    );
+        </main>
+      );
+    }
     // the citadel's ending counts the citadel; the Windward Belfry's counts the citadel and belfry; the Foundry
     // Below's counts everything
     const shown = ending.foundry ? { pct: c.pct, chests: c.chests, murals: c.murals, of: COMPLETION }
@@ -792,7 +808,7 @@ export default function BellspirePage() {
           {banner && <div className="bs-banner" key={banner.key} onAnimationEnd={() => setBanner(null)}>{banner.icon !== undefined && <Icon i={banner.icon} size={1.5} />}<span>{banner.text}</span></div>}
           {line && (
             <button type="button" className={`bs-dialog ${g && sceneRef.current && g.body.y - sceneRef.current.cam.y > sceneRef.current.vh * 0.55 ? 'bs-dialog-top' : ''}`} onClick={() => taps.current.add('jump')}>
-              {line.who === 'phuyu' ? <span className="bs-portrait bs-phuyu" /> : line.who !== 'sign' && <Portrait who={PORTRAIT[line.who] ?? 0} size={1.1} />}
+              {line.who === 'phuyu' || line.who === 'killa' || line.who === 'suma' ? <span className={`bs-portrait bs-npc-portrait bs-${line.who}`} /> : line.who !== 'sign' && <Portrait who={PORTRAIT[line.who] ?? 0} size={1.1} />}
               <span className="bs-dialog-text">{line.who !== 'sign' && <b>{NAMES[line.who]}</b>}{line.text}</span>
               <span className="bs-dialog-next">▼</span>
             </button>

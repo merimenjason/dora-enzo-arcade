@@ -155,8 +155,10 @@ console.log('Salt Road: all horizontal doorways and three reversible shafts pass
   advance(g, () => b.hurt.length > 0);
   g.damageBoss(b.hp + 1, b.x + 45, b.y - 20);
   advance(g, () => !!g.dialog);
-  tap(g, 'up'); tap(g, 'up');
-  assert.ok(g.drainEvents().some((e) => e.k === 'ending' && e.salt));
+  // the ending scene with Suma, line by line
+  const ev = [];
+  for (let i = 0; i < 10 && g.dialog; i++) { tap(g, 'up'); ev.push(...g.drainEvents()); }
+  assert.ok(ev.some((e) => e.k === 'ending' && e.salt));
   const save = parseSave(JSON.stringify(g.snapshot()));
   assert.ok(save?.flags.includes('boss:tollkeeper') && save.flags.includes('salt:ending'));
   const loaded = new BellspireGame(save);
