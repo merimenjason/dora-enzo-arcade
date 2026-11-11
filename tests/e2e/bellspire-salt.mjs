@@ -7,7 +7,7 @@ const base = process.env.BASE_URL ?? 'http://localhost:3000';
 const save = freshSave();
 save.shrine = 'fgate';
 save.abilities = ABILITY_ORDER.filter((a) => a !== 'ballast' && a !== 'catch');
-save.flags.push('script:intro', 'script:firstDark', 'script:belfryCall', 'epilogue', 'epilogue2', 'epilogue3', ...ALL_BOSSES.map((id) => `boss:${id}`));
+save.flags.push('unlock:salt', 'unlock:orchard', 'unlock:glacier', 'script:intro', 'script:firstDark', 'script:belfryCall', 'epilogue', 'epilogue2', 'epilogue3', ...ALL_BOSSES.map((id) => `boss:${id}`));
 
 try {
   for (const viewport of [{ width: 1280, height: 800 }, { width: 844, height: 390 }, { width: 390, height: 844 }]) {

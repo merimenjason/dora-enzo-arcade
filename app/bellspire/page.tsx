@@ -9,8 +9,8 @@ import { isOrchardRoom } from '../../lib/bellspire-world';
 import {
   BellspireGame, parseSave, heroStats, xpToNext, SAVE_KEY, NGP_SAVE_KEY, TRIALS, RUSH, MEDALS, medalFor, ngpReady, newGamePlusSave, NO_INPUT, ROOMS, AREAS, GEAR, SHOP, FOOD, SPELLS, ABILITIES, ABILITY_ORDER,
   BOSSES, MURALS, NAMES, INFO, COMPLETION, roomAt, rawChar, roomById, MAP_EXITS, VIEW_W, VIEW_H, SHRINE_NAMES, isBelfryRoom,
-  RECAST_PERKS, RECAST_PRICE, isFoundryRoom, roomRect,
-  type Input, type Save, type HeroId, type Slot, type FoodId, type GameEvent, type Settings as GameSettings, type Medal,
+  RECAST_PERKS, RECAST_PRICE, isFoundryRoom, roomRect, UNLOCKS,
+  type Unlock, type Input, type Save, type HeroId, type Slot, type FoodId, type GameEvent, type Settings as GameSettings, type Medal,
 } from '@/lib/bellspire-game';
 import { BellspireScene } from '@/lib/bellspire-scene';
 import { GUARDIANS, GUARDIAN_AREA, abilityIcon, type Perk } from '@/lib/bellspire-world';
@@ -58,6 +58,8 @@ function saveLine(s: Save) {
   const where = s.flags.includes('boss:tune') ? 'Bell calm' : s.flags.includes('boss:mother') ? 'Lake Mother calm' : `${['frog', 'hydra', 'puma', 'warden'].filter((b) => s.flags.includes(`boss:${b}`)).length} of 4 seals`;
   return `Dora Lv ${s.heroes.dora.level} · Enzo Lv ${s.heroes.enzo.level} · ${c.pct}% · ${where} · ${formatTime(s.time)}`;
 }
+/** The title card's "Next:" line: an open door not used yet, or the next thing the story wants. */
+function nextLine(s: Save) { return new BellspireGame(s).nextLine(); }
 const MEDAL_NAME: Record<Medal, string> = { gold: 'Gold', silver: 'Silver', bronze: 'Bronze' };
 /** Seconds as m:ss.s */
 const clock = (secs: number) => `${Math.floor(secs / 60)}:${(secs % 60).toFixed(1).padStart(4, '0')}`;
@@ -118,6 +120,8 @@ export default function BellspirePage() {
   const [menu, setMenu] = useState<Tab | null>(null);
   const [shop, setShop] = useState(false);
   const [mural, setMural] = useState<number | null>(null);
+  /** the unlock dialog: an area's last guardian is calm and the door to the next one has opened */
+  const [unlock, setUnlock] = useState<Unlock | null>(null);
   const [banner, setBanner] = useState<{ text: string; icon?: number; key: number } | null>(null);
   const [areaBanner, setAreaBanner] = useState<{ text: string; key: number } | null>(null);
   const [ending, setEnding] = useState<{ full: boolean; pct: number; belfry?: boolean; foundry?: boolean; salt?: boolean; orchard?: boolean; glacier?: boolean } | null>(null);
@@ -155,7 +159,7 @@ export default function BellspirePage() {
     soundRef.current?.play('relic');
   }, [menu]);
   useEffect(() => { setGearSel(null); }, [equipPick]);
-  const paused = screen !== 'game' || menu !== null || shop || forge || mural !== null || trialResult !== null;
+  const paused = screen !== 'game' || menu !== null || shop || forge || mural !== null || unlock !== null || trialResult !== null;
   useEffect(() => { pausedRef.current = paused; }, [paused]);
 
   // ─── start-up ────────────────────────────────────────────────────────────
@@ -211,7 +215,7 @@ export default function BellspirePage() {
     gameRef.current = g;
     if (sceneRef.current) { sceneRef.current.roomId = ''; sceneRef.current.shakeOn = s.shake; sceneRef.current.reduceFlash = s.calmFlash; sceneRef.current.numbersOn = s.numbers; }
     lastArea.current = '';
-    setMenu(null); setShop(false); setForge(false); setMural(null); setEnding(null); setConfirmNew(false); setConfirmNgp(false); setTrialResult(null);
+    setMenu(null); setShop(false); setForge(false); setMural(null); setUnlock(null); setEnding(null); setConfirmNew(false); setConfirmNgp(false); setTrialResult(null);
     setScreen('game');
     if (!save || slot === 'ngp') writeSave();
     soundRef.current?.unlock();
@@ -227,6 +231,7 @@ export default function BellspirePage() {
       else if (e.k === 'shop') setShop(true);
       else if (e.k === 'forge') { setForge(true); setForgeSel(null); setMsg(null); }
       else if (e.k === 'mural') setMural(e.n);
+      else if (e.k === 'unlock') { setUnlock(UNLOCKS.find((u) => u.id === e.id) ?? null); snd?.play('chime'); }
       else if (e.k === 'item') setBanner({ text: e.text, icon: e.icon, key: Date.now() });
       else if (e.k === 'room') {
         writeSave();
@@ -313,12 +318,14 @@ export default function BellspirePage() {
         else if (shop) setShop(false);
         else if (forge) setForge(false);
         else if (mural !== null) setMural(null);
+        else if (unlock) setUnlock(null);
         else if (equipPick) setEquipPick(null);
         else setMenu((m) => (m ? null : 'map'));
         soundRef.current?.play('menu');
         return;
       }
       if (screen === 'game' && (mural !== null || shop) && (e.code === settingsRef.current.keys.jump[0] || e.code === 'Space')) { e.preventDefault(); setMural(null); return; }
+      if (screen === 'game' && unlock && (e.code === settingsRef.current.keys.jump[0] || e.code === 'Space')) { e.preventDefault(); setUnlock(null); return; }
       // the map: ← → step through the lit shrines and Z travels to the chosen one
       if (screen === 'game' && menu === 'map' && mapNavRef.current) {
         const k = settingsRef.current.keys;
@@ -402,7 +409,7 @@ export default function BellspirePage() {
     (window as unknown as { __bellspire: () => unknown }).__bellspire = () => {
       const g = gameRef.current;
       return {
-        game: g, scene: sceneRef.current, screen, menu, shop, forge, mural, trialResult, slot: slotRef.current,
+        game: g, scene: sceneRef.current, screen, menu, shop, forge, mural, unlock: unlock?.id ?? null, trialResult, slot: slotRef.current,
         state: g ? { room: g.room.id, area: g.room.area, lead: g.lead, x: g.body.x, y: g.body.y, ground: g.body.ground, swim: g.body.swim, coins: g.save.coins, abilities: [...g.save.abilities], water: { ...g.save.water }, dialog: !!g.dialog, toast: g.toast?.text ?? null, boss: g.boss ? { id: g.boss.id, hp: g.boss.hp, st: g.boss.st } : null, heroes: JSON.parse(JSON.stringify(g.save.heroes)), lantern: g.lanternUp, completion: g.completion(), heat: g.heat, recast: { ...g.save.recast } } : null,
         teleport: (room: string, c: number, r: number) => g?.teleport(room, c, r),
         give: (a: (typeof ABILITY_ORDER)[number]) => g?.giveAbility(a, false),
@@ -476,7 +483,7 @@ export default function BellspirePage() {
         debug: (on: boolean) => { if (sceneRef.current) sceneRef.current.debug = on; },
       };
     };
-  }, [screen, menu, shop, mural, trialResult]);
+  }, [screen, menu, shop, mural, unlock, trialResult]);
 
   const g = gameRef.current;
   const touchOn = settings.touch === 'on' || (settings.touch === 'auto' && coarse);
@@ -509,7 +516,7 @@ export default function BellspirePage() {
           <p className="bs-tag">A citadel of bells sleeps under a high Andean lake. Dora and Enzo row out with one lantern.</p>
           {(saves.main || saves.ngp) && (
             <ul className="bs-saves" aria-label="Saved games">
-              {saves.main && <li><b>Your game</b><small>{saveLine(saves.main)}</small></li>}
+              {saves.main && <li><b>Your game</b><small>{saveLine(saves.main)}</small>{(() => { const n = nextLine(saves.main); return n && <small className="bs-next">Next: {n}</small>; })()}</li>}
               {saves.ngp && <li className="bs-save-ngp"><b>New Game+{saves.ngp.ngp > 1 ? ` ${saves.ngp.ngp}` : ''}</b><small>{saveLine(saves.ngp)}</small></li>}
             </ul>
           )}
@@ -913,6 +920,20 @@ export default function BellspirePage() {
         </div>
       )}
 
+      {unlock && (
+        <div className="bs-modal" role="dialog" aria-label={unlock.title}>
+          <div className="bs-sheet bs-unlock">
+            <h3>{unlock.title}</h3>
+            <p>{unlock.where}</p>
+            <p className="bs-small-print">The map marks the door with a gold star until you go through.</p>
+            <div className="bs-title-btns">
+              <button type="button" className="bs-btn bs-btn-main" onClick={() => setUnlock(null)}>Got it</button>
+              <button type="button" className="bs-btn" onClick={() => { setUnlock(null); setTravelMode(false); setMenu('map'); }}>Show me on the map</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {mural !== null && (
         <div className="bs-modal" onClick={() => setMural(null)}>
           <div className="bs-sheet bs-mural">
@@ -994,6 +1015,7 @@ export default function BellspirePage() {
             {g.saltKnown() && <li><i className="lg-lock" style={{ background: '#c7bbc1' }} />The Salt Road begins at the supply door in the Foundry Gate.</li>}
             {g.glacierKnown() && <li><i className="lg-lock" style={{ background: '#95d7ea' }} />The Glacier Stair begins at the root lift in the Mother of Grafts’ chamber.</li>}
             {g.orchardKnown() && <li><i className="lg-lock" style={{ background: '#f3c659' }} />The Night Orchard begins at the wicket in the Salt Tollhouse.</li>}
+            {g.newDoors().map((d) => <li key={d.id}><i className="lg-new" />{d.area} is open: {d.door}, not used yet</li>)}
             {g.wispOn() && <li><i className="lg-wisp" />Where the wisp is leading</li>}
             {g.belfryKnown() && <li><i className="lg-boat" />Wayra’s boat (↑ to row across)</li>}
             {g.belfryKnown() && <li><i className="lg-belfry" />The Windward Belfry, not explored yet</li>}
@@ -1488,6 +1510,14 @@ function drawMap(ctx: CanvasRenderingContext2D, g: BellspireGame, CW: number, CH
     const gx = Math.round(ox + (goal.x / 480) * CW), gy = Math.round(oy + ((goal.y - 8) / 272) * CH), k = small ? 1 : 2, a = 0.35 + 0.25 * Math.sin(t * 0.15);
     ctx.fillStyle = `rgba(150,240,255,${a.toFixed(2)})`; ctx.fillRect(gx - 2 * k, gy - 2 * k, 4 * k + 1, 4 * k + 1);
     ctx.fillStyle = '#e8fdff'; ctx.fillRect(gx - k, gy - k, 2 * k + 1, 2 * k + 1);
+  }
+  // a door to a new area, open but not used yet: a pulsing gold star on it (over the wisp's mote) until the heroes go through
+  for (const d of g.newDoors()) {
+    const dx = Math.round(ox + (d.x / 480) * CW), dy = Math.round(oy + ((d.y - 8) / 272) * CH), k = small ? 1 : 2;
+    const glow = 0.45 + 0.35 * Math.sin(t * 0.18);
+    ctx.fillStyle = `rgba(255,214,90,${glow.toFixed(2)})`; ctx.beginPath(); ctx.arc(dx, dy, 7 * k, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#1a1020'; ctx.fillRect(dx - 5 * k, dy - k, 10 * k + 1, 2 * k + 1); ctx.fillRect(dx - k, dy - 5 * k, 2 * k + 1, 10 * k + 1);
+    ctx.fillStyle = '#ffe48a'; ctx.fillRect(dx - 4 * k, dy, 8 * k + 1, k); ctx.fillRect(dx, dy - 4 * k, k, 8 * k + 1); ctx.fillRect(dx - k + 1, dy - k + 1, 2 * k - 1, 2 * k - 1);
   }
   // you are here: the current room outlined in pulsing gold, and a chinchilla head where the lead really stands
   const room = g.room, pulse = 0.55 + 0.45 * Math.sin(t * 0.12);

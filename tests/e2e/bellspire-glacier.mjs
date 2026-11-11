@@ -23,7 +23,7 @@ async function play(viewport) {
   let checks=0;
   const ok=(v,m)=>{assert.ok(v,m);checks++;};
   const save=freshSave();
-  save.flags.push('script:intro','script:belfryCall','epilogue','epilogue2','epilogue3','boss:mother','boss:tune','boss:hollow','boss:tollkeeper','boss:graft-mother');
+  save.flags.push('unlock:salt','unlock:orchard','unlock:glacier','script:intro','script:belfryCall','epilogue','epilogue2','epilogue3','boss:mother','boss:tune','boss:hollow','boss:tollkeeper','boss:graft-mother');
   save.abilities=ABILITY_ORDER.filter(a=>!['sunmirror','icepick'].includes(a));
   save.spells.push('frost');
   for(const h of Object.values(save.heroes)){h.level=32;h.hp=200;h.mp=100;}
@@ -182,7 +182,7 @@ async function capture(viewport) {
   const dir=join(shots,`${viewport.width}x${viewport.height}`);
   await mkdir(dir,{recursive:true});
   const save=freshSave();
-  save.flags.push('script:intro','script:belfryCall','boss:mother','boss:tune','boss:hollow','boss:tollkeeper','boss:graft-mother');
+  save.flags.push('unlock:salt','unlock:orchard','unlock:glacier','script:intro','script:belfryCall','boss:mother','boss:tune','boss:hollow','boss:tollkeeper','boss:graft-mother');
   save.abilities=[...ABILITY_ORDER];save.spells.push('frost');
   await page.addInitScript(s=>{
     localStorage.setItem('bellspire-v1',JSON.stringify(s));

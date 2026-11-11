@@ -517,7 +517,7 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
   ok(!ever, 'with the helping hand off there is never a wisp');
   const late = new BellspireGame(fresh(ABILITY_ORDER), {}, 31);
   for (const id of Object.keys(BOSSES)) late.setFlag(`boss:${id}`);
-  late.setFlag('keeper'); late.setFlag('salt:visited'); late.setFlag('orchard:visited');
+  late.setFlag('keeper'); late.setFlag('salt:visited'); late.setFlag('orchard:visited'); late.setFlag('glacier:visited');
   eq(late.nextGoal(), null, 'once everything is done there is nothing left to point at');
   // every ability, but the hydra and the puma skipped: the wisp leads to the nearer one
   const skip = new BellspireGame(fresh(ABILITY_ORDER), {}, 31);
