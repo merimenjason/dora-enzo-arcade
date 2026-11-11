@@ -28,6 +28,16 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 **Working practice that held up this round:** build in a worktree off `origin/main` with `node_modules` symlinked; one agent per game, stopping at an open PR; review its contact sheet of screenshots before asking to merge. Stacked PRs: merge the child into its parent branch first, then the parent into `main`, which avoids a force-push (the auto-mode classifier blocks force-pushes and `git worktree remove`). Merge only when the user says "merge N".
 
+## Brinelight (12-11-2026)
+
+**Game 98, `/brinelight`:** the magnum opus from `docs/codex-magnum-opus.md`, built from the round-two feel test. A two-hero tag-team belt brawler; areas 1 (Lantern Quay) and 2 (The Fish Market) are built to full quality, six stages in all. Rules, numbers, bot results and the layout are in [`docs/brinelight.md`](docs/brinelight.md).
+
+- **Code:** `lib/brinelight-levels.ts` (hand-authored scenes as string rows), `lib/brinelight-game.ts` (engine), `lib/brinelight-scene.ts` (Canvas 2D drawing), `app/brinelight/` (page, sound, CSS), `lib/brinelight-art.ts` (generated). Save key `brinelight-v1`.
+- **Art:** 42 Codex jobs in `docs/brinelight-art/jobs.txt`, the style guide in `docs/brinelight-art/style.md`, `docs/brinelight-art/gen.sh` to paint and `scripts/brinelight-art.py` to key, scale and pack into `public/art/brinelight/` (6.6 MB). The source paintings are not in the repo; repaint a sheet with `gen.sh` and rerun the packer.
+- **Checks:** `npm run test:brinelight` (24 engine tests), `npm run bot:brinelight` (four human-delay bots, 24 seeds; `npm test` runs `--quick`), `npm run test:e2e:brinelight` (130 checks with real keys and touches at three sizes).
+- **What is left:** areas 3 to 6 (the Ropewalk and Shipyard, the Lighthouse Rocks, the Smugglers' Caves, Pinchwell's Breakwater Fort) are on the map and in `AREAS` with `ready: false` and their bosses named. Each needs stages and scenes, a floor strip and far painting, new foes, a boss, a tune and a story panel; `docs/brinelight.md` lists every place to touch. Gamepads and the sound have not been tried by a person, and nothing has run on a real phone.
+- **Weakest:** Enzo's grab is automatic beside a dazed foe, so a mashing Enzo carries crabs about a lot; bosses are taught only by glints, tinks and the tag prompt; with assist on, even the mashing bot never needs a retry.
+
 ## Next new game: the magnum opus (09-11-2026)
 
 The brief for the next flagship game is [`docs/codex-magnum-opus.md`](docs/codex-magnum-opus.md): what went wrong with

@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap');
+/* Brinelight: a full-screen canvas for play, with the title, the painted harbour map, the story panels, pause and
+   results as HTML over it. Colours are the lantern-and-dusk palette in docs/brinelight-art/style.md. */
+.bl-shell{--ink:#fff4dc;--dim:#c9b8e6;--lamp:#ffd27a;--deep:#2a1a36;--dusk:#1d1b4a;
+  position:fixed;inset:0;background:var(--dusk);color:var(--ink);overflow:hidden;font-family:Fredoka,'Trebuchet MS',system-ui,sans-serif;
+  user-select:none;-webkit-user-select:none;touch-action:none;overscroll-behavior:none}
+.bl-shell *{box-sizing:border-box}
+.bl-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.bl-loading{position:absolute;inset:0;display:grid;place-items:center;font-size:20px;color:var(--lamp)}
+.bl-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center}
+.bl-dim{color:var(--dim)}
+
+.bl-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.35em 1.4em;border:2px solid var(--lamp);border-radius:999px;cursor:pointer;
+  font:700 18px/1.1 Fredoka,'Trebuchet MS',system-ui,sans-serif;color:var(--deep);background:linear-gradient(#ffe6a8,#ffb347);box-shadow:0 3px 0 #a8551f,0 6px 18px rgba(0,0,0,.35)}
+.bl-btn:hover{filter:brightness(1.08)}
+.bl-btn:active{transform:translateY(2px);box-shadow:0 1px 0 #a8551f}
+.bl-btn:focus-visible,.bl-stage:focus-visible,.bl-spot:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.bl-big{font-size:24px;min-height:54px;padding:.35em 2em}
+.bl-small{font-size:15px;min-height:38px;padding:.25em 1em}
+.bl-btn[aria-pressed=false]{background:linear-gradient(#5a4a7a,#3b2f78);color:var(--ink);border-color:#8d7ab8;box-shadow:0 3px 0 #1d1b4a}
+
+.bl-title{position:absolute;inset:0;background:center/cover no-repeat;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:6vh 16px 16px;gap:12px}
+.bl-title h1{margin:0;font-size:clamp(44px,9vw,104px);font-weight:700;letter-spacing:.02em;color:#fff0c8;
+  text-shadow:0 0 24px rgba(255,190,90,.75),0 4px 0 #a8551f,0 8px 22px rgba(0,0,0,.5)}
+.bl-sub{margin:0 0 6px;font-size:clamp(15px,2vw,22px);color:#ffe2a8;text-shadow:0 2px 6px rgba(0,0,0,.7)}
+.bl-title .bl-settings{margin-top:auto}
+.bl-settings{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.bl-back{position:absolute;left:14px;top:12px;color:var(--ink);text-decoration:none;font-weight:600;text-shadow:0 2px 4px #000}
+
+.bl-map{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:16px;padding:12px;background:var(--dusk)}
+.bl-map-art{position:relative;height:min(calc(100vh - 24px),calc((100vw - 360px) / 1.5));aspect-ratio:3/2;background:center/cover no-repeat;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.bl-spot{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;border:2px solid var(--lamp);border-radius:999px;
+  background:rgba(42,26,54,.82);color:var(--ink);font:600 14px Fredoka,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.bl-spot .bl-num{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--lamp);color:var(--deep);font-weight:700}
+.bl-spot.bl-on{background:rgba(255,210,122,.95);color:var(--deep)}
+.bl-spot.bl-locked{border-color:#7d7296;opacity:.78}
+.bl-spot.bl-locked .bl-num{background:#7d7296}
+.bl-card{background:rgba(42,26,54,.92);border:2px solid var(--lamp);border-radius:18px;padding:16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.5);max-height:calc(100vh - 24px);overflow:auto}
+.bl-card h2{margin:0 0 8px;font-size:22px;color:#ffe2a8}
+.bl-card p{margin:0 0 10px;line-height:1.35}
+.bl-area{width:330px;display:flex;flex-direction:column;gap:8px}
+.bl-stage{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;padding:10px 12px;border-radius:12px;border:2px solid #8d7ab8;
+  background:#3b2f78;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.bl-stage b{font-size:16px}
+.bl-stage small{color:var(--dim);font-size:13px}
+.bl-stage:hover:not(:disabled){border-color:var(--lamp)}
+.bl-stage:disabled{opacity:.5;cursor:not-allowed}
+
+.bl-panel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;background:#120f2e;cursor:pointer}
+.bl-panel img{max-width:min(100%,1100px);max-height:68vh;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+.bl-panel p{max-width:760px;margin:0;text-align:center;font-size:clamp(16px,2.2vw,21px);line-height:1.4}
+
+.bl-pause-btn{position:absolute;top:10px;right:10px;width:40px;height:40px;border-radius:50%;border:2px solid var(--lamp);
+  background:rgba(42,26,54,.7);color:var(--lamp);font:700 15px Fredoka,system-ui,sans-serif;cursor:pointer}
+.bl-overlay{position:absolute;inset:0;display:grid;place-items:center;padding:12px;background:rgba(18,15,46,.55)}
+.bl-overlay .bl-card{width:min(560px,100%)}
+.bl-controls{margin:12px 0;padding:0;list-style:none;display:grid;gap:5px;font-size:14px;color:var(--dim)}
+.bl-controls b{color:var(--ink);margin-right:6px}
+.bl-results{text-align:center}
+.bl-medal{width:110px;height:auto;margin:4px auto 0;display:block}
+.bl-m2{filter:grayscale(1) brightness(1.2)}
+.bl-m1{filter:sepia(.6) hue-rotate(-20deg) saturate(1.3) brightness(.85)}
+.bl-medal-name{font-weight:700;color:var(--lamp)}
+.bl-results dl{display:grid;grid-template-columns:1fr auto;gap:4px 18px;margin:8px auto 14px;max-width:300px;text-align:left}
+.bl-results dt{color:var(--dim)}
+.bl-results dd{margin:0;font-weight:700}
+
+@media (max-width:760px),(orientation:portrait){
+  .bl-map{flex-direction:column;justify-content:flex-start;overflow:auto}
+  .bl-map-art{height:auto;width:100%;flex:none}
+  .bl-spot{font-size:11px;padding:2px 7px 2px 2px}
+  .bl-spot .bl-num{width:20px;height:20px}
+  .bl-spot-name{display:none}
+  .bl-area{width:100%}
+}
+@media (max-height:460px){
+  .bl-title{padding-top:2vh;gap:6px}
+  .bl-map-art{height:calc(100vh - 24px)}
+  .bl-area{width:300px}
+}

@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 12-11-2026
+
+### Added
+
+- **Brinelight** (game 98, `/brinelight`): a two-hero tag-team brawler on a harbour at festival night. Win back the lanterns of Lantern Quay and the Fish Market from Pinchwell's crab gang across six stages, with a tutorial, eight kinds of foe, two mid-bosses (Crusty Magnus, Kid Knuckles), two bosses (Clamps the Dockboss in his barrel, the Gull Admiral), two hidden scenes and sixteen secrets. Dora handles anything that flies; Enzo cracks shells and armour, and grabs and throws. A wrong-hero hit goes *tink* and the partner asks to be tagged in. Tagging mid-combo chains the damage, and a full Festival meter turns Attack + Jump into a double-team. Tap a direction twice to dash; attack during a dash for a dash attack; dash, jump and attack in the air for a special (Dora's Comet Spin through a whole lane, Enzo's Anchor Drop with a shockwave), taught once in your own keys when a line of crabs walks in. It plays with keys, touch (a zoomed view with the controls under it on a phone held upright) and gamepads. Assist is on by default. The harbour map already shows the four districts still to come. Every picture is painted, and the music and sound are synthesised.
+
 ## 11-11-2026
 
 ### Added
