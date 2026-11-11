@@ -14,7 +14,7 @@ import { CloudsteelSound } from './sound';
 import './cloudsteel.css';
 
 type Screen = 'title' | 'howto' | 'settings' | 'prologue' | 'story' | 'fight' | 'result' | 'ending' | 'finale';
-type Tap = 'attack' | 'dodge' | 'tag' | 'swap' | 'act' | 'lantern' | 'yes' | 'no';
+type Tap = 'attack' | 'dodge' | 'tag' | 'swap' | 'guard' | 'act' | 'lantern' | 'yes' | 'no';
 type Done = { result: Result; best: boolean; first: boolean };
 type Talk = { who: string; text: string; choosing: boolean; yes: string; no: string } | null;
 
@@ -25,8 +25,8 @@ const RANK: Record<Result['rank'], { name: string; line: string }> = {
   silver: { name: 'Silver seal', line: 'A clean crossing. Take fewer hits, and never fall, for gold.' },
   bronze: { name: 'Bronze seal', line: 'You made it across. Guard at the gold glint to take less.' },
 };
-const FACE: Record<G.Look, string> = { atoq: 'portrait-atoq', kin: 'portrait-kin', mallku: 'portrait-mallku', titu: 'portrait-titu', ukhu: 'portrait-ukhu' };
-const PORTRAIT: Record<string, string> = { dora: 'portrait-dora', enzo: 'portrait-enzo', qori: 'portrait-qori', tupa: 'portrait-tupa', atoq: 'portrait-atoq', kin: 'portrait-kin', mallku: 'portrait-mallku', titu: 'portrait-titu', ukhu: 'portrait-ukhu' };
+const FACE: Record<G.Look, string> = { atoq: 'portrait-atoq', kin: 'portrait-kin', mallku: 'portrait-mallku', titu: 'portrait-titu', ukhu: 'portrait-ukhu', archer: 'portrait-archer' };
+const PORTRAIT: Record<string, string> = { dora: 'portrait-dora', enzo: 'portrait-enzo', qori: 'portrait-qori', tupa: 'portrait-tupa', atoq: 'portrait-atoq', kin: 'portrait-kin', archer: 'portrait-archer', mallku: 'portrait-mallku', titu: 'portrait-titu', ukhu: 'portrait-ukhu' };
 const SWORD: ItemId[] = ['edge', 'feather', 'claw'], LANTERN_UPS: ItemId[] = ['wick', 'jade', 'flame'];
 
 export default function CloudsteelPage() {
@@ -68,14 +68,14 @@ export default function CloudsteelPage() {
   const savedAt = useRef(0);
   const hud = useRef<Record<string, HTMLElement | null>>({});
   const H = (k: string) => (el: HTMLElement | null) => { hud.current[k] = el; };
-  const last = useRef({ hp: -1, post: -1, fhp: -1, fpost: -1, foe: -2, combo: -1, tag: -1, prompt: '', broken: false, near: '', goal: '', edge: '' });
+  const last = useRef({ hp: -1, post: -1, fhp: -1, fpost: -1, foe: -2, combo: -1, tag: -1, prompt: '', broken: false, near: '', hero: '', mhp: -1, goal: '', edge: '' });
 
   const setScreen = useCallback((s: Screen) => { screenRef.current = s; setScreenState(s); }, []);
   const setPaused = useCallback((p: boolean) => { pausedRef.current = p; setPausedState(p); }, []);
   const persist = useCallback((s: Save) => { saveRef.current = s; setSave({ ...s }); try { localStorage.setItem(G.SAVE_KEY, G.serialise(s)); } catch {} }, []);
   const saveStory = useCallback(() => { const w = worldRef.current; if (!w) return; savedAt.current = performance.now(); persist({ ...saveRef.current, story: w.toSave() as unknown as Record<string, unknown> }); }, [persist]);
   const sfx = () => soundRef.current;
-  const resetHud = () => { last.current = { hp: -1, post: -1, fhp: -1, fpost: -1, foe: -2, combo: -1, tag: -1, prompt: '', broken: false, near: '', goal: '', edge: '' }; };
+  const resetHud = () => { last.current = { hp: -1, post: -1, fhp: -1, fpost: -1, foe: -2, combo: -1, tag: -1, prompt: '', broken: false, near: '', hero: '', mhp: -1, goal: '', edge: '' }; };
 
   // ---------------------------------------------------------------- set-up
   useEffect(() => {
@@ -157,7 +157,14 @@ export default function CloudsteelPage() {
         case 'finisher': snd?.finisher(); break;
         case 'finisherHit': banner('Cloudsteel', 'gold'); if (!reduced.current) slow.current = 0.22; break;
         case 'tagReady': snd?.tagReady(); break;
-        case 'tag': snd?.tag(); banner('Enzo!', 'gold'); break;
+        case 'tag': snd?.tag(); banner(e.to === 'enzo' ? 'Enzo!' : 'Dora!', 'gold'); break;
+        case 'swap': snd?.dodge(); break;
+        case 'sweep': snd?.swing(2); break;
+        case 'ward': snd?.block(); break;
+        case 'hop': snd?.dodge(); break;
+        case 'warded': snd?.deflect(); break;
+        case 'loose': snd?.swing(0); break;
+        case 'down': snd?.lost(); banner(`${e.who === 'dora' ? 'Dora' : 'Enzo'} is down`, 'jade'); break;
         case 'tagHit': snd?.hit(true); break;
         case 'clear': snd?.clear(); banner(story ? 'Won' : e.n + 1 < G.ROUNDS.length ? 'Round cleared' : 'The bridge is yours', 'gold'); break;
         case 'lost': snd?.lost(); setFallen(true); break;
@@ -254,7 +261,8 @@ export default function CloudsteelPage() {
           const inp = readInput();
           while (acc >= G.DT && n < 8) {
             const ti = { ...inp };
-            for (const b of ['attack', 'dodge', 'tag', 'swap'] as const) if (taps.current.has(b) && !sent.current[b]) { ti[b] = true; taps.current.delete(b); }
+            // a guard tapped quicker than a frame still counts (Enzo's ward is a press, not a hold)
+            for (const b of ['attack', 'dodge', 'tag', 'swap', 'guard'] as const) if (taps.current.has(b) && !sent.current[b]) { ti[b] = true; taps.current.delete(b); }
             g!.tick(ti); sent.current = ti;
             if (g!.events.length) onEvents(g!, g!.events);
             acc -= G.DT; n++;
@@ -271,7 +279,7 @@ export default function CloudsteelPage() {
             if (w.events.length) onWorld(w, w.events);
             acc -= G.DT; n++;
           }
-          for (const b of ['attack', 'dodge', 'tag', 'swap'] as const) taps.current.delete(b);
+          for (const b of ['attack', 'dodge', 'tag', 'swap', 'guard'] as const) taps.current.delete(b);
           if (w.mode !== 'end' && now - savedAt.current > 15000) saveStory();
         }
       } else acc = 0;
@@ -292,8 +300,21 @@ export default function CloudsteelPage() {
       }
       if (!g) return;
       const tg = g.targetFoe;
-      const hp = Math.round(g.hp); if (h.hp && L.hp !== hp) { L.hp = hp; h.hp.style.transform = `scaleX(${g.hp / g.maxHp})`; h.hp.parentElement!.dataset.low = g.hp < 30 ? '1' : '0'; }
-      const post = Math.round(g.posture); if (h.post && L.post !== post) { L.post = post; h.post.style.transform = `scaleX(${g.posture / 100})`; }
+      // the hero in front on the left, the partner (and the tag meter) on the right
+      const dora = g.hero === 'dora';
+      if (L.hero !== g.hero) {
+        L.hero = g.hero; L.hp = -1; L.post = -1; L.mhp = -1; if (h.hud) h.hud.dataset.hero = g.hero;
+        const me = h.meface as HTMLImageElement | null, mate = h.mateface as HTMLImageElement | null;
+        if (me) me.src = art(dora ? 'portrait-dora' : 'portrait-enzo'); if (mate) mate.src = art(dora ? 'portrait-enzo' : 'portrait-dora');
+        if (h.mename) h.mename.textContent = dora ? 'Dora' : 'Enzo'; if (h.matename) h.matename.textContent = dora ? 'Enzo' : 'Dora';
+        if (h.bcut) h.bcut.textContent = dora ? 'CUT' : 'SWEEP'; if (h.bguard) h.bguard.textContent = dora ? 'GUARD' : 'WARD'; if (h.bdodge) h.bdodge.textContent = dora ? 'DODGE' : 'HOP';
+      }
+      const myHp = dora ? g.hp : g.enzo.hp, myMax = dora ? g.maxHp : g.enzo.maxHp, mateHp = dora ? g.enzo.hp : g.hp, mateMax = dora ? g.enzo.maxHp : g.maxHp;
+      const hp = Math.round(myHp); if (h.hp && L.hp !== hp) { L.hp = hp; h.hp.style.transform = `scaleX(${myHp / myMax})`; h.hp.parentElement!.dataset.low = myHp < 30 ? '1' : '0'; }
+      // Dora's guard bar, or how soon Enzo's ward is ready again
+      const pv = dora ? g.posture / 100 : g.enzo.state === 'ward' ? 1 : 1 - g.enzo.wardCd / G.WARD.rest, post = Math.round(pv * 100);
+      if (h.post && L.post !== post) { L.post = post; h.post.style.transform = `scaleX(${pv})`; }
+      const mhp = Math.round(mateHp); if (h.mhp && L.mhp !== mhp) { L.mhp = mhp; h.mhp.style.transform = `scaleX(${mateHp / mateMax})`; }
       const fid = tg ? tg.id : -1;
       if (h.foe && L.foe !== fid) { L.foe = fid; h.foe.dataset.on = tg ? '1' : '0'; if (tg) { if (h.fname) h.fname.textContent = tg.name; const im = h.fface as HTMLImageElement | null; if (im) im.src = art(FACE[tg.look]); } L.fhp = -1; L.fpost = -1; }
       if (tg) {
@@ -305,9 +326,13 @@ export default function CloudsteelPage() {
       const tag = Math.round(g.tag); if (h.tag && L.tag !== tag) { L.tag = tag; h.tag.style.transform = `scaleX(${g.tag / G.TAG_FULL})`; h.tagbox!.dataset.full = g.tag >= G.TAG_FULL ? '1' : '0'; }
       // what to do next, when help is on
       let prompt = '';
-      if (g.assist && g.phase === 'fight' && g.state !== 'dead') {
-        const threat = g.foes.find((f) => f.state === 'windup' && f.atk), open = g.living.find((f) => f.state === 'broken');
-        if (threat?.atk) prompt = threat.atk.jade ? 'dodge' : 'guard'; else if (open) prompt = 'finish'; else if (g.tag >= G.TAG_FULL) prompt = 'tag';
+      if (g.assist && g.phase === 'fight' && (dora ? g.state !== 'dead' : g.enzo.state !== 'dead')) {
+        const threat = g.foes.find((f) => f.state === 'windup' && f.atk) ?? (g.arrows.length ? g.foes.find((f) => f.kind === 'archer' && f.state === 'strike') : undefined);
+        const open = g.living.find((f) => f.state === 'broken');
+        // Dora guards steel and arrows and rolls from jade; Enzo wards arrows and hops from blades
+        if (threat?.atk) prompt = dora ? (threat.atk.jade ? 'dodge' : 'guard') : threat.kind === 'archer' ? 'ward' : 'hop';
+        else if (open) prompt = dora ? 'finish' : g.doraDown ? 'finish' : 'swapfin';
+        else if (g.tag >= G.TAG_FULL && !(dora ? g.enzoDown : g.doraDown)) prompt = 'tag';
       }
       if (h.prompt && L.prompt !== prompt) { L.prompt = prompt; h.prompt.dataset.kind = prompt; h.prompt.dataset.on = prompt ? '1' : '0'; }
     };
@@ -331,6 +356,7 @@ export default function CloudsteelPage() {
         if (e.code === 'Space') taps.current.add('dodge');
         if (e.code === 'KeyE') taps.current.add('tag');
         if (e.code === 'KeyQ' || e.code === 'Tab') taps.current.add('swap');
+        if (e.code === 'KeyK' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') taps.current.add('guard');
         return;
       }
       if (w?.choosing) {
@@ -353,7 +379,7 @@ export default function CloudsteelPage() {
     sfx()?.unlock();
     if (exploring()) { drag.current = { id: e.pointerId, x: e.clientX, moved: 0, button: e.button }; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); return; }
     if (e.pointerType !== 'mouse') return;
-    if (e.button === 0) taps.current.add('attack'); else if (e.button === 2) held.current.mouseGuard = true;
+    if (e.button === 0) taps.current.add('attack'); else if (e.button === 2) { held.current.mouseGuard = true; taps.current.add('guard'); }
   };
   const mouseMove = (e: React.PointerEvent) => {
     const d = drag.current; if (d.id !== e.pointerId || !exploring()) return;
@@ -377,7 +403,7 @@ export default function CloudsteelPage() {
   };
   const stickUp = (e: React.PointerEvent) => { if (stick.current.id !== e.pointerId) return; stick.current = { x: 0, y: 0, id: -1, ox: 0, oy: 0 }; const knob = hud.current.knob; if (knob) knob.style.transform = ''; };
   const tb = (k: Tap) => ({ onPointerDown: (e: React.PointerEvent) => { e.preventDefault(); e.stopPropagation(); taps.current.add(k); sfx()?.unlock(); } });
-  const guardBtn = { onPointerDown: (e: React.PointerEvent) => { e.preventDefault(); held.current.guard = true; sfx()?.unlock(); }, onPointerUp: () => { held.current.guard = false; }, onPointerCancel: () => { held.current.guard = false; }, onPointerLeave: () => { held.current.guard = false; } };
+  const guardBtn = { onPointerDown: (e: React.PointerEvent) => { e.preventDefault(); held.current.guard = true; taps.current.add('guard'); sfx()?.unlock(); }, onPointerUp: () => { held.current.guard = false; }, onPointerCancel: () => { held.current.guard = false; }, onPointerLeave: () => { held.current.guard = false; } };
 
   // ---------------------------------------------------------------- menus
   const setSetting = (k: 'assist' | 'sound' | 'music' | 'fx' | 'quest', v: boolean) => {
@@ -394,7 +420,8 @@ export default function CloudsteelPage() {
       return {
         screen: scr, paused: pausedRef.current, scene: sceneRef.current, save: saveRef.current, done, backend,
         fight: g && (scr === 'fight' || scr === 'story') ? { phase: g.phase, round: g.round, state: g.state, x: g.x, z: g.z, hp: g.hp, posture: g.posture, tag: g.tag, combo: g.combo, target: g.target, face: g.face, stats: { ...g.stats }, enzo: g.enzo.state,
-          foes: g.foes.map((f) => ({ id: f.id, kind: f.kind, look: f.look, state: f.state, hp: f.hp, posture: f.posture, x: f.x, z: f.z })) } : null,
+          hero: g.hero, swapCd: g.swapCd, me: g.hero === 'dora' ? g.state : g.enzo.state, enzoHp: g.enzo.hp, enzoX: g.enzo.x, enzoZ: g.enzo.z, wardCd: g.enzo.wardCd, arrows: g.arrows.length,
+          foes: g.foes.map((f) => ({ id: f.id, kind: f.kind, look: f.look, state: f.state, hp: f.hp, posture: f.posture, x: f.x, z: f.z, atk: f.atk?.id ?? null, t: f.t })) } : null,
         story: w && scr === 'story' ? { area: w.area, mode: w.mode, t: w.t, tick: w.tick_, talkI: w.talk?.i ?? -1, x: w.x, z: w.z, face: w.face, flags: [...w.flags], got: [...w.gotItems], lit: [...w.lit], won: [...w.wonDuels], near: w.near(), line: w.line, choosing: w.choosing, duel: w.duel?.id ?? null, done: w.done, enzo: { ...w.enzo }, camYaw: sceneRef.current?.camYaw ?? 0,
           goal: nextGoal(w), goalEdge: sceneRef.current?.goalEdge ?? null, questShown: sceneRef.current?.questShown ?? false } : null,
         debug: {
@@ -402,7 +429,11 @@ export default function CloudsteelPage() {
           foeHp: (v: number) => { if (g) for (const f of g.living) f.hp = v; },
           foePosture: (v: number) => { if (g) for (const f of g.living) f.posture = v; },
           hp: (v: number) => { if (g) g.hp = v; },
-          place: (x: number, z: number) => { if (g) { g.x = x; g.z = z; } },
+          enzoHp: (v: number) => { if (g) g.enzo.hp = v; },
+          /** holds every foe still (their attack timers stop), so a test can press a control and read what it did */
+          calm: () => { if (g) for (const f of g.living) f.cd = 9999; },
+          /** moves the hero in front */
+          place: (x: number, z: number) => { if (g) { const o = g.hero === 'dora' ? g : g.enzo; o.x = x; o.z = z; } },
           /** moves Dora in the story (and Enzo beside her) */
           go: (x: number, z: number, face?: number) => { if (w) { w.x = x; w.z = z; if (face !== undefined) { w.face = face; const sc = sceneRef.current; if (sc) sc.turnBy(face - sc.camYaw); } w.enzo.x = x - Math.sin(w.face) * 1.2; w.enzo.z = z - Math.cos(w.face) * 1.2; } },
           /** jumps to another area */
@@ -451,7 +482,7 @@ export default function CloudsteelPage() {
       </div>
     </section>}
 
-    {playing && <section className="cs-hud">
+    {playing && <section className="cs-hud" ref={H('hud')} data-hero="dora">
       {fightHud && <>
         <div className="cs-foe" ref={H('foe')} data-on="0" data-broken="0">
           <span className="cs-face small"><img ref={H('fface') as (el: HTMLImageElement | null) => void} src={art('portrait-atoq')} alt="" /></span>
@@ -467,26 +498,29 @@ export default function CloudsteelPage() {
           <span data-p="guard"><img src={art('icon-guard')} alt="" />Guard now<kbd>{touch ? 'GUARD' : 'K'}</kbd></span>
           <span data-p="dodge"><img src={art('icon-dodge')} alt="" />Dodge away<kbd>{touch ? 'DODGE' : 'Space'}</kbd></span>
           <span data-p="finish"><img src={art('icon-cut')} alt="" />Finish it<kbd>{touch ? 'CUT' : 'J'}</kbd></span>
-          <span data-p="tag"><img src={art('icon-tag')} alt="" />Call Enzo<kbd>{touch ? 'ENZO' : 'E'}</kbd></span>
+          <span data-p="tag"><img src={art('icon-tag')} alt="" />Swap in with a strike<kbd>{touch ? 'SWAP' : 'E'}</kbd></span>
+          <span data-p="ward"><img src={art('icon-guard')} alt="" />Ward the arrow<kbd>{touch ? 'WARD' : 'K'}</kbd></span>
+          <span data-p="hop"><img src={art('icon-dodge')} alt="" />Hop clear<kbd>{touch ? 'HOP' : 'Space'}</kbd></span>
+          <span data-p="swapfin"><img src={art('icon-cut')} alt="" />Swap: Dora finishes<kbd>{touch ? 'SWAP' : 'E'}</kbd></span>
         </div>
         <div className="cs-hero">
-          <span className="cs-face"><img src={art('portrait-dora')} alt="" /></span>
+          <span className="cs-face"><img ref={H('meface') as (el: HTMLImageElement | null) => void} src={art('portrait-dora')} alt="" /></span>
           <div className="cs-hero-bars">
-            <b>Dora</b>
+            <b ref={H('mename')}>Dora</b>
             <span className="cs-bar hp" data-low="0"><i ref={H('hp')} /></span>
             <span className="cs-bar guard"><i ref={H('post')} /></span>
           </div>
         </div>
         <div className="cs-tagbox" ref={H('tagbox')} data-full="0">
-          <span className="cs-face"><img src={art('portrait-enzo')} alt="" /></span>
-          <div><b>Enzo</b><span className="cs-bar tag"><i ref={H('tag')} /></span><em>{touch ? 'Tap ENZO' : 'Press E'}</em></div>
+          <span className="cs-face"><img ref={H('mateface') as (el: HTMLImageElement | null) => void} src={art('portrait-enzo')} alt="" /></span>
+          <div><b ref={H('matename')}>Enzo</b><span className="cs-bar mate"><i ref={H('mhp')} /></span><span className="cs-bar tag"><i ref={H('tag')} /></span><em>{touch ? <><span>SWAP</span> · full: strike</> : <><span>E</span> swap · full: strike</>}</em></div>
         </div>
-        {!touch && <p className="cs-keys"><b>WASD</b> move · <b>J</b> or click: cut · hold <b>K</b> or right-click: guard · <b>Space</b> dodge · <b>E</b> Enzo · <b>Q</b> next foe · Esc pause</p>}
+        {!touch && <p className="cs-keys"><b>WASD</b> move · <b>J</b>/click: cut, sweep · <b>K</b>/right-click: guard, ward · <b>Space</b> dodge, hop · <b>E</b> swap · <b>Q</b> next foe · Esc pause</p>}
         {touch && <div className="cs-touchpad">
           <div className="cs-stick" onPointerDown={stickDown} onPointerMove={stickMove} onPointerUp={stickUp} onPointerCancel={stickUp}><i ref={H('knob')} /></div>
           <div className="cs-tbtns">
-            <button className="t-tag" {...tb('tag')}>ENZO</button><button className="t-dodge" {...tb('dodge')}>DODGE</button>
-            <button className="t-guard" {...guardBtn}>GUARD</button><button className="t-cut" {...tb('attack')}>CUT</button>
+            <button className="t-tag" {...tb('tag')}>SWAP</button><button className="t-dodge" ref={H('bdodge')} {...tb('dodge')}>DODGE</button>
+            <button className="t-guard" ref={H('bguard')} {...guardBtn}>GUARD</button><button className="t-cut" ref={H('bcut')} {...tb('attack')}>CUT</button>
           </div>
         </div>}
       </>}
@@ -522,7 +556,7 @@ export default function CloudsteelPage() {
       </>}
       <button className="cs-pausebtn" onClick={() => setPaused(true)} aria-label="Pause">❚❚</button>
       {fallen && <div className="cs-veil"><div className="cs-card">
-        <h2>Dora is down</h2>
+        <h2>Dora and Enzo are down</h2>
         <p>Catch your breath. The {story ? 'duel' : 'round'} starts again on full health, and what you learned stays with you.</p>
         <button className="cs-go" onClick={retry}>Stand up and try the {story ? 'duel' : 'round'} again</button>
         {story ? <button onClick={stepBack}>Step back down the path</button> : <button onClick={quit}>Leave the terrace</button>}
@@ -595,7 +629,8 @@ export default function CloudsteelPage() {
         <div className="cs-card"><img className="cs-ico" src={art('icon-tag')} alt="" /><h3>Explore</h3><p>{touch ? 'The stick walks; drag the scene to turn the camera.' : <><b>WASD</b> walks; <b>Z</b> and <b>C</b> or a drag turn the camera.</>} <b>{touch ? 'ACT' : 'E or click'}</b> talks to people, picks things up and reads carvings. <b>{touch ? 'LANTERN' : 'F'}</b> has Enzo lift his lantern: it wakes sleeping bridges, sun-stones and jade seals.</p></div>
         <div className="cs-card"><img className="cs-ico" src={art('icon-cut')} alt="" /><h3>Cut</h3><p><b>{touch ? 'CUT' : 'J or click'}</b>. Press again for a chain of three; the third is heavy. Dora steps in to the foe she is locked on to. After three cuts a foe turns the next one aside and answers, so be ready to guard.</p></div>
         <div className="cs-card"><img className="cs-ico" src={art('icon-guard')} alt="" /><h3>Guard and deflect</h3><p>Hold <b>{touch ? 'GUARD' : 'K or right-click'}</b> to block steel. Press it just as a blow lands, at the <b className="cs-gold">gold glint</b>, to <b>deflect</b>: no harm to you, and the foe’s posture bar fills. Blocking late fills your own guard bar instead.</p></div>
-        <div className="cs-card"><img className="cs-ico" src={art('icon-dodge')} alt="" /><h3>Dodge, break, call Enzo</h3><p><b>{touch ? 'DODGE' : 'Space'}</b> rolls. A <b className="cs-jade">jade ring</b> means the blow cannot be guarded: get out or roll through. A full posture bar breaks a foe open: cut then for the finisher. <b>{touch ? 'ENZO' : 'E'}</b> calls Enzo in when his meter is full{touch ? '' : <>; <b>Q</b> switches foe</>}.</p></div>
+        <div className="cs-card"><img className="cs-ico" src={art('icon-dodge')} alt="" /><h3>Dodge and break</h3><p><b>{touch ? 'DODGE' : 'Space'}</b> rolls. A <b className="cs-jade">jade ring</b> means the blow cannot be guarded: get out or roll through. A full posture bar breaks a foe open: cut then for the finisher{touch ? '' : <>; <b>Q</b> switches foe</>}. Archers draw a <b className="cs-red">red line</b> to you: step off it, or deflect the arrow.</p></div>
+        <div className="cs-card"><img className="cs-ico" src={art('portrait-enzo')} alt="" /><h3>Tag team</h3><p><b>{touch ? 'SWAP' : 'E'}</b> swaps Dora and Enzo at any time; the other stays close and helps a little. Enzo&apos;s <b>{touch ? 'SWEEP' : 'J'}</b> is a slow, wide swing of the lantern that cracks the guard of a whole group; his <b>{touch ? 'WARD' : 'K'}</b> stops arrows (it only softens a blade); <b>{touch ? 'HOP' : 'Space'}</b> hops clear. When the meter is full, the swap comes in with a strike.</p></div>
       </div>
       <p className="cs-small cs-centre">A gold chevron on the ground points to the next step of the climb (Settings: Quest arrow). Help is on: foes wind up more slowly, the deflect moment is wider, and a prompt tells you when to guard, dodge or finish. Turn it off in Settings for the full duel.</p>
     </section>}

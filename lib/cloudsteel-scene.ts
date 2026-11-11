@@ -4,12 +4,13 @@
 // way it faces from the camera: front, back or side (the side painting mirrored for the other side) while exploring,
 // and side-on paintings in a duel, where the camera swings round to watch from the side. Every action has its own
 // painting: walk cycles, idles, talking, picking up, the lantern, guard, wind-ups, cuts, lunges, dodges, deflects,
-// hits, staggers, finishers, falls and wins. While exploring, a painted chevron on the ground points the way to the next
-// step of the story. Rules in lib/cloudsteel-game.ts and lib/cloudsteel-world.ts.
+// hits, staggers, finishers, falls and wins, and Enzo's sweep, ward and hop when he is the one fighting. While exploring,
+// a painted chevron on the ground points the way to the next step of the story. Rules in lib/cloudsteel-game.ts and
+// lib/cloudsteel-world.ts.
 import * as T from 'three/webgpu';
 import { pass, screenUV, smoothstep, float, vec2, reflector, mx_noise_float, positionWorld } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
-import { CUTS, DODGE, FINISHER, TAG, type Fight, type FightEvent, type Foe, type Look } from './cloudsteel-game';
+import { ARROW, CUTS, DASH, FINISHER, HOP, SWEEP, TAG, WARD, type Fight, type FightEvent, type Foe, type Look } from './cloudsteel-game';
 import { duelToWorld, GoalGuide, inShape, LANTERN, nextGoal, PICKUP, type AreaId, type Goal, type Duel, type Prop, type Shape, type World, type WorldEvent, type Who } from './cloudsteel-world';
 import { AREAS, DUELS, ITEMS, STONES } from './cloudsteel-story';
 import { SPRITES, SPRITE_PPM, type SpriteSheet } from './cloudsteel-sprites';
@@ -197,7 +198,9 @@ export class CloudsteelScene {
   private kit!: Kit; private softTex!: T.Texture; private inkTex!: T.Texture; private ghostMat!: T.MeshBasicMaterial; private plankMat!: T.MeshStandardMaterial;
   private now = 0; private shake = 0; private yaw = PI; private camPos = new T.Vector3(0, 4, 18); private look = new T.Vector3(0, 1.2, 0); private camInit = false;
   private duel: Duel = ARENA_DUEL; private walked = new Map<string, number>(); private lastPos = new Map<string, { x: number; z: number }>(); private parryT = new Map<number, number>();
-  private talkT = 0; private lastLine: unknown = null; private coldT = 0; private orbit = 0;
+  private talkT = 0; private lastLine: unknown = null; private coldT = 0; private orbit = 0; private step = new Map<string, number>();
+  // the tag team: Enzo's sweep and ward, the archers' red lines and their arrows
+  private sweepArc!: T.Mesh; private wardRing!: T.Mesh; private wardGlow!: T.Sprite; private wardHit = 0; private aims: T.Mesh[] = []; private aimEnds: T.Mesh[] = []; private arrows: T.Group[] = [];
   // the quest arrow: a chevron on the ground ahead of Dora, a medallion on the goal
   private guide = new GoalGuide(); private chev!: T.Mesh; private goalMark!: T.Mesh;
   /** show the quest arrow (the Settings toggle) */
@@ -566,8 +569,8 @@ export class CloudsteelScene {
   /** how far a figure has walked, for its walk cycle */
   private stride(key: string, x: number, z: number) {
     const l = this.lastPos.get(key); let d = this.walked.get(key) ?? 0;
-    if (l) { const s = Math.hypot(x - l.x, z - l.z); if (s < 2) d += s; }
-    this.lastPos.set(key, { x, z }); this.walked.set(key, d); return d;
+    let st = 0; if (l) { const s = Math.hypot(x - l.x, z - l.z); if (s < 2) { d += s; st = s; } }
+    this.lastPos.set(key, { x, z }); this.walked.set(key, d); this.step.set(key, st); return d;
   }
 
   // ---------------------------------------------------------------- effects
@@ -580,6 +583,16 @@ export class CloudsteelScene {
     this.jadeRing = mesh(new T.RingGeometry(0.9, 1, 64), addMat(hdr(0.5, 2.6, 1.6)), 0, 0.06, 0, sc); this.jadeRing.rotation.x = -PI / 2; this.jadeRing.visible = false;
     this.mark = mesh(new T.RingGeometry(0.86, 1, 40), addMat(hdr(1.6, 1.1, 0.4)), 0, 0.05, 0, sc); this.mark.rotation.x = -PI / 2; (this.mark.material as T.MeshBasicMaterial).opacity = 0.7;
     this.finish = mesh(new T.OctahedronGeometry(0.2), glowM(hdr(3, 2, 0.6)), 0, 0, 0, sc); this.finish.visible = false;
+    // Enzo's sweep: a wide, low arc of lantern light; his ward: a ring of light round him and a soft dome
+    this.sweepArc = new T.Mesh(arcGeo(1.4, 2.7, 3.0), addMat(hdr(2.2, 1.5, 0.45), true)); this.sweepArc.frustumCulled = false; this.sweepArc.visible = false; sc.add(this.sweepArc);
+    this.wardRing = mesh(new T.RingGeometry(0.9, 1, 64), addMat(hdr(2.4, 1.8, 0.7)), 0, 0.07, 0, sc); this.wardRing.rotation.x = -PI / 2; this.wardRing.visible = false;
+    this.wardGlow = new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: hdr(1.2, 0.9, 0.4), transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, fog: false })); sc.add(this.wardGlow);
+    // an archer's tell: a red line along the ground to where the arrow will go, and a red ring where it ends
+    for (let i = 0; i < 3; i++) {
+      const g = new T.PlaneGeometry(1, 1); g.rotateX(-PI / 2); g.translate(0, 0, 0.5);
+      const l = mesh(g, addMat(hdr(2.2, 0.18, 0.12)), 0, 0.06, 0, sc); l.visible = false; this.aims.push(l);
+      const r = mesh(new T.RingGeometry(0.78, 1, 40), addMat(hdr(2.2, 0.2, 0.14)), 0, 0.065, 0, sc); r.rotation.x = -PI / 2; r.visible = false; this.aimEnds.push(r);
+    }
     this.glint = new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: hdr(3, 2.2, 1), transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, fog: false })); sc.add(this.glint);
     this.sparks = new T.InstancedMesh(box(0.028, 0.028, 0.2), glowM(hdr(5, 3, 0.9)), 140); this.sparks.frustumCulled = false; sc.add(this.sparks);
     for (let i = 0; i < 140; i++) { this.sP.push(new T.Vector3(0, -999, 0)); this.sV.push(new T.Vector3(0, 1, 0)); }
@@ -606,11 +619,15 @@ export class CloudsteelScene {
       case 'deflect': { const p = at(e.x, e.z); this.puff(p.x, 1.3, p.z, 2.6, hdr(1.8, 1.3, 0.55), false, 0.4); this.burst(p.x, 1.3, p.z, 38, 5.5); kick(0.25); break; }
       case 'block': { const p = at(e.x, e.z); this.puff(p.x, 1.2, p.z, 1.1, hdr(0.8, 0.9, 1.2), false, 0.25); this.burst(p.x, 1.2, p.z, 8, 3); kick(0.1); break; }
       case 'parried': { const p = at(e.x, e.z); this.parryT.set(e.id, 24); this.puff(p.x, 1.2, p.z, 1.5, hdr(0.9, 1.3, 1.4), false, 0.3); this.burst(p.x, 1.2, p.z, 14, 4); kick(0.12); break; }
-      case 'hurt': { const p = at(g.x, g.z); this.puff(p.x, 1.0, p.z, 1.7, e.jade ? hdr(0.4, 1.6, 1.0) : hdr(1.6, 0.6, 0.3), false, 0.3); this.puff(p.x, 0.9, p.z, 1.1, 0x0c1238, true, 0.4); kick(0.28); break; }
+      case 'hurt': { const p = e.who === 'enzo' ? at(g.enzo.x, g.enzo.z) : at(g.x, g.z); this.puff(p.x, 1.0, p.z, 1.7, e.jade ? hdr(0.4, 1.6, 1.0) : hdr(1.6, 0.6, 0.3), false, 0.3); this.puff(p.x, 0.9, p.z, 1.1, 0x0c1238, true, 0.4); kick(0.28); break; }
       case 'finisherHit': { const p = at(e.x, e.z); this.puff(p.x, 1.1, p.z, 4, hdr(2, 1.4, 0.5), false, 0.5); this.puff(p.x, 1.1, p.z, 2.4, 0x0c1238, true, 0.6); this.burst(p.x, 1.1, p.z, 50, 6.5); kick(0.32); break; }
       case 'tagHit': { const p = at(e.x, e.z); this.tagRing.position.set(p.x, 0.2, p.z); this.tagRing.userData.life = 1; this.puff(p.x, 1.2, p.z, 4.5, hdr(2, 1.5, 0.6), false, 0.5); this.burst(p.x, 1.0, p.z, 50, 6); kick(0.3); break; }
       case 'broken': { const f = g.foe(e.id); if (f) { const p = at(f.x, f.z); this.puff(p.x, 1.2, p.z, 3, hdr(1.8, 1.3, 0.5), false, 0.45); this.burst(p.x, 1.2, p.z, 24, 5); } kick(0.2); break; }
       case 'dead': { const f = g.foe(e.id); if (f) { const p = at(f.x, f.z); this.puff(p.x, 0.8, p.z, 2.6, 0x0c1238, true, 0.9); } break; }
+      case 'warded': { const p = at(e.x, e.z); this.wardHit = 0.35; this.puff(p.x, 1.1, p.z, 2.2, hdr(2, 1.5, 0.6), false, 0.35); this.burst(p.x, 1.1, p.z, 18, 3.5); kick(0.08); break; }
+      case 'arrowHit': { const p = at(e.x, e.z); this.burst(p.x, 1.0, p.z, 8, 2.5); break; }
+      case 'sweepHit': { if (e.n > 0) { const p = at(e.x, e.z); this.burst(p.x, 0.9, p.z, 10 + e.n * 6, 3.5); kick(0.06 + e.n * 0.03); } break; }
+      case 'swap': { const m = e.to === 'enzo' ? g.enzo : g, p = at(m.x, m.z); this.puff(p.x, 1.0, p.z, 1.8, hdr(1.4, 1.2, 0.6), false, 0.35); break; }
       case 'guardBroken': { const p = at(g.x, g.z); this.puff(p.x, 1.1, p.z, 2.2, hdr(0.9, 1, 1.4), false, 0.4); kick(0.22); break; }
     }
   }
@@ -649,22 +666,19 @@ export class CloudsteelScene {
     if (fighting && g) {
       // ---------------------------------------- the duel, side-on
       const p = this.L(g.x, g.z); dx = p.x; dz = p.z;
-      const dc = this.card('dora', 'dora'), fWorld = g.face + this.duel.rot;
-      dc.set(doraFightFrame(g, this.stride('dora', dx, dz)), Card.mirrorFor(fWorld, yaw));
-      dc.y = g.state === 'finisher' && g.t < FINISHER.hit ? Math.sin((g.t / FINISHER.hit) * PI) * 1.1 : 0;
-      dc.spin = g.state === 'dodge' && g.t < 14 ? (Card.mirrorFor(fWorld, yaw) ? 1 : -1) * (g.t / 14) * PI * 2 : 0;
-      dc.alpha = 1; dc.bob = 0; dc.update(dx, dz, yaw);
       const e = this.L(g.enzo.x, g.enzo.z); ex = e.x; ez = e.z;
-      const ec = this.card('enzo', 'enzo'), eFace = g.enzo.face + this.duel.rot;
-      let ef = 'ready', ey = 0;
-      if (g.enzo.state === 'leap') { ef = 'leap'; ey = Math.sin(Math.min(1, g.enzo.t / 22) * PI) * 1.3; }
-      else if (g.enzo.state === 'strike') ef = g.enzo.t < 24 ? 'strike' : 'ready';
-      else if (g.enzo.state === 'back') ef = walkCycle('walk-side', this.stride('enzo', ex, ez), 0.42);
-      else if (g.phase === 'won') ef = 'cheer';
-      else if (g.state === 'hit' || g.state === 'dead') ef = 'brace';
-      // should Enzo ever come close to the lens, he fades rather than fill the screen
-      const eCam = Math.hypot(ex - this.camPos.x, ez - this.camPos.z);
-      ec.set(ef, Card.mirrorFor(eFace, yaw)); ec.y = ey; ec.spin = 0; ec.alpha = Math.min(1, Math.max(0.15, (eCam - 1.3) / 1.2)); ec.bob = 0; ec.update(ex, ez, yaw);
+      // the one waiting fades should they come close to the lens, rather than fill the screen
+      const fade = (x: number, z: number) => Math.min(1, Math.max(0.15, (Math.hypot(x - this.camPos.x, z - this.camPos.z) - 1.3) / 1.2));
+      const dWalk = this.stride('dora', dx, dz), eWalk = this.stride('enzo', ex, ez), near = threatNear(g);
+      const dc = this.card('dora', 'dora'), fWorld = g.face + this.duel.rot;
+      dc.set(doraFightFrame(g, dWalk, (this.step.get('dora') ?? 0) > 0.004), Card.mirrorFor(fWorld, yaw));
+      dc.y = g.state === 'finisher' && g.t < FINISHER.hit ? Math.sin((g.t / FINISHER.hit) * PI) * 1.1 : g.state === 'tagin' && g.t < DASH.hit ? Math.sin((g.t / DASH.hit) * PI) * 0.35 : 0;
+      dc.spin = g.state === 'dodge' && g.t < 14 ? (Card.mirrorFor(fWorld, yaw) ? 1 : -1) * (g.t / 14) * PI * 2 : 0;
+      dc.alpha = g.hero === 'dora' ? 1 : fade(dx, dz); dc.bob = 0; dc.update(dx, dz, yaw);
+      const ec = this.card('enzo', 'enzo'), en = g.enzo, eFace = en.face + this.duel.rot;
+      const ef = enzoFightFrame(g, eWalk, (this.step.get('enzo') ?? 0) > 0.004, near, this.wardHit > 0);
+      const ey = en.state === 'leap' ? Math.sin(Math.min(1, en.t / 22) * PI) * 1.3 : en.state === 'hop' ? Math.sin(Math.min(1, en.t / HOP.len) * PI) * 0.5 : 0;
+      ec.set(ef, Card.mirrorFor(eFace, yaw)); ec.y = ey; ec.spin = 0; ec.alpha = g.hero === 'enzo' ? 1 : fade(ex, ez); ec.bob = 0; ec.update(ex, ez, yaw);
       for (const f of g.foes) {
         if (f.gone) continue;
         const fp = this.L(f.x, f.z), c = this.card(`foe${f.id}-${f.look}`, f.look);
@@ -800,6 +814,35 @@ export class CloudsteelScene {
     const d = this.L(g.x, g.z); this.trailBox.position.set(d.x, 0, d.z); this.trailBox.rotation.y = g.face + this.duel.rot;
     this.trails.forEach((m, i) => { const life = (m.userData.life as number) || 0, c = CUTS[i], on = g.state === `cut${i + 1}` && g.t >= c.hit - 3; const l = on ? Math.max(0, life - dt * 3.2) : Math.max(0, life - dt * 6); m.userData.life = l; const show = on && l > 0; m.visible = show; (m.material as T.MeshBasicMaterial).opacity = show ? l : 0; });
     const tl = (this.tagRing.userData.life as number) || 0; if (tl > 0) { const l = Math.max(0, tl - dt * 1.7); this.tagRing.userData.life = l; this.tagRing.visible = l > 0; this.tagRing.scale.setScalar(0.5 + (1 - l) * TAG.radius); (this.tagRing.material as T.MeshBasicMaterial).opacity = l; }
+    // Enzo's sweep and ward
+    const en = g.enzo, ep = this.L(en.x, en.z), sw = en.state === 'sweep' && en.t >= SWEEP.hit - 4 && en.t <= SWEEP.hit + 10;
+    this.sweepArc.visible = sw;
+    if (sw) { const k = (en.t - (SWEEP.hit - 4)) / 14; this.sweepArc.position.set(ep.x, 0.75, ep.z); this.sweepArc.rotation.set(PI / 2, 0, -(en.face + this.duel.rot) + PI / 2 - SWEEP.arc - 0.2 + k * 0.4); (this.sweepArc.material as T.MeshBasicMaterial).opacity = Math.sin(k * PI) * 0.9; }
+    const ward = en.state === 'ward' ? Math.min(1, en.t / 5) * Math.min(1, (WARD.len - en.t) / 8) : 0, wg = this.wardGlow.material as T.SpriteMaterial;
+    this.wardHit = Math.max(0, this.wardHit - dt);
+    this.wardRing.visible = ward > 0; this.wardRing.position.set(ep.x, 0.07, ep.z); this.wardRing.scale.setScalar(WARD.r * (0.9 + Math.sin(now * 9) * 0.03));
+    (this.wardRing.material as T.MeshBasicMaterial).opacity = ward * (0.7 + this.wardHit * 1.5);
+    this.wardGlow.position.set(ep.x, 1.0, ep.z); this.wardGlow.scale.set(WARD.r * 2.2, WARD.r * 1.9, 1); wg.opacity = ward * (0.22 + this.wardHit * 0.8);
+    // archers drawing: the red line follows the hero, then locks (brighter and wider) before the arrow goes
+    const drawing = g.foes.filter((f) => f.kind === 'archer' && f.state === 'windup' && f.atk);
+    this.aims.forEach((l, i) => {
+      const f = drawing[i], r = this.aimEnds[i]; l.visible = r.visible = !!f; if (!f) return;
+      const a = f.atk!, locked = f.t >= a.windup - ARROW.lock, u = f.t / a.windup, fp = this.L(f.x, f.z), tp = this.L(f.aimX, f.aimZ);
+      const ddx = tp.x - fp.x, ddz = tp.z - fp.z, len = Math.hypot(ddx, ddz) || 1;
+      l.position.set(fp.x + (ddx / len) * 0.5, 0.06, fp.z + (ddz / len) * 0.5); l.rotation.y = Math.atan2(ddx, ddz); l.scale.set(locked ? 0.2 : 0.07, 1, len + 1.5);
+      (l.material as T.MeshBasicMaterial).opacity = locked ? 0.75 + Math.sin(now * 30) * 0.2 : 0.2 + u * 0.4;
+      r.position.set(tp.x, 0.065, tp.z); r.scale.setScalar(locked ? 0.5 : 0.75 - u * 0.2); (r.material as T.MeshBasicMaterial).opacity = locked ? 0.9 : 0.35;
+    });
+    // arrows in flight: the painted arrow, on two crossed cards so it reads from any side
+    while (this.arrows.length < g.arrows.length) {
+      const o = new T.Group(), t = loadTex('arrow'), m = new T.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.1, side: T.DoubleSide, depthWrite: false, fog: false });
+      const a = mesh(new T.PlaneGeometry(0.95, 0.16), m, 0, 0, 0, o), b = mesh(new T.PlaneGeometry(0.95, 0.16), m, 0, 0, 0, o); a.rotation.y = PI / 2; b.rotation.set(PI / 2, PI / 2, 0, 'YXZ');
+      this.scene.add(o); this.arrows.push(o);
+    }
+    this.arrows.forEach((o, i) => {
+      const a = g.arrows[i]; o.visible = !!a; if (!a) return;
+      const p = this.L(a.x, a.z); o.position.set(p.x, 1.05, p.z); o.rotation.y = Math.atan2(a.vx, a.vz) + this.duel.rot;
+    });
   }
   /** the quest arrow: a chevron on the ground a little ahead of Dora, turned along the way to the goal (round walls and
    *  gorges), a medallion on the goal itself, and the goal's place for the page's pointer at the edge of the screen */
@@ -824,6 +867,8 @@ export class CloudsteelScene {
     this.goalEdge = { x: 0.5 + cx * t, y: 0.5 - cy * t, ang };
   }
   private hideFightFx(dt: number) {
+    this.sweepArc.visible = this.wardRing.visible = false; (this.wardGlow.material as T.SpriteMaterial).opacity = 0;
+    for (const l of this.aims) l.visible = false; for (const r of this.aimEnds) r.visible = false; for (const o of this.arrows) o.visible = false;
     this.mark.visible = false; this.finish.visible = false; this.jadeRing.visible = false; (this.glint.material as T.SpriteMaterial).opacity = 0;
     for (const m of this.trails) m.visible = false;
     const tl = (this.tagRing.userData.life as number) || 0; if (tl > 0) { this.tagRing.userData.life = Math.max(0, tl - dt * 1.7); } else this.tagRing.visible = false;
@@ -860,18 +905,26 @@ export class CloudsteelScene {
       return { x: mx + nx * dist, z: mz + nz * dist, y: h, lx: mx, lz: mz };
     };
     if (fighting && g) {
-      const tg = g.targetFoe ?? g.living[0], d = this.L(g.x, g.z);
+      const me = g.me, tg = g.targetFoe ?? g.living[0], d = this.L(me.x, me.z);
       if (tg && g.phase !== 'won') {
         // close in, side-on: near enough that the two fighters fill about half the height of the frame, far enough that
         // both stay in it. A phone held upright looks along the line from behind Dora's shoulder instead, so the pair
         // still fits a narrow screen without pulling far back.
-        const f = this.L(tg.x, tg.z), en = this.L(g.enzo.x, g.enzo.z), big = tg.kind === 'bear';
-        const mx = (d.x + f.x) / 2, mz = (d.z + f.z) / 2, ddx = f.x - d.x, ddz = f.z - d.z, l = Math.hypot(ddx, ddz) || 1, ux = ddx / l, uz = ddz / l;
+        // the hero in front and their foe; the partner is kept behind the camera's line, like Enzo always was
+        const f = this.L(tg.x, tg.z), en = g.hero === 'dora' ? this.L(g.enzo.x, g.enzo.z) : this.L(g.x, g.z), big = tg.kind === 'bear';
+        // an archer drawing (or an arrow in flight) joins the frame, so her red line can be seen
+        const pts = [d, f], bowed = g.foes.find((o) => o.kind === 'archer' && o.id !== tg.id && (o.state === 'windup' || o.state === 'strike' || (o.state === 'recover' && g.arrows.length > 0)));
+        if (bowed) pts.push(this.L(bowed.x, bowed.z));
+        const xs = pts.map((o) => o.x), zs = pts.map((o) => o.z);
+        const mx = (Math.min(...xs) + Math.max(...xs)) / 2, mz = (Math.min(...zs) + Math.max(...zs)) / 2, ddx = f.x - d.x, ddz = f.z - d.z, lf = Math.hypot(ddx, ddz) || 1, ux = ddx / lf, uz = ddz / lf;
+        let l = lf; for (const a of pts) for (const c of pts) l = Math.max(l, Math.hypot(a.x - c.x, a.z - c.z));
         let nx = uz, nz = -ux; if ((this.camPos.x - mx) * nx + (this.camPos.z - mz) * nz < 0) { nx = -nx; nz = -nz; }
         if ((en.x - mx) * nx + (en.z - mz) * nz > 0.6) { nx = -nx; nz = -nz; }
         const turn = upright ? 1.0 : 0.18, cx = nx * Math.cos(turn) - ux * Math.sin(turn), cz = nz * Math.cos(turn) - uz * Math.sin(turn);
         const half = (l / 2) * Math.cos(turn) + (big ? 1.7 : 1.25) * (upright ? 0.8 : 1);
-        const dist = Math.max(big ? 4.2 : 3.4, half / tanH, (big ? 2.9 : 2.0) / (2 * tanV * 0.62));
+        // an archer at the back: pull out a little more
+        const bow = g.living.some((o) => o.kind === 'archer') ? 1.1 : 1;
+        const dist = Math.max(big ? 4.2 : 3.4, half / tanH, (big ? 2.9 : 2.0) / (2 * tanV * 0.62)) * bow;
         tx = mx + cx * dist; tz = mz + cz * dist; ty = big ? 1.9 : 1.55; lx = mx; lz = mz; ly = big ? 1.25 : 0.95;
         // a close camera has to keep up with dodges and lunges
         rate = 3.6;
@@ -916,9 +969,18 @@ export class CloudsteelScene {
 
 // ---------------------------------------------------------------- which painting
 const walkCycle = (base: string, dist: number, stride: number) => `${base}-${Math.floor(dist / stride) % 4}`;
-function doraFightFrame(g: Fight, walked: number): string {
+/** a foe close to the one waiting is winding up: the partner shows a guard */
+function threatNear(g: Fight) {
+  const m = g.hero === 'dora' ? g.enzo : g;
+  return g.foes.some((f) => f.state === 'windup' && Math.hypot(f.x - m.x, f.z - m.z) < 3.5);
+}
+function doraFightFrame(g: Fight, walked: number, moving: boolean): string {
   const t = g.t;
   switch (g.state) {
+    case 'wait': return moving ? walkCycle('walk-side', walked, 0.5) : threatNear(g) ? 'guard' : 'wait';
+    case 'tagout': return t < 10 ? 'tag-out' : walkCycle('walk-side', walked, 0.5);
+    case 'help': return t < CUTS[0].hit - 2 ? 'windup' : 'cut-a';
+    case 'tagin': return t < DASH.hit - 2 ? 'dash' : t < DASH.hit + 6 ? 'lunge' : 'stance';
     case 'run': return walkCycle('walk-side', walked, 0.5);
     case 'cut1': return t < CUTS[0].hit - 2 ? 'windup' : 'cut-a';
     case 'cut2': return 'cut-b';
@@ -936,7 +998,36 @@ function doraFightFrame(g: Fight, walked: number): string {
     default: return 'stance';
   }
 }
+function enzoFightFrame(g: Fight, walked: number, moving: boolean, near: boolean, warded: boolean): string {
+  const e = g.enzo, t = e.t;
+  switch (e.state) {
+    case 'leap': return 'leap';
+    case 'strike': return t < 18 ? 'strike' : 'ready';
+    case 'sweep': return t < SWEEP.hit - 3 ? 'sweep-wind' : t < SWEEP.hit + 8 ? 'sweep' : 'sweep-end';
+    case 'help': return t < SWEEP.hit - 3 ? 'sweep-wind' : t < SWEEP.hit + 8 ? 'sweep' : 'sweep-end';
+    case 'ward': return warded ? 'ward-hit' : 'ward';
+    case 'hop': return t < HOP.len - 2 ? 'hop' : 'f-stance';
+    case 'hit': return 'f-hit';
+    case 'dead': return 'f-down';
+    case 'win': return 'cheer';
+    case 'run': return walkCycle('walk-side', walked, 0.42);
+    case 'tagout': return t < 10 ? 'tag-out' : walkCycle('walk-side', walked, 0.42);
+    case 'wait': return moving ? walkCycle('walk-side', walked, 0.42) : g.phase === 'won' ? 'cheer' : near ? 'brace' : 'ready';
+    default: return g.phase === 'won' ? 'cheer' : 'f-stance';
+  }
+}
 function foeFightFrame(f: Foe, walked: number, parry: boolean): string {
+  if (f.look === 'archer') { // the vizcacha archer: a draw, the aim (the line has locked), the release
+    switch (f.state) {
+      case 'windup': return f.t < (f.atk?.windup ?? 56) - ARROW.lock ? 'draw' : 'aim';
+      case 'strike': return 'release';
+      case 'recover': return f.t < 14 ? 'release' : 'idle';
+      case 'hit': case 'deflected': return 'hit';
+      case 'broken': return 'broken';
+      case 'dead': return 'down';
+      default: { const i = Math.floor(walked / 0.4) % 4; return f.state === 'stalk' && (f.t % 40 < 3 || i === 3) ? 'idle' : `walk-${Math.min(i, 2)}`; }
+    }
+  }
   if (parry && (f.state === 'stalk' || f.state === 'hit')) return 'parry';
   const bear = f.look === 'ukhu';
   const atk = (wind: boolean) => {

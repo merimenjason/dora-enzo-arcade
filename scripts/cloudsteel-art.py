@@ -2,6 +2,7 @@
 """Cloudsteel: brings Codex's paintings into the game.
 
     python3 scripts/cloudsteel-art.py frames <folder with dora-heavy.png, dora-gaze.png, enzo-offer.png>
+    python3 scripts/cloudsteel-art.py frames <folder with enzo-a.png, enzo-b.png, swap.png, arch-a.png .. arch-c.png> sheets
     python3 scripts/cloudsteel-art.py decor <folder with decor-a.png .. decor-d.png>
     python3 scripts/cloudsteel-art.py textures <folder with the tex-*.png, door.png> <folder with the arch paintings>
 
@@ -9,7 +10,10 @@ Figures and cut-outs were painted on flat magenta. The key clears the magenta an
 pink fringe is left round the fur. `frames` adds new paintings to a character's atlas in public/art/cloudsteel/sprites/:
 the existing cells are kept exactly, each new frame is scaled to match a frame of the same character already in the
 atlas and stood with its feet on the atlas's baseline, and lib/cloudsteel-sprites.ts is rewritten with the new grid.
-`decor` cuts the four 2x2 set-dressing sheets into one atlas (public/art/cloudsteel/decor.webp) and writes each item's
+With `sheets`, the paintings are 2x2 sheets of four figures each (see SHEETS): every figure on a sheet was painted at
+one scale, so one figure on each sheet is matched to an existing frame and the other three keep their size against
+it; a character with no atlas yet (the vizcacha archer) gets a new one, and an atlas whose new frames reach wider than
+its cells gains room at the sides. `decor` cuts the four 2x2 set-dressing sheets into one atlas (public/art/cloudsteel/decor.webp) and writes each item's
 place in it to lib/cloudsteel-decor.ts. `textures` turns the tileable textures and the big architectural pieces into
 WebP.
 """
@@ -173,6 +177,103 @@ def new_hx(name):
     return None
 
 
+# the tag-team duel's paintings: 2x2 sheets on magenta. (character, sheet, the four frames' names left to right, top to
+# bottom (None: not this character's), the quarter that is matched to an existing frame, that frame as 'who:frame',
+# and the height ratio to it). The rest of the sheet's figures for that character keep their size against it.
+SHEETS = [
+    ('enzo', 'enzo-b.png', ['ward', 'hop', 'f-hit', 'f-down'], 0, 'enzo:brace', 1.05),
+    ('enzo', 'enzo-a.png', ['f-stance', 'sweep-wind', 'sweep', 'sweep-end'], 0, 'enzo:ward', 0.9),
+    ('dora', 'swap.png', ['wait', 'tag-out', None, None], 0, 'dora:idle-side', 1.0),
+    ('enzo', 'swap.png', [None, None, 'tag-out', 'ward-hit'], 2, 'enzo:idle-side', 0.92),
+    ('archer', 'arch-a.png', ['idle', 'walk-0', 'walk-1', 'walk-2'], 0, 'kin:idle', 1.0),
+    ('archer', 'arch-b.png', ['draw', 'aim', 'release', 'hit'], 1, 'archer:idle', 1.0),
+    ('archer', 'arch-c.png', ['broken', 'down', 'bow', 'talk'], 3, 'archer:idle', 1.0),
+]
+
+
+# frames whose lantern was painted with a soft glow over the magenta: the pink left in the glow is turned gold
+GLOWS = {'ward-hit'}
+
+
+def gild(im):
+    a = np.asarray(im).astype(np.float64)
+    r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    pink = (np.minimum(r, b) - g > 30) & (r > 170)
+    a[..., 1][pink] = r[pink] * 0.78
+    a[..., 2][pink] = r[pink] * 0.32
+    return Image.fromarray(a.astype(np.uint8))
+
+
+def quarter(sheet, q):
+    w, h = sheet.size
+    part = sheet.crop(((q % 2) * w // 2, (q // 2) * h // 2, (q % 2 + 1) * w // 2, (q // 2 + 1) * h // 2))
+    return part.crop(bbox(part, 8))
+
+
+def head_x(im, frac=0.16):
+    al = np.asarray(im)[..., 3] > 40
+    t = body_top(im, frac)
+    band = al[t:t + max(4, int((im.height - t) * 0.25))]
+    return np.nonzero(band)[1].mean()
+
+
+def sheets_(src):
+    ppm, sheets = read_sheets()
+    keyed = {}
+    new = {}  # who -> {name: (im, head_x)}
+    old = {who: cells(who, s) for who, s in sheets.items()}
+
+    def height(im):
+        return im.height - body_top(im)
+
+    for who, file, names, anchor, ref, ratio in SHEETS:
+        if file not in keyed:
+            keyed[file] = key(Image.open(Path(src) / file))
+        parts = {q: quarter(keyed[file], q) for q, n in enumerate(names) if n}
+        rw, rf = ref.split(':')
+        if rw in new and rf in new[rw]:
+            ref_h = height(new[rw][rf][0])
+        else:
+            ref_h = sheets[rw]['ay'] - body_top(old[rw][rf])
+        k = ref_h * ratio / height(parts[anchor])
+        for q, im in parts.items():
+            im = resize(gild(im) if names[q] in GLOWS else im, im.width * k, im.height * k)
+            new.setdefault(who, {})[names[q]] = (im, head_x(im))
+    for who, frames in new.items():
+        if who in sheets:
+            s = sheets[who]
+            cw, ch, ax, ay, cols = s['cw'], s['ch'], s['ax'], s['ay'], s['cols']
+            names = s['frames'] + [n for n in frames if n not in s['frames']]
+        else:
+            # a new atlas: the idle sets the anchor; cells as big as the largest frame needs
+            cols = 4
+            hx = frames['idle'][1]
+            ax = max(hx for im, hx in frames.values()) + 4
+            cw = int(np.ceil(ax + max(im.width - hx for im, hx in frames.values()) + 4))
+            ay = max(im.height for im, _ in frames.values()) + 4
+            ch = int(np.ceil(ay + 4))
+            names = list(frames)
+            old[who] = {}
+        # room on top and at the sides for anything that reaches past the cells
+        top = max(0, int(np.ceil(max(im.height for im, _ in frames.values()) - ay + 4)))
+        left = max(0, int(np.ceil(max(hx for _, hx in frames.values()) - ax + 2)))
+        right = max(0, int(np.ceil(max(im.width - hx for im, hx in frames.values()) - (cw - ax) + 2)))
+        CW, CH, AX, AY = cw + left + right, ch + top, ax + left, ay + top
+        rows = -(-len(names) // cols)
+        atlas = Image.new('RGBA', (cols * CW, rows * CH), (0, 0, 0, 0))
+        for i, f in enumerate(names):
+            x, y = (i % cols) * CW, (i // cols) * CH
+            if f in frames:
+                im, hx = frames[f]
+                atlas.alpha_composite(im, (x + round(AX - hx), y + round(AY - im.height)))
+            else:
+                atlas.alpha_composite(old[who][f], (x + left, y + top))
+        atlas.save(ART / 'sprites' / f'{who}.webp', 'WEBP', quality=88, method=6)
+        sheets[who] = dict(cols=cols, rows=rows, cw=CW, ch=CH, ax=round(AX, 1), ay=round(AY, 1), frames=names)
+        print(who, 'atlas', atlas.size, 'added', list(frames), 'room', top, left, right)
+    write_sheets(ppm, sheets)
+
+
 # the set dressing: sheet, quarter (0 top-left, 1 top-right, 2 bottom-left, 3 bottom-right) and name
 DECOR = [
     ('decor-a', 0, 'banner'), ('decor-a', 1, 'brazier'), ('decor-a', 2, 'stele'), ('decor-a', 3, 'tapestry'),
@@ -236,7 +337,10 @@ def textures(src, arch):
 if __name__ == '__main__':
     what = sys.argv[1]
     if what == 'frames':
-        frames(sys.argv[2])
+        if sys.argv[3:] == ['sheets']:
+            sheets_(sys.argv[2])
+        else:
+            frames(sys.argv[2])
     elif what == 'decor':
         decor(sys.argv[2])
     elif what == 'textures':
