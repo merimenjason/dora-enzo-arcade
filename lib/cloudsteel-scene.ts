@@ -9,9 +9,11 @@ import * as T from 'three/webgpu';
 import { pass, screenUV, smoothstep, float, vec2, reflector, mx_noise_float, positionWorld } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import { CUTS, DODGE, FINISHER, TAG, type Fight, type FightEvent, type Foe, type Look } from './cloudsteel-game';
-import { duelToWorld, inShape, LANTERN, PICKUP, type AreaId, type Duel, type Shape, type World, type WorldEvent, type Who } from './cloudsteel-world';
+import { duelToWorld, inShape, LANTERN, PICKUP, type AreaId, type Duel, type Prop, type Shape, type World, type WorldEvent, type Who } from './cloudsteel-world';
 import { AREAS, DUELS, ITEMS, STONES } from './cloudsteel-story';
 import { SPRITES, SPRITE_PPM, type SpriteSheet } from './cloudsteel-sprites';
+import { DECOR, type DecorItem } from './cloudsteel-decor';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const PI = Math.PI, art = (n: string) => `/art/cloudsteel/${n}.webp`;
 const mix = (a: number, b: number, k: number) => a + (b - a) * k;
@@ -37,6 +39,100 @@ function cellTex(n: string, cell: number, cols = 2, rows = 2) {
   const fin = () => { t.source = base.source; t.needsUpdate = true; };
   if (base.image && (base.image as HTMLImageElement).complete) fin(); else { const l = texWait.get(base) ?? []; l.push(fin); texWait.set(base, l); }
   return t;
+}
+
+// ---------------------------------------------------------------- the painted stonework
+// Geometry whose texture keeps one scale in the world (so a wall and a step show stones of the same size), and a batch
+// that merges every static piece of an area into one mesh per material: a whole area draws in a handful of calls.
+/** scales a geometry's uvs face by face: `dims(face)` gives the face's size in metres along u and v */
+function scaleUV(g: T.BufferGeometry, perFace: number, dims: (face: number) => [number, number]) {
+  const uv = g.attributes.uv as T.BufferAttribute;
+  for (let i = 0; i < uv.count; i++) { const [su, sv] = dims(Math.floor(i / perFace)); uv.setXY(i, uv.getX(i) * su, uv.getY(i) * sv); }
+  return g;
+}
+/** a box whose texture repeats every `tile` metres on every face */
+function boxT(w: number, h: number, d: number, tile = 2) {
+  const f: [number, number][] = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
+  return scaleUV(new T.BoxGeometry(w, h, d), 4, (i) => [f[i][0] / tile, f[i][1] / tile]);
+}
+/** a band of the carved frieze wrapped round a box: the frieze keeps its own proportions along every side */
+function bandT(w: number, h: number, d: number) {
+  const f: [number, number][] = [[d / (h * 4), 1], [d / (h * 4), 1], [w / (h * 4), 0.1], [w / (h * 4), 0.1], [w / (h * 4), 1], [w / (h * 4), 1]];
+  return scaleUV(new T.BoxGeometry(w, h, d), 4, (i) => f[i]);
+}
+/** a carved pillar: the painted pillar face on all four sides, stacked `v` times up its height */
+function pillarGeo(w: number, h: number, d: number, v: number) { return scaleUV(new T.BoxGeometry(w, h, d), 4, (i) => (i === 2 || i === 3 ? [0.3, 0.3] : [1, v])); }
+/** a door: the painted doors on the front and back, plain wood on the edges */
+function doorGeo(w: number, h: number, d: number) { return scaleUV(new T.BoxGeometry(w, h, d), 4, (i) => (i < 4 ? [0.05, 0.05] : [1, 1])); }
+/** ground in the world's own texture coordinates, so neighbouring pieces of floor line up */
+function planeT(w: number, d: number, tile: number, cx: number, cz: number) {
+  const g = new T.PlaneGeometry(w, d), p = g.attributes.position, uv = g.attributes.uv as T.BufferAttribute;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, (p.getX(i) + cx) / tile, (p.getY(i) - cz) / tile);
+  return g;
+}
+function discT(r: number, tile: number, cx: number, cz: number) {
+  const g = new T.CircleGeometry(r, 48), p = g.attributes.position, uv = g.attributes.uv as T.BufferAttribute;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, (p.getX(i) + cx) / tile, (p.getY(i) - cz) / tile);
+  return g;
+}
+function cylT(r0: number, r1: number, h: number, tile: number) {
+  const g = new T.CylinderGeometry(r0, r1, h, 24), c = PI * (r0 + r1);
+  return scaleUV(g, 1, () => [c / tile, h / tile]);
+}
+/** a hipped roof over a w by d base, rising h to its ridge, its texture laid in rows along the eaves */
+function hipRoof(w: number, d: number, h: number, tile: number) {
+  const rx = Math.max(0, (w - d) / 2), rz = Math.max(0, (d - w) / 2), pos: number[] = [], uv: number[] = [];
+  const sz = Math.hypot(h, d / 2 - rz), sx = Math.hypot(h, w / 2 - rx);
+  const quad = (q: number[][], along: 0 | 2, slope: number) => {
+    for (const i of [0, 1, 2, 0, 2, 3]) { const v = q[i]; pos.push(v[0], v[1], v[2]); uv.push(v[along] / tile, v[1] > 0 ? slope / tile : 0); }
+  };
+  quad([[-w / 2, 0, d / 2], [w / 2, 0, d / 2], [rx, h, rz], [-rx, h, rz]], 0, sz);
+  quad([[w / 2, 0, -d / 2], [-w / 2, 0, -d / 2], [-rx, h, -rz], [rx, h, -rz]], 0, sz);
+  quad([[w / 2, 0, d / 2], [w / 2, 0, -d / 2], [rx, h, -rz], [rx, h, rz]], 2, sx);
+  quad([[-w / 2, 0, -d / 2], [-w / 2, 0, d / 2], [-rx, h, rz], [-rx, h, -rz]], 2, sx);
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.computeVertexNormals();
+  return g;
+}
+/** a card of set dressing cut from the decor atlas, `h` tall, standing on its base or centred */
+function decorGeo(it: DecorItem, h: number, stand: boolean) {
+  const g = new T.PlaneGeometry(h * it.aspect, h), uv = g.attributes.uv as T.BufferAttribute;
+  // PlaneGeometry's uv order: top-left, top-right, bottom-left, bottom-right
+  uv.setXY(0, it.u0, it.v1); uv.setXY(1, it.u1, it.v1); uv.setXY(2, it.u0, it.v0); uv.setXY(3, it.u1, it.v0);
+  if (stand) g.translate(0, h / 2, 0);
+  return g;
+}
+/** how tall each piece of set dressing stands, in metres, and where a wall piece hangs (its middle) */
+const DECOR_H: Record<string, number> = { banner: 3.6, brazier: 1.5, stele: 2.4, tapestry: 2.6, 'relief-puma': 1.6, offering: 0.95, ferns: 0.95, statue: 2.1, jars: 1.3, 'relief-condor': 1.7, column: 3, vines: 2.6, 'relief-serpent': 1.6, cargo: 1.2, lamp: 2.4, pennants: 3.8 };
+const DECOR_Y: Record<string, number> = { tapestry: 3.3, 'relief-puma': 2.3, 'relief-condor': 2.4, 'relief-serpent': 2.3, vines: 4.2 };
+class Batch {
+  private parts = new Map<T.Material, T.BufferGeometry[]>(); private m = new T.Matrix4(); private q = new T.Quaternion(); private e = new T.Euler(); private p = new T.Vector3(); private s = new T.Vector3(1, 1, 1);
+  add(geo: T.BufferGeometry, mat: T.Material, x: number, y: number, z: number, o: { rx?: number; ry?: number; rz?: number } = {}) {
+    const g = geo.index ? geo.toNonIndexed() : geo.clone(); geo.dispose();
+    if (!g.attributes.normal) g.computeVertexNormals();
+    this.m.compose(this.p.set(x, y, z), this.q.setFromEuler(this.e.set(o.rx ?? 0, o.ry ?? 0, o.rz ?? 0)), this.s); g.applyMatrix4(this.m);
+    for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal' && k !== 'uv') g.deleteAttribute(k);
+    let l = this.parts.get(mat); if (!l) { l = []; this.parts.set(mat, l); } l.push(g);
+  }
+  build(into: T.Object3D) {
+    for (const [mat, gs] of this.parts) { const merged = mergeGeometries(gs, false); if (merged) into.add(new T.Mesh(merged, mat)); for (const g of gs) g.dispose(); }
+    this.parts.clear();
+  }
+}
+type Kit = Record<'ashlar' | 'cliff' | 'thatch' | 'tile' | 'wood' | 'trim' | 'trimStone' | 'paving' | 'moss' | 'stone' | 'door' | 'doorDark' | 'pillar', T.MeshStandardMaterial> & { decor: T.MeshStandardMaterial };
+/** the shared materials of the painted stonework: one each, reused by every area */
+function makeKit(): Kit {
+  const t = (n: string) => loadTex(n, 1);
+  const roofs = { side: T.DoubleSide };
+  const decor = new T.MeshStandardMaterial({ map: loadTex('decor'), alphaTest: 0.4, side: T.DoubleSide, roughness: 1, metalness: 0, emissive: 0xffffff, emissiveMap: loadTex('decor'), emissiveIntensity: 0.14 });
+  decor.color.setScalar(0.78);
+  const door = loadTex('door'), pillar = loadTex('pillar'); for (const x of [door, pillar]) { x.wrapS = x.wrapT = T.RepeatWrapping; }
+  return {
+    ashlar: std(0xc9d1dc, { map: t('ashlar'), roughness: 0.82 }), cliff: std(0x9aa6b4, { map: t('cliff'), roughness: 0.9 }),
+    thatch: std(0xc9b89a, { map: t('thatch'), roughness: 0.95, ...roofs }), tile: std(0xc8dcdc, { map: t('roof'), roughness: 0.5, ...roofs }),
+    wood: std(0xa89888, { map: t('wood'), roughness: 0.8 }), trim: std(0xdfe5ee, { map: t('trim'), roughness: 0.55, metalness: 0.1 }), trimStone: std(0xc9d1dc, { map: t('ashlar'), roughness: 0.7 }),
+    paving: std(0xd4d4d8, { map: t('paving'), roughness: 0.7 }), moss: std(0xffffff, { map: t('moss'), roughness: 0.75 }), stone: std(0xffffff, { map: t('stone'), roughness: 0.75 }),
+    door: std(0xb8a898, { map: door, roughness: 0.7 }), doorDark: std(0x55504c, { map: door, roughness: 0.8 }), pillar: std(0xc9d1dc, { map: pillar, roughness: 0.8 }), decor,
+  };
 }
 
 // ---------------------------------------------------------------- painted figures
@@ -80,7 +176,8 @@ function view(face: number, camYaw: number): 'front' | 'back' | 'side' {
 }
 
 type Fx = { o: T.Object3D; mat: T.Material; life: number; max: number; grow: number; s0: number };
-type AreaBuild = { group: T.Group; planks: Map<string, T.Mesh>; gates: Map<string, T.Object3D>; stones: Map<string, T.Mesh>; posts: T.Object3D[]; lamps: T.PointLight[]; sunLamp?: T.Mesh; sunLight?: T.PointLight };
+type DecorSet = { name: string; items: { x: number; y: number; z: number; s: number }[]; mesh: T.InstancedMesh | null };
+type AreaBuild = { group: T.Group; planks: Map<string, T.Mesh>; gates: Map<string, T.Object3D>; stones: Map<string, T.Mesh>; posts: T.Object3D[]; lamps: T.PointLight[]; decor: DecorSet[]; flames: T.Sprite[]; sunLamp?: T.Mesh; sunLight?: T.PointLight; sunHalo?: T.Sprite };
 /** what to draw: the terrace duel from the title menu, or the story (with its duel, when one is on) */
 export type View = { kind: 'arena'; fight: Fight } | { kind: 'story'; world: World; fight: Fight | null };
 const ARENA_DUEL: Duel = { ...DUELS[0], id: 'arena' };
@@ -94,7 +191,7 @@ export class CloudsteelScene {
   private fx: Fx[] = []; private trails: T.Mesh[] = []; private trailBox = new T.Group(); private tagRing!: T.Mesh; private jadeRing!: T.Mesh; private glint!: T.Sprite; private mark!: T.Mesh; private finish!: T.Mesh;
   private sparks!: T.InstancedMesh; private sP: T.Vector3[] = []; private sV: T.Vector3[] = []; private sLife = new Float32Array(140); private sNext = 0; private dum = new T.Object3D();
   private rainPos!: Float32Array; private rainG!: T.BufferGeometry; private rain!: T.LineSegments; private mists: T.Sprite[] = [];
-  private softTex!: T.Texture; private inkTex!: T.Texture; private ghostMat!: T.MeshBasicMaterial; private plankMat!: T.MeshStandardMaterial;
+  private kit!: Kit; private softTex!: T.Texture; private inkTex!: T.Texture; private ghostMat!: T.MeshBasicMaterial; private plankMat!: T.MeshStandardMaterial;
   private now = 0; private shake = 0; private yaw = PI; private camPos = new T.Vector3(0, 4, 18); private look = new T.Vector3(0, 1.2, 0); private camInit = false;
   private duel: Duel = ARENA_DUEL; private walked = new Map<string, number>(); private lastPos = new Map<string, { x: number; z: number }>(); private parryT = new Map<number, number>();
   private talkT = 0; private lastLine: unknown = null; private coldT = 0; private orbit = 0;
@@ -119,7 +216,7 @@ export class CloudsteelScene {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, fx ? 2 : 1.25));
     renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
     this.scene.fog = new T.FogExp2(0x12283a, 0.014);
-    this.buildSky(); this.buildEffects(); this.buildFigures();
+    this.kit = makeKit(); this.buildSky(); this.buildEffects(); this.buildFigures();
     if (fx) {
       const scenePass = pass(this.scene, this.cam, { samples: 4 }), col = scenePass.getTextureNode();
       const vig = float(1).sub(smoothstep(0.35, 0.95, screenUV.sub(0.5).length()).mul(0.55));
@@ -181,27 +278,27 @@ export class CloudsteelScene {
   }
   private buildArea(id: AreaId): AreaBuild {
     const A = AREAS[id], g = new T.Group(); this.scene.add(g);
-    const b: AreaBuild = { group: g, planks: new Map(), gates: new Map(), stones: new Map(), posts: [], lamps: [] };
-    const stoneT = loadTex('stone', 3), groundT = id === 'forest' ? loadTex('moss', 4) : stoneT;
-    const ground = std(0xffffff, { map: groundT, roughness: 0.75 }), stone = std(0xe4ecf8, { map: stoneT, roughness: 0.8 }), dark = std(0x8e9cb2, { map: stoneT, roughness: 0.85 });
-    const wood = std(0x3a2a24), roof = std(0xc8dcdc, { map: loadTex('roof', 2), roughness: 0.5 }), gold = std(0xd9a441, { roughness: 0.35, metalness: 0.9 }), lampM = glowM(hdr(1.25, 0.64, 0.17));
-    // the walkable ground, standing on cliffs that drop into the mist
+    const b: AreaBuild = { group: g, planks: new Map(), gates: new Map(), stones: new Map(), posts: [], lamps: [], decor: [], flames: [] };
+    const M = this.kit, B = new Batch();
+    const ground = id === 'forest' ? M.moss : id === 'citadel' ? M.paving : M.stone, groundTile = id === 'citadel' ? 5 : 4;
+    const gold = std(0xd9a441, { roughness: 0.35, metalness: 0.9 }), lampM = glowM(hdr(1.25, 0.64, 0.17));
+    // the walkable ground, standing on cliffs that drop into the mist, with a carved kerb along every open edge
     A.walk.forEach((s, i) => {
       const y = -0.002 * i;
       if (s.k === 'rect') {
         const w = s.x1 - s.x0, d = s.z1 - s.z0, cx = (s.x0 + s.x1) / 2, cz = (s.z0 + s.z1) / 2;
-        const top = mesh(new T.PlaneGeometry(w, d), ground, cx, y, cz, g); top.rotation.x = -PI / 2;
-        const t = (top.material as T.MeshStandardMaterial); void t;
-        mesh(box(w, 26, d), dark, cx, y - 13.05, cz, g);
+        B.add(planeT(w, d, groundTile, cx, cz), ground, cx, y, cz, { rx: -PI / 2 });
+        B.add(boxT(w, 26, d, 7), M.cliff, cx, y - 13.05, cz);
       } else {
-        const top = mesh(new T.CircleGeometry(s.r, 48), ground, s.x, y, s.z, g); top.rotation.x = -PI / 2;
-        mesh(cyl(s.r, s.r * 0.8, 26, 32), dark, s.x, y - 13.05, s.z, g);
+        B.add(discT(s.r, groundTile, s.x, s.z), ground, s.x, y, s.z, { rx: -PI / 2 });
+        B.add(cylT(s.r, s.r * 0.8, 26, 7), M.cliff, s.x, y - 13.05, s.z);
       }
     });
+    this.kerbs(A, B);
     const post = (x: number, z: number, light: boolean) => {
       const p = new T.Group(); p.position.set(x, 0, z); g.add(p); b.posts.push(p);
-      mesh(box(0.22, 3.1, 0.22), wood, 0, 1.55, 0, p); mesh(box(0.2, 0.16, 1.1), wood, 0, 2.95, 0.4, p); mesh(box(1.3, 0.12, 0.5), roof, 0, 3.2, 0, p);
-      mesh(box(0.02, 0.45, 0.02), wood, 0, 2.65, 0.8, p); const l = mesh(box(0.34, 0.46, 0.34), lampM, 0, 2.25, 0.8, p); mesh(box(0.42, 0.06, 0.42), wood, 0, 2.5, 0.8, p); mesh(box(0.42, 0.06, 0.42), wood, 0, 2.0, 0.8, p);
+      mesh(boxT(0.24, 3.1, 0.24, 1.2), M.wood, 0, 1.55, 0, p); mesh(boxT(0.2, 0.16, 1.1, 1.2), M.wood, 0, 2.95, 0.4, p); mesh(hipRoof(1.3, 0.6, 0.3, 1.5), M.thatch, 0, 3.08, 0, p);
+      mesh(box(0.02, 0.45, 0.02), M.wood, 0, 2.65, 0.8, p); const l = mesh(box(0.34, 0.46, 0.34), lampM, 0, 2.25, 0.8, p); mesh(box(0.42, 0.06, 0.42), M.wood, 0, 2.5, 0.8, p); mesh(box(0.42, 0.06, 0.42), M.wood, 0, 2.0, 0.8, p);
       const s = new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: 0xffc45e, transparent: true, opacity: 0.22, blending: T.AdditiveBlending, depthWrite: false })); s.scale.set(3, 3, 1); s.position.copy(l.position); p.add(s);
       // the lamps sit high and well away from where figures stand, so a face next to one does not blow out
       if (light) { const pl = new T.PointLight(0xffb44d, 16, 14, 2); pl.position.set(0, 2.6, 0.8); p.add(pl); b.lamps.push(pl); }
@@ -215,7 +312,19 @@ export class CloudsteelScene {
       // tall plants step out of the way when the camera comes close, like the lamp posts
       for (const r of [0, PI / 2]) { const p = mesh(geo, m, x, 0, z, g); p.rotation.y = r + (x * 7 + z * 13) % 1; if (cell !== 2) b.posts.push(p); }
     };
+    /** a building: a carved plinth, masonry walls with a frieze under the eaves, and a hipped roof that overhangs */
+    const house = (x: number, y: number, z: number, w: number, d: number, h: number, roofH: number, roof: T.Material, ry = 0, eave = 0.7) => {
+      const o = { ry }, at = (lx: number, ly: number, lz: number) => [x + lx * Math.cos(ry) + lz * Math.sin(ry), y + ly, z - lx * Math.sin(ry) + lz * Math.cos(ry)] as const;
+      B.add(boxT(w + 0.7, 0.4, d + 0.7, 2), M.ashlar, ...at(0, 0.2, 0), o);
+      B.add(bandT(w + 0.74, 0.16, d + 0.74), M.trim, ...at(0, 0.36, 0), o);
+      B.add(boxT(w, h, d, 2.2), M.ashlar, ...at(0, 0.4 + h / 2, 0), o);
+      B.add(bandT(w + 0.08, 0.42, d + 0.08), M.trim, ...at(0, 0.4 + h - 0.21, 0), o);
+      B.add(boxT(w + eave * 2, 0.16, d + eave * 2, 1.4), M.wood, ...at(0, 0.48 + h, 0), o);
+      B.add(hipRoof(w + eave * 2, d + eave * 2, roofH, 2), roof, ...at(0, 0.56 + h, 0), o);
+      return 0.56 + h + roofH;
+    };
     for (const p of A.props) {
+      if (p.kind.startsWith('d:') || p.kind.startsWith('w:')) { this.decorProp(p, A, B, b); continue; }
       switch (p.kind) {
         case 'post': post(p.x, p.z, nLamp++ % 2 === 0); break;
         case 'tree': foliage(1, p.x, p.z, p.s ?? 1); break;
@@ -224,58 +333,78 @@ export class CloudsteelScene {
         case 'bamboo': foliage(3, p.x, p.z, p.s ?? 1); break;
         case 'grove': { // a mossy rock pillar out of the mist with a tree, a fern or bamboo on top
           const r = 1.3 * (p.s ?? 1), cell = [1, 0, 3, 1, 0][Math.abs(Math.round(p.x * 3 + p.z * 5)) % 5];
-          const top = mesh(new T.CircleGeometry(r, 20), ground, p.x, -0.12, p.z, g); top.rotation.x = -PI / 2;
-          mesh(cyl(r, r * 0.7, 26, 14), dark, p.x, -13.13, p.z, g);
+          B.add(discT(r, 4, p.x, p.z), M.moss, p.x, -0.12, p.z, { rx: -PI / 2 });
+          B.add(cylT(r, r * 0.7, 26, 7), M.cliff, p.x, -13.13, p.z);
           foliage(cell, p.x, p.z, (p.s ?? 1) * (cell === 1 ? 1.15 : 1)); break;
         }
-        case 'arena': this.buildArena(g, p.x, p.z, id); break;
+        case 'arena': this.buildArena(g, B, p.x, p.z, id); break;
         case 'temple': {
-          const t = new T.Group(); t.position.set(p.x, 2.4, p.z); g.add(t);
-          mesh(box(15, 2.4, 8), stone, 0, -1.2, 0, t); mesh(box(10.5, 3.6, 5.4), dark, 0, 1.8, 0, t);
-          const tier = (w: number, y: number, s: number) => { const r = mesh(new T.ConeGeometry(w, 1.9 * s, 4), roof, 0, y, 0, t); r.rotation.y = PI / 4; r.scale.z = 0.62; };
-          tier(9.4, 4.5, 1); mesh(box(6, 2.3, 3.4), dark, 0, 5.9, 0, t); tier(6, 7.9, 0.9); mesh(box(3, 1.6, 2), dark, 0, 8.9, 0, t); tier(3.6, 10.4, 0.8);
-          [-3.4, 0, 3.4].forEach((x) => mesh(box(1.4, 2.2, 0.1), lampM, x, 1.2, 2.72, t));
-          mesh(cyl(4, 7, 40, 8), dark, 0, -22, 0, t);
+          // the hanging temple across the gorge: a terraced platform, three tiers under tiled roofs, lit windows
+          const x = p.x, z = p.z;
+          B.add(boxT(17, 2.6, 10, 2.4), M.ashlar, x, 1.1, z); B.add(bandT(17.06, 0.5, 10.06), M.trim, x, 2.15, z);
+          for (let i = 0; i < 5; i++) B.add(boxT(6, 0.5, 0.7, 2), M.ashlar, x, 0.25 + i * 0.5, z + 5.35 + (4 - i) * 0.7);
+          const y1 = house(x, 2.4, z, 10.5, 5.4, 3.2, 1.8, M.tile, 0, 1.1);
+          house(x, 2.4 + y1 - 0.9, z, 6.4, 3.6, 2.0, 1.5, M.tile, 0, 0.9);
+          house(x, 2.4 + y1 - 0.9 + 3.6, z, 3.2, 2.2, 1.4, 1.3, M.tile, 0, 0.7);
+          [-3.4, 0, 3.4].forEach((lx) => mesh(box(1.3, 2.0, 0.1), lampM, x + lx, 3.9, z + 2.72, g));
+          B.add(cylT(5, 8, 40, 7), M.cliff, x, -20, z);
           break;
         }
         case 'bellhouse': {
           const h = new T.Group(); h.position.set(p.x, 0, p.z); g.add(h);
-          mesh(box(2.8, 2.4, 6), dark, 0, 1.2, 0, h); const r = mesh(new T.ConeGeometry(3.6, 1.6, 4), roof, 0, 3.2, 0, h); r.rotation.y = PI / 4; r.scale.z = 1.9;
+          house(p.x, 0, p.z, 2.8, 6, 2.2, 1.5, M.thatch, 0, 0.8);
           const bell = mesh(new T.CylinderGeometry(0.25, 0.45, 0.7, 16), std(0x6f8f6a, { metalness: 0.7, roughness: 0.4 }), 1.7, 2.1, 3.6, h); bell.userData.bell = true;
-          mesh(box(0.14, 2.6, 0.14), wood, 1.7, 1.3, 4.3, h); mesh(box(0.14, 2.6, 0.14), wood, 1.7, 1.3, 2.9, h); mesh(box(0.14, 0.14, 1.6), wood, 1.7, 2.6, 3.6, h);
+          mesh(boxT(0.16, 2.8, 0.16, 1.2), M.wood, 1.7, 1.4, 4.3, h); mesh(boxT(0.16, 2.8, 0.16, 1.2), M.wood, 1.7, 1.4, 2.9, h); mesh(boxT(0.16, 0.16, 1.7, 1.2), M.wood, 1.7, 2.75, 3.6, h);
+          mesh(hipRoof(1.1, 2.2, 0.45, 1.5), M.thatch, 1.7, 2.82, 3.6, h);
           break;
         }
-        case 'stairs': for (let i = 0; i < 8; i++) mesh(box(5.2, 0.18, 1.2), stone, p.x, -0.06 + 0.001 * i, p.z + 3.5 - i * 1.25, g); break;
+        case 'stairs': for (let i = 0; i < 8; i++) { B.add(boxT(5.2, 0.18, 1.2, 2), M.ashlar, p.x, -0.06 + 0.001 * i, p.z + 3.5 - i * 1.25); B.add(bandT(5.22, 0.1, 0.1), M.trim, p.x, -0.02 + 0.001 * i, p.z + 3.5 - i * 1.25 + 0.6); } break;
         case 'gate': case 'jadegate': case 'jadedoor': {
           const gid = A.gates.find((o) => Math.abs((o.shape.k === 'rect' ? (o.shape.x0 + o.shape.x1) / 2 : 0) - p.x) < 1.6 && Math.abs((o.shape.k === 'rect' ? (o.shape.z0 + o.shape.z1) / 2 : 0) - p.z) < 1.6)?.id;
           const side = p.kind === 'jadedoor', w = side ? 4 : 5.6, gr = new T.Group(); gr.position.set(p.x, 0, p.z); if (side) gr.rotation.y = PI / 2; g.add(gr);
-          for (const s of [-1, 1]) mesh(box(1.2, 4.8, 1.6), stone, s * (w / 2 + 0.6), 2.4, 0, gr);
-          mesh(box(w + 2.6, 1, 1.8), stone, 0, 5.2, 0, gr); mesh(new T.ConeGeometry(0.4, 0.9, 4), gold, 0, 6.1, 0, gr);
+          // carved pillars, a lintel with its frieze and a little stepped crest
+          for (const s of [-1, 1]) { mesh(pillarGeo(1.5, 4.8, 1.7, 2), M.pillar, s * (w / 2 + 0.75), 2.4, 0, gr); mesh(boxT(1.9, 0.4, 2.1, 2), M.ashlar, s * (w / 2 + 0.75), 0.2, 0, gr); }
+          mesh(boxT(w + 3.2, 1.1, 2.0, 2), M.ashlar, 0, 5.35, 0, gr); mesh(bandT(w + 3.24, 0.5, 2.04), M.trim, 0, 5.35, 0, gr);
+          mesh(boxT(w + 3.6, 0.2, 2.3, 2), M.ashlar, 0, 6.0, 0, gr);
+          for (const [sw, sy] of [[3, 6.3], [1.8, 6.6]] as const) mesh(boxT(sw, 0.3, 1.2, 2), M.ashlar, 0, sy, 0, gr);
+          mesh(new T.ConeGeometry(0.35, 0.8, 4), gold, 0, 7.15, 0, gr).rotation.y = PI / 4;
           const door = new T.Group(); gr.add(door);
-          mesh(box(w, 4.4, 0.4), wood, 0, 2.2, 0, door);
-          for (let i = 0; i < 4; i++) mesh(box(w, 0.1, 0.45), gold, 0, 0.6 + i * 1.1, 0, door);
+          mesh(doorGeo(w, 4.4, 0.4), M.door, 0, 2.2, 0, door);
           if (p.kind !== 'gate') { const seal = mesh(new T.CircleGeometry(0.75, 32), glowM(hdr(0.3, 1.6, 0.9)), 0, 2.4, 0.23, door); seal.userData.seal = true; mesh(new T.CircleGeometry(0.75, 32), glowM(hdr(0.3, 1.6, 0.9)), 0, 2.4, -0.23, door).rotation.y = PI; }
           if (gid) b.gates.set(gid, door);
           break;
         }
         case 'condorgate': {
+          // the Condor Gate: two carved pillars, a lintel, the great stone condor with the Sun Lamp on its breast
           const cg = new T.Group(); cg.position.set(p.x, 0, p.z); g.add(cg);
-          for (const s of [-1, 1]) { mesh(box(2.4, 9, 2.4), stone, s * 4.4, 4.5, 0, cg); mesh(new T.ConeGeometry(1.2, 1.4, 4), gold, s * 4.4, 9.7, 0, cg).rotation.y = PI / 4; }
-          mesh(box(11.4, 1.8, 2.6), stone, 0, 9.4, 0, cg);
-          // stone condor wings over the gate
-          for (const s of [-1, 1]) { const wgt = mesh(box(5.5, 0.5, 0.6), dark, s * 3.2, 11, 0, cg); wgt.rotation.z = s * 0.25; }
-          mesh(cyl(0.7, 0.9, 1.4, 8), gold, 0, 10.9, 0, cg);
-          b.sunLamp = mesh(new T.SphereGeometry(0.9, 24, 16), glowM(hdr(0.18, 0.16, 0.14)), 0, 12.3, 0, cg);
-          b.sunLight = new T.PointLight(0xffc060, 0, 60, 1.6); b.sunLight.position.set(0, 12.3, 1.5); cg.add(b.sunLight);
-          mesh(box(6.4, 7.2, 0.5), std(0x0a1018), 0, 3.6, 0.2, cg);
-          mesh(cyl(30, 18, 40, 10), dark, 0, -20.5, -6, cg);
+          for (const s of [-1, 1]) {
+            mesh(pillarGeo(2.6, 9, 2.6, 3), M.pillar, s * 4.6, 4.5, 0, cg); mesh(boxT(3.4, 0.6, 3.4, 2), M.ashlar, s * 4.6, 0.3, 0, cg); mesh(bandT(3.44, 0.22, 3.44), M.trim, s * 4.6, 0.62, 0, cg);
+            mesh(boxT(3.0, 0.5, 3.0, 2), M.ashlar, s * 4.6, 9.25, 0, cg);
+          }
+          mesh(boxT(12.6, 1.9, 2.8, 2.2), M.ashlar, 0, 9.95, 0, cg); mesh(bandT(12.64, 0.7, 2.84), M.trim, 0, 9.95, 0, cg);
+          mesh(boxT(13.2, 0.3, 3.1, 2), M.ashlar, 0, 11.05, 0, cg);
+          const condor = mesh(new T.PlaneGeometry(11, 11 * 852 / 1536), new T.MeshStandardMaterial({ map: loadTex('condor-relief'), transparent: true, alphaTest: 0.3, side: T.DoubleSide, roughness: 0.8, emissive: 0xffffff, emissiveMap: loadTex('condor-relief'), emissiveIntensity: 0.12 }), 0, 11.2 + 11 * 852 / 1536 / 2 - 0.4, 0.35, cg);
+          (condor.material as T.MeshStandardMaterial).color.setScalar(0.85);
+          const lampMat = new T.MeshBasicMaterial({ map: loadTex('sun-lamp'), transparent: true, alphaTest: 0.3, color: hdr(0.32, 0.3, 0.28), fog: false });
+          b.sunLamp = mesh(new T.PlaneGeometry(3.4, 3.4), lampMat, 0, 13.2, 0.75, cg);
+          const halo = new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: hdr(1.6, 1.0, 0.35), transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, fog: false })); halo.scale.set(9, 9, 1); halo.position.set(0, 13.2, 0.6); cg.add(halo); b.sunHalo = halo;
+          b.sunLight = new T.PointLight(0xffc060, 0, 60, 1.6); b.sunLight.position.set(0, 12, 7); cg.add(b.sunLight);
+          mesh(doorGeo(6.6, 7.6, 0.5), M.door, 0, 3.8, 0.2, cg).material = M.doorDark;
+          B.add(cylT(30, 18, 40, 9), M.cliff, p.x, -20.5, p.z - 6);
           break;
         }
         case 'walls': {
-          const wall = (x0: number, z0: number, x1: number, z1: number, h = 6) => { const l = Math.hypot(x1 - x0, z1 - z0), m = mesh(box(l, h, 1.2), stone, (x0 + x1) / 2, h / 2 - 0.2, (z0 + z1) / 2, g); m.rotation.y = -Math.atan2(z1 - z0, x1 - x0); };
+          // the citadel's fitted stone walls: a frieze along the top of both faces, a coping, towers with thatched roofs
+          const wall = (x0: number, z0: number, x1: number, z1: number, h = 6) => {
+            const l = Math.hypot(x1 - x0, z1 - z0), cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, ry = -Math.atan2(z1 - z0, x1 - x0);
+            B.add(boxT(l, h, 1.2, 2.2), M.ashlar, cx, h / 2 - 0.2, cz, { ry });
+            B.add(bandT(l, 0.55, 1.26), M.trim, cx, h - 0.75, cz, { ry });
+            B.add(boxT(l, 0.3, 1.5, 2), M.ashlar, cx, h - 0.05, cz, { ry });
+            B.add(boxT(l, 0.5, 1.6, 2), M.ashlar, cx, 0.05, cz, { ry });
+          };
           wall(-14, -5.4, -3.6, -5.4); wall(3.6, -5.4, 14, -5.4); wall(-14, -24.8, -3.2, -24.8, 7); wall(3.2, -24.8, 14, -24.8, 7);
           wall(-13.8, -24.8, -13.8, -17.6); wall(-13.8, -12.4, -13.8, -5.4); wall(13.8, -24.8, 13.8, -12.6); wall(13.8, -8.4, 13.8, -5.4);
-          for (const [x, z] of [[-14, -5.4], [14, -5.4], [-14, -24.8], [14, -24.8]]) { mesh(box(2.4, 8.5, 2.4), stone, x, 4, z, g); const r = mesh(new T.ConeGeometry(2, 1.8, 4), roof, x, 9.1, z, g); r.rotation.y = PI / 4; }
+          for (const [x, z] of [[-14, -5.4], [14, -5.4], [-14, -24.8], [14, -24.8]]) house(x, 0, z, 2.6, 2.6, 8.2, 2.2, M.thatch, 0, 0.6);
           break;
         }
         case 'gorge': case 'gorge2': {
@@ -286,10 +415,10 @@ export class CloudsteelScene {
         }
         case 'ropeposts': case 'ropeposts2': {
           const horiz = p.kind === 'ropeposts2';
-          for (const s of [-1, 1]) { const m = mesh(box(0.2, 1.4, 0.2), wood, p.x + (horiz ? 0 : s * 1.5), 0.7, p.z + (horiz ? s * 1.5 : 0), g); void m; }
+          for (const s of [-1, 1]) { const x = p.x + (horiz ? 0 : s * 1.5), z = p.z + (horiz ? s * 1.5 : 0); B.add(boxT(0.24, 1.5, 0.24, 1.2), M.wood, x, 0.75, z); B.add(boxT(0.5, 0.3, 0.5, 1), M.ashlar, x, 0.15, z); }
           break;
         }
-        case 'shrine': { mesh(box(2.4, 2.2, 2.4), dark, p.x, 1.1, p.z, g); const r = mesh(new T.ConeGeometry(2.2, 1.2, 4), roof, p.x, 2.8, p.z, g); r.rotation.y = PI / 4; mesh(box(0.8, 1.1, 0.1), lampM, p.x, 0.9, p.z + 1.22, g); break; }
+        case 'shrine': { house(p.x, 0, p.z, 2.4, 2.4, 1.8, 1.3, M.thatch, 0, 0.5); mesh(box(0.8, 1.1, 0.1), lampM, p.x, 1.1, p.z + 1.22, g); break; }
       }
     }
     // the spirit-bridge planks: a faint shimmer until the lantern wakes them
@@ -304,15 +433,74 @@ export class CloudsteelScene {
     for (const s of STONES.filter((o) => o.area === id)) {
       const cell = { serpent: 0, puma: 1, condor: 2, sun: 3 }[s.glyph], t = cellTex('carvings', cell);
       const st = new T.Group(); st.position.set(s.x, 0, s.z); st.rotation.y = s.face; g.add(st);
-      mesh(box(1.3, 2.4, 0.9), dark, 0, 1.2, 0, st);
-      const face = mesh(new T.PlaneGeometry(1.15, 1.15), new T.MeshStandardMaterial({ map: t, emissive: hdr(1.6, 1.1, 0.35), emissiveMap: t, emissiveIntensity: 0, roughness: 0.7 }), 0, 1.5, 0.46, st);
+      mesh(boxT(1.7, 0.35, 1.3, 2), M.ashlar, 0, 0.175, 0, st); mesh(boxT(1.3, 2.4, 0.9, 1.6), M.ashlar, 0, 1.4, 0, st); mesh(bandT(1.36, 0.3, 0.96), M.trim, 0, 2.45, 0, st);
+      const face = mesh(new T.PlaneGeometry(1.15, 1.15), new T.MeshStandardMaterial({ map: t, emissive: hdr(1.6, 1.1, 0.35), emissiveMap: t, emissiveIntensity: 0, roughness: 0.7 }), 0, 1.55, 0.46, st);
       b.stones.set(s.id, face);
+    }
+    B.build(g);
+    // the standing set dressing: one instanced card per kind, turned to the camera each frame
+    for (const set of b.decor) {
+      const m = new T.InstancedMesh(decorGeo(DECOR[set.name], DECOR_H[set.name] ?? 1.5, true), this.kit.decor, set.items.length);
+      m.frustumCulled = false; g.add(m); set.mesh = m;
     }
     return b;
   }
+  /** a carved kerb along every edge of the walkable ground that drops into the mist (not across exits or bridges) */
+  private kerbs(A: (typeof AREAS)[AreaId], B: Batch) {
+    const open = (x: number, z: number) => !A.walk.some((s) => inShape(s, x, z, 0)) && !A.exits.some((e) => inShape(e.shape, x, z, 0.8))
+      && !A.planks.some((p) => Math.abs(x - p.x) < p.hx + 0.6 && Math.abs(z - p.z) < p.hz + 0.6);
+    const run = (pts: { x: number; z: number; nx: number; nz: number }[], step: number) => {
+      for (const p of pts) {
+        if (!open(p.x + p.nx * 0.3, p.z + p.nz * 0.3)) continue;
+        B.add(boxT(step + 0.04, 0.34, 0.36, 2), this.kit.ashlar, p.x + p.nx * 0.18, 0.07, p.z + p.nz * 0.18, { ry: Math.atan2(p.nx, p.nz) });
+      }
+    };
+    for (const s of A.walk) {
+      if (s.k === 'rect') {
+        const step = 0.5, pts: { x: number; z: number; nx: number; nz: number }[] = [];
+        for (let x = s.x0 + step / 2; x < s.x1; x += step) { pts.push({ x, z: s.z0, nx: 0, nz: -1 }, { x, z: s.z1, nx: 0, nz: 1 }); }
+        for (let z = s.z0 + step / 2; z < s.z1; z += step) { pts.push({ x: s.x0, z, nx: -1, nz: 0 }, { x: s.x1, z, nx: 1, nz: 0 }); }
+        run(pts, step);
+      } else {
+        const n = Math.ceil((s.r * PI * 2) / 0.5), step = (s.r * PI * 2) / n, pts: { x: number; z: number; nx: number; nz: number }[] = [];
+        for (let i = 0; i < n; i++) { const a = (i / n) * PI * 2, nx = Math.sin(a), nz = Math.cos(a); pts.push({ x: s.x + nx * s.r, z: s.z + nz * s.r, nx, nz }); }
+        run(pts, step);
+      }
+    }
+  }
+  /** a piece of painted set dressing from the story's props: `d:` stands on the ground (on a carved plinth if it is
+   * off the path) and turns to the camera like the figures; `w:` hangs on a wall facing `r` */
+  private decorProp(p: Prop, A: (typeof AREAS)[AreaId], B: Batch, b: AreaBuild) {
+    const name = p.kind.slice(2);
+    if (name === 'mural') { // the painted fresco of the three worlds on the courtyard wall
+      const m = mesh(new T.PlaneGeometry(4.8, 2.4), std(0xd8d2c8, { map: loadTex('mural'), roughness: 0.9 }), p.x, 2.7, p.z, b.group); m.rotation.y = p.r ?? 0;
+      B.add(bandT(5.2, 0.22, 0.12), this.kit.trim, p.x, 1.4, p.z); B.add(bandT(5.2, 0.22, 0.12), this.kit.trim, p.x, 4.0, p.z); return;
+    }
+    const item = DECOR[name]; if (!item) return;
+    const s = p.s ?? 1, h = (DECOR_H[name] ?? 1.5) * s;
+    if (p.kind.startsWith('w:')) {
+      const geo = decorGeo(item, h, false), m = mesh(geo, this.kit.decor, p.x, (DECOR_Y[name] ?? 2.4) * s, p.z, b.group); m.rotation.y = p.r ?? 0;
+      return;
+    }
+    let y = 0;
+    if (!A.walk.some((w) => inShape(w, p.x, p.z, 0.1))) {
+      // off the path: a carved plinth rising out of the mist
+      const pw = Math.max(1.1, h * item.aspect * 0.8);
+      B.add(boxT(pw, 26, pw, 2.2), this.kit.ashlar, p.x, 0.25 - 13, p.z); B.add(bandT(pw + 0.04, 0.2, pw + 0.04), this.kit.trim, p.x, 0.15, p.z);
+      y = 0.25;
+    }
+    let set = b.decor.find((d) => d.name === name);
+    if (!set) { set = { name, items: [], mesh: null }; b.decor.push(set); }
+    set.items.push({ x: p.x, y, z: p.z, s });
+    if (name === 'brazier') {
+      // a warm glow over the coals, kept below white so it never blooms over a face
+      const f = new T.Sprite(new T.SpriteMaterial({ map: this.softTex, color: 0xffa64a, transparent: true, opacity: 0.32, blending: T.AdditiveBlending, depthWrite: false }));
+      f.position.set(p.x, y + h * 0.95, p.z); f.scale.setScalar(1.3 * s); b.group.add(f); b.flames.push(f);
+    }
+  }
   /** the round paved floor with the wet reflection, where the duels on the terrace and at the gate are fought */
-  private buildArena(g: T.Group, x: number, z: number, id: AreaId) {
-    const R = 9.0, stone = std(0xe4ecf8, { map: loadTex('stone', 3), roughness: 0.8 });
+  private buildArena(g: T.Group, B: Batch, x: number, z: number, id: AreaId) {
+    const R = 9.0;
     const floorMat = new T.MeshStandardNodeMaterial({ map: loadTex('floor'), roughness: 0.32, metalness: 0.15 });
     if (this.fxOn && id === 'terrace') {
       const refl = reflector({ resolutionScale: 0.5, samples: 4 }); refl.target.rotateX(-PI / 2); refl.target.position.set(x, 0.008, z); g.add(refl.target);
@@ -320,9 +508,8 @@ export class CloudsteelScene {
       floorMat.emissiveNode = refl.rgb.mul(0.3);
     }
     const floor = mesh(new T.CircleGeometry(R, 64), floorMat, x, 0.008, z, g); floor.rotation.x = -PI / 2;
-    mesh(new T.TorusGeometry(R + 0.05, 0.16, 8, 64), stone, x, 0.1, z, g).rotation.x = PI / 2;
+    B.add(new T.TorusGeometry(R + 0.05, 0.16, 8, 64), this.kit.trimStone, x, 0.1, z, { rx: PI / 2 });
   }
-
   // ---------------------------------------------------------------- the figures
   private buildFigures() {
     // Enzo's lantern: a warm light and glow that follow the top of his staff
@@ -435,7 +622,9 @@ export class CloudsteelScene {
       else if (g.enzo.state === 'back') ef = walkCycle('walk-side', this.stride('enzo', ex, ez), 0.42);
       else if (g.phase === 'won') ef = 'cheer';
       else if (g.state === 'hit' || g.state === 'dead') ef = 'brace';
-      ec.set(ef, Card.mirrorFor(eFace, yaw)); ec.y = ey; ec.spin = 0; ec.alpha = 1; ec.bob = 0; ec.update(ex, ez, yaw);
+      // should Enzo ever come close to the lens, he fades rather than fill the screen
+      const eCam = Math.hypot(ex - this.camPos.x, ez - this.camPos.z);
+      ec.set(ef, Card.mirrorFor(eFace, yaw)); ec.y = ey; ec.spin = 0; ec.alpha = Math.min(1, Math.max(0.15, (eCam - 1.3) / 1.2)); ec.bob = 0; ec.update(ex, ez, yaw);
       for (const f of g.foes) {
         if (f.gone) continue;
         const fp = this.L(f.x, f.z), c = this.card(`foe${f.id}-${f.look}`, f.look);
@@ -454,7 +643,7 @@ export class CloudsteelScene {
       let df: string, dm = Card.mirrorFor(w.face, yaw);
       if (w.mode === 'pickup') { df = w.t < PICKUP.at + 4 ? 'pickup-a' : 'pickup-b'; }
       else if (w.mode === 'talk') { df = talkFrame('dora', talkLine?.mood ? 'talk-c' : 'talk-a', 'talk-b') ?? 'idle-side'; }
-      else if (w.mode === 'end') { df = 'win'; }
+      else if (w.mode === 'end') { df = 'gaze'; }
       else if (w.moving) df = walkCycle(`walk-${vw}`, dWalk, 0.4);
       else df = `idle-${vw}`;
       dc.bob = w.moving || w.mode === 'talk' ? 0 : Math.sin(now * 2.2) * 0.008;
@@ -464,7 +653,7 @@ export class CloudsteelScene {
       let ef: string;
       if (w.mode === 'lantern') ef = this.coldT > 0 && w.t > LANTERN.at ? 'lantern-sweep' : 'lantern-up';
       else if (w.mode === 'talk') ef = talkFrame('enzo', talkLine?.mood ? 'talk-b' : 'talk-a', talkLine?.mood ? 'talk-a' : 'talk-b') ?? 'idle-side';
-      else if (w.mode === 'end') ef = 'lantern-up';
+      else if (w.mode === 'end') ef = 'offer';
       else if (w.enzo.moving) ef = walkCycle(`walk-${evw}`, eWalk, 0.4);
       else ef = `idle-${evw}`;
       ec.bob = w.enzo.moving ? 0 : Math.sin(now * 2 + 1) * 0.008;
@@ -497,8 +686,9 @@ export class CloudsteelScene {
       }
       if (w.mode === 'end' && b.sunLamp) {
         // the Sun Lamp catches
-        const m = b.sunLamp.material as T.MeshBasicMaterial; m.color.lerp(hdr(4, 2.6, 0.9), Math.min(1, dt * 0.8));
-        if (b.sunLight) b.sunLight.intensity = Math.min(900, b.sunLight.intensity + dt * 300);
+        const m = b.sunLamp.material as T.MeshBasicMaterial; m.color.lerp(hdr(1.6, 1.25, 0.8), Math.min(1, dt * 0.8));
+        if (b.sunHalo) { const hm = b.sunHalo.material as T.SpriteMaterial; hm.opacity = Math.min(0.4, hm.opacity + dt * 0.2); }
+        if (b.sunLight) b.sunLight.intensity = Math.min(140, b.sunLight.intensity + dt * 60);
       }
       this.hideFightFx(dt);
     }
@@ -538,6 +728,15 @@ export class CloudsteelScene {
     this.camera(v, dt, dx, dz);
     // nothing tall right in front of the lens
     for (const post of b.posts) post.visible = Math.hypot(post.position.x - this.camPos.x, post.position.z - this.camPos.z) > 3.6;
+    for (const set of b.decor) {
+      if (!set.mesh) continue;
+      set.items.forEach((it, i) => {
+        const near = Math.hypot(it.x - this.camPos.x, it.z - this.camPos.z) < 3.2;
+        this.dum.position.set(it.x, it.y, it.z); this.dum.rotation.set(0, this.yaw + PI, 0); this.dum.scale.setScalar(near ? 0 : it.s); this.dum.updateMatrix(); set.mesh!.setMatrixAt(i, this.dum.matrix);
+      });
+      set.mesh.instanceMatrix.needsUpdate = true;
+    }
+    b.flames.forEach((f, i) => { (f.material as T.SpriteMaterial).opacity = 0.26 + Math.sin(now * 9 + i * 1.7) * 0.05 + Math.sin(now * 23 + i) * 0.03; });
     // rain falls round the camera
     this.rain.position.set(this.camPos.x, 0, this.camPos.z);
     if (this.pipe) this.pipe.render(); else this.renderer.render(this.scene, this.cam);
@@ -582,7 +781,11 @@ export class CloudsteelScene {
   private camera(v: View, dt: number, dx: number, dz: number) {
     const w = v.kind === 'story' ? v.world : null, g = v.fight, fighting = !!g && (!w || w.mode === 'duel');
     let tx: number, tz: number, ty: number, lx: number, lz: number, ly = 1.15, rate = 4;
-    const phone = this.cam.aspect < 1;
+    const phone = this.cam.aspect < 1, upright = phone;
+    // the lens: wider for the ending, so the Lamp and the two of them fit together
+    const fov = (w && w.mode === 'end' ? 52 : 42) * (phone ? 60 / 42 : 1);
+    if (Math.abs(this.cam.fov - fov) > 0.01) { this.cam.fov += (fov - this.cam.fov) * Math.min(1, dt * 2); this.cam.updateProjectionMatrix(); }
+    const tanV = Math.tan((this.cam.fov * PI) / 360), tanH = tanV * this.cam.aspect;
     // side-on framing of two points: the camera sits off the line between them, on whichever side it already is
     const side = (ax: number, az: number, bx: number, bz: number, extra: number, h: number, away?: { x: number; z: number }) => {
       const mx = (ax + bx) / 2, mz = (az + bz) / 2, ddx = bx - ax, ddz = bz - az, l = Math.hypot(ddx, ddz) || 1;
@@ -594,9 +797,21 @@ export class CloudsteelScene {
     };
     if (fighting && g) {
       const tg = g.targetFoe ?? g.living[0], d = this.L(g.x, g.z);
-      if (tg && g.phase !== 'won') { const f = this.L(tg.x, tg.z), s = side(d.x, d.z, f.x, f.z, tg.kind === 'bear' ? 4.4 : 3.6, 2.4, this.L(g.enzo.x, g.enzo.z)); tx = s.x; tz = s.z; ty = s.y; lx = s.lx; lz = s.lz; ly = 1.2; }
-      else { this.orbit += dt * 0.3; tx = d.x + Math.sin(this.orbit) * 7; tz = d.z + Math.cos(this.orbit) * 7; ty = 2.6; lx = d.x; lz = d.z; }
-      rate = 2.4;
+      if (tg && g.phase !== 'won') {
+        // close in, side-on: near enough that the two fighters fill about half the height of the frame, far enough that
+        // both stay in it. A phone held upright looks along the line from behind Dora's shoulder instead, so the pair
+        // still fits a narrow screen without pulling far back.
+        const f = this.L(tg.x, tg.z), en = this.L(g.enzo.x, g.enzo.z), big = tg.kind === 'bear';
+        const mx = (d.x + f.x) / 2, mz = (d.z + f.z) / 2, ddx = f.x - d.x, ddz = f.z - d.z, l = Math.hypot(ddx, ddz) || 1, ux = ddx / l, uz = ddz / l;
+        let nx = uz, nz = -ux; if ((this.camPos.x - mx) * nx + (this.camPos.z - mz) * nz < 0) { nx = -nx; nz = -nz; }
+        if ((en.x - mx) * nx + (en.z - mz) * nz > 0.6) { nx = -nx; nz = -nz; }
+        const turn = upright ? 1.0 : 0.18, cx = nx * Math.cos(turn) - ux * Math.sin(turn), cz = nz * Math.cos(turn) - uz * Math.sin(turn);
+        const half = (l / 2) * Math.cos(turn) + (big ? 1.7 : 1.25) * (upright ? 0.8 : 1);
+        const dist = Math.max(big ? 4.2 : 3.4, half / tanH, (big ? 2.9 : 2.0) / (2 * tanV * 0.62));
+        tx = mx + cx * dist; tz = mz + cz * dist; ty = big ? 1.9 : 1.55; lx = mx; lz = mz; ly = big ? 1.25 : 0.95;
+        // a close camera has to keep up with dodges and lunges
+        rate = 3.6;
+      } else { this.orbit += dt * 0.3; tx = d.x + Math.sin(this.orbit) * 5.5; tz = d.z + Math.cos(this.orbit) * 5.5; ty = 2.2; lx = d.x; lz = d.z; ly = 1; rate = 2.4; }
     } else if (w && w.mode === 'talk') {
       // the speaker and Dora, from the side
       const who = w.talk?.who ? w.npcs().find((n) => n.id === w.talk!.who) : null;
@@ -605,8 +820,17 @@ export class CloudsteelScene {
       const o = who ? { x: who.x, z: who.z } : d ? d.stand[0] : st ? { x: st.x, z: st.z } : sign ? { x: sign.x, z: sign.z } : { x: w.enzo.x, z: w.enzo.z };
       const s = side(dx, dz, o.x, o.z, 3.2, 1.9); tx = s.x; tz = s.z; ty = s.y; lx = s.lx; lz = s.lz; ly = 1.05; rate = 3;
     } else if (w && w.mode === 'end') {
-      // the end: the camera drifts back so the Lamp and the two of them are both in view
-      this.orbit += dt * 0.1; tx = dx + Math.sin(this.orbit) * 3; tz = dz + 7; ty = 2.2; lx = 0; lz = dz - 9; ly = 3.6; rate = 0.8;
+      // the end: from behind the two of them, low, looking up the Condor Gate to the Lamp. The camera steps back until
+      // the Lamp's top and their feet both fit, and never past the wall behind the arena
+      const gate = AREAS[w.area].props.find((o) => o.kind === 'condorgate') ?? { x: 0, z: -50 };
+      const mx = (dx + w.enzo.x) / 2, mz = (dz + w.enzo.z) / 2; let ux = mx - gate.x, uz = mz - gate.z; const ul = Math.hypot(ux, uz) || 1; ux /= ul; uz /= ul;
+      const top = 16.9, eye = 0.85, room = Math.max(0, (-26 - mz) / Math.max(0.2, uz));
+      let dc = 3.2;
+      for (; dc < 16; dc += 0.25) { const dg = ul + dc; if (Math.atan((top - eye) / dg) + Math.atan(eye / dc) < Math.atan(tanV) * 2 - 0.1) break; if (dc >= room) break; }
+      this.orbit += dt * 0.12; const sway = Math.sin(this.orbit) * 0.5;
+      tx = mx + ux * dc - uz * sway; tz = mz + uz * dc + ux * sway; ty = eye;
+      const dg = ul + dc, up = Math.atan((top - eye) / dg), down = Math.atan(eye / dc), pitch = (up - down) / 2;
+      lx = gate.x; lz = gate.z; ly = eye + Math.tan(pitch) * dg; rate = 1.2;
     } else {
       // exploring: a follow camera on a tether behind Dora, turned by the player, easing round behind her as she walks
       if (w && w.moving) { const rel = wrap(w.face - this.yaw); if (Math.abs(rel) < 1.9) this.yaw += rel * Math.min(1, dt * 0.9); }
@@ -634,7 +858,7 @@ function doraFightFrame(g: Fight, walked: number): string {
     case 'run': return walkCycle('walk-side', walked, 0.5);
     case 'cut1': return t < CUTS[0].hit - 2 ? 'windup' : 'cut-a';
     case 'cut2': return 'cut-b';
-    case 'cut3': return t < CUTS[2].hit - 3 ? 'windup' : 'lunge';
+    case 'cut3': return t < CUTS[2].hit - 3 ? 'heavy' : 'lunge';
     case 'guard': return 'guard';
     case 'deflect': return 'deflect';
     case 'dodge': return t < 16 ? 'dodge' : 'stance';
