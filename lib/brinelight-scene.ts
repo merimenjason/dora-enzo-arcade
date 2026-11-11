@@ -2,7 +2,7 @@
 // scripts/brinelight-art.py; this file draws effects (sparks, dust, splashes, rings, glows, shadows, the night wash)
 // and typeset HUD text on top. It reads the engine and never changes it.
 import {
-  BrineGame, FLOOR, DEPTH, VIEW_W, HC, COL, LANE_Z, BOSS_NAME, type GameEvent, type Hero, type Foe, type Boss, type HeroId,
+  BrineGame, FLOOR, DEPTH, VIEW_W, HC, COL, LANE_Z, BOSS_NAME, inHole, perched, type GameEvent, type Hero, type Foe, type Boss, type HeroId,
   type Prop, type Item,
 } from './brinelight-game';
 import { PX, ATLASES, FRAMES, IMAGES } from './brinelight-art';
@@ -16,9 +16,13 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const DECOR: Record<string, string> = {
   b: 'barrel', p: 'lobsterpot', o: 'bollard', c: 'crate', f: 'fishcrate', r: 'rope', S: 'stall-ice', L: 'stall-lobster',
   A: 'awning', X: 'fishboxes', W: 'basket', R: 'brine', D: 'driedfish', T: 'truck', M: 'mussels', N: 'netcoil',
-  Z: 'brazier', B: 'bell', '@': 'npc-mabel', '&': 'npc-twins', $: 'npc-barnaby',
+  Z: 'brazier', B: 'bell', O: 'bobbin', K: 'tarbarrel', P: 'scaffold', C: 'ropecoil', H: 'planks', Y: 'pulley', G: 'anchor',
+  V: 'sawhorse', Q: 'paints', F: 'figurehead', J: 'winch', U: 'lamppost',
+  '@': 'npc-mabel', '&': 'npc-twins', $: 'npc-barnaby', '%': 'npc-hal',
 };
-const NPC_OF: Record<string, string> = { '@': 'mabel', '&': 'twins', $: 'barnaby' };
+const NPC_OF: Record<string, string> = { '@': 'mabel', '&': 'twins', $: 'barnaby', '%': 'hal' };
+/** frames whose painting includes the hole the eel (or Tanglejaw) is stretched out of, at the tail end */
+const STRETCHED = new Set(['eel-lunge', 'eel-reach', 'eel-tired', 'tanglejaw-lunge', 'tanglejaw-strike', 'tanglejaw-stuck']);
 
 export interface Btn { x: number; y: number; r: number }
 export interface TouchLayout { stick: Btn; atk: Btn; jmp: Btn; tag: Btn; panel: number }
@@ -39,7 +43,7 @@ export class BrineScene {
   tl: TouchLayout = { stick: { x: 0, y: 0, r: 0 }, atk: { x: 0, y: 0, r: 0 }, jmp: { x: 0, y: 0, r: 0 }, tag: { x: 0, y: 0, r: 0 }, panel: 0 };
   knob = { x: 0, y: 0, on: false };
   pressed: Record<string, number> = {};
-  fx: Fx[] = []; rt = 0; flash = 0; ready = false;
+  fx: Fx[] = []; rt = 0; flash = 0; ready = false; area3 = false;
   private white: Record<string, HTMLCanvasElement> = {};
   private camX = -1; private stageKey = ''; private zoomVw = PORTRAIT_VIEW;
 
@@ -244,6 +248,29 @@ export class BrineScene {
   }
   foePose(f: Foe): string {
     const k = f.kind, a = f.anim, cyc = (fps: number, n: number) => Math.floor(a * fps) % n;
+    if (k === 'eel') {
+      if (inHole(f)) {
+        if (f.st === 'duck') return 'eel-duck';
+        if (f.st === 'wind') return cyc(9, 2) ? 'eel-duck' : 'eel-peek';
+        if (f.st === 'atk') return f.t < 0.08 ? 'eel-lunge' : 'eel-reach';
+        if (f.st === 'rec') return 'eel-tired';
+        if (f.st === 'ko') return 'eel-thrown';
+        return 'eel-peek';
+      }
+      const m: Record<string, string> = { held: 'held', thrown: 'thrown', ko: 'thrown', hurt: 'hurt', down: 'down', up: 'down', daze: 'down', tangled: 'down', wind: 'walk2', atk: 'hurt', rec: 'walk1' };
+      return 'eel-' + (m[f.st] ?? (cyc(6, 2) ? 'walk1' : 'walk2'));
+    }
+    if (k === 'octo') {
+      if (perched(f) && f.st !== 'enter' && f.st !== 'ko') return f.st === 'wind' ? 'octo-puff' : f.st === 'squirt' ? 'octo-squirt' : 'octo-perch';
+      const m: Record<string, string> = { enter: 'fall', held: 'hurt', thrown: 'fall', ko: 'fall', hurt: 'hurt', up: 'down', daze: 'down', tangled: 'down', wind: 'slap', atk: 'slap', rec: 'idle', idle: 'idle' };
+      if (f.st === 'down') return f.h > 5 ? 'octo-fall' : 'octo-down';
+      return 'octo-' + (m[f.st] ?? (cyc(6, 2) ? 'walk1' : 'walk2'));
+    }
+    if (k === 'cormorant') {
+      const m: Record<string, string> = { wind: 'aim', dive: 'dive', crash: 'stuck', hurt: 'hurt', held: 'hurt', thrown: 'hurt', ko: 'hurt', down: 'down', up: 'down', daze: 'down', tangled: 'down' };
+      if (m[f.st]) return 'cormorant-' + m[f.st];
+      return f.h > 20 ? (cyc(6, 2) ? 'cormorant-fly1' : 'cormorant-fly2') : 'cormorant-waddle';
+    }
     const pick = (...names: string[]) => names.find((x) => FRAMES[`${k}-${x}`]) ?? 'idle';
     let p = 'idle';
     if (k === 'hermit' && !f.shell) return 'hermit-soft';
@@ -317,6 +344,20 @@ export class BrineScene {
       if (Math.abs(b.tx - b.x) > 20) return cyc(6, 2) ? 'knuckles-step1' : 'knuckles-step2';
       return cyc(0.5, 4) === 3 ? 'knuckles-taunt' : 'knuckles-idle';
     }
+    if (b.kind === 'longshanks') {
+      const m: Record<string, string> = { end: 'down', stomptell: 'raise', stomp: 'stomp', heave: 'stomp', sweepw: 'crouch', sweep: 'sweep', wobble: 'crouch', getup: 'climb' };
+      if (st === 'toppled') return b.hurtT > 0 ? 'longshanks-thurt' : b.t < 0.35 ? 'longshanks-toppled' : 'longshanks-tdizzy';
+      if (m[st]) return 'longshanks-' + m[st];
+      if (Math.abs(b.tx - b.x) > 20 || st === 'intro') return cyc(5, 2) ? 'longshanks-walk1' : 'longshanks-walk2';
+      return 'longshanks-idle';
+    }
+    if (b.kind === 'tanglejaw') {
+      const m: Record<string, string> = { end: 'down', intro: 'roar', roar: 'roar', bonk: 'hurt', sink: 'sink', whipw: 'tell', whip: 'whip', stretched: 'stuck' };
+      if (st === 'strike') return b.ext < 200 ? 'tanglejaw-lunge' : 'tanglejaw-strike';
+      if (st === 'bubble') { const T = b.t / 1.1; return T < 0.45 ? '' : T < 0.8 ? 'tanglejaw-sink' : 'tanglejaw-peek'; }
+      if (st === 'under') return '';
+      return 'tanglejaw-' + (m[st] ?? 'peek');
+    }
     // the Gull Admiral
     const m: Record<string, string> = { shriek: 'shriek', dive: 'dive', redive: 'dive', swoop: 'swoop', tumble: 'tumble', skid: 'tumble', grounded: 'grounded', pinned: 'pinned', wingtell: 'wingw', end: 'down', rise: 'hover', hover: 'hover' };
     if (b.hurtT > 0 && st !== 'grounded' && st !== 'pinned' && st !== 'end') return 'admiral-hurt';
@@ -355,6 +396,7 @@ export class BrineScene {
   draw(g: BrineGame, dt: number, o: { labels: Labels; paused?: boolean; hideHud?: boolean; touchDrawn?: boolean }) {
     if (!this.ready) return;
     const cx = this.cx;
+    this.area3 = g.area() >= 3;
     this.camera(g, dt);
     cx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     cx.fillStyle = '#1d1b4a'; cx.fillRect(0, 0, this.W, this.H);
@@ -364,7 +406,7 @@ export class BrineScene {
     this.drawFar(g); this.drawStrings(g);
     for (const f of g.foes) if (f.st === 'ko' && f.z < -8) this.drawFoe(f, g);
     this.drawFx(g, true);
-    this.drawFloor(g); this.drawBack(g); this.drawDoor(g); this.drawTelegraphs(g);
+    this.drawFloor(g); this.drawBack(g); this.drawDoor(g); this.drawTelegraphs(g); this.drawFoeTells(g);
     const list: { z: number; d: () => void }[] = [];
     const p = g.hero(), q = g.partner();
     list.push({ z: p.z + 0.1, d: () => this.drawHero(p, g, false) });
@@ -372,7 +414,21 @@ export class BrineScene {
     for (const f of g.foes) if (!(f.st === 'ko' && f.z < -8)) list.push({ z: f.st === 'held' ? p.z + 1 : f.z, d: () => this.drawFoe(f, g) });
     for (const it of g.items) if (!it.dead) list.push({ z: it.held ? p.z + 1 : it.z, d: () => this.drawItem(it, g) });
     for (const pr of g.props) if (pr.alive) list.push({ z: pr.kind === 'net' && !pr.down ? 999 : pr.z - 0.5, d: () => this.drawProp(pr) });
-    if (g.cart) { const c = g.cart; list.push({ z: LANE_Z[c.lane], d: () => { this.shadow(c.x, LANE_Z[c.lane], 70, 0); this.spr('cart', c.x, LANE_Z[c.lane], 0, { flip: true }); } }); }
+    for (const c of g.rolls) {
+      if (c.t < c.tell) continue;
+      const z = LANE_Z[c.lane];
+      if (c.kind === 'cart') list.push({ z, d: () => { this.shadow(c.x, z, 70, 0); this.spr('cart', c.x, z, 0, { flip: true }); } });
+      else list.push({ z, d: () => { this.shadow(c.x, z, 36, 0); this.spr('tarbarrel', c.x, z, 4, { rot: -c.t * 9 }); } });
+    }
+    // Tanglejaw's drain holes, plugged or open (not the one he is showing out of)
+    const b0 = g.boss, showing = b0 && b0.kind === 'tanglejaw' && !['under', 'gone'].includes(b0.st) && !(b0.st === 'bubble' && b0.t < 0.5) ? b0.hole : -1;
+    g.holes.forEach((h, i) => { if (i !== showing || h.plug) list.push({ z: h.z - 2, d: () => this.drawHole(g, i) }); });
+    // eel holes and inker posts left behind once their owner is out
+    for (const f of g.foes) {
+      if (f.st === 'ko') continue;
+      if (f.kind === 'eel' && f.loose) list.push({ z: f.tz - 1, d: () => this.spr('eel-hole', f.tx, f.tz, 0) });
+      if (f.kind === 'octo' && (f.loose || f.st === 'enter')) list.push({ z: f.tz - 1, d: () => { this.shadow(f.tx, f.tz, 26, 0); this.spr('octo-post', f.tx, f.tz, 0); } });
+    }
     if (g.boss && g.boss.st !== 'gone') { const b = g.boss; list.push({ z: b.z - 20, d: () => this.drawBoss(b, g) }); }
     list.sort((a, b) => a.z - b.z).forEach((x) => x.d());
     this.drawFx(g, false); this.drawFlies(g);
@@ -380,6 +436,7 @@ export class BrineScene {
     this.drawFront(g);
     this.drawNight(g);
     if (this.portrait) this.drawEdgeArrows(g);
+    this.drawInk(g);
     cx.restore();
     if (this.flash > 0) { cx.fillStyle = `rgba(255,248,230,${this.flash * 0.5})`; cx.fillRect(0, 0, this.W, this.playBottom); }
     if (!o.hideHud) { this.drawHud(g, o.labels); this.drawBossHint(g, o.labels); this.drawPrompt(g, o.labels); this.drawTalk(g); }
@@ -505,6 +562,25 @@ export class BrineScene {
   }
   private drawFoe(f: Foe, g: BrineGame) {
     const pose = this.foePose(f), o: Parameters<BrineScene['spr']>[4] = { flip: f.face > 0, flash: f.flash };
+    if (inHole(f) && f.st !== 'ko') {
+      // an eel in its hole: the painting includes the hole; a stretched frame is placed so its tail end sits in it
+      let x = f.tx;
+      if (STRETCHED.has(pose)) { const w = FRAMES[pose][3] / PX; x = f.tx + f.face * (w / 2 - 28); }
+      if (f.st === 'wind') { o.ox = Math.sin(f.t * 50) * 2; this.glow(f.tx, f.tz, 20, 50, `rgba(160,230,255,${0.3 + 0.25 * Math.sin(f.t * 30)})`); this.bubbles(f.tx, f.tz, f.t); }
+      this.spr(pose, x, f.tz, 0, o);
+      if (f.st === 'idle' || f.st === 'wind') this.glint(f.tx + f.face * 10, f.tz, 60, '#dfe6ef', f.anim);
+      if (f.st === 'rec') this.stars(f.x, f.z, 50);
+      return;
+    }
+    if (perched(f) && f.st !== 'enter' && f.st !== 'ko') {
+      // an inker on its post: the painting includes the post, standing on the boards
+      if (f.st === 'wind') { o.ox = -f.face * Math.sin(f.t * 50) * 2.5; this.glow(f.tx, f.tz, f.h + 40, 60, `rgba(255,120,80,${0.25 + 0.2 * Math.sin(f.t * 30)})`); }
+      this.shadow(f.tx, f.tz, 30, 0);
+      this.spr(pose, f.tx, f.tz, 0, o);
+      this.glint(f.tx, f.tz, f.h + 60, '#fff0c8', f.anim);
+      if (f.lantern >= 0) this.spr('lantern-lit', f.tx + f.face * 6, f.tz + 0.2, f.h + 60, { sc: 0.9 });
+      return;
+    }
     const h = f.h;
     if (f.st === 'ko' || f.st === 'thrown') o.rot = f.t * f.spin;
     if (f.st === 'wind' || f.st === 'charge') o.ox = -f.face * Math.sin(f.t * 50) * 2.5;
@@ -513,18 +589,18 @@ export class BrineScene {
     // the cream/grey glint: shells and armour read grey (Enzo's), wings and air read cream (Dora's)
     if (f.st !== 'ko' && f.st !== 'held') {
       if ((f.kind === 'hermit' && f.shell) || f.kind === 'lobster' || (f.kind === 'urchin' && !f.flipped)) this.glint(f.x - f.face * 14, f.z, h + f.ht * 0.7, '#dfe6ef', f.anim);
-      if ((f.kind === 'gull' && f.h > 40) || f.kind === 'jelly' || f.st === 'puffed') this.glint(f.x, f.z, h + f.ht * 0.7, '#fff0c8', f.anim);
+      if (((f.kind === 'gull' || f.kind === 'cormorant') && f.h > 40) || f.kind === 'jelly' || f.st === 'puffed') this.glint(f.x, f.z, h + f.ht * 0.7, '#fff0c8', f.anim);
     }
     if (f.st === 'wind' || f.st === 'charge') this.glow(f.x, f.z, h + 30, 60, `rgba(255,120,80,${0.25 + 0.2 * Math.sin(f.t * 30)})`);
     if (f.kind === 'jelly' && f.st !== 'ko') this.glow(f.x, f.z, h + 50, 70, `rgba(200,220,255,${0.18 + 0.1 * Math.sin(f.anim * 4)})`);
     this.spr(pose, f.x, f.z, h, o);
-    if (f.lantern && f.st !== 'ko' && pose !== 'gull-carry') this.spr('lantern-lit', f.x + f.face * 6, f.z + 0.2, h + (f.kind === 'gull' ? -26 : f.ht * 0.8), { sc: 0.9 });
+    if (f.lantern >= 0 && f.st !== 'ko' && pose !== 'gull-carry') this.spr('lantern-lit', f.x + f.face * 6, f.z + 0.2, h + (f.kind === 'gull' ? -26 : f.ht * 0.8), { sc: 0.9 });
     if ((f.daze > 0 && f.st !== 'held') || f.st === 'crash') this.stars(f.x, f.z, h + f.ht + 10);
     if (f.kind === 'shrimp' && f.st === 'whistle') this.glow(f.x - f.face * 30, f.z, h + 70, 50, `rgba(255,240,180,${0.3 + 0.3 * Math.sin(this.rt * 20)})`);
     void g;
   }
   private drawItem(it: Item, g: BrineGame) {
-    const n = { shell: 'hermit-shell', barrel: 'barrel', snack: 'snack', bun: 'bun', charm: 'charm', scroll: 'scroll' }[it.kind];
+    const n = { shell: 'hermit-shell', barrel: it.sid || g.area() >= 3 ? 'tarbarrel' : 'barrel', snack: 'snack', bun: 'bun', charm: 'charm', scroll: 'scroll' }[it.kind];
     let h = it.h, z = it.z, x = it.x;
     if (it.held) { const p = g.hero(); x = p.x; z = p.z; h = p.h + (p.name === 'enzo' ? 150 : 90); }
     const bob = it.kind === 'charm' || it.kind === 'scroll' ? 10 + Math.sin(this.rt * 3 + it.id) * 6 : 0;
@@ -532,11 +608,15 @@ export class BrineScene {
     if (it.kind === 'charm' || it.kind === 'scroll') this.glow(x, z, h + bob + 20, 60, `rgba(255,210,120,${0.35 + 0.15 * Math.sin(this.rt * 4)})`);
     const spin = it.h > 0 || it.slide ? it.t * (it.kind === 'shell' ? 14 : 8) * (it.vx < 0 ? -1 : 1) : 0;
     this.spr(n, x, z, h + bob, { rot: spin, alpha: it.kind === 'shell' && it.t > 5 ? Math.max(0, (6 - it.t) * 2) : 1 });
+    if (it.kind === 'barrel' && it.sid) this.glint(x, z, h + 50, '#ffd27a', this.rt + it.id);
   }
   private drawProp(pr: Prop) {
     const flash = pr.flash;
     switch (pr.kind) {
-      case 'barrel': this.shadow(pr.x, pr.z, 34, 0); this.spr('barrel', pr.x, pr.z, 0, { flash }); break;
+      case 'barrel':
+        this.shadow(pr.x, pr.z, 34, 0); this.spr(pr.content === 'charm' || this.area3 ? 'tarbarrel' : 'barrel', pr.x, pr.z, 0, { flash });
+        if (pr.content === 'charm') this.glint(pr.x, pr.z, 50, '#ffd27a', this.rt + pr.id);
+        break;
       case 'crate': this.shadow(pr.x, pr.z, 36, 0); this.spr(pr.hp < 2 ? 'crate-cracked' : 'crate', pr.x, pr.z, 0, { flash }); if (pr.content === 'charm') this.glint(pr.x, pr.z, 40, '#ffd27a', this.rt + pr.id); break;
       case 'fishcrate': this.shadow(pr.x, pr.z, 34, 0); this.spr('fishcrate', pr.x, pr.z, 0, { flash }); break;
       case 'ice': this.shadow(pr.x, pr.z, 40, 0); this.spr('ice', pr.x, pr.z, 0, { flash }); this.glint(pr.x + 10, pr.z, 44, '#dfe6ef', this.rt * 0.7 + pr.id); break;
@@ -554,20 +634,57 @@ export class BrineScene {
     if (b.st === 'tell' || b.st === 'wingtell' || b.st === 'rock') o.ox = Math.sin(b.t * 40) * 1.5;
     if (b.st === 'ripping' || b.st === 'pinned') o.ox = Math.sin(b.t * 70) * 3;
     if (b.st === 'intro') o.alpha = Math.min(1, b.t * 2);
-    this.shadow(b.x, b.z, b.kind === 'brute' || b.kind === 'clamps' ? 120 : 80, b.h);
-    const vulnerable = (b.kind === 'clamps' && (b.st === 'dizzy' || b.st === 'bare' || b.st === 'juggle')) || (b.kind === 'admiral' && (b.st === 'grounded' || b.st === 'pinned')) || (b.kind === 'knuckles' && (b.st === 'dizzy' || b.st === 'hop')) || (b.kind === 'brute' && b.st === 'dizzy');
-    if (vulnerable) this.glow(b.x, b.z, b.h + 90, 140, `rgba(255,200,90,${0.2 + 0.2 * Math.sin(this.rt * 10)})`);
-    this.spr(pose, b.x, b.z, b.h, o);
+    const hole = b.kind === 'tanglejaw' ? g.holes[b.hole] : null;
+    // Longshanks' painting stands on its own stilts, so it's drawn on the boards whatever his body height
+    const dh = b.kind === 'longshanks' || b.kind === 'tanglejaw' ? 0 : b.h;
+    let bx = b.x;
+    if (hole) { bx = hole.x; if (STRETCHED.has(pose)) bx = hole.x + b.dir * (FRAMES[pose][3] / PX / 2 - 50); }
+    if (b.st === 'heave') o.ox = Math.sin(b.t * 70) * 3;
+    if (b.kind !== 'tanglejaw') this.shadow(b.x, b.z, b.kind === 'brute' || b.kind === 'clamps' || b.kind === 'longshanks' ? 120 : 80, dh);
+    const vulnerable = (b.kind === 'clamps' && (b.st === 'dizzy' || b.st === 'bare' || b.st === 'juggle')) || (b.kind === 'admiral' && (b.st === 'grounded' || b.st === 'pinned')) || (b.kind === 'knuckles' && (b.st === 'dizzy' || b.st === 'hop')) || (b.kind === 'brute' && b.st === 'dizzy')
+      || (b.kind === 'longshanks' && b.st === 'toppled') || (b.kind === 'tanglejaw' && b.st === 'stretched' && g.plugs() >= 2);
+    if (vulnerable) this.glow(b.x, b.z, dh + 90, 140, `rgba(255,200,90,${0.2 + 0.2 * Math.sin(this.rt * 10)})`);
+    if (b.kind === 'tanglejaw' && b.st === 'bubble' && hole) { this.glow(hole.x, hole.z, 20, 90, `rgba(255,214,110,${0.35 + 0.3 * Math.sin(this.rt * 22)})`); this.bubbles(hole.x, hole.z, b.t); }
+    if (b.kind === 'tanglejaw' && hole && pose && !STRETCHED.has(pose) && b.st !== 'end') this.drawHole(g, b.hole, true);
+    if (pose) this.spr(pose, bx, b.z, dh, o);
     // whose job it is right now: a grey glint for Enzo, a cream glint for Dora
     if (b.st !== 'end' && b.st !== 'intro') {
-      const need = this.bossNeeds(b);
-      if (need) this.glint(b.x, b.z, b.h + 150, need === 'enzo' ? '#dfe6ef' : '#fff0c8', this.rt * 2);
+      const need = this.bossNeeds(b, g);
+      if (need) this.glint(b.x, b.z, dh + 150, need === 'enzo' ? '#dfe6ef' : '#fff0c8', this.rt * 2);
     }
     if (b.st === 'dizzy') this.stars(b.x, b.z, b.h + 190);
-    void g;
+    if (b.kind === 'longshanks' && b.st === 'toppled' && b.t > 0.35) this.stars(b.x, b.z, 130);
+    if (b.kind === 'tanglejaw' && b.st === 'stretched' && g.plugs() >= 2) this.stars(b.x, b.z, 100);
+  }
+  /** one of Tanglejaw's drain holes: open (and glowing while he's bubbling in it) or jammed with a barrel */
+  private drawHole(g: BrineGame, i: number, under = false) {
+    const h = g.holes[i]; if (!h) return;
+    if (h.plug) { this.spr('tanglejaw-plug', h.x, h.z, 0); this.glint(h.x, h.z, 80, '#dfe6ef', this.rt + i); return; }
+    if (!under) this.spr('tanglejaw-hole', h.x, h.z, 0);
+  }
+  /** a few bubbles rising out of a hole, the tell before a lunge */
+  private bubbles(x: number, z: number, t: number) {
+    const cx = this.cx;
+    cx.save(); cx.strokeStyle = 'rgba(220,245,255,.85)'; cx.lineWidth = 2 * this.s;
+    for (let i = 0; i < 5; i++) {
+      const k = (t * 1.6 + i / 5) % 1, bx = x + Math.sin(i * 2.3 + t * 3) * 22, bh = 10 + k * 70;
+      cx.globalAlpha = 1 - k; cx.beginPath(); cx.arc(this.SX(bx), this.SY(FLOOR + z - bh), (3 + i % 3 * 2) * this.s, 0, 7); cx.stroke();
+    }
+    cx.restore();
+  }
+  /** octopus ink over part of the screen, fading in fast and out slowly */
+  private drawInk(g: BrineGame) {
+    if (!g.ink.length) return;
+    const bottom = this.portrait ? this.playBottom : this.H, size = Math.min(this.W, bottom) * 0.62;
+    for (const k of g.ink) {
+      const a = Math.min(1, k.t / 0.15) * Math.min(1, (k.life - k.t) / 0.8) * 0.9;
+      this.ui('octo-ink', k.x * this.W, k.y * bottom, size * k.r, Math.max(0, a));
+    }
   }
   /** a hint for the glint only; the engine decides the damage */
-  private bossNeeds(b: Boss): HeroId | null {
+  private bossNeeds(b: Boss, g: BrineGame): HeroId | null {
+    if (b.kind === 'longshanks') return b.st === 'stomp' ? 'enzo' : 'dora';
+    if (b.kind === 'tanglejaw') return g.plugs() < 2 ? 'enzo' : b.st === 'stretched' ? 'dora' : null;
     if (b.kind === 'brute') return b.armour > 0 ? 'enzo' : 'dora';
     if (b.kind === 'clamps') return b.st === 'dizzy' && b.layers > 0 ? 'enzo' : b.st === 'bare' || b.st === 'juggle' ? 'dora' : null;
     if (b.kind === 'knuckles') return b.st === 'guard' ? 'enzo' : b.st === 'hop' || b.st === 'tell' ? 'dora' : null;
@@ -575,7 +692,7 @@ export class BrineScene {
     return null;
   }
   private drawTelegraphs(g: BrineGame) {
-    const b = g.boss, cx = this.cx; if (!b) return;
+    const b = g.boss, cx = this.cx; if (!b || b.st === 'gone') return;
     const p = g.hero(), warm = '#ffc94a', hot = '#ff9a5a';
     cx.save(); cx.globalCompositeOperation = 'lighter';
     // every dangerous boss move marks the boards first: a dashed ring where it lands, or arrows along the lane it sweeps
@@ -588,6 +705,24 @@ export class BrineScene {
     if (b.kind === 'knuckles' && b.st === 'hop') this.ringMark(b.tx, b.tz, 100, 45, warm);
     if (b.kind === 'admiral' && b.st === 'wingtell') this.laneMark(b.x, b.tz, p.x < b.x ? -1 : 1, warm);
     for (const pr of g.props) if (pr.alive && pr.kind === 'net' && !pr.down && pr.fall !== 0) this.ringMark(pr.x, pr.z, 60, 26, warm);
+    if (b.kind === 'longshanks' && b.st === 'stomptell') this.ringMark(b.tx, b.tz, 80, 34, hot);
+    if (b.kind === 'longshanks' && b.st === 'sweepw') this.ringMark(b.x + b.dir * 135, b.z, 210, 75, warm);
+    if (b.kind === 'tanglejaw') {
+      const h = g.holes[b.hole];
+      if (h && b.st === 'bubble') this.laneMark(h.x - b.dir * 40, h.z, b.dir, hot, 4);
+      if (h && b.st === 'whipw') this.ringMark(h.x, h.z, 240, 80, warm);
+    }
+    cx.restore();
+  }
+  /** the foes' and the belt's tells, which don't need a boss: a barrel's lane, an eel's lunge, a cormorant's ring */
+  private drawFoeTells(g: BrineGame) {
+    const cx = this.cx, warm = '#ffc94a', hot = '#ff9a5a';
+    cx.save(); cx.globalCompositeOperation = 'lighter';
+    for (const c of g.rolls) if (c.t < c.tell) this.laneMark(g.camR + 40, LANE_Z[c.lane], -1, c.kind === 'cart' ? hot : warm, 10);
+    for (const f of g.foes) {
+      if (f.kind === 'eel' && inHole(f) && f.st === 'wind') this.laneMark(f.tx - f.face * 40, f.tz, f.face, hot, 2);
+      if (f.kind === 'cormorant' && (f.st === 'wind' || f.st === 'dive')) this.ringMark(f.tx, f.tz, 62, 26, warm);
+    }
     cx.restore();
   }
   /** a dashed ground ring, marching, where a hit will land */
@@ -599,13 +734,13 @@ export class BrineScene {
     cx.setLineDash([]); cx.globalAlpha = 1;
   }
   /** chevrons running along a lane from the boss toward the far wall, for a roll or a swoop */
-  private laneMark(x: number, z: number, dir: number, col: string) {
+  private laneMark(x: number, z: number, dir: number, col: string, n = 9) {
     const cx = this.cx, sy = this.SY(FLOOR + z), s = this.s, run = (this.rt * 1.6) % 1;
     cx.lineWidth = 5.5 * s; cx.strokeStyle = col; cx.lineCap = 'round'; cx.lineJoin = 'round';
-    for (let k = 0; k < 9; k++) {
+    for (let k = 0; k < n; k++) {
       const wx = x + dir * (70 + (k + run) * 90), sx = this.SX(wx);
       if (sx < -40 || sx > this.W + 40) continue;
-      cx.globalAlpha = 0.85 * (1 - k / 10);
+      cx.globalAlpha = 0.85 * (1 - k / (n + 1));
       cx.beginPath(); cx.moveTo(sx - dir * 16 * s, sy - 16 * s); cx.lineTo(sx + dir * 10 * s, sy); cx.lineTo(sx - dir * 16 * s, sy + 16 * s); cx.stroke();
     }
     cx.globalAlpha = 1;
@@ -820,7 +955,17 @@ export class BrineScene {
       label = L.mode === 'touch' ? (d > 0 ? '→' : '←') : d > 0 ? L.right : L.left;
       sub = 'walk in to grab';
     }
-    if (pr.act === 'tag') sub = pr.tint === 'grey' ? 'Enzo’s job: shells, armour, pinning' : 'Dora’s job: wings and the air';
+    if (pr.act === 'plug') {
+      const d = pr.dir ?? 1;
+      label = L.mode === 'touch' ? (d > 0 ? '→' : '←') : d > 0 ? L.right : L.left;
+      sub = 'carry it onto the hole';
+    }
+    if (pr.act === 'tag') {
+      const bk = g.boss && g.boss.st !== 'end' && g.boss.st !== 'gone' ? g.boss.kind : '';
+      sub = pr.tint === 'grey'
+        ? bk === 'tanglejaw' ? 'Enzo’s job: barrels into the holes' : bk === 'longshanks' ? 'Enzo’s job: heave the stuck leg' : g.scene.belt ? 'Enzo’s job: shells, eels, barrels' : 'Enzo’s job: shells, armour, pinning'
+        : bk === 'tanglejaw' ? 'Dora’s job: kick him while he’s stuck' : bk === 'longshanks' ? 'Dora’s job: kick him while he’s down' : 'Dora’s job: wings and the air';
+    }
     if (pr.act === 'dbl') sub = 'Festival full: double-team!';
     if (pr.act === 'special') {
       const d = (pr.dir ?? 1) > 0 ? L.right : L.left;
@@ -844,7 +989,7 @@ export class BrineScene {
     const k = Math.min(1, (3.6 - h.t) / 0.25, h.t / 0.4), pop = 1 + 0.25 * Math.max(0, 1 - (3.6 - h.t) / 0.25);
     const bx = this.SX(b.x), by = this.SY(FLOOR + b.z - Math.max(b.h, 0) - 250);
     const x = clamp(bx, 90 * u, this.W - 90 * u), y = clamp(by, 120 * u, (this.portrait ? this.playBottom : this.H) - 150 * u);
-    const key = active ? (h.act === 'atk' ? this.keyLabel('atk', L) : this.keyLabel('jmp', L)) : this.keyLabel('tag', L);
+    const key = active ? (h.act === 'carry' ? 'barrels → holes' : h.act === 'atk' ? this.keyLabel('atk', L) : this.keyLabel('jmp', L)) : this.keyLabel('tag', L);
     cx.save(); cx.globalAlpha = Math.max(0, k);
     const r = 30 * u * pop;
     this.face(h.who, x - 30 * u, y, r, true, h.who === 'enzo' ? 'grey' : 'cream');

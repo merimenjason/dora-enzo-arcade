@@ -33,7 +33,8 @@ const line = (g, kind = 'crab', n = 4, x0 = 360, gap = 80) => {
 };
 /** a boss fight straight away: the arena locked, the boss past its entrance */
 function bossArena(kind, who = 'dora', seed = 2) {
-  const g = new BrineGame({ stage: kind === 'clamps' || kind === 'brute' ? '1-3' : '2-3', seed, skipTalk: true });
+  const stage = { clamps: '1-3', brute: '1-3', longshanks: '3-2', tanglejaw: '3-3' }[kind] ?? '2-3';
+  const g = new BrineGame({ stage, seed, skipTalk: true });
   g.tut.stage = 9; g.evI = 99; g.foes = []; g.lock = g.cam;
   g.spawnBoss(kind);
   let k = 0; while (g.boss.st === 'intro' && k++ < 1200) g.step(I());
@@ -60,13 +61,16 @@ test('stages open in order and medals follow pace and damage', () => {
 });
 
 // ─────────────────────────────────────────── levels
-test('areas 1 and 2 are built with three stages each; 3 to 6 are listed and locked', () => {
+test('areas 1 to 3 are built with three stages each; 4 to 6 are listed and locked', () => {
   assert.equal(AREAS.length, 6);
-  for (const a of AREAS.slice(0, 2)) { assert.ok(a.ready); assert.equal(a.stages.length, 3); for (const s of a.stages) assert.ok(STAGES[s], s); }
-  for (const a of AREAS.slice(2)) { assert.ok(!a.ready); assert.equal(a.stages.length, 0); assert.ok(a.boss); }
+  for (const a of AREAS.slice(0, 3)) { assert.ok(a.ready); assert.equal(a.stages.length, 3); for (const s of a.stages) assert.ok(STAGES[s], s); }
+  for (const a of AREAS.slice(3)) { assert.ok(!a.ready); assert.equal(a.stages.length, 0); assert.ok(a.boss); }
+  const scenes = AREAS[2].stages.flatMap((s) => STAGES[s].scenes);
+  assert.equal(scenes.length, 8, 'area 3 has eight scenes'); assert.ok(scenes.some((id) => SCENES[id].secret), 'and a hidden one');
+  assert.ok(scenes.every((id) => SCENES[id].belt || SCENES[id].events.some((e) => e.kind === 'boss')), 'the belt runs through the ropewalk and shipyard');
 });
 test('every scene is well formed: equal rows, known characters, events in range, secrets that exist', () => {
-  const lane = new Set('.bcskfinagm'), decor = new Set('.bpocfrSLAXWRDTMNZB@&$');
+  const lane = new Set('.bcskfinagmq'), decor = new Set('.bpocfrSLAXWRDTMNZBOKPCHYGVQFJU@&$%');
   const scenes = new Set();
   for (const st of Object.values(STAGES)) for (const id of st.scenes) { scenes.add(id); if (SCENES[id].secret) scenes.add(SCENES[id].secret); }
   for (const id of scenes) {
@@ -79,7 +83,8 @@ test('every scene is well formed: equal rows, known characters, events in range,
     for (let i = 1; i < 5; i++) assert.ok(!sc.lanes[i].includes('a'), `${id}: the way in is in the back lane`);
     assert.equal(sc.lanes[0].includes('a'), !!sc.secret, `${id}: a door iff a secret`);
     for (const e of sc.events) assert.ok(e.col >= 0 && e.col < w, `${id} event at ${e.col}`);
-    const charms = sc.lanes.join('').split('').filter((c) => c === 'k' || c === 'g').length;
+    const charms = sc.lanes.join('').split('').filter((c) => c === 'k' || c === 'g' || c === 'q').length;
+    for (const l of sc.belt?.lanes ?? []) assert.ok(l >= 0 && l < 5, `${id} belt lane`);
     assert.equal(charms, sc.charms, `${id} charm count`);
     assert.equal(sc.lanes.join('').includes('m'), !!sc.shanty, `${id} shanty`);
     assert.ok(sc.strings.length > 0 && sc.strings.every((s) => s.need >= 1 && s.need <= 6), `${id} lantern strings`);
@@ -95,6 +100,10 @@ test('each area has a mid-boss, a boss, a hidden scene, and a lined-up wave that
     assert.ok(ids.some((id) => SCENES[id].secret), `area ${a} secret`);
     assert.ok(evs.some((e) => e.kind === 'wave' && e.teach === 'special' && e.groups.some((g) => /@\d/.test(g))), `area ${a} teaches the special`);
   }
+  const ids = AREAS[2].stages.flatMap((s) => STAGES[s].scenes), evs = ids.flatMap((id) => SCENES[id].events);
+  assert.ok(evs.some((e) => e.kind === 'boss' && e.who === 'longshanks') && evs.some((e) => e.kind === 'boss' && e.who === 'tanglejaw'), 'area 3 mid-boss and boss');
+  assert.ok(evs.some((e) => e.kind === 'wave' && e.groups.some((g) => /@\d/.test(g))), 'area 3 lines foes up for the special');
+  for (const k of ['eel', 'cormorant', 'octo']) assert.ok(evs.some((e) => e.kind === 'wave' && e.groups.some((g) => g.includes(k))), `area 3 brings in ${k}s`);
 });
 test('a seed replays exactly', () => {
   const play = () => {
@@ -330,10 +339,157 @@ test('every action has painted frames, landing and the specials included', () =>
     clamps: ['idle', 'rock1', 'rock2', 'roll', 'dizzy', 'bare', 'bwind', 'bswipe', 'juggle', 'bdizzy', 'down'],
     knuckles: ['idle', 'step1', 'step2', 'tell', 'punch', 'flurry', 'guard', 'hop', 'hurt', 'dizzy', 'down'],
     admiral: ['stand', 'shriek', 'dive', 'swoop', 'tumble', 'grounded', 'pinned', 'hurt', 'wingw', 'hover', 'down'],
+    eel: ['peek', 'duck', 'lunge', 'reach', 'tired', 'hurt', 'held', 'thrown', 'down', 'walk1', 'walk2', 'hole'],
+    cormorant: ['fly1', 'fly2', 'aim', 'dive', 'stuck', 'hurt', 'down', 'waddle'],
+    octo: ['perch', 'puff', 'squirt', 'fall', 'walk1', 'walk2', 'slap', 'hurt', 'down', 'ink', 'post', 'idle'],
+    longshanks: ['idle', 'walk1', 'walk2', 'raise', 'stomp', 'crouch', 'sweep', 'toppled', 'thurt', 'tdizzy', 'climb', 'down'],
+    tanglejaw: ['peek', 'tell', 'lunge', 'strike', 'stuck', 'hurt', 'whip', 'roar', 'sink', 'down', 'hole', 'plug'],
   };
   for (const [k, list] of Object.entries(need)) for (const a of list) assert.ok(FRAMES[`${k}-${a}`], `${k}-${a}`);
-  for (const p of ['barrel', 'crate', 'crate-cracked', 'fishcrate', 'ice', 'net-hang', 'net-down', 'cart', 'hatch', 'hatch-open', 'charm', 'scroll', 'snack', 'bun', 'lantern-lit', 'string-dark', 'string-lit', 'npc-mabel', 'npc-twins', 'npc-barnaby', 'face-mabel', 'face-twins', 'face-barnaby'])
+  for (const p of ['barrel', 'crate', 'crate-cracked', 'fishcrate', 'ice', 'net-hang', 'net-down', 'cart', 'hatch', 'hatch-open', 'charm', 'scroll', 'snack', 'bun', 'lantern-lit', 'string-dark', 'string-lit', 'npc-mabel', 'npc-twins', 'npc-barnaby', 'face-mabel', 'face-twins', 'face-barnaby',
+    'npc-hal', 'npc-hal-talk', 'npc-hal-cheer', 'face-hal', 'tarbarrel', 'bobbin', 'scaffold', 'ropecoil', 'planks', 'pulley', 'anchor', 'sawhorse', 'paints', 'figurehead', 'winch', 'lamppost'])
     assert.ok(FRAMES[p], p);
+});
+
+// ─────────────────────────────────────────── area 3: the Ropewalk and Shipyard
+const inHoleJs = (f) => f.kind === 'eel' && !f.loose;
+const untilT = (g, cond, max = 600, inp = {}) => { for (let k = 0; k < max; k++) { if (cond()) return true; g.step(I(inp)); } return cond(); };
+test('the belt: a barrel rumbles and marks its lane first, then rolls down it; stepping out of the lane or jumping dodges it', () => {
+  const g = arena('3-1', 'dora', 400); g.sendRoll(2, 'barrel', false);
+  assert.ok(g.events.some((e) => e.k === 'sfx' && e.id === 'rumble'), 'the rumble');
+  run(g, 60); assert.equal(g.hero().hp, 100, 'the tell does not hurt'); assert.ok(g.rolls[0].t < g.rolls[0].tell, 'still rumbling after a second');
+  run(g, 150); assert.ok(g.hero().hp < 100, 'standing in the marked lane gets you bowled over');
+  const g2 = arena('3-1', 'dora', 400); g2.sendRoll(2, 'barrel', false);
+  run(g2, 40); run(g2, 22, { mz: 1 }); run(g2, 150); assert.equal(g2.hero().hp, 100, 'one lane over, it rolls past');
+  const g3 = arena('3-1', 'dora', 400); g3.sendRoll(2, 'barrel', false);
+  untilT(g3, () => g3.rolls[0].t >= g3.rolls[0].tell && g3.rolls[0].x - g3.hero().x < 130);
+  g3.step(I({ jmpP: true })); run(g3, 60); assert.equal(g3.hero().hp, 100, 'a jump clears it');
+});
+test('Enzo punches a rolling barrel to a stop and it is his to carry; Dora’s kick just bounces off', () => {
+  const near = (g) => () => g.rolls.length && g.rolls[0].t >= g.rolls[0].tell && g.rolls[0].x - g.hero().x < 175;
+  const g = arena('3-1', 'enzo', 400); g.sendRoll(2, 'barrel', false);
+  untilT(g, near(g)); g.step(I({ atkP: true })); run(g, 20);
+  assert.equal(g.rolls.length, 0, 'stopped'); assert.ok(g.items.some((i) => i.kind === 'barrel'), 'a barrel on the boards'); assert.equal(g.hero().hp, 100);
+  assert.ok(g.learned.stop >= 1);
+  const d = arena('3-1', 'dora', 400); d.sendRoll(2, 'barrel', false);
+  untilT(d, near(d)); d.step(I({ atkP: true })); run(d, 30);
+  assert.ok(d.hero().hp < 100, 'Dora gets bowled'); assert.ok(d.events.some((e) => e.k === 'tink' && e.want === 'enzo') || d.stats.tinks > 0, 'and the barrel glints grey');
+});
+test('eels: Dora’s kicks only make a peeking eel duck; a missed lunge leaves it stretched out for anyone; Enzo hauls it out', () => {
+  const g = arena('3-1', 'dora', 400);
+  const f = g.spawnFoe('eel', 1, { lane: 2 }); f.x = f.tx = 470; f.z = f.tz = 80; f.st = 'idle'; f.t = 0; f.cd = 9;
+  g.step(I({ atkP: true })); run(g, 12);
+  assert.equal(f.st, 'duck', 'it ducks'); assert.equal(f.hp, f.max, 'unhurt'); assert.ok(g.stats.tinks >= 1, 'and the tink says it is Enzo’s');
+  // it comes back up and lunges at a hero in its lane; she jumps it
+  untilT(g, () => f.st === 'idle'); f.cd = 0; g.hero().x = 340;
+  untilT(g, () => f.st === 'wind'); untilT(g, () => f.st === 'atk' || f.t > (g.assist ? 1.15 : 0.8), 120);
+  g.step(I({ jmpP: true })); untilT(g, () => f.st === 'rec', 60);
+  assert.equal(f.st, 'rec', 'stretched out on the boards'); assert.equal(g.hero().hp, 100, 'the jump cleared the lunge');
+  untilT(g, () => g.hero().h <= 0 && g.hero().st !== 'land', 60);
+  g.hero().x = f.x - 70; g.hero().face = 1; const hp0 = f.hp;
+  g.step(I({ atkP: true })); run(g, 12);
+  assert.ok(f.hp < hp0, 'now her kicks land'); assert.ok(inHoleJs(f), 'and it is still in its hole');
+  // Enzo's paws pull a peeking eel straight out
+  const e = arena('3-1', 'enzo', 400);
+  const f2 = e.spawnFoe('eel', 1, { lane: 2 }); f2.x = f2.tx = 470; f2.z = f2.tz = 80; f2.st = 'idle'; f2.t = 0; f2.cd = 9;
+  e.step(I({ atkP: true })); run(e, 12);
+  assert.ok(f2.loose, 'popped out onto the boards'); assert.ok(f2.hp < f2.max);
+});
+test('cormorants: a ring follows you and locks, the dive sticks it in the planks, and Dora’s rising kick knocks it out of the sky', () => {
+  const g = arena('3-2', 'dora', 400);
+  const f = g.spawnFoe('cormorant', 1); f.x = 560; f.h = 185; f.st = 'hover'; f.t = 0; f.cd = 0;
+  untilT(g, () => f.st === 'wind'); assert.ok(Math.abs(f.tx - g.hero().x) < 20, 'the ring is under you');
+  untilT(g, () => f.st === 'dive'); const lock = f.tx;
+  g.hero().x += 0; run(g, 0);
+  untilT(g, () => f.st === 'crash', 120); assert.equal(f.st, 'crash', 'beak stuck in the planks'); assert.equal(f.tx, lock);
+  assert.ok(f.daze > 0, 'and it can be grabbed');
+  const h = arena('3-2', 'dora', 400);
+  const c = h.spawnFoe('cormorant', 1); c.x = 560; c.h = 185; c.st = 'hover'; c.t = 0; c.cd = 0;
+  untilT(h, () => c.st === 'wind'); run(h, 16);
+  h.hero().face = Math.sign(c.x - h.hero().x) || 1;
+  h.step(I({ jmpP: true })); h.step(I()); h.step(I({ atkP: true })); run(h, 14);
+  assert.ok(c.st === 'crash' || c.st === 'down' || c.st === 'ko', `knocked out of the sky (${c.st})`);
+  const e = arena('3-2', 'enzo', 400);
+  const c2 = e.spawnFoe('cormorant', 1); c2.x = 470; c2.h = 185; c2.st = 'hover'; c2.cd = 9;
+  e.step(I({ atkP: true })); run(e, 12); assert.equal(c2.hp, c2.max, 'Enzo’s paws miss up there');
+});
+test('inkers: a squirt splats ink over the screen; knocking the inker off its post clears it, and only Dora (or Enzo’s slam) reaches it', () => {
+  const g = arena('3-2', 'dora', 300);
+  const f = g.spawnFoe('octo', 1); f.x = f.tx = 400; f.z = f.tz = 20;
+  untilT(g, () => f.st === 'perch'); f.cd = 0;
+  untilT(g, () => g.ink.length > 0, 300); assert.ok(g.ink.length > 0, 'ink');
+  g.hero().x = 340; g.hero().z = 20; g.hero().face = 1;
+  g.step(I({ atkP: true })); run(g, 10);
+  assert.ok(f.loose, 'knocked off its post'); assert.equal(g.ink.length, 0, 'and the ink clears');
+  const e = arena('3-2', 'enzo', 300);
+  const o = e.spawnFoe('octo', 1); o.x = o.tx = 400; o.z = o.tz = 20; untilT(e, () => o.st === 'perch'); o.cd = 99;
+  e.hero().x = 330; e.hero().z = 20; e.hero().face = 1;
+  e.step(I({ atkP: true })); run(e, 16);
+  assert.ok(!o.loose, 'his first paw can’t reach it'); assert.equal(o.hp, o.max);
+  for (let i = 0; i < 5 && !o.loose; i++) { e.step(I({ atkP: true })); run(e, 9); }
+  assert.ok(o.loose, 'the slam at the end of his combo shakes it off');
+});
+test('Longshanks: up on his stilts kicks barely tickle; his stomp sticks a leg, Enzo heaves him over, and then Dora’s kicks land hard', () => {
+  const g = bossArena('longshanks', 'dora'); const b = g.boss, p = g.hero();
+  assert.equal(g.bossHint?.who ?? 'enzo', 'enzo');
+  p.x = b.x - 90; p.z = b.z; p.face = 1; let hp0 = b.hp;
+  for (let i = 0; i < 4; i++) { g.step(I({ atkP: true })); run(g, 12); }
+  assert.ok(hp0 - b.hp < 1.5, `ground kicks barely hurt him (${(hp0 - b.hp).toFixed(2)})`);
+  untilT(g, () => { g.hero().hp = 100; g.hero().inv = 1; return b.st === 'stomp'; }, 1200);
+  assert.equal(b.st, 'stomp', 'the leg is stuck');
+  g.doTag(true); run(g, 30);
+  const e = g.hero(); e.x = b.tx - 60; e.z = b.tz; e.face = 1;
+  g.step(I({ atkP: true })); run(g, 40);
+  assert.equal(b.st, 'toppled', 'Enzo heaves him over');
+  g.doTag(true); run(g, 25);
+  const d = g.hero(); d.x = b.x - 80; d.z = b.z; d.face = 1; hp0 = b.hp;
+  for (let i = 0; i < 3; i++) { g.step(I({ atkP: true })); run(g, 10); }
+  assert.ok(hp0 - b.hp > 5, `Dora’s kicks land (${(hp0 - b.hp).toFixed(1)})`);
+  // a barrel thrown into his stilts bowls him over too
+  const h = bossArena('longshanks', 'enzo'); const hb = h.boss, he = h.hero();
+  const it = h.addItem('barrel', he.x, he.z, 0, 0, 0); it.held = true; he.hold = it; he.st = 'hold'; he.t = 0; he.z = hb.z; he.x = hb.x - 260; he.face = 1;
+  h.step(I({ atkP: true })); untilT(h, () => hb.st === 'toppled', 90);
+  assert.equal(hb.st, 'toppled', 'bowled over');
+});
+test('Old Tanglejaw: until two holes are plugged he slips back; Enzo carries barrels onto them, then the last hole’s lunge leaves him stuck for Dora', () => {
+  const g = bossArena('tanglejaw', 'dora'); const b = g.boss;
+  assert.equal(g.holes.length, 3);
+  untilT(g, () => { g.hero().hp = 100; g.hero().inv = 1; return b.st === 'stretched'; }, 1200);
+  let d = g.hero(); d.x = b.x - b.dir * 70; d.z = b.z; d.face = b.dir; let hp0 = b.hp;
+  g.step(I({ atkP: true })); run(g, 10);
+  assert.ok(hp0 - b.hp < 1, 'with the holes open, her kicks barely hurt');
+  // Enzo carries two barrels onto the two holes he isn't in
+  g.doTag(true); run(g, 30);
+  for (let n = 0; n < 2; n++) {
+    const e = g.hero(), free = g.holes.map((h, i) => i).filter((i) => !g.holes[i].plug && !(i === b.hole && b.st !== 'under' && b.st !== 'bubble'));
+    const hi = free.find((i) => i !== b.hole) ?? free[0], h = g.holes[hi];
+    const it = g.addItem('barrel', e.x, e.z, 0, 0, 0); it.held = true; e.hold = it; e.st = 'hold'; e.t = 0;
+    e.x = h.x - 90; e.z = h.z; e.face = 1;
+    run(g, 30, { mx: 1 });
+    assert.ok(h.plug, `hole ${hi} plugged`);
+  }
+  assert.equal(g.plugs(), 2);
+  g.doTag(true); run(g, 30);
+  untilT(g, () => { g.hero().hp = 100; g.hero().inv = 1; return b.st === 'stretched'; }, 1200);
+  assert.equal(b.st, 'stretched', 'he had to come out of the last hole');
+  d = g.hero(); d.x = b.x - b.dir * 70; d.z = b.z; d.face = b.dir; hp0 = b.hp;
+  for (let i = 0; i < 3; i++) { g.step(I({ atkP: true })); run(g, 10); }
+  assert.ok(hp0 - b.hp > 5, `stuck out, he takes Dora’s kicks (${(hp0 - b.hp).toFixed(1)})`);
+  // a new phase: his roar blows the barrels back out, and they land ready to use again
+  b.hp = b.max * 0.6; run(g, 30);
+  assert.equal(g.plugs(), 0, 'the plugs pop'); assert.ok(g.items.filter((i) => i.kind === 'barrel').length >= 2, 'barrels to carry again');
+  assert.equal(g.bossHint?.phase, 2);
+});
+test('a sealed tar barrel breaks open on a lantern charm', () => {
+  const g = arena('3-1', 'enzo', 300);
+  g.props.push({ id: 999, kind: 'barrel', x: 380, z: 80, hp: 2, content: 'charm', sid: 'r2:c0', alive: true, vx: 0, hitList: [], fall: 0, down: false, flash: 0 });
+  run(g, 30, { mx: 1 }); assert.ok(g.hero().hold, 'Enzo picks it up');
+  g.step(I({ atkP: true })); run(g, 90);
+  assert.ok(g.items.some((i) => i.kind === 'charm' && i.sid === 'r2:c0'), 'a charm');
+});
+test('area 3 bosses open each phase with whose job it is', () => {
+  const l = bossArena('longshanks'); assert.deepEqual([l.bossHint?.who, l.bossHint?.act], ['enzo', 'atk']);
+  const t = bossArena('tanglejaw'); assert.deepEqual([t.bossHint?.who, t.bossHint?.act], ['enzo', 'carry']);
 });
 
 console.log(`Brinelight: ${n} engine tests passed.`);
