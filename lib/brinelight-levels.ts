@@ -9,7 +9,7 @@ export const COL = 40;
 export const LANE_Z = [8, 44, 80, 116, 152];
 
 export type FloorId = 'quay' | 'street' | 'breakwater' | 'market';
-export type FarId = 'harbour' | 'town' | 'alley' | 'market' | 'square';
+export type FarId = 'harbour' | 'harbour2' | 'harbour3' | 'town' | 'town2' | 'alley' | 'market' | 'market2' | 'square' | 'square2';
 export type FoeKind = 'crab' | 'hermit' | 'gull' | 'puffer' | 'shrimp' | 'lobster' | 'jelly' | 'urchin';
 export type BossKind = 'brute' | 'clamps' | 'knuckles' | 'admiral';
 export type NpcId = 'mabel' | 'twins' | 'barnaby';
@@ -28,6 +28,8 @@ export type EventDef = WaveDef | BossDef | CartDef | TalkDef | TutDef;
 
 export interface SceneDef {
   id: string; name: string; floor: FloorId; far: FarId;
+  /** mirror the far painting, so neighbouring scenes that share one don't look the same */
+  farFlip?: boolean;
   /** decor behind the railing: b barrel, p lobster pot, o bollard, c crate, f fish crate, r rope, S ice stall,
    *  L lobster stall, A awning post, X fish boxes, W basket, R brine barrel, D dried fish, T hand truck, M mussels,
    *  N net coil, Z brazier, B bell; @ Mabel, & Pip and Pepper, $ Barnaby */
@@ -93,7 +95,7 @@ export const SCENES: Record<string, SceneDef> = {
     charms: 0,
   },
   q2: {
-    id: 'q2', name: 'Crate Row', floor: 'quay', far: 'harbour',
+    id: 'q2', name: 'Crate Row', floor: 'quay', far: 'harbour2',
     back:  '.c.c..b.....p..o.....f.b.b........o...p...c..',
     lanes: [
       '.............................................',
@@ -111,7 +113,7 @@ export const SCENES: Record<string, SceneDef> = {
     charms: 1,
   },
   q3: {
-    id: 'q3', name: 'Lookout Post', floor: 'quay', far: 'harbour',
+    id: 'q3', name: 'Lookout Post', floor: 'quay', far: 'harbour', farFlip: true,
     back:  '..o.....b.c......p.....@...f......o..b..c.r...',
     lanes: [
       '..............................................',
@@ -169,7 +171,7 @@ export const SCENES: Record<string, SceneDef> = {
     charms: 2, shanty: true,
   },
   s2: {
-    id: 's2', name: 'Bell Steps', floor: 'street', far: 'town',
+    id: 's2', name: 'Bell Steps', floor: 'street', far: 'town2',
     back:  '.f...b..W.....c.c.....B......r..b..',
     lanes: [
       '...................................',
@@ -187,7 +189,7 @@ export const SCENES: Record<string, SceneDef> = {
     charms: 1,
   },
   bw: {
-    id: 'bw', name: 'Clamps’ Pier', floor: 'breakwater', far: 'harbour',
+    id: 'bw', name: 'Clamps’ Pier', floor: 'breakwater', far: 'harbour3',
     back:  '..b...c....o...b.b.c...o......',
     lanes: [
       '..............................',
@@ -225,7 +227,7 @@ export const SCENES: Record<string, SceneDef> = {
     charms: 1,
   },
   m2: {
-    id: 'm2', name: 'Net Lofts', floor: 'market', far: 'market',
+    id: 'm2', name: 'Net Lofts', floor: 'market', far: 'market2',
     back:  '..D..S..L....D...S..X..D..L...S..D...',
     lanes: [
       '.....................................',
@@ -243,7 +245,7 @@ export const SCENES: Record<string, SceneDef> = {
     charms: 1,
   },
   m3: {
-    id: 'm3', name: 'Crab Counters', floor: 'market', far: 'market',
+    id: 'm3', name: 'Crab Counters', floor: 'market', far: 'market', farFlip: true,
     back:  '.L..S..X..L..R..S..W..L..S..X...L..S..',
     lanes: [
       '......................................',
@@ -262,7 +264,7 @@ export const SCENES: Record<string, SceneDef> = {
     charms: 1,
   },
   m4: {
-    id: 'm4', name: 'Urchin Gutter', floor: 'market', far: 'market',
+    id: 'm4', name: 'Urchin Gutter', floor: 'market', far: 'market2', farFlip: true,
     back:  '..X..S..T..D.......W..S..X..R..D..S...',
     lanes: [
       '................a.....................',
@@ -336,7 +338,7 @@ export const SCENES: Record<string, SceneDef> = {
     charms: 1,
   },
   sq2: {
-    id: 'sq2', name: 'Admiral’s Perch', floor: 'market', far: 'square',
+    id: 'sq2', name: 'Admiral’s Perch', floor: 'market', far: 'square2',
     back:  '..A....R....A..X....A...',
     lanes: [
       '........................',

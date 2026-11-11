@@ -10,7 +10,7 @@ import { PX, ATLASES, FRAMES, IMAGES } from './brinelight-art';
 const BAND = 540;                       // world units from the top of the sky to the bottom of the deck
 const STRIP_TOP = 272, STRIP_H = BAND - STRIP_TOP + 4;
 const STR_W = 520, STR_Y = 128, LANX = [0.157, 0.294, 0.43, 0.57, 0.71, 0.845];
-const PORTRAIT_VIEW = 500;              // world units across on a portrait phone: zoomed in, the camera follows the hero
+const PORTRAIT_VIEW = 440;              // world units across on a portrait phone: zoomed in, the camera follows the hero
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
 const DECOR: Record<string, string> = {
@@ -66,10 +66,10 @@ export class BrineScene {
     this.portrait = H > W * 1.15;
     if (this.portrait) {
       // a phone held upright: a zoomed play view at the top, the controls in their own panel under it
+      // the controls take about a quarter of the screen; the play view takes the rest, its deck edge at the panel
       this.s = W / PORTRAIT_VIEW; this.vw = PORTRAIT_VIEW;
-      const hud = 64 * this.u;
-      this.oy = hud - 150 * this.s;                       // a little sky is cropped; the HUD sits over the rest
-      this.playBottom = Math.round(Math.min(H * 0.58, this.oy + 660 * this.s));
+      this.playBottom = Math.round(H - clamp(H * 0.27, 190, 300));
+      this.oy = this.playBottom - 660 * this.s;           // the HUD sits over the sky
     } else {
       this.s = Math.min(H / 500, W / 860); this.vw = W / this.s;
       const extra = H - BAND * this.s;
@@ -78,14 +78,15 @@ export class BrineScene {
     }
     const u = this.u, m = Math.max(14, 20 * u);
     if (this.portrait) {
-      const top = this.playBottom, ph = H - top, r = clamp(Math.min(W * 0.13, ph * 0.2), 34, 62);
-      const cy = top + Math.min(ph * 0.45, r * 3.2);
+      // a compact diamond: ATTACK on the right, TAG above-left of it, JUMP below-left; every button at least 56 px across
+      const top = this.playBottom, ph = H - top, r = clamp(Math.min(W * 0.125, ph * 0.22), 40, 58);
+      const cy = top + ph * 0.5;
       this.tl = {
         panel: top,
         stick: { x: m + r * 1.45, y: cy, r: r * 1.35 },
-        atk: { x: W - m - r - 4, y: cy + r * 0.35, r },
-        jmp: { x: W - m - r * 3.05, y: cy + r * 0.85, r: r * 0.8 },
-        tag: { x: W - m - r * 1.6, y: cy - r * 1.65, r: r * 0.74 },
+        atk: { x: W - m - r - 4, y: cy, r },
+        jmp: { x: W - m - r * 2.9, y: cy + r * 0.95, r: Math.max(28, r * 0.8) },
+        tag: { x: W - m - r * 2.6, y: cy - r * 1.05, r: Math.max(28, r * 0.7) },
       };
     } else {
       const r = clamp(Math.min(W, H) * 0.085, 34, 58);
@@ -333,8 +334,8 @@ export class BrineScene {
       // in a fight, frame the hero and the nearest threat together, keeping the hero well inside the view
       let near: { x: number } | null = g.boss && g.boss.st !== 'gone' && g.boss.st !== 'end' ? g.boss : null, nd = near ? Math.abs(near.x - p.x) : 1e9;
       for (const f of g.foes) { if (f.st === 'ko' || f.st === 'held') continue; const d = Math.abs(f.x - p.x); if (d < nd) { nd = d; near = f; } }
-      // and pull back (up to 760 units across) when the threat is too far off to share a 500-unit view
-      const want = near && g.lock !== null ? clamp(nd + 300, PORTRAIT_VIEW, 760) : PORTRAIT_VIEW;
+      // and pull back (up to 700 units across) when the threat is too far off to share the close view
+      const want = near && g.lock !== null ? clamp(nd + 300, PORTRAIT_VIEW, 700) : PORTRAIT_VIEW;
       this.zoomVw += (want - this.zoomVw) * Math.min(1, dt * 2.5);
       this.vw = this.zoomVw; this.s = this.W / this.vw; this.oy = this.playBottom - 660 * this.s;
       tx = p.x - this.vw / 2 + p.face * this.vw * 0.08;
@@ -381,7 +382,7 @@ export class BrineScene {
     if (this.portrait) this.drawEdgeArrows(g);
     cx.restore();
     if (this.flash > 0) { cx.fillStyle = `rgba(255,248,230,${this.flash * 0.5})`; cx.fillRect(0, 0, this.W, this.playBottom); }
-    if (!o.hideHud) { this.drawHud(g, o.labels); this.drawPrompt(g, o.labels); this.drawTalk(g); }
+    if (!o.hideHud) { this.drawHud(g, o.labels); this.drawBossHint(g, o.labels); this.drawPrompt(g, o.labels); this.drawTalk(g); }
     if (this.portrait) this.drawPanel(g, o.labels);
     if (this.touch || this.portrait) this.drawTouch(g, o.labels);
   }
@@ -395,7 +396,7 @@ export class BrineScene {
     for (let i = -1; i < 3; i++) {
       const xx = x0 + i * fw; if (xx > this.vw || xx + fw < 0) continue;
       cx.save(); cx.translate(xx * this.s, this.SY(y0));
-      if (((i % 2) + 2) % 2 === 1) { cx.translate(fw * this.s, 0); cx.scale(-1, 1); }
+      if ((((i % 2) + 2) % 2 === 1) !== !!g.scene.farFlip) { cx.translate(fw * this.s, 0); cx.scale(-1, 1); }
       cx.drawImage(im, 0, 0, fw * this.s, fh * this.s); cx.restore();
     }
     const lit = this.litFrac(g), y1 = this.SY(y0 + fh * 0.25), y2 = this.SY(waterY);
@@ -575,16 +576,39 @@ export class BrineScene {
   }
   private drawTelegraphs(g: BrineGame) {
     const b = g.boss, cx = this.cx; if (!b) return;
+    const p = g.hero(), warm = '#ffc94a', hot = '#ff9a5a';
     cx.save(); cx.globalCompositeOperation = 'lighter';
-    if ((b.kind === 'clamps' && b.st === 'rock') || (b.kind === 'admiral' && (b.st === 'shriek' || b.st === 'redive'))) {
-      // a dashed ring where the roll or the dive will land
-      const sx = this.SX(b.tx || b.x), sy = this.SY(FLOOR + (b.tz || b.z)), rx = 100 * this.s, rz = 40 * this.s;
-      cx.setLineDash([14 * this.s, 10 * this.s]); cx.lineDashOffset = -this.rt * 60; cx.lineWidth = 3.5 * this.s; cx.strokeStyle = '#ffc94a';
-      cx.beginPath(); cx.ellipse(sx, sy, rx, rz, 0, 0, 7); cx.stroke();
-    }
-    if (b.kind === 'brute' && (b.st === 'tell' || b.st === 'wind')) this.glow(b.x, b.z, 120, 110, `rgba(255,120,80,${0.25 + 0.2 * Math.sin(this.rt * 25)})`);
-    if (b.kind === 'knuckles' && b.st === 'tell') this.glow(b.x, b.z, 110, 90, `rgba(255,236,190,${0.35 + 0.3 * Math.sin(this.rt * 30)})`);
+    // every dangerous boss move marks the boards first: a dashed ring where it lands, or arrows along the lane it sweeps
+    if (b.kind === 'admiral' && (b.st === 'shriek' || b.st === 'redive')) this.ringMark(b.tx || b.x, b.tz || b.z, 100, 40, warm);
+    if (b.kind === 'brute' && b.st === 'tell') { this.ringMark(b.tx, b.tz, 115, 50, hot); this.glow(b.x, b.z, 120, 110, `rgba(255,120,80,${0.25 + 0.2 * Math.sin(this.rt * 25)})`); }
+    if (b.kind === 'clamps' && b.st === 'wind') this.ringMark(b.x + b.face * 90, b.z, 90, 40, hot);
+    if (b.kind === 'clamps' && b.st === 'rock') this.laneMark(b.x, b.z, p.x < b.x ? -1 : 1, warm);
+    if (b.kind === 'knuckles' && b.st === 'tell') { this.ringMark(b.x + b.face * 80, b.z, 90, 34, hot); this.glow(b.x, b.z, 110, 90, `rgba(255,236,190,${0.35 + 0.3 * Math.sin(this.rt * 30)})`); }
+    if (b.kind === 'knuckles' && b.st === 'crouch') this.ringMark(p.x, p.z, 100, 45, warm);
+    if (b.kind === 'knuckles' && b.st === 'hop') this.ringMark(b.tx, b.tz, 100, 45, warm);
+    if (b.kind === 'admiral' && b.st === 'wingtell') this.laneMark(b.x, b.tz, p.x < b.x ? -1 : 1, warm);
+    for (const pr of g.props) if (pr.alive && pr.kind === 'net' && !pr.down && pr.fall !== 0) this.ringMark(pr.x, pr.z, 60, 26, warm);
     cx.restore();
+  }
+  /** a dashed ground ring, marching, where a hit will land */
+  private ringMark(x: number, z: number, rx: number, rz: number, col: string) {
+    const cx = this.cx, sx = this.SX(x), sy = this.SY(FLOOR + z);
+    cx.setLineDash([14 * this.s, 10 * this.s]); cx.lineDashOffset = -this.rt * 60; cx.lineWidth = 3.5 * this.s; cx.strokeStyle = col;
+    cx.globalAlpha = 0.75 + 0.25 * Math.sin(this.rt * 12);
+    cx.beginPath(); cx.ellipse(sx, sy, rx * this.s, rz * this.s, 0, 0, 7); cx.stroke();
+    cx.setLineDash([]); cx.globalAlpha = 1;
+  }
+  /** chevrons running along a lane from the boss toward the far wall, for a roll or a swoop */
+  private laneMark(x: number, z: number, dir: number, col: string) {
+    const cx = this.cx, sy = this.SY(FLOOR + z), s = this.s, run = (this.rt * 1.6) % 1;
+    cx.lineWidth = 5.5 * s; cx.strokeStyle = col; cx.lineCap = 'round'; cx.lineJoin = 'round';
+    for (let k = 0; k < 9; k++) {
+      const wx = x + dir * (70 + (k + run) * 90), sx = this.SX(wx);
+      if (sx < -40 || sx > this.W + 40) continue;
+      cx.globalAlpha = 0.85 * (1 - k / 10);
+      cx.beginPath(); cx.moveTo(sx - dir * 16 * s, sy - 16 * s); cx.lineTo(sx + dir * 10 * s, sy); cx.lineTo(sx - dir * 16 * s, sy + 16 * s); cx.stroke();
+    }
+    cx.globalAlpha = 1;
   }
   private drawFx(g: BrineGame, back: boolean) {
     const cx = this.cx;
@@ -791,6 +815,11 @@ export class BrineScene {
       label = L.mode === 'touch' ? 'MOVE' : Math.abs(d) === 2 ? (d > 0 ? L.down : L.up) : `${L.left} ${L.right}`;
       sub = Math.abs(d) === 2 ? 'line up with them' : '';
     }
+    if (pr.act === 'grab') {
+      const d = pr.dir ?? 1;
+      label = L.mode === 'touch' ? (d > 0 ? '→' : '←') : d > 0 ? L.right : L.left;
+      sub = 'walk in to grab';
+    }
     if (pr.act === 'tag') sub = pr.tint === 'grey' ? 'Enzo’s job: shells, armour, pinning' : 'Dora’s job: wings and the air';
     if (pr.act === 'dbl') sub = 'Festival full: double-team!';
     if (pr.act === 'special') {
@@ -807,6 +836,25 @@ export class BrineScene {
     this.ui('keycap', x, y, w, 0.98, h);
     this.text(label, x, y - 2 * u, px, '#2a1a36', 'center', '#fff4dc');
     if (sub) this.text(sub, x, y + h * 0.75, Math.round(13 * u), '#fff0c8');
+  }
+  /** at the start of each boss phase, once: the face of the hero whose job it is, and the key to press (Tag if they're out) */
+  private drawBossHint(g: BrineGame, L: Labels) {
+    const h = g.bossHint, b = g.boss; if (!h || !b) return;
+    const u = this.u, cx = this.cx, active = g.hero().name === h.who;
+    const k = Math.min(1, (3.6 - h.t) / 0.25, h.t / 0.4), pop = 1 + 0.25 * Math.max(0, 1 - (3.6 - h.t) / 0.25);
+    const bx = this.SX(b.x), by = this.SY(FLOOR + b.z - Math.max(b.h, 0) - 250);
+    const x = clamp(bx, 90 * u, this.W - 90 * u), y = clamp(by, 120 * u, (this.portrait ? this.playBottom : this.H) - 150 * u);
+    const key = active ? (h.act === 'atk' ? this.keyLabel('atk', L) : this.keyLabel('jmp', L)) : this.keyLabel('tag', L);
+    cx.save(); cx.globalAlpha = Math.max(0, k);
+    const r = 30 * u * pop;
+    this.face(h.who, x - 30 * u, y, r, true, h.who === 'enzo' ? 'grey' : 'cream');
+    cx.font = `700 ${Math.round(16 * u)}px Fredoka, "Trebuchet MS", system-ui, sans-serif`;
+    const w = Math.max(44 * u, cx.measureText(key).width + 26 * u);
+    this.ui('keycap', x + 14 * u + w / 2, y + 4 * u, w, 0.98, 40 * u);
+    this.text(key, x + 14 * u + w / 2, y + 2 * u, Math.round(16 * u), '#2a1a36', 'center', '#fff4dc');
+    // a small pointer down at the boss
+    cx.fillStyle = '#ffd27a'; cx.beginPath(); cx.moveTo(x - 8 * u, y + 34 * u); cx.lineTo(x + 8 * u, y + 34 * u); cx.lineTo(x, y + 46 * u); cx.fill();
+    cx.restore();
   }
   private drawTalk(g: BrineGame) {
     const t = g.talk; if (!t) return;

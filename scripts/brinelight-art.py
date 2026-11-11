@@ -240,7 +240,8 @@ for f, n in (('quay', 'quay'), ('breakwater', 'breakwater'), ('street', 'street'
 def plain(file, name, size, q=78):
     im = Image.open(SRC / f'{file}.png').convert('RGB').resize(size, Image.LANCZOS)
     im.save(OUT / f'{name}.webp', 'WEBP', quality=q, method=6); BG[name] = list(im.size)
-for f, n in (('far', 'far-harbour'), ('townfar', 'far-town'), ('alleyfar', 'far-alley'), ('marketfar', 'far-market'), ('squarefar', 'far-square')): plain(f, n, (1344, 896))
+for f, n in (('far', 'far-harbour'), ('townfar', 'far-town'), ('alleyfar', 'far-alley'), ('marketfar', 'far-market'), ('squarefar', 'far-square'),
+             ('far2', 'far-harbour2'), ('far3', 'far-harbour3'), ('townfar2', 'far-town2'), ('marketfar2', 'far-market2'), ('squarefar2', 'far-square2')): plain(f, n, (1344, 896))
 for f in ('title', 'map', 'panel-intro', 'panel-quay', 'panel-market'): plain(f, f, (1536, 1024), 80)
 
 # ─────────────────────────────── the TypeScript index

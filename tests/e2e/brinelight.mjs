@@ -35,6 +35,7 @@ const arena = async (page, who = 'dora', foes = '') => {
     ${foes}
     return 1; })()`);
 };
+const DAZED = 'const f = g.spawnFoe("crab", 1, { lane: 2 }); f.x = 370; f.z = 80; f.st = "idle"; f.cd = 99; f.hp = 60; f.daze = 30;';
 const CRABS = 'for (let i = 0; i < 4; i++) { const f = g.spawnFoe("crab", 1, { lane: 2 }); f.x = 470 + i * 70; f.z = 80; f.st = "idle"; f.cd = 30; }';
 
 // ─────────────────────────────── keys
@@ -73,6 +74,14 @@ async function keyActions(page, tag) {
   // tag
   await k.tap('KeyL'); await until(page, 'g.active === "enzo"', 2000); ok(true, `${tag}: L tags Enzo in`);
   await until(page, 'g.hero().st === "idle" || g.hero().st === "walk"', 4000);
+  // Enzo's grab: mashing J beside a dazed crab keeps punching; walking into it picks it up; one J throws it
+  await arena(page, 'enzo', DAZED);
+  for (let i = 0; i < 10; i++) { await game(page, '(g.foes[0].daze = 30, g.foes[0].hp = 60, g.foes[0].x = Math.min(g.foes[0].x, g.hero().x + 80), 1)'); await k.tap('KeyJ', 40); await wait(80); }
+  ok(await game(page, '!g.hero().hold && g.stats.grabs === 0 && g.stats.hits >= 3'), `${tag}: mashing J beside a dazed crab punches it (${await game(page, 'g.stats.hits')} hits, no grab)`);
+  await wait(500); await game(page, '(g.foes[0].daze = 30, g.foes[0].x = g.hero().x + 110, g.foes[0].z = g.hero().z, g.hero().face = 1, 1)');
+  await page.keyboard.down('ArrowRight'); await until(page, '!!g.hero().hold', 2500); await page.keyboard.up('ArrowRight');
+  ok(true, `${tag}: walking into a dazed crab grabs it`);
+  await wait(300); await k.tap('KeyJ'); await until(page, '!g.hero().hold && g.stats.throws >= 1', 2000); ok(true, `${tag}: one J throws it`);
   // the special, both heroes, through a line of crabs; the prompt shows in the player's own keys first
   for (const who of ['dora', 'enzo']) {
     await arena(page, who, CRABS);
@@ -129,6 +138,13 @@ async function touchActions(page, tag) {
   await wait(400);
   await press(T.t); await until(page, 'g.active === "enzo"', 2000); ok(true, `${tag}: TAG`);
   await wait(600);
+  // the grab by touch: push the stick into a dazed crab, then ATTACK throws
+  await arena(page, 'enzo', DAZED); T = await tl();
+  await game(page, '(g.foes[0].x = g.hero().x + 110, g.foes[0].z = g.hero().z, g.hero().face = 1, 1)');
+  await touch('touchStart', [[T.s.x, T.s.y, 0]]); await touch('touchMove', [[T.s.x + T.s.r * 0.9, T.s.y, 0]]);
+  await until(page, '!!g.hero().hold', 2500); await touch('touchEnd', []); ok(true, `${tag}: pushing the stick into a dazed crab grabs it`);
+  await wait(300); await press(T.a); await until(page, '!g.hero().hold && g.stats.throws >= 1', 2000); ok(true, `${tag}: ATTACK throws it`);
+  await wait(300);
   // the special by touch: flick, flick (held), JUMP, ATTACK
   await arena(page, 'dora', CRABS);
   T = await tl();
@@ -178,8 +194,9 @@ for (const [width, height, mobile, tag] of sizes) {
   ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${tag}: no sideways scroll`);
   await wait(1200); await shot(page, `${tag}-play`);
   if (tag === 'portrait') {
-    const L = await game(page, '({ pb: o.scene.playBottom, panel: o.scene.tl.panel, H: innerHeight, stick: o.scene.tl.stick.y })');
-    ok(L.pb < L.H * 0.65 && L.stick > L.pb, `${tag}: the controls sit in their own panel under the play view`);
+    const L = await game(page, '({ pb: o.scene.playBottom, panel: o.scene.tl.panel, H: innerHeight, stick: o.scene.tl.stick.y, rs: [o.scene.tl.atk.r, o.scene.tl.jmp.r, o.scene.tl.tag.r] })');
+    ok(L.pb > L.H * 0.66 && L.pb < L.H * 0.8 && L.stick > L.pb, `${tag}: the play view takes about three quarters of the screen, the controls sit in a panel under it (${L.pb} of ${L.H})`);
+    ok(L.rs.every((r) => r * 2 >= 56), `${tag}: every button is at least 56 px across (${L.rs.map((r) => Math.round(r * 2))})`);
   }
   await keyActions(page, tag);
   await touchActions(page, tag);

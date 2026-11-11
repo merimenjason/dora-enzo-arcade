@@ -87,6 +87,8 @@ export interface Hero {
   mk: string; hits: object[]; struck: boolean; inv: number; flash: number; anim: number; buf: number; jbuf: number;
   hold: Foe | Item | null; airUsed: boolean; ready: boolean; edgeH: number; dashDir: number; djump: boolean; afterDash: number;
   tagX: number; tagFrom: number; airKind: string; specCD: number; landT: number;
+  /** seconds since Attack was last pressed: Enzo only grabs by walking in when he isn't mashing */
+  atkAgo: number;
 }
 export type FoeSt =
   | 'enter' | 'idle' | 'walk' | 'wind' | 'atk' | 'rec' | 'hurt' | 'down' | 'up' | 'daze' | 'hover' | 'dive' | 'crash'
@@ -95,6 +97,8 @@ export interface Foe {
   id: number; kind: FoeKind; hp: number; max: number; rad: number; ht: number; x: number; z: number; h: number; vh: number;
   vx: number; vz: number; face: number; st: FoeSt; t: number; cd: number; flash: number; daze: number; anim: number;
   shell: boolean; lantern: number; tok: boolean; script: string; side: number; zoff: number; spin: number; hitList: object[];
+  /** this attack is a lobster's counter to being hit in the guard */
+  ctr?: boolean;
   didHit: boolean; tx: number; tz: number; dead: boolean; splashed: boolean; blocks: number; puffT: number; callT: number;
   called: boolean; lane: number; dazedOnce: boolean; flipped: boolean; charge: number; stole: boolean;
 }
@@ -103,12 +107,25 @@ export interface Item { id: number; kind: ItemKind; x: number; z: number; h: num
 export type PropKind = 'barrel' | 'crate' | 'fishcrate' | 'ice' | 'net';
 export interface Prop { id: number; kind: PropKind; x: number; z: number; hp: number; content: '' | 'snack' | 'charm'; sid: string; alive: boolean; vx: number; hitList: object[]; fall: number; down: boolean; flash: number }
 export interface Str { col: number; need: number; got: number; flying: number; glow: number; pulse: number }
+/** how hard the mash punishments bite in area 2 with assist on: +PUNISH per wrong hit in a row, up to PUNISH_CAP times (tuned with the bots) */
+export let PUNISH = 1.5, PUNISH_CAP = 8, MERCY_KO = true;
+export function setPunish(k: number, cap = PUNISH_CAP, ko = MERCY_KO) { PUNISH = k; PUNISH_CAP = cap; MERCY_KO = ko; }
 export interface Boss {
   kind: BossKind; x: number; z: number; h: number; vh: number; hp: number; max: number; st: string; t: number; face: number;
   flash: number; hurtT: number; phase: number; armour: number; layers: number; n: number; tx: number; tz: number;
   didHit: boolean; summoned: number; dir: number; pinned: number; cycle: number; ghost: number; tinks: number;
+  /** states seen so far: a telegraph is held half as long again the first time it shows; hinted = last phase hinted */
+  seen: string[]; lastSt: string; first: boolean; hinted: number;
 }
-export interface Prompt { act: 'move' | 'atk' | 'jmp' | 'tag' | 'dbl' | 'special' | 'go'; who: 'hero' | 'partner' | 'foe' | 'boss'; tint?: 'grey' | 'cream'; x?: number; z?: number; h?: number; dir?: number }
+/** the one-time icon at the start of each boss phase: whose job this phase is, and the key that does it */
+export interface BossHint { who: HeroId; act: 'atk' | 'jmp'; t: number; phase: number }
+const BOSS_HINT: Record<BossKind, [HeroId, 'atk' | 'jmp'][]> = {
+  brute: [['enzo', 'atk'], ['dora', 'atk'], ['enzo', 'atk']],       // crack the barnacles; juggle him bare; crack again
+  clamps: [['enzo', 'atk'], ['dora', 'jmp'], ['enzo', 'atk']],      // rip the barrel; hop the double roll; two barrels
+  knuckles: [['dora', 'atk'], ['enzo', 'atk'], ['dora', 'jmp']],    // counter the tell; throw him out of his guard; jump the hop
+  admiral: [['dora', 'jmp'], ['enzo', 'atk'], ['dora', 'jmp']],     // counter the dive; pin him grounded; kick the nets away
+};
+export interface Prompt { act: 'move' | 'grab' | 'atk' | 'jmp' | 'tag' | 'dbl' | 'special' | 'go'; who: 'hero' | 'partner' | 'foe' | 'boss'; tint?: 'grey' | 'cream'; x?: number; z?: number; h?: number; dir?: number }
 export interface Talk { who: NpcId; line: string; t: number }
 export interface Stats {
   time: number; dmg: number; hits: number; best: number; tags: number; tagChains: number; grabs: number; throws: number;
@@ -179,7 +196,7 @@ export class BrineGame {
   cam = VIEW_W / 2; lock: number | null = null; evI = 0; wave: WaveRun | null = null; go = 0;
   tokens = 0; tagCD = 0; tagQ = 0; fest = 0; festFull = false; dblT = -1;
   combo = { n: 0, t: 0, chain: 0 };
-  prompt: Prompt | null = null; talk: Talk | null = null;
+  prompt: Prompt | null = null; talk: Talk | null = null; bossHint: BossHint | null = null;
   learned: Record<string, number> = {};
   tut: Tut = { stage: 9, t: 0, tinks: 0, lastMove: 0, thief: null, hermit: null, gull: null };
   stats: Stats = { time: 0, dmg: 0, hits: 0, best: 0, tags: 0, tagChains: 0, grabs: 0, throws: 0, retries: 0, tinks: 0, dashes: 0, dashAtks: 0, specials: 0, specialHits: 0, specialLanded: 0, dbls: 0, bossTime: {}, jumps: 0, airHits: 0, score: 0, lanterns: 0, scenes: 0, wrongHits: 0, kos: 0, snacks: 0 };
@@ -187,6 +204,7 @@ export class BrineGame {
   events: GameEvent[] = [];
   /** the double-tap detector for dashing: last onset of a left/right press, how long it was held, when it let go */
   private tap = { dir: 0, on: -9, off: -9, prev: 0 };
+  private koOnce = false;   // a hero has been knocked out this stage: the mash punishments ease off
   private nid = 1; private wrongT = 0; private wrongN = 0; private bossStart = 0; private skipTalk: boolean;
   private retryAt = { evI: 0, x: 0 };
   private teachT = 0; private specN = -1; private dblHit = false;
@@ -201,7 +219,7 @@ export class BrineGame {
     this.enterScene(this.sceneIds[0]);
   }
   private mkHero(name: HeroId): Hero {
-    return { name, x: 160, z: 80, h: 0, vh: 0, vx: 0, face: 1, hp: 100, st: 'idle', t: 0, mk: '', hits: [], struck: false, inv: 0, flash: 0, anim: 0, buf: 0, jbuf: 0, hold: null, airUsed: false, ready: true, edgeH: 0, dashDir: 0, djump: false, afterDash: 9, tagX: 0, tagFrom: 0, airKind: '', specCD: 0, landT: 0 };
+    return { name, x: 160, z: 80, h: 0, vh: 0, vx: 0, face: 1, hp: 100, st: 'idle', t: 0, mk: '', hits: [], struck: false, inv: 0, flash: 0, anim: 0, buf: 0, jbuf: 0, hold: null, airUsed: false, ready: true, edgeH: 0, dashDir: 0, djump: false, afterDash: 9, tagX: 0, tagFrom: 0, airKind: '', specCD: 0, landT: 0, atkAgo: 9 };
   }
   hero() { return this[this.active]; }
   partner() { return this[this.active === 'dora' ? 'enzo' : 'dora']; }
@@ -305,7 +323,7 @@ export class BrineGame {
   private updHero(p: Hero, inp: Input, dash: number) {
     const C = HC[p.name];
     p.t += DT; p.anim += DT; p.flash -= DT; p.inv -= DT; p.afterDash += DT; p.specCD -= DT;
-    if (inp.atkP) p.buf = 0.25; else p.buf = Math.max(0, p.buf - DT);
+    if (inp.atkP) { p.buf = 0.25; p.atkAgo = 0; } else { p.buf = Math.max(0, p.buf - DT); p.atkAgo += DT; }
     if (inp.jmpP) p.jbuf = 0.14; else p.jbuf = Math.max(0, p.jbuf - DT);
     if (inp.mx || inp.mz) { this.tut.lastMove = this.t; this.learned.move = 1; }
     const air = () => p.h > 0 || p.vh > 0;
@@ -367,7 +385,7 @@ export class BrineGame {
         const i = seq.indexOf(p.mk);
         if (i >= 0) {
           p.buf = 0;
-          if (p.name === 'enzo' && this.tryGrab(p)) return;
+          if (p.name === 'enzo' && this.tryBossGrab(p)) return;   // the boss moments still work straight out of a combo
           this.startMove(p, seq[(i + 1) % seq.length], inp);
           if (inp.mx) p.face = sgn(inp.mx);
           return;
@@ -403,6 +421,8 @@ export class BrineGame {
         if (wasAtk && p.name === 'enzo') { this.shakeBy(5); this.ev({ k: 'dust', x: p.x, z: p.z, n: 8, size: 1.2 }); }
       } else if (p.st !== 'airatk') p.st = 'air';
     }
+    // Enzo grabs by walking into something grabbable, but never while he's mashing Attack
+    if (p.name === 'enzo' && mx && !holding && !air() && (p.st === 'idle' || p.st === 'walk') && p.buf <= 0 && p.atkAgo > 0.35 && this.tryGrab(p)) return;
     // attack
     if (p.buf > 0) {
       if (holding) { p.buf = 0; this.doThrow(p); }
@@ -415,7 +435,7 @@ export class BrineGame {
         this.learned.air = (this.learned.air || 0) + 1; this.sfx('whoosh');
       } else if (!air() && p.st !== 'land') {
         p.buf = 0;
-        if (!this.tryGrab(p) && !this.tryKickItem(p)) this.startMove(p, p.name === 'dora' ? 'k1' : 'p1', inp);
+        if (!this.tryBossGrab(p) && !this.tryKickItem(p)) this.startMove(p, p.name === 'dora' ? 'k1' : 'p1', inp);
         this.learned.atk = (this.learned.atk || 0) + 1;
       }
     }
@@ -611,10 +631,15 @@ export class BrineGame {
   }
 
   // ─────────────────────────────────────────── grabbing, throwing, kicking things
+  /** Attack beside a dizzy boss: the boss rule moments (rip the barrel, pin the Admiral, throw Knuckles) */
+  private tryBossGrab(p: Hero): boolean {
+    if (p.name !== 'enzo' || p.h > 5 || p.hold || !this.boss) return false;
+    return this.bossGrab(p, this.assist ? 112 : 94, this.assist ? 42 : 30);
+  }
+  /** Enzo walks into a dazed foe, a shelled hermit, a puffed puffer, a lobster, a loose shell or a barrel and picks it up */
   private tryGrab(p: Hero): boolean {
     if (p.name !== 'enzo' || p.h > 5 || p.hold) return false;
-    const reach = this.assist ? 112 : 94, zTol = this.assist ? 42 : 30;
-    if (this.boss && this.bossGrab(p, reach, zTol)) return true;
+    const reach = this.assist ? 84 : 72, zTol = this.assist ? 36 : 28;
     let best: Foe | null = null, bd = 1e9;
     for (const f of this.foes) {
       if (!['idle', 'walk', 'wind', 'rec', 'daze', 'hurt', 'crash', 'down', 'up', 'puffed', 'block', 'tangled', 'whistle'].includes(f.st) || f.h > 40) continue;
@@ -622,7 +647,7 @@ export class BrineGame {
       if (!grabbable) continue;
       if (f.st === 'down' && f.h > 5) continue;
       const dx = (f.x - p.x) * p.face, dz = Math.abs(f.z - p.z);
-      if (dx < -30 || dx > reach || dz > zTol) continue;
+      if (dx < -10 || dx > reach || dz > zTol) continue;
       if (dx + dz < bd) { bd = dx + dz; best = f; }
     }
     if (!best) {
@@ -630,12 +655,12 @@ export class BrineGame {
       for (const it of this.items) {
         if ((it.kind !== 'shell' && it.kind !== 'barrel') || it.held || it.h > 20 || it.slide) continue;
         const dx = (it.x - p.x) * p.face, dz = Math.abs(it.z - p.z);
-        if (dx > -30 && dx < reach && dz < zTol) { it.held = true; p.hold = it; this.setSt(p, 'grab'); this.sfx('grab'); this.stats.grabs++; this.learned.grab = (this.learned.grab || 0) + 1; return true; }
+        if (dx > -10 && dx < reach && dz < zTol) { it.held = true; p.hold = it; this.setSt(p, 'grab'); this.sfx('grab'); this.stats.grabs++; this.learned.grab = (this.learned.grab || 0) + 1; return true; }
       }
       for (const pr of this.props) {
         if (!pr.alive || pr.kind !== 'barrel') continue;
         const dx = (pr.x - p.x) * p.face, dz = Math.abs(pr.z - p.z);
-        if (dx > -30 && dx < reach && dz < zTol) { pr.alive = false; const it = this.addItem('barrel', pr.x, pr.z, 0, 0, 0); it.held = true; p.hold = it; this.setSt(p, 'grab'); this.sfx('grab'); this.stats.grabs++; return true; }
+        if (dx > -10 && dx < reach && dz < zTol) { pr.alive = false; const it = this.addItem('barrel', pr.x, pr.z, 0, 0, 0); it.held = true; p.hold = it; this.setSt(p, 'grab'); this.sfx('grab'); this.stats.grabs++; return true; }
       }
       return false;
     }
@@ -772,14 +797,14 @@ export class BrineGame {
       if (fromFront) {
         f.st = 'block'; f.t = 0; f.blocks++; f.flash = 0.06;
         this.wrong(o.x, f.z, (o.h || 60), 'enzo'); this.hitstop(0.03);
-        if (f.blocks >= 3) { f.blocks = 0; f.st = 'atk'; f.t = 0; f.didHit = false; this.sfx('whoosh'); }   // the counter
+        if (f.blocks >= 3) { f.blocks = 0; f.st = 'atk'; f.t = 0; f.didHit = false; f.ctr = true; this.sfx('whoosh'); }   // the counter
         return;
       }
     }
     // a puffed puffer is all spines: kicks hurt the kicker
     if (f.kind === 'puffer' && f.st === 'puffed' && dora && !o.tag && !o.special) {
       this.wrong(o.x, f.z, 50, 'enzo'); const p = this.hero();
-      if (p.name === 'dora' && Math.abs(p.x - f.x) < 140) this.hurtHero(p, 5, f.x, 200);
+      if (p.name === 'dora' && Math.abs(p.x - f.x) < 140) this.hurtHero(p, this.punish(5), f.x, 200);
       return;
     }
     // an urchin on its feet is all spines too, unless you come down on it from above or flip it with a slam
@@ -788,7 +813,7 @@ export class BrineGame {
       if (o.slam || o.special || (p.h > 30 && dora)) { this.flipUrchin(f); if (!o.special) return; }
       else {
         this.wrong(o.x, f.z, 40, 'dora');
-        if (Math.abs(p.x - f.x) < 140 && p.h < 30) this.hurtHero(p, 6, f.x, 220);
+        if (Math.abs(p.x - f.x) < 140 && p.h < 30) this.hurtHero(p, this.punish(6), f.x, 220);
         return;
       }
     }
@@ -796,7 +821,7 @@ export class BrineGame {
     if (f.kind === 'jelly' && (f.st === 'charge' || f.st === 'zap') && !o.tag && o.by !== 'item' && o.by !== 'dbl') {
       const p = this.hero();
       if (p.h < 40 && !o.special) {
-        this.ev({ k: 'zap', x: f.x, z: f.z, h: f.h + 40 }); this.sfx('zap'); this.hurtHero(p, 7, f.x, 260); this.wrongN++; this.wrongT = 2.5;
+        this.ev({ k: 'zap', x: f.x, z: f.z, h: f.h + 40 }); this.sfx('zap'); this.hurtHero(p, this.punish(7), f.x, 260); this.wrongN++; this.wrongT = 2.5;
         return;
       }
     }
@@ -854,6 +879,11 @@ export class BrineGame {
     this.flies = this.flies.filter((f) => f.t < 0.9);
     for (const s of this.strings) { s.glow += (s.got / s.need - s.glow) * Math.min(1, DT * 3); s.pulse = Math.max(0, s.pulse - DT * 1.5); }
   }
+  /** the hits that punish mashing (a lobster's counter, spines, a charged jelly) bite harder in the Fish Market with assist
+   *  on, and harder still with every wrong hit in a row: a masher who ignores the tink and the tag prompt sometimes needs
+   *  a retry there, while players who read the foes (or tag when it tinks) barely notice. Once a hero is knocked out, or
+   *  after a retry, it eases off for the rest of the stage, so nobody gets stuck on it */
+  private punish(dmg: number) { return this.assist && this.area() === 2 && this.stats.retries === 0 && (!MERCY_KO || !this.koOnce) ? dmg * Math.min(PUNISH_CAP, 1 + PUNISH * Math.max(0, (this.wrongT > 0 ? this.wrongN : 0) - 1)) : dmg; }
   hurtHero(p: Hero, dmg: number, fromX: number, kb = 260, heavy = false) {
     if (p.inv > 0 || p.st === 'tagin' || p.st === 'out' || this.mode !== 'play' || this.dblT >= 0 || p.st === 'special' || p.st === 'down' || p.st === 'getup') return false;
     dmg *= this.assist ? 0.6 * (this.area() === 2 ? 1.25 : 1) : this.area() === 2 ? 1.6 : 1;
@@ -864,6 +894,7 @@ export class BrineGame {
     this.shakeBy(6); this.hitstop(0.06); this.sfx('ouch'); this.ev({ k: 'sparks', x: p.x, z: p.z, h: p.h + 90, col: '#ff8a6a', n: 8, big: 1 });
     this.combo.n = 0; this.combo.t = 0; this.combo.chain = 0;
     if (p.hp <= 0) {
+      this.koOnce = true;
       const q = this.partner();
       if (q.hp > 0 && q.ready) { p.ready = false; this.doTag(true); }
       else { this.mode = 'down'; this.downT = 0; this.sfx('downed'); }
@@ -954,8 +985,8 @@ export class BrineGame {
       case 'atk': {
         const lunge = f.kind === 'lobster' ? 200 : f.kind === 'puffer' ? 320 : 260;
         if (f.t < 0.08) f.x += f.face * lunge * DT;
-        if (!f.didHit && f.t > 0.04) { f.didHit = true; if (this.inFront(f, p, d.reach * (this.assist ? 0.9 : 1), 22, 0, 60)) this.hurtHero(p, f.script === 'weak' ? 4 : d.dmg, f.x, f.kind === 'lobster' ? 340 : 260); }
-        if (f.t > d.atk) { f.st = 'rec'; f.t = 0; }
+        if (!f.didHit && f.t > 0.04) { f.didHit = true; if (this.inFront(f, p, d.reach * (this.assist ? 0.9 : 1), 22, 0, 60)) this.hurtHero(p, f.script === 'weak' ? 4 : f.ctr ? this.punish(d.dmg) : d.dmg, f.x, f.kind === 'lobster' ? 340 : 260); }
+        if (f.t > d.atk) { f.st = 'rec'; f.t = 0; f.ctr = false; }
         break;
       }
       case 'roll':
@@ -1308,7 +1339,8 @@ export class BrineGame {
   bossBox() { const b = this.boss!; return { x: b.x, z: b.z, h: b.h, rad: BOSS_R[b.kind] * 0.9, ht: b.kind === 'admiral' ? 150 : 200 }; }
   private spawnBoss(kind: BossKind) {
     const hp = { brute: 140, clamps: 160, knuckles: 140, admiral: 150 }[kind];
-    this.boss = { kind, x: this.camR + 260, z: 80, h: kind === 'admiral' ? 170 : 0, vh: 0, hp, max: hp, st: 'intro', t: 0, face: -1, flash: 0, hurtT: 0, phase: 1, armour: kind === 'brute' ? 3 : 0, layers: 1, n: 0, tx: 0, tz: 0, didHit: false, summoned: 0, dir: -1, pinned: 0, cycle: 0, ghost: hp, tinks: 0 };
+    this.boss = { kind, x: this.camR + 260, z: 80, h: kind === 'admiral' ? 170 : 0, vh: 0, hp, max: hp, st: 'intro', t: 0, face: -1, flash: 0, hurtT: 0, phase: 1, armour: kind === 'brute' ? 3 : 0, layers: 1, n: 0, tx: 0, tz: 0, didHit: false, summoned: 0, dir: -1, pinned: 0, cycle: 0, ghost: hp, tinks: 0, seen: [], lastSt: 'intro', first: false, hinted: 0 };
+    this.bossHint = null;
     this.bossStart = this.t; this.sfx(kind === 'admiral' ? 'shriek' : 'roar');
   }
   /** Enzo's grab on a boss: rip off Clamps' barrel, pin the grounded Admiral, throw Knuckles out of his guard */
@@ -1403,11 +1435,15 @@ export class BrineGame {
       return;
     }
     if (b.st === 'end') {
+      this.bossHint = null;
       if (b.t > 2.4) { b.x += 260 * DT; if (b.x > this.camR + 60 && b.t < 9) { this.ev({ k: 'splash', x: this.camR - 40 }); this.sfx('splash'); b.t = 9; } }
       if (b.t > 9.4 || (b.t > 3.6 && b.x > this.camR + 60)) b.st = 'gone';
       return;
     }
-    if (b.st === 'gone') return;
+    if (b.st === 'gone') { this.bossHint = null; return; }
+    if (b.st !== b.lastSt) { b.first = !b.seen.includes(b.st); if (b.first) b.seen.push(b.st); b.lastSt = b.st; }
+    if (b.hinted < b.phase) { b.hinted = b.phase; const [who, act] = BOSS_HINT[b.kind][b.phase - 1]; this.bossHint = { who, act, t: 3.6, phase: b.phase }; this.sfx('ready'); }
+    if (this.bossHint) { this.bossHint.t -= DT; if (this.bossHint.t <= 0) this.bossHint = null; }
     // helpers once the boss is angry
     if (b.phase >= 2 && b.summoned < 1) { b.summoned = 1; const k: FoeKind = b.kind === 'admiral' ? 'gull' : b.kind === 'knuckles' ? 'crab' : 'crab'; this.spawnFoe(k, 1); this.spawnFoe(k, -1); }
     if (b.phase >= 3 && b.summoned < 2 && b.kind !== 'clamps') { b.summoned = 2; this.spawnFoe(b.kind === 'admiral' ? 'jelly' : 'crab', 1); }
@@ -1428,13 +1464,14 @@ export class BrineGame {
     return Math.abs(tx - b.x) < 12 && Math.abs(p.z - b.z) < 20;
   }
   private updBrute(b: Boss, p: Hero, A: boolean, _homeX: number) {
+    const F = b.first ? 1.5 : 1;   // the first time a telegraph shows, it is held half as long again
     switch (b.st) {
       case 'idle':
         if (this.approach(b, p, b.armour ? 80 : 120, 150) || b.t > 2.6) { b.st = 'tell'; b.t = 0; this.sfx('tell'); b.tx = p.x; b.tz = p.z; }
         break;
       case 'tell':
-        if (b.t < (A ? 0.8 : 0.55)) { b.tx = b.x + b.face * 130; b.tz = b.z; }
-        if (b.t > (A ? 1.35 : 0.95)) { b.st = 'stomp'; b.t = 0; b.didHit = false; }
+        if (b.t < (A ? 0.8 : 0.55) * F) { b.tx = b.x + b.face * 130; b.tz = b.z; }
+        if (b.t > (A ? 1.35 : 0.95) * F) { b.st = 'stomp'; b.t = 0; b.didHit = false; }
         break;
       case 'stomp':
         if (!b.didHit && b.t > 0.06) {
@@ -1456,6 +1493,7 @@ export class BrineGame {
   }
   private updClamps(b: Boss, p: Hero, A: boolean, homeX: number) {
     const rollSp = 640 + (b.phase - 1) * 80;
+    const F = b.first ? 1.5 : 1;   // the first time a telegraph shows, it is held half as long again
     switch (b.st) {
       case 'idle': {
         if (b.h > 0) { b.vh -= GRAV * DT; b.h = Math.max(0, b.h + b.vh * DT); }
@@ -1464,7 +1502,7 @@ export class BrineGame {
         if (b.t > (A ? 2.4 : 1.8)) { b.st = 'rock'; b.t = 0; b.tz = p.z; b.n++; this.sfx('creak'); }
         break;
       }
-      case 'wind': if (b.t > (A ? 0.75 : 0.5)) { b.st = 'swipe'; b.t = 0; b.didHit = false; this.sfx('whoosh'); } break;
+      case 'wind': if (b.t > (A ? 0.75 : 0.5) * F) { b.st = 'swipe'; b.t = 0; b.didHit = false; this.sfx('whoosh'); } break;
       case 'swipe':
         if (!b.didHit && b.t > 0.05) { b.didHit = true; if (Math.abs(p.x - (b.x + b.face * 90)) < 90 && Math.abs(p.z - b.z) < 40 && p.h < 70) this.hurtHero(p, 10, b.x, 320); }
         if (b.t > 0.5) { b.st = 'idle'; b.t = 0; }
@@ -1472,7 +1510,7 @@ export class BrineGame {
       case 'rock':
         // he rocks back twice (the creak and the lane marked on the deck), then rolls along that lane
         b.z += clamp(b.tz - b.z, -120 * DT, 120 * DT);
-        if (b.t > (A ? 1.6 : 1.15)) { b.st = 'roll'; b.t = 0; b.didHit = false; b.dir = p.x < b.x ? -1 : 1; this.sfx('rumble'); }
+        if (b.t > (A ? 1.6 : 1.15) * F) { b.st = 'roll'; b.t = 0; b.didHit = false; b.dir = p.x < b.x ? -1 : 1; this.sfx('rumble'); }
         break;
       case 'roll': {
         b.x += b.dir * rollSp * DT;
@@ -1510,6 +1548,7 @@ export class BrineGame {
     }
   }
   private updKnuckles(b: Boss, p: Hero, A: boolean, _homeX: number) {
+    const F = b.first ? 1.5 : 1;   // the first time a telegraph shows, it is held half as long again
     switch (b.st) {
       case 'idle':
         if (this.approach(b, p, 170, 135) && b.t > 0.5) {
@@ -1520,7 +1559,7 @@ export class BrineGame {
         }
         if (b.t > 2.5) { b.st = 'tell'; b.t = 0; this.sfx('tell'); }
         break;
-      case 'tell': if (b.t > (A ? 0.95 : 0.7)) { b.st = 'punch'; b.t = 0; b.didHit = false; this.sfx('whoosh'); } break;
+      case 'tell': if (b.t > (A ? 0.95 : 0.7) * F) { b.st = 'punch'; b.t = 0; b.didHit = false; this.sfx('whoosh'); } break;
       case 'punch':
         if (b.t < 0.1) b.x += b.face * 400 * DT;
         if (!b.didHit && b.t > 0.05) { b.didHit = true; if (Math.abs(p.x - (b.x + b.face * 80)) < 90 && Math.abs(p.z - b.z) < 34 && p.h < 80) this.hurtHero(p, 11, b.x, 380); }
@@ -1530,7 +1569,7 @@ export class BrineGame {
         b.face = sgn(p.x - b.x) || -1;
         if (b.t > (A ? 3.2 : 2.6)) { b.st = 'idle'; b.t = 0; }
         break;
-      case 'crouch': if (b.t > (A ? 0.7 : 0.5)) { b.st = 'hop'; b.t = 0; b.vh = 900; b.tx = p.x; b.tz = p.z; this.sfx('jump'); } break;
+      case 'crouch': if (b.t > (A ? 0.7 : 0.5) * F) { b.st = 'hop'; b.t = 0; b.vh = 900; b.tx = p.x; b.tz = p.z; this.sfx('jump'); } break;
       case 'hop':
         b.x += clamp(b.tx - b.x, -320 * DT, 320 * DT); b.z += clamp(b.tz - b.z, -150 * DT, 150 * DT);
         b.vh -= GRAV * 0.8 * DT; b.h = Math.max(0, b.h + b.vh * DT);
@@ -1555,6 +1594,7 @@ export class BrineGame {
   }
   private updAdmiral(b: Boss, p: Hero, A: boolean) {
     const hoverH = 175;
+    const F = b.first ? 1.5 : 1;   // the first time a telegraph shows, it is held half as long again
     switch (b.st) {
       case 'hover': case 'idle': {
         b.st = 'hover';
@@ -1571,7 +1611,7 @@ export class BrineGame {
       }
       case 'shriek': {
         // the growing shadow follows you, then locks; then he dives at it
-        const T = A ? 1.3 : 0.95;
+        const T = (A ? 1.3 : 0.95) * F;
         if (b.t < T * 0.65) { b.tx = p.x; b.tz = p.z; }
         b.h += (hoverH + 30 - b.h) * DT * 3;
         if (b.t > T) { b.st = 'dive'; b.t = 0; b.didHit = false; this.sfx('whoosh'); }
@@ -1608,7 +1648,7 @@ export class BrineGame {
         break;
       case 'wingtell':
         b.h += (60 - b.h) * DT * 4; b.z += clamp(b.tz - b.z, -80 * DT, 80 * DT);
-        if (b.t > (A ? 1.1 : 0.8)) { b.st = 'swoop'; b.t = 0; b.didHit = false; b.dir = p.x < b.x ? -1 : 1; this.sfx('whoosh'); }
+        if (b.t > (A ? 1.1 : 0.8) * F) { b.st = 'swoop'; b.t = 0; b.didHit = false; b.dir = p.x < b.x ? -1 : 1; this.sfx('whoosh'); }
         break;
       case 'swoop':
         b.x += b.dir * 720 * DT; b.face = b.dir;
@@ -1639,7 +1679,7 @@ export class BrineGame {
       if (T.stage === 2 && foe(T.hermit)) {
         if (p.name === 'dora' && (T.tinks >= 2 || T.t > 6)) return { act: 'tag', who: 'partner', tint: 'grey' };
         if (p.name === 'enzo' && p.st === 'hold') return { act: 'atk', who: 'hero' };
-        if (p.name === 'enzo' && T.hermit!.shell && Math.abs(T.hermit!.x - p.x) < 200) return { act: 'atk', who: 'foe', x: T.hermit!.x, z: T.hermit!.z, h: 120 };
+        if (p.name === 'enzo' && T.hermit!.shell && Math.abs(T.hermit!.x - p.x) < 260) return { act: 'grab', who: 'foe', x: T.hermit!.x, z: T.hermit!.z, h: 120, dir: sgn(T.hermit!.x - p.x) || 1 };
       }
       if (T.stage === 3 && foe(T.gull)) {
         if (p.name === 'enzo' && p.st === 'hold') return { act: 'atk', who: 'hero' };
@@ -1689,6 +1729,11 @@ export class BrineGame {
         if (b.st === 'guard' && p.name === 'enzo' && (L.kthrow || 0) < 2) return { act: 'atk', who: 'boss' };
         if (b.st === 'tell' && (L.counter || 0) < 1) return { act: 'atk', who: 'hero' };
       }
+    }
+    // Enzo's first dazed foe: walk into it to pick it up (Attack keeps punching)
+    if (p.name === 'enzo' && !L.grab && p.h <= 0 && !p.hold) {
+      const f = this.foes.find((f) => f.daze > 0 && f.st !== 'held' && f.st !== 'ko' && f.h < 20 && Math.abs(f.x - p.x) < 220 && Math.abs(f.z - p.z) < 50);
+      if (f) return { act: 'grab', who: 'foe', x: f.x, z: f.z, h: 110, dir: sgn(f.x - p.x) || 1 };
     }
     // a shelled hermit or a lobster the player keeps tinking off
     if (p.name === 'dora' && this.stats.tinks > 6 && (L.tag || 0) < 4 && this.foes.some((f) => (f.kind === 'hermit' && f.shell || f.kind === 'lobster') && f.st !== 'ko') && canTag) return { act: 'tag', who: 'partner', tint: 'grey' };
