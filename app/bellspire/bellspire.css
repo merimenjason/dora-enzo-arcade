@@ -295,7 +295,29 @@
 .bs-unlock{width:min(480px,100%)}
 .bs-unlock p{margin:0 0 10px}
 /* the expansions' epilogue paintings put their people along the bottom: the words sit in the sky instead */
-@media (min-width:701px){
+@media (min-width:701px) and (min-height:501px){
   .bs-end-epilogue+.bs-end-panel{top:4vh;bottom:auto}
   .bs-end-orchard.bs-end-epilogue+.bs-end-panel{left:4vw;right:auto}
+}
+/* the ending pages on a phone: the words over the painting hid half of it, so the whole painting sits clear and the
+   words dock beside it (sideways) or under it (upright), scrolling if they must, with the buttons always in reach */
+@media (orientation:portrait) and (max-width:700px),(orientation:landscape) and (max-height:500px){
+  .bs-end{display:flex;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  .bs-end .bs-end-art{position:relative;inset:auto;flex:none;aspect-ratio:16/9;background-size:100% 100%;box-shadow:0 0 0 2px #0a0810,0 0 0 4px var(--bronze2)}
+  .bs-end .bs-end-panel{position:relative;inset:auto;flex:0 1 auto;min-height:0;max-width:none;overflow-y:auto;padding:10px 12px 0;font-size:15px;
+    border:2px solid var(--bronze2);box-shadow:0 0 0 2px #0a0810}
+  .bs-end .bs-end-panel p{margin:0 0 8px}
+  .bs-end .bs-end-panel h2{font-size:24px;margin-bottom:6px}
+  .bs-end .bs-title-btns{position:sticky;bottom:0;padding:10px 0 10px;background:linear-gradient(rgba(13,11,22,0),#0d0b16 10px)}
+}
+@media (orientation:portrait) and (max-width:700px){
+  .bs-end{flex-direction:column;justify-content:center;gap:12px}
+  .bs-end .bs-end-art{width:100%}
+  .bs-end .bs-end-panel{margin:0 8px}
+}
+@media (orientation:landscape) and (max-height:500px){
+  .bs-end{flex-direction:row;align-items:center;gap:12px;padding-left:max(10px,env(safe-area-inset-left))}
+  .bs-end .bs-end-art{width:min(58vw,calc(100dvh * 16 / 9 - 20px))}
+  .bs-end .bs-end-panel{flex:1;align-self:stretch;margin:8px 8px 8px 0;font-size:14px}
+  .bs-end .bs-end-panel h2{font-size:20px}
 }
