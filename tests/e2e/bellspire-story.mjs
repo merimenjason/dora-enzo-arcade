@@ -214,15 +214,22 @@ for (const [area, a] of Object.entries(AREA)) {
     await page.close();
   }
 }
-// the phone layout of one epilogue
-{
+// the phone layout of one epilogue, upright and sideways: the whole painting shows, the words sit clear of it, and
+// the buttons stay on screen
+for (const [w, h] of [[390, 844], [844, 390]]) {
   const s = save('salt-toll-road', [...SALT_GUARDIANS.map((b) => `boss:${b}`), 'salt:ending', 'salt:epilogue']);
-  const { page } = await open(s, { width: 390, height: 844 });
+  const { page } = await open(s, { width: w, height: h });
   await page.getByRole('button', { name: 'See the Salt Road epilogue' }).click();
   await page.locator('main.bs-end[data-area="salt"]').waitFor();
-  await shot(page, 'story-salt-epilogue-phone');
-  const box = await page.locator('.bs-end-panel').boundingBox();
-  ok(box.x >= 0 && box.x + box.width <= 390, 'the epilogue panel fits a phone');
+  await shot(page, `story-salt-epilogue-phone-${w}x${h}`);
+  const box = await page.locator('.bs-end-panel').boundingBox(), art = await page.locator('.bs-end-art').boundingBox();
+  ok(box.x >= 0 && box.x + box.width <= w, `${w}×${h}: the epilogue panel fits a phone`);
+  const ix = Math.max(0, Math.min(art.x + art.width, box.x + box.width) - Math.max(art.x, box.x)), iy = Math.max(0, Math.min(art.y + art.height, box.y + box.height) - Math.max(art.y, box.y));
+  ok(ix * iy === 0 && Math.abs(art.width / art.height - 16 / 9) < 0.02 && art.x >= 0 && art.x + art.width <= w + 1, `${w}×${h}: the whole painting shows, clear of the words`);
+  const btn = await page.getByRole('button', { name: 'Title' }).boundingBox();
+  ok(btn.y >= 0 && btn.y + btn.height <= h, `${w}×${h}: the buttons are on screen`);
+  await page.getByRole('button', { name: 'Title' }).click();
+  await page.locator('.bs-title').waitFor();
   await page.close();
 }
 await browser.close();
