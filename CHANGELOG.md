@@ -11,6 +11,12 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 ### Changed
 
 - **Cloudsteel**: every figure is now painted, in the duels too, with its own painting for each action, in place of the figures built from shapes. The camera follows Dora while exploring and swings side-on for duels and talk. Old Cloudsteel saves start fresh.
+- **Cloudsteel**: the mountain is painted to match its people. Walls, gates, pillars, roofs and the Condor Gate are built from painted Inca stonework, thatch, carved wood and gold-leaf friezes, with eaves, plinths, steps and carved kerbs along every edge; braziers, banners, weavings, condor, puma and serpent reliefs, guardian statues, offerings, ferns and smugglers' cargo fill all three areas, and the Citadel Gate's courtyard has a fresco of the three worlds. The great stone condor carries the Sun Lamp over the gate.
+- **Cloudsteel**: the duel camera comes in close, so the fighters fill about half the screen; phones held upright watch from over Dora's shoulder, and Enzo never blocks the view.
+
+### Fixed
+
+- **Cloudsteel**: Dora's heavy third cut has its own wind-up, a low two-handed coil before the lunge, instead of borrowing her first cut's. At the end of the climb she and Enzo have their own poses, looking up as he raises the lantern, and the closing shot frames the whole Sun Lamp over them.
 
 ## 10-11-2026
 

@@ -54,6 +54,15 @@ export const AREAS: Record<AreaId, Area> = {
       { kind: 'gate', x: 0, z: -25.3 }, { kind: 'stairs', x: 0, z: -21, s: 10 },
       { kind: 'tree', x: -12.2, z: 3, s: 1.1 }, { kind: 'bush', x: -10.8, z: 11.5 }, { kind: 'bush', x: 6.4, z: 12.6 }, { kind: 'tree', x: 31, z: -14, s: 1.2 }, { kind: 'bush', x: 30, z: -1.5 },
       { kind: 'fern', x: 9, z: -11 }, { kind: 'fern', x: 15, z: -5.5 }, { kind: 'bamboo', x: -13, z: -6.4 },
+      // painted set dressing (lib/cloudsteel-decor.ts): `d:` stands on the ground, on a plinth when off the path; `w:` hangs
+      // on a wall facing `r`. Only those with `solid` block the way
+      { kind: 'd:brazier', x: 7.9, z: 5 }, { kind: 'd:brazier', x: 7.9, z: 11.6 }, { kind: 'd:banner', x: 7.9, z: 8.3 }, { kind: 'd:lamp', x: 5.2, z: 1.3 }, { kind: 'd:lamp', x: -5.2, z: 1.3 },
+      { kind: 'w:tapestry', x: -7.36, z: 6, r: Math.PI / 2, s: 0.6 },
+      { kind: 'd:brazier', x: -10.2, z: -8 }, { kind: 'd:brazier', x: -7.2, z: -15.2 }, { kind: 'd:brazier', x: 7.2, z: -15.2 }, { kind: 'd:brazier', x: -7.2, z: -0.8 }, { kind: 'd:brazier', x: 7.2, z: -0.8 },
+      { kind: 'd:statue', x: -3.7, z: -19.6 }, { kind: 'd:statue', x: 3.7, z: -19.6 }, { kind: 'd:banner', x: -3.7, z: -22.6 },
+      { kind: 'd:pennants', x: 12.5, z: -10.8 }, { kind: 'd:banner', x: 12.5, z: -5.2 },
+      { kind: 'd:cargo', x: 23, z: 0.4, solid: 0.6 }, { kind: 'd:jars', x: 21, z: -16.2, solid: 0.5 }, { kind: 'd:brazier', x: 34.4, z: -11 }, { kind: 'd:brazier', x: 34.4, z: -5 }, { kind: 'd:stele', x: 25, z: -17.6 },
+      { kind: 'd:stele', x: -14.8, z: 3 }, { kind: 'd:jars', x: -13.6, z: 6.5, solid: 0.5 }, { kind: 'd:column', x: -14.9, z: -3.5 },
     ],
   },
   forest: {
@@ -79,6 +88,13 @@ export const AREAS: Record<AreaId, Area> = {
       { kind: 'bamboo', x: 15.2, z: -10.2, s: 1.2 }, { kind: 'bamboo', x: 15.2, z: -6.6, s: 1.1 }, { kind: 'shrine', x: -18, z: -55 },
       // the cloud forest itself: rock pillars rising out of the mist along the path, each with its tree, fern or bamboo
       { kind: 'grove', x: -4.6, z: 10, s: 1.0 }, { kind: 'grove', x: 4.6, z: 7, s: 1.2 }, { kind: 'grove', x: -4.8, z: 3, s: 1.4 }, { kind: 'grove', x: 4.7, z: -1, s: 1.1 }, { kind: 'grove', x: -4.6, z: -4.5, s: 1.3 }, { kind: 'grove', x: -1, z: -13.8, s: 1.0 }, { kind: 'grove', x: 4.5, z: -13.8, s: 1.2 }, { kind: 'grove', x: 16.6, z: -12.6, s: 1.4 }, { kind: 'grove', x: 6.4, z: -16, s: 1.1 }, { kind: 'grove', x: 15.8, z: -17.5, s: 1.3 }, { kind: 'grove', x: 6.3, z: -21.5, s: 1.0 }, { kind: 'grove', x: 15.9, z: -22.5, s: 1.2 }, { kind: 'grove', x: 6.4, z: -26.2, s: 1.4 }, { kind: 'grove', x: 3, z: -42.8, s: 1.1 }, { kind: 'grove', x: 17.5, z: -42.9, s: 1.3 }, { kind: 'grove', x: 21.8, z: -48, s: 1.0 }, { kind: 'grove', x: 21.6, z: -52.5, s: 1.2 }, { kind: 'grove', x: 0.6, z: -53.6, s: 1.4 }, { kind: 'grove', x: 19.2, z: -56, s: 1.1 }, { kind: 'grove', x: -0.8, z: -63, s: 1.3 }, { kind: 'grove', x: 20.4, z: -62.5, s: 1.0 }, { kind: 'grove', x: 3, z: -67.6, s: 1.2 }, { kind: 'grove', x: 17.2, z: -67.8, s: 1.4 }, { kind: 'grove', x: 5.2, z: -73, s: 1.1 }, { kind: 'grove', x: 14.8, z: -73.5, s: 1.3 }, { kind: 'grove', x: 5.3, z: -78.5, s: 1.0 }, { kind: 'grove', x: 14.7, z: -78.8, s: 1.2 }, { kind: 'grove', x: -28.4, z: -49, s: 1.4 }, { kind: 'grove', x: -26, z: -56.2, s: 1.1 }, { kind: 'grove', x: -21.5, z: -58.8, s: 1.3 }, { kind: 'grove', x: -12.4, z: -57, s: 1.0 }, { kind: 'grove', x: -26.4, z: -41.6, s: 1.2 }, { kind: 'grove', x: -18.8, z: -38.6, s: 1.4 }, { kind: 'grove', x: -11.6, z: -41.4, s: 1.1 },
+      { kind: 'd:ferns', x: -2.6, z: 5.5 }, { kind: 'd:ferns', x: 2.6, z: -0.5 }, { kind: 'd:lamp', x: 3.6, z: 3 },
+      { kind: 'd:stele', x: 6, z: -12.6 }, { kind: 'd:pennants', x: 10, z: -5.4 }, { kind: 'd:column', x: 21.6, z: -10.2 },
+      { kind: 'd:cargo', x: 13.4, z: -20.5, solid: 0.5 }, { kind: 'd:jars', x: 13.4, z: -18.6, solid: 0.5 }, { kind: 'd:lamp', x: 7.4, z: -19 }, { kind: 'd:banner', x: 14.6, z: -26.4 },
+      { kind: 'd:brazier', x: 20.6, z: -46 }, { kind: 'd:stele', x: 1.4, z: -44.4 }, { kind: 'd:offering', x: 16, z: -51.6, solid: 0.5 },
+      { kind: 'd:banner', x: 0.6, z: -60 }, { kind: 'd:banner', x: 19.4, z: -60 }, { kind: 'd:brazier', x: 3.5, z: -66.6 }, { kind: 'd:brazier', x: 16.5, z: -66.6 },
+      { kind: 'd:lamp', x: 6.4, z: -73 }, { kind: 'd:lamp', x: 13.6, z: -73 }, { kind: 'd:banner', x: 6.4, z: -78.5 }, { kind: 'd:banner', x: 13.6, z: -78.5 },
+      { kind: 'd:offering', x: -18, z: -52.9, solid: 0.5 }, { kind: 'd:statue', x: -26.9, z: -49 }, { kind: 'd:ferns', x: -12, z: -53 }, { kind: 'd:ferns', x: -23, z: -43.5 }, { kind: 'd:ferns', x: -15, z: -42.5 }, { kind: 'd:column', x: -11, z: -43 },
     ],
   },
   citadel: {
@@ -100,6 +116,22 @@ export const AREAS: Record<AreaId, Area> = {
       { kind: 'post', x: -2.6, z: 11, solid: 0.25 }, { kind: 'post', x: 2.6, z: 11, solid: 0.25 }, { kind: 'post', x: -12.4, z: -6.6, solid: 0.25 }, { kind: 'post', x: 12.4, z: -6.6, solid: 0.25 },
       { kind: 'post', x: -12.4, z: -23.4, solid: 0.25 }, { kind: 'post', x: 12.4, z: -23.4, solid: 0.25 }, { kind: 'post', x: -22, z: -17.6, solid: 0.25 },
       { kind: 'tree', x: 19, z: -12.8, s: 1 }, { kind: 'bush', x: -11.5, z: -9 }, { kind: 'bush', x: 11.6, z: -20 },
+      // the road up to the outer gate, and the carvings and weavings on the walls
+      { kind: 'd:banner', x: -3.6, z: 7.5 }, { kind: 'd:banner', x: 3.6, z: 7.5 }, { kind: 'd:brazier', x: -3.6, z: 3 }, { kind: 'd:brazier', x: 3.6, z: 3 }, { kind: 'd:statue', x: -3.8, z: -2 }, { kind: 'd:statue', x: 3.8, z: -2 },
+      { kind: 'w:relief-condor', x: -8.5, z: -4.76, r: 0 }, { kind: 'w:relief-puma', x: 8.5, z: -4.76, r: 0 }, { kind: 'w:tapestry', x: -5.6, z: -4.76, r: 0 }, { kind: 'w:tapestry', x: 5.6, z: -4.76, r: 0 },
+      { kind: 'w:vines', x: -11.5, z: -4.74, r: 0 }, { kind: 'w:vines', x: 11.5, z: -4.74, r: 0 },
+      { kind: 'w:mural', x: -7.5, z: -6.03, r: Math.PI }, { kind: 'w:tapestry', x: 7.5, z: -6.03, r: Math.PI },
+      { kind: 'w:relief-serpent', x: -13.18, z: -9, r: Math.PI / 2 }, { kind: 'w:tapestry', x: -13.18, z: -21, r: Math.PI / 2 },
+      { kind: 'w:relief-condor', x: 13.18, z: -18, r: -Math.PI / 2 }, { kind: 'w:tapestry', x: 13.18, z: -14.8, r: -Math.PI / 2 }, { kind: 'w:vines', x: 13.18, z: -22.6, r: -Math.PI / 2 },
+      { kind: 'w:tapestry', x: -5.5, z: -24.18, r: 0 }, { kind: 'w:tapestry', x: 5.5, z: -24.18, r: 0 }, { kind: 'w:relief-puma', x: -10, z: -24.18, r: 0 }, { kind: 'w:relief-condor', x: 10, z: -24.18, r: 0 },
+      { kind: 'd:brazier', x: -12.2, z: -9.5, solid: 0.45 }, { kind: 'd:brazier', x: -12.2, z: -19.5, solid: 0.45 }, { kind: 'd:brazier', x: 12.2, z: -16.2, solid: 0.45 }, { kind: 'd:brazier', x: 12.2, z: -21.5, solid: 0.45 },
+      { kind: 'd:statue', x: -4.3, z: -23.2, solid: 0.5 }, { kind: 'd:statue', x: 4.3, z: -23.2, solid: 0.5 }, { kind: 'd:banner', x: -4.3, z: -6.9, solid: 0.3 }, { kind: 'd:banner', x: 4.3, z: -6.9, solid: 0.3 },
+      // round the warden's floor and the Condor Gate
+      { kind: 'd:brazier', x: -10.2, z: -39 }, { kind: 'd:brazier', x: 10.2, z: -39 }, { kind: 'd:brazier', x: -7.3, z: -46.2 }, { kind: 'd:brazier', x: 7.3, z: -46.2 }, { kind: 'd:brazier', x: -7.3, z: -31.8 }, { kind: 'd:brazier', x: 7.3, z: -31.8 },
+      { kind: 'd:statue', x: -7.6, z: -50 }, { kind: 'd:statue', x: 7.6, z: -50 }, { kind: 'd:banner', x: -10, z: -48 }, { kind: 'd:banner', x: 10, z: -48 },
+      // Mallku's yard, full of smuggled cargo
+      { kind: 'd:cargo', x: -30.5, z: -21.5, solid: 0.6 }, { kind: 'd:jars', x: -33.6, z: -18.5, solid: 0.5 }, { kind: 'd:pennants', x: -35.9, z: -15 }, { kind: 'd:brazier', x: -27, z: -24.2 }, { kind: 'd:brazier', x: -27, z: -5.8 },
+      { kind: 'd:stele', x: 20.6, z: -10.5 },
     ],
   },
 };

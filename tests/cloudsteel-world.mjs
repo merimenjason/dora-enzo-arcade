@@ -3,8 +3,9 @@
 // (starting, losing and stepping back, winning, rewards), the save, determinism, and that the whole story can be
 // played through, main path and everything, by a bot that plays the duels like a person.
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { World, idleW, LANTERN, PICKUP } from '../.checks/cloudsteel-world.js';
-import { AREAS, SCENES, NAMES, ITEMS, DUELS, PICKUPS, NPCS, QUIPUS } from '../.checks/cloudsteel-story.js';
+import { AREAS, SCENES, NAMES, ITEMS, DUELS, PICKUPS, NPCS, QUIPUS, STONES } from '../.checks/cloudsteel-story.js';
 import { playStory } from './cloudsteel-story-bots.mjs';
 
 let n = 0; const ok = (name) => console.log(`ok ${++n} - ${name}`);
@@ -115,5 +116,22 @@ const fresh = () => { const w = new World(); tick(w, W()); talk(w); return w; };
   const mins = (r) => ((r.w.stats.ticks + r.w.stats.fightTicks) / 3600).toFixed(1);
   assert.ok(NPCS.length >= 7);
   ok(`the bot plays the story through: main path ${mins(main)} min (3 duels), everything ${mins(all)} min (${DUELS.length} duels, ${QUIPUS} quipus, 6 upgrades); the same seed replays it`);
+}
+{ // the set dressing and the paintings it and the figures use
+  const decor = readFileSync(new URL('../lib/cloudsteel-decor.ts', import.meta.url), 'utf8'), named = new Set([...decor.matchAll(/'([\w-]+)': \{ u0/g)].map((m) => m[1]));
+  for (const [id, A] of Object.entries(AREAS)) {
+    const keep = [...PICKUPS.filter((p) => p.area === id), ...NPCS.filter((p) => p.area === id), ...STONES.filter((s) => s.area === id), ...A.signs, ...DUELS.filter((d) => d.area === id).flatMap((d) => d.stand)];
+    for (const p of A.props.filter((o) => /^[dw]:/.test(o.kind))) {
+      assert.ok(named.has(p.kind.slice(2)) || p.kind === 'w:mural', `${p.kind} is painted`);
+      // nothing solid stands where the story needs Dora to reach
+      if (p.solid) for (const k of keep) assert.ok(Math.hypot(k.x - p.x, k.z - p.z) > p.solid + 1.1, `${id} ${p.kind} at ${p.x}, ${p.z} is clear of ${k.id ?? 'a duel'}`);
+    }
+  }
+  // every action has its own painting: the heavy cut's wind-up and the ending's poses are not borrowed from another
+  const sprites = readFileSync(new URL('../lib/cloudsteel-sprites.ts', import.meta.url), 'utf8'), frames = (who) => JSON.parse(sprites.match(new RegExp(`${who}: \\{[^}]*frames: (\\[[^\\]]*\\])`))[1]);
+  for (const [who, need] of [['dora', ['windup', 'heavy', 'lunge', 'win', 'gaze']], ['enzo', ['lantern-up', 'cheer', 'offer']]]) { const f = frames(who); for (const x of need) assert.ok(f.includes(x), `${who} has ${x}`); assert.equal(new Set(f).size, f.length); }
+  const scene = readFileSync(new URL('../lib/cloudsteel-scene.ts', import.meta.url), 'utf8');
+  assert.match(scene, /case 'cut3': return t < CUTS\[2\]\.hit - 3 \? 'heavy' : 'lunge';/); assert.match(scene, /mode === 'end'\) \{ df = 'gaze'; \}/); assert.match(scene, /mode === 'end'\) ef = 'offer';/);
+  ok('the set dressing is all painted and clear of the way; the heavy wind-up and the ending have their own paintings');
 }
 console.log(`\n${n} Cloudsteel story tests passed`);
