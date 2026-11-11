@@ -31,7 +31,7 @@ function nearHook(env: Env, b: Body) {
 
 import { SALT_GATE } from './bellspire-salt-world.js';
 import { GlacierTerrain, glacierPoint, savedFall, GLACIER_TELL } from './bellspire-glacier.js';
-import { GLACIER_GATE, GLACIER_RETURN, GLACIER_VAULT, GLACIER_VAULT_DOOR, GLACIER_VAULT_FROM, ROOT_LIFT, SLICK, glacierTile, isGlacierRoom } from './bellspire-glacier-world.js';
+import { GLACIER_GATE, GLACIER_NAMES, GLACIER_RETURN, GLACIER_VAULT, GLACIER_VAULT_DOOR, GLACIER_VAULT_FROM, ROOT_LIFT, SLICK, glacierTile, isGlacierRoom } from './bellspire-glacier-world.js';
 import { graftFlag, graftSpans, ORCHARD_EXIT, ORCHARD_GATE, ORCHARD_RETURN } from './bellspire-orchard-world.js';
 import { SaltLift } from './bellspire-salt-lift.js';
 
@@ -41,6 +41,18 @@ export const VIEW_W = 480, VIEW_H = 270;
 export const SAVE_KEY = 'bellspire-v1';
 /** New Game+ keeps its own save, so the first game's save is never touched. */
 export const NGP_SAVE_KEY = 'bellspire-v1-ngp';
+
+/** The doors the last guardian of each area opens onto the next expansion: what opened and where (for the unlock
+ *  dialog, the map marker and the title's "Next:" line), and the flag set once the heroes have gone through. */
+export const UNLOCKS = [
+  { id: 'salt', after: 'hollow', room: 'fgate', ch: '?', visited: 'salt:visited', area: 'The Salt Road', door: 'the old supply door', at: 'at the Foundry Gate Candle',
+    title: 'The Salt Road is open', where: 'Tupa has opened the old supply door on the east side of the Foundry Gate Candle. Walk up to it and press Up to go through.' },
+  { id: 'orchard', after: 'tollkeeper', room: ORCHARD_RETURN, ch: ',', visited: 'orchard:visited', area: 'The Night Orchard', door: 'the orchard wicket', at: 'in the Salt Tollhouse',
+    title: 'The Night Orchard is open', where: 'The orchard wicket on the east side of the Salt Tollhouse has swung open. Walk up to it and press Up. Killa is waiting on the other side.' },
+  { id: 'glacier', after: 'graft-mother', room: GLACIER_RETURN, ch: '(', visited: 'glacier:visited', area: 'The Glacier Stair', door: 'the root lift', at: 'in the Mother of Grafts’ chamber',
+    title: 'The Glacier Stair is open', where: 'The root lift on the high east terrace of the Mother of Grafts’ chamber has woken. Climb the ladder at the east end of her room and press Up at the lift.' },
+] as const;
+export type Unlock = (typeof UNLOCKS)[number];
 
 export type Input = { left: boolean; right: boolean; up: boolean; down: boolean; jump: boolean; attack: boolean; dash: boolean; cast: boolean; tag: boolean };
 export const NO_INPUT: Input = { left: false, right: false, up: false, down: false, jump: false, attack: false, dash: false, cast: false, tag: false };
@@ -509,7 +521,7 @@ export type GameEvent =
   | { k: 'hit'; x: number; y: number; big: boolean; color?: string }
   | { k: 'shake'; n: number }
   | { k: 'flash'; color: string; n: number }
-  | { k: 'save' } | { k: 'shop' } | { k: 'mural'; n: number } | { k: 'ending'; full: boolean; belfry?: boolean; foundry?: boolean; salt?: boolean; orchard?: boolean; glacier?: boolean }
+  | { k: 'save' } | { k: 'shop' } | { k: 'mural'; n: number } | { k: 'unlock'; id: Unlock['id'] } | { k: 'ending'; full: boolean; belfry?: boolean; foundry?: boolean; salt?: boolean; orchard?: boolean; glacier?: boolean }
   /** Tupa's forge opened; cracked glass shattered; a prism's beam to a door; a channel frosted; a slam landed */
   | { k: 'forge' } | { k: 'shatter'; x: number; y: number } | { k: 'beam'; x: number; y: number; tx: number; ty: number } | { k: 'frost'; x: number; y: number; w: number }
   | { k: 'slam'; x: number; y: number; bounce: boolean }
@@ -1081,7 +1093,7 @@ export class BellspireGame {
     this.idleT = any ? 0 : this.idleT + 1;
     this.lostT++;
     if (this.trial) this.updateTrial(inp);
-    else if (this.tick % 15 === 0) this.checkEpilogue();
+    else if (this.tick % 15 === 0) { this.checkEpilogue(); this.checkUnlock(); }
 
     // water and floats, echo notes fading, the condor's broken planks mending
     this.updateWater();
@@ -2780,6 +2792,49 @@ export class BellspireGame {
     ], () => this.finish());
   }
 
+  /** Once an area's last guardian is calm and the game is back in play: the unlock dialog, naming the door that
+   *  opened and where it is. Once per door (the 'unlock:<id>' flag keeps it); a door already used never asks. */
+  checkUnlock() {
+    if (this.ended || this.dialog || this.boss || this.trial) return;
+    for (const u of UNLOCKS) {
+      if (!this.flag(`boss:${u.after}`) || this.flag(`unlock:${u.id}`)) continue;
+      this.setFlag(`unlock:${u.id}`);
+      if (this.flag(u.visited)) continue;
+      this.emit({ k: 'save' });
+      this.emit({ k: 'unlock', id: u.id });
+      return;
+    }
+  }
+  /** The expansion doors that are open but not used yet: each has a marker on the maps until the heroes go through. */
+  newDoors(): (Unlock & { x: number; y: number })[] {
+    return UNLOCKS.filter((u) => this.flag(`boss:${u.after}`) && !this.flag(u.visited)).map((u) => {
+      const t = INFO.get(u.room)!.things.find((th) => th.ch === u.ch)!;
+      return { ...u, x: t.c * TILE + 8, y: t.r * TILE };
+    });
+  }
+  /** One line for the title's save card: the open door not used yet, or else the next thing the story wants. */
+  nextLine(): string | null {
+    const doors = this.newDoors();
+    if (doors.length) {
+      const [d, ...more] = doors;
+      return `${d.area} is open: ${d.door} ${d.at}${more.map((m) => `. ${m.area} is open too`).join('')}`;
+    }
+    const goal = this.nextGoal();
+    if (!goal) return null;
+    const t = INFO.get(goal.room)?.things.find((th) => th.c * TILE + 8 === goal.x && th.r * TILE === goal.y);
+    const room = roomById(goal.room), named = GLACIER_NAMES[room.id] ?? SHRINE_NAMES[room.id];
+    const the = (n: string) => n.replace(/^The /, 'the ');
+    const place = named ? the(named) : `the ${AREAS[room.area].name.replace(/^The /, '')}`;
+    if (!t) return `Head for ${place}`;
+    if (t.ch === 'A' && room.ability) return `Find ${ABILITIES[room.ability].name} in ${place}`;
+    if (t.ch === 'O' && room.boss) return `Calm ${the(BOSSES[room.boss].name)}`;
+    if (t.ch === 'C') return `Open the chest in ${place}`;
+    if (t.ch === 'U') return 'Talk to Ukumari';
+    const door = UNLOCKS.find((u) => u.room === room.id && u.ch === t.ch);
+    if (door) return `Go through ${door.door} to ${door.area}`;
+    return `Head for ${place}`;
+  }
+
   /** The Windward Belfry's end: the Out-of-Tune Bell in tune again. The second epilogue follows when everything,
    *  citadel and belfry, has been found ('epilogue2' keeps it). Saved first. */
   finishBelfry() {
@@ -3978,6 +4033,13 @@ export class BellspireGame {
       [() => this.has('bloom'), (t, r) => t.ch === 'A' && r.ability === 'bloom'],
       [() => this.has('shear'), (t, r) => t.ch === 'A' && r.ability === 'shear'],
       ...ORCHARD_GUARDIANS.map((id): [() => boolean, (t: Thing, r: Room) => boolean] => [() => this.flag(`boss:${id}`), (t, r) => t.ch === 'O' && r.boss === id]),
+      // the Glacier Stair, in the order of the climb
+      [() => this.flag('glacier:visited'), (t, r) => t.ch === '(' && r.id === GLACIER_RETURN],
+      [() => this.has('sunmirror'), (t, r) => t.ch === 'A' && r.ability === 'sunmirror'],
+      [() => this.flag('boss:glass-vicuna'), (t, r) => t.ch === 'O' && r.boss === 'glass-vicuna'],
+      [() => this.has('icepick'), (t, r) => t.ch === 'A' && r.ability === 'icepick'],
+      [() => this.flag('boss:serac-osjollo'), (t, r) => t.ch === 'O' && r.boss === 'serac-osjollo'],
+      [() => this.flag('boss:sun-gate'), (t, r) => t.ch === 'O' && r.boss === 'sun-gate'],
     ];
     if (ABILITY_ORDER.slice(0, 7).every((a) => this.has(a)) && this.restless().length) {
       // every ability owned but seals still shut: the nearest restless guardian
@@ -4021,19 +4083,17 @@ export class BellspireGame {
   /** Where the maps mark the wisp's lead: the next goal, or Wayra's boat on this shore when the goal is across the
    *  water (as the wisp itself leads). */
   private saltPortalGoal(goal: { room: string; x: number; y: number }) {
-    const hereIsOrchard = isOrchardRoom(this.room), targetIsOrchard = isOrchardRoom(roomById(goal.room));
-    if (hereIsOrchard && targetIsOrchard) return goal;
-    if (hereIsOrchard !== targetIsOrchard) {
-      const id = hereIsOrchard ? ORCHARD_GATE : ORCHARD_RETURN;
-      const wicket = INFO.get(id)!.things.find((t) => t.ch === ',')!;
-      if (hereIsOrchard || this.room.salt) return { room: id, x: wicket.c * TILE + 8, y: wicket.r * TILE };
-      goal = { room: id, x: wicket.c * TILE + 8, y: wicket.r * TILE };
-    }
-    const targetIsSalt = !!roomById(goal.room)?.salt;
-    if (targetIsSalt === !!this.room.salt) return goal;
-    const portalRoom = targetIsSalt ? 'fgate' : SALT_GATE;
-    const gate = INFO.get(portalRoom)!.things.find((t) => t.ch === '?')!;
-    return { room: portalRoom, x: gate.c * TILE + 8, y: gate.r * TILE };
+    // the regions in a chain: the citadel (with the belfry and foundry), the Salt Road, the Night Orchard and the
+    // Glacier Stair, each joined to the next by one door; across regions, the door out of this one towards the goal
+    const region = (r: Room) => (isGlacierRoom(r) ? 3 : isOrchardRoom(r) ? 2 : r.salt ? 1 : 0);
+    const here = region(this.room), there = region(roomById(goal.room));
+    if (here === there) return goal;
+    // [room, door] going up out of each region, and going down
+    const up: [string, string][] = [['fgate', '?'], [ORCHARD_RETURN, ','], [GLACIER_RETURN, '(']];
+    const down: [string, string][] = [['', ''], [SALT_GATE, '?'], [ORCHARD_GATE, ','], [GLACIER_GATE, '(']];
+    const [id, ch] = there > here ? up[here] : down[here];
+    const t = INFO.get(id)!.things.find((th) => th.ch === ch)!;
+    return { room: id, x: t.c * TILE + 8, y: t.r * TILE };
   }
 
   mapGoal(): { room: string; x: number; y: number } | null {
@@ -4105,7 +4165,7 @@ export class BellspireGame {
     return { x: mx * TILE + 8, y: my * TILE + 4 };
   }
   /** Is the guiding wisp shown: the helping hand on (never in Strict), its own setting not off, and a goal left. */
-  wispOn() { return this.settings.assist && !this.settings.strict && this.settings.wisp !== false && (this.flag('orchard:visited') ? !this.flag('boss:graft-mother') : !this.flag('boss:tollkeeper')); }
+  wispOn() { return this.settings.assist && !this.settings.strict && this.settings.wisp !== false && (this.flag('glacier:visited') ? !this.flag('boss:sun-gate') : this.flag('orchard:visited') ? !this.flag('boss:graft-mother') : !this.flag('boss:tollkeeper')); }
   /** The guiding wisp: while the helping hand is on it is always there, a little ahead of the lead along the way to
    *  the next goal (over the goal itself once it is in this room). It keeps clear of the heroes' faces, drifts up to
    *  a corner in a guardian's arena, and never touches the game: it only moves. */

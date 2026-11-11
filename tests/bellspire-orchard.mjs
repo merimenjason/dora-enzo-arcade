@@ -14,7 +14,7 @@ export function orchardSave(lead = 'dora', ready = true) {
   s.shrine = 'salt-toll-road';
   s.abilities = ABILITY_ORDER.filter((a) => ready || (a !== 'bloom' && a !== 'shear'));
   s.spells.push('ember', 'chime', 'frost', 'gale');
-  s.flags.push('script:intro', 'script:firstDark', 'script:belfryCall', 'epilogue', 'epilogue2', 'epilogue3', 'salt:visited',
+  s.flags.push('unlock:salt', 'unlock:orchard', 'unlock:glacier', 'script:intro', 'script:firstDark', 'script:belfryCall', 'epilogue', 'epilogue2', 'epilogue3', 'salt:visited',
     ...[...ALL_BOSSES, ...SALT_GUARDIANS].map((id) => `boss:${id}`));
   return s;
 }

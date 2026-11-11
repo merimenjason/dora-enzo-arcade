@@ -317,7 +317,8 @@ still apply to their original areas. The Salt Road ending counts its own 24 scre
   so boarding and leaving are ordinary walks. You can use the deck from the other landing to return.
 - **Helping hand.** The outlined deck marks where the lift will land. The prompt uses your actual key bindings and
   shows the next action, including when to wait for the follower. If a hero steps into the shaft, they return to
-  the lower landing. The wisp leads through the supply door after the Foundry and rests after the Tollkeeper.
+  the lower landing. The wisp leads through the supply door after the Foundry and rests after the Tollkeeper; the
+  unlock dialog and the map's gold star then point at the orchard wicket.
 - **Guardians.** Set the stop and draw the Whiteback Weighmaster into a charge to expose its flank. Raise the
   weighing pan beneath Panback Armadillo as Enzo to expose its belly. Shift the Last Tollkeeper's counterweight as
   Dora, then strike the side under the raised shield. The first two guardians keep the way onward shut while active.
@@ -506,6 +507,22 @@ then of the Belfry Loft, then the boat back. The wisp's mark on the maps (`mapGo
 goal is across the water. The key adds Wayra's boat, the unexplored belfry, the belfry's seal door and the minimap's
 arrow. The Bell Rope and Echo Step doors are drawn as locks in those abilities' colours; bell hooks, wind bells and
 echo bells are not drawn on the maps.
+
+The way into each expansion (`UNLOCKS` in the engine): when the Hollow Bell, the Last Tollkeeper or the Mother of
+Grafts is calm and play resumes, an unlock dialog names what opened and where: the old supply door on the east side of
+the Foundry Gate Candle (the Salt Road), the orchard wicket on the east side of the Salt Tollhouse (the Night Orchard),
+and the root lift on the high east terrace of the Mother of Grafts' chamber (the Glacier Stair). It shows once per door
+(the `unlock:<id>` flag), in Strict too, and never for a door an old save has already used. "Show me on the map" opens
+the pause map, where a pulsing gold star sits on the door until the heroes go through it (`newDoors()`), drawn on the
+minimap as well and named in the key. The title's "Your game" card has a "Next:" line (`nextLine()`): an open door not
+used yet ("The Glacier Stair is open: the root lift in the Mother of Grafts' chamber"), or else the next thing the
+story wants ("Find Sun Mirror in Phuyu's Camp", "Calm the Glass-Horn Vicuña"). The goal list behind the wisp and the
+maps runs on through the Glacier Stair: the root lift, the Sun Mirror, the Glass-Horn Vicuña, the Ice Pick, the Serac
+Osjollo and the Sun Gate. Across regions (the citadel, the Salt Road, the Night Orchard, the Glacier Stair, joined in
+a chain by those three doors) the maps mark the door out of the current region towards the goal. The wisp still rests
+after each area's last guardian, as before, and leads on the Glacier Stair until the Sun Gate is calm.
+`tests/bellspire-guide.mjs` checks the goal after each area, the routing, the dialog firing once and the title line;
+`tests/e2e/bellspire-guide.mjs` clicks through the dialog, the map star and the title line in a browser.
 
 Numbers in the UI use Silkscreen's blocky digits (a digits-only font face covering 0 to 9, % and /, ahead of Pixelify
 Sans), because in Pixelify Sans the 5 reads as an S and the 2 as a Z. The canvas damage numbers use their own 3×5
