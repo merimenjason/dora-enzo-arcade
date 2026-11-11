@@ -1,8 +1,30 @@
-# Handoff · 08-11-2026
+# Handoff · 11-11-2026
 
 Where Dora & Enzo's Arcade stands, how the newest games fit together, how to check your work, and what is worth doing next. For the arcade as a whole, start with [`README.md`](README.md); for how the code is laid out and the traps to avoid, [`CLAUDE.md`](CLAUDE.md); for the documentation and changelog rules, [`AGENTS.md`](AGENTS.md).
 
 This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are folded in below.
+
+## Start here (11-11-2026)
+
+**Last shipped:** `33e83a7` on `main`. Everything below is merged; no pull requests are open.
+
+| PR | What |
+|---|---|
+| #110 | **Cloudsteel** (game 96, `/cloudsteel`): an original sword-action game in an Andean cloud fortress. Deflects, posture breaks, tag combos with Enzo, finishers. Rules and layout in [`docs/cloudsteel.md`](docs/cloudsteel.md). |
+| #112 | **Salt & Dust** (game 97, `/salt-dust`): an isometric turn-based exploration RPG in a salt desert, where water is the pressure. First chapter only. See [`docs/salt-dust.md`](docs/salt-dust.md). |
+| #113 | **Cloudsteel: the climb**, a story mode (about 30 minutes): free roam in four directions through the Rain Terrace, the Cloud-Forest Path and the Citadel Gate, with talk scenes, lantern puzzles, optional duels, upgrades and quipus. All figures are painted cut-outs; the jointed 3D rigs are gone. The old three-fight mode stays on the title as "Terrace duel". Save key `cloudsteel-v2`. |
+| #114 | **Sunken Bellspire: finding the expansions.** An unlock dialog names each door when an area's last guardian is calmed, a gold map star marks it until it is used, the title card has a "Next:" line, and `nextGoal()` covers the Glacier Stair. |
+| #115 | **Sunken Bellspire: Killa and Suma**, each with a portrait, a first meeting and lines that change with progress; ending scenes, ending pages and painted 100% epilogues for the Salt Road, Night Orchard and Glacier Stair. |
+| #116 | **Cloudsteel polish:** painted stonework, roofs and set dressing in all three areas (the Citadel Gate was bare), a closer duel camera, Dora's own heavy wind-up, and an ending shot that shows the Sun Lamp. |
+
+**Known, not fixed:**
+- Cloudsteel: lanterns and the moon throw large soft glow blobs; the jade seal glows very strongly up close; frame rate on a real phone is untested; the browser test is timing-sensitive under machine load (it passes when run alone).
+- Bellspire: Killa's tawny fur blends into the orchard's orange stone; on phones the ending text panel covers much of each painting. The route bot still covers only the main game (the user said to leave it).
+- Salt & Dust: only chapter 1 exists.
+
+**Cloudsteel's look: 2.5D painted figures (decided 11-11-2026).** Codex paints each character as side, front and back cut-outs (the side is mirrored for the other side); `scripts/cloudsteel-art.py` packs them into atlases with the feet aligned, and the scene stands them up as camera-facing cards in the Three.js WebGPU world. Fights switch to a side-on camera, so combat poses only need side views. Lighting lessons: a painted card with emissive plus bloom haloes bright parts (lanterns) over faces, and a nearby point light blows fur out to white; check every face in screenshots. **Tried and rejected:** image-to-3D models (TripoSR, Hunyuan3D-2 rigged in Blender) looked deformed to the user; the record is in `docs/ideas/cloudsteel/model-test/` in the main checkout (untracked).
+
+**Working practice that held up this round:** build in a worktree off `origin/main` with `node_modules` symlinked; one agent per game, stopping at an open PR; review its contact sheet of screenshots before asking to merge. Stacked PRs: merge the child into its parent branch first, then the parent into `main`, which avoids a force-push (the auto-mode classifier blocks force-pushes and `git worktree remove`). Merge only when the user says "merge N".
 
 ## Next new game: the magnum opus (09-11-2026)
 
