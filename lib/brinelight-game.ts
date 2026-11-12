@@ -21,7 +21,7 @@ export const VIEW_W = 860;     // the arena: the width of one locked fight, the 
 export const GRAV = 2000;
 
 export type HeroId = 'dora' | 'enzo';
-export interface Input { mx: number; mz: number; atkP: boolean; jmpP: boolean; tagP: boolean; atkH: boolean; jmpH: boolean }
+export interface Input { mx: number; mz: number; atkP: boolean; jmpP: boolean; tagP: boolean; atkH: boolean; jmpH: boolean; tagH?: boolean }
 export const NO_INPUT: Input = { mx: 0, mz: 0, atkP: false, jmpP: false, tagP: false, atkH: false, jmpH: false };
 
 /** what the page plays and the scene draws; nothing in here feeds back into the rules */
@@ -74,14 +74,42 @@ export const MOVES: Record<string, Move> = {
   dive: mv({ key: 'dive', dur: 0, hit: 0, chain: 0, reach: 86, y0: -40, y1: 100, dmg: 1.4, kb: 220, lunge: 0, snd: 'kick', who: 'dora' }),
   rise: mv({ key: 'rise', dur: 0, hit: 0, chain: 0, reach: 80, y0: 60, y1: 230, dmg: 1.4, kb: 160, lunge: 0, snd: 'kick3', who: 'dora', heavy: true }),
   hammer: mv({ key: 'hammer', dur: 0, hit: 0, chain: 0, reach: 90, y0: -30, y1: 110, dmg: 2, kb: 240, lunge: 0, down: true, snd: 'slam', who: 'enzo' }),
+  // the new moves: Dora's wall-bounce kick (off the edge of the fight) and slide kick (hold Attack)
+  wall: mv({ key: 'wall', dur: 0, hit: 0, chain: 0, reach: 92, y0: -20, y1: 190, dmg: 2.2, kb: 360, lunge: 0, down: true, heavy: true, snd: 'kick3', who: 'dora' }),
+  slide: mv({ key: 'slide', dur: 0, hit: 0, chain: 0, reach: 78, y0: -20, y1: 55, dmg: 1.6, kb: 300, lunge: 0, down: true, heavy: true, snd: 'kick3', who: 'dora' }),
   knee: mv({ key: 'knee', dur: 0.26, hit: 0.04, chain: 0.3, reach: 100, y0: 20, y1: 140, dmg: 1.6, kb: 300, down: true, heavy: true, lunge: 220, snd: 'kick3', who: 'dora' }),
   barge: mv({ key: 'barge', dur: 0.3, hit: 0.05, chain: 0.34, reach: 100, y0: 0, y1: 150, dmg: 2.2, kb: 380, down: true, heavy: true, lunge: 200, snd: 'slam', who: 'enzo', shake: 6 }),
 };
 export const SPECIAL_NAME: Record<HeroId, string> = { dora: 'Comet Spin', enzo: 'Anchor Drop' };
+/**
+ * The moves each district adds (shown on a wordless demo panel the first time): from 1-2 Dora's wall-bounce kick (jump
+ * at the edge of the fight, then Jump again against it) and Enzo's spinning throw (Jump while carrying something);
+ * from the Fish Market Dora's slide kick and Enzo's ground pound (hold Attack); from the shipyard the team-up (Tag and
+ * Attack together with a full Festival meter: Enzo hurls Dora down the lane like a comet).
+ */
+export function moveTier(stageId: string): number {
+  const i = Object.keys(STAGES).indexOf(stageId), a = STAGES[stageId]?.area ?? 1;
+  return i <= 0 ? 0 : a === 1 ? 1 : a === 2 ? 2 : 3;
+}
+/** pickup weapons: a frozen fish (quick, dazes), an oar (a wide sweep that knocks down) and a net (thrown; pins a group) */
+export type WeaponKind = 'fish' | 'oar' | 'net';
+export const WEAPON: Record<WeaponKind, { uses: number; wind: number; dur: number; reach: number; zTol: number; dmg: number; kb: number; down: boolean; daze: number }> = {
+  fish: { uses: 6, wind: 0.12, dur: 0.32, reach: 120, zTol: 36, dmg: 2.2, kb: 220, down: false, daze: 1.4 },
+  oar: { uses: 4, wind: 0.2, dur: 0.46, reach: 170, zTol: 52, dmg: 2, kb: 380, down: true, daze: 0 },
+  net: { uses: 1, wind: 0.18, dur: 0.4, reach: 0, zTol: 0, dmg: 0, kb: 0, down: false, daze: 0 },
+};
+/** style: each action is filed under one of these; repeating one earns less, mixing them earns more */
+export const RANKS = ['C', 'B', 'A', 'S'];
+const STYLE_OF: Record<string, string> = { k1: 'kick', k2: 'kick', k3: 'kick', k4: 'kick', p1: 'punch', p2: 'punch', p3: 'punch', dive: 'air', rise: 'air', hammer: 'air', knee: 'dash', barge: 'dash' };
+/** marks a strike that has already been counted for style */
+const STYLED = {};
+/** the average style per action for a B, an A and an S (tuned with the bots: a masher earns a C or a B) */
+export const STYLE_AT = [4.5, 6.6, 8.6];
 
 export type HeroSt =
   | 'idle' | 'walk' | 'dash' | 'atk' | 'air' | 'airatk' | 'land' | 'hurt' | 'down' | 'getup' | 'tagin' | 'flopland'
-  | 'grab' | 'hold' | 'throw' | 'heave' | 'special' | 'specland' | 'pick' | 'win' | 'out' | 'dbl';
+  | 'grab' | 'hold' | 'throw' | 'heave' | 'special' | 'specland' | 'pick' | 'win' | 'out' | 'dbl'
+  | 'slide' | 'spin' | 'pound' | 'swing' | 'team';
 export interface Hero {
   name: HeroId; x: number; z: number; h: number; vh: number; vx: number; face: number; hp: number; st: HeroSt; t: number;
   mk: string; hits: object[]; struck: boolean; inv: number; flash: number; anim: number; buf: number; jbuf: number;
@@ -89,11 +117,16 @@ export interface Hero {
   tagX: number; tagFrom: number; airKind: string; specCD: number; landT: number;
   /** seconds since Attack was last pressed: Enzo only grabs by walking in when he isn't mashing */
   atkAgo: number;
+  /** how long Attack has been held (the slide kick and ground pound go off at 0.3 s; -1 until it is let go again) */
+  atkHold: number;
+  /** a pickup weapon in hand and its uses left */
+  weapon: { kind: WeaponKind; uses: number } | null;
+  poundCD: number;
 }
 export type FoeSt =
   | 'enter' | 'idle' | 'walk' | 'wind' | 'atk' | 'rec' | 'hurt' | 'down' | 'up' | 'daze' | 'hover' | 'dive' | 'crash'
   | 'lift' | 'held' | 'thrown' | 'ko' | 'block' | 'puffed' | 'roll' | 'whistle' | 'flee' | 'charge' | 'zap' | 'tangled'
-  | 'duck' | 'perch' | 'squirt';
+  | 'duck' | 'perch' | 'squirt' | 'drop' | 'hooked';
 export interface Foe {
   id: number; kind: FoeKind; hp: number; max: number; rad: number; ht: number; x: number; z: number; h: number; vh: number;
   vx: number; vz: number; face: number; st: FoeSt; t: number; cd: number; flash: number; daze: number; anim: number;
@@ -104,8 +137,12 @@ export interface Foe {
   called: boolean; lane: number; dazedOnce: boolean; flipped: boolean; charge: number; stole: boolean;
   /** an eel pulled out of its hole, or an inker knocked off its post: from then on it fights on the boards */
   loose: boolean;
+  /** a painted elite variant (tougher, one extra trick, drops a gold lantern) */
+  elite?: boolean;
+  /** a ferrying gull still carrying its crab; a shielded urchin's lobster (by id); how many extra tricks used */
+  cargo?: boolean; link?: number; trick?: number; slipT?: number;
 }
-export type ItemKind = 'shell' | 'barrel' | 'snack' | 'bun' | 'charm' | 'scroll';
+export type ItemKind = 'shell' | 'barrel' | 'snack' | 'bun' | 'charm' | 'scroll' | 'fish' | 'oar' | 'netbag' | 'netfly' | 'glantern';
 export interface Item { id: number; kind: ItemKind; x: number; z: number; h: number; vx: number; vh: number; t: number; dead: boolean; slide: number; hitList: object[]; sid: string; held: boolean; spin: number }
 export type PropKind = 'barrel' | 'crate' | 'fishcrate' | 'ice' | 'net';
 export interface Prop { id: number; kind: PropKind; x: number; z: number; hp: number; content: '' | 'snack' | 'charm'; sid: string; alive: boolean; vx: number; hitList: object[]; fall: number; down: boolean; flash: number }
@@ -123,7 +160,11 @@ export interface Boss {
   hole: number; ext: number;
 }
 /** a barrel rolling down the ropewalk belt (or the old harbour cart): the rumble and the marked lane come first */
-export interface Roll { lane: number; x: number; t: number; tell: number; hit: object[]; kind: 'cart' | 'barrel'; keep: boolean; passed: boolean }
+export interface Roll { lane: number; x: number; t: number; tell: number; hit: object[]; kind: 'cart' | 'barrel'; keep: boolean; passed: boolean; dir?: number }
+/** a crane hook over the deck: a foe knocked into it is hoisted away; `cd` while it swings back down */
+export interface Hook { x: number; z: number; cd: number; swing: number }
+/** a slick of fish oil on the boards */
+export interface Slick { x: number; z: number }
 /** one of Old Tanglejaw's three drain holes, and whether Enzo has jammed a barrel in it */
 export interface Hole { x: number; z: number; plug: boolean }
 /** a splat of octopus ink over part of the screen (in screen fractions), until it fades or the inker is hit */
@@ -138,7 +179,7 @@ const BOSS_HINT: Record<BossKind, [HeroId, 'atk' | 'jmp' | 'carry'][]> = {
   longshanks: [['enzo', 'atk'], ['dora', 'jmp'], ['enzo', 'atk']],  // heave the stuck leg; jump the sweep; two stomps now
   tanglejaw: [['enzo', 'carry'], ['dora', 'jmp'], ['enzo', 'carry']], // plug two holes; jump the whip; plug them again
 };
-export interface Prompt { act: 'move' | 'grab' | 'plug' | 'atk' | 'jmp' | 'tag' | 'dbl' | 'special' | 'go'; who: 'hero' | 'partner' | 'foe' | 'boss'; tint?: 'grey' | 'cream'; x?: number; z?: number; h?: number; dir?: number }
+export interface Prompt { act: 'move' | 'grab' | 'plug' | 'atk' | 'jmp' | 'tag' | 'dbl' | 'special' | 'go' | 'hold' | 'team'; who: 'hero' | 'partner' | 'foe' | 'boss'; tint?: 'grey' | 'cream'; x?: number; z?: number; h?: number; dir?: number; sub?: string }
 export interface Talk { who: NpcId; line: string; t: number }
 export interface Stats {
   time: number; dmg: number; hits: number; best: number; tags: number; tagChains: number; grabs: number; throws: number;
@@ -147,6 +188,9 @@ export interface Stats {
   wrongHits: number; kos: number; snacks: number;
   /** scene goals won and lost (a lost goal only costs its lanterns), and foes knocked overboard on a ride */
   goals: number; goalsLost: number; overboard: number;
+  /** style points and how many actions earned them (the rank is the average); the new moves, weapons and hazards */
+  style: number; styleN: number; wallKicks: number; spins: number; slides: number; pounds: number; teams: number;
+  weaponHits: number; hazards: number; elites: number;
 }
 /** a scene goal under way (see GoalDef): the thief (chase) or the stall (defend) is x/z/h/hp; `front` is the tide's edge */
 export interface Goal {
@@ -199,7 +243,7 @@ export function foeWants(f: Foe): HeroId | null {
 
 // ─────────────────────────────────────────────────────────────── saves
 export interface SaveData {
-  v: 1; assist: boolean; cleared: Record<string, { score: number; time: number; medal: number }>; found: string[];
+  v: 1; assist: boolean; cleared: Record<string, { score: number; time: number; medal: number; rank?: number }>; found: string[];
   seen: string[]; sound: boolean; music: boolean; lanterns: number;
 }
 export function freshSave(): SaveData { return { v: 1, assist: true, cleared: {}, found: [], seen: [], sound: true, music: true, lanterns: 0 }; }
@@ -223,7 +267,7 @@ export function medalFor(stats: Stats): number {
 }
 
 // ─────────────────────────────────────────────────────────────── the game
-export interface GameOpts { stage: string; seed?: number; assist?: boolean; found?: string[]; skipTalk?: boolean }
+export interface GameOpts { stage: string; seed?: number; assist?: boolean; found?: string[]; skipTalk?: boolean; moves?: number }
 export type Mode = 'play' | 'down' | 'clear';
 
 export class BrineGame {
@@ -234,13 +278,14 @@ export class BrineGame {
   foes: Foe[] = []; items: Item[] = []; props: Prop[] = []; boss: Boss | null = null; strings: Str[] = [];
   rolls: Roll[] = []; holes: Hole[] = []; ink: Ink[] = []; beltT = 0;
   goal: Goal | null = null; rideX = 0;
+  hooks: Hook[] = []; slicks: Slick[] = []; moves = 0; teamT = -1; tagWait = 0;
   cam = VIEW_W / 2; lock: number | null = null; evI = 0; wave: WaveRun | null = null; go = 0;
   tokens = 0; tagCD = 0; tagQ = 0; fest = 0; festFull = false; dblT = -1;
   combo = { n: 0, t: 0, chain: 0 };
   prompt: Prompt | null = null; talk: Talk | null = null; bossHint: BossHint | null = null;
   learned: Record<string, number> = {};
   tut: Tut = { stage: 9, t: 0, tinks: 0, lastMove: 0, thief: null, hermit: null, gull: null };
-  stats: Stats = { time: 0, dmg: 0, hits: 0, best: 0, tags: 0, tagChains: 0, grabs: 0, throws: 0, retries: 0, tinks: 0, dashes: 0, dashAtks: 0, specials: 0, specialHits: 0, specialLanded: 0, dbls: 0, bossTime: {}, jumps: 0, airHits: 0, score: 0, lanterns: 0, scenes: 0, wrongHits: 0, kos: 0, snacks: 0, goals: 0, goalsLost: 0, overboard: 0 };
+  stats: Stats = { time: 0, dmg: 0, hits: 0, best: 0, tags: 0, tagChains: 0, grabs: 0, throws: 0, retries: 0, tinks: 0, dashes: 0, dashAtks: 0, specials: 0, specialHits: 0, specialLanded: 0, dbls: 0, bossTime: {}, jumps: 0, airHits: 0, score: 0, lanterns: 0, scenes: 0, wrongHits: 0, kos: 0, snacks: 0, goals: 0, goalsLost: 0, overboard: 0, style: 0, styleN: 0, wallKicks: 0, spins: 0, slides: 0, pounds: 0, teams: 0, weaponHits: 0, hazards: 0, elites: 0 };
   found: Set<string>; newFound: string[] = [];
   events: GameEvent[] = [];
   /** the double-tap detector for dashing: last onset of a left/right press, how long it was held, when it let go */
@@ -248,19 +293,20 @@ export class BrineGame {
   private koOnce = false;   // a hero has been knocked out this stage: the mash punishments ease off
   private nid = 1; private wrongT = 0; private wrongN = 0; private bossStart = 0; private skipTalk: boolean;
   private retryAt = { evI: 0, x: 0 };
-  private teachT = 0; private specN = -1; private dblHit = false;
+  private teachT = 0; private specN = -1; private dblHit = false; private styleLog: string[] = []; private teamHits: object[] = [];
 
   constructor(o: GameOpts) {
     if (!STAGES[o.stage]) throw new Error('no stage ' + o.stage);
     this.stageId = o.stage; this.seed = o.seed ?? 1; this.rnd = rngOf(this.seed * 7919 + 17);
     this.assist = o.assist ?? true; this.found = new Set(o.found ?? []); this.skipTalk = !!o.skipTalk;
+    this.moves = o.moves ?? moveTier(o.stage);
     this.sceneIds = STAGES[o.stage].scenes.slice();
     this.dora = this.mkHero('dora'); this.enzo = this.mkHero('enzo');
     this.enzo.st = 'out';
     this.enterScene(this.sceneIds[0]);
   }
   private mkHero(name: HeroId): Hero {
-    return { name, x: 160, z: 80, h: 0, vh: 0, vx: 0, face: 1, hp: 100, st: 'idle', t: 0, mk: '', hits: [], struck: false, inv: 0, flash: 0, anim: 0, buf: 0, jbuf: 0, hold: null, airUsed: false, ready: true, edgeH: 0, dashDir: 0, djump: false, afterDash: 9, tagX: 0, tagFrom: 0, airKind: '', specCD: 0, landT: 0, atkAgo: 9 };
+    return { name, x: 160, z: 80, h: 0, vh: 0, vx: 0, face: 1, hp: 100, st: 'idle', t: 0, mk: '', hits: [], struck: false, inv: 0, flash: 0, anim: 0, buf: 0, jbuf: 0, hold: null, airUsed: false, ready: true, edgeH: 0, dashDir: 0, djump: false, afterDash: 9, tagX: 0, tagFrom: 0, airKind: '', specCD: 0, landT: 0, atkAgo: 9, atkHold: 0, weapon: null, poundCD: 0 };
   }
   hero() { return this[this.active]; }
   partner() { return this[this.active === 'dora' ? 'enzo' : 'dora']; }
@@ -276,7 +322,7 @@ export class BrineGame {
   enterScene(id: string) {
     const sc = SCENES[id]; this.scene = sc; this.len = sc.lanes[0].length * COL;
     this.foes = []; this.items = []; this.props = []; this.boss = null; this.wave = null; this.lock = null; this.evI = 0; this.tokens = 0; this.flies = []; this.rolls = []; this.holes = []; this.ink = [];
-    this.goal = null; this.rideX = 0;
+    this.goal = null; this.rideX = 0; this.hooks = []; this.slicks = [];
     this.strings = sc.strings.map((s) => ({ col: s.col, need: s.need, got: 0, flying: 0, glow: 0, pulse: 0 }));
     let charm = 0;
     sc.lanes.forEach((row, r) => {
@@ -293,10 +339,15 @@ export class BrineGame {
         else if (ch === 'k') { const sid = `${id}:c${charm++}`; prop('crate', this.found.has(sid) ? 'snack' : 'charm', sid); }
         else if (ch === 'g') { const sid = `${id}:c${charm++}`; if (!this.found.has(sid)) this.addItem('charm', x, z, 0, 0, 0, sid); }
         else if (ch === 'm') { const sid = `${id}:shanty`; if (!this.found.has(sid)) this.addItem('scroll', x, z, 0, 0, 0, sid); }
+        else if (ch === 'x') this.addItem('fish', x, z, 0, 0, 0);
+        else if (ch === 'o') this.addItem('oar', x, z, 0, 0, 0);
+        else if (ch === 'w') this.addItem('netbag', x, z, 0, 0, 0);
+        else if (ch === 'h') this.hooks.push({ x, z, cd: 0, swing: 0 });
+        else if (ch === 'l') this.slicks.push({ x, z });
       }
     });
     const d = this.dora, e = this.enzo, p = this.hero();
-    for (const h of [d, e]) { h.hold = null; h.vx = 0; h.vh = 0; h.h = 0; h.inv = 0; }
+    for (const h of [d, e]) { h.hold = null; h.vx = 0; h.vh = 0; h.h = 0; h.inv = 0; h.weapon = null; }
     Object.assign(p, { x: 140, z: 80, st: 'idle', t: 0, face: 1 });
     this.partner().st = 'out';
     this.cam = VIEW_W / 2;
@@ -348,15 +399,23 @@ export class BrineGame {
     if (this.combo.t > 0) { this.combo.t -= DT; if (this.combo.t <= 0) { this.combo.n = 0; this.combo.chain = 0; } }
     const dash = this.dashTap(inp.mx);
     if (this.dblT >= 0) this.updDouble();
+    else if (this.teamT >= 0) this.updTeam();
+    else if (this.moves >= 3 && this.fest >= 100 && this.partner().hp > 0 && this.partner().ready && !['win', 'tagin', 'special', 'down', 'getup', 'hurt'].includes(this.hero().st)
+      && ((inp.tagP && (inp.atkP || inp.atkH)) || (inp.atkP && (inp.tagH || this.tagWait > 0)))) { this.tagWait = 0; this.startTeam(); }
     else {
-      if (inp.tagP && this.hero().st !== 'win') this.doTag(false);
+      // with the team-up ready, a Tag press waits a few frames for the Attack that hands rarely land on the same frame
+      const teamReady = this.moves >= 3 && this.fest >= 100 && this.partner().hp > 0 && this.partner().ready;
+      let tag = inp.tagP;
+      if (tag && teamReady) { this.tagWait = 6; tag = false; }
+      else if (this.tagWait > 0 && --this.tagWait === 0) tag = true;
+      if (tag && this.hero().st !== 'win') this.doTag(false);
       this.updHero(this.hero(), inp, dash);
     }
     if (this.partner().st === 'out') this.updWaiting(this.partner());
     for (const f of this.foes) this.updFoe(f);
     this.foes = this.foes.filter((f) => !f.dead);
     if (this.boss) this.updBoss();
-    this.updItems(); this.updProps(); this.updStrings(); this.updBelt();
+    this.updItems(); this.updProps(); this.updStrings(); this.updBelt(); this.updHazards();
     if (this.scene.ride) this.rideX += (this.scene.ride === 'lift' ? 60 : 150) * DT;
     for (const k of this.ink) k.t += DT;
     this.ink = this.ink.filter((k) => k.t < k.life);
@@ -371,6 +430,8 @@ export class BrineGame {
     p.t += DT; p.anim += DT; p.flash -= DT; p.inv -= DT; p.afterDash += DT; p.specCD -= DT;
     if (inp.atkP) { p.buf = 0.25; p.atkAgo = 0; } else { p.buf = Math.max(0, p.buf - DT); p.atkAgo += DT; }
     if (inp.jmpP) p.jbuf = 0.14; else p.jbuf = Math.max(0, p.jbuf - DT);
+    p.poundCD -= DT;
+    if (!inp.atkH) p.atkHold = 0; else if (p.atkHold >= 0) p.atkHold += DT;
     if (inp.mx || inp.mz) { this.tut.lastMove = this.t; this.learned.move = 1; }
     const air = () => p.h > 0 || p.vh > 0;
     switch (p.st) {
@@ -397,6 +458,10 @@ export class BrineGame {
         if (p.t <= DT * 1.5 && this.specN >= 0) { if (this.stats.specialHits > this.specN) this.stats.specialLanded++; this.specN = -1; p.specCD = 0.5; }
         if (p.t > (p.name === 'dora' ? 0.32 : 0.4)) this.setSt(p, 'idle'); else return; break;
       case 'special': this.updSpecial(p); return;
+      case 'slide': this.updSlide(p); return;
+      case 'spin': this.updSpin(p); return;
+      case 'pound': this.updPound(p); return;
+      case 'swing': this.updSwing(p); return;
       case 'throw': if (p.t > 0.3) this.setSt(p, 'idle'); else return; break;
       case 'grab': if (p.t > 0.14) this.setSt(p, 'hold'); else return; break;
       case 'dash': {
@@ -408,6 +473,12 @@ export class BrineGame {
         if (p.t >= C.dashT) { this.setSt(p, 'idle'); p.afterDash = 0; }
         this.clampHero(p); return;
       }
+    }
+    // hold Attack (from the Fish Market): Dora's slide kick, Enzo's ground pound
+    if (this.moves >= 2 && p.atkHold >= 0.3 && !p.hold && !p.weapon && p.h <= 0 && p.vh <= 0 && (p.st === 'idle' || p.st === 'walk' || p.st === 'land' || (p.st === 'atk' && p.struck && p.t >= MOVES[p.mk].hit + 0.05))) {
+      p.atkHold = -1; p.buf = 0;
+      if (p.name === 'dora') { this.setSt(p, 'slide'); p.hits = []; if (inp.mx) p.face = sgn(inp.mx); p.vx = 660; this.stats.slides++; this.learned.slide = (this.learned.slide || 0) + 1; this.sfx('dash'); this.ev({ k: 'dust', x: p.x, z: p.z, n: 6, size: 1 }); return; }
+      if (p.poundCD <= 0) { this.setSt(p, 'pound'); p.hits = []; p.struck = false; this.stats.pounds++; this.learned.pound = (this.learned.pound || 0) + 1; this.sfx('jump'); return; }
     }
     // double-team when the Festival meter is full: Attack and Jump together
     if (this.fest >= 100 && this.partner().hp > 0 && ((inp.atkP && inp.jmpH) || (inp.jmpP && inp.atkH) || (inp.atkP && inp.jmpP))) { this.startDouble(); p.buf = 0; p.jbuf = 0; return; }
@@ -451,14 +522,34 @@ export class BrineGame {
     const holding = p.st === 'hold';
     const mx = inp.mx, mz = inp.mz;
     const nrm = mx && mz ? 0.7071 : 1, slow = holding ? 0.78 : 1;
-    if (p.st === 'airatk' && p.airKind === 'dive') { p.x += p.face * (p.name === 'dora' ? 330 : 120) * DT; p.z += mz * C.zs * 0.5 * DT; }
+    if (p.st === 'airatk' && p.airKind === 'wall') {
+      // the wall-bounce: a moment crouched against the edge, then a long flying kick back across the fight
+      if (p.t < 0.1) p.vh = 0;
+      else { if (!p.struck) { p.struck = true; p.vh = 420; this.sfx('kick3'); } p.x += p.face * 720 * DT; this.ev({ k: 'trail', x: p.x, z: p.z, h: p.h, who: 'dora' }); }
+      p.z += mz * C.zs * 0.4 * DT;
+    }
+    else if (p.st === 'airatk' && p.airKind === 'dive') { p.x += p.face * (p.name === 'dora' ? 330 : 120) * DT; p.z += mz * C.zs * 0.5 * DT; }
     else if (air() && p.djump) { p.x += p.dashDir * C.djx * DT; p.z += mz * C.zs * 0.6 * DT; }
     else if (p.st !== 'land') { p.x += mx * C.spd * nrm * slow * DT; p.z += mz * C.zs * nrm * slow * DT; if (mx) p.face = sgn(mx); }
+    // Dora's wall-bounce kick (from 1-2): in the air at the edge of the fight, Jump again
+    if (p.name === 'dora' && this.moves >= 1 && air() && p.jbuf > 0 && p.h > 20 && p.st !== 'airatk' && !p.airUsed) {
+      const side = p.x <= this.camL + 64 ? -1 : p.x >= this.camR - 94 ? 1 : 0;
+      if (side) {
+        p.jbuf = 0; p.st = 'airatk'; p.airKind = 'wall'; p.t = 0; p.hits = []; p.struck = false; p.face = -side; p.airUsed = true; p.djump = false; p.vh = 0;
+        this.stats.wallKicks++; this.learned.wall = (this.learned.wall || 0) + 1; this.sfx('land'); this.ev({ k: 'dust', x: p.x + side * 20, z: p.z, n: 4, size: 0.7 });
+        return;
+      }
+    }
+    // Enzo's spinning throw (from 1-2): Jump while carrying something
+    if (p.name === 'enzo' && this.moves >= 1 && holding && p.jbuf > 0 && !air() && p.hold) {
+      p.jbuf = 0; this.setSt(p, 'spin'); p.hits = [p.hold]; p.dashDir = p.face; this.stats.spins++; this.learned.spin = (this.learned.spin || 0) + 1; this.sfx('whooshHeavy');
+      return;
+    }
     // jump (a jump straight after a dash keeps the dash's run-up)
     if (p.jbuf > 0 && !air() && !holding) this.jump(p, p.afterDash < 0.15);
     if (air()) {
       p.vh -= GRAV * (p.st === 'airatk' && p.airKind !== 'rise' ? 1.25 : 1) * DT; p.h += p.vh * DT;
-      if (p.st === 'airatk') this.strike(p, MOVES[p.airKind]);
+      if (p.st === 'airatk' && !(p.airKind === 'wall' && p.t < 0.1)) this.strike(p, MOVES[p.airKind]);
       if (p.h <= 0) {
         p.h = 0; p.vh = 0; this.sfx(p.name === 'enzo' ? 'landHeavy' : 'land'); this.ev({ k: 'dust', x: p.x, z: p.z, n: 3, size: 0.6 });
         const wasAtk = p.st === 'airatk';
@@ -483,14 +574,15 @@ export class BrineGame {
         this.learned.air = (this.learned.air || 0) + 1; this.sfx('whoosh');
       } else if (!air() && p.st !== 'land') {
         p.buf = 0;
-        if (!this.tryBossGrab(p) && !this.tryKickItem(p)) this.startMove(p, p.name === 'dora' ? 'k1' : 'p1', inp);
+        if (p.weapon) this.startSwing(p, inp);
+        else if (!this.tryBossGrab(p) && !this.tryKickItem(p)) this.startMove(p, p.name === 'dora' ? 'k1' : 'p1', inp);
         this.learned.atk = (this.learned.atk || 0) + 1;
       }
     }
     // a barrel can be carried as long as you like in Tanglejaw's drydock (it's for his holes); anything else is thrown
     const plugging = this.boss?.kind === 'tanglejaw' && !!p.hold && !('ht' in p.hold) && (p.hold as Item).kind === 'barrel';
     if (holding && p.t > (this.assist ? 2.4 : 1.7) && !plugging) this.doThrow(p);
-    if (!['airatk', 'atk', 'hold', 'grab', 'throw', 'land', 'dash', 'special', 'air'].includes(p.st)) p.st = (mx || mz) ? 'walk' : 'idle';
+    if (!['airatk', 'atk', 'hold', 'grab', 'throw', 'land', 'dash', 'special', 'air', 'slide', 'spin', 'pound', 'swing'].includes(p.st)) p.st = (mx || mz) ? 'walk' : 'idle';
     if (p.hold && (p.st === 'idle' || p.st === 'walk')) p.st = 'hold';
     if (p.st === 'air' && !air()) p.st = 'idle';
     this.pickups(p);
@@ -547,13 +639,126 @@ export class BrineGame {
         for (const f of this.foes) {
           if (!this.hittable(f) || f.h > 70 || p.hits.includes(f)) continue;
           const dx = (f.x - p.x) / (this.assist ? 200 : 180), dz = (f.z - p.z) / 80;
-          if (dx * dx + dz * dz < 1) { p.hits.push(f); this.stats.specialHits++; this.damageFoe(f, 2.6, { kb: sgn(f.x - p.x) * 340, down: true, heavy: true, by: 'enzo', x: f.x, h: 30, special: true }); }
+          if (dx * dx + dz * dz < 1) { p.hits.push(f); this.stats.specialHits++; if (!p.hits.includes(STYLED)) { p.hits.push(STYLED); this.style('special'); } this.damageFoe(f, 2.6, { kb: sgn(f.x - p.x) * 340, down: true, heavy: true, by: 'enzo', x: f.x, h: 30, special: true }); }
         }
         if (this.boss && !p.hits.includes(this.boss) && Math.abs(this.bossX() - p.x) < 230) { p.hits.push(this.boss); this.damageBoss(2.4, 'enzo', p.x + 60, 40, true); }
         for (const pr of this.props) if (pr.alive && Math.abs(pr.x - p.x) < 150 && Math.abs(pr.z - p.z) < 60) this.hitProp(pr, p, true);
       }
     }
     this.clampHero(p);
+  }
+  /** Dora's slide kick: low along the boards, tripping everything in the way, and under a lobster's guard */
+  private updSlide(p: Hero) {
+    const k = Math.max(0, 1 - p.t / 0.45);
+    if (p.t < 0.36) {
+      p.x += p.face * p.vx * (0.35 + 0.65 * k) * DT;
+      if (Math.floor(p.t * 20) !== Math.floor((p.t - DT) * 20)) this.ev({ k: 'dust', x: p.x - p.face * 20, z: p.z, n: 2, size: 0.8 });
+      this.strike(p, MOVES.slide);
+    }
+    if (p.t > 0.5) this.setSt(p, 'idle');
+    this.clampHero(p);
+  }
+  /** Enzo's spinning throw: what he carries swings round him and clips everyone near, then flies off */
+  private updSpin(p: Hero) {
+    const h = p.hold;
+    if (!h) { this.setSt(p, 'idle'); return; }
+    if (p.t < 0.6) {
+      p.face = Math.floor(p.t / 0.15) % 2 ? -p.dashDir : p.dashDir;
+      const R = this.assist ? 125 : 110;
+      let any = false;
+      for (const f of this.foes) {
+        if (f === h || p.hits.includes(f) || !this.hittable(f) || f.h > 90) continue;
+        const dx = (f.x - p.x) / R, dz = (f.z - p.z) / 55;
+        if (dx * dx + dz * dz < 1) { p.hits.push(f); any = true; this.damageFoe(f, 1.6, { kb: sgn(f.x - p.x) * 380, down: true, heavy: true, by: 'enzo', x: f.x, h: 90, snd: 'slam' }); }
+      }
+      const b = this.boss;
+      if (b && !p.hits.includes(b) && b.st !== 'end' && Math.abs(this.bossX() - p.x) < R + 60 && Math.abs(b.z - p.z) < 70) { p.hits.push(b); any = true; this.damageBoss(1.6, 'enzo', p.x + 60, 90, true); }
+      if (any) this.style('spin');
+      if (Math.floor(p.t * 12) !== Math.floor((p.t - DT) * 12)) this.ev({ k: 'swipe', x: p.x, z: p.z, h: 110, face: p.face, big: 1.5, col: '#e8eef6' });
+      return;
+    }
+    const tgt = this.nearestFoe(p, 600); if (tgt) p.face = sgn(tgt.x - p.x) || p.face;
+    this.doThrow(p);
+    const o = p.hold === null ? h : null;
+    if (o) { if ('ht' in o) { (o as Foe).vx *= 1.25; } else (o as Item).vx *= 1.25; }
+  }
+  /** Enzo's ground pound: a hop and a two-fisted smash; the shockwave flips urchins, pops shells and knocks a crowd down */
+  private updPound(p: Hero) {
+    if (p.t < 0.3) { p.h = Math.sin(p.t / 0.3 * Math.PI * 0.5) * 120; return; }
+    if (!p.struck) {
+      p.struck = true; p.h = 0; p.poundCD = 0.9;
+      this.shakeBy(11); this.hitstop(0.09); this.sfx('flop');
+      this.ev({ k: 'shock', x: p.x + p.face * 30, z: p.z, size: 190 }); this.ev({ k: 'dust', x: p.x, z: p.z, n: 14, size: 1.5 });
+      const rx = this.assist ? 210 : 180;
+      let any = false;
+      for (const f of this.foes) {
+        if (!this.hittable(f) || f.h > 70 || inHole(f)) continue;
+        const dx = (f.x - p.x - p.face * 30) / rx, dz = (f.z - p.z) / 75;
+        if (dx * dx + dz * dz >= 1) continue;
+        any = true;
+        if (f.kind === 'hermit' && f.shell) { f.shell = false; this.addItem('shell', f.x, f.z, 20, sgn(f.x - p.x) * 140, 280); this.sfx('pop'); this.ev({ k: 'word', x: f.x, z: f.z, h: 120, text: 'POP!', col: '#e8eef6' }); }
+        if (f.kind === 'urchin' && !f.flipped) { this.flipUrchin(f); continue; }
+        if (f.kind === 'puffer' && f.st === 'puffed') { f.st = 'idle'; f.puffT = 0; this.sfx('deflate'); }
+        this.damageFoe(f, 2, { kb: sgn(f.x - p.x) * 320, down: true, heavy: true, by: 'enzo', x: f.x, h: 30, slam: true });
+      }
+      const b = this.boss;
+      if (b && b.st !== 'end' && Math.abs(this.bossX() - p.x) < 250 && b.h < 80) { any = true; this.damageBoss(2, 'enzo', p.x + p.face * 60, 40, true); }
+      for (const pr of this.props) if (pr.alive && pr.kind !== 'net' && Math.abs(pr.x - p.x) < 140 && Math.abs(pr.z - p.z) < 60) this.hitProp(pr, p, true);
+      if (any) this.style('pound');
+    }
+    if (p.t > 0.62) this.setSt(p, 'idle');
+  }
+  /** swinging (or throwing) a pickup weapon */
+  private startSwing(p: Hero, inp: Input) {
+    const tgt = this.nearestFoe(p, 220);
+    if (tgt && !inp.mx) p.face = sgn(tgt.x - p.x) || p.face;
+    if (tgt && this.assist) p.z += clamp(tgt.z - p.z, -22, 22);
+    this.setSt(p, 'swing'); p.hits = []; p.struck = false; p.mk = p.weapon ? p.weapon.kind : '';
+    this.sfx(p.name === 'dora' ? 'whoosh' : 'whooshHeavy');
+  }
+  private updSwing(p: Hero) {
+    const w = p.weapon; if (!w) { this.setSt(p, 'idle'); return; }
+    const W = WEAPON[w.kind];
+    if (p.t >= W.wind && !p.struck) {
+      p.struck = true;
+      if (w.kind === 'net') {
+        // the net is thrown: it opens out and lands a little way ahead, pinning everything under it
+        const it = this.addItem('netfly', p.x + p.face * 40, p.z, 110, p.face * 430, 320); it.t = 0;
+        this.sfx('throw'); w.uses = 0; this.learned.swing = (this.learned.swing || 0) + 1;
+      } else {
+        const reach = W.reach * (this.assist ? 1.1 : 1);
+        let any = false;
+        for (const f of this.foes) {
+          if (!this.hittable(f) || !this.inFront(p, f, reach, W.zTol, -10, 170)) continue;
+          any = true; this.stats.weaponHits++;
+          this.damageFoe(f, W.dmg, { kb: W.kb * p.face, down: W.down, heavy: true, by: 'item', x: f.x - p.face * 20, h: 80, daze: W.daze || undefined, snd: w.kind === 'fish' ? 'slap' : 'slam' });
+        }
+        const b = this.boss;
+        if (b && b.st !== 'end' && b.st !== 'intro' && b.st !== 'gone' && this.inFront(p, this.bossBox(), reach, W.zTol + 50, -10, 170)) { any = true; this.damageBoss(W.dmg * 0.8, 'item', p.x + p.face * 70, 90, true); }
+        for (const pr of this.props) if (pr.alive && pr.kind !== 'net' && this.inFront(p, { x: pr.x, z: pr.z, h: 0, rad: 30, ht: 60 }, reach, W.zTol, -10, 170)) { this.hitProp(pr, p, true); any = true; }
+        this.learned.swing = (this.learned.swing || 0) + 1;
+        if (any) { w.uses--; this.style(w.kind); this.shakeBy(w.kind === 'oar' ? 5 : 3); }
+        this.ev({ k: 'swipe', x: p.x + p.face * 70, z: p.z, h: p.h + 80, face: p.face, big: w.kind === 'oar' ? 1.8 : 1.2, col: w.kind === 'fish' ? '#dff4ff' : '#fff6dc' });
+      }
+      if (w.uses <= 0) {
+        p.weapon = null;
+        if (w.kind !== 'net') { this.ev({ k: 'debris', x: p.x + p.face * 50, z: p.z, kind: w.kind === 'fish' ? 'ice' : 'crate' }); this.sfx('crate'); }
+      }
+    }
+    if (p.t >= W.dur) this.setSt(p, 'idle');
+    else this.clampHero(p);
+  }
+  /** style: an action that lands is filed under what kind it was. Repeats in the last eight earn less, a mix earns more */
+  style(cat: string) {
+    const L = this.styleLog, n = L.filter((c) => c === cat).length;
+    const pts = 10 * [1.6, 0.8, 0.35, 0.15, 0.06][Math.min(4, n)] + new Set(L).size * 0.5;
+    this.stats.style += pts; this.stats.styleN++;
+    L.push(cat); if (L.length > 8) L.shift();
+  }
+  /** 0 C, 1 B, 2 A, 3 S: from the average style of the actions that landed */
+  styleRank() {
+    const r = this.stats.style / Math.max(1, this.stats.styleN);
+    return this.stats.styleN < 5 ? 0 : r >= STYLE_AT[2] ? 3 : r >= STYLE_AT[1] ? 2 : r >= STYLE_AT[0] ? 1 : 0;
   }
   private nearestFoe(p: Hero, range: number): { x: number; z: number } | null {
     let best: { x: number; z: number } | null = null, bd = range;
@@ -567,6 +772,7 @@ export class BrineGame {
       if (p.hits.includes(f) || !this.hittable(f)) continue;
       if (Math.abs(f.x - p.x) < 70 + f.rad * 0.5 && Math.abs(f.z - p.z) < zTol && f.h < p.h + 170 && f.h + f.ht > p.h - 20) {
         p.hits.push(f); this.stats.specialHits++;
+        if (!p.hits.includes(STYLED)) { p.hits.push(STYLED); this.style('special'); }
         this.damageFoe(f, dmg, { kb: p.face * 380, down: true, heavy: true, by: p.name, x: f.x, h: p.h + 60, snd, special: true });
       }
     }
@@ -632,6 +838,7 @@ export class BrineGame {
     if (q.hp <= 0 || !q.ready) return false;
     if (!forced && (this.tagCD > 0 || p.st === 'tagin' || this.dblT >= 0 || p.st === 'special')) return false;
     if (p.hold) this.dropHold(p);
+    this.dropWeapon(p);
     const ex = this.camL + 30;
     const face = p.x >= this.cam ? -1 : 1;
     Object.assign(q, { st: 'tagin', t: 0, face: p.x >= ex + 60 ? 1 : -1, z: p.z, hits: [], vh: 0, vx: 0, inv: 0.3, airUsed: false, djump: false, buf: 0, jbuf: 0 });
@@ -641,6 +848,7 @@ export class BrineGame {
     this.ev({ k: 'dust', x: p.x, z: p.z, n: 6, size: 1 });
     Object.assign(p, { st: 'out', t: 0, hold: null, vx: 0, h: 0, edgeH: 60, ready: p.hp > 0 });
     this.active = q.name; this.tagCD = 0.9; this.stats.tags++;
+    if (this.foes.some((f) => f.st !== 'ko' && f.x > this.camL && f.x < this.camR) || (this.boss && this.boss.st !== 'end')) this.style('tag');
     this.learned.tag = (this.learned.tag || 0) + 1;
     if (this.combo.t > 0 && this.combo.n > 0) {
       this.combo.chain++; this.stats.tagChains++; this.combo.t = 1.8;
@@ -672,7 +880,7 @@ export class BrineGame {
     q.x = q.tagFrom + (p.x - 70 * p.face - q.tagFrom) * Math.min(1, d / 0.25); q.h = 120 * Math.sin(Math.PI * Math.min(1, d / 0.5)); q.z = p.z; q.face = p.face;
     if (d >= 0.25 - 1e-6 && !this.dblHit) {
       this.dblHit = true;
-      this.ev({ k: 'flash', a: 0.4 }); this.shakeBy(14); this.hitstop(0.12); this.sfx('dbl');
+      this.ev({ k: 'flash', a: 0.4 }); this.shakeBy(14); this.hitstop(0.12); this.sfx('dbl'); this.style('dbl');
       for (const f of this.foes) if (this.hittable(f) && f.x > this.camL - 20 && f.x < this.camR + 20) this.damageFoe(f, 4, { kb: sgn(f.x - p.x) * 420, down: true, heavy: true, by: 'dbl', x: f.x, h: 60, daze: 2 });
       if (this.boss && this.boss.st !== 'end') this.damageBoss(4, 'dbl', this.bossX() - 60, 120, true);
       this.ev({ k: 'sparks', x: p.x, z: p.z, h: 90, col: '#ffd27a', n: 40, big: 1.6 });
@@ -806,10 +1014,27 @@ export class BrineGame {
     if ('ht' in h) { const f = h as Foe; f.st = 'down'; f.t = 0; f.h = 60; f.vh = 100; f.vx = -p.face * 60; f.daze = 1.2; }
     else { const it = h as Item; it.held = false; it.h = 60; it.vh = 100; it.vx = 0; }
   }
+  private dropWeapon(p: Hero) {
+    const w = p.weapon; if (!w) return;
+    p.weapon = null;
+    if (w.uses > 0 && w.kind !== 'net') { const it = this.addItem(w.kind, p.x, p.z, 40, -p.face * 80, 260); it.spin = w.uses; }
+    else if (w.kind === 'net') this.addItem('netbag', p.x, p.z, 40, -p.face * 80, 260);
+  }
   private pickups(p: Hero) {
     if (p.hold) return;
     for (const it of this.items) {
       if (it.dead || it.held || it.h > 30 || Math.abs(it.x - p.x) > 44 || Math.abs(it.z - p.z) > 30) continue;
+      if ((it.kind === 'fish' || it.kind === 'oar' || it.kind === 'netbag') && !p.weapon && p.h <= 0 && (p.st === 'idle' || p.st === 'walk')) {
+        const kind: WeaponKind = it.kind === 'netbag' ? 'net' : it.kind;
+        it.dead = true; p.weapon = { kind, uses: it.spin > 0 ? it.spin : WEAPON[kind].uses };
+        this.setSt(p, 'pick'); this.sfx('grab'); this.learned.weapon = (this.learned.weapon || 0) + 1;
+        continue;
+      }
+      if (it.kind === 'glantern') {
+        it.dead = true; this.stats.lanterns++; this.stats.score += 500; this.sfx('chime');
+        this.ev({ k: 'word', x: p.x, z: p.z, h: 210, text: '+1', col: '#ffd98a' }); this.ev({ k: 'sparks', x: it.x, z: it.z, h: 50, col: '#ffd98a', n: 16, big: 1.3 });
+        continue;
+      }
       if (it.kind === 'snack' || it.kind === 'bun') {
         it.dead = true; const heal = it.kind === 'snack' ? 30 : 20; p.hp = Math.min(100, p.hp + heal); this.partner().hp = Math.min(100, this.partner().hp + heal / 2);
         this.sfx('eat'); this.stats.snacks++; this.ev({ k: 'word', x: p.x, z: p.z, h: 200, text: `+${heal}`, col: '#9cf28a' });
@@ -825,7 +1050,7 @@ export class BrineGame {
 
   // ─────────────────────────────────────────── combat
   /** knocked-down foes can't be hit until they're up again (no juggling a foe on the boards forever) */
-  hittable(f: Foe) { if (f.st === 'duck') return false; if (f.st === 'down' && f.h <= 0 && f.vh <= 0) return false; if (f.st === 'up') return false; return !['ko', 'held', 'thrown', 'enter'].includes(f.st) || (f.st === 'enter' && f.x > this.camL && f.x < this.camR); }
+  hittable(f: Foe) { if (f.st === 'duck') return false; if (f.st === 'down' && f.h <= 0 && f.vh <= 0) return false; if (f.st === 'up') return false; return !['ko', 'held', 'thrown', 'enter', 'drop', 'hooked'].includes(f.st) || (f.st === 'enter' && f.x > this.camL && f.x < this.camR); }
   private inFront(a: { x: number; z: number; h: number; face: number }, t: { x: number; z: number; h: number; rad?: number; ht?: number }, reach: number, zTol: number, y0: number, y1: number) {
     const dx = (t.x - a.x) * a.face, rad = t.rad || 30;
     if (dx < -22 || dx > reach + rad * 0.6) return false;
@@ -840,9 +1065,10 @@ export class BrineGame {
       if (p.hits.includes(f) || !this.hittable(f)) continue;
       if (!this.inFront(p, f, reach, zTol, m.y0, m.y1)) continue;
       p.hits.push(f); any = true;
-      this.damageFoe(f, m.dmg, { kb: m.kb * p.face, down: m.down, heavy: m.heavy, by: p.name, x: f.x - p.face * 20, h: p.h + (m.y0 + m.y1) / 2 * 0.6, slam: m.slam, rise: m.key === 'rise', from: p.x });
+      this.damageFoe(f, m.dmg, { kb: m.kb * p.face, down: m.down, heavy: m.heavy, by: p.name, x: f.x - p.face * 20, h: p.h + (m.y0 + m.y1) / 2 * 0.6, slam: m.slam, rise: m.key === 'rise', from: p.x, under: m.key === 'slide' });
     }
-    if (this.goal?.kind === 'chase' && this.catchThief(p.x + p.face * reach * 0.5, p.z, p.h + m.y0, p.h + m.y1, reach * 0.5 + 40)) any = true;
+    // the gull thief is only caught by a kick in the air (or something thrown): Dora has to jump at its swoop
+    if (this.goal?.kind === 'chase' && p.name === 'dora' && p.h > 30 && this.catchThief(p.x + p.face * reach * 0.5, p.z, p.h + m.y0, p.h + m.y1, reach * 0.5 + 40)) any = true;
     const b = this.boss;
     if (b && !p.hits.includes(b) && b.st !== 'end' && b.st !== 'intro' && b.st !== 'gone') {
       const bb = this.bossBox();
@@ -869,6 +1095,7 @@ export class BrineGame {
       } else this.wrong(c.x, LANE_Z[c.lane], 40, 'enzo');
     }
     if (any && m.shake) this.shakeBy(m.shake);
+    if (any && !p.hits.includes(STYLED)) { p.hits.push(STYLED); this.style(STYLE_OF[m.key] ?? m.key); }
     if (m.slam && p.h <= 0) {
       // Enzo's slam ripples along the deck: it flips urchins and knocks the barnacles off a brute
       this.ev({ k: 'ring', x: p.x + p.face * 70, z: p.z, size: 120, col: '#e8eef6', life: 0.35 });
@@ -887,8 +1114,10 @@ export class BrineGame {
     this.ev({ k: 'tink', x, z, h, want }); this.sfx(want === 'enzo' ? 'tink' : 'flutter');
     this.wrongN = this.wrongT > 0 ? this.wrongN + 1 : 1; this.wrongT = 2.5;
   }
-  damageFoe(f: Foe, dmg: number, o: { kb: number; down?: boolean; heavy?: boolean; by: HeroId | 'dbl' | 'item'; tag?: boolean; daze?: number; x: number; h: number; snd?: string; slam?: boolean; special?: boolean; rise?: boolean; from?: number }) {
+  damageFoe(f: Foe, dmg: number, o: { kb: number; down?: boolean; heavy?: boolean; by: HeroId | 'dbl' | 'item'; tag?: boolean; daze?: number; x: number; h: number; snd?: string; slam?: boolean; special?: boolean; rise?: boolean; from?: number; under?: boolean }) {
     const d = FD[f.kind], dora = o.by === 'dora', enzo = o.by === 'enzo';
+    // a gull ferrying a crab lets go of it when it's hit
+    if (f.cargo) this.dropCargo(f, false);
     const mult = 1 + 0.15 * Math.min(3, this.combo.chain);
     dmg *= mult;
     // the grey rule: a shelled hermit shrugs off kicks; only Enzo hits it properly
@@ -912,7 +1141,7 @@ export class BrineGame {
     // an inker up on its post: Enzo's paws don't reach it (his slam shakes the post, and a thrown thing knocks it off)
     if (perched(f) && enzo && !o.tag && !o.special && !o.slam) { this.wrong(o.x, f.z, f.h + 40, 'dora'); return; }
     // a lobster blocks from the front: go round the back, or let Enzo break the guard
-    if (f.kind === 'lobster' && !o.tag && o.by !== 'dbl' && o.by !== 'item' && !(enzo && (o.heavy || o.special)) && ['idle', 'walk', 'block', 'wind', 'rec'].includes(f.st)) {
+    if (f.kind === 'lobster' && !o.tag && !o.under && o.by !== 'dbl' && o.by !== 'item' && !(enzo && (o.heavy || o.special)) && ['idle', 'walk', 'block', 'wind', 'rec'].includes(f.st)) {
       const fromFront = o.from === undefined ? true : sgn((o.from ?? f.x) - f.x) === f.face;
       if (fromFront) {
         f.st = 'block'; f.t = 0; f.blocks++; f.flash = 0.06;
@@ -947,7 +1176,15 @@ export class BrineGame {
     }
     // gulls and jellies up high: only Dora's kicks reach; Enzo's paws whiff
     if ((flier(f) || f.kind === 'jelly') && f.h > 40 && enzo && !o.tag && !o.special) { this.wrong(o.x, f.z, f.h + 40, 'dora'); return; }
+    // the gold crab's shell: light hits only chip it until it's dizzy or knocked down (heavy hits, throws and tags do)
+    if (f.elite && f.kind === 'crab' && f.daze <= 0 && f.st !== 'down' && !o.heavy && !o.down && !o.tag && !o.special && o.by !== 'dbl' && o.by !== 'item') {
+      f.hp -= dmg * 0.25; f.flash = 0.06; this.sfx('tink'); this.hitstop(0.03); this.comboHit(false, f.x, f.z, 60);
+      this.ev({ k: 'word', x: f.x, z: f.z, h: f.ht + 50, text: 'GOLD SHELL!', col: '#ffd98a' });
+      if (f.hp <= 0) this.koFoe(f, o.kb);
+      return;
+    }
     f.hp -= dmg; f.flash = 0.1; this.comboHit(!!o.heavy, f.x, f.z, f.h + 60);
+    if (f.elite && f.kind === 'gull' && f.hp > 0 && f.hp < f.max / 2 && !f.called) { f.called = true; this.spawnFoe('gull', f.x < this.cam ? 1 : -1); this.sfx('whistle'); this.ev({ k: 'word', x: f.x, z: f.z, h: f.h + 120, text: 'ALL HANDS!', col: '#ffb48a' }); }
     if (f.h > 40 && dora) this.stats.airHits++;
     const col = o.by === 'enzo' ? '#fff3d6' : '#fffbe6';
     this.ev({ k: 'sparks', x: o.x, z: f.z, h: Math.max(20, o.h || 50), col: o.heavy ? '#ffd27a' : col, n: o.heavy ? 11 : 7, big: o.heavy ? 1.3 : 1 });
@@ -970,6 +1207,9 @@ export class BrineGame {
     if (flier(f) && f.h > 40 && o.rise) { f.st = 'crash'; f.daze = this.assist ? 1.8 : 1.3; f.vh = 0; this.releaseToken(f); return; }
     if (o.down) { f.st = 'down'; f.vh = 380; f.h = Math.max(f.h, 1); }
     else { f.st = 'hurt'; if (flier(f) && f.h > 20) f.vh = 60; }
+    // at the harbour edge, a foe in the back two lanes knocked down from level or in front slides back towards the water
+    const p = this.hero();
+    if (this.scene.edge && o.down && !flier(f) && f.z < 56 && p.z >= f.z - 6 && o.by !== 'dbl') f.vz = -(this.assist ? 420 : 360);
   }
   private flipUrchin(f: Foe) {
     f.flipped = true; f.st = 'down'; f.t = 0; f.vh = 300; f.h = Math.max(1, f.h); f.daze = this.assist ? 3.2 : 2.4; this.releaseToken(f);
@@ -979,7 +1219,13 @@ export class BrineGame {
     this.releaseToken(f); this.ink = this.ink.filter((k) => k.by !== f.id);
     f.st = 'ko'; f.t = 0; f.vx = clamp(kb * 0.7, -260, 260) || this.rr(-80, 80); f.vh = 640; f.h = Math.max(1, f.h);
     f.vz = -(f.z + 40) / 0.9; f.spin = sgn(f.vx) * this.rr(8, 14);
-    this.shakeBy(5); this.hitstop(0.07); this.stats.kos++; this.stats.score += FD[f.kind].score;
+    this.shakeBy(5); this.hitstop(0.07); this.stats.kos++; this.stats.score += FD[f.kind].score * (f.elite ? 3 : 1);
+    if (f.cargo) this.dropCargo(f, false);
+    if (f.elite) {
+      this.stats.elites++; this.sfx('festFull');
+      this.addItem('glantern', clamp(f.x, this.camL + 60, this.camR - 80), clamp(f.z, 10, DEPTH - 10), 60, 0, 380);
+      this.ev({ k: 'word', x: f.x, z: f.z, h: 160, text: 'GOLD!', col: '#ffd98a' });
+    }
     if (f.lantern >= 0) { this.lanternFly(f.x, f.z, f.h + 40, f.lantern); f.lantern = -1; }
     // health drops often, more often when you're hurt
     const p = this.hero();
@@ -1007,7 +1253,7 @@ export class BrineGame {
    *  after a retry, it eases off for the rest of the stage, so nobody gets stuck on it */
   private punish(dmg: number) { return this.assist && this.area() >= 2 && this.stats.retries === 0 && (!MERCY_KO || !this.koOnce) ? dmg * Math.min(PUNISH_CAP, 1 + PUNISH * Math.max(0, (this.wrongT > 0 ? this.wrongN : 0) - 1)) : dmg; }
   hurtHero(p: Hero, dmg: number, fromX: number, kb = 260, heavy = false) {
-    if (p.inv > 0 || p.st === 'tagin' || p.st === 'out' || this.mode !== 'play' || this.dblT >= 0 || p.st === 'special' || p.st === 'down' || p.st === 'getup') return false;
+    if (p.inv > 0 || p.st === 'tagin' || p.st === 'out' || this.mode !== 'play' || this.dblT >= 0 || this.teamT >= 0 || p.st === 'special' || p.st === 'pound' || p.st === 'down' || p.st === 'getup') return false;
     dmg *= this.assist ? 0.6 * [1, 1.25, 1.6][this.tier()] : [1, 1.6, 1.75][this.tier()];
     p.hp = Math.max(0, p.hp - dmg); this.stats.dmg += dmg;
     if (p.hold) this.dropHold(p);
@@ -1106,6 +1352,7 @@ export class BrineGame {
         if (f.daze > 0) { f.st = 'daze'; break; }
         if (f.script === 'thief') { this.thief(f); break; }
         if (f.script === 'raid' && this.raid(f)) break;
+        if (f.script === 'shielded' && this.shielded(f, p, out)) break;
         if (f.kind === 'shrimp' && !f.called && f.callT > 0) { f.callT -= DT; if (f.callT <= 0) { f.st = 'whistle'; f.t = 0; this.sfx('whistleUp'); break; } }
         if (f.kind === 'jelly') { this.jellyDrift(f, p); break; }
         if (f.lane >= 0 && f.t < 1.6 && f.cd > 0) { f.st = 'idle'; f.face = sgn(p.x - f.x); break; }   // a line of crabs holds its line for a moment
@@ -1120,7 +1367,12 @@ export class BrineGame {
         f.x += clamp(dx, -sp * DT, sp * DT); f.z += clamp(dz, -d.zs * DT, d.zs * DT); f.z = clamp(f.z, 0, DEPTH);
         f.st = Math.abs(dx) > 6 || Math.abs(dz) > 6 ? 'walk' : 'idle';
         f.face = sgn(p.x - f.x);
-        if (want && Math.abs(dx) < 16 && Math.abs(p.z - f.z) < 16 && p.h < 60) {
+        // an elite crab rushes in from further off, pincers first
+        if (want && f.elite && f.kind === 'crab' && !f.trick && Math.abs(p.x - f.x) < 280 && Math.abs(p.x - f.x) > 110 && Math.abs(p.z - f.z) < 20 && p.h < 60) {
+          f.st = 'wind'; f.t = 0; f.trick = 1; f.face = sgn(p.x - f.x); this.sfx('tell');
+          this.ev({ k: 'ring', x: f.x + f.face * 120, z: f.z, size: 60, col: '#ffd27a', life: 0.6 });
+        }
+        else if (want && Math.abs(dx) < 16 && Math.abs(p.z - f.z) < 16 && p.h < 60) {
           f.st = 'wind'; f.t = 0;
           if (f.kind === 'urchin') this.sfx('urchinTell');
           if (f.kind === 'lobster') this.sfx('lobsterTell');
@@ -1149,6 +1401,13 @@ export class BrineGame {
           if (f.t > d.atk) { f.st = 'rec'; f.t = 0; f.daze = this.assist ? 1.8 : 1.3; this.releaseToken(f); }
           break;
         }
+        if (f.elite && f.kind === 'crab' && f.trick === 1) {
+          if (f.t < 0.26) { f.x += f.face * 820 * DT; if (Math.floor(f.t * 30) % 3 === 0) this.ev({ k: 'dust', x: f.x, z: f.z, n: 1, size: 0.7 }); }
+          if (!f.didHit && f.t > 0.02 && this.inFront(f, p, 70, 24, 0, 60) && !out) { f.didHit = true; this.hurtHero(p, d.dmg * 1.2, f.x, 320); }
+          // a rush that misses overshoots into a dizzy spell: the opening to get under the gold shell
+          if (f.t > 0.45) { f.t = 0; f.trick = 0; if (f.didHit) f.st = 'rec'; else { f.st = 'daze'; f.daze = this.assist ? 1.6 : 1.1; this.releaseToken(f); } }
+          break;
+        }
         const lunge = f.kind === 'lobster' ? 200 : f.kind === 'puffer' ? 320 : 260;
         if (f.t < 0.08) f.x += f.face * lunge * DT;
         if (!f.didHit && f.t > 0.04) { f.didHit = true; if (this.inFront(f, p, d.reach * (this.assist ? 0.9 : 1), 22, 0, 60)) this.hurtHero(p, f.script === 'weak' ? 4 : f.ctr ? this.punish(d.dmg) : d.dmg, f.x, f.kind === 'lobster' ? 340 : 260); }
@@ -1158,7 +1417,7 @@ export class BrineGame {
       case 'roll':
         f.x += f.face * (f.kind === 'urchin' ? 380 : 430) * DT;
         if (!f.didHit && Math.abs(p.x - f.x) < 55 && Math.abs(p.z - f.z) < 26 && p.h < 40) { f.didHit = true; this.hurtHero(p, d.dmg, f.x, 330); }
-        for (const o of this.foes) if (f.kind === 'urchin' && o !== f && !f.hitList.includes(o) && this.hittable(o) && o.kind !== 'urchin' && Math.abs(o.x - f.x) < 50 && Math.abs(o.z - f.z) < 24) { f.hitList.push(o); this.damageFoe(o, 1.5, { kb: f.face * 300, down: true, by: 'item', x: o.x, h: 30 }); }
+        for (const o of this.foes) if (f.kind === 'urchin' && o !== f && o.id !== f.link && !f.hitList.includes(o) && this.hittable(o) && o.kind !== 'urchin' && Math.abs(o.x - f.x) < 50 && Math.abs(o.z - f.z) < 24) { f.hitList.push(o); this.damageFoe(o, 1.5, { kb: f.face * 300, down: true, by: 'item', x: o.x, h: 30 }); }
         if (f.t > d.atk || f.x < this.camL + 20 || f.x > this.camR - 20) { f.st = 'rec'; f.t = 0; f.hitList = []; f.x = clamp(f.x, this.camL + 20, this.camR - 20); }
         break;
       case 'rec':
@@ -1172,15 +1431,18 @@ export class BrineGame {
         break;
       case 'hurt':
         f.x += f.vx * DT; f.vx *= Math.pow(0.01, DT);
+        if (f.vz && f.z > 0) { f.z += f.vz * DT; f.vz *= Math.pow(0.02, DT); }
         if (flier(f)) { f.vh -= 300 * DT; f.h = Math.max(f.h > 20 ? 30 : 0, f.h + f.vh * DT); }
         if (f.t > 0.34) { f.st = flier(f) && f.h > 20 ? 'hover' : f.daze > 0 ? 'daze' : 'idle'; f.t = 0; f.cd = Math.max(f.cd, 0.5); if (f.kind === 'jelly') f.h = Math.max(f.h, 60); }
         break;
       case 'down':
         f.x += f.vx * DT; f.vx *= Math.pow(0.05, DT);
+        if (f.vz) { f.z += f.vz * DT; f.vz *= Math.pow(0.02, DT); if (Math.abs(f.vz) < 8 || f.z < 0) f.vz = f.z < 0 ? f.vz : 0; }
         if (f.h > 0 || f.vh > 0) { f.vh -= GRAV * DT; f.h += f.vh * DT; if (f.h <= 0) { f.h = 0; f.vh = 0; this.ev({ k: 'dust', x: f.x, z: f.z, n: 4, size: 1 }); f.t = 0; } }
         else if (f.t > (this.assist ? 1.0 : 0.75) + (f.flipped ? 1.2 : 0)) { f.st = 'up'; f.t = 0; }
         break;
       case 'up':
+        f.vz = 0;
         if (f.t > 0.3) { f.flipped = false; f.st = f.daze > 0 ? 'daze' : flier(f) ? 'lift' : 'idle'; f.t = 0; f.cd = Math.max(f.cd, 0.6); if (f.kind === 'jelly') f.h = 70; }
         break;
       case 'daze': case 'tangled':
@@ -1213,6 +1475,7 @@ export class BrineGame {
         break;
       case 'hover': {
         if (f.daze > 0) { f.st = 'crash'; f.t = 0; break; }
+        if (f.cargo) { this.ferry(f, p, out); break; }
         const side = sgn(f.x - p.x) || 1, corm = f.kind === 'cormorant';
         const tx = clamp(p.x + side * (corm ? 170 : 150), this.camL + 60, this.camR - 60), tz = clamp(p.z - 10, 0, DEPTH);
         f.x += clamp(tx - f.x, -d.spd * 0.6 * DT, d.spd * 0.6 * DT); f.z += clamp(tz - f.z, -d.zs * DT, d.zs * DT);
@@ -1228,6 +1491,7 @@ export class BrineGame {
         if (f.h > 0) { f.vh -= GRAV * DT; f.h = Math.max(0, f.h + f.vh * DT); }
         break;
       case 'lift':
+        f.trick = f.cargo ? f.trick : 0;
         f.h += 260 * DT; if (f.h > 110) { f.st = 'hover'; f.t = 0; f.cd = d.cd + this.rr(0, 1); }
         break;
       case 'perch':
@@ -1251,13 +1515,32 @@ export class BrineGame {
         f.x += f.vx * DT; f.vh -= 1400 * DT; f.h += f.vh * DT;
         for (const o of this.foes) {
           if (o === f || f.hitList.includes(o) || !this.hittable(o)) continue;
-          if (Math.abs(o.x - f.x) < 60 && Math.abs(o.z - f.z) < 34 && o.h < f.h + 60) { f.hitList.push(o); this.damageFoe(o, 3, { kb: sgn(f.vx) * 420, down: true, heavy: true, by: 'item', x: o.x, h: 40, snd: 'slam' }); }
+          if (Math.abs(o.x - f.x) < 60 && Math.abs(o.z - f.z) < 34 && o.h < f.h + 60) { f.hitList.push(o); if (!f.hitList.includes(STYLED)) { f.hitList.push(STYLED); this.style('throw'); } this.damageFoe(o, 3, { kb: sgn(f.vx) * 420, down: true, heavy: true, by: 'item', x: o.x, h: 40, snd: 'slam' }); }
         }
         const b = this.boss;
         if (b && b.st !== 'end' && !f.hitList.includes(b) && Math.abs(this.bossX() - f.x) < 140 && Math.abs(b.z - f.z) < 70) { f.hitList.push(b); this.damageBoss(3, 'item', f.x, f.h, true); f.vx *= -0.3; }
         if (f.h <= 0 || f.x < this.camL - 40 || f.x > this.camR + 40) { f.h = Math.max(0, f.h); this.koFoe(f, f.vx * 0.4); }
         break;
       }
+      case 'drop': {
+        // a crab let go by a ferrying gull: it falls, and lands squashed and dizzy (on you, if you stood under the ring)
+        f.vh -= GRAV * DT; f.h += f.vh * DT;
+        if (f.h <= 0) {
+          f.h = 0; f.vh = 0; f.st = 'daze'; f.t = 0; f.daze = this.assist ? 1.8 : 1.3; f.trick = 1;
+          this.ev({ k: 'dust', x: f.x, z: f.z, n: 6, size: 1 }); this.sfx('land');
+          if (f.script === 'aimed' && !out && Math.abs(p.x - f.x) < 52 && Math.abs(p.z - f.z) < 28 && p.h < 50) this.hurtHero(p, 8, f.x, 200);
+          f.script = '';
+        }
+        break;
+      }
+      case 'hooked':
+        // hoisted away on the crane hook
+        f.h += 250 * DT; f.face = Math.sin(f.t * 9) > 0 ? 1 : -1;
+        if (f.t > 1.3) {
+          f.dead = true; this.stats.kos++; this.stats.score += FD[f.kind].score * (f.elite ? 3 : 1);
+          if (f.elite) { this.stats.elites++; this.addItem('glantern', clamp(f.x, this.camL + 60, this.camR - 80), clamp(f.z + 30, 10, DEPTH - 10), 160, 0, 100); }
+        }
+        break;
       case 'ko':
         f.x += f.vx * DT; f.z += f.vz * DT; f.vh -= GRAV * DT; f.h += f.vh * DT;
         if (f.z < -14 && f.h < -10 && !f.splashed) { f.splashed = true; this.ev({ k: 'splash', x: f.x }); this.sfx('splash'); }
@@ -1266,27 +1549,43 @@ export class BrineGame {
     }
     if (this.scene.ride && !flier(f) && !f.dead && (f.st === 'down' || f.st === 'hurt' || f.st === 'thrown') && (f.x < this.camL + 24 || f.x > this.camR - 24)) this.overboard(f);
     // the gull's tell and dive
-    if (f.kind === 'gull' && f.st === 'wind') {
+    if (f.kind === 'gull' && f.st === 'wind' && f.cargo) {
+      const T = this.assist ? 0.95 : 0.7;
+      if (f.t < T * 0.6) { f.tx = p.x; f.tz = p.z; }
+      f.x += clamp(f.tx - f.x, -380 * DT, 380 * DT); f.z += clamp(f.tz - f.z, -200 * DT, 200 * DT); f.h += (175 - f.h) * DT * 4;
+      if (f.t > T) { this.dropCargo(f, true); this.releaseToken(f); f.st = 'hover'; f.t = 0; }
+    }
+    else if (f.kind === 'gull' && f.st === 'wind') {
       if (f.t > d.wind * slowW) { f.st = 'dive'; f.t = 0; f.didHit = false; f.tx = p.x; f.tz = p.z; this.sfx('whoosh'); }
       else { f.tx = p.x; f.tz = p.z; f.face = sgn(p.x - f.x); f.h += (150 - f.h) * DT * 4; }
     }
     if (f.kind === 'gull' && f.st === 'dive') {
       const dx = f.tx - f.x, dz = f.tz - f.z, dh = -f.h, L3 = Math.hypot(dx, dz, dh) || 1, sp = 640 * DT;
-      if (L3 <= sp) { f.x = f.tx; f.z = f.tz; f.h = 0; f.st = 'crash'; f.t = 0; f.daze = this.assist ? 1.7 : 1.15; this.releaseToken(f); this.ev({ k: 'dust', x: f.x, z: f.z, n: 6, size: 1 }); this.sfx('land'); }
+      if (L3 <= sp && f.elite && !f.trick) { f.trick = 1; f.st = 'wind'; f.t = 0.2; f.h = 30; this.sfx('shriek'); }
+      else if (L3 <= sp) { f.x = f.tx; f.z = f.tz; f.h = 0; f.st = 'crash'; f.t = 0; f.daze = this.assist ? 1.7 : 1.15; this.releaseToken(f); this.ev({ k: 'dust', x: f.x, z: f.z, n: 6, size: 1 }); this.sfx('land'); }
       else { f.x += dx / L3 * sp; f.z += dz / L3 * sp; f.h += dh / L3 * sp; }
       if (!f.didHit && Math.abs(p.x - f.x) < 50 && Math.abs(p.z - f.z) < 26 && Math.abs(p.h + 80 - f.h) < 90) { f.didHit = true; this.hurtHero(p, d.dmg, f.x); }
     }
     // the cormorant: it hovers high, a ring follows you on the boards and locks, then it drops straight down beak first
     if (f.kind === 'cormorant' && f.st === 'wind') {
-      const T = this.assist ? 1.25 : 0.95;
-      if (f.t < T * 0.65) { f.tx = clamp(p.x, this.camL + 60, this.camR - 60); f.tz = p.z; }
+      const T = this.assist ? 1.25 : 0.95, bar = f.script === 'bomber' ? this.props.find((pr) => pr.alive && pr.sid === 'bomb') : undefined;
+      if (bar) { f.tx = bar.x; f.tz = bar.z; }
+      else if (f.t < T * 0.65) { f.tx = clamp(p.x, this.camL + 60, this.camR - 60); f.tz = p.z; }
       f.x += clamp(f.tx - f.x, -420 * DT, 420 * DT); f.z += clamp(f.tz - f.z, -200 * DT, 200 * DT); f.h += (205 - f.h) * DT * 4; f.face = sgn(p.x - f.x) || f.face;
       if (f.t > T) { f.st = 'dive'; f.t = 0; f.didHit = false; this.sfx('whoosh'); }
     }
     if (f.kind === 'cormorant' && f.st === 'dive') {
       f.x += clamp(f.tx - f.x, -500 * DT, 500 * DT); f.z += clamp(f.tz - f.z, -300 * DT, 300 * DT); f.h -= 950 * DT;
       if (!f.didHit && f.h < 90 && Math.abs(p.x - f.x) < 48 && Math.abs(p.z - f.z) < 26 && p.h < f.h + 40 && !out) { f.didHit = true; this.hurtHero(p, d.dmg, f.x, 300); }
-      if (f.h <= 0) {
+      const bar = f.script === 'bomber' ? this.props.find((pr) => pr.alive && pr.sid === 'bomb' && Math.abs(pr.x - f.x) < 50 && Math.abs(pr.z - f.z) < 30) : undefined;
+      if (f.h <= 40 && bar) {
+        // it lands on the barrel and sends it rolling at you
+        bar.alive = false; f.script = '';
+        this.rolls.push({ lane: this.laneOf(bar.z), x: bar.x, t: 0, tell: this.assist ? 0.45 : 0.3, hit: [f], kind: 'barrel', keep: false, passed: false, dir: sgn(p.x - bar.x) || -1 });
+        this.sfx('thunk'); this.ev({ k: 'word', x: bar.x, z: bar.z, h: 120, text: 'BOMBS AWAY!', col: '#ffb48a' }); this.learned.bomber = 1;
+      }
+      if (f.h <= 0 && f.elite && !f.trick && !f.didHit) { f.h = 0; f.trick = 1; f.st = 'wind'; f.t = 0.3; this.sfx('tell'); this.ev({ k: 'dust', x: f.x, z: f.z, n: 6, size: 1 }); }
+      else if (f.h <= 0) {
         f.h = 0; f.st = 'crash'; f.t = 0; f.daze = this.assist ? 2.4 : 1.7; this.releaseToken(f);
         this.ev({ k: 'dust', x: f.x, z: f.z, n: 8, size: 1.2 }); this.sfx('thunk'); this.shakeBy(3);
         if (!f.didHit) this.learned.corm = (this.learned.corm || 0) + 1;
@@ -1340,6 +1639,29 @@ export class BrineGame {
     f.face = sgn(p.x - f.x); f.st = 'walk';
     if (f.cd <= 0 && p.st !== 'out' && Math.abs(p.x - f.x) < 180 && this.takeToken(f)) { f.st = 'charge'; f.t = 0; this.sfx('jellyHum'); }
   }
+  /** a gull ferrying a crab: it flies over you, a ring marks the drop, then it lets go */
+  private ferry(f: Foe, p: Hero, out: boolean) {
+    const d = FD.gull, tx = clamp(p.x + (sgn(f.x - p.x) || 1) * 60, this.camL + 60, this.camR - 60);
+    f.x += clamp(tx - f.x, -d.spd * 0.7 * DT, d.spd * 0.7 * DT); f.z += clamp(p.z - f.z, -d.zs * DT, d.zs * DT);
+    f.h += (170 + Math.sin(f.anim * 3) * 8 - f.h) * DT * 3; f.face = sgn(p.x - f.x) || f.face;
+    if (f.cd <= 0 && !out && Math.abs(tx - f.x) < 40 && this.takeToken(f)) {
+      f.st = 'wind'; f.t = 0; f.tx = p.x; f.tz = p.z; this.sfx('tell');
+      this.ev({ k: 'ring', x: p.x, z: p.z, size: 64, col: '#ffd27a', life: this.assist ? 0.95 : 0.7 });
+    }
+  }
+  /** an urchin sheltering behind its lobster: it keeps the lobster between you, and rolls out round it */
+  private shielded(f: Foe, p: Hero, out: boolean): boolean {
+    const lob = this.foes.find((o) => o.id === f.link);
+    if (!lob || ['ko', 'held', 'thrown', 'down', 'tangled', 'hooked', 'daze'].includes(lob.st)) { f.script = ''; return false; }
+    const side = sgn(lob.x - p.x) || 1, tx = clamp(lob.x + side * 72, this.camL + 40, this.camR - 40), tz = lob.z;
+    const d = FD.urchin, dx = tx - f.x, dz = tz - f.z;
+    f.x += clamp(dx, -d.spd * DT, d.spd * DT); f.z += clamp(dz, -d.zs * DT, d.zs * DT);
+    f.st = Math.abs(dx) > 6 || Math.abs(dz) > 6 ? 'walk' : 'idle'; f.face = sgn(p.x - f.x) || f.face;
+    if (f.cd <= 0 && !out && (lob.st === 'block' || Math.abs(p.x - f.x) < 320) && Math.abs(p.z - f.z) < 60 && this.takeToken(f)) {
+      f.st = 'wind'; f.t = 0; this.sfx('urchinTell'); f.z = p.z;
+    }
+    return true;
+  }
   /** the tutorial thief: grabs the first lantern, runs to the far side and waits there */
   private thief(f: Foe) {
     const s = this.strings[0], p = this.hero(), sx = s.col * COL;
@@ -1358,6 +1680,24 @@ export class BrineGame {
     for (const it of this.items) {
       if (it.held) continue;
       it.t += DT;
+      if (it.kind === 'netfly') {
+        if (it.h > 0 || it.vh > 0) {
+          it.x += it.vx * DT; it.vh -= 1500 * DT; it.h += it.vh * DT;
+          if (it.h <= 0) {
+            // it lands open: everything under it is pinned for a few seconds, ready to pick up or kick
+            it.h = 0; it.vh = 0; it.vx = 0; it.t = 0; this.shakeBy(4); this.sfx('netLand'); this.ev({ k: 'dust', x: it.x, z: it.z, n: 10, size: 1.4 });
+            let n = 0;
+            for (const o of this.foes) if (this.hittable(o) && o.h < 70 && Math.abs(o.x - it.x) < 130 && Math.abs(o.z - it.z) < 60 && !inHole(o)) {
+              if (o.cargo) this.dropCargo(o, false);
+              this.damageFoe(o, 0.5, { kb: 0, by: 'item', x: o.x, h: 30 });
+              if (this.hittable(o) && o.st !== 'ko') { n++; o.st = 'tangled'; o.t = 0; o.daze = this.assist ? 3.6 : 2.7; o.h = 0; o.vx = 0; this.releaseToken(o); if (o.kind === 'lobster') o.blocks = 0; }
+            }
+            if (n) { this.style('net'); this.stats.weaponHits += n; this.ev({ k: 'word', x: it.x, z: it.z, h: 120, text: n > 1 ? `PINNED ×${n}!` : 'PINNED!', col: '#fff0c8' }); }
+          }
+        } else if (it.t > 3.6) it.dead = true;
+        continue;
+      }
+      if (it.kind === 'glantern' && it.t > 20) it.dead = true;
       if (it.slide) {
         it.x += it.slide * DT; it.slide *= Math.pow(0.5, DT);
         this.itemHits(it, 2, 'slide');
@@ -1382,6 +1722,7 @@ export class BrineGame {
       if (it.hitList.includes(o) || !this.hittable(o)) continue;
       if (Math.abs(o.x - it.x) < 56 && Math.abs(o.z - it.z) < 34 && o.h < it.h + 60) {
         it.hitList.push(o);
+        if (!it.hitList.includes(STYLED)) { it.hitList.push(STYLED); this.style(how === 'slide' ? 'kickitem' : 'throw'); }
         if (o.kind === 'hermit' && o.shell) { o.shell = false; this.addItem('shell', o.x, o.z, 20, -sgn(it.vx || it.slide) * 120, 260); this.sfx('pop'); }
         if (o.kind === 'urchin' && !o.flipped) this.flipUrchin(o);
         this.damageFoe(o, dmg, { kb: sgn(it.vx || it.slide) * 420, down: true, heavy: true, by: 'item', x: o.x, h: 40, snd: 'slam' });
@@ -1422,6 +1763,7 @@ export class BrineGame {
         pr.x += pr.vx * DT; pr.vx *= Math.pow(0.45, DT);
         for (const o of this.foes) if (!pr.hitList.includes(o) && this.hittable(o) && o.h < 50 && Math.abs(o.x - pr.x) < 60 && Math.abs(o.z - pr.z) < 34) {
           pr.hitList.push(o);
+          if (!pr.hitList.includes(STYLED)) { pr.hitList.push(STYLED); this.style('ice'); }
           if (o.kind === 'urchin') this.flipUrchin(o);
           this.damageFoe(o, 2.6, { kb: sgn(pr.vx) * 440, down: true, heavy: true, by: 'item', x: o.x, h: 30, snd: 'slam' });
         }
@@ -1448,16 +1790,116 @@ export class BrineGame {
   private spawnGroup(g: string, alt: number) {
     let i = 0;
     for (const tok of g.split(/\s+/).filter(Boolean)) {
-      const m = /^(<)?([a-z]+)(>)?(?:@(\d))?$/.exec(tok); if (!m) continue;
-      const kind = m[2] as FoeKind, side = m[1] ? -1 : m[3] ? 1 : (i++ % 2 ? -1 : 1) * alt;
-      const lane = m[4] !== undefined ? +m[4] : -1;
+      const m = /^(<)?([a-z]+)(\*)?(>)?(?:@(\d))?$/.exec(tok); if (!m) continue;
+      const side = m[1] ? -1 : m[4] ? 1 : (i++ % 2 ? -1 : 1) * alt;
+      const lane = m[5] !== undefined ? +m[5] : -1;
+      if (m[2] === 'ferry' || m[2] === 'shield' || m[2] === 'bomber') { this.spawnCombo(m[2], side); continue; }
+      const kind = m[2] as FoeKind;
       const f = this.spawnFoe(kind, side, lane >= 0 ? { lane } : {});
+      if (m[3]) { f.elite = true; f.hp *= 2.3; f.max = f.hp; f.trick = 0; }
       if (lane >= 0) f.x += side * this.foes.filter((o) => o.lane === lane && o !== f && o.st === 'enter').length * 70;
       const w = this.wave;
       if (w && w.def.lantern !== undefined) {
         const s = this.strings[w.def.lantern];
         if (s && w.carriers < s.need) { f.lantern = w.def.lantern; w.carriers++; }
       }
+    }
+  }
+  /** foes that work together: a gull ferrying a crab, a lobster shielding an urchin, a cormorant and a barrel */
+  private spawnCombo(kind: string, side: number) {
+    const p = this.hero();
+    if (kind === 'ferry') { const f = this.spawnFoe('gull', side, { cargo: true, script: 'ferry' }); f.h = 170; return; }
+    if (kind === 'shield') {
+      const lob = this.spawnFoe('lobster', side, { script: 'shield' });
+      const u = this.spawnFoe('urchin', side, { script: 'shielded', link: lob.id }); u.x += side * 80; u.z = lob.z;
+      return;
+    }
+    // the bomber: a barrel stood in your lane on the far side, and a cormorant that dives onto it
+    const z = LANE_Z[this.laneOf(p.z)], bx = clamp(p.x + side * 300, this.camL + 90, this.camR - 110);
+    this.props.push({ id: this.nid++, kind: 'barrel', x: bx, z, hp: 2, content: '', sid: 'bomb', alive: true, vx: 0, hitList: [], fall: 0, down: false, flash: 0 });
+    this.ev({ k: 'dust', x: bx, z, n: 6, size: 1 });
+    this.spawnFoe('cormorant', side, { script: 'bomber' });
+  }
+  /** a ferrying gull lets its crab go: on you if it was the drop, harmlessly if it was knocked out of its feet */
+  private dropCargo(f: Foe, aimed: boolean) {
+    if (!f.cargo) return;
+    f.cargo = false; f.script = ''; f.trick = 1; f.cd = 1.4;
+    const c = this.spawnFoe('crab', 1, { x: f.x, z: f.z, h: Math.max(30, f.h - 30), st: 'drop', t: 0, vh: aimed ? -80 : 120, script: aimed ? 'aimed' : '' });
+    c.face = f.face; this.sfx(aimed ? 'whoosh' : 'pop');
+  }
+  /** crane hooks, oil slicks and the harbour edge */
+  private updHazards() {
+    for (const h of this.hooks) { h.cd -= DT; h.swing = Math.max(0, h.swing - DT); }
+    const sl = this.slicks, edge = !!this.scene.edge;
+    if (!this.hooks.length && !sl.length && !edge) return;
+    for (const f of this.foes) {
+      if (f.st === 'ko' || f.st === 'held' || f.st === 'hooked' || inHole(f) || perched(f)) continue;
+      // knocked: thrown, knocked down, or sent flying by a heavy hit (not just flinching)
+      const knocked = f.st === 'down' || f.st === 'thrown' || (f.st === 'hurt' && Math.abs(f.vx) > 150);
+      // a crane hook snags a foe knocked into it and hoists it away
+      if (knocked && f.h < 170) for (const h of this.hooks) {
+        if (h.cd > 0 || Math.abs(f.x - h.x) > 56 || Math.abs(f.z - h.z) > 36) continue;
+        h.cd = 3; h.swing = 1.2; this.releaseToken(f); f.st = 'hooked'; f.t = 0; f.x = h.x; f.z = h.z; f.vx = 0; f.vh = 0; f.vz = 0;
+        if (f.lantern >= 0) { this.lanternFly(f.x, f.z, f.h + 40, f.lantern); f.lantern = -1; }
+        this.hazard(f, 'HOOKED!'); this.sfx('thunk');
+        break;
+      }
+      if (f.st === 'hooked' || flier(f) && f.h > 30) continue;
+      // fish oil: anything that steps (or is knocked) into it skids over
+      if (f.h < 10 && (f.slipT ?? 0) <= 0 && f.st !== 'down' && f.st !== 'up') for (const k of sl) {
+        if (Math.abs(f.x - k.x) > 62 || Math.abs(f.z - k.z) > 24) continue;
+        f.slipT = 2.2; this.releaseToken(f);
+        const dir = knocked ? sgn(f.vx) || -f.face : sgn(f.vx) || f.face;
+        f.st = 'down'; f.t = 0; f.h = 1; f.vh = 260; f.vx = dir * 340; f.daze = Math.max(f.daze, this.assist ? 1.6 : 1.1);
+        this.hazard(f, 'SLIP!'); this.sfx('bump');
+        break;
+      }
+      // the harbour edge
+      if (edge && knocked && f.z <= 3 && (f.vz ?? 0) < -20) {
+        this.koFoe(f, 0); f.vz = -120; f.vh = 300; f.splashed = false;
+        this.hazard(f, 'SPLASH!');
+      }
+    }
+    for (const f of this.foes) if (f.slipT && f.slipT > 0) f.slipT -= DT;
+  }
+  private hazard(f: Foe, text: string) {
+    this.stats.hazards++; this.stats.score += 300; this.style('hazard'); this.learned.hazard = (this.learned.hazard || 0) + 1;
+    this.ev({ k: 'word', x: f.x, z: f.z, h: f.h + 120, text, col: '#bfe8ff' });
+  }
+  /** the team-up (from the shipyard): Enzo catches Dora and hurls her down the lane like a comet */
+  private startTeam() {
+    const p = this.hero(), d = this.dora, e = this.enzo, dir = p.face;
+    this.teamT = 0; this.fest = 0; this.stats.teams++; this.learned.team = 1; this.teamHits = [];
+    for (const h of [d, e]) { if (h.hold) this.dropHold(h); h.vh = 0; h.vx = 0; }
+    const x = clamp(p.x, this.camL + 90, this.camR - 120);
+    e.x = x - dir * 40; e.z = p.z; e.face = dir; e.h = 0; e.st = 'team'; e.t = 0;
+    d.x = e.x + dir * 20; d.z = p.z; d.face = dir; d.h = 90; d.st = 'team'; d.t = 0; d.airKind = 'ball'; d.dashDir = dir;
+    this.sfx('tag'); this.ev({ k: 'flash', a: 0.25 });
+  }
+  private updTeam() {
+    this.teamT += DT;
+    const t = this.teamT, d = this.dora, e = this.enzo, dir = d.dashDir;
+    d.t += DT; e.t += DT; d.anim += DT; e.anim += DT;
+    if (t < 0.32) { d.h = 90 + Math.sin(t / 0.32 * Math.PI) * 30; d.x = e.x + dir * 20; return; }
+    if (d.airKind === 'ball') { d.airKind = 'comet'; this.sfx('comet'); this.hitstop(0.05); this.ev({ k: 'shock', x: e.x, z: e.z, size: 110 }); }
+    if (d.airKind === 'comet') {
+      d.x += dir * 1150 * DT; d.h = 55;
+      this.ev({ k: 'trail', x: d.x, z: d.z, h: d.h, who: 'dora' });
+      for (const f of this.foes) {
+        if (this.teamHits.includes(f) || !this.hittable(f) || Math.abs(f.z - d.z) > 70 || Math.abs(f.x - d.x) > 80 + f.rad * 0.5 || f.h > 200) continue;
+        this.teamHits.push(f); if (f.cargo) this.dropCargo(f, false);
+        this.damageFoe(f, 4.5, { kb: dir * 460, down: true, heavy: true, by: 'dbl', x: f.x, h: 80, daze: 1.5, snd: 'kick3' });
+      }
+      const b = this.boss;
+      if (b && !this.teamHits.includes(b) && b.st !== 'end' && b.st !== 'gone' && Math.abs(this.bossX() - d.x) < 150 && Math.abs(b.z - d.z) < 110) { this.teamHits.push(b); this.damageBoss(6, 'dbl', d.x + dir * 60, 120, true); }
+      if (this.goal?.kind === 'chase') this.catchThief(d.x, d.z, 0, 260, 110);
+      if (t > 0.85 || (dir > 0 ? d.x >= this.camR - 80 : d.x <= this.camL + 50)) { d.airKind = 'land'; d.t = 0; d.h = 0; this.sfx('land'); this.ev({ k: 'dust', x: d.x, z: d.z, n: 8, size: 1.2 }); if (this.teamHits.length) this.style('team'); }
+      return;
+    }
+    if (d.t > 0.32) {
+      this.teamT = -1; d.x = clamp(d.x, this.camL + 50, this.camR - 80);
+      const q = this.partner(), p = this.hero();
+      Object.assign(q, { st: 'out', h: 0, edgeH: 40 }); this.setSt(p, 'idle'); p.h = 0;
     }
   }
   private updEvents() {
@@ -1524,11 +1966,11 @@ export class BrineGame {
         if (c.kind === 'barrel' && Math.floor(c.t * 6) !== Math.floor((c.t - DT) * 6)) this.ev({ k: 'dust', x: this.camR - 40 - this.rr(0, 120), z: LANE_Z[c.lane], n: 2, size: 0.8 });
         continue;
       }
-      c.x -= (c.kind === 'cart' ? 620 : 560) * DT;
+      c.x += (c.dir ?? -1) * (c.kind === 'cart' ? 620 : 560) * DT;
       const z = LANE_Z[c.lane];
-      if (!c.hit.includes(p) && p.st !== 'out' && Math.abs(p.x - c.x) < 62 && Math.abs(p.z - z) < 28 && p.h < 50) { c.hit.push(p); this.hurtHero(p, c.kind === 'cart' ? 12 : this.assist ? 11 : 12, c.x + 100, 420, true); }
-      if (!c.passed && c.x < p.x - 60) { c.passed = true; if (!c.hit.includes(p)) this.learned.belt = (this.learned.belt || 0) + 1; }
-      for (const f of this.foes) if (!c.hit.includes(f) && this.hittable(f) && f.h < 50 && !inHole(f) && Math.abs(f.x - c.x) < 64 && Math.abs(f.z - z) < 30) { c.hit.push(f); this.damageFoe(f, 3, { kb: -460, down: true, heavy: true, by: 'item', x: f.x, h: 40, snd: 'slam' }); }
+      if (!c.hit.includes(p) && p.st !== 'out' && Math.abs(p.x - c.x) < 62 && Math.abs(p.z - z) < 28 && p.h < 50) { c.hit.push(p); this.hurtHero(p, c.kind === 'cart' ? 12 : this.assist ? 11 : 12, c.x - (c.dir ?? -1) * 100, 420, true); }
+      if (!c.passed && (c.dir ?? -1) * (c.x - p.x) > 60) { c.passed = true; if (!c.hit.includes(p)) this.learned.belt = (this.learned.belt || 0) + 1; }
+      for (const f of this.foes) if (!c.hit.includes(f) && this.hittable(f) && f.h < 50 && !inHole(f) && Math.abs(f.x - c.x) < 64 && Math.abs(f.z - z) < 30) { c.hit.push(f); this.damageFoe(f, 3, { kb: (c.dir ?? -1) * 460, down: true, heavy: true, by: 'item', x: f.x, h: 40, snd: 'slam' }); }
       const b = this.boss;
       if (b && b.kind === 'longshanks' && !c.hit.includes(b) && this.lsStanding(b) && Math.abs(b.x - c.x) < 90 && Math.abs(b.z - z) < 50) { c.hit.push(b); b.hp = Math.max(1, b.hp - 3); this.topple(b, 'BOWLED OVER!'); }
       if (c.keep && c.x < this.camL + 90) {
@@ -1537,7 +1979,7 @@ export class BrineGame {
         this.sfx('thunk'); this.ev({ k: 'dust', x: this.camL + 90, z, n: 6, size: 1 }); c.x = -1e9;
       }
     }
-    this.rolls = this.rolls.filter((c) => c.x > this.camL - 300);
+    this.rolls = this.rolls.filter((c) => c.x > this.camL - 300 && c.x < this.camR + 600);
   }
   // ─────────────────────────────────────────── scene goals: chase, defend, ride, tide
   private startGoal(e: GoalDef) {
@@ -1647,7 +2089,7 @@ export class BrineGame {
     const G = this.goal, p = this.hero(), d = FD[f.kind];
     if (!G || G.kind !== 'defend' || G.done || G.hp <= 0 || f.tok) return false;
     if (Math.abs(p.x - f.x) < 140 && Math.abs(p.z - f.z) < 60) return false;
-    const side = f.x < G.x ? -1 : 1, tx = G.x + side * 78, tz = G.z + 16;
+    const side = f.x < G.x ? -1 : 1, tx = G.x + side * 104, tz = G.z + 6;   // beside the stall, so it stays in sight
     const dx = tx - f.x, dz = tz - f.z;
     f.x += clamp(dx, -d.spd * DT, d.spd * DT); f.z += clamp(dz, -d.zs * DT, d.zs * DT);
     f.face = -side; f.st = Math.abs(dx) > 6 || Math.abs(dz) > 6 ? 'walk' : 'idle';
@@ -2227,7 +2669,11 @@ export class BrineGame {
     if (this.mode !== 'play' || this.dblT >= 0) return null;
     const canTag = q.hp > 0 && q.ready;
     const foe = (f: Foe | null) => !!f && f.st !== 'ko';
+    if (this.teamT >= 0) return null;
+    if (this.moves >= 3 && this.fest >= 100 && !L.team && canTag) return { act: 'team', who: 'hero' };
     if (this.fest >= 100 && !L.dbl && canTag) return { act: 'dbl', who: 'hero' };
+    const mv = this.movePrompt(p, L);
+    if (mv) return mv;
     if (T.stage < 9) {
       if (T.stage === 1) {
         const f = this.foes.find((g) => g.st !== 'ko');
@@ -2352,16 +2798,31 @@ export class BrineGame {
     return null;
   }
 
+  /** the first few times a new move is useful, its keys */
+  private movePrompt(p: Hero, L: Record<string, number>): Prompt | null {
+    const near = (r: number) => this.foes.filter((f) => this.hittable(f) && f.st !== 'enter' && Math.abs(f.x - p.x) < r && Math.abs(f.z - p.z) < 70);
+    if (p.weapon && (L.swing || 0) < 2) return { act: 'atk', who: 'hero', sub: p.weapon.kind === 'net' ? 'throw the net' : 'swing it' };
+    if (this.moves >= 1 && p.name === 'dora' && (L.wall || 0) < 2 && p.h > 20 && !p.airUsed && p.st === 'air' && (p.x <= this.camL + 64 || p.x >= this.camR - 94)) return { act: 'jmp', who: 'hero', sub: 'kick off the wall' };
+    if (this.moves >= 1 && p.name === 'enzo' && (L.spin || 0) < 2 && p.st === 'hold' && near(240).length >= 2) return { act: 'jmp', who: 'hero', sub: 'spin it round' };
+    if (this.moves >= 2 && p.h <= 0 && !p.hold && !p.weapon) {
+      if (p.name === 'dora' && (L.slide || 0) < 2 && near(300).some((f) => f.kind === 'lobster' && (f.st === 'block' || f.st === 'idle' || f.st === 'walk'))) return { act: 'hold', who: 'hero', sub: 'slide under the claws' };
+      if (p.name === 'enzo' && (L.pound || 0) < 2 && p.poundCD <= 0 && (near(220).length >= 3 || near(220).some((f) => f.kind === 'urchin' && !f.flipped))) return { act: 'hold', who: 'hero', sub: 'pound the boards' };
+    }
+    return null;
+  }
   /** what the browser tests and bots read */
   snapshot() {
     const h = (x: Hero) => ({ name: x.name, x: Math.round(x.x), z: Math.round(x.z), h: Math.round(x.h), hp: +x.hp.toFixed(1), st: x.st, face: x.face });
     return {
       mode: this.mode, stage: this.stageId, scene: this.scene.id, sceneI: this.sceneI, t: +this.t.toFixed(2), active: this.active, assist: this.assist,
       heroes: [h(this.dora), h(this.enzo)], cam: Math.round(this.cam), lock: this.lock, evI: this.evI, len: this.len,
-      foes: this.foes.map((f) => ({ kind: f.kind, x: Math.round(f.x), z: Math.round(f.z), h: Math.round(f.h), hp: +f.hp.toFixed(2), st: f.st, shell: f.shell })),
+      foes: this.foes.map((f) => ({ kind: f.kind, x: Math.round(f.x), z: Math.round(f.z), h: Math.round(f.h), hp: +f.hp.toFixed(2), st: f.st, shell: f.shell, elite: !!f.elite, cargo: !!f.cargo })),
       boss: this.boss && { kind: this.boss.kind, hp: +this.boss.hp.toFixed(1), st: this.boss.st, x: Math.round(this.boss.x), armour: this.boss.armour, layers: this.boss.layers, phase: this.boss.phase },
       rolls: this.rolls.map((c) => ({ lane: c.lane, x: Math.round(c.x), rolling: c.t >= c.tell, kind: c.kind })), holes: this.holes.map((h) => ({ x: Math.round(h.x), z: h.z, plug: h.plug })), ink: this.ink.length,
       lanterns: this.strings.map((s) => `${s.got}/${s.need}`).join(' '), fest: Math.round(this.fest), combo: this.combo.n, chain: this.combo.chain,
+      items: this.items.filter((i) => !i.dead).map((i) => ({ kind: i.kind, x: Math.round(i.x), z: Math.round(i.z), h: Math.round(i.h) })),
+      weapon: this.hero().weapon && { ...this.hero().weapon! }, hooks: this.hooks.length, slicks: this.slicks.length, moves: this.moves, team: this.teamT >= 0, rank: RANKS[this.styleRank()],
+      elites: this.foes.filter((f) => f.elite && f.st !== 'ko').length,
       prompt: this.prompt && `${this.prompt.act}@${this.prompt.who}`, tut: this.tut.stage, stats: this.stats, found: [...this.found],
     };
   }

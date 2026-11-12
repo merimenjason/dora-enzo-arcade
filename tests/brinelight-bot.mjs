@@ -8,6 +8,10 @@
 // - tagger: plays the two-hero rule: picks the hero the target wants, tags in mid-combo to chain, double-teams when the
 //   meter is full, and uses the dash special on a line of foes.
 // - soloist: never tags by choice (only when a hero is knocked out), to show what one hero alone can do.
+// The new moves: everyone but the masher follows the prompts for them (hold Attack, Tag + Attack, Jump at the wall or
+// while carrying); the casual bot and the tagger also pick up the pickup weapons lying near, and the tagger uses the
+// moves on its own where they fit (a slide at a guarding lobster, a pound into a crowd or an urchin, a spin with a crowd
+// round Enzo, the team-up when the meter fills from the ropewalk on). Each run reports its style rank.
 // Each runs every built stage over seeds, with assist on (the default) and off. They play the scene goals too: they keep
 // under a gull thief (Dora jumps at it when it swoops), fight raiders at a stall, and run ahead of the tide. A clear within the time cap counts;
 // retries (both heroes down, the wave restarts) are counted separately. Thresholds: with assist on, the casual bot
@@ -24,10 +28,10 @@ const CAP = 15 * 60 * 60;   // 15 minutes of play per stage at most
 function rngOf(seed) { let a = seed >>> 0 || 1; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
 const PERSONAS = {
-  masher: { rate: 6, miss: 0.1, followPrompt: 0.5, dodge: 0, tagWrong: 0, chain: 0, special: 0, dbl: 0.5, right: false, solo: false, secret: 0 },
-  casual: { rate: 5, miss: 0.12, followPrompt: 0.8, dodge: 0.4, tagWrong: 0.5, chain: 0, special: 0.25, dbl: 0.8, right: false, solo: false, secret: 0.2 },
-  tagger: { rate: 5, miss: 0.06, followPrompt: 0.9, dodge: 0.7, tagWrong: 0.9, chain: 0.5, special: 0.6, dbl: 1, right: true, solo: false, secret: 0.6 },
-  soloist: { rate: 5, miss: 0.08, followPrompt: 0, dodge: 0.6, tagWrong: 0, chain: 0, special: 0.3, dbl: 0, right: false, solo: true, secret: 0 },
+  masher: { rate: 6, miss: 0.1, followPrompt: 0.5, dodge: 0, tagWrong: 0, chain: 0, special: 0, dbl: 0.5, right: false, solo: false, secret: 0, moves: 0, gear: 0 },
+  casual: { rate: 5, miss: 0.12, followPrompt: 0.8, dodge: 0.4, tagWrong: 0.5, chain: 0, special: 0.25, dbl: 0.8, right: false, solo: false, secret: 0.2, moves: 0.15, gear: 0.4 },
+  tagger: { rate: 5, miss: 0.06, followPrompt: 0.9, dodge: 0.7, tagWrong: 0.9, chain: 0.5, special: 0.6, dbl: 1, right: true, solo: false, secret: 0.6, moves: 0.5, gear: 0.7 },
+  soloist: { rate: 5, miss: 0.08, followPrompt: 0, dodge: 0.6, tagWrong: 0, chain: 0, special: 0.3, dbl: 0, right: false, solo: true, secret: 0, moves: 0.3, gear: 0.3 },
 };
 
 /** one bot plays one stage; returns the outcome */
@@ -41,7 +45,8 @@ export function playStage(stage, seed, assist, persona) {
   const look = () => {
     const p = g.hero();
     return {
-      p: { x: p.x, z: p.z, h: p.h, st: p.st, name: p.name, hp: p.hp },
+      p: { x: p.x, z: p.z, h: p.h, st: p.st, name: p.name, hp: p.hp, weapon: p.weapon?.kind ?? null, holding: !!p.hold, poundCD: p.poundCD },
+      gear: g.items.filter((i) => !i.dead && !i.held && i.h < 20 && (i.kind === 'fish' || i.kind === 'oar' || i.kind === 'netbag')).map((i) => ({ x: i.x, z: i.z })),
       foes: g.foes.filter((f) => g.hittable(f) && f.st !== 'ko').map((f) => ({ x: f.x, z: f.z, h: f.h, kind: f.kind, st: f.st, want: foeWants(f), lane: f.lane, grab: f.daze > 0 || (f.kind === 'hermit' && f.shell) })),
       boss: g.boss && { x: g.boss.x, z: g.boss.z, h: g.boss.h, st: g.boss.st, kind: g.boss.kind, tz: g.boss.tz, tx: g.boss.tx },
       rolls: g.rolls.filter((c) => c.kind === 'barrel').map((c) => ({ id: c, z: LANE_Z[c.lane], x: c.x })),
@@ -88,6 +93,11 @@ export function playStage(stage, seed, assist, persona) {
       }
       if (G && !G.done && G.kind === 'tide' && p.x < G.front + 170) { mx = 1; if (Math.abs(p.z - 80) > 50) mz = p.z > 80 ? -1 : 1; }
       // carrying out a prompt that points somewhere (a barrel to pick up, a hole to plug): walk there, don't punch
+      // a pickup weapon lying near, with nobody in the way: go and get it
+      if (P.gear && !p.weapon && !p.holding && !held.goto && v.gear.length && (!tgt || Math.abs(tgt.x - p.x) > 200)) {
+        const it = v.gear.reduce((a, b) => (Math.abs(a.x - p.x) < Math.abs(b.x - p.x) ? a : b));
+        if (Math.abs(it.x - p.x) < 320 && r() < P.gear / 4) held.goto = { x: it.x, z: it.z, n: 50 };
+      }
       if (held.goto && held.goto.n > 0) {
         held.goto.n--; held.grabbing = true;
         mx = Math.abs(held.goto.x - p.x) > 16 ? Math.sign(held.goto.x - p.x) : 0; mz = Math.abs(held.goto.z - p.z) > 10 ? Math.sign(held.goto.z - p.z) : 0;
@@ -108,7 +118,15 @@ export function playStage(stage, seed, assist, persona) {
         const pr = v.prompt;
         const follow = pr && r() < P.followPrompt;
         const near = tgt && Math.abs(tgt.x - p.x) < 150 && Math.abs(tgt.z - p.z) < 40;
-        if (follow && (pr.act === 'grab' || pr.act === 'plug') && pr.x !== undefined && boss) held.goto = { x: pr.x, z: pr.z, n: 50 };
+        const crowd = v.foes.filter((f) => Math.abs(f.x - p.x) < 200 && Math.abs(f.z - p.z) < 60 && f.h < 40);
+        if (follow && pr.act === 'hold') held.holdAtk = 24;
+        else if (follow && pr.act === 'team') { inp.tagP = true; inp.atkP = true; }
+        else if (g.moves >= 3 && P.moves && v.fest >= 100 && v.partnerOk && near && r() < P.moves) { inp.tagP = true; inp.atkP = true; }
+        else if (g.moves >= 2 && P.moves && !p.weapon && !p.holding && p.h <= 0 && r() < P.moves * 0.5 && (
+          (p.name === 'dora' && crowd.some((f) => f.kind === 'lobster' && (f.st === 'block' || f.st === 'idle' || f.st === 'walk'))) ||
+          (p.name === 'enzo' && p.poundCD <= 0 && (crowd.length >= 3 || crowd.some((f) => f.kind === 'urchin' && f.st !== 'roll'))))) held.holdAtk = 24;
+        else if (g.moves >= 1 && P.moves && p.name === 'enzo' && p.st === 'hold' && crowd.length >= 2 && r() < P.moves) inp.jmpP = true;
+        else if (follow && (pr.act === 'grab' || pr.act === 'plug') && pr.x !== undefined && boss) held.goto = { x: pr.x, z: pr.z, n: 50 };
         else if (follow && pr.act === 'move' && Math.abs(pr.dir) === 2) held.laneMove = { mz: Math.sign(pr.dir), n: 24 };
         else if (follow && pr.act === 'tag') inp.tagP = true;
         else if (follow && pr.act === 'jmp') { inp.jmpP = true; held.airAtk = 10 + Math.round(r() * 8); }
@@ -126,6 +144,7 @@ export function playStage(stage, seed, assist, persona) {
         if (P.solo && inp.tagP) inp.tagP = false;
       }
       if (held.airAtk > 0) { held.airAtk--; if (held.airAtk === 0) inp.atkP = true; }
+      if (held.holdAtk > 0) { if (held.holdAtk === 24) inp.atkP = true; held.holdAtk--; inp.atkH = true; }
       // the special: double-tap toward the line, jump, then attack, with human timing
       if (tapPlan.length) {
         const s = tapPlan.shift();
@@ -139,7 +158,7 @@ export function playStage(stage, seed, assist, persona) {
     }
     g.step(inp);
   }
-  return { goals: g.stats.goals, goalsLost: g.stats.goalsLost, overboard: g.stats.overboard, cleared: g.mode === 'clear', time: g.stats.time, retries: g.stats.retries, dmg: g.stats.dmg, specials: g.stats.specials, specialHits: g.stats.specialHits, specialLanded: g.stats.specialLanded, spTries: sp.tries, spLanded: sp.landed, tags: g.stats.tags, chains: g.stats.tagChains, tinks: g.stats.tinks, dbls: g.stats.dbls, found: g.newFound.length, bossTime: g.stats.bossTime, frames: frame, game: g };
+  return { goals: g.stats.goals, goalsLost: g.stats.goalsLost, overboard: g.stats.overboard, cleared: g.mode === 'clear', time: g.stats.time, retries: g.stats.retries, dmg: g.stats.dmg, specials: g.stats.specials, specialHits: g.stats.specialHits, specialLanded: g.stats.specialLanded, spTries: sp.tries, spLanded: sp.landed, tags: g.stats.tags, chains: g.stats.tagChains, tinks: g.stats.tinks, dbls: g.stats.dbls, found: g.newFound.length, rank: g.styleRank(), moves: g.stats.wallKicks + g.stats.spins + g.stats.slides + g.stats.pounds + g.stats.teams, weaponHits: g.stats.weaponHits, hazards: g.stats.hazards, elites: g.stats.elites, bossTime: g.stats.bossTime, frames: frame, game: g };
 }
 function lineAhead(v) {
   for (const dir of [1, -1]) {
@@ -178,10 +197,12 @@ if (MAIN) for (const assist of [true, false]) {
         spTries: res.reduce((a, x) => a + x.spTries, 0), spDone: res.reduce((a, x) => a + x.specials, 0), spLanded: res.reduce((a, x) => a + x.specialLanded, 0), specialHits: res.reduce((a, x) => a + x.specialHits, 0) / n,
         chains: res.reduce((a, x) => a + x.chains, 0) / n, tinks: res.reduce((a, x) => a + x.tinks, 0) / n, dbls: res.reduce((a, x) => a + x.dbls, 0) / n,
         goals: res.reduce((a, x) => a + x.goals, 0), goalsLost: res.reduce((a, x) => a + x.goalsLost, 0), overboard: res.reduce((a, x) => a + x.overboard, 0) / n,
+        rank: res.reduce((a, x) => a + x.rank, 0) / n, ranks: [0, 1, 2, 3].map((k) => res.filter((x) => x.rank === k).length), moves: res.reduce((a, x) => a + x.moves, 0) / n,
+        weaponHits: res.reduce((a, x) => a + x.weaponHits, 0) / n, hazards: res.reduce((a, x) => a + x.hazards, 0) / n, elites: res.reduce((a, x) => a + x.elites, 0) / n,
         boss: Object.values(cl[0]?.bossTime ?? {})[0] ? cl.reduce((a, x) => a + (Object.values(x.bossTime)[0] || 0), 0) / cl.length : 0,
       };
       table[`${assist ? 'on' : 'off'}|${persona}|${st}`] = row;
-      console.log(`assist ${assist ? 'on ' : 'off'} ${persona.padEnd(8)} ${st}: clear ${(row.clear * 100).toFixed(0).padStart(3)}%  no-retry ${(row.clean * 100).toFixed(0).padStart(3)}%  retries ${row.retries.toFixed(2)}  hurt ${row.dmg.toFixed(0).padStart(3)}  time ${row.time.toFixed(0).padStart(4)}s  boss ${row.boss.toFixed(0).padStart(3)}s  chains ${row.chains.toFixed(1)}  tinks ${row.tinks.toFixed(0)}  special: ${row.spTries} tried, ${row.spDone} done, ${row.spLanded} landed, ${row.specialHits.toFixed(1)} foes hit/run  dbl ${row.dbls.toFixed(1)}  goals ${row.goals} won, ${row.goalsLost} lost, ${row.overboard.toFixed(1)} overboard/run`);
+      console.log(`assist ${assist ? 'on ' : 'off'} ${persona.padEnd(8)} ${st}: clear ${(row.clear * 100).toFixed(0).padStart(3)}%  no-retry ${(row.clean * 100).toFixed(0).padStart(3)}%  retries ${row.retries.toFixed(2)}  hurt ${row.dmg.toFixed(0).padStart(3)}  time ${row.time.toFixed(0).padStart(4)}s  boss ${row.boss.toFixed(0).padStart(3)}s  chains ${row.chains.toFixed(1)}  tinks ${row.tinks.toFixed(0)}  special: ${row.spTries} tried, ${row.spDone} done, ${row.spLanded} landed, ${row.specialHits.toFixed(1)} foes hit/run  dbl ${row.dbls.toFixed(1)}  goals ${row.goals} won, ${row.goalsLost} lost, ${row.overboard.toFixed(1)} overboard/run  style C/B/A/S ${row.ranks.join('/')}  moves ${row.moves.toFixed(1)}  weapon hits ${row.weaponHits.toFixed(1)}  hazards ${row.hazards.toFixed(1)}  elites ${row.elites.toFixed(1)}`);
     }
   }
 }
@@ -193,10 +214,15 @@ if (MAIN && !ONLY) {
   assert.ok(avg('casual', 'retries') <= 1, 'a casual player rarely retries in area 1');
   assert.ok(avg('masher', 'clear') >= 0.7, 'a masher gets through area 1 with assist on');
   for (const st of stages) assert.ok(table[`on|tagger|${st}`].clear >= 0.9, `the tagger clears ${st}`);
-  // area 3 is a step up, but with assist on the casual player and the tagger still get through without retrying
-  for (const st of ['3-1', '3-2', '3-3']) {
+  // with assist on the casual player and the tagger get through every stage without retrying, and the masher with a
+  // retry now and then
+  for (const st of stages) {
     for (const p of ['casual', 'tagger']) assert.ok(table[`on|${p}|${st}`].clean >= 0.9, `the ${p} clears ${st} without a retry`);
     assert.ok(table[`on|masher|${st}`].clear >= 0.8, `the masher gets through ${st}`);
   }
+  // the style rank spreads: a masher repeating one attack ranks lower than the tagger mixing everything
+  const rk = (p) => stages.reduce((s, st) => s + table[`on|${p}|${st}`].rank, 0) / stages.length;
+  console.log(`style rank (0 C … 3 S), assist on: masher ${rk('masher').toFixed(2)}, casual ${rk('casual').toFixed(2)}, tagger ${rk('tagger').toFixed(2)}, soloist ${rk('soloist').toFixed(2)}`);
+  assert.ok(rk('tagger') > rk('masher') && rk('masher') > rk('soloist'), 'mixing it up ranks higher than mashing, and both higher than one hero alone');
   console.log('brinelight bots ok');
 }
