@@ -28,6 +28,10 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 **Working practice that held up this round:** build in a worktree off `origin/main` with `node_modules` symlinked; one agent per game, stopping at an open PR; review its contact sheet of screenshots before asking to merge. Stacked PRs: merge the child into its parent branch first, then the parent into `main`, which avoids a force-push (the auto-mode classifier blocks force-pushes and `git worktree remove`). Merge only when the user says "merge N".
 
+## Playpen reference (12-11-2026)
+
+Six photos of the real playpen and of Dora and Enzo close up are in `public/art/` (`playpen-*.jpg`, `duo-pine-box-*.jpg`). [`docs/playpen-reference.md`](docs/playpen-reference.md) describes them, both coats and the pen's floor plan, and covers `docs/playpen-prototype.html`: a one-file 3D model of the pen with shell-furred chinchillas that roam it. The prototype is not arcade code (Three.js r128 globals, untyped, no tests). When the next 3D game needs a realistic chinchilla, port its `chin()` into a shared `lib/chinchilla-3d.ts`; the doc lists what has to change.
+
 ## Brinelight (12-11-2026)
 
 **Game 98, `/brinelight`:** the magnum opus from `docs/codex-magnum-opus.md`, built from the round-two feel test. A two-hero tag-team belt brawler; areas 1 (Lantern Quay), 2 (The Fish Market) and 3 (The Ropewalk and Shipyard: the belt barrels, eels, cormorants, inkers, Longshanks and Old Tanglejaw) are built to full quality, nine stages in all. Rules, numbers, bot results and the layout are in [`docs/brinelight.md`](docs/brinelight.md).

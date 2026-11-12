@@ -19,6 +19,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 - **Brinelight**: only Dora kicking in the air, or something thrown, catches the gull thief in a chase; hits from the boards no longer count. Raiders at a defended stall now stand beside it, and anyone in front of the stall is drawn see-through, so its painting stays readable. The ropewalk and second market-view sunsets are repainted warmer, so they no longer look like night. On a phone held sideways, the results card now fits without scrolling.
 - **Brinelight**: Enzo grabs by walking into a dazed foe, a shelled hermit, a shell or a barrel, so mashing Attack keeps him punching instead of carrying crabs about; one press still throws. Bosses teach without words: a ring or a run of arrows on the boards before every dangerous move, the first wind-up of each move held a little longer, and at each new phase the face of the hero whose job it is with the key to press. In the Fish Market with assist on, a lobster's counter, spines and a charged jelly bite harder with every wrong hit in a row, so pure mashing sometimes costs a retry while reading the foes stays easy. Each scene has its own far painting (five new ones), and on a phone held upright the play view fills about three quarters of the screen with the controls in a compact panel below.
 
+### Documentation
+
+- **Playpen reference**: six new photos of Dora and Enzo's real playpen and of the two of them side by side are in `public/art/`, and [`docs/playpen-reference.md`](docs/playpen-reference.md) says what each shows, describes both coats, and gives the pen's floor plan. A 3D prototype built from the photos, with furred chinchillas that roam the pen, is kept beside it as source material for future 3D games; it is not in the arcade menu.
+
 ## 11-11-2026
 
 ### Added
