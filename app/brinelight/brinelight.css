@@ -78,3 +78,8 @@
   .bl-map-art{height:calc(100vh - 24px)}
   .bl-area{width:300px}
 }
+/* the festival breathers: the canvas draws the game; the page adds Skip and the reward card */
+.bl-fest{position:absolute;inset:0;pointer-events:none}
+.bl-fest .bl-skip,.bl-fest .bl-overlay{pointer-events:auto}
+.bl-skip{position:absolute;top:12px;right:12px}
+.bl-festend{text-align:center}

@@ -9,7 +9,7 @@
 // the combo and starts a tag chain, and chains fill the Festival meter for the double-team (Attack + Jump).
 import {
   AREAS, STAGES, SCENES, COL, LANE_Z, BOSS_NAME,
-  type SceneDef, type WaveDef, type BossKind, type FoeKind, type NpcId, type EventDef,
+  type SceneDef, type WaveDef, type BossKind, type FoeKind, type NpcId, type EventDef, type GoalDef,
 } from './brinelight-levels.js';
 
 export { AREAS, STAGES, SCENES, COL, LANE_Z, BOSS_NAME };
@@ -145,6 +145,19 @@ export interface Stats {
   retries: number; tinks: number; dashes: number; dashAtks: number; specials: number; specialHits: number; specialLanded: number; dbls: number;
   bossTime: Record<string, number>; jumps: number; airHits: number; score: number; lanterns: number; scenes: number;
   wrongHits: number; kos: number; snacks: number;
+  /** scene goals won and lost (a lost goal only costs its lanterns), and foes knocked overboard on a ride */
+  goals: number; goalsLost: number; overboard: number;
+}
+/** a scene goal under way (see GoalDef): the thief (chase) or the stall (defend) is x/z/h/hp; `front` is the tide's edge */
+export interface Goal {
+  def: GoalDef; kind: GoalDef['kind']; t: number; done: boolean; won: boolean; group: number; groupT: number;
+  x: number; z: number; h: number; st: string; stT: number; hp: number; max: number; flash: number; front: number; wet: number;
+}
+/** the hour, by the stage's place in its district: dusk, then night, then the fireworks over the boss */
+export type TimeOfDay = 'dusk' | 'night' | 'fireworks';
+export function timeOfDay(stageId: string): TimeOfDay {
+  const st = STAGES[stageId], i = AREAS[st.area - 1].stages.indexOf(stageId);
+  return i <= 0 ? 'dusk' : i === 1 ? 'night' : 'fireworks';
 }
 
 interface WaveRun { def: WaveDef; group: number; groupT: number; t: number; called: boolean; carriers: number }
@@ -220,13 +233,14 @@ export class BrineGame {
   dora!: Hero; enzo!: Hero; active: HeroId = 'dora';
   foes: Foe[] = []; items: Item[] = []; props: Prop[] = []; boss: Boss | null = null; strings: Str[] = [];
   rolls: Roll[] = []; holes: Hole[] = []; ink: Ink[] = []; beltT = 0;
+  goal: Goal | null = null; rideX = 0;
   cam = VIEW_W / 2; lock: number | null = null; evI = 0; wave: WaveRun | null = null; go = 0;
   tokens = 0; tagCD = 0; tagQ = 0; fest = 0; festFull = false; dblT = -1;
   combo = { n: 0, t: 0, chain: 0 };
   prompt: Prompt | null = null; talk: Talk | null = null; bossHint: BossHint | null = null;
   learned: Record<string, number> = {};
   tut: Tut = { stage: 9, t: 0, tinks: 0, lastMove: 0, thief: null, hermit: null, gull: null };
-  stats: Stats = { time: 0, dmg: 0, hits: 0, best: 0, tags: 0, tagChains: 0, grabs: 0, throws: 0, retries: 0, tinks: 0, dashes: 0, dashAtks: 0, specials: 0, specialHits: 0, specialLanded: 0, dbls: 0, bossTime: {}, jumps: 0, airHits: 0, score: 0, lanterns: 0, scenes: 0, wrongHits: 0, kos: 0, snacks: 0 };
+  stats: Stats = { time: 0, dmg: 0, hits: 0, best: 0, tags: 0, tagChains: 0, grabs: 0, throws: 0, retries: 0, tinks: 0, dashes: 0, dashAtks: 0, specials: 0, specialHits: 0, specialLanded: 0, dbls: 0, bossTime: {}, jumps: 0, airHits: 0, score: 0, lanterns: 0, scenes: 0, wrongHits: 0, kos: 0, snacks: 0, goals: 0, goalsLost: 0, overboard: 0 };
   found: Set<string>; newFound: string[] = [];
   events: GameEvent[] = [];
   /** the double-tap detector for dashing: last onset of a left/right press, how long it was held, when it let go */
@@ -262,6 +276,7 @@ export class BrineGame {
   enterScene(id: string) {
     const sc = SCENES[id]; this.scene = sc; this.len = sc.lanes[0].length * COL;
     this.foes = []; this.items = []; this.props = []; this.boss = null; this.wave = null; this.lock = null; this.evI = 0; this.tokens = 0; this.flies = []; this.rolls = []; this.holes = []; this.ink = [];
+    this.goal = null; this.rideX = 0;
     this.strings = sc.strings.map((s) => ({ col: s.col, need: s.need, got: 0, flying: 0, glow: 0, pulse: 0 }));
     let charm = 0;
     sc.lanes.forEach((row, r) => {
@@ -342,6 +357,7 @@ export class BrineGame {
     this.foes = this.foes.filter((f) => !f.dead);
     if (this.boss) this.updBoss();
     this.updItems(); this.updProps(); this.updStrings(); this.updBelt();
+    if (this.scene.ride) this.rideX += (this.scene.ride === 'lift' ? 60 : 150) * DT;
     for (const k of this.ink) k.t += DT;
     this.ink = this.ink.filter((k) => k.t < k.life);
     this.updCamera(); this.updEvents();
@@ -826,6 +842,7 @@ export class BrineGame {
       p.hits.push(f); any = true;
       this.damageFoe(f, m.dmg, { kb: m.kb * p.face, down: m.down, heavy: m.heavy, by: p.name, x: f.x - p.face * 20, h: p.h + (m.y0 + m.y1) / 2 * 0.6, slam: m.slam, rise: m.key === 'rise', from: p.x });
     }
+    if (this.goal?.kind === 'chase' && this.catchThief(p.x + p.face * reach * 0.5, p.z, p.h + m.y0, p.h + m.y1, reach * 0.5 + 40)) any = true;
     const b = this.boss;
     if (b && !p.hits.includes(b) && b.st !== 'end' && b.st !== 'intro' && b.st !== 'gone') {
       const bb = this.bossBox();
@@ -1020,6 +1037,13 @@ export class BrineGame {
       b.hp = Math.min(b.max, b.hp + b.max * 0.15);   // he catches his breath, but keeps most of the damage
     }
     if (this.tut.stage < 9) this.tut.stage = Math.max(1, this.tut.stage);
+    const G = this.goal;
+    if (G && !G.done) {
+      G.groupT = 0;
+      if (G.kind === 'defend') { G.t = Math.max(0, G.t - 10); G.hp = Math.max(G.hp, G.max * 0.4); if (G.st === 'broken') G.st = 'ok'; }
+      if (G.kind === 'ride') G.group = Math.max(0, G.group - 1);
+      if (G.kind === 'tide') G.front = this.camL - 200;
+    }
   }
 
   // ─────────────────────────────────────────── foes
@@ -1068,6 +1092,8 @@ export class BrineGame {
           if (f.h <= POST_H) { f.h = POST_H; f.st = 'perch'; f.t = 0; f.cd = this.rr(0.8, 1.8); this.sfx('land'); }
           break;
         }
+        // leaping aboard a ride from the water
+        if (f.script === 'board') { f.h = f.t < 0.7 ? Math.sin(f.t / 0.7 * Math.PI) * 130 : 0; if (f.t >= 0.7) f.script = ''; }
         const tx = clamp(f.x, this.camL + 70, this.camR - 70);
         if (flier(f)) { f.x += sgn(tx - f.x) * d.spd * DT; f.h += ((f.kind === 'cormorant' ? 190 : 130) - f.h) * DT * 2; }
         else f.x += sgn(tx - f.x) * d.spd * 1.1 * DT;
@@ -1079,6 +1105,7 @@ export class BrineGame {
         if (inHole(f)) { this.eelPeek(f, p, out); break; }
         if (f.daze > 0) { f.st = 'daze'; break; }
         if (f.script === 'thief') { this.thief(f); break; }
+        if (f.script === 'raid' && this.raid(f)) break;
         if (f.kind === 'shrimp' && !f.called && f.callT > 0) { f.callT -= DT; if (f.callT <= 0) { f.st = 'whistle'; f.t = 0; this.sfx('whistleUp'); break; } }
         if (f.kind === 'jelly') { this.jellyDrift(f, p); break; }
         if (f.lane >= 0 && f.t < 1.6 && f.cd > 0) { f.st = 'idle'; f.face = sgn(p.x - f.x); break; }   // a line of crabs holds its line for a moment
@@ -1237,6 +1264,7 @@ export class BrineGame {
         if (f.t > 1.4) f.dead = true;
         break;
     }
+    if (this.scene.ride && !flier(f) && !f.dead && (f.st === 'down' || f.st === 'hurt' || f.st === 'thrown') && (f.x < this.camL + 24 || f.x > this.camR - 24)) this.overboard(f);
     // the gull's tell and dive
     if (f.kind === 'gull' && f.st === 'wind') {
       if (f.t > d.wind * slowW) { f.st = 'dive'; f.t = 0; f.didHit = false; f.tx = p.x; f.tz = p.z; this.sfx('whoosh'); }
@@ -1338,6 +1366,7 @@ export class BrineGame {
         // thrown
         it.x += it.vx * DT; it.vh -= 1400 * DT; it.h += it.vh * DT;
         this.itemHits(it, 3, 'throw');
+        if (this.goal?.kind === 'chase' && this.catchThief(it.x, it.z, it.h - 20, it.h + 120, 70) && it.kind === 'barrel') this.breakItem(it);
         if (it.h <= 0) { it.h = 0; it.vh = 0; it.vx = 0; if (it.kind === 'barrel') this.breakItem(it); }
         if (it.x < this.camL - 40 || it.x > this.camR + 40) { if (it.kind === 'barrel' && it.sid) { it.x = clamp(it.x, this.camL + 60, this.camR - 60); this.breakItem(it); } else it.dead = true; }
       } else if (it.h > 0 || it.vh > 0) {
@@ -1434,6 +1463,8 @@ export class BrineGame {
   private updEvents() {
     const sc = this.scene, p = this.hero();
     if (this.tut.stage < 9) this.updTutorial();
+    const G = this.goal;
+    if (G && !G.done) { this.updGoal(G); if (G.kind === 'defend' || G.kind === 'ride') return; }
     const w = this.wave;
     if (w) {
       w.t += DT; w.groupT += DT;
@@ -1457,6 +1488,7 @@ export class BrineGame {
         this.lock = lx; this.retryAt = { evI: this.evI, x: p.x };
         if (e.kind === 'wave') { this.wave = { def: e, group: 0, groupT: 0, t: 0, called: false, carriers: 0 }; if (e.teach) this.teachT = 6; }
         else if (e.kind === 'boss') this.spawnBoss(e.who);
+        else if (e.kind === 'chase' || e.kind === 'defend' || e.kind === 'ride' || e.kind === 'tide') this.startGoal(e);
         this.evI++;
       }
       return;
@@ -1464,7 +1496,7 @@ export class BrineGame {
     // every event done: walk to the end of the scene
     const door = this.secretDoor();
     if (door !== null && Math.abs(p.x - door) < 40 && p.z < 30 && p.h <= 0) { this.goSecret(); return; }
-    if (p.x > this.len - 110) this.nextScene();
+    if (p.x > this.len - 110 && (!this.goal || this.goal.done)) this.nextScene();
   }
   /** a barrel (or the harbour cart) sent down a lane from the right: first a rumble and dust, then it rolls */
   private sendRoll(lane: number, kind: 'cart' | 'barrel', keep: boolean) {
@@ -1507,6 +1539,133 @@ export class BrineGame {
     }
     this.rolls = this.rolls.filter((c) => c.x > this.camL - 300);
   }
+  // ─────────────────────────────────────────── scene goals: chase, defend, ride, tide
+  private startGoal(e: GoalDef) {
+    const p = this.hero();
+    const G: Goal = { def: e, kind: e.kind, t: 0, done: false, won: false, group: 0, groupT: 99, x: 0, z: 80, h: 0, st: '', stT: 0, hp: 0, max: 0, flash: 0, front: 0, wet: 0 };
+    if (e.kind === 'chase') {
+      Object.assign(G, { x: this.cam + 260, h: 200, z: p.z, st: 'fly' });
+      this.sfx('squawk'); this.ev({ k: 'word', x: G.x, z: G.z, h: 260, text: 'THIEF!', col: '#ffd27a' });
+      this.lock = null;
+    } else if (e.kind === 'defend') {
+      Object.assign(G, { x: this.lock ?? this.cam, z: 22, hp: 100, max: 100, st: 'ok' });
+    } else if (e.kind === 'tide') {
+      G.front = this.camL - 160; this.lock = null; this.sfx('splash');
+      this.ev({ k: 'word', x: p.x, z: p.z, h: 200, text: 'THE TIDE!', col: '#bfe8ff' });
+    }
+    this.goal = G;
+  }
+  private goalFoes(G: Goal, alt: number) {
+    const n0 = this.foes.length;
+    this.spawnGroup(G.def.groups[G.group % G.def.groups.length], alt); G.group++; G.groupT = 0;
+    for (const f of this.foes.slice(n0)) {
+      if (G.kind === 'defend') f.script = 'raid';
+      if (G.kind === 'ride' && !flier(f)) f.script = 'board';
+    }
+  }
+  private winGoal(G: Goal, text: string) {
+    G.won = true; this.stats.goals++; this.stats.score += 1500; this.sfx('festFull');
+    const s = this.strings[G.def.lantern];
+    if (s) { const n = s.need - s.got - s.flying; for (let i = 0; i < n; i++) this.lanternFly(G.kind === 'chase' ? G.x : this.cam + this.rr(-150, 150), G.z, G.kind === 'chase' ? G.h : 200, G.def.lantern); }
+    this.ev({ k: 'word', x: G.kind === 'chase' ? G.x : this.cam, z: 60, h: 240, text, col: '#ffe9a8' });
+  }
+  private loseGoal(G: Goal, text: string) {
+    this.stats.goalsLost++; this.sfx('deflate');
+    this.ev({ k: 'word', x: G.kind === 'chase' ? G.x : this.cam, z: 60, h: 240, text, col: '#c9d4ff' });
+  }
+  private updGoal(G: Goal) {
+    const A = this.assist, p = this.hero();
+    G.t += DT; G.stT += DT; G.groupT += DT; G.flash = Math.max(0, G.flash - DT);
+    const alive = this.foes.filter((f) => f.st !== 'ko').length;
+    if (G.kind === 'chase') {
+      // the gull thief: flies ahead high, then (after a ring on the boards) swoops low over your lane, then climbs again
+      const end = this.cam >= this.len - VIEW_W / 2 - 1;
+      if (G.st === 'fly' || G.st === 'rise') {
+        G.x += (this.cam + 230 + Math.sin(G.t * 1.3) * 70 - G.x) * Math.min(1, DT * 2); G.h += (200 - G.h) * Math.min(1, DT * 3); G.z += (p.z - G.z) * Math.min(1, DT * 2);
+        if (end) { G.st = 'escape'; G.stT = 0; this.loseGoal(G, 'IT GOT AWAY!'); }
+        else if (G.stT > (G.st === 'rise' ? 0.6 : A ? 2.0 : 1.6)) {
+          G.st = G.st === 'rise' ? 'fly' : 'swoopw'; G.stT = 0;
+          if (G.st === 'swoopw') { this.sfx('shriek'); this.ev({ k: 'ring', x: clamp(p.x + 110, this.camL + 140, this.camR - 80), z: p.z, size: 70, col: '#ffd27a', life: A ? 0.75 : 0.55 }); }
+        }
+      } else if (G.st === 'swoopw') {
+        G.x += (clamp(p.x + 110, this.camL + 140, this.camR - 80) - G.x) * Math.min(1, DT * 3);
+        if (G.stT > (A ? 0.7 : 0.5)) { G.st = 'swoop'; G.stT = 0; this.sfx('whoosh'); }
+      } else if (G.st === 'swoop') {
+        G.x += (clamp(p.x + 90, this.camL + 120, this.camR - 80) - G.x) * Math.min(1, DT * 2.5); G.h += (70 - G.h) * Math.min(1, DT * 6); G.z += (p.z - G.z) * Math.min(1, DT * 4);
+        if (G.stT > (A ? 1.8 : 1.3)) { G.st = 'rise'; G.stT = 0; }
+      } else if (G.st === 'hit') {
+        G.h = Math.max(30, G.h - 200 * DT);
+        if (G.stT > 0.7) { G.st = 'flee'; G.stT = 0; this.sfx('squawk'); }
+      } else if (G.st === 'flee' || G.st === 'escape') {
+        G.x += 360 * DT; G.h += 160 * DT;
+        if (G.stT > 1.6) { G.done = true; if (G.st === 'escape' && !G.won) { /* the lanterns are gone; the scene carries on */ } }
+      }
+      // a few foes come the other way; the ones left behind drop out of the picture
+      if (!G.won && G.group < G.def.groups.length && G.groupT > (A ? 6 : 5) && alive < 2) this.goalFoes(G, 1);
+      for (const f of this.foes) if (f.x < this.camL - 120 && f.st !== 'ko') { this.releaseToken(f); f.dead = true; }
+      return;
+    }
+    if (G.kind === 'defend') {
+      const dur = G.def.time ?? 45;
+      if (G.t < dur && G.group < 99 && ((alive <= (A ? 2 : 3) && G.groupT > 2.5) || G.groupT > 9)) this.goalFoes(G, G.group % 2 ? -1 : 1);
+      if (G.t >= dur && alive === 0) {
+        G.done = true; this.lock = null; this.go = 3; this.sfx('go');
+        if (G.hp > 0) { this.winGoal(G, 'SAVED!'); this.stats.score += Math.round(G.hp * 20); } else this.loseGoal(G, 'NEXT TIME!');
+      }
+      return;
+    }
+    if (G.kind === 'ride') {
+      if (G.group < G.def.groups.length && G.t > 0.8 && (alive <= 1 || G.groupT > 9) && G.groupT > 1.2) this.goalFoes(G, G.group % 2 ? -1 : 1);
+      if (G.group >= G.def.groups.length && alive === 0) { G.done = true; this.lock = null; this.go = 3; this.sfx('go'); this.winGoal(G, 'ALL CLEAR!'); }
+      return;
+    }
+    // the tide: its edge creeps right; standing in it chips your health (never below a quarter with assist on), and
+    // it washes away any foe it catches; reaching the far end wins the scene's lanterns
+    G.front = Math.min(G.front + (A ? 50 : 62) * DT, this.len - 60);
+    if (p.x < G.front + 18 && p.st !== 'out' && p.st !== 'tagin') {
+      const chip = (A ? 4 : 7) * DT; G.wet += DT;
+      if (p.hp - chip <= (A ? 25 : 0)) { if (!A && p.inv <= 0) this.hurtHero(p, 40, G.front - 50, 200, true); else if (A) p.hp = Math.max(p.hp, 25); }
+      else { p.hp -= chip; this.stats.dmg += chip; }
+      if (G.wet > 0.6) { G.wet = 0; this.ev({ k: 'splash', x: p.x }); this.sfx('splash'); }
+    }
+    for (const f of this.foes) if (!flier(f) && f.st !== 'ko' && f.x < G.front - 10 && !inHole(f)) { this.koFoe(f, 300); this.ev({ k: 'splash', x: f.x }); this.ev({ k: 'word', x: f.x, z: f.z, h: 120, text: 'WASHED AWAY!', col: '#bfe8ff' }); }
+    if (G.front < this.len - VIEW_W && G.groupT > (A ? 5 : 4) && alive < 2) this.goalFoes(G, 1);
+    if (p.x > this.len - 150) { G.done = true; this.winGoal(G, 'SAFE!'); this.learned.tide = (this.learned.tide || 0) + 1; }
+  }
+  /** a hit on the gull thief (a kick or paw that reaches it, or something thrown) wins the chase */
+  private catchThief(x: number, z: number, h0: number, h1: number, reachX: number) {
+    const G = this.goal;
+    if (!G || G.kind !== 'chase' || G.won || G.done || G.st === 'escape' || G.st === 'flee') return false;
+    if (Math.abs(G.x - x) > reachX || Math.abs(G.z - z) > 70 || h1 < G.h || h0 > G.h + (this.assist ? 130 : 110)) return false;
+    G.st = 'hit'; G.stT = 0; this.hitstop(0.08); this.shakeBy(5); this.sfx('kick3');
+    this.ev({ k: 'sparks', x: G.x, z: G.z, h: G.h + 30, col: '#fff3c4', n: 14, big: 1.4 });
+    this.winGoal(G, 'CAUGHT!'); this.learned.chase = (this.learned.chase || 0) + 1;
+    return true;
+  }
+  /** a raider at a defended stall: off the stall's flank, it bashes the stall instead of you, unless you're close */
+  private raid(f: Foe): boolean {
+    const G = this.goal, p = this.hero(), d = FD[f.kind];
+    if (!G || G.kind !== 'defend' || G.done || G.hp <= 0 || f.tok) return false;
+    if (Math.abs(p.x - f.x) < 140 && Math.abs(p.z - f.z) < 60) return false;
+    const side = f.x < G.x ? -1 : 1, tx = G.x + side * 78, tz = G.z + 16;
+    const dx = tx - f.x, dz = tz - f.z;
+    f.x += clamp(dx, -d.spd * DT, d.spd * DT); f.z += clamp(dz, -d.zs * DT, d.zs * DT);
+    f.face = -side; f.st = Math.abs(dx) > 6 || Math.abs(dz) > 6 ? 'walk' : 'idle';
+    if (f.st === 'idle' && f.cd <= 0) {
+      f.st = 'atk'; f.t = 0; f.didHit = true; f.cd = this.rr(1.8, 2.6);
+      G.hp = Math.max(0, G.hp - (this.assist ? 2.2 : 3.5) * [1, 1.15, 1.3][this.tier()]); G.flash = 0.2; this.sfx('crateHit');
+      this.ev({ k: 'debris', x: G.x + side * 40, z: G.z, kind: 'crate' });
+      if (G.hp <= 0) { G.st = 'broken'; this.shakeBy(6); this.sfx('crack'); this.loseGoal(G, 'THE STALL!'); }
+    }
+    return true;
+  }
+  /** on a ride, a foe knocked past the edge of the deck goes over the side */
+  private overboard(f: Foe) {
+    this.koFoe(f, sgn(f.x - this.cam) * 300); f.vz = 0; f.splashed = true;
+    this.ev({ k: 'splash', x: f.x }); this.sfx('splash'); this.stats.overboard++; this.stats.score += 200;
+    this.ev({ k: 'word', x: f.x, z: f.z, h: 120, text: 'OVERBOARD!', col: '#bfe8ff' });
+  }
+
   private waveClear() {
     const w = this.wave!; this.wave = null; this.lock = null; this.go = 3; this.sfx('go');
     if (w.def.lantern !== undefined) { const s = this.strings[w.def.lantern]; if (s && s.got + s.flying < s.need) { const n = s.need - s.got - s.flying; for (let i = 0; i < n; i++) this.lanternFly(this.cam + this.rr(-200, 200), 80, 200, w.def.lantern); } }
@@ -1540,8 +1699,12 @@ export class BrineGame {
   private updCamera() {
     const p = this.hero();
     this.go = Math.max(0, this.go - DT);
+    const G = this.goal;
     if (this.lock !== null) { this.cam += (this.lock - this.cam) * Math.min(1, DT * 5); }
-    else {
+    else if (G && G.kind === 'chase' && !G.done && !G.won) {
+      // the chase: the camera scrolls on by itself, and the left edge pushes you along
+      this.cam = Math.min(this.cam + (this.assist ? 112 : 132) * DT, Math.max(VIEW_W / 2, this.len - VIEW_W / 2));
+    } else {
       const e = this.scene.events[this.evI];
       const stopAt = e && (e.kind === 'wave' || e.kind === 'boss') ? clamp(e.col * COL, VIEW_W / 2, this.len - VIEW_W / 2) : this.len - VIEW_W / 2;
       const tx = clamp(p.x + p.face * VIEW_W * 0.08, VIEW_W / 2, stopAt);
@@ -2096,6 +2259,15 @@ export class BrineGame {
         if (lane.length >= 3 && Math.abs(lane[0].z - p.z) > 44) return { act: 'move', who: 'hero', dir: lane[0].z > p.z ? 2 : -2 };
       }
     }
+    // scene goals: knock the swooping thief down; keep ahead of the tide
+    const G = this.goal;
+    if (G && !G.done && G.kind === 'chase' && !G.won && (L.chase || 0) < 2 && (G.st === 'swoopw' || G.st === 'swoop')) {
+      if (p.name === 'dora' && p.h <= 0 && Math.abs(G.x - p.x) < 300) return { act: 'jmp', who: 'foe', x: G.x, z: G.z, h: G.h + 90 };
+      if (p.name === 'dora' && p.h > 30 && !p.airUsed) return { act: 'atk', who: 'foe', x: G.x, z: G.z, h: G.h + 90 };
+      if (p.name === 'enzo' && p.st === 'hold') return { act: 'atk', who: 'hero' };
+      if (p.name === 'enzo' && canTag) return { act: 'tag', who: 'partner', tint: 'cream' };
+    }
+    if (G && !G.done && G.kind === 'tide' && p.x < G.front + 140 && (L.tide || 0) < 3 && !this.foes.some((f) => f.st !== 'ko' && Math.abs(f.x - p.x) < 160)) return { act: 'go', who: 'hero' };
     // wrong hero, twice in a row: the partner's portrait asks to tag
     if (this.wrongN >= 2 && this.wrongT > 0 && canTag) {
       const want = p.name === 'dora' ? 'enzo' : 'dora';

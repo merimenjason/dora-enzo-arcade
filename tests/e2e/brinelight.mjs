@@ -7,8 +7,11 @@
 // Ropewalk and Shipyard, by keys and again by touch: stepping out of a belt barrel's lane, Enzo punching one to a stop,
 // walking up into a barrel to pick it up, hauling an eel out of its hole, knocking an inker off its post (its ink
 // clears), kicking a cormorant out of its dive, heaving Longshanks over by his stuck leg, and rolling a barrel onto one
-// of Tanglejaw's holes; and area 3 on the map, opening once 2-3 is cleared, with its story panel. Fails on any
-// page error or sideways scroll. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves screenshots.
+// of Tanglejaw's holes; and area 3 on the map, opening once 2-3 is cleared, with its story panel. The scene goals by
+// keys and by touch: jump-kicking the gull thief out of a chase while the camera scrolls, beating a raider off the
+// lantern stall and holding out, knocking a boarder off the barge, and running out of the tide. The three festival
+// breathers: whack-a-crab from the results card's Next stage (keys J K L, or tapping the pots), hanging a lantern on
+// the beat, the bottle toss, Skip, and the reward card. Fails on any page error or sideways scroll. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves screenshots.
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
@@ -272,6 +275,118 @@ async function area3Actions(page, tag, how) {
   await shot(page, `${tag}-tanglejaw-plug`);
 }
 
+// ─────────────────────────────── scene goals and festival breathers
+const goalArena = async (page, stage, sid) => {
+  await game(page, `o.start("${stage}", 5)`);
+  await until(page, `o.screen === "play" && g && g.stageId === "${stage}"`);
+  await game(page, `(() => { g.sceneI = g.sceneIds.indexOf("${sid}"); g.enterScene("${sid}"); g.tut.stage = 9;
+    const e = g.scene.events.find((x) => ["chase", "defend", "ride", "tide"].includes(x.kind));
+    g.evI = g.scene.events.indexOf(e); g.cam = Math.min(Math.max(e.col * 40, 430), g.len - 430); g.hero().x = g.cam - 100; return 1; })()`);
+  await until(page, '!!g.goal', 8000);
+  await game(page, '(() => { g.foes = []; const p = g.hero(); p.hp = 100; p.inv = 0; g.partner().hp = 100; g.talk = null; return 1; })()');
+};
+async function varietyActions(page, tag, how) {
+  const t = `${tag} ${how}`;
+  let c = await controls(page, how);
+  // the chase: the camera scrolls by itself; a jump kick at the swooping thief wins the lanterns back
+  await goalArena(page, '1-1', 'q2');
+  if (how === 'touch') c = await controls(page, how);
+  const c0 = await game(page, 'g.cam'); await wait(600);
+  ok(await game(page, 'g.cam') > c0 + 30, `${t}: the chase scrolls on by itself`);
+  await game(page, '(() => { g.foes = []; const p = g.hero(), G = g.goal; p.face = 1; Object.assign(G, { st: "swoop", stT: 0, x: p.x + 60, z: p.z, h: 70 }); return 1; })()');
+  await shot(page, `${tag}-chase`);
+  await c.jmp(); await wait(110); await c.atk();
+  await until(page, 'g.goal.won', 2500); ok(true, `${t}: a jump kick knocks the lantern out of the thief's beak`);
+  // defend: a raider bashes the stall while you're away; your kicks drive it off; holding out wins
+  await goalArena(page, '1-2', 'sd');
+  ok(await game(page, 'g.goal.kind === "defend" && g.goal.hp === 100 && g.lock !== null'), `${t}: the stall to defend, at full health`);
+  await game(page, '(() => { const G = g.goal, p = g.hero(); p.x = g.camL + 60; p.z = 150; const f = g.spawnFoe("crab", 1, { script: "raid" }); f.x = G.x + 160; f.z = G.z + 16; f.st = "idle"; f.cd = 0; f.hp = f.max = 30; window.__raider = f; return 1; })()');
+  await until(page, 'g.goal.hp < 100', 8000); ok(true, `${t}: a raider bashes the stall`);
+  await shot(page, `${tag}-defend`);
+  await game(page, '(() => { const f = window.__raider, p = g.hero(); f.cd = 9; p.x = f.x - 70; p.z = f.z; p.face = 1; return 1; })()');
+  await c.atk();
+  await until(page, 'window.__raider.hp < window.__raider.max', 2000); ok(true, `${t}: a kick drives the raider off the stall`);
+  await game(page, '(() => { g.foes = []; g.goal.t = 99; return 1; })()');
+  await until(page, 'g.goal.done && g.goal.won && g.lock === null', 3000); ok(true, `${t}: holding out with the stall standing wins its lanterns`);
+  // ride: a boarder knocked past the edge of the barge goes overboard
+  await goalArena(page, '1-3', 'bg');
+  await game(page, '(() => { const p = g.hero(); p.x = g.camR - 170; p.z = 80; p.face = 1; const f = g.spawnFoe("crab", 1); f.x = p.x + 70; f.z = 80; f.st = "idle"; f.cd = 9; f.hp = 99; f.max = 99; return 1; })()');
+  await shot(page, `${tag}-ride`);
+  for (let i = 0; i < 8 && !(await game(page, 'g.stats.overboard')); i++) { await c.atk(); await wait(170); }
+  await until(page, 'g.stats.overboard >= 1', 3000); ok(true, `${t}: a boarder knocked off the edge goes overboard`);
+  // the tide: standing in it chips your health and asks you to move; walking right gets you out
+  await goalArena(page, '1-3', 'bt');
+  await game(page, '(() => { const p = g.hero(); g.goal.front = p.x + 60; return 1; })()');
+  await wait(700);
+  ok(await game(page, 'g.hero().hp < 100'), `${t}: the tide chips a hero standing in it`);
+  ok(await game(page, 'g.prompt && g.prompt.act === "go"'), `${t}: and the arrow says keep moving`);
+  await shot(page, `${tag}-tide`);
+  await c.hold('right', 900);
+  ok(await game(page, 'g.hero().x > g.goal.front + 18'), `${t}: walking right gets out of the water`);
+}
+/** a breather by real presses: keys J K L, or taps on the touch buttons (whack: on the pots themselves) */
+async function festControls(page, how) {
+  if (how === 'keys') return { press: (i) => page.keyboard.press(['KeyJ', 'KeyK', 'KeyL'][i]) };
+  const cdp = await page.context().newCDPSession(page);
+  const touch = async (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y], i) => ({ x, y, id: i })) });
+  const T = await page.evaluate(() => { const s = window.__brinelight().scene; return { b: [s.tl.atk, s.tl.jmp, s.tl.tag], pots: s.festPots() }; });
+  const tap = async (x, y) => { await touch('touchStart', [[x, y]]); await wait(50); await touch('touchEnd', []); };
+  return { press: (i) => tap(T.b[i].x, T.b[i].y), pot: (i) => tap(T.pots[i].x, T.pots[i].y - T.pots[i].w * 0.3) };
+}
+const fest = (page, expr) => page.evaluate((e) => new Function('F', 'o', `return (${e})`)(window.__brinelight().fest, window.__brinelight()), expr);
+async function festActions(page, tag, how) {
+  const t = `${tag} ${how}`;
+  // Next stage on the results card leads into a breather first
+  await game(page, 'o.start("1-1", 4)'); await until(page, 'g && g.stageId === "1-1"');
+  await game(page, '(() => { g.tut.stage = 9; g.mode = "clear"; g.clearT = 3; return 1; })()');
+  await page.locator('.bl-results').waitFor();
+  await page.locator('.bl-results button', { hasText: 'Next stage' }).click();
+  await until(page, 'o.screen === "fest" && o.fest && o.fest.kind === "whack"'); ok(true, `${t}: Next stage opens whack-a-crab`);
+  const fc = await festControls(page, how);
+  const hit = new Set();
+  for (const t0 = Date.now(); Date.now() - t0 < 20000 && hit.size < 3;) {
+    const i = await fest(page, 'F.pots.findIndex((p) => p.st === "up")');
+    if (i < 0 || hit.has(i)) { await wait(60); continue; }
+    const s0 = await fest(page, 'F.score');
+    if (how === 'touch' && i !== 1) await fc.pot(i); else await fc.press(i);
+    await wait(80);
+    if (await fest(page, 'F.score') > s0) hit.add(i);
+  }
+  ok(hit.size === 3, `${t}: each pot's own button bonks its crab (${[...hit]})`);
+  await shot(page, `${tag}-fest-whack`);
+  await fest(page, '(F.t = F.dur - 0.05, 1)');
+  await page.locator('.bl-festend').waitFor(); ok(true, `${t}: the reward card`);
+  const before = (await page.evaluate(() => JSON.parse(localStorage.getItem('brinelight-v1')))).lanterns;
+  await page.locator('.bl-festend button', { hasText: 'Next stage' }).click();
+  await until(page, 'o.screen === "play" && g.stageId === "1-2"'); ok(true, `${t}: then the next stage`);
+  ok(before >= 1, `${t}: the breather's lanterns are saved (${before})`);
+  // hanging lanterns: press as one reaches the hook
+  await game(page, 'o.festStart("1-2", "1-3")'); await until(page, 'o.screen === "fest" && o.fest.kind === "lanterns"');
+  const fl = await festControls(page, how);
+  for (let k = 0; k < 3 && !(await fest(page, 'F.hung')); k++) {
+    await page.waitForFunction(() => { const F = window.__brinelight().fest; return F.lanterns.some((l) => l.st === 'fly' && l.arrive - F.t < 0.06 && l.arrive - F.t > -0.02); }, null, { polling: 'raf', timeout: 6000 });
+    await fl.press(0); await wait(100);
+  }
+  ok(await fest(page, 'F.hung') >= 1, `${t}: a lantern hung on the beat`);
+  await shot(page, `${tag}-fest-lanterns`);
+  // the bottle toss: throw as the marker passes over a stack
+  await page.locator('.bl-skip').click();
+  // 1-3 opens on its story panel the first time
+  await until(page, '(o.screen === "play" && g.stageId === "1-3") || o.screen === "panel"');
+  if (await game(page, 'o.screen === "panel"')) await page.locator('.bl-panel button', { hasText: 'Go' }).click();
+  await until(page, 'o.screen === "play" && g.stageId === "1-3"'); ok(true, `${t}: Skip goes straight on`);
+  await game(page, 'o.festStart("1-3", "2-1")'); await until(page, 'o.screen === "fest" && o.fest.kind === "bottles"');
+  const fb = await festControls(page, how);
+  for (let k = 0; k < 4 && !(await fest(page, 'F.stacks.some((s) => s.st !== "up")')); k++) {
+    await page.waitForFunction(() => { const F = window.__brinelight().fest; return F.stacks.some((s) => s.st === 'up' && Math.abs(s.x - F.aim) < 0.03); }, null, { polling: 'raf', timeout: 6000 });
+    await fb.press(0); await wait(700);
+  }
+  ok(await fest(page, 'F.stacks.some((s) => s.st !== "up")'), `${t}: a ball topples a stack of bottles`);
+  await shot(page, `${tag}-fest-bottles`);
+  await page.locator('.bl-skip').click();
+  await until(page, 'o.screen === "play" && g.stageId === "2-1"');
+}
+
 const sizes = [[1280, 800, false, 'desk'], [390, 844, true, 'portrait'], [844, 390, true, 'landscape']];
 for (const [width, height, mobile, tag] of sizes) {
   const ctx = await browser.newContext({ viewport: { width, height }, isMobile: mobile, hasTouch: true, deviceScaleFactor: 1 });
@@ -301,6 +416,10 @@ for (const [width, height, mobile, tag] of sizes) {
   await touchActions(page, tag);
   await area3Actions(page, tag, 'keys');
   await area3Actions(page, tag, 'touch');
+  await varietyActions(page, tag, 'keys');
+  await varietyActions(page, tag, 'touch');
+  await festActions(page, tag, 'keys');
+  await festActions(page, tag, 'touch');
   // the map, a locked district, a stage card; clear a stage and see the card and the save
   await game(page, 'o.start("1-1", 4)'); await until(page, 'g && g.stageId === "1-1"');
   await game(page, '(() => { g.tut.stage = 9; g.mode = "clear"; g.clearT = 3; g.stats.score = 2400; g.stats.time = 70; return 1; })()');

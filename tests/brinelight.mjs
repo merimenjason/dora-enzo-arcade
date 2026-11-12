@@ -6,10 +6,11 @@
 // compiling the engine into .checks/ (npm test does).
 import assert from 'node:assert/strict';
 import {
-  BrineGame, NO_INPUT, DT, SAVE_KEY, freshSave, parseSave, stageOpen, medalFor, AREAS, STAGES, SCENES, HC, MOVES, LANE_Z,
+  BrineGame, NO_INPUT, DT, SAVE_KEY, freshSave, parseSave, stageOpen, medalFor, AREAS, STAGES, SCENES, HC, MOVES, LANE_Z, timeOfDay,
 } from '../.checks/brinelight-game.js';
 import { secretIds } from '../.checks/brinelight-levels.js';
-import { FRAMES } from '../.checks/brinelight-art.js';
+import { FRAMES, IMAGES } from '../.checks/brinelight-art.js';
+import { FestGame, FEST_DT, FEST_NONE, festAfter } from '../.checks/brinelight-fest.js';
 
 let n = 0;
 const test = (name, fn) => { try { fn(); n++; } catch (e) { console.error(`FAIL ${name}`); throw e; } };
@@ -66,8 +67,24 @@ test('areas 1 to 3 are built with three stages each; 4 to 6 are listed and locke
   for (const a of AREAS.slice(0, 3)) { assert.ok(a.ready); assert.equal(a.stages.length, 3); for (const s of a.stages) assert.ok(STAGES[s], s); }
   for (const a of AREAS.slice(3)) { assert.ok(!a.ready); assert.equal(a.stages.length, 0); assert.ok(a.boss); }
   const scenes = AREAS[2].stages.flatMap((s) => STAGES[s].scenes);
-  assert.equal(scenes.length, 8, 'area 3 has eight scenes'); assert.ok(scenes.some((id) => SCENES[id].secret), 'and a hidden one');
-  assert.ok(scenes.every((id) => SCENES[id].belt || SCENES[id].events.some((e) => e.kind === 'boss')), 'the belt runs through the ropewalk and shipyard');
+  assert.equal(scenes.length, 10, 'area 3 has ten scenes'); assert.ok(scenes.some((id) => SCENES[id].secret), 'and a hidden one');
+  const goal = (id) => SCENES[id].events.some((e) => ['chase', 'defend', 'ride', 'tide'].includes(e.kind));
+  assert.ok(scenes.every((id) => SCENES[id].belt || goal(id) || SCENES[id].events.some((e) => e.kind === 'boss')), 'the belt runs through the ropewalk and shipyard fights');
+});
+test('every district has a chase, a stall to defend, a ride and a tide, and never more than two plain fights in a row', () => {
+  for (const a of AREAS.slice(0, 3)) {
+    const ids = a.stages.flatMap((s) => STAGES[s].scenes);
+    const kinds = ids.flatMap((id) => SCENES[id].events.map((e) => e.kind));
+    for (const k of ['chase', 'defend', 'ride', 'tide']) assert.ok(kinds.includes(k), `area ${a.id} has a ${k}`);
+    let run = 0;
+    for (const id of ids) {
+      const plain = SCENES[id].events.every((e) => ['wave', 'talk', 'cart', 'roll', 'tutorial'].includes(e.kind));
+      run = plain ? run + 1 : 0;
+      assert.ok(run <= 2, `area ${a.id}: three plain fights in a row at ${id}`);
+    }
+    for (const id of ids) if (SCENES[id].ride) assert.ok(SCENES[id].events.some((e) => e.kind === 'ride'), `${id} rides`);
+  }
+  assert.equal(timeOfDay('1-1'), 'dusk'); assert.equal(timeOfDay('2-2'), 'night'); assert.equal(timeOfDay('3-3'), 'fireworks');
 });
 test('every scene is well formed: equal rows, known characters, events in range, secrets that exist', () => {
   const lane = new Set('.bcskfinagmq'), decor = new Set('.bpocfrSLAXWRDTMNZBOKPCHYGVQFJU@&$%');
@@ -490,6 +507,131 @@ test('a sealed tar barrel breaks open on a lantern charm', () => {
 test('area 3 bosses open each phase with whose job it is', () => {
   const l = bossArena('longshanks'); assert.deepEqual([l.bossHint?.who, l.bossHint?.act], ['enzo', 'atk']);
   const t = bossArena('tanglejaw'); assert.deepEqual([t.bossHint?.who, t.bossHint?.act], ['enzo', 'carry']);
+});
+
+// ─────────────────────────────────────────── scene goals and the festival breathers
+/** a stage started straight at one of its scenes, past the tutorial; runs until the scene's goal has begun */
+function goalScene(stage, id, who = 'dora', assist = true) {
+  const g = new BrineGame({ stage, seed: 5, assist, skipTalk: true });
+  g.tut.stage = 9; g.sceneI = g.sceneIds.indexOf(id); g.enterScene(id);
+  if (who === 'enzo') g.doTag(true);
+  let k = 0; while (!g.goal && k++ < 600) { g.step(I({ mx: 1 })); }
+  assert.ok(g.goal, `${id} goal started`);
+  return g;
+}
+test('the chase: the camera scrolls by itself, a jump kick at the swooping thief wins the lanterns', () => {
+  const g = goalScene('1-1', 'q2'), G = g.goal;
+  assert.equal(G.kind, 'chase'); assert.equal(g.lock, null);
+  const c0 = g.cam; g.foes = []; run(g, 60); assert.ok(g.cam > c0 + 90, 'scrolling');
+  assert.ok(g.hero().x >= g.camL + 36, 'the left edge pushes you along');
+  // catch it on a swoop
+  g.foes = []; const p = g.hero(); Object.assign(G, { st: 'swoop', stT: 0, x: p.x + 70, z: p.z, h: 70 });
+  p.face = 1; seq(g, [{ jmpP: true }, {}, {}, {}, {}, {}, {}, {}, { atkP: true }]); run(g, 12);
+  assert.ok(G.won, 'caught'); assert.equal(g.stats.goals, 1);
+  assert.ok(g.strings[0].flying + g.strings[0].got > 0, 'the lanterns fly home');
+});
+test('the chase: a thief that gets away costs its lanterns, never the game', () => {
+  const g = goalScene('1-1', 'q2'), G = g.goal;
+  for (let k = 0; k < 60 * 40 && !G.done; k++) { g.foes = []; g.step(I()); }
+  assert.ok(G.done); assert.ok(!G.won); assert.equal(g.stats.goalsLost, 1);
+  assert.equal(g.strings[0].got + g.strings[0].flying, 0, 'no lanterns');
+  run(g, 60 * 5, { mx: 1, mz: 1 }); assert.notEqual(g.scene.id, 'q2', 'the stage carries on');
+});
+test('defend: raiders bash the stall when you are away, a broken stall loses only its lanterns, the fight ends on time', () => {
+  const g = goalScene('1-2', 'sd'), G = g.goal;
+  assert.equal(G.kind, 'defend'); assert.equal(G.hp, 100); assert.notEqual(g.lock, null);
+  const p = g.hero(); let k = 0;
+  while (G.hp === 100 && k++ < 60 * 20) { p.x = g.camL + 40; p.z = 150; g.step(I()); }
+  assert.ok(G.hp < 100, 'a raider got to the stall');
+  G.hp = 1; k = 0; while (G.hp > 0 && k++ < 60 * 20) { p.x = g.camL + 40; p.z = 150; p.hp = 100; g.step(I()); }
+  assert.equal(G.st, 'broken'); assert.equal(g.stats.goalsLost, 1);
+  G.t = 99; g.foes = []; run(g, 2);
+  assert.ok(G.done); assert.equal(g.lock, null); assert.equal(g.stats.goals, 0);
+});
+test('defend: holding out for the time with the stall standing wins its lanterns', () => {
+  const g = goalScene('2-2', 'md'), G = g.goal;
+  assert.equal(G.def.what, 'cart');
+  G.t = 99; g.foes = []; run(g, 2);
+  assert.ok(G.done && G.won); assert.equal(g.stats.goals, 1);
+});
+test('ride: the view keeps moving, and a foe knocked past the edge of the deck goes overboard', () => {
+  const g = goalScene('1-3', 'bg'), G = g.goal;
+  assert.equal(G.kind, 'ride'); assert.equal(g.scene.ride, 'barge');
+  const r0 = g.rideX; run(g, 30); assert.ok(g.rideX > r0, 'the harbour slides past');
+  const f = g.spawnFoe('crab', 1); f.x = g.camR - 10; f.z = 80; f.st = 'down'; f.h = 10; f.vh = 0;
+  run(g, 2);
+  assert.equal(f.st, 'ko'); assert.equal(g.stats.overboard, 1);
+  // boarders leap aboard from the water
+  const b = g.foes.find((o) => o.script === 'board'); if (b) { run(g, 20); assert.ok(b.h > 0 || b.t > 0.6); }
+});
+test('the tide: it creeps in from the left, chips a hero who stays in it (never below a quarter with assist on), washes foes away', () => {
+  const g = goalScene('1-3', 'bt'), G = g.goal;
+  assert.equal(G.kind, 'tide');
+  const p = g.hero(), f = g.spawnFoe('crab', 1); f.st = 'idle'; f.cd = 99;
+  let k = 0; while (G.front < p.x + 30 && k++ < 60 * 30) { g.foes = g.foes.filter((o) => o === f); f.x = p.x - 40; f.z = 150; g.step(I()); }
+  assert.ok(f.st === 'ko' || f.dead, 'washed away');
+  run(g, 60 * 20); assert.ok(p.hp >= 25 && p.hp < 100, `chipped, not knocked out (${p.hp})`);
+  const off = goalScene('1-3', 'bt', 'dora', false), q = off.hero();
+  off.goal.front = q.x + 100; off.foes = [];
+  const h0 = q.hp; run(off, 60); assert.ok(q.hp < h0 - 4, 'faster with assist off');
+  // and reaching the dry end wins it
+  g.cam = g.len - 430; p.x = g.len - 140; g.foes = []; run(g, 3); assert.ok(G.done && G.won);
+});
+test('the hours: dusk paintings for each first stage, fireworks for the boss stage, and painted frames for every goal', () => {
+  for (const a of AREAS.slice(0, 3)) {
+    for (const id of STAGES[a.stages[0]].scenes) { const far = SCENES[id].far; if (!SCENES[id].ride) assert.ok(IMAGES['dusk-' + far], `dusk ${far}`); }
+  }
+  assert.ok(IMAGES.fireworks && IMAGES['far-lift'] && IMAGES['floor-barge'] && IMAGES['floor-raft'] && IMAGES['floor-lift']);
+  for (const n of ['thief-fly1', 'thief-fly2', 'thief-swoop', 'thief-hit', 'thief-flee', 'thief-taunt', 'stall-0', 'stall-3', 'fishcart-0', 'fishcart-3', 'tide-1', 'tide-2', 'tide-3', 'tide-water',
+    'fest-pot', 'fcrab-peek', 'fcrab-up', 'fcrab-bonk', 'gcrab-up', 'gcrab-bonk', 'flantern-dark', 'flantern-lit', 'bottles', 'bottles-tumble', 'bottles-down', 'fball',
+    'pair-reach', 'pair-hang', 'pair-cheer', 'pair-oops', 'fenzo-windup', 'fenzo-toss', 'fenzo-cheer']) assert.ok(FRAMES[n], n);
+  for (const k of ['whack', 'lanterns', 'bottles']) assert.ok(IMAGES['fest-' + k], k);
+});
+const fstep = (F, n, inp = {}) => { for (let i = 0; i < n; i++) F.step({ ...FEST_NONE, ...inp }); };
+test('the breathers take turns between stages, and doing nothing still wins a lantern', () => {
+  assert.deepEqual(['1-1', '1-2', '1-3', '2-1'].map(festAfter), ['whack', 'lanterns', 'bottles', 'whack']);
+  for (const kind of ['whack', 'lanterns', 'bottles']) {
+    const F = new FestGame({ kind, seed: 3 }); fstep(F, Math.ceil(F.dur / FEST_DT) + 2);
+    assert.ok(F.done); assert.equal(F.reward(), 1);
+  }
+});
+test('whack-a-crab: each pot has its own button; bonking a crab scores, a gold one three', () => {
+  const F = new FestGame({ kind: 'whack', seed: 4 });
+  const keys = ['atkP', 'jmpP', 'tagP'];
+  let got = 0;
+  for (let k = 0; k < 60 * 25 && !F.done; k++) {
+    const i = F.pots.findIndex((p) => p.st === 'up');
+    const before = F.score;
+    F.step({ ...FEST_NONE, ...(i >= 0 ? { [keys[i]]: true } : {}) });
+    if (i >= 0) { assert.equal(F.pots[i].st, 'bonk'); assert.equal(F.score - before, F.pots[i].gold ? 3 : 1); got++; }
+  }
+  assert.ok(got >= 16, `bonked ${got}`); assert.equal(F.reward(), 3, 'a good run wins three lanterns');
+  const E = new FestGame({ kind: 'whack', seed: 4 }); E.step({ ...FEST_NONE, atkP: true }); assert.equal(E.score, 0, 'an empty pot scores nothing');
+});
+test('hanging lanterns: they arrive on the beat; on the beat is perfect, near it good, early does nothing', () => {
+  const F = new FestGame({ kind: 'lanterns', seed: 1, bpm: 120 });
+  fstep(F, 2);
+  const l = F.lanterns[0]; assert.ok(l, 'a lantern on its way');
+  assert.ok(Math.abs(((l.arrive - 0.15) / 0.5) - Math.round((l.arrive - 0.15) / 0.5)) < 1e-6, 'on a beat');
+  while (F.t < l.arrive - 0.01) fstep(F, 1);
+  fstep(F, 1, { atkP: true }); assert.equal(l.st, 'hung'); assert.equal(l.grade, 2); assert.equal(F.score, 2);
+  const m = F.lanterns.find((x) => x.st === 'fly');
+  while (F.t < m.arrive - 0.2) fstep(F, 1);
+  fstep(F, 1, { jmpP: true }); assert.equal(m.st, 'hung'); assert.equal(m.grade, 1, 'good');
+  const e = F.lanterns.find((x) => x.st === 'fly');
+  while (F.t < e.arrive - 0.5) fstep(F, 1);
+  fstep(F, 1, { tagP: true }); assert.equal(e.st, 'fly', 'too early');
+});
+test('the bottle toss: the ball lands where the marker was; a stack under it topples, and a cleared shelf refills', () => {
+  const F = new FestGame({ kind: 'bottles', seed: 1 });
+  let k = 0;
+  for (const s of F.stacks) {
+    while (Math.abs(F.aim - s.x) > 0.02 && k++ < 6000) fstep(F, 1);
+    fstep(F, 1, { atkP: true }); fstep(F, 40);
+    assert.notEqual(s.st, 'up', `stack at ${s.x}`);
+  }
+  fstep(F, 30); assert.equal(F.score, 8, 'three stacks and the bonus'); assert.equal(F.rounds, 1);
+  fstep(F, 60); assert.ok(F.stacks.every((s) => s.st === 'up'), 'refilled');
 });
 
 console.log(`Brinelight: ${n} engine tests passed.`);

@@ -8,7 +8,8 @@
 // - tagger: plays the two-hero rule: picks the hero the target wants, tags in mid-combo to chain, double-teams when the
 //   meter is full, and uses the dash special on a line of foes.
 // - soloist: never tags by choice (only when a hero is knocked out), to show what one hero alone can do.
-// Each runs every built stage over seeds, with assist on (the default) and off. A clear within the time cap counts;
+// Each runs every built stage over seeds, with assist on (the default) and off. They play the scene goals too: they keep
+// under a gull thief (Dora jumps at it when it swoops), fight raiders at a stall, and run ahead of the tide. A clear within the time cap counts;
 // retries (both heroes down, the wave restarts) are counted separately. Thresholds: with assist on, the casual bot
 // must clear area 1 at least 90% of the time with at most one retry on average, and the masher at least 70%; with
 // assist on, the tagger must clear every stage. `--quick` runs fewer seeds. Run after compiling the engine into
@@ -44,6 +45,7 @@ export function playStage(stage, seed, assist, persona) {
       foes: g.foes.filter((f) => g.hittable(f) && f.st !== 'ko').map((f) => ({ x: f.x, z: f.z, h: f.h, kind: f.kind, st: f.st, want: foeWants(f), lane: f.lane, grab: f.daze > 0 || (f.kind === 'hermit' && f.shell) })),
       boss: g.boss && { x: g.boss.x, z: g.boss.z, h: g.boss.h, st: g.boss.st, kind: g.boss.kind, tz: g.boss.tz, tx: g.boss.tx },
       rolls: g.rolls.filter((c) => c.kind === 'barrel').map((c) => ({ id: c, z: LANE_Z[c.lane], x: c.x })),
+      goal: g.goal && { kind: g.goal.kind, x: g.goal.x, z: g.goal.z, h: g.goal.h, st: g.goal.st, won: g.goal.won, done: g.goal.done, front: g.goal.front },
       prompt: g.prompt, fest: g.fest, combo: g.combo.n, door: g.secretDoor(), lock: g.lock, cam: g.cam, len: g.len, partnerOk: g.partner().hp > 0 && g.partner().ready,
     };
   };
@@ -79,6 +81,12 @@ export function playStage(stage, seed, assist, persona) {
         if (v.door !== null && r() < P.secret / 60 && Math.abs(v.door - p.x) < 300) { held.secret = true; }
         if (held.secret && v.door !== null) { mx = Math.abs(v.door - p.x) > 10 ? Math.sign(v.door - p.x) : 0; mz = -1; }
       }
+      // scene goals: keep under the gull thief (a foe in the way still gets hit), and keep ahead of the tide
+      const G = v.goal;
+      if (G && !G.done && G.kind === 'chase' && !G.won && (!tgt || Math.abs(tgt.x - p.x) > 180)) {
+        const tx = G.x - 70; mx = Math.abs(tx - p.x) > 20 ? Math.sign(tx - p.x) : 0; mz = Math.abs(G.z - p.z) > 12 ? Math.sign(G.z - p.z) : 0;
+      }
+      if (G && !G.done && G.kind === 'tide' && p.x < G.front + 170) { mx = 1; if (Math.abs(p.z - 80) > 50) mz = p.z > 80 ? -1 : 1; }
       // carrying out a prompt that points somewhere (a barrel to pick up, a hole to plug): walk there, don't punch
       if (held.goto && held.goto.n > 0) {
         held.goto.n--; held.grabbing = true;
@@ -111,6 +119,7 @@ export function playStage(stage, seed, assist, persona) {
         else if (!P.solo && P.chain && v.combo >= 3 && v.partnerOk && r() < P.chain) inp.tagP = true;
         else if (P.special && tapPlan.length === 0 && (p.st === 'idle' || p.st === 'walk') && lineAhead(v) && r() < P.special * 0.5) tapPlan = planSpecial(lineAhead(v), r);
         else if (tgt && tgt.h > 40 && p.name === 'dora' && near) { inp.jmpP = true; held.airAtk = 8 + Math.round(r() * 8); }
+        else if (G && G.kind === 'chase' && !G.won && G.st === 'swoop' && p.name === 'dora' && persona !== 'masher' && Math.abs(G.x - p.x) < 150 && p.h <= 0) { inp.jmpP = true; held.airAtk = 10 + Math.round(r() * 8); }
         else if (near && !held.grabbing) inp.atkP = r() > P.miss;
         else if (!tgt && r() < 0.05) inp.jmpP = true;
         if (persona === 'masher' && r() < 0.08) inp.jmpP = true;
@@ -130,7 +139,7 @@ export function playStage(stage, seed, assist, persona) {
     }
     g.step(inp);
   }
-  return { cleared: g.mode === 'clear', time: g.stats.time, retries: g.stats.retries, dmg: g.stats.dmg, specials: g.stats.specials, specialHits: g.stats.specialHits, specialLanded: g.stats.specialLanded, spTries: sp.tries, spLanded: sp.landed, tags: g.stats.tags, chains: g.stats.tagChains, tinks: g.stats.tinks, dbls: g.stats.dbls, found: g.newFound.length, bossTime: g.stats.bossTime, frames: frame, game: g };
+  return { goals: g.stats.goals, goalsLost: g.stats.goalsLost, overboard: g.stats.overboard, cleared: g.mode === 'clear', time: g.stats.time, retries: g.stats.retries, dmg: g.stats.dmg, specials: g.stats.specials, specialHits: g.stats.specialHits, specialLanded: g.stats.specialLanded, spTries: sp.tries, spLanded: sp.landed, tags: g.stats.tags, chains: g.stats.tagChains, tinks: g.stats.tinks, dbls: g.stats.dbls, found: g.newFound.length, bossTime: g.stats.bossTime, frames: frame, game: g };
 }
 function lineAhead(v) {
   for (const dir of [1, -1]) {
@@ -168,10 +177,11 @@ if (MAIN) for (const assist of [true, false]) {
         retries: res.reduce((a, x) => a + x.retries, 0) / n, dmg: res.reduce((a, x) => a + x.dmg, 0) / n, time: cl.length ? cl.reduce((a, x) => a + x.time, 0) / cl.length : 0,
         spTries: res.reduce((a, x) => a + x.spTries, 0), spDone: res.reduce((a, x) => a + x.specials, 0), spLanded: res.reduce((a, x) => a + x.specialLanded, 0), specialHits: res.reduce((a, x) => a + x.specialHits, 0) / n,
         chains: res.reduce((a, x) => a + x.chains, 0) / n, tinks: res.reduce((a, x) => a + x.tinks, 0) / n, dbls: res.reduce((a, x) => a + x.dbls, 0) / n,
+        goals: res.reduce((a, x) => a + x.goals, 0), goalsLost: res.reduce((a, x) => a + x.goalsLost, 0), overboard: res.reduce((a, x) => a + x.overboard, 0) / n,
         boss: Object.values(cl[0]?.bossTime ?? {})[0] ? cl.reduce((a, x) => a + (Object.values(x.bossTime)[0] || 0), 0) / cl.length : 0,
       };
       table[`${assist ? 'on' : 'off'}|${persona}|${st}`] = row;
-      console.log(`assist ${assist ? 'on ' : 'off'} ${persona.padEnd(8)} ${st}: clear ${(row.clear * 100).toFixed(0).padStart(3)}%  no-retry ${(row.clean * 100).toFixed(0).padStart(3)}%  retries ${row.retries.toFixed(2)}  hurt ${row.dmg.toFixed(0).padStart(3)}  time ${row.time.toFixed(0).padStart(4)}s  boss ${row.boss.toFixed(0).padStart(3)}s  chains ${row.chains.toFixed(1)}  tinks ${row.tinks.toFixed(0)}  special: ${row.spTries} tried, ${row.spDone} done, ${row.spLanded} landed, ${row.specialHits.toFixed(1)} foes hit/run  dbl ${row.dbls.toFixed(1)}`);
+      console.log(`assist ${assist ? 'on ' : 'off'} ${persona.padEnd(8)} ${st}: clear ${(row.clear * 100).toFixed(0).padStart(3)}%  no-retry ${(row.clean * 100).toFixed(0).padStart(3)}%  retries ${row.retries.toFixed(2)}  hurt ${row.dmg.toFixed(0).padStart(3)}  time ${row.time.toFixed(0).padStart(4)}s  boss ${row.boss.toFixed(0).padStart(3)}s  chains ${row.chains.toFixed(1)}  tinks ${row.tinks.toFixed(0)}  special: ${row.spTries} tried, ${row.spDone} done, ${row.spLanded} landed, ${row.specialHits.toFixed(1)} foes hit/run  dbl ${row.dbls.toFixed(1)}  goals ${row.goals} won, ${row.goalsLost} lost, ${row.overboard.toFixed(1)} overboard/run`);
     }
   }
 }

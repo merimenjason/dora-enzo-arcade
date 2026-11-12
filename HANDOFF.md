@@ -34,7 +34,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 - **Code:** `lib/brinelight-levels.ts` (hand-authored scenes as string rows), `lib/brinelight-game.ts` (engine), `lib/brinelight-scene.ts` (Canvas 2D drawing), `app/brinelight/` (page, sound, CSS), `lib/brinelight-art.ts` (generated). Save key `brinelight-v1`.
 - **Art:** 65 Codex jobs in `docs/brinelight-art/jobs.txt`, the style guide in `docs/brinelight-art/style.md`, `docs/brinelight-art/gen.sh` to paint and `scripts/brinelight-art.py` to key, scale and pack into `public/art/brinelight/` (11 MB, seven atlases). The source paintings are not in the repo; repaint a sheet with `gen.sh` and rerun the packer.
-- **Checks:** `npm run test:brinelight` (36 engine tests), `npm run bot:brinelight` (four human-delay bots, 24 seeds; `npm test` runs `--quick`; it also enforces area-3 thresholds), `npm run test:e2e:brinelight` (215 checks with real keys and touches at three sizes, every area-3 interaction by keys and by touch).
+- **Checks:** `npm run test:brinelight` (48 engine tests), `npm run bot:brinelight` (four human-delay bots, 24 seeds; `npm test` runs `--quick`; it also enforces area-3 thresholds), `npm run test:e2e:brinelight` (323 checks with real keys and touches at three sizes, every area-3 interaction, scene goal and breather by keys and by touch).
 - **Area 3 tuning:** `tier()` in the engine scales damage, foe health and foe cooldowns per area. Tanglejaw's pace is set by his health (120), the stuck window with two plugs (4.2 s / 3 s) and `bossMult`. Retune with `node tests/brinelight-bot.mjs --stage=3-3`.
 - **What is left:** areas 4 to 6 (the Lighthouse Rocks, the Smugglers' Caves, Pinchwell's Breakwater Fort) are on the map and in `AREAS` with `ready: false` and their bosses named. Each needs stages and scenes, a floor strip and far painting, new foes, a boss, a tune and a story panel; `docs/brinelight.md` lists every place to touch. Gamepads and the sound have not been tried by a person, and nothing has run on a real phone.
 - **Polish (12-11-2026, the follow-up PR):** fixed the five weak spots from the first review.
@@ -44,6 +44,12 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
   - Five new far paintings (jobs `far2`, `far3`, `townfar2`, `marketfar2`, `squarefar2`) plus `farFlip`.
   - A taller portrait view (440 units across, about 73% of the screen) over a compact control panel.
 - **Weakest now:** sound and gamepads have not been tried by a person, and nothing has run on a real phone. The boss hint icons can overlap a tag prompt for a moment at a phase change. A soloist who never tags still retries about once in every two or three Fish Market stages with assist on.
+- **Variety pass, PR A (12-11-2026, branch `claude/brinelight-variety`):** scene goals, festival breathers and the hour, so the districts stop feeling like one long brawl.
+  - Scene goals (`GoalDef` in the levels, `startGoal`/`updGoal` in the engine): chase (q2, m3, r3), defend (new sd, md, yd), ride (new bg, lift, raft; `SceneDef.ride`) and tide (new bt, mt; d1 converted). Never more than two plain wave scenes in a row; a test enforces it. The special-teach waves moved to m2 and r1 where their old scenes became chases.
+  - Breathers: `lib/brinelight-fest.ts` (whack, lanterns, bottles, by stage order) and the page's `fest` screen, entered from the results card's Next stage; Skip, a reward card, and lanterns added to the save (no save change).
+  - The hour: `timeOfDay()` (sunset, night, fireworks by stage in the district); six `dusk-*` repaints, a fireworks sheet, and the night wash scaled per hour in the scene.
+  - Art: 19 more Codex jobs (84 in all), an eighth atlas `variety`, the packer's new `xs` column cuts for the tide sheet.
+  - **PR B is next** (branch `claude/brinelight-moves`, off main once this merges): new moves per area with a demo panel, the style score and ranks, pickup weapons, hazards, combined foes and elites. The full list is in the coordinator's brief.
 
 ## Next new game: the magnum opus (09-11-2026)
 
