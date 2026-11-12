@@ -8,9 +8,9 @@ export const COL = 40;
 /** Walkable lanes, back to front. Lane r stands at depth z = LANE_Z[r]. */
 export const LANE_Z = [8, 44, 80, 116, 152];
 
-export type FloorId = 'quay' | 'street' | 'breakwater' | 'market' | 'ropewalk' | 'shipyard' | 'drydock';
+export type FloorId = 'quay' | 'street' | 'breakwater' | 'market' | 'ropewalk' | 'shipyard' | 'drydock' | 'barge' | 'raft' | 'lift';
 export type FarId = 'harbour' | 'harbour2' | 'harbour3' | 'town' | 'town2' | 'alley' | 'market' | 'market2' | 'square' | 'square2'
-  | 'ropewalk' | 'ropewalk2' | 'shipyard' | 'shipyard2' | 'drydock' | 'drydock2' | 'loft';
+  | 'ropewalk' | 'ropewalk2' | 'shipyard' | 'shipyard2' | 'drydock' | 'drydock2' | 'loft' | 'lift';
 export type FoeKind = 'crab' | 'hermit' | 'gull' | 'puffer' | 'shrimp' | 'lobster' | 'jelly' | 'urchin' | 'eel' | 'cormorant' | 'octo';
 export type BossKind = 'brute' | 'clamps' | 'knuckles' | 'admiral' | 'longshanks' | 'tanglejaw';
 export type NpcId = 'mabel' | 'twins' | 'barnaby' | 'hal';
@@ -27,7 +27,18 @@ export interface CartDef { col: number; kind: 'cart'; lane: number }
 export interface RollDef { col: number; kind: 'roll'; lane: number }
 export interface TalkDef { col: number; kind: 'talk'; who: NpcId; line: string }
 export interface TutDef { col: number; kind: 'tutorial' }
-export type EventDef = WaveDef | BossDef | CartDef | RollDef | TalkDef | TutDef;
+/**
+ * A scene goal, in place of a plain fight:
+ * - chase: a gull thief flies off with the lantern string's lanterns and the camera scrolls on by itself; knock it down
+ *   (a jump kick, or anything thrown) before the end of the scene, or the lanterns are lost (never the game);
+ * - defend: a lantern stall or a fish cart (`what`) with a health bar, raided from both sides for `time` seconds;
+ * - ride: the scene is a barge, a raft or a lift (`SceneDef.ride`) that keeps moving while foes leap aboard; knock them
+ *   off the edge;
+ * - tide: the water rises behind you from the left; keep going right, since standing in it chips your health.
+ * `groups` are spawned like a wave's; `lantern` is the string the goal wins (or loses).
+ */
+export interface GoalDef { col: number; kind: 'chase' | 'defend' | 'ride' | 'tide'; groups: string[]; time?: number; what?: 'stall' | 'cart'; lantern: number }
+export type EventDef = WaveDef | BossDef | CartDef | RollDef | TalkDef | TutDef | GoalDef;
 
 export interface SceneDef {
   id: string; name: string; floor: FloorId; far: FarId;
@@ -51,6 +62,8 @@ export interface SceneDef {
   /** the ropewalk belt: while a fight is on, a barrel rolls down one of these lanes every `every` seconds, from the
    *  right, after a rumble and a line of dust; `keep` barrels stop against the far wall instead of rolling away */
   belt?: { every: number; lanes: number[]; keep?: boolean };
+  /** the whole scene stands on something moving: the far painting scrolls past (sideways, or downwards for the lift) */
+  ride?: 'barge' | 'raft' | 'lift';
   /** a hidden scene reached through `a`; after it the stage carries on with the next scene */
   secret?: string;
   /** charms and the shanty in this scene, for the map's counts */
@@ -74,14 +87,14 @@ export const AREAS: AreaDef[] = [
 
 export const STAGES: Record<string, StageDef> = {
   '1-1': { id: '1-1', area: 1, name: 'Dusk on the Quay', scenes: ['q1', 'q2', 'q3'] },
-  '1-2': { id: '1-2', area: 1, name: 'The Harbour Front', scenes: ['s1', 's2'] },
-  '1-3': { id: '1-3', area: 1, name: 'Clamps’ Pier', scenes: ['bw'], panel: 'panel-quay' },
+  '1-2': { id: '1-2', area: 1, name: 'The Harbour Front', scenes: ['s1', 'sd', 's2'] },
+  '1-3': { id: '1-3', area: 1, name: 'Clamps’ Pier', scenes: ['bg', 'bt', 'bw'], panel: 'panel-quay' },
   '2-1': { id: '2-1', area: 2, name: 'The Market Gate', scenes: ['m1', 'm2', 'm3'] },
-  '2-2': { id: '2-2', area: 2, name: 'The Back Stalls', scenes: ['m4', 'm5'] },
-  '2-3': { id: '2-3', area: 2, name: 'The Awnings', scenes: ['sq1', 'sq2'], panel: 'panel-market' },
+  '2-2': { id: '2-2', area: 2, name: 'The Back Stalls', scenes: ['mt', 'm4', 'md', 'm5'] },
+  '2-3': { id: '2-3', area: 2, name: 'The Awnings', scenes: ['sq1', 'lift', 'sq2'], panel: 'panel-market' },
   '3-1': { id: '3-1', area: 3, name: 'The Ropewalk', scenes: ['r1', 'r2', 'r3'] },
-  '3-2': { id: '3-2', area: 3, name: 'The Shipyard', scenes: ['y1', 'y2', 'y3'] },
-  '3-3': { id: '3-3', area: 3, name: 'The Drydock', scenes: ['d1', 'd2'], panel: 'panel-shipyard' },
+  '3-2': { id: '3-2', area: 3, name: 'The Shipyard', scenes: ['y1', 'y2', 'yd', 'y3'] },
+  '3-3': { id: '3-3', area: 3, name: 'The Drydock', scenes: ['raft', 'd1', 'd2'], panel: 'panel-shipyard' },
 };
 
 export const SCENES: Record<string, SceneDef> = {
@@ -107,19 +120,19 @@ export const SCENES: Record<string, SceneDef> = {
   },
   q2: {
     id: 'q2', name: 'Crate Row', floor: 'quay', far: 'harbour2',
-    back:  '.c.c..b.....p..o.....f.b.b........o...p...c..',
+    back:  '.c.c..b.....p..o.....f.b.b........o...p...c...c.c..b.....p..o.....f.b.b.',
     lanes: [
-      '.............................................',
-      '........c..................................k.',
-      '.............................................',
-      '..................b..........................',
-      '.......................s.....................',
+      '..............................c.....................k...................',
+      '........c...................................b...........................',
+      '..................b.........................................s...........',
+      '..........................b...........c.................................',
+      '.......................s..........................b.....................',
     ],
-    front: '..p.......c......r.........f..........c......',
-    strings: [{ col: 14, need: 3 }, { col: 34, need: 3 }],
+    front: '..p.......c......r.........f..........c........p.......c......r.........',
+    strings: [{ col: 64, need: 4 }],
     events: [
-      { col: 14, kind: 'wave', groups: ['crab> crab>', '<crab hermit>', 'crab> <crab'], lantern: 0 },
-      { col: 34, kind: 'wave', groups: ['puffer>', 'crab> <crab', 'puffer> <crab', 'hermit> crab>'], lantern: 1 },
+      { col: 2, kind: 'talk', who: 'mabel', line: 'A gull’s got the lanterns! Jump and kick it when it swoops, or throw something!' },
+      { col: 10, kind: 'chase', groups: ['crab> crab>', 'puffer>', 'crab> hermit>'], lantern: 0 },
     ],
     charms: 1,
   },
@@ -163,6 +176,23 @@ export const SCENES: Record<string, SceneDef> = {
     secret: 'alley',
     charms: 1,
   },
+  sd: {
+    id: 'sd', name: 'Mabel’s Stall', floor: 'street', far: 'town',
+    back:  '.f...b..c.....c.c...o....f...b',
+    lanes: [
+      '..............................',
+      '....b.........................',
+      '..............................',
+      '.........................b....',
+      '........f.....................',
+    ],
+    front: '....p.......f........c........',
+    strings: [{ col: 14, need: 4 }],
+    events: [
+      { col: 14, kind: 'defend', what: 'stall', time: 40, groups: ['crab> <crab', '<crab gull>', 'puffer> <crab', 'hermit> <crab', 'crab> <gull', '<puffer crab>'], lantern: 0 },
+    ],
+    charms: 0,
+  },
   alley: {
     id: 'alley', name: 'The Hidden Alley', floor: 'street', far: 'alley',
     back:  '..W....$.....b.c......',
@@ -196,6 +226,42 @@ export const SCENES: Record<string, SceneDef> = {
     events: [
       { col: 10, kind: 'wave', groups: ['puffer> <puffer', 'gull> crab>', '<hermit shrimp>', 'crab> <crab gull>'], call: ['crab> crab>'], lantern: 0 },
       { col: 26, kind: 'boss', who: 'brute' },
+    ],
+    charms: 1,
+  },
+  bg: {
+    id: 'bg', name: 'The Ferry Barge', floor: 'barge', far: 'harbour',
+    ride: 'barge',
+    back:  '..........................',
+    lanes: [
+      '..........................',
+      '......b...................',
+      '..........................',
+      '...................b......',
+      '..........................',
+    ],
+    front: '..........................',
+    strings: [{ col: 13, need: 5 }],
+    events: [
+      { col: 13, kind: 'ride', groups: ['crab> <crab', 'crab> <hermit', 'puffer> <crab', '<crab crab> crab>', 'gull> <hermit'], lantern: 0 },
+    ],
+    charms: 0,
+  },
+  bt: {
+    id: 'bt', name: 'The Breakwater Tide', floor: 'breakwater', far: 'harbour3',
+    back:  '..b...c....o...b.b.c...o........b...c....o...b.b.c...o........b.',
+    lanes: [
+      '........................................g.......................',
+      '....................c...........................................',
+      '................................b...............................',
+      '..............................................c.................',
+      '............f...................................................',
+    ],
+    front: '.r.......b......o.......r......r.......b......o.......r......r..',
+    strings: [{ col: 56, need: 4 }],
+    events: [
+      { col: 2, kind: 'talk', who: 'mabel', line: 'The tide’s coming in! Keep moving right, and don’t stop in the water!' },
+      { col: 11, kind: 'tide', groups: ['crab>', 'crab> crab>', 'puffer>', 'hermit> crab>', 'crab> gull>'], lantern: 0 },
     ],
     charms: 1,
   },
@@ -251,26 +317,42 @@ export const SCENES: Record<string, SceneDef> = {
     strings: [{ col: 11, need: 3 }, { col: 27, need: 4 }],
     events: [
       { col: 11, kind: 'wave', groups: ['jelly> crab>', '<crab crab>', 'jelly> <gull'], lantern: 0 },
-      { col: 27, kind: 'wave', groups: ['jelly> <jelly', 'gull> crab>', 'lobster> <crab crab>', '<jelly hermit>'], lantern: 1 },
+      { col: 27, kind: 'wave', groups: ['crab>@1 crab>@1 crab>@1 crab>@1', 'jelly> <jelly', 'gull> crab>', 'crab>@3 crab>@3 crab>@3 lobster>'], lantern: 1, teach: 'special' },
     ],
     charms: 1,
   },
   m3: {
     id: 'm3', name: 'Crab Counters', floor: 'market', far: 'market', farFlip: true,
-    back:  '.L..S..X..L..R..S..W..L..S..X...L..S..',
+    back:  '.L..S..X..L..R..S..W..L..S..X...L..S...L..S..X..L..R..S..W..L..S..X...L.',
     lanes: [
-      '......................................',
-      '...........i..........................',
-      '......................................',
-      '.........................n............',
-      '..s.................................k.',
+      '....................................k...................................',
+      '............b...................................i.......................',
+      '........................b.................................f.............',
+      '..............................i.........................................',
+      '..................f.................................b...................',
     ],
-    front: '...M.......W.......X.......N.......Z..',
-    strings: [{ col: 10, need: 3 }, { col: 22, need: 5 }, { col: 34, need: 4 }],
+    front: '...M.......W.......X.......N.......Z.....M.......W.......X.......N......',
+    strings: [{ col: 64, need: 4 }],
     events: [
-      { col: 10, kind: 'wave', groups: ['shrimp> lobster>', '<crab crab>', 'puffer> <crab'], call: ['<crab crab> jelly>'], lantern: 0 },
-      { col: 22, kind: 'wave', groups: ['crab>@1 crab>@1 crab>@1 crab>@1 crab>@1', 'puffer> <jelly', 'crab>@3 crab>@3 crab>@3 lobster>'], lantern: 1, teach: 'special' },
-      { col: 34, kind: 'wave', groups: ['hermit> gull>', '<puffer jelly> crab>', 'lobster> <lobster', 'crab> <crab urchin>'], lantern: 2 },
+      { col: 10, kind: 'chase', groups: ['crab> crab>', 'lobster>', 'jelly> crab>', 'crab> puffer>'], lantern: 0 },
+    ],
+    charms: 1,
+  },
+  mt: {
+    id: 'mt', name: 'The Flooded Gutter', floor: 'market', far: 'market2',
+    back:  '..X..S..T..D.......W..S..X..R..D..S.....X..S..T..D.......W..S.',
+    lanes: [
+      '..............................k...............................',
+      '................c.............................................',
+      '........................................b.....................',
+      '........................f.....................................',
+      '................................................c.............',
+    ],
+    front: '.Z.......W........M.......N.......X....Z.......W........M.....',
+    strings: [{ col: 54, need: 4 }],
+    events: [
+      { col: 2, kind: 'talk', who: 'twins', line: 'The gutters are flooding! Run for the dry end!' },
+      { col: 11, kind: 'tide', groups: ['crab> crab>', 'urchin>', 'lobster> crab>', 'jelly> crab>', 'crab> urchin>'], lantern: 0 },
     ],
     charms: 1,
   },
@@ -292,6 +374,23 @@ export const SCENES: Record<string, SceneDef> = {
     ],
     secret: 'larder',
     charms: 1,
+  },
+  md: {
+    id: 'md', name: 'The Fish Cart', floor: 'market', far: 'market',
+    back:  '..S..X..W..R..L..D....S..X..W.',
+    lanes: [
+      '..............................',
+      '....i.........................',
+      '..............................',
+      '.........................b....',
+      '........f.....................',
+    ],
+    front: '.N.......X........M........N..',
+    strings: [{ col: 14, need: 4 }],
+    events: [
+      { col: 14, kind: 'defend', what: 'cart', time: 45, groups: ['crab> <crab', '<lobster crab>', 'jelly> <crab', 'urchin> <crab', 'gull> <lobster', '<crab shrimp> crab>'], lantern: 0 },
+    ],
+    charms: 0,
   },
   larder: {
     id: 'larder', name: 'The Smugglers’ Larder', floor: 'market', far: 'alley',
@@ -348,6 +447,24 @@ export const SCENES: Record<string, SceneDef> = {
     ],
     charms: 1,
   },
+  lift: {
+    id: 'lift', name: 'The Cargo Lift', floor: 'lift', far: 'lift',
+    ride: 'lift',
+    back:  '..........................',
+    lanes: [
+      '..........................',
+      '......b...................',
+      '..........................',
+      '....................i.....',
+      '..........................',
+    ],
+    front: '..........................',
+    strings: [{ col: 13, need: 5 }],
+    events: [
+      { col: 13, kind: 'ride', groups: ['gull> <gull', 'crab> <crab', 'jelly> <lobster', 'gull> <crab crab>', 'lobster> <gull'], lantern: 0 },
+    ],
+    charms: 0,
+  },
   sq2: {
     id: 'sq2', name: 'Admiral’s Perch', floor: 'market', far: 'square2',
     back:  '..A....R....A..X....A...',
@@ -383,7 +500,7 @@ export const SCENES: Record<string, SceneDef> = {
       { col: 3, kind: 'talk', who: 'hal', line: 'Mind the belt! When the floor rumbles, step into another lane.' },
       { col: 9, kind: 'roll', lane: 2 },
       { col: 13, kind: 'roll', lane: 1 },
-      { col: 18, kind: 'wave', groups: ['crab> crab>', '<crab crab>', 'crab>@2 crab>@2 crab>@2'], lantern: 0 },
+      { col: 18, kind: 'wave', groups: ['crab> crab>', 'crab>@2 crab>@2 crab>@2 crab>@2', '<crab crab>'], lantern: 0, teach: 'special' },
       { col: 27, kind: 'talk', who: 'hal', line: 'Enzo can stop a rolling barrel with a punch. Then it’s yours to throw.' },
       { col: 36, kind: 'wave', groups: ['crab> <crab', 'hermit> crab>', 'puffer> <crab crab>'], lantern: 1 },
     ],
@@ -411,21 +528,19 @@ export const SCENES: Record<string, SceneDef> = {
   },
   r3: {
     id: 'r3', name: 'Rope Hooks', floor: 'ropewalk', far: 'ropewalk', farFlip: true,
-    back:  '..J....O...C....K...J....O...C....K...J...O...',
+    back:  '..J....O...C....K...J....O...C....K...J...O.....J....O...C....K...J....O',
     lanes: [
-      '..............................................',
-      '.............b................................',
-      '..............................................',
-      '..............................b...............',
-      '....s.................................k.......',
+      '........................................k...............................',
+      '..............b...................................b.....................',
+      '..........................c.............................................',
+      '..................................b.........................f...........',
+      '....................f...................................................',
     ],
-    front: '.Q.........C.........H.........Q.........C....',
-    strings: [{ col: 10, need: 3 }, { col: 24, need: 4 }, { col: 38, need: 4 }],
-    belt: { every: 8, lanes: [1, 2, 3] },
+    front: '.Q.........C.........H.........Q.........C.....Q.........C.........H....',
+    strings: [{ col: 64, need: 4 }],
     events: [
-      { col: 10, kind: 'wave', groups: ['crab>@1 crab>@1 crab>@1 crab>@1', 'eel> <urchin', 'shrimp> crab> <crab'], call: ['<crab crab>'], lantern: 0, teach: 'special' },
-      { col: 24, kind: 'wave', groups: ['lobster> <eel', 'urchin> crab>', 'hermit> <lobster'], lantern: 1 },
-      { col: 38, kind: 'wave', groups: ['eel> <eel crab>', 'puffer> <crab lobster>', 'crab> <crab eel>'], lantern: 2 },
+      { col: 2, kind: 'talk', who: 'hal', line: 'A thief! Kick it out of the sky, Dora, or let Enzo throw a barrel!' },
+      { col: 10, kind: 'chase', groups: ['crab> eel>', 'crab> crab>', 'lobster>', 'eel> crab>'], lantern: 0 },
     ],
     charms: 1,
   },
@@ -471,6 +586,23 @@ export const SCENES: Record<string, SceneDef> = {
     secret: 'loft',
     charms: 1,
   },
+  yd: {
+    id: 'yd', name: 'Hal’s Lantern Cart', floor: 'shipyard', far: 'shipyard2',
+    back:  '..P...Y...P....H....P.....P...',
+    lanes: [
+      '..............................',
+      '....b.........................',
+      '..............................',
+      '.........................b....',
+      '........f.....................',
+    ],
+    front: '.V.........C.........Q.....V..',
+    strings: [{ col: 14, need: 4 }],
+    events: [
+      { col: 14, kind: 'defend', what: 'stall', time: 45, groups: ['crab> <crab', '<eel lobster>', 'cormorant> <crab', 'crab> <octo', 'lobster> <crab crab>', '<cormorant eel>'], lantern: 0 },
+    ],
+    charms: 0,
+  },
   loft: {
     id: 'loft', name: 'The Sail Loft', floor: 'shipyard', far: 'loft',
     back:  '..Q...%......H..Y..Q...',
@@ -508,23 +640,39 @@ export const SCENES: Record<string, SceneDef> = {
     ],
     charms: 0,
   },
+  raft: {
+    id: 'raft', name: 'The Timber Raft', floor: 'raft', far: 'shipyard',
+    ride: 'raft',
+    back:  '..........................',
+    lanes: [
+      '..........................',
+      '......b...................',
+      '..........................',
+      '...................b......',
+      '..........................',
+    ],
+    front: '..........................',
+    strings: [{ col: 13, need: 5 }],
+    events: [
+      { col: 13, kind: 'ride', groups: ['crab> <crab', 'lobster> <crab', 'cormorant> <crab', 'crab> <hermit crab>', 'lobster> <cormorant'], lantern: 0 },
+    ],
+    charms: 0,
+  },
   d1: {
     id: 'd1', name: 'Dock Steps', floor: 'drydock', far: 'drydock2',
-    back:  '..G....K...U....C....G...K....U...C....G...K...',
+    back:  '..G....K...U....C....G...K....U...C....G...K.....G....K...U....C..',
     lanes: [
-      '...............................................',
-      '..............b................................',
-      '...............................................',
-      '...........................q...................',
-      '..f..................................k.........',
+      '............................k.....................................',
+      '..............b...................................................',
+      '....................................c.............q...............',
+      '......................c...........................................',
+      '............................................b.....................',
     ],
-    front: '.C.........H.........Q.........C.........H.....',
-    strings: [{ col: 10, need: 3 }, { col: 26, need: 4 }, { col: 40, need: 4 }],
-    belt: { every: 8, lanes: [0, 2, 4] },
+    front: '.C.........H.........Q.........C.........H......C.........H.......',
+    strings: [{ col: 58, need: 4 }],
     events: [
-      { col: 10, kind: 'wave', groups: ['eel> <eel', 'cormorant> crab>', 'lobster> <octo'], lantern: 0 },
-      { col: 26, kind: 'wave', groups: ['shrimp> eel> <crab', 'urchin> <crab crab>', 'cormorant> <cormorant'], call: ['crab> <crab eel>'], lantern: 1 },
-      { col: 40, kind: 'wave', groups: ['octo> <lobster', 'crab>@2 crab>@2 crab>@2 crab>@2', 'eel> <cormorant hermit>', 'puffer> <eel crab>'], lantern: 2 },
+      { col: 2, kind: 'talk', who: 'hal', line: 'They’ve opened the dock gates! Run up the steps before the water gets you!' },
+      { col: 11, kind: 'tide', groups: ['crab> eel>', 'crab> crab>', 'lobster>', 'cormorant> crab>', 'urchin> crab>'], lantern: 0 },
     ],
     charms: 2,
   },

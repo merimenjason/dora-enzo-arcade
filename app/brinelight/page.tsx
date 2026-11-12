@@ -10,10 +10,11 @@ import {
 } from '@/lib/brinelight-game';
 import { secretIds } from '@/lib/brinelight-levels';
 import { BrineScene, type Labels } from '@/lib/brinelight-scene';
-import { BrineSound, type Tune } from './sound';
+import { FestGame, FEST_DT, festAfter, type FestInput } from '@/lib/brinelight-fest';
+import { BrineSound, TUNE_BPM, type Tune } from './sound';
 import './brinelight.css';
 
-type Screen = 'loading' | 'title' | 'map' | 'panel' | 'play' | 'results';
+type Screen = 'loading' | 'title' | 'map' | 'panel' | 'play' | 'results' | 'fest';
 const ART = '/art/brinelight/';
 const ORDER = Object.keys(STAGES);
 /** where each district sits on the painted harbour map, in percent of the painting */
@@ -53,6 +54,9 @@ export default function Brinelight() {
   const [panel, setPanel] = useState<{ id: string; then: string } | null>(null);
   const [paused, setPaused] = useState(false);
   const [result, setResult] = useState<{ stage: string; score: number; time: number; medal: number; best: number; chains: number; specials: number; specialLanded: number; lanterns: number; found: number; total: number; retries: number } | null>(null);
+  const festRef = useRef<FestGame | null>(null);
+  const [festEnd, setFestEnd] = useState<{ won: number; then: string } | null>(null);
+  const festNext = useRef('');
   const S = useRef({ screen: 'loading' as Screen, paused: false, save: freshSave(), mode: 'keys' as Labels['mode'] });
   S.current.screen = screen; S.current.paused = paused; S.current.save = save;
 
@@ -84,6 +88,23 @@ export default function Brinelight() {
     if (p && !s.seen.includes(p)) { persist({ ...s, seen: [...s.seen, p] }); setPanel({ id: p, then: stage }); setScreen('panel'); return; }
     startStage(stage);
   }, [persist, startStage]);
+
+  // a festival breather between stages: one of three in turn, skippable, never failable
+  const startFest = useCallback((after: string, then: string) => {
+    const mood = AREAS[STAGES[after].area - 1].mood as Tune;
+    festRef.current = new FestGame({ kind: festAfter(after), seed: Math.floor(Math.random() * 1e6) + 1, assist: S.current.save.assist, bpm: TUNE_BPM[mood!] });
+    festNext.current = then; setFestEnd(null); sceneRef.current!.festPops = [];
+    soundRef.current?.restart(mood);
+    setScreen('fest');
+  }, []);
+  const endFest = useCallback((skip: boolean) => {
+    const F = festRef.current, then = festNext.current;
+    if (skip || !F) { festRef.current = null; begin(then); return; }
+    const won = F.reward();
+    persist({ ...S.current.save, lanterns: S.current.save.lanterns + won });
+    setFestEnd({ won, then });
+  }, [begin, persist]);
+  const festEndRef = useRef(endFest); festEndRef.current = endFest;
 
   const finish = useCallback(() => {
     const g = gameRef.current!; const s = S.current.save;
@@ -129,9 +150,22 @@ export default function Brinelight() {
         }
         if (g.mode === 'clear' && g.clearT > 2.2) finish();
         snd.play(g.boss && g.boss.st !== 'end' && g.boss.st !== 'gone' ? 'boss' : (AREAS[STAGES[g.stageId].area - 1].mood as Tune));
+      } else if (scr === 'fest' && festRef.current) {
+        const F = festRef.current;
+        acc += dt;
+        let n = 0;
+        while (acc >= FEST_DT && n < 5) {
+          const was = F.done;
+          F.step(readFest());
+          for (const e of F.events) { if (e.k === 'sfx') snd.sfx(e.id); else sc.festPop(F, e.x, e.text, e.col); }
+          F.events.length = 0;
+          if (F.done && !was) festEndRef.current(false);
+          acc -= FEST_DT; n++;
+        }
       } else { acc = 0; if (scr !== 'play') snd.play(scr === 'loading' ? null : 'map'); }
       sc.update(dt);
-      if (g && (scr === 'play' || scr === 'results')) sc.draw(g, dt, { labels: labels(), hideHud: scr !== 'play' });
+      if (scr === 'fest' && festRef.current) sc.drawFest(festRef.current, dt, labels());
+      else if (g && (scr === 'play' || scr === 'results')) sc.draw(g, dt, { labels: labels(), hideHud: scr !== 'play' });
       else { const cx = cv.getContext('2d')!; cx.setTransform(1, 0, 0, 1, 0, 0); cx.fillStyle = '#1d1b4a'; cx.fillRect(0, 0, cv.width, cv.height); }
     };
     raf = requestAnimationFrame(frame);
@@ -161,10 +195,11 @@ export default function Brinelight() {
       return best;
     };
     const pd = (e: PointerEvent) => {
-      if (e.pointerType !== 'touch' || S.current.screen !== 'play' || S.current.paused) return;
+      const scr = S.current.screen;
+      if (e.pointerType !== 'touch' || (scr !== 'play' && scr !== 'fest') || S.current.paused) return;
       snd.start();
       if (S.current.mode !== 'touch') { S.current.mode = 'touch'; fit(); }
-      const b = hitBtn(e.clientX, e.clientY);
+      const b = hitBtn(e.clientX, e.clientY) ?? (scr === 'fest' && festRef.current?.kind === 'whack' ? sc.festHit(e.clientX, e.clientY) : null);
       if (b) { press.current[b] = true; held.current[b] = true; touchBtn.current[e.pointerId] = b; sc.pressed[b] = 0.12; e.preventDefault(); return; }
       const T = sc.tl;
       if (e.clientX < innerWidth * 0.5 && (sc.portrait ? e.clientY > T.panel : e.clientY > innerHeight * 0.35) && stick.current.id < 0) {
@@ -211,9 +246,11 @@ export default function Brinelight() {
       return i;
     };
 
+    const readFest = (): FestInput => { const i = { atkP: press.current.atk, jmpP: press.current.jmp, tagP: press.current.tag }; press.current = { atk: false, jmp: false, tag: false }; return i; };
+
     (window as unknown as { __brinelight: () => unknown }).__brinelight = () => ({
       game: gameRef.current, scene: sceneRef.current, screen: S.current.screen, paused: S.current.paused, save: S.current.save,
-      mode: S.current.mode, labels: labels(), start: (stage: string, seed?: number) => startStage(stage, seed),
+      mode: S.current.mode, labels: labels(), start: (stage: string, seed?: number) => startStage(stage, seed), fest: festRef.current, festStart: (after: string, then: string) => startFest(after, then),
     });
     return () => {
       alive = false; cancelAnimationFrame(raf); snd.stop();
@@ -348,12 +385,27 @@ export default function Brinelight() {
               <dt>Retries</dt><dd>{result.retries}</dd>
             </dl>
             <div className="bl-row">
-              {ORDER.indexOf(result.stage) < ORDER.length - 1 && <button className="bl-btn" autoFocus onClick={() => begin(ORDER[ORDER.indexOf(result.stage) + 1])}>Next stage</button>}
+              {ORDER.indexOf(result.stage) < ORDER.length - 1 && <button className="bl-btn" autoFocus onClick={() => startFest(result.stage, ORDER[ORDER.indexOf(result.stage) + 1])}>Next stage</button>}
               <button className="bl-btn bl-small" onClick={() => startStage(result.stage)}>Play again</button>
               <button className="bl-btn bl-small" onClick={() => { setArea(STAGES[result.stage].area); setScreen('map'); }}>Map</button>
             </div>
-            {result.stage === '2-3' && <p className="bl-dim">That’s the Fish Market lit. The Ropewalk, the Lighthouse Rocks, the Smugglers’ Caves and Pinchwell’s fort come later.</p>}
+            {result.stage === '2-3' && <p className="bl-dim">That’s the Fish Market lit. On to the Ropewalk and the shipyard.</p>}
+            {result.stage === '3-3' && <p className="bl-dim">That’s the shipyard lit. The Lighthouse Rocks, the Smugglers’ Caves and Pinchwell’s fort come later.</p>}
           </div>
+        </div>
+      )}
+
+      {screen === 'fest' && (
+        <div className="bl-fest">
+          {!festEnd && <button className="bl-btn bl-small bl-skip" onClick={() => endFest(true)}>Skip</button>}
+          {festEnd && (
+            <div className="bl-overlay">
+              <div className="bl-card bl-festend">
+                <h2>+{festEnd.won} {festEnd.won === 1 ? 'lantern' : 'lanterns'}</h2>
+                <button className="bl-btn" autoFocus onClick={() => { festRef.current = null; begin(festEnd.then); }}>Next stage</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </main>

@@ -85,8 +85,9 @@ def crop(sub):
 FRAMES = {}     # name -> (array, anchor mode)
 SCALEK = {}     # name -> pixel scale factor
 
-def grid(file, names, gx, gy, ref, world, green=False, anchor='mass', clean=True, flip=False):
-    """cut a sheet; `ref` is the name of the frame that must stand `world` units tall"""
+def grid(file, names, gx, gy, ref, world, green=False, anchor='mass', clean=True, flip=False, xs=None):
+    """cut a sheet; `ref` is the name of the frame that must stand `world` units tall; `xs` are column cuts (as
+    fractions of the width) for a sheet whose items aren't evenly spaced"""
     arr = key(Image.open(SRC / f'{file}.png'), green)
     H, W = arr.shape[:2]
     cells = {}
@@ -94,7 +95,8 @@ def grid(file, names, gx, gy, ref, world, green=False, anchor='mass', clean=True
         for i in range(gx):
             n = names[j * gx + i]
             if not n: continue
-            sub = arr[H * j // gy:H * (j + 1) // gy, W * i // gx:W * (i + 1) // gx]
+            x0, x1 = (round(W * xs[i]), round(W * xs[i + 1])) if xs else (W * i // gx, W * (i + 1) // gx)
+            sub = arr[H * j // gy:H * (j + 1) // gy, x0:x1]
             if clean: sub = biggest(sub)
             c = crop(sub)
             if c is None: print('!! empty', file, n); continue
@@ -152,6 +154,12 @@ grid('longshanks', ['longshanks-idle', 'longshanks-walk1', 'longshanks-walk2', '
 grid('tanglejaw', ['tanglejaw-peek', 'tanglejaw-tell', 'tanglejaw-lunge', 'tanglejaw-strike', 'tanglejaw-stuck', 'tanglejaw-hurt', 'tanglejaw-whip', 'tanglejaw-roar', 'tanglejaw-sink', 'tanglejaw-down', 'tanglejaw-hole', 'tanglejaw-plug'], 4, 3, 'tanglejaw-peek', 180)
 grid('props4', ['bobbin', 'tarbarrel', 'scaffold', 'ropecoil', 'planks', 'pulley', 'anchor', 'sawhorse', 'paints', 'figurehead', 'winch', 'lamppost'], 4, 3, 'tarbarrel', 64)
 grid('npcs2', ['npc-hal', 'npc-hal-talk', 'npc-hal-cheer', 'face-hal'], 2, 2, 'npc-hal', 120)
+# scene goals and the festival breathers. The thief is painted flying right; flipped here so it faces left like the rest.
+grid('thief', ['thief-fly1', 'thief-fly2', 'thief-swoop', 'thief-hit', 'thief-flee', 'thief-taunt'], 3, 2, 'thief-fly1', 118, clean=False, flip=True)
+grid('defend', ['stall-0', 'stall-1', 'stall-2', 'stall-3', 'fishcart-0', 'fishcart-1', 'fishcart-2', 'fishcart-3'], 4, 2, 'stall-0', 150, clean=False)
+grid('tide', ['tide-1', 'tide-2', 'tide-3', 'tide-water'], 4, 1, 'tide-1', 250, xs=[0, 0.2, 0.42, 0.63, 1])
+grid('festprops', ['fest-pot', 'fcrab-peek', 'fcrab-up', 'fcrab-bonk', 'gcrab-up', 'gcrab-bonk', 'flantern-dark', 'flantern-lit', 'bottles', 'bottles-tumble', 'bottles-down', 'fball'], 4, 3, 'fest-pot', 80, clean=False)
+grid('festheroes', ['pair-reach', 'pair-hang', 'pair-cheer', 'pair-oops', 'fenzo-windup', 'fenzo-toss', 'fenzo-cheer', 'fdora-cheer'], 4, 2, 'pair-reach', 300)
 
 # a few props are painted at another size than their sheet-mates: per-frame world heights
 FIX = {'lantern-lit': 36, 'lantern-dark': 36, 'barrel': 64, 'fishcrate': 46, 'lobsterpot': 54, 'bollard': 44, 'crate': 58, 'rope': 30,
@@ -160,6 +168,9 @@ FIX = {'lantern-lit': 36, 'lantern-dark': 36, 'barrel': 64, 'fishcrate': 46, 'lo
        'npc-twins': 118, 'npc-twins-cheer': 124, 'npc-barnaby': 120, 'face-mabel': 120, 'face-twins': 120, 'face-barnaby': 120,
        'bobbin': 92, 'tarbarrel': 64, 'scaffold': 170, 'ropecoil': 40, 'planks': 52, 'pulley': 120, 'anchor': 112, 'sawhorse': 66, 'paints': 48, 'figurehead': 96, 'winch': 112, 'lamppost': 210,
        'face-hal': 120, 'npc-hal-cheer': 124,
+       'fishcart-0': 120, 'fishcart-1': 120, 'fishcart-2': 116, 'fishcart-3': 96, 'stall-3': 120, 'tide-water': 250,
+       'fcrab-peek': 40, 'fcrab-up': 76, 'fcrab-bonk': 44, 'gcrab-up': 76, 'gcrab-bonk': 44, 'flantern-dark': 70, 'flantern-lit': 70,
+       'bottles': 80, 'bottles-tumble': 90, 'bottles-down': 40, 'fball': 22, 'fenzo-windup': 172, 'fenzo-toss': 172, 'fenzo-cheer': 172, 'fdora-cheer': 165,
        'dora-face': 140, 'enzo-face': 140, 'hermit-shell': 70, 'hermit-shellside': 60, 'hermit-soft': 52, 'clamps-barrel': 96}
 for n, w in FIX.items():
     if n in FRAMES: SCALEK[n] = w * PX / FRAMES[n][0].shape[0]
@@ -197,6 +208,7 @@ GROUPS = [('dora', lambda n: n.startswith('dora-')), ('enzo', lambda n: n.starts
           ('foes', lambda n: n.split('-')[0] in ('crab', 'gull', 'hermit', 'puffer', 'shrimp', 'lobster', 'jelly', 'urchin')),
           ('bosses', lambda n: n.split('-')[0] in ('brute', 'knuckles', 'clamps', 'admiral')),
           ('area3', lambda n: n.split('-')[0] in ('eel', 'cormorant', 'octo', 'longshanks', 'tanglejaw')),
+          ('variety', lambda n: n.split('-')[0] in ('thief', 'stall', 'fishcart', 'tide', 'fest', 'fcrab', 'gcrab', 'flantern', 'bottles', 'fball', 'pair', 'fenzo', 'fdora')),
           ('ui', lambda n: n.startswith('btn-') or n in ('stick-base', 'stick-knob', 'ring', 'bar', 'bossbar', 'go', 'icon-lantern', 'keycap', 'medal') or n.startswith('face-')),
           ('props', lambda n: True)]
 assigned = {}
@@ -249,14 +261,21 @@ def strip(file, name, width, overlap=220):
     im.save(OUT / f'floor-{name}.webp', 'WEBP', quality=80, method=6)
     BG['floor-' + name] = list(im.size)
 for f, n in (('quay', 'quay'), ('breakwater', 'breakwater'), ('street', 'street'), ('market', 'market'),
-             ('ropewalk', 'ropewalk'), ('shipyard', 'shipyard'), ('drydock', 'drydock')): strip(f, n, 1100)
+             ('ropewalk', 'ropewalk'), ('shipyard', 'shipyard'), ('drydock', 'drydock'), ('barge', 'barge'), ('raft', 'raft'), ('liftdeck', 'lift')): strip(f, n, 1100)
 def plain(file, name, size, q=78):
     im = Image.open(SRC / f'{file}.png').convert('RGB').resize(size, Image.LANCZOS)
     im.save(OUT / f'{name}.webp', 'WEBP', quality=q, method=6); BG[name] = list(im.size)
 for f, n in (('far', 'far-harbour'), ('townfar', 'far-town'), ('alleyfar', 'far-alley'), ('marketfar', 'far-market'), ('squarefar', 'far-square'),
              ('far2', 'far-harbour2'), ('far3', 'far-harbour3'), ('townfar2', 'far-town2'), ('marketfar2', 'far-market2'), ('squarefar2', 'far-square2'),
              ('ropewalkfar', 'far-ropewalk'), ('ropewalkfar2', 'far-ropewalk2'), ('shipyardfar', 'far-shipyard'), ('shipyardfar2', 'far-shipyard2'),
-             ('drydockfar', 'far-drydock'), ('drydockfar2', 'far-drydock2'), ('loftfar', 'far-loft')): plain(f, n, (1344, 896))
+             ('drydockfar', 'far-drydock'), ('drydockfar2', 'far-drydock2'), ('loftfar', 'far-loft'),
+             # the same views at sunset, for the first stage of a district
+             ('dusk-far', 'dusk-harbour'), ('dusk-far2', 'dusk-harbour2'), ('dusk-marketfar', 'dusk-market'), ('dusk-marketfar2', 'dusk-market2'),
+             ('dusk-ropewalkfar', 'dusk-ropewalk'), ('dusk-ropewalkfar2', 'dusk-ropewalk2')): plain(f, n, (1344, 896))
+# the cargo lift's view scrolls downwards; the fireworks sheet is on black and drawn additively
+plain('liftfar', 'far-lift', (896, 1344))
+plain('fireworks', 'fireworks', (1536, 1024), 82)
+for f in ('fest-whack', 'fest-lanterns', 'fest-bottles'): plain(f, f, (1344, 896), 80)
 for f in ('title', 'map', 'panel-intro', 'panel-quay', 'panel-market', 'panel-shipyard'): plain(f, f, (1536, 1024), 80)
 
 # ─────────────────────────────── the TypeScript index

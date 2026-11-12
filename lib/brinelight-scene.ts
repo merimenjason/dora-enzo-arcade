@@ -2,10 +2,11 @@
 // scripts/brinelight-art.py; this file draws effects (sparks, dust, splashes, rings, glows, shadows, the night wash)
 // and typeset HUD text on top. It reads the engine and never changes it.
 import {
-  BrineGame, FLOOR, DEPTH, VIEW_W, HC, COL, LANE_Z, BOSS_NAME, inHole, perched, type GameEvent, type Hero, type Foe, type Boss, type HeroId,
-  type Prop, type Item,
+  BrineGame, FLOOR, DEPTH, VIEW_W, HC, COL, LANE_Z, BOSS_NAME, inHole, perched, timeOfDay, type GameEvent, type Hero, type Foe, type Boss, type HeroId,
+  type Prop, type Item, type Goal,
 } from './brinelight-game';
 import { PX, ATLASES, FRAMES, IMAGES } from './brinelight-art';
+import type { FestGame } from './brinelight-fest';
 
 const BAND = 540;                       // world units from the top of the sky to the bottom of the deck
 const STRIP_TOP = 272, STRIP_H = BAND - STRIP_TOP + 4;
@@ -55,7 +56,7 @@ export class BrineScene {
   async load(base = '/art/brinelight/') {
     const one = (src: string) => new Promise<HTMLImageElement>((ok, bad) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => bad(new Error(src)); im.src = src; });
     this.atlas = await Promise.all(ATLASES.map((a) => one(`${base}atlas-${a}.webp`)));
-    const names = Object.keys(IMAGES).filter((n) => n.startsWith('floor-') || n.startsWith('far-'));
+    const names = Object.keys(IMAGES).filter((n) => n.startsWith('floor-') || n.startsWith('far-') || n.startsWith('dusk-') || n.startsWith('fest-') || n === 'fireworks');
     const ims = await Promise.all(names.map((n) => one(`${base}${n}.webp`)));
     names.forEach((n, i) => { this.img[n] = ims[i]; });
     this.ready = true;
@@ -375,12 +376,16 @@ export class BrineScene {
       // in a fight, frame the hero and the nearest threat together, keeping the hero well inside the view
       let near: { x: number } | null = g.boss && g.boss.st !== 'gone' && g.boss.st !== 'end' ? g.boss : null, nd = near ? Math.abs(near.x - p.x) : 1e9;
       for (const f of g.foes) { if (f.st === 'ko' || f.st === 'held') continue; const d = Math.abs(f.x - p.x); if (d < nd) { nd = d; near = f; } }
+      // in a chase, the thief is the one to keep in view
+      const G = g.goal, chase = !!G && G.kind === 'chase' && !G.done && !G.won;
+      if (chase) { near = G!; nd = Math.abs(G!.x - p.x); }
+      const fight = g.lock !== null || chase;
       // and pull back (up to 700 units across) when the threat is too far off to share the close view
-      const want = near && g.lock !== null ? clamp(nd + 300, PORTRAIT_VIEW, 700) : PORTRAIT_VIEW;
+      const want = near && fight ? clamp(nd + 300, PORTRAIT_VIEW, 700) : PORTRAIT_VIEW;
       this.zoomVw += (want - this.zoomVw) * Math.min(1, dt * 2.5);
       this.vw = this.zoomVw; this.s = this.W / this.vw; this.oy = this.playBottom - 660 * this.s;
       tx = p.x - this.vw / 2 + p.face * this.vw * 0.08;
-      if (near && g.lock !== null) tx = clamp((p.x + near.x) / 2 - this.vw / 2, p.x - this.vw * 0.85, p.x - this.vw * 0.15);
+      if (near && fight) tx = clamp((p.x + near.x) / 2 - this.vw / 2, p.x - this.vw * 0.85, p.x - this.vw * 0.15);
       tx = clamp(tx, Math.min(lo, hi), Math.max(lo, hi));
       if (key !== this.stageKey || this.camX < -900) this.camX = tx;
       this.camX += (tx - this.camX) * Math.min(1, dt * 6);
@@ -403,10 +408,10 @@ export class BrineScene {
     cx.save();
     if (g.shake > 0.2) cx.translate((Math.random() - 0.5) * g.shake * this.s * 1.4, (Math.random() - 0.5) * g.shake * this.s * 1.4);
     if (this.portrait) { cx.beginPath(); cx.rect(0, 0, this.W, this.playBottom); cx.clip(); }
-    this.drawFar(g); this.drawStrings(g);
+    this.drawFar(g); this.drawFireworks(g); this.drawStrings(g);
     for (const f of g.foes) if (f.st === 'ko' && f.z < -8) this.drawFoe(f, g);
     this.drawFx(g, true);
-    this.drawFloor(g); this.drawBack(g); this.drawDoor(g); this.drawTelegraphs(g); this.drawFoeTells(g);
+    this.drawFloor(g); this.drawBack(g); this.drawDoor(g); this.drawWater(g); this.drawTelegraphs(g); this.drawFoeTells(g);
     const list: { z: number; d: () => void }[] = [];
     const p = g.hero(), q = g.partner();
     list.push({ z: p.z + 0.1, d: () => this.drawHero(p, g, false) });
@@ -430,8 +435,11 @@ export class BrineScene {
       if (f.kind === 'octo' && (f.loose || f.st === 'enter')) list.push({ z: f.tz - 1, d: () => { this.shadow(f.tx, f.tz, 26, 0); this.spr('octo-post', f.tx, f.tz, 0); } });
     }
     if (g.boss && g.boss.st !== 'gone') { const b = g.boss; list.push({ z: b.z - 20, d: () => this.drawBoss(b, g) }); }
+    const G = g.goal;
+    if (G && G.kind === 'chase' && !(G.done && G.stT > 1.5)) list.push({ z: G.z + 0.2, d: () => this.drawThief(G) });
+    if (G && G.kind === 'defend') list.push({ z: G.z - 1, d: () => this.drawStall(G, g) });
     list.sort((a, b) => a.z - b.z).forEach((x) => x.d());
-    this.drawFx(g, false); this.drawFlies(g);
+    this.drawFx(g, false); this.drawFlies(g); this.drawTide(g);
     if (q.st === 'out' && g.mode !== 'clear') this.drawHero(q, g, true);
     this.drawFront(g);
     this.drawNight(g);
@@ -444,12 +452,16 @@ export class BrineScene {
     if (this.touch || this.portrait) this.drawTouch(g, o.labels);
   }
 
+  /** the hour: the first stage of a district is painted at sunset; the boss stage gets fireworks */
+  tod(g: BrineGame) { return g.inSecret ? 'night' : timeOfDay(g.stageId); }
   private drawFar(g: BrineGame) {
-    const im = this.img['far-' + g.scene.far]; if (!im) return;
+    if (g.scene.ride === 'lift') { this.drawLiftFar(g); return; }
+    const im = (this.tod(g) === 'dusk' && this.img['dusk-' + g.scene.far]) || this.img['far-' + g.scene.far]; if (!im) return;
     const cx = this.cx, topWorld = -this.oy / this.s, waterY = 300, par = 0.05;
     const fh = Math.max((waterY - topWorld) / 0.72, ((this.vw + g.len * par) / 1.5) * 1.03);
     const fw = fh * 1.5, y0 = waterY - fh * 0.72;
-    const x0 = -(this.viewL * par) % (fw * 2) - fw * 0.02;
+    // on a barge or a raft the harbour slides past behind you
+    const x0 = -(this.viewL * par + g.rideX * 0.5) % (fw * 2) - fw * 0.02;
     for (let i = -1; i < 3; i++) {
       const xx = x0 + i * fw; if (xx > this.vw || xx + fw < 0) continue;
       cx.save(); cx.translate(xx * this.s, this.SY(y0));
@@ -460,6 +472,42 @@ export class BrineScene {
     const gr = cx.createLinearGradient(0, y1, 0, y2);
     gr.addColorStop(0, 'rgba(255,170,80,0)'); gr.addColorStop(1, `rgba(255,170,90,${0.1 + 0.22 * lit})`);
     cx.globalCompositeOperation = 'lighter'; cx.fillStyle = gr; cx.fillRect(0, y1, this.W, y2 - y1); cx.globalCompositeOperation = 'source-over';
+  }
+  /** the cargo lift: the market wall slides down past you as you rise; alternate tiles are mirrored so they join */
+  private drawLiftFar(g: BrineGame) {
+    const im = this.img['far-lift']; if (!im) return;
+    const cx = this.cx, topWorld = -this.oy / this.s;
+    const fw = this.vw * 1.08, fh = fw * 1.5, x = -fw * 0.04 - (this.viewL % 40) * 0.05;
+    const off = (g.rideX * 0.9) % (fh * 2);
+    for (let i = -2; i < 2; i++) {
+      const y = topWorld + off + i * fh; if (y > 320 || y + fh < topWorld) continue;
+      cx.save(); cx.translate(x * this.s, this.SY(y));
+      if (((i % 2) + 2) % 2 === 1) { cx.translate(0, fh * this.s); cx.scale(1, -1); }
+      cx.drawImage(im, 0, 0, fw * this.s, fh * this.s); cx.restore();
+    }
+  }
+  /** fireworks over the boss stage: bursts on a loop, drawn additively; each burst brightens the sky a little */
+  skyFlash = 0;
+  private drawFireworks(g: BrineGame) {
+    this.skyFlash = 0;
+    const im = this.img['fireworks']; if (!im || this.tod(g) !== 'fireworks') return;
+    const cx = this.cx, topWorld = -this.oy / this.s, cw = im.width / 4, ch = im.height / 3;
+    cx.save(); cx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 5; i++) {
+      const P = 2.7 + i * 0.41, t0 = this.rt + i * 1.37, n = Math.floor(t0 / P), t = t0 - n * P;
+      const hsh = Math.sin((n + 1) * 12.9898 + i * 78.233) * 43758.5453, r = hsh - Math.floor(hsh);
+      const x = this.viewL + this.vw * (0.08 + 0.84 * ((r + i * 0.21) % 1)), y = topWorld + 40 + r * Math.max(40, 230 - topWorld - 40);
+      const col = (i + n) % 3, sz = 230 + r * 80;
+      let fr = -1, a = 1, yy = y;
+      if (t < 0.4) { fr = 0; yy = y + (0.4 - t) * 260; }
+      else if (t < 0.6) fr = 1;
+      else if (t < 1.4) { fr = 2; this.skyFlash = Math.max(this.skyFlash, 1 - (t - 0.6) / 0.6); }
+      else if (t < 2.2) { fr = 3; a = 1 - (t - 1.4) / 0.8; }
+      if (fr < 0) continue;
+      cx.globalAlpha = a;
+      cx.drawImage(im, fr * cw, col * ch, cw, ch, this.SX(x - sz / 2), this.SY(yy - sz * 0.45), sz * this.s, sz * 0.89 * this.s);
+    }
+    cx.restore();
   }
   private litFrac(g: BrineGame) { let a = 0, b = 0; for (const s of g.strings) { a += s.glow * s.need; b += s.need; } return b ? a / b : 1; }
   private drawFloor(g: BrineGame) {
@@ -813,7 +861,9 @@ export class BrineScene {
   private drawNight(g: BrineGame) {
     const lx = this.lx, w = this.light.width, h = this.light.height, k = w / this.W;
     lx.globalCompositeOperation = 'source-over'; lx.clearRect(0, 0, w, h);
-    const dark = 0.42 - 0.14 * this.litFrac(g) - (g.inSecret ? -0.06 : 0);
+    // sunset is lighter; under the fireworks every burst lifts the dark a little. The hero always gets a pool of light.
+    const tod = this.tod(g), hour = tod === 'dusk' ? 0.45 : tod === 'fireworks' ? 1 - 0.3 * this.skyFlash : 1;
+    const dark = (0.42 - 0.14 * this.litFrac(g) - (g.inSecret ? -0.06 : 0)) * hour;
     lx.fillStyle = `rgba(16,18,58,${dark})`; lx.fillRect(0, 0, w, h);
     lx.globalCompositeOperation = 'destination-out';
     const hole = (x: number, y: number, r: number, a: number) => { const gr = lx.createRadialGradient(x * k, y * k, 0, x * k, y * k, r * k); gr.addColorStop(0, `rgba(0,0,0,${a})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); lx.fillStyle = gr; lx.fillRect((x - r) * k, (y - r) * k, r * 2 * k, r * 2 * k); };
@@ -831,6 +881,53 @@ export class BrineScene {
     });
     cx.restore();
   }
+  // ─────────────────────────────────────────── scene goals
+  private drawThief(G: Goal) {
+    if (G.x < this.viewL - 200 || G.x > this.viewL + this.vw + 200) return;
+    const st = G.st, toward = st === 'swoopw' || st === 'swoop';
+    const n = st === 'swoop' ? 'thief-swoop' : st === 'hit' ? 'thief-hit' : st === 'flee' ? 'thief-flee' : st === 'escape' && G.stT < 0.8 ? 'thief-taunt'
+      : st === 'flee' || st === 'escape' ? 'thief-fly1' : Math.floor(this.rt * 7) % 2 ? 'thief-fly1' : 'thief-fly2';
+    this.shadow(G.x, G.z, 34, G.h);
+    if (!G.won) this.glow(G.x + (toward ? -20 : 20), G.z, G.h + 20, 70, 'rgba(255,190,90,.35)');
+    this.spr(n, G.x, G.z, G.h, { flip: !toward && st !== 'hit', rot: st === 'hit' ? Math.sin(G.stT * 18) * 0.3 : 0 });
+  }
+  private drawStall(G: Goal, g: BrineGame) {
+    const what = G.def.what === 'cart' ? 'fishcart' : 'stall';
+    const k = G.hp <= 0 ? 3 : G.hp > 66 ? 0 : G.hp > 33 ? 1 : 2;
+    this.shadow(G.x, G.z, 90, 0);
+    this.spr(`${what}-${k}`, G.x, G.z, 0, { flash: G.flash, flashMax: 0.5 });
+    if (k < 3 && !G.done) this.glow(G.x, G.z, 110, 120, 'rgba(255,190,90,.22)');
+    // its health over it, and how long until help comes: a ring that empties
+    if (G.done) return;
+    const u = this.u, w = 110 * u, x = this.SX(G.x) - w / 2, y = this.SY(FLOOR + G.z - 175);
+    this.bar(x, y, w, G.hp / G.max, G.hp > 35 ? ['#ffe08a', '#e8a23c'] : ['#ffb26a', '#e0603c']);
+    const left = Math.max(0, 1 - G.t / (G.def.time ?? 45)), cx = this.cx, r = 11 * u, rx = x + w + r + 6 * u, ry = y + 9 * u;
+    cx.fillStyle = 'rgba(42,26,54,.75)'; cx.beginPath(); cx.arc(rx, ry, r + 2 * u, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = '#ffe2a8'; cx.beginPath(); cx.moveTo(rx, ry); cx.arc(rx, ry, r, -Math.PI / 2, -Math.PI / 2 + left * Math.PI * 2); cx.closePath(); cx.fill();
+    void g;
+  }
+  /** the tide: open water up to its edge, then the curling front, drawn over anything standing in it */
+  private drawWater(g: BrineGame) {
+    const G = g.goal; if (!G || G.kind !== 'tide' || G.front < this.viewL) return;
+    const f = FRAMES['tide-water']; if (!f) return;
+    const [ai, fx, fy, fw, fh] = f, im = this.atlas[ai], cx = this.cx;
+    const x0 = this.viewL - 20, x1 = G.front - 30, top = FLOOR - 26, tile = 260, bottom = this.portrait ? this.playBottom : this.H;
+    cx.save(); cx.globalAlpha = 0.92;
+    for (let x = Math.floor(x0 / tile) * tile; x < x1; x += tile) {
+      const w = Math.min(tile, x1 - x);
+      cx.drawImage(im, fx, fy, fw * (w / tile), fh, this.SX(x), this.SY(top), w * this.s + 1, bottom - this.SY(top));
+    }
+    cx.restore();
+    const n = ['tide-2', 'tide-3', 'tide-1', 'tide-3'][Math.floor(this.rt * 6) % 4], fr = FRAMES[n];
+    if (fr) { const sc = 0.85, ww = (fr[3] / PX) * sc, ax = (fr[5] / PX) * sc; this.spr(n, G.front - ww + ax - 20, 4, 0, { sc, alpha: 0.9 }); }
+  }
+  private drawTide(g: BrineGame) {
+    const G = g.goal; if (!G || G.kind !== 'tide' || G.front < this.viewL - 120) return;
+    const n = ['tide-1', 'tide-2', 'tide-3', 'tide-2'][Math.floor(this.rt * 6) % 4], f = FRAMES[n]; if (!f) return;
+    const sc = 1.25, w = (f[3] / PX) * sc, ax = (f[5] / PX) * sc;
+    this.spr(n, G.front - w + ax + 10, DEPTH + 40, 0, { sc });
+  }
+
   /** on a portrait phone the arena is wider than the view: an arrow at the edge for each foe out of sight */
   private drawEdgeArrows(g: BrineGame) {
     const cx = this.cx, u = this.u;
@@ -921,10 +1018,35 @@ export class BrineScene {
       this.text(BOSS_NAME[b.kind], this.W / 2, byy - 6 * u, Math.round(16 * u), '#ffd9c0');
       this.bar(bx, byy, w, b.hp / b.max, ['#ff9a6a', '#d0482e'], 'bossbar', b.ghost / b.max);
     }
+    this.drawGoalHud(g);
     if (g.lock === null && g.go > 0 && Math.floor(this.rt * 3) % 2 === 0) {
       const gx = this.W - 70 * u, gy = (this.portrait ? this.playBottom * 0.55 : this.H * 0.42);
       this.ui('go', gx, gy, 90 * u);
     }
+  }
+  /** a wordless track for the scene goal, where the boss bar would be: the thief getting away, the tide behind you,
+   *  or the boarders still to come */
+  private drawGoalHud(g: BrineGame) {
+    const G = g.goal; if (!G || G.done || G.kind === 'defend') return;
+    const u = this.u, m = 12 * u, top = this.touch && !this.portrait, w = top ? Math.min(this.W * 0.34, 280 * u) : Math.min(this.W * 0.6, 420 * u), bx = (this.W - w) / 2;
+    const bh = w * 0.38, by = this.touch && !this.portrait ? 74 * u + m - bh * 0.3 : (this.portrait ? this.playBottom : this.H) - bh * 0.62 - 6 * u;
+    const cx = this.cx;
+    if (G.kind === 'chase') {
+      const start = Math.max(this.vw / 2, 430), end = Math.max(start + 1, g.len - VIEW_W / 2);
+      const left = G.won ? 1 : 1 - clamp((g.cam - start) / (end - start), 0, 1);
+      const h = this.bar(bx, by, w, left, G.won ? ['#fff0a0', '#ffb347'] : ['#bfe8ff', '#5aa0d8'], 'bossbar');
+      this.ui(G.won ? 'icon-lantern' : 'thief-fly1', bx - 10 * u, by + h / 2, (G.won ? 26 : 46) * u);
+    } else if (G.kind === 'tide') {
+      const p = g.hero(), h = this.bar(bx, by, w, clamp(G.front / g.len, 0, 1), ['#9fd8ff', '#2f7fb8'], 'bossbar');
+      const ix = bx + w * 0.105 + w * 0.79 * clamp(p.x / g.len, 0, 1);
+      this.face(p.name, ix, by + h * 0.45, 13 * u, true, null);
+      this.ui('icon-lantern', bx + w + 14 * u, by + h / 2, 24 * u);
+    } else if (G.kind === 'ride') {
+      const total = G.def.groups.length, left = total - G.group + g.foes.filter((f) => f.st !== 'ko').length / 3;
+      const h = this.bar(bx, by, w, clamp(left / total, 0, 1), ['#ffb26a', '#d0603c'], 'bossbar');
+      this.ui('icon-lantern', bx + w + 14 * u, by + h / 2, 24 * u);
+    }
+    void cx;
   }
   private keyLabel(act: string, L: Labels): string {
     const t = L.mode === 'touch';
@@ -1023,12 +1145,139 @@ export class BrineScene {
     cx.fillStyle = 'rgba(255,210,122,.35)'; cx.fillRect(0, top, this.W, 2);
     void g; void L;
   }
-  private drawTouch(g: BrineGame, L: Labels) {
+  // ─────────────────────────────────────────── the festival breathers (screen space, no world)
+  festPops: { x: number; y: number; text: string; col: string; t: number }[] = [];
+  /** where the whack pots stand on screen, left to right (Attack, Jump, Tag), for drawing and for tapping */
+  festPots(): { x: number; y: number; w: number }[] {
+    const ph = this.portrait ? this.playBottom : this.H, w = Math.min(this.W * 0.24, 210 * this.u);
+    return [0.22, 0.5, 0.78].map((k) => ({ x: this.W * k, y: Math.min(ph * 0.8, ph - 78 * this.u), w }));
+  }
+  /** a tap on a pot presses that pot's button */
+  festHit(x: number, y: number): 'atk' | 'jmp' | 'tag' | null {
+    const keys = ['atk', 'jmp', 'tag'] as const;
+    let out: 'atk' | 'jmp' | 'tag' | null = null;
+    this.festPots().forEach((p, i) => { if (Math.abs(x - p.x) < p.w * 0.6 && y > p.y - p.w * 1.1 && y < p.y + p.w * 0.5) out = keys[i]; });
+    return out;
+  }
+  private uiAt(n: string, x: number, bottom: number, h: number, o: { flip?: boolean; alpha?: number; rot?: number } = {}) {
+    const f = this.fr(n); if (!f) return 0;
+    const [ai, fx, fy, fw, fh] = f, w = (h * fw) / fh, cx = this.cx;
+    cx.save(); cx.translate(x, bottom); if (o.rot) { cx.translate(0, -h / 2); cx.rotate(o.rot); cx.translate(0, h / 2); }
+    if (o.flip) cx.scale(-1, 1); if (o.alpha !== undefined) cx.globalAlpha = o.alpha;
+    cx.drawImage(this.atlas[ai], fx, fy, fw, fh, -w / 2, -h, w, h); cx.restore();
+    return w;
+  }
+  drawFest(F: FestGame, dt: number, L: Labels) {
+    if (!this.ready) return;
+    const cx = this.cx, u = this.u, W = this.W, ph = this.portrait ? this.playBottom : this.H;
+    cx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    cx.fillStyle = '#1d1b4a'; cx.fillRect(0, 0, W, this.H);
+    // the painting: covers the play area, but never crops more than a sliver off the sides
+    const im = this.img['fest-' + F.kind];
+    let r = { x: 0, y: 0, w: W, h: ph };
+    if (im) {
+      // (an upright phone crops the sides instead: the pots, hook and shelf are placed on the screen, not the painting)
+      const cover = Math.max(W / im.width, ph / im.height), k = this.portrait ? cover : Math.min(cover, W / (im.width * 0.86)), w = im.width * k, h = im.height * k;
+      r = { x: (W - w) / 2, y: Math.min(0, (ph - h) / 2) + Math.max(0, ph - h), w, h };
+      if (h < ph) r.y = ph - h;
+      cx.drawImage(im, r.x, r.y, w, h);
+    }
+    const t = F.t;
+    if (F.kind === 'whack') {
+      const pots = this.festPots(), keys = [L.atk, L.jmp, L.tag], btn = ['btn-atk', 'btn-jump', 'btn-tag'];
+      pots.forEach((p, i) => {
+        const P = F.pots[i], potH = p.w * 0.62, top = p.y - potH * 0.82;
+        // the crab rises out of the pot's mouth, behind its rim
+        if (P.st !== 'down') {
+          const n = P.st === 'bonk' ? (P.gold ? 'gcrab-bonk' : 'fcrab-bonk') : P.st === 'peek' ? 'fcrab-peek' : P.gold ? 'gcrab-up' : 'fcrab-up';
+          const k = P.st === 'peek' ? Math.min(1, P.t / 0.22) * 0.6 : P.st === 'hide' ? 1 - P.t / 0.15 : P.st === 'bonk' ? 1 - Math.max(0, P.t - 0.2) / 0.25 : 1;
+          const ch = p.w * (P.st === 'peek' ? 0.42 : P.st === 'bonk' ? 0.5 : 0.78);
+          this.uiAt(n, p.x, top + ch * (0.55 - 0.5 * k) + potH * 0.15, ch);
+          if (P.gold && P.st === 'up') this.glowAt(p.x, top - ch * 0.3, p.w * 0.7, 'rgba(255,220,90,.35)');
+        }
+        this.uiAt('fest-pot', p.x, p.y, potH);
+        // the pot's button under it
+        const pr = F.dora.pot === i && F.dora.t < 0.15;
+        this.ui(btn[i], p.x, p.y + 30 * u + (pr ? 3 : 0), 46 * u * (pr ? 0.92 : 1));
+        if (L.mode !== 'touch') this.text(keys[i], p.x, p.y + 62 * u, Math.round(15 * u), '#fff0c8');
+      });
+      // Dora hops to the pot she's bonking and kicks down into it
+      const D = F.dora, p = pots[D.pot], hop = D.t < 0.25 ? Math.sin((D.t / 0.25) * Math.PI) * 30 * u : 0;
+      const n = D.t < 0.22 ? (D.ok ? 'dora-k4' : 'dora-k1') : D.t < 0.5 ? 'dora-land' : 'dora-idle';
+      this.uiAt(n, p.x - p.w * 0.55, p.y - hop, 150 * u * (this.portrait ? 0.75 : 1), { flip: true });
+    } else if (F.kind === 'lanterns') {
+      // the hook hangs from the rope in the middle of the painting
+      const hx = r.x + r.w * 0.5, hy = r.y + r.h * 0.37, fl = F.flight();
+      // the beat: a ring at the hook closes in as the next lantern arrives
+      const next = F.lanterns.filter((l) => l.st === 'fly').sort((a, b) => a.arrive - b.arrive)[0];
+      if (next) { const k = clamp((next.arrive - t) / fl, 0, 1); cx.strokeStyle = `rgba(255,226,140,${0.9 - k * 0.5})`; cx.lineWidth = 4 * u; cx.beginPath(); cx.arc(hx, hy + 34 * u, (26 + 70 * k) * u, 0, Math.PI * 2); cx.stroke(); }
+      const lh = 64 * u;
+      let hungN = 0;
+      for (const l of F.lanterns) {
+        if (l.st === 'fly') { const k = 1 - (l.arrive - t) / fl, x = -lh + (hx + lh) * k; this.uiAt('flantern-dark', x, hy + lh + 6 * u + Math.sin(k * 9) * 4 * u, lh); }
+        else if (l.st === 'drop') { const x = hx + l.t * 60 * u; this.uiAt('flantern-dark', x, hy + lh + l.t * l.t * 500 * u, lh, { alpha: 1 - l.t, rot: l.t * 3 }); }
+        else if (l.st === 'hung') {
+          // hung lanterns walk off along the rope to the right, lit
+          const x = hx + Math.min(l.t, 0.6) / 0.6 * (60 + (hungN % 6) * 0) * u + l.t * 90 * u; hungN++;
+          if (x < W + lh) { this.glowAt(x, hy + lh * 0.6, lh * 1.3, `rgba(255,190,90,${l.grade === 2 ? 0.45 : 0.3})`); this.uiAt('flantern-lit', x, hy + lh + 6 * u, lh); }
+        }
+      }
+      const P = F.pair, pn = P.st === 'hang' ? 'pair-hang' : P.st === 'cheer' ? 'pair-cheer' : P.st === 'oops' ? 'pair-oops' : 'pair-reach';
+      // the pair stand under the hook, Dora's paws up at it
+      this.uiAt(pn, hx - 34 * u, ph - 4 * u, Math.max(160 * u, ph - 4 * u - hy - 14 * u));
+    } else {
+      // the shelf runs across the painting at about half its height; the stacks stand on it
+      const sy = r.y + r.h * 0.545, sx0 = Math.max(r.x + r.w * 0.2, W * 0.12), sw = Math.min(r.w * 0.6, W * 0.76), bh = Math.min(r.h * 0.17, 110 * u);
+      for (const s of F.stacks) {
+        const x = sx0 + s.x * sw;
+        if (s.st === 'up') this.uiAt('bottles', x, sy, bh);
+        else if (s.st === 'tumble') this.uiAt('bottles-tumble', x + s.t * 30 * u, sy - Math.sin(s.t * 6) * 10 * u, bh * 1.1, { rot: s.t });
+        else this.uiAt('bottles-down', x, sy, bh * 0.5);
+      }
+      // the marker swings over the shelf
+      const mx = sx0 + F.aim * sw;
+      this.ui('ring', mx, sy - bh * 0.5, 70 * u, 0.8 + 0.2 * Math.sin(t * 10));
+      // Enzo at the counter, bottom left, and his balls in flight
+      const E = F.enzo, ex = W * (this.portrait ? 0.24 : 0.2), eh = Math.min(ph * 0.42, 260 * u);
+      const en = E.st === 'windup' ? 'fenzo-windup' : E.st === 'toss' ? 'fenzo-toss' : E.st === 'cheer' ? 'fenzo-cheer' : 'fenzo-windup';
+      this.uiAt(en, ex, ph + eh * 0.12, eh, { rot: E.st === 'idle' ? Math.sin(t * 3) * 0.02 : 0 });
+      for (const b of F.balls) {
+        const k = Math.min(1, b.t / 0.42), x0 = ex + eh * 0.25, y0 = ph - eh * 0.75, x1 = sx0 + b.x * sw, y1 = sy - bh * 0.5;
+        const x = x0 + (x1 - x0) * k, y = y0 + (y1 - y0) * k - Math.sin(k * Math.PI) * 120 * u + (b.hit ? (b.t - 0.42) ** 2 * 1400 * u : 0);
+        this.ui('fball', x, y, 26 * u * (1 - k * 0.4));
+      }
+    }
+    // the time left, and the lanterns earned so far (one for playing, up to three)
+    const bw = Math.min(W * 0.42, 220 * u), by = 8 * u;
+    const bh = this.bar((W - bw) / 2, by, bw, 1 - t / F.dur, ['#ffe08a', '#e8a23c']);
+    const rw = F.reward(), iy = by + bh * 0.82 + 14 * u;
+    for (let i = 0; i < 3; i++) this.ui('icon-lantern', W / 2 - 30 * u + i * 30 * u, iy, 24 * u, i < rw ? 1 : 0.3);
+    this.text(String(F.score), W / 2, iy + 28 * u, Math.round(18 * u), '#fff4dc');
+    // the bonus pops
+    for (const p of this.festPops) { p.t += dt; this.text(p.text, p.x, p.y - p.t * 60 * u, Math.round(24 * u), p.col); }
+    this.festPops = this.festPops.filter((p) => p.t < 0.8);
+    if (this.portrait) this.drawPanel(null as unknown as BrineGame, L);
+    if (this.touch || this.portrait) this.drawTouch(null as unknown as BrineGame, L, true);
+  }
+  /** a festival bonus floating up from where it was won */
+  festPop(F: FestGame, x: number, text: string, col: string) {
+    const ph = this.portrait ? this.playBottom : this.H;
+    let px = this.W / 2, py = ph * 0.5;
+    if (F.kind === 'whack') { const p = this.festPots()[x]; px = p.x; py = p.y - p.w; }
+    else if (F.kind === 'lanterns') { px = this.W * 0.5 + 60 * this.u; py = ph * 0.2; }
+    else { px = this.W * (0.2 + 0.6 * x); py = ph * 0.4; }
+    this.festPops.push({ x: px, y: py, text, col, t: 0 });
+  }
+  private glowAt(x: number, y: number, r: number, col: string) {
+    const cx = this.cx, gr = cx.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    cx.save(); cx.globalCompositeOperation = 'lighter'; cx.fillStyle = gr; cx.fillRect(x - r, y - r, r * 2, r * 2); cx.restore();
+  }
+  private drawTouch(g: BrineGame, L: Labels, fest = false) {
     if (!this.touch && !this.portrait) return;
     if (!this.touch) {
       // an upright window played with keys or a pad: a key card in the panel instead of touch buttons
       const u = this.u, x = this.W / 2, y0 = this.playBottom + Math.min((this.H - this.playBottom) * 0.22, 70 * u), dy = 26 * u, f = Math.round(14 * u);
-      const rows = [
+      const rows = fest ? [`${L.atk}    ${L.jmp}    ${L.tag}`] : [
         `Move  ${L.left} ${L.right} ${L.up} ${L.down}`, `Attack  ${L.atk}    Jump  ${L.jmp}    Tag  ${L.tag}`,
         `Dash  ${L.right}${L.right}    Special  ${L.right}${L.right} then ${L.jmp} then ${L.atk}`, `Double-team  ${L.atk} + ${L.jmp} with the Festival full`,
       ];
@@ -1036,15 +1285,15 @@ export class BrineScene {
       return;
     }
     const T = this.tl, a = this.portrait ? 0.95 : 0.7;
-    this.ui('stick-base', T.stick.x, T.stick.y, T.stick.r * 2, a * 0.85);
-    this.ui('stick-knob', this.knob.on ? this.knob.x : T.stick.x, this.knob.on ? this.knob.y : T.stick.y, T.stick.r * 0.95, a);
+    if (!fest) this.ui('stick-base', T.stick.x, T.stick.y, T.stick.r * 2, a * 0.85);
+    if (!fest) this.ui('stick-knob', this.knob.on ? this.knob.x : T.stick.x, this.knob.on ? this.knob.y : T.stick.y, T.stick.r * 0.95, a);
     const btn = (n: string, b: Btn, key: string) => { const pr = (this.pressed[key] ?? 0) > 0; this.ui(n, b.x, b.y + (pr ? 3 : 0), b.r * 2 * (pr ? 0.94 : 1), a); };
     btn('btn-atk', T.atk, 'atk'); btn('btn-jump', T.jmp, 'jmp'); btn('btn-tag', T.tag, 'tag');
     const u = this.u;
     this.text('ATTACK', T.atk.x, T.atk.y + T.atk.r + 10 * u, Math.round(11 * u), '#fff0c8');
     this.text('JUMP', T.jmp.x, T.jmp.y + T.jmp.r + 10 * u, Math.round(11 * u), '#fff0c8');
     this.text('TAG', T.tag.x, T.tag.y - T.tag.r - 9 * u, Math.round(11 * u), '#fff0c8');
-    if (this.portrait) this.text('flick twice to dash', T.stick.x, T.stick.y + T.stick.r + 14 * u, Math.round(11 * u), '#b9a9d8');
+    if (this.portrait && !fest) this.text('flick twice to dash', T.stick.x, T.stick.y + T.stick.r + 14 * u, Math.round(11 * u), '#b9a9d8');
     void g; void L;
   }
 }

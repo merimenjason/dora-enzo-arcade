@@ -28,6 +28,8 @@ const TUNES: Record<Exclude<Tune, null>, { bpm: number; lead: number[]; bass: nu
     lead: [74, 0, 78, 0, 81, 0, 79, 78, 76, 0, 0, 0, 74, 0, 71, 0, 73, 0, 76, 0, 74, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     bass: [50, 47, 43, 45, 50, 47, 43, 45] },
 };
+/** beats per minute of each tune, for the lantern breather */
+export const TUNE_BPM = Object.fromEntries(Object.entries(TUNES).map(([k, v]) => [k, v.bpm])) as Record<string, number>;
 
 export class BrineSound {
   ctx: AudioContext | null = null; out: GainNode | null = null; mus: GainNode | null = null; echo: DelayNode | null = null;
@@ -56,6 +58,8 @@ export class BrineSound {
   stop() { if (this.timer !== null) clearInterval(this.timer); this.timer = null; void this.ctx?.close(); this.ctx = null; }
   setMusic(on: boolean) { this.musicOn = on; if (this.mus && this.ctx) this.mus.gain.setTargetAtTime(on ? 0.06 : 0, this.ctx.currentTime, 0.2); }
   play(t: Tune) { if (t === this.tune) return; this.tune = t; this.n = 0; if (this.ctx) this.next = this.ctx.currentTime + 0.15; }
+  /** start a tune from its first beat (0.15 s from now), even if it is already playing: the lantern breather plays to it */
+  restart(t: Tune) { this.tune = null; this.play(t); }
 
   private tone(f0: number, f1: number, dur: number, type: OscillatorType = 'sine', vol = 0.3, delay = 0, wet = 0) {
     const C = this.ctx; if (!C || !this.out || !this.sfxOn) return;
