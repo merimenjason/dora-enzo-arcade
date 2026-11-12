@@ -91,6 +91,8 @@ export class BrineSound {
       case 'tink': T(2300, 2100, 0.12, 'sine', 0.2, 0, 0.3); T(3500, 3400, 0.08, 'sine', 0.1); break;
       case 'guard': T(1800, 1700, 0.1, 'square', 0.06); T(900, 850, 0.12, 'triangle', 0.14); break;
       case 'whoosh': N(0.12, 600, 3000, 0.11, 'bandpass', 2); break;
+      case 'whooshHeavy': N(0.22, 300, 1800, 0.16, 'bandpass', 1.5); T(140, 90, 0.18, 'sine', 0.12); break;
+      case 'slap': N(0.09, 2200, 700, 0.3, 'bandpass', 1.2); T(260, 120, 0.1, 'sine', 0.3); break;
       case 'dash': N(0.16, 500, 4200, 0.16, 'bandpass', 1.5); T(260, 420, 0.06, 'triangle', 0.06); break;
       case 'jump': T(330, 620, 0.12, 'triangle', 0.12); break;
       case 'land': N(0.06, 500, 150, 0.16, 'lowpass'); break;

@@ -5,7 +5,7 @@
 // lib/brinelight-scene.ts.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  BrineGame, DT, NO_INPUT, SAVE_KEY, freshSave, parseSave, stageOpen, medalFor, AREAS, STAGES, SCENES, SPECIAL_NAME,
+  BrineGame, DT, NO_INPUT, SAVE_KEY, freshSave, parseSave, stageOpen, medalFor, moveTier, AREAS, STAGES, SCENES, SPECIAL_NAME, RANKS,
   type Input, type SaveData,
 } from '@/lib/brinelight-game';
 import { secretIds } from '@/lib/brinelight-levels';
@@ -14,7 +14,7 @@ import { FestGame, FEST_DT, festAfter, type FestInput } from '@/lib/brinelight-f
 import { BrineSound, TUNE_BPM, type Tune } from './sound';
 import './brinelight.css';
 
-type Screen = 'loading' | 'title' | 'map' | 'panel' | 'play' | 'results' | 'fest';
+type Screen = 'loading' | 'title' | 'map' | 'panel' | 'moves' | 'play' | 'results' | 'fest';
 const ART = '/art/brinelight/';
 const ORDER = Object.keys(STAGES);
 /** where each district sits on the painted harbour map, in percent of the painting */
@@ -53,12 +53,13 @@ export default function Brinelight() {
   const [area, setArea] = useState<number | null>(null);
   const [panel, setPanel] = useState<{ id: string; then: string } | null>(null);
   const [paused, setPaused] = useState(false);
-  const [result, setResult] = useState<{ stage: string; score: number; time: number; medal: number; best: number; chains: number; specials: number; specialLanded: number; lanterns: number; found: number; total: number; retries: number } | null>(null);
+  const [result, setResult] = useState<{ stage: string; score: number; time: number; medal: number; best: number; chains: number; specials: number; specialLanded: number; lanterns: number; found: number; total: number; retries: number; rank: number; bestRank: number; elites: number } | null>(null);
+  const [demo, setDemo] = useState<{ tier: number; then: string | null } | null>(null);
   const festRef = useRef<FestGame | null>(null);
   const [festEnd, setFestEnd] = useState<{ won: number; then: string } | null>(null);
   const festNext = useRef('');
-  const S = useRef({ screen: 'loading' as Screen, paused: false, save: freshSave(), mode: 'keys' as Labels['mode'] });
-  S.current.screen = screen; S.current.paused = paused; S.current.save = save;
+  const S = useRef({ screen: 'loading' as Screen, paused: false, save: freshSave(), mode: 'keys' as Labels['mode'], demo: 0 });
+  S.current.screen = screen; S.current.paused = paused; S.current.save = save; S.current.demo = demo?.tier ?? 0;
 
   // ─────────────────────────────── input state (read by the loop)
   const held = useRef<Record<string, boolean>>({});
@@ -86,6 +87,9 @@ export default function Brinelight() {
   const begin = useCallback((stage: string) => {
     const s = S.current.save, p = STAGES[stage].panel ?? (stage === '1-1' ? 'panel-intro' : undefined);
     if (p && !s.seen.includes(p)) { persist({ ...s, seen: [...s.seen, p] }); setPanel({ id: p, then: stage }); setScreen('panel'); return; }
+    // a district's new moves, shown once before its first stage that has them
+    const tier = moveTier(stage), key = `moves-${tier}`;
+    if (tier > 0 && !s.seen.includes(key)) { persist({ ...s, seen: [...s.seen, key] }); setDemo({ tier, then: stage }); sceneRef.current!.demoT = 0; setScreen('moves'); return; }
     startStage(stage);
   }, [persist, startStage]);
 
@@ -109,12 +113,13 @@ export default function Brinelight() {
   const finish = useCallback(() => {
     const g = gameRef.current!; const s = S.current.save;
     const medal = medalFor(g.stats), prev = s.cleared[g.stageId];
-    const cleared = { ...s.cleared, [g.stageId]: { score: Math.max(prev?.score ?? 0, g.stats.score), time: prev ? Math.min(prev.time, g.stats.time) : g.stats.time, medal: Math.max(prev?.medal ?? 0, medal) } };
+    const rank = g.styleRank(), bestRank = Math.max(prev?.rank ?? 0, rank);
+    const cleared = { ...s.cleared, [g.stageId]: { score: Math.max(prev?.score ?? 0, g.stats.score), time: prev ? Math.min(prev.time, g.stats.time) : g.stats.time, medal: Math.max(prev?.medal ?? 0, medal), rank: bestRank } };
     const found = [...new Set([...s.found, ...g.newFound])];
     const ns = { ...s, cleared, found, lanterns: s.lanterns + g.stats.lanterns };
     persist(ns);
     const all = stageSecrets(g.stageId);
-    setResult({ stage: g.stageId, score: g.stats.score, time: g.stats.time, medal, best: g.stats.best, chains: g.stats.tagChains, specials: g.stats.specials, specialLanded: g.stats.specialLanded, lanterns: g.stats.lanterns, found: all.filter((x) => found.includes(x)).length, total: all.length, retries: g.stats.retries });
+    setResult({ stage: g.stageId, score: g.stats.score, time: g.stats.time, medal, best: g.stats.best, chains: g.stats.tagChains, specials: g.stats.specials, specialLanded: g.stats.specialLanded, lanterns: g.stats.lanterns, found: all.filter((x) => found.includes(x)).length, total: all.length, retries: g.stats.retries, rank, bestRank, elites: g.stats.elites });
     setScreen('results');
   }, [persist]);
 
@@ -165,6 +170,7 @@ export default function Brinelight() {
       } else { acc = 0; if (scr !== 'play') snd.play(scr === 'loading' ? null : 'map'); }
       sc.update(dt);
       if (scr === 'fest' && festRef.current) sc.drawFest(festRef.current, dt, labels());
+      else if (scr === 'moves' && S.current.demo) sc.drawDemo(S.current.demo, dt, labels());
       else if (g && (scr === 'play' || scr === 'results')) sc.draw(g, dt, { labels: labels(), hideHud: scr !== 'play' });
       else { const cx = cv.getContext('2d')!; cx.setTransform(1, 0, 0, 1, 0, 0); cx.fillStyle = '#1d1b4a'; cx.fillRect(0, 0, cv.width, cv.height); }
     };
@@ -230,7 +236,7 @@ export default function Brinelight() {
         if (edge(0)) press.current.jmp = true;
         if (edge(3) || edge(4) || edge(5)) press.current.tag = true;
         if (edge(9) && S.current.screen === 'play') setPaused((p) => !p);
-        held.current.padAtk = !!(b[2] || b[1]); held.current.padJmp = !!b[0];
+        held.current.padAtk = !!(b[2] || b[1]); held.current.padJmp = !!b[0]; held.current.padTag = !!(b[3] || b[4] || b[5]);
         const ax = gp.axes[0] ?? 0, ay = gp.axes[1] ?? 0;
         held.current.padL = ax < -0.45 || !!b[14]; held.current.padR = ax > 0.45 || !!b[15];
         held.current.padU = ay < -0.45 || !!b[12]; held.current.padD = ay > 0.45 || !!b[13];
@@ -241,7 +247,7 @@ export default function Brinelight() {
       const h = held.current, st = stick.current;
       let mx = (h.right || h.padR ? 1 : 0) - (h.left || h.padL ? 1 : 0), mz = (h.down || h.padD ? 1 : 0) - (h.up || h.padU ? 1 : 0);
       if (st.id >= 0) { mx = st.dx > 0.38 ? 1 : st.dx < -0.38 ? -1 : 0; mz = st.dy > 0.45 ? 1 : st.dy < -0.45 ? -1 : 0; }
-      const i: Input = { ...NO_INPUT, mx, mz, atkP: press.current.atk, jmpP: press.current.jmp, tagP: press.current.tag, atkH: !!(h.atk || h.padAtk), jmpH: !!(h.jmp || h.padJmp) };
+      const i: Input = { ...NO_INPUT, mx, mz, atkP: press.current.atk, jmpP: press.current.jmp, tagP: press.current.tag, atkH: !!(h.atk || h.padAtk), jmpH: !!(h.jmp || h.padJmp), tagH: !!(h.tag || h.padTag) };
       press.current = { atk: false, jmp: false, tag: false };
       return i;
     };
@@ -281,11 +287,17 @@ export default function Brinelight() {
       <li><b>Dash</b> tap left or right twice · flick the stick twice · double-tap the stick or d-pad</li>
       <li><b>Special</b> dash, jump, then attack in the air: Dora’s {SPECIAL_NAME.dora}, Enzo’s {SPECIAL_NAME.enzo}</li>
       <li><b>Double-team</b> Attack and Jump together when the Festival meter is full</li>
+      <li><b>From 1-2</b> Dora: Jump again in the air at the edge of the fight for a wall-bounce kick · Enzo: Jump while carrying for a spinning throw</li>
+      <li><b>From the Fish Market</b> hold Attack: Dora’s slide kick (under a lobster’s claws), Enzo’s ground pound (flips urchins)</li>
+      <li><b>From the Ropewalk</b> Tag and Attack together when the Festival meter is full: the team-up throw</li>
+      <li><b>Pickups</b> walk over a frozen fish, an oar or a net, then Attack to swing it (the net is thrown)</li>
       <li><b>Pause</b> Esc or P · Start</li>
     </ul>
   );
 
   const g = gameRef.current;
+  /** the highest move tier opened on the map so far */
+  const unlocked = [1, 2, 3].filter((t) => save.seen.includes(`moves-${t}`)).pop() ?? 0;
   return (
     <main className="bl-shell" data-screen={screen}>
       <canvas ref={cvRef} className="bl-canvas" aria-label="Brinelight play field" />
@@ -337,16 +349,27 @@ export default function Brinelight() {
             })()}
             <div className="bl-row">
               <button className="bl-btn bl-small" onClick={() => setScreen('title')}>Title</button>
+              {unlocked > 0 && <button className="bl-btn bl-small" onClick={() => { setDemo({ tier: Math.min(unlocked, area ? Math.max(1, area) : unlocked), then: null }); sceneRef.current!.demoT = 0; setScreen('moves'); }}>Moves</button>}
             </div>
           </div>
         </div>
       )}
 
       {screen === 'panel' && panel && (
-        <div className="bl-panel" onClick={() => startStage(panel.then)}>
+        <div className="bl-panel" onClick={() => begin(panel.then)}>
           <img src={`${ART}${panel.id}.webp`} alt="" />
           <p>{PANELS[panel.id]}</p>
-          <button className="bl-btn" autoFocus onClick={(e) => { e.stopPropagation(); startStage(panel.then); }}>Go</button>
+          <button className="bl-btn" autoFocus onClick={(e) => { e.stopPropagation(); begin(panel.then); }}>Go</button>
+        </div>
+      )}
+
+      {screen === 'moves' && demo && (
+        <div className="bl-moves">
+          <div className="bl-row">
+            {demo.then === null && unlocked > 1 && <button className="bl-btn bl-small" aria-label="Earlier moves" disabled={demo.tier <= 1} onClick={() => { setDemo({ ...demo, tier: demo.tier - 1 }); sceneRef.current!.demoT = 0; }}>◀</button>}
+            <button className="bl-btn" autoFocus onClick={() => { if (demo.then) startStage(demo.then); else setScreen('map'); }}>{demo.then ? 'Go' : 'Back'}</button>
+            {demo.then === null && unlocked > 1 && <button className="bl-btn bl-small" aria-label="Later moves" disabled={demo.tier >= unlocked} onClick={() => { setDemo({ ...demo, tier: demo.tier + 1 }); sceneRef.current!.demoT = 0; }}>▶</button>}
+          </div>
         </div>
       )}
 
@@ -383,7 +406,9 @@ export default function Brinelight() {
               <dt>Lanterns relit</dt><dd>{result.lanterns}</dd>
               <dt>Secrets</dt><dd>{result.found}/{result.total}</dd>
               <dt>Retries</dt><dd>{result.retries}</dd>
+              {result.elites > 0 && <><dt>Gold foes</dt><dd>{result.elites}</dd></>}
             </dl>
+            <p className={`bl-rank bl-rank-${RANKS[result.rank]}`} aria-label={`Style rank ${RANKS[result.rank]}`}>Style <b>{RANKS[result.rank]}</b>{result.bestRank > result.rank && <small> · best {RANKS[result.bestRank]}</small>}</p>
             <div className="bl-row">
               {ORDER.indexOf(result.stage) < ORDER.length - 1 && <button className="bl-btn" autoFocus onClick={() => startFest(result.stage, ORDER[ORDER.indexOf(result.stage) + 1])}>Next stage</button>}
               <button className="bl-btn bl-small" onClick={() => startStage(result.stage)}>Play again</button>

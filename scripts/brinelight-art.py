@@ -160,6 +160,17 @@ grid('defend', ['stall-0', 'stall-1', 'stall-2', 'stall-3', 'fishcart-0', 'fishc
 grid('tide', ['tide-1', 'tide-2', 'tide-3', 'tide-water'], 4, 1, 'tide-1', 250, xs=[0, 0.2, 0.42, 0.63, 1])
 grid('festprops', ['fest-pot', 'fcrab-peek', 'fcrab-up', 'fcrab-bonk', 'gcrab-up', 'gcrab-bonk', 'flantern-dark', 'flantern-lit', 'bottles', 'bottles-tumble', 'bottles-down', 'fball'], 4, 3, 'fest-pot', 80, clean=False)
 grid('festheroes', ['pair-reach', 'pair-hang', 'pair-cheer', 'pair-oops', 'fenzo-windup', 'fenzo-toss', 'fenzo-cheer', 'fdora-cheer'], 4, 2, 'pair-reach', 300)
+# the new moves, pickup weapons, hazards, foes that work together, and the elites (painted over their base sheets, so
+# they cut on the same grids)
+grid('dora4', ['dora-wall', 'dora-wallkick', 'dora-slide', 'dora-slideup', 'dora-ball', 'dora-comet', 'dora-fishw', 'dora-fish', 'dora-oarw', 'dora-oar', 'dora-netw', 'dora-net'], 4, 3, 'dora-fish', 156, anchor='head')
+grid('enzo4', ['enzo-spin1', 'enzo-spin2', 'enzo-spinrel', 'enzo-poundup', 'enzo-pound', 'enzo-launch', 'enzo-fishw', 'enzo-fish', 'enzo-oarw', 'enzo-oar', 'enzo-netw', 'enzo-net'], 4, 3, 'enzo-oar', 164, anchor='head')
+grid('gear', ['gear-fish', 'gear-oar', 'gear-netbag', 'gear-netopen', 'gear-slick', 'gear-hook', 'gear-hookswing', 'gear-glantern'], 4, 2, 'gear-fish', 34, clean=False)
+grid('ferry', ['ferry-carry1', 'ferry-carry2', 'ferry-drop', 'ferry-fall', 'ferry-squash', 'ferry-away'], 3, 2, 'ferry-carry1', 160, clean=False)
+grid('ecrab', ['ecrab-idle', 'ecrab-walk', 'ecrab-wind', 'ecrab-atk', 'ecrab-hurt', 'ecrab-down'], 3, 2, 'ecrab-idle', 74)
+grid('ecrab2', ['_ec2', 'ecrab-walk2', 'ecrab-wind2', 'ecrab-rec', 'ecrab-daze', 'ecrab-tumble', 'ecrab-getup', 'ecrab-taunt'], 4, 2, '_ec2', 74)
+grid('egull', ['egull-idle', 'egull-flap', 'egull-wind', 'egull-dive', 'egull-hurt', 'egull-down'], 3, 2, 'egull-idle', 112, clean=False)
+grid('egull2', ['_eg2', 'egull-flap2', 'egull-shriek', 'egull-carry', 'egull-crash', 'egull-getup', 'egull-airhurt', 'egull-waddle'], 4, 2, '_eg2', 112, clean=False)
+grid('ecorm', ['ecormorant-fly1', 'ecormorant-fly2', 'ecormorant-aim', 'ecormorant-dive', 'ecormorant-stuck', 'ecormorant-hurt', 'ecormorant-down', 'ecormorant-waddle'], 4, 2, 'ecormorant-fly1', 120)
 
 # a few props are painted at another size than their sheet-mates: per-frame world heights
 FIX = {'lantern-lit': 36, 'lantern-dark': 36, 'barrel': 64, 'fishcrate': 46, 'lobsterpot': 54, 'bollard': 44, 'crate': 58, 'rope': 30,
@@ -171,6 +182,8 @@ FIX = {'lantern-lit': 36, 'lantern-dark': 36, 'barrel': 64, 'fishcrate': 46, 'lo
        'fishcart-0': 120, 'fishcart-1': 120, 'fishcart-2': 116, 'fishcart-3': 96, 'stall-3': 120, 'tide-water': 250,
        'fcrab-peek': 40, 'fcrab-up': 76, 'fcrab-bonk': 44, 'gcrab-up': 76, 'gcrab-bonk': 44, 'flantern-dark': 70, 'flantern-lit': 70,
        'bottles': 80, 'bottles-tumble': 90, 'bottles-down': 40, 'fball': 22, 'fenzo-windup': 172, 'fenzo-toss': 172, 'fenzo-cheer': 172, 'fdora-cheer': 165,
+       'gear-oar': 16, 'gear-netbag': 40, 'gear-netopen': 150, 'gear-slick': 60, 'gear-hook': 110, 'gear-hookswing': 110, 'gear-glantern': 54,
+       'ferry-fall': 56, 'ferry-squash': 34, 'ferry-away': 104,
        'dora-face': 140, 'enzo-face': 140, 'hermit-shell': 70, 'hermit-shellside': 60, 'hermit-soft': 52, 'clamps-barrel': 96}
 for n, w in FIX.items():
     if n in FRAMES: SCALEK[n] = w * PX / FRAMES[n][0].shape[0]
@@ -209,6 +222,7 @@ GROUPS = [('dora', lambda n: n.startswith('dora-')), ('enzo', lambda n: n.starts
           ('bosses', lambda n: n.split('-')[0] in ('brute', 'knuckles', 'clamps', 'admiral')),
           ('area3', lambda n: n.split('-')[0] in ('eel', 'cormorant', 'octo', 'longshanks', 'tanglejaw')),
           ('variety', lambda n: n.split('-')[0] in ('thief', 'stall', 'fishcart', 'tide', 'fest', 'fcrab', 'gcrab', 'flantern', 'bottles', 'fball', 'pair', 'fenzo', 'fdora')),
+          ('extras', lambda n: n.split('-')[0] in ('ecrab', 'egull', 'ecormorant', 'gear', 'ferry')),
           ('ui', lambda n: n.startswith('btn-') or n in ('stick-base', 'stick-knob', 'ring', 'bar', 'bossbar', 'go', 'icon-lantern', 'keycap', 'medal') or n.startswith('face-')),
           ('props', lambda n: True)]
 assigned = {}

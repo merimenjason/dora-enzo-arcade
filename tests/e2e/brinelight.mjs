@@ -11,7 +11,11 @@
 // keys and by touch: jump-kicking the gull thief out of a chase while the camera scrolls, beating a raider off the
 // lantern stall and holding out, knocking a boarder off the barge, and running out of the tide. The three festival
 // breathers: whack-a-crab from the results card's Next stage (keys J K L, or tapping the pots), hanging a lantern on
-// the beat, the bottle toss, Skip, and the reward card. Fails on any page error or sideways scroll. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves screenshots.
+// the beat, the bottle toss, Skip, and the reward card. The moves pass, by keys and by touch: Dora's wall-bounce kick,
+// Enzo's spinning throw, the slide under a lobster and the ground pound by holding Attack, the team-up on Tag + Attack
+// (two thumbs on touch), picking up and swinging a fish and an oar and throwing a net, a crab kicked into a crane hook
+// and over the harbour edge, a ferrying gull kicked into dropping its crab, and a gold lantern picked up; the move
+// demos before a stage and from the map, and the style rank on the results card. Fails on any page error or sideways scroll. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves screenshots.
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
@@ -35,7 +39,7 @@ const until = async (page, expr, timeout = 15000) => {
 const arena = async (page, who = 'dora', foes = '') => {
   await game(page, 'o.start("1-2", 3)');
   await until(page, 'o.screen === "play" && g && g.stageId === "1-2"');
-  await game(page, `(() => { g.tut.stage = 9; g.evI = 99; g.foes = []; g.items = []; g.props = []; ${who === 'enzo' ? 'g.doTag(true);' : ''} return 1; })()`);
+  await game(page, `(() => { g.tut.stage = 9; g.evI = 99; g.foes = []; g.items = []; g.props = []; g.hooks = []; g.slicks = []; ${who === 'enzo' ? 'g.doTag(true);' : ''} return 1; })()`);
   await wait(500);
   await game(page, `(() => { const p = g.hero(); p.x = 300; p.z = 80; p.face = 1; p.hp = 100; g.partner().hp = 100; g.tagCD = 0; g.fest = 0;
     for (const k in g.stats) if (typeof g.stats[k] === 'number') g.stats[k] = 0;
@@ -185,7 +189,7 @@ async function touchActions(page, tag) {
 const arena3 = async (page, stage, who = 'dora', setup = '', boss = '') => {
   await game(page, `o.start("${stage}", 3)`);
   await until(page, `o.screen === "play" && g && g.stageId === "${stage}"`);
-  await game(page, `(() => { g.tut.stage = 9; g.evI = 99; g.foes = []; g.items = []; g.props = []; g.rolls = []; g.ink = []; g.talk = null;
+  await game(page, `(() => { g.tut.stage = 9; g.evI = 99; g.foes = []; g.items = []; g.props = []; g.rolls = []; g.ink = []; g.talk = null; g.hooks = []; g.slicks = [];
     ${boss ? `g.lock = g.cam; g.spawnBoss("${boss}");` : ''} return 1; })()`);
   if (boss) await until(page, 'g.boss && g.boss.st !== "intro"', 20000);
   if (await game(page, 'g.active') !== who) await game(page, '(g.doTag(true), 1)');
@@ -199,14 +203,17 @@ const arena3 = async (page, stage, who = 'dora', setup = '', boss = '') => {
 async function controls(page, how) {
   if (how === 'keys') {
     const tap = async (key, ms = 60) => { await page.keyboard.down(key); await wait(ms); await page.keyboard.up(key); };
-    return { how, atk: () => tap('KeyJ'), jmp: () => tap('KeyK'),
+    return { how, atk: () => tap('KeyJ'), jmp: () => tap('KeyK'), holdAtk: (ms = 450) => tap('KeyJ', ms),
+      team: async () => { await page.keyboard.down('KeyL'); await page.keyboard.down('KeyJ'); await wait(70); await page.keyboard.up('KeyJ'); await page.keyboard.up('KeyL'); },
       hold: async (dir, ms) => { const key = { up: 'ArrowUp', down: 'ArrowDown', right: 'ArrowRight', left: 'ArrowLeft' }[dir]; await page.keyboard.down(key); await wait(ms); await page.keyboard.up(key); } };
   }
   const cdp = await page.context().newCDPSession(page);
   const touch = async (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y], i) => ({ x, y, id: i })) });
-  const T = await game(page, '(() => { const t = o.scene.tl; return { s: t.stick, a: t.atk, j: t.jmp }; })()');
-  const press = async (b) => { await touch('touchStart', [[b.x, b.y]]); await wait(70); await touch('touchEnd', []); };
-  return { how, atk: () => press(T.a), jmp: () => press(T.j),
+  const T = await game(page, '(() => { const t = o.scene.tl; return { s: t.stick, a: t.atk, j: t.jmp, t: t.tag }; })()');
+  const press = async (b, ms = 70) => { await touch('touchStart', [[b.x, b.y]]); await wait(ms); await touch('touchEnd', []); };
+  return { how, atk: () => press(T.a), jmp: () => press(T.j), holdAtk: (ms = 450) => press(T.a, ms),
+    // two thumbs: Tag and Attack at once
+    team: async () => { await touch('touchStart', [[T.t.x, T.t.y]]); await touch('touchStart', [[T.t.x, T.t.y], [T.a.x, T.a.y]]); await wait(80); await touch('touchEnd', []); },
     hold: async (dir, ms) => {
       const [dx, dy] = { up: [0, -1], down: [0, 1], right: [1, 0], left: [-1, 0] }[dir];
       await touch('touchStart', [[T.s.x, T.s.y]]); await touch('touchMove', [[T.s.x + dx * T.s.r * 0.9, T.s.y + dy * T.s.r * 0.9]]); await wait(ms); await touch('touchEnd', []);
@@ -285,6 +292,120 @@ const goalArena = async (page, stage, sid) => {
   await until(page, '!!g.goal', 8000);
   await game(page, '(() => { g.foes = []; const p = g.hero(); p.hp = 100; p.inv = 0; g.partner().hp = 100; g.talk = null; return 1; })()');
 };
+/** on to a stage, through its story panel and its new-moves demo if they show */
+const arrive = async (page, stage) => {
+  for (let k = 0; k < 4; k++) {
+    await until(page, `(o.screen === "play" && g && g.stageId === "${stage}") || o.screen === "panel" || o.screen === "moves"`);
+    const scr = await game(page, 'o.screen');
+    if (scr === 'panel') await page.locator('.bl-panel button', { hasText: 'Go' }).click();
+    else if (scr === 'moves') await page.locator('.bl-moves button', { hasText: 'Go' }).click();
+    else return;
+  }
+  await until(page, `o.screen === "play" && g.stageId === "${stage}"`);
+};
+// ─────────────────────────────── the new moves, pickups, hazards, foes that combine, elites
+async function movesActions(page, tag, how) {
+  const t = `${tag} ${how}`;
+  let c;
+  const fresh = async () => { if (how === 'touch' || !c) c = await controls(page, how); };
+  // Dora's wall-bounce kick (1-2 on): jump at the edge of the fight, jump again
+  await arena3(page, '1-2', 'dora', 'p.x = g.camL + 50; const f = g.spawnFoe("crab", 1, { lane: 2 }); f.x = p.x + 230; f.z = 80; f.st = "idle"; f.cd = 30; window.__f = f;');
+  await fresh();
+  await c.jmp(); await wait(130);
+  await until(page, 'g.hero().h > 30', 2000);
+  await c.jmp();
+  await until(page, 'g.stats.wallKicks >= 1', 2000); ok(true, `${t}: Jump again at the edge, in the air: Dora's wall-bounce kick`);
+  await wait(120); await shot(page, `${tag}-move-wallkick`);
+  await until(page, 'window.__f.hp < window.__f.max', 2000); ok(true, `${t}: the wall kick lands across the fight`);
+  // Enzo's spinning throw: carrying, Jump spins it round
+  await arena3(page, '1-2', 'enzo', `const h = g.spawnFoe("crab", 1, { lane: 2 }); h.x = p.x + 60; h.z = 80; h.st = "idle"; h.daze = 30; h.cd = 99;
+    for (const dx of [-110, 110]) { const f = g.spawnFoe("crab", 1, { lane: 2 }); f.x = p.x + dx; f.z = 80; f.st = "idle"; f.cd = 30; }`);
+  await fresh();
+  await c.hold('right', 250);
+  await until(page, 'g.hero().st === "hold"', 3000);
+  await game(page, '(() => { const p = g.hero(); for (const f of g.foes) if (f !== p.hold) { f.x = p.x + (f.x < p.x ? -100 : 100); f.z = p.z; } return 1; })()');
+  await c.jmp();
+  await until(page, 'g.hero().st === "spin"', 2000); ok(true, `${t}: Jump while carrying: Enzo's spinning throw`);
+  await wait(200); await shot(page, `${tag}-move-spin`);
+  await until(page, 'g.stats.spins >= 1 && !g.hero().hold', 3000); ok(true, `${t}: the spin lets it fly`);
+  // hold Attack (the market on): Dora's slide kick under a lobster's claws
+  await arena3(page, '2-1', 'dora', 'const f = g.spawnFoe("lobster", 1, { lane: 2 }); f.x = p.x + 190; f.z = 80; f.st = "idle"; f.cd = 30; window.__f = f;');
+  await fresh();
+  await c.holdAtk(480);
+  await until(page, 'g.stats.slides >= 1', 2000); ok(true, `${t}: hold Attack: Dora's slide kick`);
+  await shot(page, `${tag}-move-slide`);
+  await until(page, 'window.__f.hp < window.__f.max', 2000); ok(true, `${t}: the slide gets under the lobster's guard`);
+  // hold Attack: Enzo's ground pound flips an urchin
+  await arena3(page, '2-1', 'enzo', 'const f = g.spawnFoe("urchin", 1, { lane: 2 }); f.x = p.x - 40; f.z = 125; f.st = "idle"; f.cd = 30; window.__f = f; const c = g.spawnFoe("crab", 1, { lane: 2 }); c.x = p.x + 90; c.z = 80; c.st = "idle"; c.cd = 30;');
+  await fresh();
+  await c.holdAtk(480);
+  await until(page, 'g.stats.pounds >= 1', 2000); ok(true, `${t}: hold Attack: Enzo's ground pound`);
+  await wait(250); await shot(page, `${tag}-move-pound`);
+  await until(page, 'window.__f.flipped', 2000); ok(true, `${t}: the pound flips an urchin`);
+  // the team-up (the ropewalk on): Tag + Attack with the Festival full
+  await arena3(page, '3-1', 'dora', 'g.fest = 100; for (let i = 0; i < 3; i++) { const f = g.spawnFoe("crab", 1, { lane: 2 }); f.x = p.x + 160 + i * 80; f.z = 80; f.st = "idle"; f.cd = 30; }');
+  await fresh();
+  await game(page, '(g.fest = 100, 1)');
+  await c.team();
+  await until(page, 'g.stats.teams >= 1', 2000); ok(true, `${t}: Tag + Attack, Festival full: the team-up throw`);
+  await wait(380); await shot(page, `${tag}-move-team`);
+  await until(page, 'g.teamT < 0', 4000); ok(await game(page, 'g.foes.filter((f) => f.hp < f.max || f.st === "ko").length') >= 2, `${t}: Dora's comet flattens the lane`);
+  // pickups: walk over a frozen fish, Attack swings it; an oar; the net is thrown and pins a group
+  for (const kind of ['fish', 'oar', 'netbag']) {
+    await arena3(page, '1-2', 'dora', `g.addItem("${kind}", p.x + 60, p.z, 0, 0, 0);
+      for (let i = 0; i < 3; i++) { const f = g.spawnFoe("crab", 1, { lane: 2 }); f.x = p.x + 230 + i * 40; f.z = 80; f.st = "idle"; f.cd = 30; }`);
+    await fresh();
+    await c.hold('right', 300);
+    await until(page, '!!g.hero().weapon', 2000); ok(true, `${t}: walking over a ${kind} picks it up`);
+    await shot(page, `${tag}-gear-${kind}-held`);
+    await game(page, '(() => { const p = g.hero(); g.foes.forEach((f, i) => { f.x = p.x + 110 + i * 40; f.z = p.z; }); return 1; })()');
+    await c.atk(); await wait(kind === 'netbag' ? 160 : 120);
+    await shot(page, `${tag}-gear-${kind}-swing`);
+    if (kind === 'netbag') { await until(page, 'g.foes.some((f) => f.st === "tangled")', 3000); ok(true, `${t}: the net lands and pins them`); await shot(page, `${tag}-gear-net-pinned`); }
+    else { await until(page, 'g.stats.weaponHits >= 1', 2000); ok(true, `${t}: Attack swings the ${kind}`); }
+  }
+  // hazards: kick a crab into a crane hook; fish oil; the harbour edge
+  await arena3(page, '1-2', 'dora', 'g.hooks.push({ x: p.x + 190, z: 80, cd: 0, swing: 0 }); g.slicks.push({ x: p.x - 160, z: 116 }); const f = g.spawnFoe("crab", 1, { lane: 2 }); f.x = p.x + 70; f.z = 80; f.st = "idle"; f.cd = 30; f.hp = f.max = 30;');
+  await fresh();
+  await shot(page, `${tag}-hazard-hook-slick`);
+  for (let i = 0; i < 16 && !(await game(page, 'g.stats.hazards')); i++) { await c.atk(); await wait(120); }
+  await until(page, 'g.stats.hazards >= 1', 3000); ok(true, `${t}: a kicked crab is hoisted off by the crane hook`);
+  await wait(200); await shot(page, `${tag}-hazard-hooked`);
+  await arena3(page, '1-3', 'dora', `g.scene = { ...g.scene, edge: true }; p.z = 80; const f = g.spawnFoe("crab", 1, { lane: 1 }); f.x = p.x + 70; f.z = 40; f.st = "idle"; f.cd = 30; f.hp = f.max = 30;`);
+  await fresh();
+  await game(page, '(() => { const p = g.hero(), f = g.foes[0]; p.z = 75; return 1; })()');
+  for (let i = 0; i < 16 && !(await game(page, 'g.stats.hazards')); i++) { await c.atk(); await wait(120); }
+  await until(page, 'g.stats.hazards >= 1', 3000); ok(true, `${t}: knocked down at the harbour edge, a crab goes over the back`);
+  await shot(page, `${tag}-hazard-edge`);
+  // foes that combine: hit a ferrying gull and it drops its crab
+  await arena3(page, '2-3', 'dora', 'g.spawnCombo("ferry", 1); const f = g.foes[0]; f.x = g.hero().x + 90; f.h = 120; f.cd = 9;');
+  await fresh();
+  await shot(page, `${tag}-combo-ferry`);
+  await c.jmp(); await wait(110); await c.atk();
+  await until(page, '!g.foes.some((f) => f.cargo)', 3000); ok(true, `${t}: a jump kick at a ferrying gull makes it drop its crab`);
+  await wait(150); await shot(page, `${tag}-combo-ferry-drop`);
+  // the shield and the bomber, for the pictures
+  await arena3(page, '2-2', 'dora', 'g.spawnCombo("shield", 1); for (const f of g.foes) { f.x = g.hero().x + 260 + (f.kind === "urchin" ? 80 : 0); f.z = 80; f.cd = 9; f.st = "idle"; }');
+  await wait(500); await shot(page, `${tag}-combo-shield`);
+  await arena3(page, '3-2', 'dora', 'g.spawnCombo("bomber", 1);');
+  await until(page, 'g.rolls.some((r) => r.dir !== undefined) || g.foes.some((f) => f.kind === "cormorant" && f.st === "wind")', 15000);
+  await shot(page, `${tag}-combo-bomber`);
+  // elites: the gold crab and the gull captain; beaten, a gold lantern to pick up
+  await arena3(page, '2-1', 'dora', 'g.spawnGroup("crab*> gull*>", 1); g.foes.forEach((f, i) => { f.x = p.x + 180 + i * 120; f.z = 80; f.cd = 9; f.st = i ? "hover" : "idle"; });');
+  await wait(400); await shot(page, `${tag}-elites`);
+  await arena3(page, '3-3', 'dora', 'g.spawnGroup("cormorant*>", 1); const f = g.foes[0]; f.x = p.x + 200; f.h = 160; f.cd = 9; f.st = "hover";');
+  await wait(400); await shot(page, `${tag}-elite-cormorant`);
+  await arena3(page, '1-2', 'dora', 'const f = g.spawnGroup("crab*>", 1) ?? g.foes[0]; const c = g.foes[0]; c.x = p.x + 70; c.z = 80; c.st = "idle"; c.cd = 30; c.hp = 0.05; c.daze = 5;');
+  await fresh();
+  const l0 = await game(page, 'g.stats.lanterns');
+  await c.atk();
+  await until(page, 'g.items.some((i) => i.kind === "glantern")', 3000); ok(true, `${t}: a beaten elite drops a gold lantern`);
+  // step back from where it falls, so walking into it is the pickup
+  await game(page, '(() => { const it = g.items.find((i) => i.kind === "glantern"), p = g.hero(); p.z = it.z; p.x = it.x - 150; return 1; })()');
+  await wait(450); await shot(page, `${tag}-elite-glantern`);
+  await c.hold('right', 600);
+  await until(page, `g.stats.lanterns > ${l0}`, 3000); ok(true, `${t}: walking into the gold lantern picks it up`);
+}
 async function varietyActions(page, tag, how) {
   const t = `${tag} ${how}`;
   let c = await controls(page, how);
@@ -358,7 +479,7 @@ async function festActions(page, tag, how) {
   await page.locator('.bl-festend').waitFor(); ok(true, `${t}: the reward card`);
   const before = (await page.evaluate(() => JSON.parse(localStorage.getItem('brinelight-v1')))).lanterns;
   await page.locator('.bl-festend button', { hasText: 'Next stage' }).click();
-  await until(page, 'o.screen === "play" && g.stageId === "1-2"'); ok(true, `${t}: then the next stage`);
+  await arrive(page, '1-2'); ok(true, `${t}: then the next stage`);
   ok(before >= 1, `${t}: the breather's lanterns are saved (${before})`);
   // hanging lanterns: press as one reaches the hook
   await game(page, 'o.festStart("1-2", "1-3")'); await until(page, 'o.screen === "fest" && o.fest.kind === "lanterns"');
@@ -372,9 +493,7 @@ async function festActions(page, tag, how) {
   // the bottle toss: throw as the marker passes over a stack
   await page.locator('.bl-skip').click();
   // 1-3 opens on its story panel the first time
-  await until(page, '(o.screen === "play" && g.stageId === "1-3") || o.screen === "panel"');
-  if (await game(page, 'o.screen === "panel"')) await page.locator('.bl-panel button', { hasText: 'Go' }).click();
-  await until(page, 'o.screen === "play" && g.stageId === "1-3"'); ok(true, `${t}: Skip goes straight on`);
+  await arrive(page, '1-3'); ok(true, `${t}: Skip goes straight on`);
   await game(page, 'o.festStart("1-3", "2-1")'); await until(page, 'o.screen === "fest" && o.fest.kind === "bottles"');
   const fb = await festControls(page, how);
   for (let k = 0; k < 4 && !(await fest(page, 'F.stacks.some((s) => s.st !== "up")')); k++) {
@@ -384,7 +503,7 @@ async function festActions(page, tag, how) {
   ok(await fest(page, 'F.stacks.some((s) => s.st !== "up")'), `${t}: a ball topples a stack of bottles`);
   await shot(page, `${tag}-fest-bottles`);
   await page.locator('.bl-skip').click();
-  await until(page, 'o.screen === "play" && g.stageId === "2-1"');
+  await arrive(page, '2-1');
 }
 
 const sizes = [[1280, 800, false, 'desk'], [390, 844, true, 'portrait'], [844, 390, true, 'landscape']];
@@ -414,6 +533,8 @@ for (const [width, height, mobile, tag] of sizes) {
   }
   await keyActions(page, tag);
   await touchActions(page, tag);
+  await movesActions(page, tag, 'keys');
+  await movesActions(page, tag, 'touch');
   await area3Actions(page, tag, 'keys');
   await area3Actions(page, tag, 'touch');
   await varietyActions(page, tag, 'keys');
@@ -424,6 +545,7 @@ for (const [width, height, mobile, tag] of sizes) {
   await game(page, 'o.start("1-1", 4)'); await until(page, 'g && g.stageId === "1-1"');
   await game(page, '(() => { g.tut.stage = 9; g.mode = "clear"; g.clearT = 3; g.stats.score = 2400; g.stats.time = 70; return 1; })()');
   await page.locator('.bl-results').waitFor(); ok(true, `${tag}: the results card`);
+  ok(/Style\s*[CBAS]/.test(await page.locator('.bl-rank').textContent()), `${tag}: the results card shows a style rank`);
   await shot(page, `${tag}-results`);
   const save = await page.evaluate(() => JSON.parse(localStorage.getItem('brinelight-v1')));
   ok(save && save.v === 1 && save.cleared['1-1'], `${tag}: the clear is saved under brinelight-v1`);
@@ -459,8 +581,24 @@ for (const [width, height, mobile, tag] of sizes) {
   ok(/Tanglejaw/.test(await page.locator('.bl-panel').textContent()), `${tag}: the shipyard story panel before the drydock`);
   await shot(page, `${tag}-panel-shipyard`);
   await page.locator('.bl-panel button', { hasText: 'Go' }).click();
+  // the first stage with the team-up: its wordless demo first
+  await page.locator('.bl-moves').waitFor(); ok(await game(page, 'o.screen === "moves"'), `${tag}: the team-up's demo plays before the shipyard`);
+  await wait(1100); await shot(page, `${tag}-demo-3`);
+  await page.locator('.bl-moves button', { hasText: 'Go' }).click();
   await until(page, 'o.screen === "play" && g.stageId === "3-3"'); ok(true, `${tag}: 3-3 starts`);
-  ok((await page.evaluate(() => JSON.parse(localStorage.getItem('brinelight-v1')))).v === 1, `${tag}: still the brinelight-v1 save`);
+  // the map's Moves button replays every demo seen so far, a page at a time
+  await page.keyboard.press('Escape'); await page.locator('.bl-overlay button', { hasText: 'Map' }).click();
+  await page.locator('.bl-map').waitFor();
+  await page.locator('.bl-spot').nth(0).click();
+  await page.locator('.bl-area button', { hasText: 'Moves' }).click();
+  await page.locator('.bl-moves').waitFor(); ok(await game(page, 'o.screen === "moves"'), `${tag}: the map's Moves button replays the demos`);
+  await wait(700); await shot(page, `${tag}-demo-1`);
+  await page.locator('.bl-moves button[aria-label="Later moves"]').click(); await wait(1300); await shot(page, `${tag}-demo-2`);
+  ok(await game(page, 'o.scene.demoT < 2'), `${tag}: ▶ pages on to the next demo`);
+  await page.locator('.bl-moves button', { hasText: 'Back' }).click();
+  await page.locator('.bl-map').waitFor(); ok(true, `${tag}: Back to the map`);
+  const sv = await page.evaluate(() => JSON.parse(localStorage.getItem('brinelight-v1')));
+  ok(sv.v === 1 && ['moves-1', 'moves-3'].every((k) => sv.seen.includes(k)), `${tag}: still the brinelight-v1 save, with the demos marked seen`);
   await ctx.close();
 }
 await browser.close();

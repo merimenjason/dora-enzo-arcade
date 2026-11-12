@@ -2,7 +2,7 @@
 // scripts/brinelight-art.py; this file draws effects (sparks, dust, splashes, rings, glows, shadows, the night wash)
 // and typeset HUD text on top. It reads the engine and never changes it.
 import {
-  BrineGame, FLOOR, DEPTH, VIEW_W, HC, COL, LANE_Z, BOSS_NAME, inHole, perched, timeOfDay, type GameEvent, type Hero, type Foe, type Boss, type HeroId,
+  BrineGame, FLOOR, DEPTH, VIEW_W, HC, COL, LANE_Z, BOSS_NAME, WEAPON, RANKS, inHole, perched, timeOfDay, type GameEvent, type Hero, type Foe, type Boss, type HeroId,
   type Prop, type Item, type Goal,
 } from './brinelight-game';
 import { PX, ATLASES, FRAMES, IMAGES } from './brinelight-art';
@@ -34,6 +34,64 @@ interface Fx {
   col: string; size: number; back?: boolean; rot?: number; spin?: number; text?: string; pose?: string; flip?: boolean;
   si?: number; slot?: number; want?: HeroId; grav?: number;
 }
+
+interface DemoActor { n: string; x: number; h?: number; z?: number; flip?: boolean; rot?: number; sc?: number; alpha?: number; shadow?: boolean; ring?: number }
+interface DemoCard { T: number; far: string; floor: string; at: (t: number) => DemoActor[]; keys: { k: 'atk' | 'jmp' | 'tag'; from: number; to: number; hold?: boolean; then?: string }[] }
+const lerp = (a: number, b: number, k: number) => a + (b - a) * clamp(k, 0, 1);
+const seg = (t: number, a: number, b: number) => clamp((t - a) / (b - a), 0, 1);
+/** the move demos for each tier: 1 the wall-bounce kick and the spinning throw, 2 the slide kick and the ground pound, 3 the team-up */
+const DEMOS: Record<number, DemoCard[]> = {
+  1: [
+    { T: 2.8, far: 'far-harbour', floor: 'floor-quay', keys: [{ k: 'jmp', from: 0.05, to: 0.25, then: '→' }, { k: 'jmp', from: 0.5, to: 0.7 }], at: (t) => {
+      const hit = t > 0.95;
+      const crab: DemoActor = { n: !hit ? 'crab-idle' : t < 1.3 ? 'crab-hurt' : 'crab-down', x: hit ? lerp(40, 120, seg(t, 0.95, 1.3)) : 40, h: hit && t < 1.3 ? 40 * Math.sin(seg(t, 0.95, 1.3) * Math.PI) : 0, flip: false };
+      const wall: DemoActor = { n: 'scaffold', x: -215, shadow: false, z: -1 };
+      if (t < 0.5) return [wall, crab, { n: 'dora-jump', x: lerp(-60, -170, t / 0.5), h: 130 * Math.sin(t / 0.5 * Math.PI * 0.5), flip: true }];
+      if (t < 0.7) return [wall, crab, { n: 'dora-wall', x: -178, h: 130, flip: false }];
+      if (t < 1.15) return [wall, crab, { n: 'dora-wallkick', x: lerp(-178, 150, seg(t, 0.7, 1.15)), h: lerp(130, 40, seg(t, 0.7, 1.15)) }];
+      if (t < 1.45) return [wall, crab, { n: 'dora-land', x: 150 }];
+      return [wall, crab, { n: 'dora-idle', x: 150, flip: true }];
+    } },
+    { T: 2.8, far: 'far-harbour2', floor: 'floor-quay', keys: [{ k: 'jmp', from: 0.45, to: 0.65 }], at: (t) => {
+      const hit = t > 0.8, out = (side: number): DemoActor => ({ n: !hit ? 'crab-idle' : t < 1.4 ? 'crab-tumble' : 'crab-down', x: side * (hit ? lerp(120, 190, seg(t, 0.8, 1.3)) : 120), h: hit && t < 1.4 ? 50 * Math.sin(seg(t, 0.8, 1.4) * Math.PI) : 0, flip: side > 0 });
+      const crabs = [out(-1), out(1)];
+      if (t < 0.5) return [...crabs, { n: 'enzo-hold', x: 0 }, { n: 'crab-daze', x: 0, h: 150, z: 1, shadow: false }];
+      if (t < 1.4) { const a = (t - 0.5) * 14; return [...crabs, { n: Math.floor(t / 0.12) % 2 ? 'enzo-spin2' : 'enzo-spin1', x: 0 }, { n: 'crab-daze', x: Math.sin(a) * 70, h: 100, z: Math.cos(a), shadow: false, rot: a * 0.3 }]; }
+      if (t < 1.75) return [...crabs, { n: 'enzo-spinrel', x: 0 }, { n: 'crab-tumble', x: lerp(60, 260, seg(t, 1.4, 1.75)), h: 110, rot: t * 12, shadow: false }];
+      return [...crabs, { n: 'enzo-idle', x: 0 }];
+    } },
+  ],
+  2: [
+    { T: 2.8, far: 'far-market', floor: 'floor-market', keys: [{ k: 'atk', from: 0.2, to: 0.55, hold: true }], at: (t) => {
+      const hit = t > 0.8;
+      const lob: DemoActor = { n: !hit ? 'lobster-block' : t < 1.2 ? 'lobster-hurt' : 'lobster-down', x: hit ? lerp(70, 130, seg(t, 0.8, 1.2)) : 70, flip: false };
+      if (t < 0.55) return [lob, { n: 'dora-idle', x: -150 }];
+      if (t < 1.0) return [lob, { n: 'dora-slide', x: lerp(-150, 130, seg(t, 0.55, 1.0)), z: 1 }];
+      if (t < 1.3) return [lob, { n: 'dora-slideup', x: 140, z: 1 }];
+      return [lob, { n: 'dora-idle', x: 140, flip: true, z: 1 }];
+    } },
+    { T: 2.8, far: 'far-square', floor: 'floor-street', keys: [{ k: 'atk', from: 0.2, to: 0.55, hold: true }], at: (t) => {
+      const hit = t > 0.85, ring = hit && t < 1.4 ? seg(t, 0.85, 1.4) : -1;
+      const crab: DemoActor = { n: !hit ? 'crab-idle' : t < 1.3 ? 'crab-tumble' : 'crab-down', x: hit ? lerp(-120, -170, seg(t, 0.85, 1.3)) : -120, h: hit && t < 1.3 ? 45 * Math.sin(seg(t, 0.85, 1.3) * Math.PI) : 0, flip: true };
+      const urch: DemoActor = { n: hit ? 'urchin-down' : 'urchin-idle', x: 120, h: hit && t < 1.2 ? 40 * Math.sin(seg(t, 0.85, 1.2) * Math.PI) : 0 };
+      const extra: DemoActor[] = ring >= 0 ? [{ n: '', x: 10, ring }] : [];
+      if (t < 0.55) return [crab, urch, { n: 'enzo-idle', x: 0 }];
+      if (t < 0.85) return [crab, urch, { n: 'enzo-poundup', x: 0, h: 110 * Math.sin(seg(t, 0.55, 0.85) * Math.PI * 0.5) }];
+      if (t < 1.2) return [...extra, crab, urch, { n: 'enzo-pound', x: 0 }];
+      return [...extra, crab, urch, { n: 'enzo-idle', x: 0 }];
+    } },
+  ],
+  3: [
+    { T: 3.0, far: 'far-shipyard', floor: 'floor-shipyard', keys: [{ k: 'tag', from: 0.25, to: 0.5 }, { k: 'atk', from: 0.25, to: 0.5 }], at: (t) => {
+      const cx = (x0: number): DemoActor => { const dx = lerp(-80, 200, seg(t, 0.85, 1.35)), hit = t > 0.85 && dx > x0 - 30; return { n: hit ? (t < 1.6 ? 'crab-tumble' : 'crab-down') : 'crab-idle', x: hit ? x0 + 50 * seg(t, 0.9, 1.5) : x0, h: hit && t < 1.6 ? 50 * Math.sin(seg(t, 0.9, 1.6) * Math.PI) : 0 }; };
+      const crabs = [cx(20), cx(90), cx(160)];
+      if (t < 0.5) return [...crabs, { n: 'enzo-idle', x: -150 }, { n: 'dora-idle', x: -200, z: -1 }];
+      if (t < 0.85) return [...crabs, { n: 'enzo-launch', x: -150 }, { n: 'dora-ball', x: -130, h: 90 + 30 * Math.sin(seg(t, 0.5, 0.85) * Math.PI), z: 1 }];
+      if (t < 1.35) return [...crabs, { n: 'enzo-launch', x: -150 }, { n: 'dora-comet', x: lerp(-80, 200, seg(t, 0.85, 1.35)), h: 55, z: 2 }];
+      return [...crabs, { n: 'enzo-win', x: -150 }, { n: 'dora-land', x: 200, z: 2 }];
+    } },
+  ],
+};
 
 export class BrineScene {
   cv: HTMLCanvasElement; cx: CanvasRenderingContext2D;
@@ -211,12 +269,23 @@ export class BrineScene {
       case 'dash': return `${n}-dash`;
       case 'land': return `${n}-land`;
       case 'specland': return `${n}-sp3`;
+      case 'slide': return t < 0.36 ? 'dora-slide' : 'dora-slideup';
+      case 'spin': return t >= 0.6 ? 'enzo-spinrel' : cyc(10, 2) ? 'enzo-spin2' : 'enzo-spin1';
+      case 'pound': return t < 0.3 ? 'enzo-poundup' : t < 0.5 ? 'enzo-pound' : 'enzo-land';
+      case 'swing': {
+        const k = p.mk as 'fish' | 'oar' | 'net', W = WEAPON[k];
+        return W ? `${n}-${k}${t < W.wind ? 'w' : ''}` : `${n}-idle`;
+      }
+      case 'team':
+        if (n === 'enzo') return p.t < 0.45 ? 'enzo-launch' : 'enzo-win';
+        return p.airKind === 'ball' ? 'dora-ball' : p.airKind === 'comet' ? 'dora-comet' : 'dora-land';
       case 'special':
         if (n === 'dora') return t < 0.06 ? 'dora-sp0' : cyc(14, 2) ? 'dora-sp2' : 'dora-sp1';
         return t < 0.1 ? 'enzo-sp0' : p.vh > 0 ? 'enzo-sp1' : 'enzo-sp2';
       case 'airatk':
         if (p.airKind === 'rise') return 'dora-rise';
         if (p.airKind === 'hammer') return 'enzo-hammer';
+        if (p.airKind === 'wall') return t < 0.1 ? 'dora-wall' : 'dora-wallkick';
         return 'dora-dive';
       case 'air': return p.vh > 60 || n === 'enzo' ? `${n}-jump` : 'dora-fall';
       case 'grab': return n === 'enzo' ? 'enzo-reach' : 'dora-pick';
@@ -248,6 +317,17 @@ export class BrineScene {
     void g;
   }
   foePose(f: Foe): string {
+    const base = this.basePose(f);
+    // a gull ferrying a crab, and the crab it lets go of
+    if (f.kind === 'gull' && f.cargo && f.st !== 'ko') return f.st === 'wind' && f.t > 0.4 ? 'ferry-drop' : Math.floor(f.anim * 7) % 2 ? 'ferry-carry1' : 'ferry-carry2';
+    if (f.kind === 'gull' && !f.elite && f.trick === 1 && f.st === 'hover' && f.t < 0.7) return 'ferry-away';
+    if (f.kind === 'crab' && f.st === 'drop') return 'ferry-fall';
+    if (f.kind === 'crab' && f.trick === 1 && !f.elite && f.st === 'daze' && f.t < 0.45) return 'ferry-squash';
+    // the elites are painted over their base sheets frame for frame
+    if (f.elite && FRAMES['e' + base]) return 'e' + base;
+    return base;
+  }
+  private basePose(f: Foe): string {
     const k = f.kind, a = f.anim, cyc = (fps: number, n: number) => Math.floor(a * fps) % n;
     if (k === 'eel') {
       if (inHole(f)) {
@@ -268,7 +348,7 @@ export class BrineScene {
       return 'octo-' + (m[f.st] ?? (cyc(6, 2) ? 'walk1' : 'walk2'));
     }
     if (k === 'cormorant') {
-      const m: Record<string, string> = { wind: 'aim', dive: 'dive', crash: 'stuck', hurt: 'hurt', held: 'hurt', thrown: 'hurt', ko: 'hurt', down: 'down', up: 'down', daze: 'down', tangled: 'down' };
+      const m: Record<string, string> = { wind: 'aim', dive: 'dive', crash: 'stuck', hurt: 'hurt', held: 'hurt', thrown: 'hurt', ko: 'hurt', down: 'down', up: 'down', daze: 'down', tangled: 'down', hooked: 'hurt' };
       if (m[f.st]) return 'cormorant-' + m[f.st];
       return f.h > 20 ? (cyc(6, 2) ? 'cormorant-fly1' : 'cormorant-fly2') : 'cormorant-waddle';
     }
@@ -277,7 +357,7 @@ export class BrineScene {
     if (k === 'hermit' && !f.shell) return 'hermit-soft';
     if (k === 'urchin' && f.flipped && f.st !== 'ko') return 'urchin-down';
     switch (f.st) {
-      case 'held': case 'lift': p = pick('daze', 'down'); break;
+      case 'held': case 'lift': case 'hooked': p = pick('daze', 'down'); break;
       case 'thrown': case 'ko': p = k === 'crab' ? 'tumble' : k === 'gull' ? 'airhurt' : pick('hurt'); break;
       case 'hurt': p = k === 'gull' && f.h > 30 ? 'airhurt' : 'hurt'; break;
       case 'down': p = k === 'gull' ? 'crash' : k === 'crab' && f.h > 10 ? 'tumble' : 'down'; break;
@@ -423,7 +503,13 @@ export class BrineScene {
       if (c.t < c.tell) continue;
       const z = LANE_Z[c.lane];
       if (c.kind === 'cart') list.push({ z, d: () => { this.shadow(c.x, z, 70, 0); this.spr('cart', c.x, z, 0, { flip: true }); } });
-      else list.push({ z, d: () => { this.shadow(c.x, z, 36, 0); this.spr('tarbarrel', c.x, z, 4, { rot: -c.t * 9 }); } });
+      else list.push({ z, d: () => { this.shadow(c.x, z, 36, 0); this.spr(this.area3 ? 'tarbarrel' : 'barrel', c.x, z, 4, { rot: (c.dir ?? -1) * c.t * 9 }); } });
+    }
+    // crane hooks hang over the deck; fish-oil slicks lie on it
+    for (const k of g.slicks) list.push({ z: k.z - 30, d: () => this.spr('gear-slick', k.x, k.z, 0, { sy: 0.8 }) });
+    for (const hk of g.hooks) {
+      if (hk.cd > 0 && g.foes.some((f) => f.st === 'hooked' && Math.abs(f.x - hk.x) < 4)) continue;
+      list.push({ z: hk.z, d: () => this.drawHook(hk.x, hk.z, hk.swing, hk.cd > 0) });
     }
     // Tanglejaw's drain holes, plugged or open (not the one he is showing out of)
     const b0 = g.boss, showing = b0 && b0.kind === 'tanglejaw' && !['under', 'gone'].includes(b0.st) && !(b0.st === 'bubble' && b0.t < 0.5) ? b0.hole : -1;
@@ -605,8 +691,26 @@ export class BrineScene {
     if (p.inv > 0 && p.st !== 'hurt' && p.st !== 'getup' && Math.floor(this.rt * 20) % 2 && !waiting) o.alpha = 0.55;
     if (p.st === 'special' && p.name === 'dora') this.glow(x, z, h + 70, 120, `rgba(255,236,190,${0.35 + 0.2 * Math.sin(this.rt * 30)})`);
     if (p.st === 'special' && p.name === 'enzo') this.glow(x, z, h + 60, 110, 'rgba(220,230,245,.35)');
+    if (p.st === 'team' && p.airKind === 'comet') this.glow(x, z, h + 50, 150, `rgba(255,220,150,${0.45 + 0.2 * Math.sin(this.rt * 30)})`);
+    if (p.st === 'pound' && p.t >= 0.3 && p.t < 0.45) this.glow(x + p.face * 30, z, 20, 160, 'rgba(220,230,245,.45)');
+    if (!waiting && this.inFrontOfStall(g, x, z)) o.alpha = Math.min(o.alpha ?? 1, 0.55);
     this.shadow(waiting ? x : p.x, waiting ? z : p.z, HC[p.name].rad * 1.3, h);
+    // a pickup weapon in hand, between swings (the swing frames have it painted in)
+    const w = p.weapon;
+    if (w && !waiting && p.st !== 'swing') {
+      const n = w.kind === 'net' ? 'gear-netbag' : `gear-${w.kind}`, hand = p.name === 'enzo' ? 72 : 64;
+      const back = { flip: p.face < 0, alpha: o.alpha, sc: w.kind === 'net' ? 0.75 : 0.85, rot: w.kind === 'oar' ? -p.face * 1.25 : w.kind === 'fish' ? -p.face * 0.9 : 0 };
+      if (w.kind === 'oar') this.spr(n, x - p.face * 10, z - 0.1, h + hand + 10, back);
+      this.spr(pose, x, z, h, o);
+      if (w.kind !== 'oar') this.spr(n, x + p.face * 30, z + 0.1, h + hand - 20, back);
+      return;
+    }
     this.spr(pose, x, z, h, o);
+  }
+  /** a body standing in front of the defended stall is drawn see-through, so the stall's painting stays readable */
+  private inFrontOfStall(g: BrineGame, x: number, z: number) {
+    const G = g.goal;
+    return !!G && G.kind === 'defend' && !G.done && Math.abs(x - G.x) < 72 && z > G.z && z < G.z + 90;
   }
   private drawFoe(f: Foe, g: BrineGame) {
     const pose = this.foePose(f), o: Parameters<BrineScene['spr']>[4] = { flip: f.face > 0, flash: f.flash };
@@ -641,21 +745,39 @@ export class BrineScene {
     }
     if (f.st === 'wind' || f.st === 'charge') this.glow(f.x, f.z, h + 30, 60, `rgba(255,120,80,${0.25 + 0.2 * Math.sin(f.t * 30)})`);
     if (f.kind === 'jelly' && f.st !== 'ko') this.glow(f.x, f.z, h + 50, 70, `rgba(200,220,255,${0.18 + 0.1 * Math.sin(f.anim * 4)})`);
-    this.spr(pose, f.x, f.z, h, o);
-    if (f.lantern >= 0 && f.st !== 'ko' && pose !== 'gull-carry') this.spr('lantern-lit', f.x + f.face * 6, f.z + 0.2, h + (f.kind === 'gull' ? -26 : f.ht * 0.8), { sc: 0.9 });
+    if (f.elite && f.st !== 'ko') { this.glow(f.x, f.z, h + f.ht * 0.6, 80, `rgba(255,214,120,${0.2 + 0.12 * Math.sin(this.rt * 5 + f.id)})`); this.glint(f.x + f.face * 10, f.z, h + f.ht * 0.9, '#ffe9a8', this.rt * 1.3 + f.id); }
+    if (this.inFrontOfStall(g, f.x, f.z)) o.alpha = 0.55;
+    if (f.st === 'hooked') { const k = Math.min(1, f.t / 0.2); this.spr('gear-hookswing', f.x, f.z + 0.1, h + f.ht * 0.7, { rot: Math.sin(f.t * 9) * 0.2 * k }); this.cable(f.x, f.z, h + f.ht * 0.7 + 100); }
+    // the ferry painting has the crab hanging under the gull: the gull flies at its height, the crab below
+    this.spr(pose, f.x, f.z, pose.startsWith('ferry-') && f.kind === 'gull' && pose !== 'ferry-away' ? h - 62 : h, o);
+    if (f.lantern >= 0 && f.st !== 'ko' && pose !== 'gull-carry' && pose !== 'egull-carry') this.spr('lantern-lit', f.x + f.face * 6, f.z + 0.2, h + (f.kind === 'gull' ? -26 : f.ht * 0.8), { sc: 0.9 });
     if ((f.daze > 0 && f.st !== 'held') || f.st === 'crash') this.stars(f.x, f.z, h + f.ht + 10);
     if (f.kind === 'shrimp' && f.st === 'whistle') this.glow(f.x - f.face * 30, f.z, h + 70, 50, `rgba(255,240,180,${0.3 + 0.3 * Math.sin(this.rt * 20)})`);
     void g;
   }
   private drawItem(it: Item, g: BrineGame) {
-    const n = { shell: 'hermit-shell', barrel: it.sid || g.area() >= 3 ? 'tarbarrel' : 'barrel', snack: 'snack', bun: 'bun', charm: 'charm', scroll: 'scroll' }[it.kind];
+    if (it.kind === 'netfly') {
+      // the thrown net opens out in the air and lies flat where it lands
+      const open = it.h <= 0 ? 1 : Math.min(1, 0.35 + it.t * 2.2), fade = it.h <= 0 && it.t > 3 ? Math.max(0, (3.6 - it.t) / 0.6) : 1;
+      if (it.h > 0) this.shadow(it.x, it.z, 70 * open, it.h);
+      this.spr('gear-netopen', it.x, it.z + (it.h <= 0 ? 20 : 0), it.h, { sc: it.h <= 0 ? 0.7 : 0.35 + 0.3 * open, sy: it.h <= 0 ? 0.59 : 0.8, alpha: fade, rot: it.h > 0 ? Math.sin(it.t * 9) * 0.3 : 0 });
+      return;
+    }
+    if (it.kind === 'glantern') {
+      const bob = 18 + Math.sin(this.rt * 3 + it.id) * 6;
+      this.glow(it.x, it.z, it.h + bob + 26, 80, `rgba(255,214,120,${0.45 + 0.2 * Math.sin(this.rt * 5)})`);
+      this.shadow(it.x, it.z, 18, it.h + bob); this.spr('gear-glantern', it.x, it.z, it.h + bob);
+      return;
+    }
+    const n = { shell: 'hermit-shell', barrel: it.sid || g.area() >= 3 ? 'tarbarrel' : 'barrel', snack: 'snack', bun: 'bun', charm: 'charm', scroll: 'scroll', fish: 'gear-fish', oar: 'gear-oar', netbag: 'gear-netbag' }[it.kind]!;
     let h = it.h, z = it.z, x = it.x;
+    if (it.kind === 'fish' || it.kind === 'oar' || it.kind === 'netbag') this.glint(x, z, h + 30, '#fff6dc', this.rt * 0.8 + it.id);
     if (it.held) { const p = g.hero(); x = p.x; z = p.z; h = p.h + (p.name === 'enzo' ? 150 : 90); }
     const bob = it.kind === 'charm' || it.kind === 'scroll' ? 10 + Math.sin(this.rt * 3 + it.id) * 6 : 0;
     this.shadow(x, z, it.kind === 'barrel' ? 34 : 24, h + bob);
     if (it.kind === 'charm' || it.kind === 'scroll') this.glow(x, z, h + bob + 20, 60, `rgba(255,210,120,${0.35 + 0.15 * Math.sin(this.rt * 4)})`);
     const spin = it.h > 0 || it.slide ? it.t * (it.kind === 'shell' ? 14 : 8) * (it.vx < 0 ? -1 : 1) : 0;
-    this.spr(n, x, z, h + bob, { rot: spin, alpha: it.kind === 'shell' && it.t > 5 ? Math.max(0, (6 - it.t) * 2) : 1 });
+    this.spr(n, x, z, h + bob, { rot: it.kind === 'fish' || it.kind === 'oar' || it.kind === 'netbag' ? (it.h > 0 ? it.t * 9 : 0) : spin, alpha: it.kind === 'shell' && it.t > 5 ? Math.max(0, (6 - it.t) * 2) : 1 });
     if (it.kind === 'barrel' && it.sid) this.glint(x, z, h + 50, '#ffd27a', this.rt + it.id);
   }
   private drawProp(pr: Prop) {
@@ -891,6 +1013,17 @@ export class BrineScene {
     if (!G.won) this.glow(G.x + (toward ? -20 : 20), G.z, G.h + 20, 70, 'rgba(255,190,90,.35)');
     this.spr(n, G.x, G.z, G.h, { flip: !toward && st !== 'hit', rot: st === 'hit' ? Math.sin(G.stT * 18) * 0.3 : 0 });
   }
+  private cable(x: number, z: number, h: number) {
+    const cx = this.cx, sx = this.SX(x), y0 = this.SY(FLOOR + z - h);
+    cx.strokeStyle = 'rgba(40,28,40,.85)'; cx.lineWidth = Math.max(2, 4 * this.s); cx.beginPath(); cx.moveTo(sx, y0); cx.lineTo(sx, -10); cx.stroke();
+  }
+  private drawHook(x: number, z: number, swing: number, used: boolean) {
+    const h = used ? 230 : 120, sw = swing > 0 ? Math.sin(swing * 10) * 0.25 * swing : Math.sin(this.rt * 1.5 + x) * 0.04;
+    if (!used) this.ringMark(x, z, 52, 22, 'rgba(191,232,255,.55)');
+    this.shadow(x, z, 26, h);
+    this.spr(swing > 0 ? 'gear-hookswing' : 'gear-hook', x, z, h, { rot: sw });
+    this.cable(x, z, h + 100);
+  }
   private drawStall(G: Goal, g: BrineGame) {
     const what = G.def.what === 'cart' ? 'fishcart' : 'stall';
     const k = G.hp <= 0 ? 3 : G.hp > 66 ? 0 : G.hp > 33 ? 1 : 2;
@@ -996,7 +1129,7 @@ export class BrineScene {
     const full = g.fest >= 100;
     const hb = this.bar(fx0, fy, fw, g.fest / 100, full ? ['#fff0a0', '#ffb347'] : ['#ffd27a', '#e58a3a']);
     cx.save(); if (full) cx.globalAlpha = 0.6 + 0.4 * Math.sin(this.rt * 8);
-    this.text(full ? (L.mode === 'touch' ? 'FESTIVAL! ATTACK + JUMP' : `FESTIVAL! ${L.atk} + ${L.jmp}`) : 'FESTIVAL', fx0 + fw * 0.08, fy + hb * 0.95 + 4 * u, Math.round(11 * u), full ? '#fff0a0' : '#ffe2a8', 'left');
+    this.text(full ? (g.moves >= 3 ? (L.mode === 'touch' ? 'FESTIVAL! TAG + ATTACK' : `FESTIVAL! ${L.tag} + ${L.atk}`) : L.mode === 'touch' ? 'FESTIVAL! ATTACK + JUMP' : `FESTIVAL! ${L.atk} + ${L.jmp}`) : 'FESTIVAL', fx0 + fw * 0.08, fy + hb * 0.95 + 4 * u, Math.round(11 * u), full ? '#fff0a0' : '#ffe2a8', 'left');
     cx.restore();
     // lanterns home in this scene, and the score
     let need = 0, got = 0; for (const s of g.strings) { need += s.need; got += s.got; }
@@ -1004,6 +1137,18 @@ export class BrineScene {
     this.ui('icon-lantern', rx, m + 22 * u, 22 * u);
     this.text(`${got}/${need}`, rx - 18 * u, m + 22 * u, Math.round(18 * u), '#ffe2a8', 'right');
     this.text(String(g.stats.score), rx + 12 * u, m + 52 * u, Math.round(15 * u), '#fff4dc', 'right');
+    // the style rank so far, as a letter by the score
+    if (g.stats.styleN >= 5) {
+      const rk = RANKS[g.styleRank()], col = { C: '#c9bfe0', B: '#9fd8ff', A: '#ffd27a', S: '#ffb0e0' }[rk]!;
+      this.text(rk, rx + 34 * u, m + 52 * u, Math.round(22 * u), col);
+    }
+    // a pickup weapon in hand, and the swings left in it
+    const w = p.weapon;
+    if (w) {
+      const wx = m + R * 1.1, wy = top + R * 1.9 + (this.portrait ? 10 * u : 0);
+      this.ui(w.kind === 'net' ? 'gear-netbag' : `gear-${w.kind}`, wx, wy, (w.kind === 'oar' ? 60 : 42) * u);
+      if (w.kind !== 'net') this.text(`×${w.uses}`, wx + 34 * u, wy, Math.round(15 * u), '#fff4dc', 'left');
+    }
     // combo and tag chain
     if (g.combo.n >= 3 && g.combo.t > 0) {
       const cy = (this.portrait ? 120 : 130) * u;
@@ -1055,6 +1200,8 @@ export class BrineScene {
       case 'jmp': return t ? 'JUMP' : L.jmp;
       case 'tag': return t ? 'TAG' : L.tag;
       case 'dbl': return t ? 'ATTACK + JUMP' : `${L.atk} + ${L.jmp}`;
+      case 'hold': return t ? 'HOLD ATTACK' : `hold ${L.atk}`;
+      case 'team': return t ? 'TAG + ATTACK' : `${L.tag} + ${L.atk}`;
       default: return '';
     }
   }
@@ -1089,6 +1236,8 @@ export class BrineScene {
         : bk === 'tanglejaw' ? 'Dora’s job: kick him while he’s stuck' : bk === 'longshanks' ? 'Dora’s job: kick him while he’s down' : 'Dora’s job: wings and the air';
     }
     if (pr.act === 'dbl') sub = 'Festival full: double-team!';
+    if (pr.act === 'team') sub = 'Festival full: team-up throw!';
+    if (pr.sub) sub = pr.sub;
     if (pr.act === 'special') {
       const d = (pr.dir ?? 1) > 0 ? L.right : L.left;
       label = L.mode === 'touch' ? `flick ${d}${d}, JUMP, ATTACK` : L.mode === 'pad' ? `${d}${d} then ${L.jmp} then ${L.atk}` : `${d}${d} then ${L.jmp} then ${L.atk}`;
@@ -1166,6 +1315,77 @@ export class BrineScene {
     if (o.flip) cx.scale(-1, 1); if (o.alpha !== undefined) cx.globalAlpha = o.alpha;
     cx.drawImage(this.atlas[ai], fx, fy, fw, fh, -w / 2, -h, w, h); cx.restore();
     return w;
+  }
+  // ─────────────────────────────────────────── the new-move demos (wordless: painted frames and the keys)
+  /** a looping demo of the moves a district unlocks: one card per move, each with the keys lit as they're pressed */
+  drawDemo(tier: number, dt: number, L: Labels) {
+    if (!this.ready) return;
+    this.demoT += dt;
+    const cx = this.cx, u = this.u, W = this.W, H = this.H;
+    cx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    cx.fillStyle = '#1d1b4a'; cx.fillRect(0, 0, W, H);
+    const cards = DEMOS[tier] ?? [];
+    const n = cards.length, gap = 16 * u, top = (this.portrait ? 70 : 64) * u, bottom = (this.portrait ? 120 : 92) * u;
+    const across = !this.portrait && n > 1;
+    const cw = across ? Math.min((W - gap * (n + 1)) / n, 560 * u) : Math.min(W - gap * 2, 560 * u);
+    const availH = H - top - bottom - (across ? 0 : gap * (n - 1));
+    const ch = Math.min(across ? availH : availH / n, cw * 0.72);
+    const x0 = (W - (across ? cw * n + gap * (n - 1) : cw)) / 2;
+    cards.forEach((c, i) => {
+      const x = across ? x0 + i * (cw + gap) : x0, y = top + (across ? 0 : i * (ch + gap)) + Math.max(0, (availH - (across ? ch : ch * n)) / (across ? 2 : 2));
+      this.demoCard(c, x, y, cw, ch, L);
+    });
+  }
+  demoT = 0;
+  private demoCard(c: DemoCard, x: number, y: number, w: number, h: number, L: Labels) {
+    const cx = this.cx, u = this.u, t = this.demoT % c.T;
+    cx.save();
+    cx.beginPath(); cx.roundRect(x, y, w, h, 14 * u); cx.clip();
+    // the district behind it: the far painting over its boards
+    const far = this.img[c.far], fl = this.img[c.floor], groundY = y + h * 0.78;
+    if (far) { const k = Math.max(w / far.width, (groundY - y + 20 * u) / far.height); cx.drawImage(far, x + (w - far.width * k) / 2, groundY - far.height * k * 0.92, far.width * k, far.height * k); }
+    if (fl) { const k = w / fl.width; cx.drawImage(fl, x, groundY - 30 * u, w, Math.max(h - (groundY - y) + 30 * u, fl.height * k)); }
+    const k = w / 460;   // card units: 460 across, the boards at groundY
+    const draw = (a: DemoActor) => {
+      const f = FRAMES[a.n]; if (!f) return;
+      const [ai, fx, fy, fw, fh, ax] = f, s = (k / PX) * (a.sc ?? 1), sw = fw * s, sh = fh * s;
+      const sx = x + w / 2 + a.x * k, sy = groundY - (a.h ?? 0) * k;
+      cx.save(); cx.translate(sx, sy);
+      if (a.shadow !== false) { cx.save(); cx.globalAlpha = 0.28 * Math.max(0.3, 1 - (a.h ?? 0) / 260); cx.fillStyle = '#140c24'; cx.beginPath(); cx.ellipse(0, (a.h ?? 0) * k, sw * 0.32, 7 * k, 0, 0, 7); cx.fill(); cx.restore(); }
+      if (a.rot) { cx.translate(0, -sh / 2); cx.rotate(a.rot); cx.translate(0, sh / 2); }
+      if (a.flip) cx.scale(-1, 1);
+      if (a.alpha !== undefined) cx.globalAlpha = a.alpha;
+      cx.drawImage(this.atlas[ai], fx, fy, fw, fh, -ax * s, -sh, sw, sh);
+      cx.restore();
+    };
+    const actors = c.at(t);
+    for (const a of actors.filter((a) => a.ring)) {
+      const r = a.ring!; cx.strokeStyle = `rgba(230,240,255,${Math.max(0, 1 - r)})`; cx.lineWidth = 5 * k;
+      cx.beginPath(); cx.ellipse(x + w / 2 + a.x * k, groundY, (40 + r * 200) * k, (12 + r * 50) * k, 0, 0, 7); cx.stroke();
+    }
+    actors.filter((a) => !a.ring).sort((p, q) => (p.z ?? 0) - (q.z ?? 0)).forEach(draw);
+    cx.restore();
+    cx.strokeStyle = 'rgba(255,226,168,.55)'; cx.lineWidth = 2 * u; cx.beginPath(); cx.roundRect(x, y, w, h, 14 * u); cx.stroke();
+    // the keys, lit while they're pressed (a held key fills up)
+    const keys = c.keys.map((kk) => ({ ...kk, label: kk.k === 'atk' ? (L.mode === 'touch' ? 'ATTACK' : L.atk) : kk.k === 'jmp' ? (L.mode === 'touch' ? 'JUMP' : L.jmp) : (L.mode === 'touch' ? 'TAG' : L.tag) }));
+    const px = Math.round(16 * u);
+    cx.font = `700 ${px}px Fredoka, "Trebuchet MS", system-ui, sans-serif`;
+    const ws = keys.map((kk) => Math.max(44 * u, cx.measureText(kk.label).width + 26 * u)), total = ws.reduce((a, b) => a + b, 0) + (ws.length - 1) * 12 * u;
+    let kx = x + (w - total) / 2;
+    const ky = y + h - 30 * u;
+    keys.forEach((kk, i) => {
+      const on = t >= kk.from && t < kk.to, kw = ws[i], mid = kx + kw / 2;
+      if (on) this.glowAt(mid, ky, 46 * u, 'rgba(255,230,160,.55)');
+      this.ui('keycap', mid, ky + (on ? 3 * u : 0), kw, on ? 1 : 0.55, 40 * u);
+      this.text(kk.label, mid, ky - 2 * u + (on ? 3 * u : 0), px, '#2a1a36', 'center', '#fff4dc');
+      if (kk.hold) {
+        const f = clamp((t - kk.from) / (kk.to - kk.from), 0, 1) * (t >= kk.from ? 1 : 0), bw = kw * 0.8;
+        cx.fillStyle = 'rgba(42,26,54,.7)'; cx.fillRect(mid - bw / 2, ky + 24 * u, bw, 5 * u);
+        cx.fillStyle = '#ffd27a'; cx.fillRect(mid - bw / 2, ky + 24 * u, bw * (t < kk.to ? f : 1), 5 * u);
+      }
+      if (i < keys.length - 1) this.text(kk.then ?? '+', kx + kw + 6 * u, ky - 2 * u, Math.round(15 * u), '#ffe2a8');
+      kx += kw + 12 * u;
+    });
   }
   drawFest(F: FestGame, dt: number, L: Labels) {
     if (!this.ready) return;

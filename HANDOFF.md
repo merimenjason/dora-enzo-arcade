@@ -34,7 +34,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 - **Code:** `lib/brinelight-levels.ts` (hand-authored scenes as string rows), `lib/brinelight-game.ts` (engine), `lib/brinelight-scene.ts` (Canvas 2D drawing), `app/brinelight/` (page, sound, CSS), `lib/brinelight-art.ts` (generated). Save key `brinelight-v1`.
 - **Art:** 65 Codex jobs in `docs/brinelight-art/jobs.txt`, the style guide in `docs/brinelight-art/style.md`, `docs/brinelight-art/gen.sh` to paint and `scripts/brinelight-art.py` to key, scale and pack into `public/art/brinelight/` (11 MB, seven atlases). The source paintings are not in the repo; repaint a sheet with `gen.sh` and rerun the packer.
-- **Checks:** `npm run test:brinelight` (48 engine tests), `npm run bot:brinelight` (four human-delay bots, 24 seeds; `npm test` runs `--quick`; it also enforces area-3 thresholds), `npm run test:e2e:brinelight` (323 checks with real keys and touches at three sizes, every area-3 interaction, scene goal and breather by keys and by touch).
+- **Checks:** `npm run test:brinelight` (61 engine tests), `npm run bot:brinelight` (four human-delay bots, 24 seeds; `npm test` runs `--quick`; it also enforces area-3 thresholds), `npm run test:e2e:brinelight` (464 checks with real keys and touches at three sizes, every area-3 interaction, scene goal and breather by keys and by touch).
 - **Area 3 tuning:** `tier()` in the engine scales damage, foe health and foe cooldowns per area. Tanglejaw's pace is set by his health (120), the stuck window with two plugs (4.2 s / 3 s) and `bossMult`. Retune with `node tests/brinelight-bot.mjs --stage=3-3`.
 - **What is left:** areas 4 to 6 (the Lighthouse Rocks, the Smugglers' Caves, Pinchwell's Breakwater Fort) are on the map and in `AREAS` with `ready: false` and their bosses named. Each needs stages and scenes, a floor strip and far painting, new foes, a boss, a tune and a story panel; `docs/brinelight.md` lists every place to touch. Gamepads and the sound have not been tried by a person, and nothing has run on a real phone.
 - **Polish (12-11-2026, the follow-up PR):** fixed the five weak spots from the first review.
@@ -49,7 +49,14 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
   - Breathers: `lib/brinelight-fest.ts` (whack, lanterns, bottles, by stage order) and the page's `fest` screen, entered from the results card's Next stage; Skip, a reward card, and lanterns added to the save (no save change).
   - The hour: `timeOfDay()` (sunset, night, fireworks by stage in the district); six `dusk-*` repaints, a fireworks sheet, and the night wash scaled per hour in the scene.
   - Art: 19 more Codex jobs (84 in all), an eighth atlas `variety`, the packer's new `xs` column cuts for the tide sheet.
-  - **PR B is next** (branch `claude/brinelight-moves`, off main once this merges): new moves per area with a demo panel, the style score and ranks, pickup weapons, hazards, combined foes and elites. The full list is in the coordinator's brief.
+  - Merged as #124.
+- **Moves pass, PR B (12-11-2026, branch `claude/brinelight-moves`):** a new move per district for each hero, the style rank, pickup weapons, hazards, foes that combine and elites. Everything is in `docs/brinelight.md` under "New moves, style, pickups, hazards and elites".
+  - Moves: `moveTier(stage)` (0 in 1-1, then 1, 2, 3 by district; `GameOpts.moves` overrides it). Wall kick (`airKind 'wall'`), spinning throw (`'spin'`), slide (`'slide'`, `under` skips the lobster's guard), pound (`'pound'`), team-up (`startTeam`/`updTeam`, `teamT`). Hold Attack is read from `Input.atkH` through `Hero.atkHold`; the page now also sends `tagH`.
+  - Demo panels: `drawDemo` in the scene (cards in `DEMOS`), the page's `moves` screen from `begin()`, `seen` keys `moves-1` to `moves-3`, and the map's Moves button.
+  - Style: `style(cat)` on every action that lands, `styleRank()` against `STYLE_AT`, saved as `cleared[stage].rank` (no save version change).
+  - Props and foes: `WEAPON`, `pickups()`, `updSwing`; `Hook`/`Slick` and `updHazards`, `SceneDef.edge`; wave tokens `ferry`, `shield`, `bomber` (`spawnCombo`) and `kind*` elites (`f.elite`, `f.trick`); new lane characters `x o w h l`.
+  - Fixes from PR A's weak list: the chase thief is caught only from the air (or by a throw), stall raiders stand beside the stall and bodies in front of it are drawn see-through, and the two dark sunsets are repainted.
+  - Art: 11 more Codex runs (nine new jobs and two sunset repaints; 93 jobs in all), a ninth atlas `extras` (gear, ferry, elites); the hero atlases grew.
 
 ## Next new game: the magnum opus (09-11-2026)
 

@@ -77,9 +77,22 @@
   .bl-title{padding-top:2vh;gap:6px}
   .bl-map-art{height:calc(100vh - 24px)}
   .bl-area{width:300px}
+  /* the results card fits a sideways phone: a smaller medal, the stats in two columns, the rank on one line */
+  .bl-results{padding:10px 14px}
+  .bl-results h2{font-size:18px;margin-bottom:2px}
+  .bl-results .bl-medal{width:64px}
+  .bl-results dl{grid-template-columns:1fr auto 1fr auto;max-width:480px;gap:2px 14px;margin:4px auto 6px;font-size:14px}
+  .bl-rank{margin:0;font-size:16px}
+  .bl-rank b{font-size:24px;vertical-align:-2px}
 }
 /* the festival breathers: the canvas draws the game; the page adds Skip and the reward card */
 .bl-fest{position:absolute;inset:0;pointer-events:none}
 .bl-fest .bl-skip,.bl-fest .bl-overlay{pointer-events:auto}
 .bl-skip{position:absolute;top:12px;right:12px}
 .bl-festend{text-align:center}
+.bl-moves{position:absolute;left:0;right:0;bottom:max(18px,env(safe-area-inset-bottom));display:flex;justify-content:center;pointer-events:none}
+.bl-moves .bl-row{pointer-events:auto}
+.bl-rank{margin:6px 0 0;text-align:center;font-size:20px}
+.bl-rank b{font-size:34px;margin-left:6px;vertical-align:-4px}
+.bl-rank-C b{color:#c9bfe0}.bl-rank-B b{color:#9fd8ff}.bl-rank-A b{color:#ffd27a}.bl-rank-S b{color:#ffb0e0}
+.bl-rank small{opacity:.75;font-size:15px}
