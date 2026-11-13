@@ -1,6 +1,6 @@
 'use client';
 // Cloudpop: the progression screens. Burrow Lore (the acorn tree, four branches of eleven), the Tower Lab (spend a
-// tower's XP to unlock tiers 3-5 path by path), medals and trophies, and the daily challenge.
+// tower's XP to unlock tiers 4 and 5 path by path), medals and trophies, and the daily challenge.
 import { useState } from 'react';
 import { TOWERS } from '@/lib/cloudpop-towerdata';
 import { MAPS } from '@/lib/cloudpop-maps';
@@ -79,7 +79,7 @@ export function Lab({ s, unlock, go }: { s: Save; unlock: (id: TowerId, path: nu
               {caps[pi] < 5 ? <Btn kind="gold" testid={`lab-unlock-${pi}`} disabled={!!labReason(s, t.id, pi)} title={labReason(s, t.id, pi) || ''} onClick={() => unlock(t.id, pi)}>Unlock tier {caps[pi] + 1} · {fmt(TIER_XP[caps[pi] + 1])} XP</Btn> : <span className="pos">All open</span>}
             </div>
           ))}
-          <p className="muted small">Tiers 1 and 2 are always open. Tier 3 costs {TIER_XP[3]} XP, tier 4 {TIER_XP[4]}, tier 5 {TIER_XP[5]}, for each path.</p>
+          <p className="muted small">Tiers 1 to 3 are always open. Tier 4 costs {fmt(TIER_XP[4])} XP and tier 5 {fmt(TIER_XP[5])}, for each path.</p>
         </div>
       </div>
     </div>
