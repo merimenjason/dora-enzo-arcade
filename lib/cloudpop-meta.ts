@@ -1,4 +1,4 @@
-// Cloudpop: everything kept between runs. Player level, per-tower XP spent in the Tower Lab to unlock tiers 3-5,
+// Cloudpop: everything kept between runs. Player level, per-tower XP spent in the Tower Lab to unlock tiers 4-5,
 // acorns spent on the Burrow Lore tree (44 nodes in four branches), medals per map x difficulty x mode, trophies,
 // the seeded daily challenge, hero and skin unlocks, and settings. Saved as JSON under SAVE_KEY; load() repairs
 // anything missing or out of range so an older or damaged save never breaks the game.
@@ -57,7 +57,7 @@ export function loadSave(json: string | null): Save {
   for (const t of TOWERS) {
     if (tx[t.id] !== undefined) s.towerXp[t.id] = num(tx[t.id]);
     const v = ti[t.id];
-    if (Array.isArray(v) && v.length === 3) s.tiers[t.id] = v.map(x => num(x, 2, 2, 5)) as [number, number, number];
+    if (Array.isArray(v) && v.length === 3) s.tiers[t.id] = v.map(x => num(x, 3, 3, 5)) as [number, number, number];
   }
   s.lore = strs(o.lore).filter(id => LORE_BY_ID[id]);
   s.medals = strs(o.medals);
@@ -77,10 +77,10 @@ export function loadSave(json: string | null): Save {
   for (const k of ['assist', 'sound', 'music', 'auto', 'tips'] as const) if (typeof se[k] === 'boolean') s.settings[k] = se[k] as boolean;
   s.settings.speed = num(se.speed, 1, 1, 3);
   // v0 prototype saves kept unlocked tiers as a flat "unlocks" list of "tower:path:tier"
-  if (o.v === undefined && Array.isArray(o.unlocks)) {
+  if ((o.v === undefined || o.v === 0) && Array.isArray(o.unlocks)) {
     for (const u of strs(o.unlocks)) {
       const [id, p, t] = u.split(':'); if (!TOWER[id]) continue;
-      const cur = s.tiers[id] ?? [2, 2, 2]; cur[+p] = Math.max(cur[+p], Math.min(5, +t)); s.tiers[id] = cur;
+      const cur = s.tiers[id] ?? [3, 3, 3]; cur[+p] = Math.max(cur[+p], Math.min(5, +t)); s.tiers[id] = cur;
     }
   }
   return s;
@@ -96,9 +96,9 @@ export function mapUnlocked(s: Save, id: string): boolean {
   return i > 0 && s.medals.some(k => k.startsWith(MAPS[i - 1].id + ':'));
 }
 
-// ── Tower Lab: tiers 1-2 are open; 3, 4 and 5 cost that tower's XP, path by path
-export const TIER_XP = [0, 0, 0, 600, 2500, 8000];
-export function tierCaps(s: Save, id: TowerId): [number, number, number] { return s.tiers[id] ?? [2, 2, 2]; }
+// ── Tower Lab: tiers 1-3 are open; 4 and 5 cost that tower's XP, path by path
+export const TIER_XP = [0, 0, 0, 0, 1500, 6000];
+export function tierCaps(s: Save, id: TowerId): [number, number, number] { return s.tiers[id] ?? [3, 3, 3]; }
 export function labReason(s: Save, id: TowerId, path: number): string {
   const cap = tierCaps(s, id)[path];
   if (cap >= 5) return 'All unlocked';
