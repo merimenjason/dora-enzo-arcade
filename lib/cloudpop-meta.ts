@@ -303,7 +303,7 @@ export function daily(key: string): Daily {
   return { key, map, diff, startRound, lastRound, startCash, towers, hero, title: titles[Math.floor(r() * titles.length)] };
 }
 export function dailyConfig(d: Daily, s: Save): RunConfig {
-  return { map: d.map, diff: d.diff, mode: 'daily', seed: hashStr(d.key), assist: s.settings.assist, hero: d.hero, startRound: d.startRound, lastRound: d.lastRound, startCash: d.startCash, allowed: d.towers, perks: perksFrom(s) };
+  return { map: d.map, diff: d.diff, mode: 'daily', daily: d.key, seed: hashStr(d.key), assist: s.settings.assist, hero: d.hero, startRound: d.startRound, lastRound: d.lastRound, startCash: d.startCash, allowed: d.towers, perks: perksFrom(s) };
 }
 
 /** the run config for a normal run from the save */

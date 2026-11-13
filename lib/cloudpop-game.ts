@@ -51,6 +51,8 @@ export interface RunConfig {
   allowed?: TowerId[];
   /** daily overrides */
   startRound?: number; lastRound?: number; startCash?: number; lives?: number;
+  /** the daily challenge's day key */
+  daily?: string;
 }
 
 export interface Puff {
