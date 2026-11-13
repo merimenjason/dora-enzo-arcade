@@ -254,6 +254,9 @@
     "test:salt-dust": "tsc lib/salt-dust-world.ts lib/salt-dust-game.ts lib/salt-dust-art.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/salt-dust.mjs",
     "bot:salt-dust": "tsc lib/salt-dust-world.ts lib/salt-dust-game.ts lib/salt-dust-art.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/salt-dust-bot.mjs",
     "test:e2e:salt-dust": "node tests/e2e/salt-dust.mjs",
+    "test:highburrow": "tsc lib/highburrow-world.ts lib/highburrow-rules.ts lib/highburrow-game.ts lib/highburrow-advisor.ts lib/highburrow-art.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/highburrow.mjs",
+    "bot:highburrow": "tsc lib/highburrow-world.ts lib/highburrow-rules.ts lib/highburrow-game.ts lib/highburrow-advisor.ts lib/highburrow-art.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/highburrow-bot.mjs",
+    "test:e2e:highburrow": "node tests/e2e/highburrow.mjs",
     "test:brinelight": "tsc lib/brinelight-levels.ts lib/brinelight-game.ts lib/brinelight-art.ts lib/brinelight-fest.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/brinelight.mjs",
     "bot:brinelight": "tsc lib/brinelight-levels.ts lib/brinelight-game.ts lib/brinelight-art.ts lib/brinelight-fest.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/brinelight-bot.mjs",
     "test:e2e:brinelight": "node tests/e2e/brinelight.mjs"
