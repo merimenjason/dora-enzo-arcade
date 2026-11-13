@@ -19,7 +19,7 @@ const TARGET_ICON: Record<Target, string> = { first: 'first', last: 'last', stro
 export function TopBar({ p, onMenu }: { p: Play; onMenu: () => void }) {
   const g = p.g;
   return (
-    <div className="cp-top">
+    <div className="cpop-top">
       <span className="stat" title="Lives: a puff that reaches the festival costs one life per layer it still has"><Icon name="heart" /> <b data-testid="lives">{fmt(g.lives)}</b></span>
       <span className="stat" title="Coins"><Icon name="coin" /> <b data-testid="cash">{fmt(g.cash)}</b>{g.incomePerRound() > 0 && <small> +{fmt(g.incomePerRound())}/rd</small>}</span>
       <span className="stat" title={`${DIFF_NAME[g.cfg.diff]} · ${MODE_INFO[g.cfg.mode].name}`}><Icon name="round" /> <b data-testid="round">{Math.min(g.round, g.freeplay ? g.round : g.lastRound)}</b><small>/{g.freeplay ? '∞' : g.lastRound}</small></span>
@@ -35,7 +35,7 @@ export function TopBar({ p, onMenu }: { p: Play; onMenu: () => void }) {
 export function Shop({ p }: { p: Play }) {
   const g = p.g, hero = g.cfg.hero ? HEROES[g.cfg.hero] : null, heroOut = !!g.hero();
   return (
-    <div className="cp-shop">
+    <div className="cpop-shop">
       {hero && (
         <button className={'tcard hero' + (p.place === 'hero' ? ' on' : '') + (heroOut ? ' done' : '') + (g.heroPrice() > g.cash ? ' poor' : '')} data-testid="buy-hero" title={`${hero.name}, ${hero.title}. ${hero.blurb} (H)`} disabled={heroOut} onClick={() => p.pick('hero')}>
           <Sprite name={`${hero.id}${g.cfg.skin ? '-' + g.cfg.skin : ''}-face`} h={46} w={46} />
@@ -65,7 +65,7 @@ export function TowerPanel({ p }: { p: Play }) {
   const abil = g.abilities(t);
   const portrait = isHero ? `${g.cfg.hero}${g.cfg.skin ? '-' + g.cfg.skin : ''}-face` : `ic-${t.def}-portrait`;
   return (
-    <div className="cp-panel" data-testid="tower-panel">
+    <div className="cpop-tower" data-testid="tower-panel">
       <div className="ph">
         <Sprite name={portrait} h={54} w={54} />
         <div className="pt">
@@ -130,7 +130,7 @@ export function GoButton({ p }: { p: Play }) {
   const g = p.g;
   const label = g.active ? (p.speed === 1 ? 'Faster' : p.speed === 2 ? 'Fastest' : 'Normal') : g.over === 'won' && !g.freeplay ? 'Won!' : `Round ${g.round}`;
   return (
-    <button className={'cp-go' + (g.active ? ' running' : ' ready')} data-testid="go" title="Start the next round, or change speed (Space)" onClick={() => p.go()}>
+    <button className={'cpop-go' + (g.active ? ' running' : ' ready')} data-testid="go" title="Start the next round, or change speed (Space)" onClick={() => p.go()}>
       <Icon name={g.active ? (p.speed === 1 ? 'ff' : p.speed === 2 ? 'fff' : 'play') : 'play'} size={34} />
       <span>{label}</span>
     </button>
@@ -142,7 +142,7 @@ export function QuickAbilities({ p }: { p: Play }) {
   const list = g.towers.flatMap(t => g.abilities(t).map((a, i) => ({ t, a, i })));
   if (!list.length) return null;
   return (
-    <div className="cp-quick">
+    <div className="cpop-quick">
       {list.slice(0, 8).map(({ t, a, i }) => {
         const cd = t.abilityCd[i] ?? 0;
         return <button key={t.id + a.id} className={'qa' + (cd > 0 ? ' cool' : ' ready')} data-testid={`quick-${a.id}`} title={`${a.name}: ${a.desc}`} onClick={() => p.ability(t.id, i)}>
@@ -159,7 +159,7 @@ export function Preview({ p }: { p: Play }) {
   if (g.active || (g.over && !g.freeplay)) return null;
   const list = preview(g.round, g.cfg.seed);
   return (
-    <div className="cp-preview" data-testid="preview" title="What the next round brings">
+    <div className="cpop-preview" data-testid="preview" title="What the next round brings">
       <small>Next:</small>
       {list.slice(0, 6).map((q, i) => (
         <span key={i} className="pv" title={`${q.count} ${PUFFS[q.kind].name}${q.night ? ' (night)' : ''}${q.fog ? ' (fog)' : ''}${q.fort ? ' (roped)' : ''}: ${PUFFS[q.kind].hint}`}>
@@ -173,7 +173,7 @@ export function Preview({ p }: { p: Play }) {
 export function PauseMenu({ p, onQuit, onRestart, onClose, settings, setSetting }: { p: Play; onQuit: () => void; onRestart: () => void; onClose: () => void; settings: { sound: boolean; music: boolean; tips: boolean }; setSetting: (k: 'sound' | 'music' | 'tips', v: boolean) => void }) {
   const g = p.g;
   return (
-    <div className="cp-modal" data-testid="pause-menu">
+    <div className="cpop-modal" data-testid="pause-menu">
       <div className="card">
         <h2>Paused</h2>
         <p className="muted">{g.map.name} · {DIFF_NAME[g.cfg.diff]} · {MODE_INFO[g.cfg.mode].name}</p>

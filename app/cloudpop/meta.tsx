@@ -20,7 +20,7 @@ export function Lore({ s, buy, go }: { s: Save; buy: (id: string) => void; go: (
   const n = LORE.find(x => x.id === pick)!;
   const why = loreReason(s, pick);
   return (
-    <div className="cp-screen" style={{ backgroundImage: `url(${ART}bg-library.webp)` }}>
+    <div className="cpop-screen" style={{ backgroundImage: `url(${ART}bg-library.webp)` }}>
       <Header s={s} title="Burrow Lore" onBack={() => go('title')} />
       <div className="lore">
         <div className="branches">
@@ -61,7 +61,7 @@ export function Lab({ s, unlock, go }: { s: Save; unlock: (id: TowerId, path: nu
   const t = TOWERS.find(x => x.id === pick)!;
   const caps = tierCaps(s, pick), xp = s.towerXp[pick] ?? 0;
   return (
-    <div className="cp-screen" style={{ backgroundImage: `url(${ART}bg-library.webp)` }}>
+    <div className="cpop-screen" style={{ backgroundImage: `url(${ART}bg-library.webp)` }}>
       <Header s={s} title="Tower Lab" onBack={() => go('title')} />
       <div className="lab">
         <div className="labtowers">
@@ -88,7 +88,7 @@ export function Lab({ s, unlock, go }: { s: Save; unlock: (id: TowerId, path: nu
 
 export function Trophies({ s, go }: { s: Save; go: (sc: Screen) => void }) {
   return (
-    <div className="cp-screen" style={{ backgroundImage: `url(${ART}bg-library.webp)` }}>
+    <div className="cpop-screen" style={{ backgroundImage: `url(${ART}bg-library.webp)` }}>
       <Header s={s} title="Medals & trophies" onBack={() => go('title')} />
       <div className="trophies">
         <div className="panel">
@@ -110,7 +110,7 @@ export function Daily({ s, play, go }: { s: Save; play: () => void; go: (sc: Scr
   const key = dayKey(new Date()), d = daily(key), done = s.daily.done.includes(key);
   const m = MAPS.find(x => x.id === d.map)!;
   return (
-    <div className="cp-screen" style={{ backgroundImage: `url(${ART}bg-mapselect.webp)` }}>
+    <div className="cpop-screen" style={{ backgroundImage: `url(${ART}bg-mapselect.webp)` }}>
       <Header s={s} title="Daily challenge" onBack={() => go('title')} />
       <div className="panel daily">
         <img src={`${ART}map-${d.map}.webp`} alt="" />
