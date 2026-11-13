@@ -1,0 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap');
+/* The Arcade After Dark: a full-screen canvas for play, with the title, pause and the top-right pills as HTML over it.
+   Night-arcade palette: violet dark, warm cabinet gold, cream text. */
+.ad-shell{--ink:#fff4dc;--dim:#c9b8e6;--gold:#f0c878;--deep:#2a1a36;--night:#0d0818;
+  position:fixed;inset:0;background:var(--night);color:var(--ink);overflow:hidden;font-family:Fredoka,'Trebuchet MS',system-ui,sans-serif;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none;overscroll-behavior:none}
+.ad-shell *{box-sizing:border-box}
+.ad-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.ad-loading{position:absolute;inset:0;display:grid;place-items:center;font-size:20px;letter-spacing:.05em;color:#f0d9a8}
+.ad-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center}
+.ad-dim{margin:0;color:var(--dim);font-size:15px;text-align:center}
+
+.ad-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.35em 1.4em;border:2px solid var(--gold);border-radius:999px;cursor:pointer;
+  font:700 18px/1.1 Fredoka,'Trebuchet MS',system-ui,sans-serif;color:var(--deep);background:linear-gradient(#ffe6a8,#f0b860);box-shadow:0 3px 0 #8a5a2a,0 6px 18px rgba(0,0,0,.35)}
+.ad-btn:hover{filter:brightness(1.08)}
+.ad-btn:active{transform:translateY(2px);box-shadow:0 1px 0 #8a5a2a}
+.ad-btn:focus-visible,.ad-pill:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.ad-big{font-size:24px;min-height:54px;padding:.35em 2em}
+.ad-small{font-size:15px;min-height:38px;padding:.25em 1em}
+.ad-btn[aria-pressed=false]{background:linear-gradient(#5a4a7a,#3b2f60);color:var(--ink);border-color:#8d7ab8;box-shadow:0 3px 0 #1d1240}
+
+.ad-title{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:12px;overflow-y:auto}
+.ad-title h1{margin:0;text-align:center;font-size:clamp(34px,7vw,72px);font-weight:700;color:#fff1d6;text-shadow:0 0 24px rgba(160,120,255,.9),0 4px 0 #3b2f60}
+.ad-sub{margin:0 0 6px;font-size:clamp(15px,2vw,20px);color:#ffecc8;text-shadow:0 2px 6px rgba(0,0,0,.7);text-align:center}
+.ad-settings{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.ad-controls{margin:0;padding:10px 14px;list-style:none;font-size:14px;line-height:1.5;color:var(--ink);background:rgba(20,10,34,.72);border:1px solid rgba(240,200,120,.4);border-radius:14px;max-width:560px}
+.ad-controls b{color:var(--gold);margin-right:.3em}
+.ad-back{position:absolute;left:14px;top:12px;color:var(--ink);text-decoration:none;font-weight:600;text-shadow:0 2px 4px #000}
+
+.ad-top{position:absolute;top:10px;right:12px;display:flex;gap:8px}
+.ad-pill{min-height:34px;min-width:34px;padding:.2em .8em;border-radius:999px;border:1.5px solid rgba(240,200,120,.85);background:rgba(32,16,48,.75);color:var(--ink);
+  font:700 13px/1 Fredoka,'Trebuchet MS',system-ui,sans-serif;cursor:pointer}
+.ad-overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(12,6,28,.6);padding:16px;overflow-y:auto}
+.ad-card{display:flex;flex-direction:column;gap:12px;align-items:center;max-width:620px;width:100%;padding:18px;border-radius:18px;background:rgba(32,16,48,.94);border:2px solid var(--gold)}
+.ad-card h2{margin:0;font-size:20px;text-align:center}
+@media (max-height:500px){.ad-title{justify-content:flex-start}.ad-controls{font-size:12px}.ad-title h1{font-size:30px}}
