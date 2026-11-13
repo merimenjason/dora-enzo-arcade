@@ -172,8 +172,8 @@ export function EndCard({ won, r, reward, onFreeplay, onRetry, onMaps, onHome, c
   return (
     <div className="cpop-modal end" data-testid="end-card" style={{ backgroundImage: `url(${ART}${won ? 'bg-win' : 'bg-lose'}.webp)` }}>
       <div className="card">
-        <h2>{won ? 'The festival is saved!' : 'Rained out…'}</h2>
-        <p>{won ? `All ${r.roundsWon} rounds held on ${MAPS.find(m => m.id === r.map)?.name}.` : `The storm got through on round ${r.round}. The crew will be back drier and wiser.`}</p>
+        <h2>{won && r.freeplayRound ? 'Freeplay over' : won ? 'The festival is saved!' : 'Rained out…'}</h2>
+        <p>{won && r.freeplayRound ? `The festival was already saved; the crew then held on to round ${r.round}.` : won ? `All ${r.roundsWon} rounds held on ${MAPS.find(m => m.id === r.map)?.name}.` : `The storm got through on round ${r.round}. The crew will be back drier and wiser.`}</p>
         {reward && <ul className="rewards">
           <li><Icon name="star" /> +{fmt(reward.xp)} XP{reward.levelAfter > reward.levelBefore ? ` · level ${reward.levelAfter}!` : ''}</li>
           <li><Icon name="acorn" /> +{reward.acorns} acorns</li>
