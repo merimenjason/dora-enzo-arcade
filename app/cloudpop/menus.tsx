@@ -15,7 +15,7 @@ export type Screen = 'title' | 'maps' | 'setup' | 'play' | 'lore' | 'lab' | 'tro
 export function Header({ s, title, onBack }: { s: Save; title: string; onBack: () => void }) {
   const lvl = playerLevel(s.xp), a = levelXp(lvl), b = levelXp(lvl + 1);
   return (
-    <div className="cp-head">
+    <div className="cpop-head">
       <button className="ibtn" data-testid="back" title="Back" onClick={onBack}><Icon name="back" size={28} /></button>
       <h1>{title}</h1>
       <span className="grow" />
@@ -28,7 +28,7 @@ export function Header({ s, title, onBack }: { s: Save; title: string; onBack: (
 export function Title({ s, go }: { s: Save; go: (sc: Screen) => void }) {
   const lvl = playerLevel(s.xp);
   return (
-    <div className="cp-screen cp-title" style={{ backgroundImage: `url(${ART}bg-title.webp)` }}>
+    <div className="cpop-screen cpop-title" style={{ backgroundImage: `url(${ART}bg-title.webp)` }}>
       <div className="logo"><h1>Cloudpop</h1><p>Storm-puffs are drifting down the valley to rain out the harvest festival. Dora, Enzo and the crew have other ideas.</p></div>
       <div className="tmenu">
         <Btn kind="gold" cls="big" testid="play" onClick={() => go('maps')}><Icon name="play" size={26} /> Play</Btn>
@@ -47,7 +47,7 @@ export function Title({ s, go }: { s: Save; go: (sc: Screen) => void }) {
 export function Maps({ s, onPick, go }: { s: Save; onPick: (map: string) => void; go: (sc: Screen) => void }) {
   const [tier, setTier] = useState<Tier>('beginner');
   return (
-    <div className="cp-screen" style={{ backgroundImage: `url(${ART}bg-mapselect.webp)` }}>
+    <div className="cpop-screen" style={{ backgroundImage: `url(${ART}bg-mapselect.webp)` }}>
       <Header s={s} title="Choose a valley" onBack={() => go('title')} />
       <div className="tabs">{TIERS.map(t => <button key={t} className={'tab' + (t === tier ? ' on' : '')} data-testid={'tier-' + t} onClick={() => setTier(t)}>{t[0].toUpperCase() + t.slice(1)}</button>)}</div>
       <div className="mapgrid">
@@ -80,7 +80,7 @@ export function Setup({ s, map, onStart, onBack, setSave }: { s: Save; map: stri
   const modes = MODES[diff];
   const md = modes.includes(mode) ? mode : 'standard';
   return (
-    <div className="cp-screen" style={{ backgroundImage: `url(${ART}bg-mapselect.webp)` }}>
+    <div className="cpop-screen" style={{ backgroundImage: `url(${ART}bg-mapselect.webp)` }}>
       <Header s={s} title={m.name} onBack={onBack} />
       <div className="setup">
         <div className="panel">
@@ -111,7 +111,7 @@ export function Setup({ s, map, onStart, onBack, setSave }: { s: Save; map: stri
 
 export function Heroes({ s, setSave, go }: { s: Save; setSave: (f: (s: Save) => void) => void; go: (sc: Screen) => void }) {
   return (
-    <div className="cp-screen" style={{ backgroundImage: `url(${ART}bg-library.webp)` }}>
+    <div className="cpop-screen" style={{ backgroundImage: `url(${ART}bg-library.webp)` }}>
       <Header s={s} title="Heroes" onBack={() => go('title')} />
       <div className="heroes">
         {HERO_IDS.map((h: HeroId) => {
@@ -149,7 +149,7 @@ export function Settings({ s, setSave, go, reset }: { s: Save; setSave: (f: (s: 
     <label className="check"><input type="checkbox" data-testid={'opt-' + k} checked={s.settings[k]} onChange={e => setSave(x => { x.settings[k] = e.target.checked; })} /> <b>{label}</b> <small>{note}</small></label>
   );
   return (
-    <div className="cp-screen" style={{ backgroundImage: `url(${ART}bg-library.webp)` }}>
+    <div className="cpop-screen" style={{ backgroundImage: `url(${ART}bg-library.webp)` }}>
       <Header s={s} title="Settings" onBack={() => go('title')} />
       <div className="panel narrow">
         {row('assist', 'Assist', 'On by default: more lives, a bigger round bonus, a second chance.')}
@@ -170,7 +170,7 @@ export function Settings({ s, setSave, go, reset }: { s: Save; setSave: (f: (s: 
 
 export function EndCard({ won, r, reward, onFreeplay, onRetry, onMaps, onHome, canFreeplay }: { won: boolean; r: RunSummary; reward: RunReward | null; onFreeplay: () => void; onRetry: () => void; onMaps: () => void; onHome: () => void; canFreeplay: boolean }) {
   return (
-    <div className="cp-modal end" data-testid="end-card" style={{ backgroundImage: `url(${ART}${won ? 'bg-win' : 'bg-lose'}.webp)` }}>
+    <div className="cpop-modal end" data-testid="end-card" style={{ backgroundImage: `url(${ART}${won ? 'bg-win' : 'bg-lose'}.webp)` }}>
       <div className="card">
         <h2>{won ? 'The festival is saved!' : 'Rained out…'}</h2>
         <p>{won ? `All ${r.roundsWon} rounds held on ${MAPS.find(m => m.id === r.map)?.name}.` : `The storm got through on round ${r.round}. The crew will be back drier and wiser.`}</p>

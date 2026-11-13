@@ -88,18 +88,18 @@ export default function CloudpopPage() {
   const p = playRef.current;
   const s = save;
   return (
-    <main className={'cp-shell' + (screen === 'play' ? ' playing' : '')} data-ready={ready ? 'true' : 'false'} data-screen={screen}>
-      <canvas ref={cvRef} className="cp-canvas" style={{ display: screen === 'play' ? 'block' : 'none' }} aria-label="Cloudpop valley" />
+    <main className={'cpop-shell' + (screen === 'play' ? ' playing' : '')} data-ready={ready ? 'true' : 'false'} data-screen={screen}>
+      <canvas ref={cvRef} className="cpop-canvas" style={{ display: screen === 'play' ? 'block' : 'none' }} aria-label="Cloudpop valley" />
       {screen === 'play' && p?.ready && p.g && <>
         <TopBar p={p} onMenu={() => { p.paused = true; setMenu(true); }} />
-        <div className="cp-side">
+        <div className="cpop-side">
           {p.sel != null ? <TowerPanel p={p} /> : <Shop p={p} />}
         </div>
         <GoButton p={p} />
         <QuickAbilities p={p} />
         {s.settings.tips && <Preview p={p} />}
-        {p.place && <div className="cp-placing" data-testid="placing">Placing: tap the map{' '}<button className="cbtn plain" data-testid="cancel-place" onClick={() => p.cancel()}>Cancel</button></div>}
-        <div className={'cp-toast' + (p.toast.msg ? ' on ' + p.toast.kind : '')} role="status">{p.toast.msg}</div>
+        {p.place && <div className="cpop-placing" data-testid="placing">Placing: tap the map{' '}<button className="cbtn plain" data-testid="cancel-place" onClick={() => p.cancel()}>Cancel</button></div>}
+        <div className={'cpop-toast' + (p.toast.msg ? ' on ' + p.toast.kind : '')} role="status">{p.toast.msg}</div>
         {menu && <PauseMenu p={p} settings={s.settings} setSetting={(k, v) => setSave(x => { x.settings[k] = v; })}
           onClose={() => { setMenu(false); p.paused = false; }} onRestart={() => { setMenu(false); if (lastRun.current.daily) startDaily(); else startNormal(lastRun.current.diff, lastRun.current.mode, lastRun.current.kind); }}
           onQuit={() => leave('maps')} />}
@@ -107,7 +107,7 @@ export default function CloudpopPage() {
           onFreeplay={() => { setEnd(null); p.continueFreeplay(); }} onRetry={() => { if (lastRun.current.daily) startDaily(); else startNormal(lastRun.current.diff, lastRun.current.mode, lastRun.current.kind); }}
           onMaps={() => leave('maps')} onHome={() => leave('title')} />}
       </>}
-      {screen === 'play' && !p?.ready && <div className="cp-loading">Cloudpop…</div>}
+      {screen === 'play' && !p?.ready && <div className="cpop-loading">Cloudpop…</div>}
       {screen === 'title' && <Title s={s} go={go} />}
       {screen === 'maps' && <Maps s={s} go={go} onPick={m => { setMap(m); go('setup'); }} />}
       {screen === 'setup' && <Setup s={s} map={map} setSave={setSave} onBack={() => go('maps')} onStart={startNormal} />}
