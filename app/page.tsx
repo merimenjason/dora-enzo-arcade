@@ -100,15 +100,18 @@ const GAMES=[
  {href:'/cloudsteel',title:'Cloudsteel',tag:'NEW · 3D SWORD ADVENTURE',blurb:'Climb a cloud-forest citadel in the rain to relight the Sun Lamp. Explore three areas, talk your way up, find quipus and upgrades, wake hidden bridges and sealed gates with Enzo\u2019s lantern, and duel a fox sellsword, a puma, the kin-captain and Ukhu the bear warden: guard at the gold glint to deflect, break their posture, finish them.',color:'#f2c14e',art:'🗡️'},
  {href:'/salt-dust',title:'Salt & Dust',tag:'NEW · ISOMETRIC RPG',blurb:'Long after the rains stopped, Dora and Enzo cross a high-Andean salt flat with a draining canteen. Talk past Well Wardens, flamingo merchants and fox raiders with skill checks, or fight on a grid with action points. A first playable chapter.',color:'#d9773a',art:'🏜️'},
  {href:'/brinelight',title:'Brinelight',tag:'NEW · TAG-TEAM BRAWLER',blurb:'Festival night, and a crab gang has snuffed the harbour lanterns. Dora kicks what flies, Enzo cracks what wears a shell: tag between them mid-combo, dash into a special, and light Lantern Quay and the Fish Market again.',color:'#ffb347',art:'🏮'},
+ {href:'/above-and-below',title:'Above & Below',tag:'NEW · CO-OP PUZZLE PLATFORMER',blurb:'One valley cut in half by the soil line. Dora works the sunny meadow, Enzo digs the burrows below, and every puzzle needs both: open the sluice so he can sail, hold a root bridge while she crosses, stamp the clay loose for him to dig, and put Old Grubber to sleep.',color:'#8fd16a',art:'🌱'},
+ {href:'/every-creature',title:'Every Creature',tag:'NEW · SHAPESHIFT ADVENTURE',blurb:'Befriend the valley’s animals and become them: a tortoise ferries a frog past the pike, a bird lifts a beetle up a slick cliff, an otter dives with a frog under a log jam, and every pairing returns to free the Storm Heron.',color:'#7ccf8a',art:'🐢'},
+ {href:'/after-dark',title:'The Arcade After Dark',tag:'NEW · CABINET-HOPPING ADVENTURE',blurb:'After closing time the Static is eating the arcade. Dora and Enzo hop into the cabinets (a candlelit castle, a sunken sea, a cloud fortress), earn a ping, a sweep and a gust that work in every world, and face the Static giant in the hub.',color:'#9b7bff',art:'🕹️'},
+ {href:'/highburrow',title:'Highburrow',tag:'NEW · SETTLEMENT STRATEGY',blurb:'Lead the chinchillas up an Andean valley, one hex at a time. Dora scouts the mist, Enzo founds burrow-villages, llama caravans haul goods uphill, and the vicuñas, condors and viscachas trade and teach. Keep every village warm through the frost nights and hold the summit festival before turn 60.',color:'#c8643c',art:'🏔️'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">NINETY-FIVE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <p className="arcade-eyebrow">NINETY-EIGHT ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Ninety-eight ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, ninety-eight cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">ONE HUNDRED AND TWO ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>One hundred and two ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, one hundred and two cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <ArcadeGrid games={GAMES}/>

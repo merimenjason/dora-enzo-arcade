@@ -2,6 +2,18 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 13-11-2026
+
+### Added
+
+- **Above & Below** (game 99, `/above-and-below`): Chapter One of a two-hero cross-section co-op platformer. Dora works the meadow and Enzo digs the burrows below, and every puzzle needs both, across four rooms: The Meadow (sluice, leaf ride, sapling, cracked flagstone, the hawk), The Orchard Roots (a root bridge Enzo holds up, twin ropes pulled together), The Stream Bank (a lever held down, clay revealed by stamps for Enzo to dig) and Old Grubber's Den (duck, jump, stamp his nose, boop him to sleep). Solo with a swap and a bracing hand-off, or two players on one keyboard; touch and gamepads; wordless hints, key prompts and a ghost demo; assist on by default.
+
+- **Every Creature** (game 100, `/every-creature`): Chapter One of a shapeshifting adventure. Dora and Enzo befriend a valley's animals, become them, and pair forms (tortoise and frog, bird and beetle, fox and tortoise, otter and frog) to cross four screens and free the Storm Heron. Solo with a partner you can call, two players, touch and gamepad, with assist on by default.
+
+- **The Arcade After Dark** (game 101, `/after-dark`): Chapter One of a cabinet-hopping adventure. After closing time the Static is eating the arcade; Dora and Enzo hop into a candlelit castle, a sunken sea and a cloud fortress, earn Enzo's ping, Dora's sweep and the gust that work in every world, dissolve the Static's anchor in the Deep and face the Static giant in the hub. About 3–4 minutes, with 22 pearls to find. Assist is on by default; with it off there are three hearts and checkpoints past the chandelier pit and through the clouds. Keys, touch and gamepad, and progress is saved in the hub.
+
+- **Highburrow** (game 102, `/highburrow`): a gentle turn-based settlement game up an Andean valley. Dora scouts the mist and Enzo founds burrow-villages; drag settlers onto terraces, pastures and hearths in each village's cut-away, send llama caravans on standing routes, trade and make friends with the vicuña herders, the condors and the viscachas to learn their skills, answer their requests, keep every village warm through the dry season's frost nights, and hold the summit festival at Highburrow before turn 60. Assist is on by default, Enzo's tips can do the next move for you, and a short tutorial covers the first turns.
+
 ## 12-11-2026
 
 ### Added
