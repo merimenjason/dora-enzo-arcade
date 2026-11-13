@@ -46,12 +46,13 @@
 .cpop-shell .cpop-canvas { position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; background: radial-gradient(ellipse at center, #3a2414, #1d0f08); }
 .cpop-shell .cpop-top { position: fixed; top: 0; left: 0; right: 0; height: var(--top); display: flex; align-items: center; gap: 4px 14px; padding: 0 10px 0 14px; z-index: 5;
   border-bottom: 10px solid transparent; border-image: url(/art/cloudpop/ui-strip.webp) 0 0 60 0 fill / 0 0 10px 0 stretch; background: linear-gradient(#7a4422, #5c3018); color: #fff3d8; }
-.cpop-shell .cpop-top .stat { color: #fff3d8; }
-.cpop-shell .cpop-top small { color: #f2d9ab; }
+/* the woven strip fills the whole bar, so every number and button sits on its own dark plate to stay readable */
+.cpop-shell .cpop-top .stat { color: #fff3d8; background: rgba(40,18,6,.86); padding: 2px 11px 2px 4px; border-radius: 999px; box-shadow: inset 0 0 0 1.5px rgba(255,214,140,.6), 0 1px 3px rgba(0,0,0,.35); text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.cpop-shell .cpop-top small { color: #ffe2a8; }
 .cpop-shell .stat { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; font-size: 15px; }
 .cpop-shell .stat b { font: 900 19px var(--display); }
-.cpop-shell .cpop-top .ibtn { background: rgba(255,240,210,.12); }
-.cpop-shell .cpop-top .ibtn.on { background: rgba(255,214,120,.5); }
+.cpop-shell .cpop-top .ibtn { background: rgba(40,18,6,.78); box-shadow: inset 0 0 0 1.5px rgba(255,214,140,.45); }
+.cpop-shell .cpop-top .ibtn.on { background: rgba(120,70,20,.92); box-shadow: inset 0 0 0 2px #ffd27a; }
 .cpop-shell .cpop-side { position: fixed; top: var(--top); right: 0; bottom: 0; width: var(--side); z-index: 4; overflow-y: auto; overscroll-behavior: contain; padding: 2px; }
 .cpop-shell .cpop-shop { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .cpop-shell .tcard { display: grid; grid-template-columns: 46px 1fr; grid-template-rows: auto auto; align-items: center; column-gap: 6px; padding: 5px 6px; border-radius: 12px; background: rgba(255,250,236,.85); box-shadow: inset 0 0 0 2px #d9b98a; text-align: left; min-height: 56px; }
@@ -232,6 +233,7 @@
 @media (max-aspect-ratio: 20/23) {
   .cpop-shell { --side: 0px; --top: 52px; --drawer: min(330px, 38vh); }
   .cpop-shell .cpop-top { gap: 2px 6px; padding: 0 6px; }
+  .cpop-shell .cpop-top .stat { padding: 1px 8px 1px 3px; }
   .cpop-shell .cpop-top .ibtn { min-width: 34px; height: 34px; }
   .cpop-shell .cpop-top .stat small { display: none; }
   .cpop-shell .cpop-top .sp:not(.on) { display: none; }
