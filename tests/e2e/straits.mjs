@@ -1,6 +1,6 @@
 // Little Red Dot: The Straits in the browser, with real clicks and keys at 1280×720 and 390×844: the arcade card, the
 // title and hero pick, setting sail and steering, the conversation at the kelong, a jetty's menu, the map, pause, a
-// volley, and landing the hay. Positions are set through window.__straits() so the run is short. Fails on any failed
+// volley, the sound toggles, and landing the hay. Positions are set through window.__straits() so the run is short. Fails on any failed
 // check, page error or sideways scroll. Needs `npm run dev` (or BASE_URL) and Playwright.
 import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
@@ -24,6 +24,12 @@ try {
     const s = await G(page, 'return { v: g.v, gear: g.gear, h: g.h, z: g.z }'); assert.equal(s.gear, 2); assert.ok(s.v > 1 && s.h < 0 && s.z > -71, 'under way and turning to starboard');
     // a volley
     await page.keyboard.press('Space'); await page.waitForFunction(() => window.__straits().reload > 0);
+    // sound: running after the first click, both tunes and every effect play without an error, and the toggles stick
+    assert.equal(await page.evaluate(() => window.__straitsSound().ac?.state), 'running');
+    await page.evaluate(() => { const s = window.__straitsSound(); for (const k of ['volley', 'clam', 'bump', 'loot', 'capsize', 'dock', 'talk', 'found', 'say', 'won', 'lost']) s.fx({ k, x: 0, z: 0, id: 'kusu', seeds: 3, text: '' }); s.fx({ k: 'hit', x: 0, z: 0, mine: true }); s.fx({ k: 'hit', x: 0, z: 0, mine: false }); s.fx({ k: 'sink', x: 0, z: 0, kind: 'bishan' }); s.gear(true); s.ram(); s.ui(false); s.update(1, true, false); });
+    await page.waitForTimeout(400); await page.evaluate(() => window.__straitsSound().update(0.2, false, false));
+    await page.click('#st-mute'); assert.equal(await page.getAttribute('#st-mute', 'aria-pressed'), 'false'); assert.deepEqual(JSON.parse(await page.evaluate(() => localStorage.getItem('straits-sound-v1'))), { sfx: false, music: false });
+    await page.keyboard.press('KeyN'); assert.equal(await page.getAttribute('#st-mute', 'aria-pressed'), 'true');
     // the map and pause
     await page.keyboard.press('KeyM'); await page.locator('.st-map').waitFor(); await page.keyboard.press('Escape'); await page.locator('.st-map').waitFor({ state: 'detached' });
     await page.keyboard.press('KeyP'); await page.getByRole('button', { name: 'Carry on' }).click();

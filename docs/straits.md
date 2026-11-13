@@ -1,12 +1,13 @@
 # Little Red Dot: The Straits
 
-Game 104, `/straits`. The first voyage of a 3D sailing adventure around Singapore's islands: a first playable slice, built on 13-11-2026 to see how the idea plays. It has one voyage, one conversation and no sound.
+Game 104, `/straits`. The first voyage of a 3D sailing adventure around Singapore's islands: a first playable slice, built on 13-11-2026 to see how the idea plays. It has one voyage and one conversation.
 
 ## Code layout
 
 - **Engine**, `lib/straits-game.ts`: all the rules, no DOM. `newGame(seed, hero)`, `step(g, input)` at a fixed 60 ticks a second, `choose(g, answer)` for the conversation, `dockOptions`, `dockAction` and `leaveDock` for jetties, `result(g)` for the medal, and the save helpers. Randomness comes from the seed, so a seed and the same inputs replay exactly. `g.events` holds what happened in the last tick for the page and the scene.
 - **Scene**, `lib/straits-scene.ts`: Three.js drawing only. `render(g, time, dt)` draws a frame; `handle(events)` starts splash rings; `project(x, y, z)` gives the page a screen position for its markers.
 - **Chinchillas**, `lib/chinchilla-3d.ts`: `makeChinchilla3d('dora' | 'enzo', { layers, sun })`, the furred pair ported from the playpen prototype (see [`playpen-reference.md`](playpen-reference.md)). This game draws them with 14 fur shells; the default is 28.
+- **Sound**, `app/straits/sound.ts`: `StraitsSound`, all synthesised with WebAudio. `fx(event)` plays an engine event; `update(speed, danger, held)` sets the hull noise and picks the tune each frame.
 - **Page**, `app/straits/page.tsx` with `straits.css` and `layout.tsx`: the title, the HUD, the overlays (conversation, jetty, map, pause, end), keys and touch buttons, the loop and the save.
 
 ## The map
@@ -62,6 +63,17 @@ Five rafts patrol fixed loops. Sinking one leaves 4 to 7 seeds, takes 15 off ott
 
 **Medals.** Gold for all the hay, silver for 70% or more, bronze below.
 
+## Sound
+
+Nothing is loaded; every sound is made in the browser, and it stays silent until the first click or key.
+
+- **The sea**: low noise that swells and falls about every six seconds.
+- **The hull**: brighter noise whose loudness follows the boat's speed, silent in the conversation, at a jetty and when paused.
+- **Music**: a 104 bpm sailing tune in G; while any foe is chasing you it switches to a 138 bpm tune in E minor with drums, and back when they lose you. It drops to about a third of its volume in the conversation, at a jetty and when paused.
+- **Effects**: the volley, a clam thrown, a hit given and a hit taken, a bump, a raft going under (with a short fanfare for Captain Bishan and the cat hunter), seeds picked up, the sail going up or down, the ram, docking, Bishan's hail, an island sighted, a message, capsizing, landing the hay and losing it, and menu clicks.
+
+N turns everything off or on; the title and pause screens have separate Sound and Music buttons. The choice is kept in `localStorage` under `straits-sound-v1` as `{ sfx, music }`, apart from the voyage save.
+
 ## Save
 
 `localStorage` key `straits-v1`: `{ v: 1, hero, best, bestTime, voyages }`. Only the best medal (and its time) and the number of voyages landed are kept; a voyage in progress is not saved.
@@ -69,12 +81,12 @@ Five rafts patrol fixed loops. Sinking one leaves 4 to 7 seeds, takes 15 off ott
 ## Tests
 
 - `npm run test:straits`: 16 engine tests, including a seed replaying exactly and an autopilot that bargains and lands the hay as each hero.
-- `npm run test:e2e:straits`: a browser run at 1280×720 and 390×844 through the arcade card, the title, sailing, a volley, the map, pause, the conversation, a jetty and landing the hay. It moves the boat through `window.__straits()`, which returns the live game.
+- `npm run test:e2e:straits`: a browser run at 1280×720 and 390×844 through the arcade card, the title, sailing, a volley, the map, pause, the conversation, a jetty and landing the hay. It moves the boat through `window.__straits()`, which returns the live game, and plays every sound through `window.__straitsSound()`.
 
 ## What is missing
 
 - **Balance from real play.** Only the autopilot and one scripted browser run have played it. Raft damage, the hunter's speed and seed prices are first guesses.
-- **Sound.** None.
+- **Sound by ear.** The sounds were written and checked to play without errors, but nobody has listened to them yet; levels and the two tunes are first guesses.
 - **Going ashore.** The islands are scenery with jetties; there is no on-foot play.
 - **More story.** One conversation, one quest, one faction. The macaques, mynas and the wider turf war from the mockup are not in.
 - **Wind, upgrades beyond three, a crew.** Not in.
