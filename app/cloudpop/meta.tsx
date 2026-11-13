@@ -10,6 +10,7 @@ import {
   LORE, BRANCHES, loreReason, TIER_XP, tierCaps, labReason, towerUnlocked, TROPHIES, medalKey, daily, dayKey, type Save,
 } from '@/lib/cloudpop-meta';
 import type { TowerId } from '@/lib/cloudpop-towers';
+import { upgradeDiff } from '@/lib/cloudpop-info';
 import { Header, type Screen } from './menus';
 import { Sprite, Icon, Btn, fmt, ART } from './ui';
 
@@ -58,14 +59,16 @@ export function Lore({ s, buy, go }: { s: Save; buy: (id: string) => void; go: (
 
 export function Lab({ s, unlock, go }: { s: Save; unlock: (id: TowerId, path: number) => void; go: (sc: Screen) => void }) {
   const [pick, setPick] = useState<TowerId>('pebble');
+  const [peek, setPeek] = useState<[number, number] | null>(null);
   const t = TOWERS.find(x => x.id === pick)!;
   const caps = tierCaps(s, pick), xp = s.towerXp[pick] ?? 0;
+  const choose = (id: TowerId) => { setPick(id); setPeek(null); };
   return (
     <div className="cpop-screen" style={{ backgroundImage: `url(${ART}bg-library.webp)` }}>
       <Header s={s} title="Tower Lab" onBack={() => go('title')} />
       <div className="lab">
         <div className="labtowers">
-          {TOWERS.map(x => <button key={x.id} className={'kind' + (x.id === pick ? ' on' : '') + (towerUnlocked(s, x.id) ? '' : ' locked')} data-testid={'lab-' + x.id} title={x.name} onClick={() => setPick(x.id)}>
+          {TOWERS.map(x => <button key={x.id} className={'kind' + (x.id === pick ? ' on' : '') + (towerUnlocked(s, x.id) ? '' : ' locked')} data-testid={'lab-' + x.id} title={x.name} onClick={() => choose(x.id)}>
             <Sprite name={`ic-${x.id}-portrait`} h={46} w={46} /><small>{fmt(s.towerXp[x.id] ?? 0)}</small>
           </button>)}
         </div>
@@ -75,12 +78,39 @@ export function Lab({ s, unlock, go }: { s: Save; unlock: (id: TowerId, path: nu
           {t.paths.map((path, pi) => (
             <div className="labpath" key={pi}>
               <b>{t.pathNames[pi]}</b>
-              <div className="slots">{path.map((u, i) => <span key={i} className={'slot' + (i < caps[pi] ? ' got' : '')} title={`Tier ${i + 1}: ${u.name}. ${u.desc}`}><Sprite name={`ic-${t.id}-${pi * 5 + i}`} h={34} w={34} />{i >= caps[pi] && <Icon name="lock" size={14} cls="lk" />}</span>)}</div>
+              <div className="slots">{path.map((u, i) => <span key={i} className={'slot' + (i < caps[pi] ? ' got' : '') + (peek?.[0] === pi && peek[1] === i ? ' peek' : '')} data-testid={`lab-slot-${pi}-${i}`} tabIndex={0} role="button" aria-label={`Tier ${i + 1}: ${u.name}`}
+                onMouseEnter={() => setPeek([pi, i])} onFocus={() => setPeek([pi, i])} onClick={() => setPeek([pi, i])}><Sprite name={`ic-${t.id}-${pi * 5 + i}`} h={34} w={34} />{i >= caps[pi] && <Icon name="lock" size={14} cls="lk" />}</span>)}</div>
               {caps[pi] < 5 ? <Btn kind="gold" testid={`lab-unlock-${pi}`} disabled={!!labReason(s, t.id, pi)} title={labReason(s, t.id, pi) || ''} onClick={() => unlock(t.id, pi)}>Unlock tier {caps[pi] + 1} · {fmt(TIER_XP[caps[pi] + 1])} XP</Btn> : <span className="pos">All open</span>}
             </div>
           ))}
+          <LabPeek s={s} t={t} caps={caps} peek={peek} />
           <p className="muted small">Tiers 1 to 3 are always open. Tier 4 costs {fmt(TIER_XP[4])} XP and tier 5 {fmt(TIER_XP[5])}, for each path.</p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** the card under the paths: what the upgrade under the pointer (or last tapped) does, costs and needs */
+function LabPeek({ s, t, caps, peek }: { s: Save; t: (typeof TOWERS)[number]; caps: number[]; peek: [number, number] | null }) {
+  if (!peek) return <div className="labpeek empty" data-testid="lab-peek">Point at an upgrade (or tap it) to see what it does.</div>;
+  const [pi, i] = peek, u = t.paths[pi][i];
+  const tiers = [0, 0, 0]; tiers[pi] = i;
+  const changes = upgradeDiff(t.id, tiers, pi);
+  const open = i < caps[pi], next = i === caps[pi];
+  const why = next ? labReason(s, t.id, pi) : '', reason = /XP/.test(why) ? '' : why; // the XP shortfall is already in the line
+  return (
+    <div className="labpeek" data-testid="lab-peek">
+      <Sprite name={`ic-${t.id}-${pi * 5 + i}`} h={64} w={64} />
+      <div>
+        <small>{t.pathNames[pi]} · tier {i + 1}</small>
+        <h3>{u.name}</h3>
+        <p>{u.desc}</p>
+        {changes.length > 0 && <ul>{changes.map(c => <li key={c}>{c}</li>)}</ul>}
+        <p className="muted small"><Icon name="coin" size={14} /> {fmt(u.cost)} in a run on Medium (cheaper on Easy, a little dearer on Hard)</p>
+        <p className={open ? 'pos' : 'muted'}>{open ? 'Open: you can buy it in a run.'
+          : next ? `Locked: unlock for ${fmt(TIER_XP[i + 1])} ${t.name} XP${reason ? ` (${reason})` : ''}.`
+          : `Locked: unlock tier ${caps[pi] + 1} first.`}</p>
       </div>
     </div>
   );
