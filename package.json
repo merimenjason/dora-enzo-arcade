@@ -259,7 +259,10 @@
     "test:e2e:highburrow": "node tests/e2e/highburrow.mjs",
     "test:brinelight": "tsc lib/brinelight-levels.ts lib/brinelight-game.ts lib/brinelight-art.ts lib/brinelight-fest.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/brinelight.mjs",
     "bot:brinelight": "tsc lib/brinelight-levels.ts lib/brinelight-game.ts lib/brinelight-art.ts lib/brinelight-fest.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/brinelight-bot.mjs",
-    "test:e2e:brinelight": "node tests/e2e/brinelight.mjs"
+    "test:e2e:brinelight": "node tests/e2e/brinelight.mjs",
+    "test:above": "tsc lib/above-world.ts lib/above-rooms.ts lib/above-rooms2.ts lib/above-game.ts lib/above-art.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/above.mjs",
+    "bot:above": "tsc lib/above-world.ts lib/above-rooms.ts lib/above-rooms2.ts lib/above-game.ts lib/above-art.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/above-bot.mjs",
+    "test:e2e:above": "node tests/e2e/above.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",

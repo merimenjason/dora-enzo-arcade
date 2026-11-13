@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap');
+/* Above & Below: a full-screen canvas for play, with the title, the HUD toggles, pause and the end card as HTML over it.
+   Colours follow the painted valley: warm cream paper, soil brown ink, a buttercup gold for what is on. */
+.ab-shell{--ink:#5b3a20;--paper:#fff8ea;--gold:#ffd447;--soil:#20140c;--cream:#fff4dc;
+  position:fixed;inset:0;background:var(--soil);color:var(--cream);overflow:hidden;font-family:Fredoka,'Trebuchet MS',system-ui,sans-serif;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none;overscroll-behavior:none}
+.ab-shell *{box-sizing:border-box}
+.ab-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.ab-loading{position:absolute;inset:0;display:grid;place-items:center;font:600 20px Fredoka,sans-serif;letter-spacing:.05em;color:#ffe7a8}
+.ab-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center}
+.ab-dim{margin:0;color:#ffe7a8;font-size:15px;text-shadow:0 2px 4px rgba(0,0,0,.7)}
+
+.ab-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.3em 1.3em;border:2.5px solid var(--ink);border-radius:999px;cursor:pointer;
+  font:700 19px/1.1 Fredoka,'Trebuchet MS',system-ui,sans-serif;color:var(--ink);background:rgba(255,248,234,.94);box-shadow:0 3px 0 #8a6a4a,0 6px 16px rgba(0,0,0,.3)}
+.ab-btn:hover{filter:brightness(1.05)}
+.ab-btn:active{transform:translateY(2px);box-shadow:0 1px 0 #8a6a4a}
+.ab-btn:focus-visible,.ab-chip:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.ab-big{font-size:24px;min-height:54px;padding:.3em 1.6em;background:#ffe7a8}
+.ab-alt{background:rgba(255,248,234,.94)}
+.ab-small{font-size:15px;min-height:38px;padding:.2em 1em}
+.ab-btn[aria-pressed=true]{background:#ffe7a8}
+.ab-btn[aria-pressed=false]{background:rgba(201,183,154,.92);color:#4a2e18}
+
+.ab-title{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;
+  background:rgba(20,12,30,.35);text-align:center}
+.ab-title h1{margin:0;font-size:clamp(46px,9vw,96px);font-weight:700;color:var(--cream);letter-spacing:.01em;
+  -webkit-text-stroke:2px #3a2312;paint-order:stroke fill;text-shadow:0 5px 0 #3a2312,0 10px 26px rgba(0,0,0,.45)}
+.ab-sub{margin:-4px 0 10px;font-size:clamp(17px,2.4vw,24px);font-weight:600;color:#ffe7a8;text-shadow:0 2px 0 #3a2312,0 3px 8px rgba(0,0,0,.6)}
+.ab-start{margin-top:4vh}
+.ab-keys{margin:6px 0 0;font-size:16px;text-shadow:0 2px 3px #000;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center}
+.ab-keys kbd{display:inline-block;min-width:30px;padding:2px 8px;border:2px solid var(--ink);border-radius:7px;background:var(--paper);color:#4a2e18;font:700 14px Fredoka,sans-serif;box-shadow:0 3px 0 #8a6a4a}
+.ab-back{position:absolute;left:14px;top:12px;color:var(--cream);text-decoration:none;font-weight:600;text-shadow:0 2px 4px #000}
+@media (pointer:coarse){.ab-keys{display:none}}
+
+/* the in-play toggles, top right of the play view */
+.ab-hud{position:absolute;top:10px;right:12px;display:flex;gap:6px}
+.ab-chip{min-width:40px;height:36px;padding:0 8px;border:2.5px solid var(--ink);border-radius:999px;background:rgba(255,248,234,.92);color:var(--ink);
+  font:700 17px/1 Fredoka,'Trebuchet MS',sans-serif;cursor:pointer;box-shadow:0 2px 0 #8a6a4a}
+.ab-chip[aria-pressed=true]{background:#ffe7a8}
+.ab-wide{min-width:52px}
+@media (pointer:coarse) and (orientation:landscape){.ab-hud{right:calc(max(120px,15vw) + 8px)}}
+@media (pointer:coarse) and (orientation:portrait){.ab-hud{top:15px;right:6px;gap:4px}.ab-chip{min-width:30px;height:32px;padding:0 4px;font-size:14px;border-width:2px}.ab-wide{min-width:36px}}
+
+.ab-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:12px;background:rgba(20,12,8,.5)}
+.ab-overlay.ab-clear{background:transparent;align-items:flex-start;padding-top:12vh}
+.ab-card{max-width:min(560px,100%);max-height:100%;overflow:auto;padding:18px 20px;border:4px solid var(--ink);border-radius:28px;background:rgba(255,248,234,.96);color:var(--ink);
+  display:flex;flex-direction:column;gap:12px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.ab-card h2{margin:0;font-size:24px;text-align:center;color:var(--ink)}
+.ab-card p,.ab-card li{color:var(--ink)}
+.ab-controls{margin:0;padding:0 0 0 1.1em;font-size:15px;line-height:1.4;align-self:stretch}
+.ab-controls b{color:#8a4a1e}
+.ab-win h2{font-size:clamp(38px,7vw,54px);color:#f6b91c;text-shadow:0 3px 0 var(--ink),0 0 2px var(--ink)}
+.ab-win p{margin:0;font-size:19px;color:var(--ink)}
+.ab-time{font-size:34px!important;font-weight:700}
+.ab-time small{font-size:16px;color:#c0602a;margin-left:6px}
+.ab-splits{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center;font-size:15px;color:#7a5230}
+.ab-splits li{display:flex;gap:6px}
+@media (max-height:440px){.ab-overlay.ab-clear{padding-top:8px}.ab-card{padding:10px 14px;gap:6px}.ab-win h2{font-size:34px}.ab-time{font-size:26px!important}.ab-title{gap:6px}.ab-start{margin-top:0}}
