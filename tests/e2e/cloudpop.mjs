@@ -7,7 +7,7 @@
 // crosspath-locked path, every targeting button, a tower ability from the panel and from the quick bar, Sell, closing
 // the panel, the next-round preview, Start round, 1×/2×/3×, pause, auto-start, the menu (sound, music and preview
 // toggles, Resume, Restart, Leave), every keyboard shortcut, the win card with Keep going (freeplay), the loss card
-// with Play again, Maps and Home, and the daily challenge's Play. Fails on any failed check, page error or sideways
+// with Play again, Maps and Home, the daily challenge's Play and the link back to the arcade. Fails on any failed check, page error or sideways
 // scroll. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves a screenshot of every screen.
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
@@ -43,7 +43,8 @@ async function viewport(name, w, h, touch) {
   await p.evaluate(() => localStorage.removeItem('cloudpop-v1')); await p.reload(); await p.waitForSelector('main[data-ready="true"]');
 
   // ── a new player: title, maps (beginner open, later tiers locked), the default setup
-  check(await screen() === 'title', `${name}: opens on the title`); await noSideways('title'); await shot('title');
+  check(await screen() === 'title', `${name}: opens on the title`);
+  check((await p.locator('[data-testid="to-arcade"]').getAttribute('href')) === '/', `${name}: the title links back to the arcade`); await noSideways('title'); await shot('title');
   await click('play', 'maps'); check(await screen() === 'maps', `${name}: Play opens the maps`);
   check(await p.locator('[data-testid="map-meadow"]').isEnabled(), `${name}: Terrace Meadow is open to a new player`);
   await click('tier-expert'); check(!(await p.locator('[data-testid="map-summit"]').isEnabled()), `${name}: expert maps are locked for a new player`);
