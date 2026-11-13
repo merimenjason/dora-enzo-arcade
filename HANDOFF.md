@@ -30,7 +30,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Little Red Dot: The Straits (13-11-2026)
 
-Game 104, `/straits`: a first playable slice of a sailing adventure (one voyage, one conversation, five rafts, a boss, a bounty hunter, three jetties). Engine `lib/straits-game.ts`, scene `lib/straits-scene.ts`, page `app/straits/`. It is the first game to use `lib/chinchilla-3d.ts`, the furred Dora and Enzo ported from the playpen prototype. [`docs/straits.md`](docs/straits.md) lists what is missing: sound, going ashore, more conversations, the macaques, wind, and balance from real play (only an autopilot and one browser run have played it).
+Game 104, `/straits`: a first playable slice of a sailing adventure (one voyage, one conversation, five rafts, a boss, a bounty hunter, three jetties). Engine `lib/straits-game.ts`, scene `lib/straits-scene.ts`, page `app/straits/`. It is the first game to use `lib/chinchilla-3d.ts`, the furred Dora and Enzo ported from the playpen prototype. [`docs/straits.md`](docs/straits.md) lists what is missing: going ashore, more conversations, the macaques, wind, and balance from real play (only an autopilot and one browser run have played it). Sound was added the same day in `app/straits/sound.ts` and has not been listened to by anyone.
 
 ## Playpen reference (12-11-2026)
 
