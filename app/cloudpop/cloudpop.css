@@ -200,6 +200,14 @@
 .cpop-shell .labtowers { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-content: start; }
 .cpop-shell .labpath { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; padding: 6px; border-radius: 10px; background: rgba(255,248,230,.75); }
 .cpop-shell .labpath b { min-width: 110px; }
+.cpop-shell .labpath .slot { cursor: pointer; }
+.cpop-shell .labpath .slot.peek, .cpop-shell .labpath .slot:focus-visible { outline: 2px solid #e3a52e; outline-offset: 1px; }
+.cpop-shell .labpeek { display: flex; gap: 12px; align-items: flex-start; margin: 10px 0 6px; padding: 10px 12px; border-radius: 12px; background: #fff8e8; box-shadow: inset 0 0 0 1.5px #e3c48a; min-height: 96px; }
+.cpop-shell .labpeek.empty { align-items: center; justify-content: center; color: var(--muted); font-style: italic; }
+.cpop-shell .labpeek h3 { margin: 0 0 2px; font-family: var(--display); }
+.cpop-shell .labpeek small { color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: .04em; font-size: 11px; }
+.cpop-shell .labpeek p { margin: 2px 0; }
+.cpop-shell .labpeek ul { margin: 4px 0; padding-left: 18px; font-size: 13px; font-weight: 700; }
 .cpop-shell .trophies { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 1200px; margin: 0 auto; }
 .cpop-shell .medtab { width: 100%; border-collapse: collapse; font-size: 13px; }
 .cpop-shell .medtab td, .cpop-shell .medtab th { padding: 3px; border-bottom: 1px solid #e2c79c; text-align: left; }

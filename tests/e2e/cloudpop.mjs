@@ -66,6 +66,13 @@ async function viewport(name, w, h, touch) {
   await click('lab', 'lab'); await shot('lab');
   await click('lab-hay'); await click('lab-unlock-0');
   check((await p.evaluate(() => window.__cloudpopSave().tiers.hay?.[0])) === 4, `${name}: the Tower Lab unlocks Hay-Bale Cannon tier 4`);
+  { // pointing at (or tapping) an upgrade shows what it does, its stat changes and whether it is open
+    const slot = p.locator('[data-testid="lab-slot-1-4"]'); await slot.scrollIntoViewIfNeeded();
+    if (touch) await slot.tap(); else await slot.hover();
+    await p.waitForTimeout(120);
+    const peek = await p.locator('[data-testid="lab-peek"]').innerText();
+    check(/tier 5/i.test(peek) && /→|Ability|New attack/.test(peek) && /Locked/.test(peek), `${name}: the Tower Lab shows a tier-5 upgrade's details on ${touch ? 'tap' : 'hover'}`);
+  }
   for (const t of ['pebble', 'busker', 'ember', 'ice', 'llama', 'condor', 'boat', 'windmill', 'lantern', 'quinoa']) await click('lab-' + t);
   await click('back');
   await click('heroes', 'heroes'); await shot('heroes');
