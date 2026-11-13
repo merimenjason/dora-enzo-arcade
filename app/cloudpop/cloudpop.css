@@ -149,6 +149,7 @@
 .cpop-shell .cpop-title .logo p { font-weight: 800; font-size: 17px; max-width: 420px; }
 .cpop-shell .tmenu { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; margin-top: 14px; }
 .cpop-shell .tfoot { margin-top: auto; display: flex; gap: 14px; flex-wrap: wrap; color: #fff; font-weight: 900; text-shadow: 0 1px 4px #000; padding-top: 14px; }
+.cpop-shell .tfoot .tback { color: #fff3d8; text-decoration: none; background: rgba(40,20,6,.55); padding: 2px 12px; border-radius: 999px; }
 .cpop-shell .tfoot span { display: inline-flex; align-items: center; gap: 4px; }
 .cpop-shell .tabs { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px; }
 .cpop-shell .tab { padding: 6px 16px; border-radius: 999px; background: rgba(251,241,220,.9); font-weight: 900; box-shadow: inset 0 0 0 2px #d9b98a; }

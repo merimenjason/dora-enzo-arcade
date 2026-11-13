@@ -14,6 +14,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Highburrow** (game 102, `/highburrow`): a gentle turn-based settlement game up an Andean valley. Dora scouts the mist and Enzo founds burrow-villages; drag settlers onto terraces, pastures and hearths in each village's cut-away, send llama caravans on standing routes, trade and make friends with the vicuña herders, the condors and the viscachas to learn their skills, answer their requests, keep every village warm through the dry season's frost nights, and hold the summit festival at Highburrow before turn 60. Assist is on by default, Enzo's tips can do the next move for you, and a short tutorial covers the first turns.
 
+- **Cloudpop** (game 103, `/cloudpop`): a tower defence of layered storm-puffs drifting down an Andean valley to rain out the harvest festival. Eleven towers with three paths of five upgrades each (tier 5s with abilities), Dora or Enzo as a levelling hero, Hail, Rumble, Frost, night, fog and roped puffs, Thunderhead bosses, eight painted maps, Easy/Medium/Hard to rounds 40/60/80 and freeplay, the Uphill, Single Kind, Lean Harvest, Nightfall and Endless Storm modes, 1×/2×/3× speed, and between runs the Tower Lab, the Burrow Lore acorn tree, medals, trophies, hero looks and a daily challenge. All art painted with Codex.
+
 ## 12-11-2026
 
 ### Added

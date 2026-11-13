@@ -39,7 +39,7 @@ export function Title({ s, go }: { s: Save; go: (sc: Screen) => void }) {
         <Btn testid="trophies" onClick={() => go('trophies')}><Icon name="trophy" size={22} /> Medals &amp; trophies</Btn>
         <Btn kind="plain" testid="settings" onClick={() => go('settings')}><Icon name="gear" size={22} /> Settings</Btn>
       </div>
-      <div className="tfoot"><span><Icon name="star" /> Level {lvl}</span><span><Icon name="acorn" /> {fmt(s.acorns)}</span><span><Icon name="medal" /> {s.medals.length} medals</span><span><Icon name="trophy" /> {s.trophies.length} trophies</span></div>
+      <div className="tfoot"><a className="tback" href="/" data-testid="to-arcade">← Arcade</a><span><Icon name="star" /> Level {lvl}</span><span><Icon name="acorn" /> {fmt(s.acorns)}</span><span><Icon name="medal" /> {s.medals.length} medals</span><span><Icon name="trophy" /> {s.trophies.length} trophies</span></div>
     </div>
   );
 }
