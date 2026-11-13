@@ -256,7 +256,10 @@
     "test:e2e:salt-dust": "node tests/e2e/salt-dust.mjs",
     "test:brinelight": "tsc lib/brinelight-levels.ts lib/brinelight-game.ts lib/brinelight-art.ts lib/brinelight-fest.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/brinelight.mjs",
     "bot:brinelight": "tsc lib/brinelight-levels.ts lib/brinelight-game.ts lib/brinelight-art.ts lib/brinelight-fest.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/brinelight-bot.mjs",
-    "test:e2e:brinelight": "node tests/e2e/brinelight.mjs"
+    "test:e2e:brinelight": "node tests/e2e/brinelight.mjs",
+    "test:afterdark": "tsc lib/afterdark-art.ts lib/afterdark-worlds.ts lib/afterdark-core.ts lib/afterdark-move.ts lib/afterdark-things.ts lib/afterdark-flow.ts lib/afterdark-boss.ts lib/afterdark-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/afterdark.mjs",
+    "bot:afterdark": "tsc lib/afterdark-art.ts lib/afterdark-worlds.ts lib/afterdark-core.ts lib/afterdark-move.ts lib/afterdark-things.ts lib/afterdark-flow.ts lib/afterdark-boss.ts lib/afterdark-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/afterdark-bot.mjs",
+    "test:e2e:afterdark": "node tests/e2e/afterdark.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",
