@@ -104,14 +104,15 @@ const GAMES=[
  {href:'/every-creature',title:'Every Creature',tag:'NEW · SHAPESHIFT ADVENTURE',blurb:'Befriend the valley’s animals and become them: a tortoise ferries a frog past the pike, a bird lifts a beetle up a slick cliff, an otter dives with a frog under a log jam, and every pairing returns to free the Storm Heron.',color:'#7ccf8a',art:'🐢'},
  {href:'/after-dark',title:'The Arcade After Dark',tag:'NEW · CABINET-HOPPING ADVENTURE',blurb:'After closing time the Static is eating the arcade. Dora and Enzo hop into the cabinets (a candlelit castle, a sunken sea, a cloud fortress), earn a ping, a sweep and a gust that work in every world, and face the Static giant in the hub.',color:'#9b7bff',art:'🕹️'},
  {href:'/highburrow',title:'Highburrow',tag:'NEW · SETTLEMENT STRATEGY',blurb:'Lead the chinchillas up an Andean valley, one hex at a time. Dora scouts the mist, Enzo founds burrow-villages, llama caravans haul goods uphill, and the vicuñas, condors and viscachas trade and teach. Keep every village warm through the frost nights and hold the summit festival before turn 60.',color:'#c8643c',art:'🏔️'},
+ {href:'/straits',title:'Little Red Dot: The Straits',tag:'NEW · SAILING ADVENTURE',blurb:'Sail a bumboat the size of a shoebox from Tiong Bahru to Pulau Ubin with a bale of hay. The Marina otters hold the strait: outrun their rafts, sink them with peanut volleys, or talk Captain Bishan round at his kelong. Dock at the islands to patch the hull, and mind the cats if you make trouble.',color:'#1c8fa0',art:'⛵'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">ONE HUNDRED AND TWO ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>One hundred and two ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, one hundred and two cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">ONE HUNDRED AND THREE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>One hundred and three ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, one hundred and three cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <ArcadeGrid games={GAMES}/>

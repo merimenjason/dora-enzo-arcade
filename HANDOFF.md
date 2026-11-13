@@ -28,6 +28,10 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 **Working practice that held up this round:** build in a worktree off `origin/main` with `node_modules` symlinked; one agent per game, stopping at an open PR; review its contact sheet of screenshots before asking to merge. Stacked PRs: merge the child into its parent branch first, then the parent into `main`, which avoids a force-push (the auto-mode classifier blocks force-pushes and `git worktree remove`). Merge only when the user says "merge N".
 
+## Little Red Dot: The Straits (13-11-2026)
+
+Game 103, `/straits`: a first playable slice of a sailing adventure (one voyage, one conversation, five rafts, a boss, a bounty hunter, three jetties). Engine `lib/straits-game.ts`, scene `lib/straits-scene.ts`, page `app/straits/`. It is the first game to use `lib/chinchilla-3d.ts`, the furred Dora and Enzo ported from the playpen prototype. [`docs/straits.md`](docs/straits.md) lists what is missing: sound, going ashore, more conversations, the macaques, wind, and balance from real play (only an autopilot and one browser run have played it).
+
 ## Playpen reference (12-11-2026)
 
 Six photos of the real playpen and of Dora and Enzo close up are in `public/art/` (`playpen-*.jpg`, `duo-pine-box-*.jpg`). [`docs/playpen-reference.md`](docs/playpen-reference.md) describes them, both coats and the pen's floor plan, and covers `docs/playpen-prototype.html`: a one-file 3D model of the pen with shell-furred chinchillas that roam it. The prototype is not arcade code (Three.js r128 globals, untyped, no tests). When the next 3D game needs a realistic chinchilla, port its `chin()` into a shared `lib/chinchilla-3d.ts`; the doc lists what has to change.
