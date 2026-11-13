@@ -256,7 +256,10 @@
     "test:e2e:salt-dust": "node tests/e2e/salt-dust.mjs",
     "test:brinelight": "tsc lib/brinelight-levels.ts lib/brinelight-game.ts lib/brinelight-art.ts lib/brinelight-fest.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/brinelight.mjs",
     "bot:brinelight": "tsc lib/brinelight-levels.ts lib/brinelight-game.ts lib/brinelight-art.ts lib/brinelight-fest.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/brinelight-bot.mjs",
-    "test:e2e:brinelight": "node tests/e2e/brinelight.mjs"
+    "test:e2e:brinelight": "node tests/e2e/brinelight.mjs",
+    "test:creature": "tsc lib/creature-core.ts lib/creature-forms.ts lib/creature-s1.ts lib/creature-s2.ts lib/creature-s3.ts lib/creature-s4.ts lib/creature-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/creature.mjs",
+    "bot:creature": "tsc lib/creature-core.ts lib/creature-forms.ts lib/creature-s1.ts lib/creature-s2.ts lib/creature-s3.ts lib/creature-s4.ts lib/creature-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/creature-bot.mjs",
+    "test:e2e:creature": "node tests/e2e/creature.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",
