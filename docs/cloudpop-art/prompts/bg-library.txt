@@ -1,0 +1,2 @@
+landscape
+A background painting (no text, no characters) of the chinchillas' cosy burrow library from the attached meta mock-up: warm wooden bookshelves, woven rugs, a round window onto the mountains, lanterns, baskets of corn. The centre of the picture is a huge carved and flower-painted retablo wall panel whose middle is a calm, plain, softly lit cream plaster surface with only a faint painted tree trunk at its base, so game UI can be laid on top of it. Keep the middle 70% of the image calm and low-contrast.

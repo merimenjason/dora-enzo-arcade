@@ -1,6 +1,6 @@
 # Little Red Dot: The Straits
 
-Game 103, `/straits`. The first voyage of a 3D sailing adventure around Singapore's islands: a first playable slice, built on 13-11-2026 to see how the idea plays. It has one voyage, one conversation and no sound.
+Game 104, `/straits`. The first voyage of a 3D sailing adventure around Singapore's islands: a first playable slice, built on 13-11-2026 to see how the idea plays. It has one voyage, one conversation and no sound.
 
 ## Code layout
 

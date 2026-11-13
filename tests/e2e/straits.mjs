@@ -14,7 +14,7 @@ try {
   for (const [w, h] of [[1280, 720], [390, 844]]) {
     const page = await browser.newPage({ viewport: { width: w, height: h } }); page.setDefaultTimeout(20000);
     page.on('pageerror', e => errors.push(`${w}×${h}: ${e.message}`));
-    await page.goto(base); assert.equal(await page.locator('.arcade-card').count(), 103);
+    await page.goto(base); assert.equal(await page.locator('.arcade-card').count(), 104);
     await page.getByRole('link', { name: /Little Red Dot: The Straits/ }).click();
     await page.waitForSelector('main[data-ready="true"]'); await page.getByRole('heading', { name: 'Little Red Dot: The Straits' }).waitFor();
     await page.getByRole('button', { name: /ENZO/ }).click(); await page.click('#st-play'); await page.waitForFunction(() => window.__straits?.()?.phase === 'sail');

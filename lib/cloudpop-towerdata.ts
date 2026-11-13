@@ -1,0 +1,287 @@
+// Cloudpop: the eleven towers. Each has a base and three upgrade paths of five tiers; `fx` edits the stats, so a
+// tier's real effect is whatever the stat diff shows. Prices are Medium prices (Easy x0.85, Hard x1.08).
+import { atk, stats, ability, type TowerDef, type Stats, type Atk } from './cloudpop-towers.js';
+
+const M = (s: Stats) => s.atks[0];
+const A = (s: Stats, id: string): Atk => s.atks.find(a => a.id === id) ?? s.atks[0];
+const all = (s: Stats, f: (a: Atk) => void) => s.atks.forEach(f);
+
+export const TOWERS: TowerDef[] = [
+  {
+    id: 'pebble', name: 'Pebble Slinger', role: 'Cheap single shots', cost: 200, r: 24, place: 'land', level: 1,
+    blurb: 'A crew chinchilla with a woven sling. Cheap, quick and a good start on any road.',
+    base: () => stats({ atks: [atk({ id: 'main', label: 'Pebble', kind: 'shot', dmg: 1, pierce: 2, rate: 0.95, range: 165, speed: 720 })] }),
+    pathNames: ['Flint', 'Quick Wrist', 'Long Eye'],
+    paths: [[
+      { name: 'Flint Chips', cost: 140, desc: 'Sharper stones pass through one more puff.', icon: 'a pile of sharp flint chips', fx: s => { M(s).pierce += 1; } },
+      { name: 'Obsidian Edges', cost: 220, desc: 'Glassy black stones cut through two more.', icon: 'a glossy black obsidian shard', fx: s => { M(s).pierce += 2; } },
+      { name: 'Skipping Stones', cost: 550, desc: 'Flat river stones skip on to three more puffs after a hit.', icon: 'a flat stone skipping over water ripples', fx: s => { M(s).bounce += 3; M(s).pierce += 1; } },
+      { name: 'River Boulders', cost: 1900, desc: 'Slings fist-sized boulders: Heavy, hit harder and plough through a crowd.', icon: 'a round grey river boulder', fx: s => { const a = M(s); a.dmg += 2; a.pierce += 10; a.dtype = 'heavy'; a.label = 'Boulder'; } },
+      { name: 'Avalanche Arm', cost: 24000, desc: 'Huge boulders, and the Rockslide ability rolls a landslide back up the whole road.', icon: 'a tumbling avalanche of boulders', fx: s => { const a = M(s); a.dmg += 4; a.pierce += 30; a.bossMult += 1; s.ability = ability({ id: 'rockslide', name: 'Rockslide', kind: 'rockslide', cd: 40, power: 40, desc: 'A landslide rolls back up the road, hitting every puff it meets.' }); } },
+    ], [
+      { name: 'Quick Wrist', cost: 100, desc: 'Slings a little faster.', icon: 'a paw flicking a sling with motion lines', fx: s => { M(s).rate *= 0.8; } },
+      { name: 'Nimble Paws', cost: 190, desc: 'Faster again.', icon: 'two quick chinchilla paws', fx: s => { M(s).rate *= 0.75; } },
+      { name: 'Twin Slings', cost: 700, desc: 'Two slings at once: two stones per throw.', icon: 'two crossed woven slings', fx: s => { const a = M(s); a.count = 2; a.spread = 0.18; a.rate *= 0.85; } },
+      { name: 'Hailbreaker Stones', cost: 2400, desc: 'Stones heavy enough to crack Hail, thrown even faster.', icon: 'a stone cracking a chunk of ice', fx: s => { const a = M(s); a.dtype = 'heavy'; a.dmg += 1; a.rate *= 0.7; } },
+      { name: 'Pebblestorm', cost: 19000, desc: 'Three-stone volleys at a blur, and Stone Rain makes it four times faster for 8 seconds.', icon: 'a whirlwind of pebbles', fx: s => { const a = M(s); a.count = 3; a.spread = 0.3; a.rate *= 0.45; a.dmg += 1; s.ability = ability({ id: 'stonerain', name: 'Stone Rain', kind: 'frenzy', cd: 45, power: 4, dur: 8, desc: 'Throws four times as fast for 8 seconds.' }); } },
+    ], [
+      { name: 'Keen Eye', cost: 90, desc: 'Sees further.', icon: 'a bright keen eye', fx: s => { M(s).range += 40; } },
+      { name: 'Hilltop Stance', cost: 160, desc: 'Further still, and the stones fly faster.', icon: 'a chinchilla foot on a hilltop rock', fx: s => { M(s).range += 35; M(s).speed *= 1.4; } },
+      { name: 'Owl-Eye Watch', cost: 500, desc: 'Spots night clouds, and hits harder.', icon: 'a round owl eye glowing in the dark', fx: s => { s.sight = true; M(s).dmg += 1; } },
+      { name: 'Homing Pebbles', cost: 2100, desc: 'Stones curve after their puff and hit harder.', icon: 'a pebble curving along a dotted arc', fx: s => { const a = M(s); a.homing = true; a.dmg += 2; a.pierce += 2; } },
+      { name: 'Moonstone Marksman', cost: 21000, desc: 'Glowing moonstones crush bosses: huge damage, far reach.', icon: 'a glowing blue moonstone', fx: s => { const a = M(s); a.dmg += 10; a.bossMult += 2; a.range += 80; a.dtype = 'magic'; a.label = 'Moonstone'; } },
+    ]],
+  },
+  {
+    id: 'busker', name: 'Pan-Flute Busker', role: 'Sound rings all round', cost: 290, r: 24, place: 'land', level: 1,
+    blurb: 'Plays the siku. Every note rings out and pops the puffs all around her. Sound cracks Hail.',
+    base: () => stats({ atks: [atk({ id: 'main', label: 'Note ring', kind: 'pulse', dmg: 1, pierce: 8, rate: 1.35, range: 105, dtype: 'sound' })] }),
+    pathNames: ['Big Band', 'Tempo', 'Lullaby'],
+    paths: [[
+      { name: 'Louder Notes', cost: 120, desc: 'The ring reaches further.', icon: 'a pan flute with wide sound waves', fx: s => { M(s).range += 18; } },
+      { name: 'Echo Chamber', cost: 250, desc: 'Each ring pops six more puffs.', icon: 'echoing concentric rings off a canyon wall', fx: s => { M(s).pierce += 6; } },
+      { name: 'Charango Duet', cost: 700, desc: 'A charango joins in: harder and faster rings.', icon: 'a small charango guitar', fx: s => { M(s).dmg += 1; M(s).rate *= 0.75; } },
+      { name: 'Siku Orchestra', cost: 2900, desc: 'A whole band: much harder, wider rings.', icon: 'three pan flutes fanned out', fx: s => { const a = M(s); a.dmg += 2; a.range += 30; a.pierce += 20; } },
+      { name: 'Song of the Mountains', cost: 26000, desc: 'Thunderous rings, and Grand Chorus hits every puff in a huge circle.', icon: 'snowy mountains singing with golden waves', fx: s => { const a = M(s); a.dmg += 6; a.bossMult += 1; s.ability = ability({ id: 'chorus', name: 'Grand Chorus', kind: 'nova', cd: 35, power: 30, radius: 320, desc: 'Every puff in a huge circle takes 30.' }); } },
+    ], [
+      { name: 'Quick Breath', cost: 150, desc: 'Plays faster.', icon: 'a puff of breath with speed lines', fx: s => { M(s).rate *= 0.8; } },
+      { name: 'Double Tongue', cost: 300, desc: 'Faster again.', icon: 'two quick musical swirls', fx: s => { M(s).rate *= 0.8; } },
+      { name: 'Huayno Beat', cost: 800, desc: 'A dancing rhythm: much faster.', icon: 'a small wooden drum with dancing feet', fx: s => { M(s).rate *= 0.62; } },
+      { name: 'Carnival Drummer', cost: 3350, desc: 'Drums and flute together: faster and wider.', icon: 'a big carnival bombo drum', fx: s => { M(s).rate *= 0.55; M(s).pierce += 10; } },
+      { name: 'Endless Fiesta', cost: 32000, desc: 'A non-stop party of rings that never lets up.', icon: 'fireworks over a dancing crowd', fx: s => { const a = M(s); a.rate *= 0.45; a.dmg += 3; a.pierce += 20; } },
+    ], [
+      { name: 'Soft Notes', cost: 110, desc: 'Puffs it hits slow down for a moment.', icon: 'a soft feather with a musical swirl', fx: s => { M(s).slow = [0.75, 1]; } },
+      { name: 'Moon Melody', cost: 300, desc: 'Hears night clouds coming.', icon: 'a crescent moon over a pan flute', fx: s => { s.sight = true; } },
+      { name: 'Lullaby', cost: 1000, desc: 'Puffs it hits drift much slower, for longer. Magic notes hit anything.', icon: 'a sleepy cloud on a pillow', fx: s => { M(s).slow = [0.5, 1.6]; M(s).dtype = 'magic'; } },
+      { name: 'Sleep Song', cost: 3050, desc: 'Puffs it hits nod off and stop for a moment.', icon: 'a snoozing cloud with closed eyes', fx: s => { M(s).stun = 0.6; M(s).dmg += 1; } },
+      { name: 'Hush of the Valley', cost: 22000, desc: 'Even bosses slow down, and Hush freezes everything nearby.', icon: 'a quiet starry valley at night', fx: s => { M(s).slowBoss = true; M(s).dmg += 2; s.ability = ability({ id: 'hush', name: 'Hush', kind: 'freeze', cd: 40, power: 4, dur: 4, radius: 300, desc: 'Puffs nearby fall asleep for 4 seconds; bosses for 1.5.' }); } },
+    ]],
+  },
+  {
+    id: 'ember', name: 'Ember Pot', role: 'Burning splash', cost: 380, r: 26, place: 'land', level: 2,
+    blurb: 'A painted clay pot of glowing coals. Lobbed embers burn and dry out fog so it can\'t regrow.',
+    base: () => stats({ atks: [atk({ id: 'main', label: 'Ember', kind: 'lob', dmg: 1, pierce: 6, rate: 1.25, range: 150, dtype: 'fire', speed: 420, splash: 34, burn: [1, 2], stripFog: true, arc: true })] }),
+    pathNames: ['Blaze', 'Firebrands', 'Smoke & Sparks'],
+    paths: [[
+      { name: 'Hotter Coals', cost: 250, desc: 'Embers hit harder.', icon: 'red-hot glowing coals', fx: s => { M(s).dmg += 1; } },
+      { name: 'Bigger Blaze', cost: 350, desc: 'Wider splash.', icon: 'a wide burst of flame', fx: s => { M(s).splash += 16; M(s).pierce += 4; } },
+      { name: 'Ají Pot', cost: 900, desc: 'Hot-pepper coals: fiercer burning, harder hits.', icon: 'a red aji chili pepper on fire', fx: s => { const a = M(s); a.burn = [3, 3]; a.dmg += 1; } },
+      { name: 'Volcano Pot', cost: 3600, desc: 'Three embers at once, splashing wide.', icon: 'a little erupting volcano', fx: s => { const a = M(s); a.count = 3; a.splash += 20; a.pierce += 6; } },
+      { name: 'Heart of Misti', cost: 35000, desc: 'Lava hits, and Eruption scorches every puff around the pot.', icon: 'a snow-capped volcano with a glowing heart of lava', fx: s => { const a = M(s); a.dmg += 8; a.bossMult += 1; s.ability = ability({ id: 'erupt', name: 'Eruption', kind: 'nova', cd: 40, power: 80, radius: 280, desc: 'Every puff within 280 takes 80.' }); } },
+    ], [
+      { name: 'Quick Bellows', cost: 200, desc: 'Throws faster.', icon: 'a leather bellows puffing air', fx: s => { M(s).rate *= 0.8; } },
+      { name: 'Flame Jet', cost: 650, desc: 'Adds a short jet of fire at the closest puffs.', icon: 'a straight jet of fire', fx: s => { s.atks.push(atk({ id: 'jet', label: 'Flame jet', kind: 'beam', dmg: 1, pierce: 6, rate: 0.3, range: 95, dtype: 'fire', stripFog: true })); } },
+      { name: 'Dragon\'s Breath', cost: 1600, desc: 'The jet burns harder and reaches further.', icon: 'a curling fiery breath', fx: s => { const j = A(s, 'jet'); j.dmg += 1; j.range += 30; j.pierce += 4; } },
+      { name: 'Firestorm Pot', cost: 3750, desc: 'Everything fires twice as fast.', icon: 'a swirling firestorm', fx: s => { all(s, a => { a.rate *= 0.5; }); } },
+      { name: 'Phoenix of the Andes', cost: 32000, desc: 'A firebird circles the pot, burning through everything.', icon: 'a fiery phoenix with spread wings', fx: s => { all(s, a => { a.dmg += 2; }); s.atks.push(atk({ id: 'phoenix', label: 'Phoenix', kind: 'beam', dmg: 6, pierce: 40, rate: 0.12, range: 200, dtype: 'fire', burn: [6, 3], stripFog: true, arc: true, bossMult: 1.5 })); } },
+    ], [
+      { name: 'Long Fuse', cost: 120, desc: 'Lobs further.', icon: 'a long burning fuse', fx: s => { M(s).range += 30; } },
+      { name: 'Smoke Signals', cost: 300, desc: 'Sees night clouds by their dark shapes against the glow.', icon: 'puffs of smoke signals rising', fx: s => { s.sight = true; } },
+      { name: 'Spark Shower', cost: 1100, desc: 'Landing embers burst into six sparks.', icon: 'a shower of golden sparks', fx: s => { M(s).shards = 6; } },
+      { name: 'Fog Burner', cost: 2100, desc: 'Triple damage to fog, and it burns the night off puffs.', icon: 'a flame burning through grey fog', fx: s => { all(s, a => { a.fogMult = 3; a.stripNight = true; }); M(s).dmg += 1; } },
+      { name: 'Everflame', cost: 19200, desc: 'Fire that never goes out: fierce burns that hurt bosses too.', icon: 'an eternal blue-white flame in a stone bowl', fx: s => { const a = M(s); a.burn = [10, 4]; a.bossMult += 2; a.dmg += 3; a.shards = 12; } },
+    ]],
+  },
+  {
+    id: 'ice', name: 'Raspadilla Cart', role: 'Freezes puffs in place', cost: 450, r: 26, place: 'land', level: 3,
+    blurb: 'A shaved-ice cart. A blast of icy flakes freezes nearby puffs solid for a moment. Frost puffs don\'t care.',
+    base: () => stats({ atks: [atk({ id: 'main', label: 'Ice blast', kind: 'pulse', dmg: 0, pierce: 30, rate: 2.4, range: 95, dtype: 'cold', freeze: 1.2 })] }),
+    pathNames: ['Deep Freeze', 'Shards', 'Chill Air'],
+    paths: [[
+      { name: 'Colder Ice', cost: 150, desc: 'Frozen for longer.', icon: 'a frozen ice cube', fx: s => { M(s).freeze += 0.5; } },
+      { name: 'Brain Freeze', cost: 330, desc: 'The blast pops a layer as it freezes.', icon: 'a startled cloud with frost on its head', fx: s => { M(s).dmg += 1; } },
+      { name: 'Glacier Cart', cost: 1500, desc: 'Frozen puffs crack: every hit on them does one more.', icon: 'a cracked glacier block', fx: s => { M(s).brittle = 1; M(s).dmg += 1; M(s).freeze += 0.3; } },
+      { name: 'Snowcap Blast', cost: 2550, desc: 'Freezes even bosses for half a second, and more puffs at once.', icon: 'a snowy mountain cap', fx: s => { M(s).freezeBoss = 0.5; M(s).pierce += 30; M(s).range += 15; } },
+      { name: 'Eternal Glacier', cost: 30000, desc: 'Hard-hitting frost, and Big Chill freezes the whole valley.', icon: 'a giant glacier with a glowing heart', fx: s => { M(s).dmg += 3; M(s).brittle = 3; s.ability = ability({ id: 'bigchill', name: 'Big Chill', kind: 'freeze', cd: 50, power: 5, dur: 5, radius: 0, desc: 'Every puff on the map freezes for 5 seconds; bosses for 2.' }); } },
+    ], [
+      { name: 'Ice Shavings', cost: 200, desc: 'The blast stings for one damage.', icon: 'a scoop of shaved ice', fx: s => { M(s).dmg = Math.max(M(s).dmg, 1); } },
+      { name: 'Wider Spray', cost: 300, desc: 'A wider blast.', icon: 'a wide spray of snowflakes', fx: s => { M(s).range += 25; } },
+      { name: 'Icicle Volley', cost: 1300, desc: 'Adds a volley of three icicles at the front puff.', icon: 'three sharp icicles', fx: s => { s.atks.push(atk({ id: 'icicle', label: 'Icicles', kind: 'shot', dmg: 2, pierce: 3, rate: 0.6, range: 170, dtype: 'cold', count: 3, spread: 0.25, speed: 760 })); } },
+      { name: 'Snowball Mortar', cost: 3050, desc: 'Icicles become snowballs that burst and chill a crowd.', icon: 'a big packed snowball', fx: s => { const i = A(s, 'icicle'); i.kind = 'lob'; i.label = 'Snowballs'; i.dmg += 2; i.splash = 55; i.pierce = 18; i.slow = [0.6, 1.5]; i.arc = true; i.speed = 520; } },
+      { name: 'Blizzard Engine', cost: 26000, desc: 'A blizzard of snowballs in every direction.', icon: 'a raging blizzard swirl', fx: s => { const i = A(s, 'icicle'); i.count = 6; i.spread = 1.4; i.rate *= 0.4; i.dmg += 4; i.bossMult += 1; } },
+    ], [
+      { name: 'Cool Breeze', cost: 180, desc: 'Puffs near the cart move slower.', icon: 'a cool blue breeze curl', fx: s => { s.chill = [0.8, 110]; } },
+      { name: 'Frosty Air', cost: 350, desc: 'A colder, wider chill.', icon: 'frosty air with snowflakes', fx: s => { s.chill = [0.65, 130]; M(s).range += 15; } },
+      { name: 'Arctic Wind', cost: 1650, desc: 'So cold even Frost puffs slow down in it.', icon: 'a howling arctic wind face', fx: s => { s.chill = [0.5, 140]; s.chillFrost = true; } },
+      { name: 'Permafrost', cost: 2100, desc: 'Puffs it freezes stay sluggish after they thaw.', icon: 'frozen ground with ice crystals', fx: s => { M(s).slow = [0.5, 2]; M(s).range += 20; s.chill = [0.5, 165]; } },
+      { name: 'Apu\'s Winter', cost: 24000, desc: 'The mountain\'s own winter: bosses crawl through it and it freezes twice as often.', icon: 'a stern snowy mountain spirit', fx: s => { s.chillBoss = 0.6; M(s).rate *= 0.5; M(s).freeze += 0.5; s.chill = [0.45, 190]; } },
+    ]],
+  },
+  {
+    id: 'llama', name: 'Llama', role: 'Spit that slows', cost: 250, r: 26, place: 'land', level: 1,
+    blurb: 'A proud festival llama. Her spit glues puffs down so they drift at half speed.',
+    base: () => stats({ atks: [atk({ id: 'main', label: 'Spit', kind: 'shot', dmg: 0, pierce: 1, rate: 1.05, range: 160, dtype: 'spit', slow: [0.5, 6], speed: 560 })] }),
+    pathNames: ['Sour Spit', 'Big Spit', 'Stubborn'],
+    paths: [[
+      { name: 'Sour Spit', cost: 200, desc: 'Spit stings: 1 damage a second while slowed.', icon: 'a green sour lime', fx: s => { M(s).dot = 1; } },
+      { name: 'Bitter Spit', cost: 300, desc: 'Stings twice as hard.', icon: 'bitter green leaves', fx: s => { M(s).dot = 2; } },
+      { name: 'Fizzing Spit', cost: 1900, desc: 'Fizzes through anything, three times a second.', icon: 'fizzing bubbling green spit', fx: s => { M(s).dot = 4; M(s).slow = [0.5, 8]; } },
+      { name: 'Gut-Rot Gob', cost: 4000, desc: 'Fierce fizzing spit that even eats into bosses.', icon: 'a big bubbling gob', fx: s => { M(s).dot = 10; M(s).dotBoss = true; } },
+      { name: 'Grand Gob', cost: 22000, desc: 'Bosses get glued too: they slow down and fizz.', icon: 'a huge shining gob of spit with sparkles', fx: s => { const a = M(s); a.dot = 40; a.slowBoss = true; a.slow = [0.45, 8]; a.rate *= 0.6; } },
+    ], [
+      { name: 'Gobs of Spit', cost: 130, desc: 'Each gob glues two more puffs.', icon: 'three gobs of spit', fx: s => { M(s).pierce += 2; } },
+      { name: 'Splashy Spit', cost: 270, desc: 'Gobs splash and glue puffs around the one hit.', icon: 'a splashing droplet burst', fx: s => { M(s).splash = 40; M(s).pierce += 4; } },
+      { name: 'Spray Llama', cost: 1050, desc: 'Sprays three gobs at once.', icon: 'a fan of spit spray', fx: s => { M(s).count = 3; M(s).spread = 0.5; M(s).pierce += 2; } },
+      { name: 'Drenching Spray', cost: 2100, desc: 'Twice as fast, and the glue lasts longer.', icon: 'a soaking downpour of spit', fx: s => { M(s).rate *= 0.5; M(s).slow = [0.5, 10]; } },
+      { name: 'Monsoon Llama', cost: 16000, desc: 'Llama Flood glues every puff on the map at once.', icon: 'a llama spitting a whole raincloud', fx: s => { M(s).rate *= 0.6; M(s).dot = Math.max(M(s).dot, 2); s.ability = ability({ id: 'flood', name: 'Llama Flood', kind: 'flood', cd: 45, power: 0.4, dur: 8, desc: 'Every puff, bosses included, slows to 40% for 8 seconds.' }); } },
+    ], [
+      { name: 'Longer Neck', cost: 100, desc: 'Spits further.', icon: 'a llama with a tall neck', fx: s => { M(s).range += 30; } },
+      { name: 'Stubborn Glare', cost: 220, desc: 'Nothing sneaks past: sees night clouds.', icon: 'a llama side-eye glare', fx: s => { s.sight = true; } },
+      { name: 'Pack Llama', cost: 1500, desc: 'Thicker spit: slower puffs, and they stop dead for a moment.', icon: 'a llama with packs and tassels', fx: s => { M(s).slow = [0.35, 6]; M(s).stun = 0.3; } },
+      { name: 'Head-Butt', cost: 3200, desc: 'Head-butts the strongest nearby puff back up the road.', icon: 'a llama head-butting a cloud', fx: s => { s.atks.push(atk({ id: 'butt', label: 'Head-butt', kind: 'strike', dmg: 12, pierce: 1, rate: 1.6, range: 110, dtype: 'heavy', knock: 70, knockBoss: 0.2 })); } },
+      { name: 'Alpha Llama', cost: 24000, desc: 'Stampede sends the whole herd charging back up the road.', icon: 'a regal llama with a festival crown of flowers', fx: s => { A(s, 'butt').dmg += 40; A(s, 'butt').knock += 60; s.ability = ability({ id: 'stampede', name: 'Stampede', kind: 'stampede', cd: 45, power: 60, dur: 0, desc: 'A herd charges back up the road: 60 damage to every puff it meets, small ones knocked back.' }); } },
+    ]],
+  },
+  {
+    id: 'hay', name: 'Hay-Bale Cannon', role: 'Heavy splash', cost: 540, r: 28, place: 'land', level: 1,
+    blurb: 'Fires bound hay bales that burst on landing. Heavy: cracks Hail, but Rumbles shrug it off.',
+    base: () => stats({ atks: [atk({ id: 'main', label: 'Hay bale', kind: 'lob', dmg: 1, pierce: 14, rate: 1.5, range: 170, dtype: 'heavy', speed: 520, splash: 48, arc: false })] }),
+    pathNames: ['Bigger Bales', 'Scatter', 'Stun Bales'],
+    paths: [[
+      { name: 'Packed Bales', cost: 300, desc: 'A wider burst.', icon: 'a tightly bound hay bale', fx: s => { M(s).splash += 18; M(s).pierce += 8; } },
+      { name: 'Heavy Bales', cost: 450, desc: 'Hits harder.', icon: 'a heavy hay bale with iron bands', fx: s => { M(s).dmg += 1; M(s).pierce += 6; } },
+      { name: 'Barn Buster', cost: 1000, desc: 'Whole barn-loads: much harder and wider.', icon: 'a little red barn bursting', fx: s => { M(s).dmg += 2; M(s).splash += 20; } },
+      { name: 'Haystack Bomb', cost: 2800, desc: 'Hits like a haystack falling from the sky. Strong against bosses.', icon: 'a giant haystack', fx: s => { M(s).dmg += 4; M(s).bossMult += 1; M(s).splash += 16; } },
+      { name: 'Harvest Moon Bale', cost: 40000, desc: 'Mega Bale drops a moon-sized bale on the strongest puff.', icon: 'a huge round golden bale like a harvest moon', fx: s => { M(s).dmg += 6; M(s).bossMult += 1; s.ability = ability({ id: 'megabale', name: 'Mega Bale', kind: 'strike', cd: 40, power: 2500, radius: 120, desc: 'Drops 2500 damage on the strongest puff and splashes 300 around it.' }); } },
+    ], [
+      { name: 'Quick Loader', cost: 250, desc: 'Fires faster.', icon: 'a chinchilla paw loading a bale fast', fx: s => { M(s).rate *= 0.8; } },
+      { name: 'Split Bales', cost: 400, desc: 'Bursting bales throw four straw clumps.', icon: 'a hay bale splitting in four', fx: s => { M(s).shards = 4; } },
+      { name: 'Straw Cluster', cost: 1200, desc: 'Eight clumps per bale, hitting harder.', icon: 'a burst of eight straw clumps', fx: s => { M(s).shards = 8; M(s).shardDmg = 2; } },
+      { name: 'Cluster Barrage', cost: 3200, desc: 'Faster bales, twelve clumps each.', icon: 'many tiny bales raining down', fx: s => { M(s).shards = 12; M(s).rate *= 0.7; } },
+      { name: 'Bale Bonanza', cost: 28000, desc: 'A non-stop barrage of bursting bales.', icon: 'a mountain of bursting golden bales', fx: s => { M(s).shards = 18; M(s).shardDmg = 4; M(s).rate *= 0.5; M(s).dmg += 2; } },
+    ], [
+      { name: 'Longer Barrel', cost: 200, desc: 'Fires further.', icon: 'a long wooden cannon barrel', fx: s => { M(s).range += 35; } },
+      { name: 'Concussion', cost: 300, desc: 'The thump stops puffs for a moment.', icon: 'a dizzy cloud with stars', fx: s => { M(s).stun = 0.4; } },
+      { name: 'Daze Bales', cost: 1300, desc: 'Longer dazes; even bosses wobble.', icon: 'spinning daze swirls', fx: s => { M(s).stun = 0.8; M(s).stunBoss = 0.2; M(s).dmg += 1; } },
+      { name: 'Boss Breaker', cost: 3600, desc: 'Built to crack boss clouds.', icon: 'a bale smashing a dark thundercloud', fx: s => { M(s).bossMult += 3; M(s).dmg += 3; } },
+      { name: 'Earthshaker', cost: 28000, desc: 'Each landing shakes the ground: bosses stop for a second.', icon: 'cracked earth shaking', fx: s => { M(s).stunBoss = 1; M(s).dmg += 10; M(s).bossMult += 2; M(s).splash += 20; } },
+    ]],
+  },
+  {
+    id: 'condor', name: 'Condor Roost', role: 'Flier on patrol', cost: 880, r: 30, place: 'any', level: 4,
+    blurb: 'A condor circles above its roost and rains feather darts. Fliers ignore rocks in the way; roosts may sit on water.',
+    base: () => stats({ patrol: 110, fliers: 1, atks: [atk({ id: 'main', label: 'Feather darts', kind: 'shot', dmg: 1, pierce: 2, rate: 0.6, range: 170, count: 2, spread: 0.2, speed: 800, arc: true })] }),
+    pathNames: ['Talons', 'Feather Volley', 'Patrol'],
+    paths: [[
+      { name: 'Sharp Talons', cost: 500, desc: 'Darts hit harder.', icon: 'sharp golden talons', fx: s => { M(s).dmg += 1; } },
+      { name: 'Sky Sight', cost: 400, desc: 'Sees night clouds from above.', icon: 'a condor eye seen close up', fx: s => { s.sight = true; } },
+      { name: 'Plunge Dive', cost: 1500, desc: 'Dives on the strongest puff every few seconds with a Heavy blow.', icon: 'a condor diving straight down', fx: s => { s.atks.push(atk({ id: 'dive', label: 'Dive', kind: 'strike', dmg: 8, pierce: 12, rate: 3, range: 220, dtype: 'heavy', splash: 60, arc: true })); } },
+      { name: 'Thunderbird', cost: 5200, desc: 'Lightning dives that tear into bosses.', icon: 'a condor crackling with lightning', fx: s => { const d = A(s, 'dive'); d.dmg += 18; d.bossMult += 1; d.rate = 2; d.dtype = 'magic'; } },
+      { name: 'Apu Condor', cost: 42000, desc: 'The mountain\'s condor: crushing dives, and Sky Strike tears the strongest puff apart.', icon: 'a giant golden condor with a sun halo', fx: s => { const d = A(s, 'dive'); d.dmg += 60; d.splash = 110; d.pierce += 20; s.ability = ability({ id: 'skystrike', name: 'Sky Strike', kind: 'strike', cd: 45, power: 4000, radius: 0, desc: 'Hits the strongest puff on the map for 4000.' }); } },
+    ], [
+      { name: 'Wind Feathers', cost: 300, desc: 'Darts pass through two more puffs.', icon: 'feathers riding the wind', fx: s => { M(s).pierce += 2; } },
+      { name: 'Quick Wings', cost: 500, desc: 'Throws darts faster.', icon: 'wings with speed lines', fx: s => { M(s).rate *= 0.7; } },
+      { name: 'Feather Storm', cost: 1500, desc: 'Four darts at once.', icon: 'a storm of feathers', fx: s => { M(s).count = 4; M(s).spread = 0.5; } },
+      { name: 'Twin Condors', cost: 4800, desc: 'A second condor joins the patrol.', icon: 'two condors circling', fx: s => { s.fliers = 2; M(s).rate *= 0.8; } },
+      { name: 'Flock of the Sun', cost: 35000, desc: 'A golden flock: many more darts, much harder.', icon: 'a flock of golden condors before the sun', fx: s => { s.fliers = 3; M(s).count = 6; M(s).dmg += 2; M(s).rate *= 0.6; M(s).dtype = 'magic'; } },
+    ], [
+      { name: 'Wide Circles', cost: 250, desc: 'Patrols a wider circle and sees further.', icon: 'a wide circling flight path', fx: s => { s.patrol += 50; M(s).range += 20; } },
+      { name: 'Follow the Road', cost: 450, desc: 'Flies to the front puffs anywhere near the roost.', icon: 'a condor flying over a winding road', fx: s => { s.hunt = true; } },
+      { name: 'Lift', cost: 1500, desc: 'Grabs a puff now and then and carries it back to the start.', icon: 'condor talons carrying a little cloud', fx: s => { s.atks.push(atk({ id: 'grab', label: 'Lift', kind: 'grab', dmg: 0, pierce: 1, rate: 6, range: 200, grabRank: 9, arc: true })); } },
+      { name: 'Carrier Condor', cost: 4000, desc: 'Lifts three puffs at a time, more often.', icon: 'a condor carrying three clouds', fx: s => { const g = A(s, 'grab'); g.pierce = 3; g.rate = 4.5; } },
+      { name: 'Lord of the Wind', cost: 36000, desc: 'Strong enough to carry a Thunderhead back to the pass.', icon: 'a condor lifting a dark storm cloud', fx: s => { const g = A(s, 'grab'); g.grabBoss = true; g.rate = 3.5; g.pierce = 5; M(s).dmg += 2; } },
+    ]],
+  },
+  {
+    id: 'boat', name: 'Reed Boat', role: 'Water only', cost: 420, r: 28, place: 'water', level: 5,
+    blurb: 'A totora reed boat. Must float on water; casts weighted nets at passing puffs.',
+    base: () => stats({ atks: [atk({ id: 'main', label: 'Net', kind: 'shot', dmg: 1, pierce: 4, rate: 0.8, range: 175, speed: 640 })] }),
+    pathNames: ['Nets', 'Lake Cannon', 'Fishing'],
+    paths: [[
+      { name: 'Bigger Nets', cost: 250, desc: 'Nets snag three more puffs.', icon: 'a big fishing net', fx: s => { M(s).pierce += 3; } },
+      { name: 'Weighted Nets', cost: 400, desc: 'Stone weights: Heavy, harder hits.', icon: 'a net with round stone weights', fx: s => { M(s).dtype = 'heavy'; M(s).dmg += 1; } },
+      { name: 'Trawler', cost: 1050, desc: 'Casts three nets at once.', icon: 'three nets spread over water', fx: s => { M(s).count = 3; M(s).spread = 0.4; M(s).dtype = 'magic'; } },
+      { name: 'Flagship', cost: 4000, desc: 'Towers nearby throw faster and hit one more puff.', icon: 'a reed boat with a big flag sail', fx: s => { s.aura = 210; s.auraRate *= 0.85; s.auraPierce += 1; } },
+      { name: 'Lake Queen', cost: 32000, desc: 'Lake Swell crashes into the strongest twenty puffs.', icon: 'a crowned wave rising from a lake', fx: s => { M(s).dmg += 3; M(s).pierce += 6; s.ability = ability({ id: 'swell', name: 'Lake Swell', kind: 'strike', cd: 40, power: 400, radius: 20, desc: 'The twenty strongest puffs on the map each take 400.' }); } },
+    ], [
+      { name: 'Quick Paddles', cost: 200, desc: 'Casts faster.', icon: 'two crossed wooden paddles', fx: s => { M(s).rate *= 0.85; } },
+      { name: 'Clay Cannon', cost: 550, desc: 'Adds a clay cannon that lobs bursting pots.', icon: 'a small clay cannon', fx: s => { s.atks.push(atk({ id: 'pot', label: 'Clay pot', kind: 'lob', dmg: 2, pierce: 12, rate: 1.6, range: 190, dtype: 'heavy', splash: 50, speed: 520, arc: true })); } },
+      { name: 'Twin Cannons', cost: 1200, desc: 'Two pots at a time.', icon: 'two clay cannons side by side', fx: s => { const p = A(s, 'pot'); p.count = 2; p.spread = 0.3; p.rate *= 0.75; } },
+      { name: 'Fire Pots', cost: 2900, desc: 'Pots of burning oil: Fire, with lingering burns.', icon: 'a clay pot full of flames', fx: s => { const p = A(s, 'pot'); p.dtype = 'fire'; p.burn = [3, 3]; p.stripFog = true; p.dmg += 1; } },
+      { name: 'Titicaca Dreadnought', cost: 30000, desc: 'A floating fortress of reeds: huge pots that crack bosses.', icon: 'a huge reed fortress ship', fx: s => { const p = A(s, 'pot'); p.dmg += 10; p.splash += 40; p.bossMult += 2; p.count = 3; } },
+    ], [
+      { name: 'Lake Trade', cost: 300, desc: 'Sells fish: $60 more each round.', icon: 'a silver fish on a string', fx: s => { s.income += 60; } },
+      { name: 'Fishing Haul', cost: 550, desc: '$120 more each round.', icon: 'a basket of fish', fx: s => { s.income += 120; } },
+      { name: 'Merchant Raft', cost: 1350, desc: '$300 more each round, and sharp-eyed traders spot night clouds.', icon: 'a raft loaded with trade goods', fx: s => { s.income += 300; s.sight = true; } },
+      { name: 'Floating Market', cost: 4400, desc: '$700 more each round.', icon: 'floating reed islands with market stalls', fx: s => { s.income += 700; } },
+      { name: 'Golden Totora', cost: 25000, desc: '$1800 more each round, and Big Catch lands $5000.', icon: 'a golden reed boat', fx: s => { s.income += 1800; s.ability = ability({ id: 'bigcatch', name: 'Big Catch', kind: 'cash', cd: 60, power: 5000, desc: 'Lands $5000.' }); } },
+    ]],
+  },
+  {
+    id: 'windmill', name: 'Windmill', role: 'Blows puffs back', cost: 600, r: 30, place: 'land', level: 6,
+    blurb: 'Its sails gust puffs back up the road. Bosses are too heavy to push, until the later sails.',
+    base: () => stats({ atks: [atk({ id: 'main', label: 'Gust', kind: 'beam', dmg: 1, pierce: 6, rate: 2, range: 150, dtype: 'wind', knock: 60, arc: true })] }),
+    pathNames: ['Gusts', 'Millstones', 'Weather Vane'],
+    paths: [[
+      { name: 'Stronger Sails', cost: 250, desc: 'Pushes further.', icon: 'billowing windmill sails', fx: s => { M(s).knock += 25; } },
+      { name: 'Gale Force', cost: 400, desc: 'Pushes more puffs, further.', icon: 'a wind face blowing hard', fx: s => { M(s).pierce += 6; M(s).knock += 20; } },
+      { name: 'Whirlwind Sails', cost: 1200, desc: 'Spinning sails: harder gusts, more often.', icon: 'sails spinning in a whirl', fx: s => { M(s).dmg += 1; M(s).rate *= 0.75; M(s).pierce += 6; } },
+      { name: 'Twister', cost: 4000, desc: 'A twister that can even nudge bosses.', icon: 'a small tornado', fx: s => { M(s).knock += 80; M(s).knockBoss = 0.25; M(s).dmg += 1; } },
+      { name: 'Puna Hurricane', cost: 30000, desc: 'Blow Back hurls every puff back up the road.', icon: 'a hurricane over the high plateau', fx: s => { M(s).dmg += 3; M(s).pierce += 10; s.ability = ability({ id: 'blowback', name: 'Blow Back', kind: 'blowback', cd: 40, power: 420, desc: 'Pushes every puff 420 back; bosses 120.' }); } },
+    ], [
+      { name: 'Grinding Stones', cost: 200, desc: 'Gusts carry grit: harder hits.', icon: 'two grinding stones', fx: s => { M(s).dmg += 1; } },
+      { name: 'Spinning Blades', cost: 350, desc: 'Gusts more often.', icon: 'spinning wooden blades', fx: s => { M(s).rate *= 0.7; } },
+      { name: 'Millstone Wheel', cost: 1350, desc: 'Rolls a millstone down at the strongest puff.', icon: 'a round millstone wheel', fx: s => { s.atks.push(atk({ id: 'mill', label: 'Millstone', kind: 'shot', dmg: 4, pierce: 10, rate: 1.3, range: 170, dtype: 'heavy', speed: 420 })); } },
+      { name: 'Stone Mill', cost: 3600, desc: 'Heavier millstones, rolled faster.', icon: 'a stone mill house', fx: s => { const m = A(s, 'mill'); m.dmg += 4; m.rate *= 0.7; m.pierce += 6; } },
+      { name: 'Great Grinder', cost: 28000, desc: 'Grinds anything to wisps, bosses included.', icon: 'a giant millstone with golden grain', fx: s => { const m = A(s, 'mill'); m.dmg += 14; m.rate *= 0.5; m.bossMult += 2; m.dtype = 'magic'; } },
+    ], [
+      { name: 'Wind Reading', cost: 150, desc: 'Gusts reach further.', icon: 'a weather vane', fx: s => { M(s).range += 30; } },
+      { name: 'Night Breeze', cost: 500, desc: 'Feels night clouds, and the breeze blows their darkness away.', icon: 'a breeze blowing a dark veil off a cloud', fx: s => { s.sight = true; M(s).stripNight = true; } },
+      { name: 'Fog Clearer', cost: 1100, desc: 'Blows fog away, and towers nearby see further.', icon: 'wind clearing grey fog to show blue sky', fx: s => { M(s).stripFog = true; s.aura = 170; s.auraRangeMul *= 1.1; } },
+      { name: 'Clear Skies', cost: 3200, desc: 'Fresh air: towers nearby attack faster.', icon: 'a bright clear blue sky with a sun', fx: s => { s.aura = Math.max(s.aura, 190); s.auraRate *= 0.85; } },
+      { name: 'Weather Keeper', cost: 26000, desc: 'Clear Sky strips night and fog from every puff and speeds up every tower.', icon: 'a sun and a moon around a weather vane', fx: s => { s.auraRate *= 0.9; s.ability = ability({ id: 'clearsky', name: 'Clear Sky', kind: 'reveal', cd: 50, power: 0.7, dur: 10, desc: 'Every puff loses night and fog; every tower attacks 30% faster for 10 seconds.' }); } },
+    ]],
+  },
+  {
+    id: 'lantern', name: 'Lantern Keeper', role: 'Reveals night clouds', cost: 900, r: 26, place: 'land', level: 4,
+    blurb: 'Holds up a festival lantern. Every tower in its glow can see night clouds.',
+    base: () => stats({ aura: 160, auraSight: true }),
+    pathNames: ['Moonlight', 'Festival Glow', 'Market Lanterns'],
+    paths: [[
+      { name: 'Bright Wick', cost: 300, desc: 'A wider glow.', icon: 'a bright lantern wick', fx: s => { s.aura += 40; } },
+      { name: 'Moonbeam', cost: 700, desc: 'The lantern shoots moonbeams of Magic.', icon: 'a silver moonbeam', fx: s => { s.sight = true; s.atks.push(atk({ id: 'beam', label: 'Moonbeam', kind: 'beam', dmg: 2, pierce: 3, rate: 0.85, range: 190, dtype: 'magic' })); } },
+      { name: 'Moon Lantern', cost: 1800, desc: 'Stronger beams that wash the night off what they hit.', icon: 'a lantern shaped like a full moon', fx: s => { const b = A(s, 'beam'); b.dmg += 3; b.stripNight = true; b.pierce += 3; } },
+      { name: 'Full Moon', cost: 4800, desc: 'Beams twice as fast through many more puffs.', icon: 'a huge full moon', fx: s => { const b = A(s, 'beam'); b.rate *= 0.5; b.pierce += 10; } },
+      { name: 'Lantern of Mama Killa', cost: 26000, desc: 'Moonrise strips night from every puff and hits each for 60.', icon: 'a silver moon lantern with a gentle face', fx: s => { const b = A(s, 'beam'); b.dmg += 8; b.bossMult += 1; s.ability = ability({ id: 'moonrise', name: 'Moonrise', kind: 'nova', cd: 40, power: 60, radius: 0, desc: 'Every puff on the map loses night and takes 60.' }); } },
+    ], [
+      { name: 'Warm Glow', cost: 500, desc: 'Towers in the glow attack 10% faster.', icon: 'a warm orange glow', fx: s => { s.auraRate *= 0.9; } },
+      { name: 'Festival Spirit', cost: 900, desc: 'Towers in the glow hit one more puff.', icon: 'bunting and ribbons', fx: s => { s.auraPierce += 1; } },
+      { name: 'Fiesta Lights', cost: 1900, desc: 'Strings of lights: towers in the glow attack faster again.', icon: 'a string of colourful paper lanterns', fx: s => { s.auraRate *= 0.85; } },
+      { name: 'Inti Raymi Glow', cost: 5600, desc: 'The sun festival: towers in the glow hit harder.', icon: 'a golden sun mask', fx: s => { s.auraDmg += 1; s.auraBoss += 0.25; } },
+      { name: 'Sun Festival', cost: 30000, desc: 'Sunburst makes every tower in the glow twice as fast for 12 seconds.', icon: 'a blazing festival sun with ribbons', fx: s => { s.auraBoss += 0.5; s.ability = ability({ id: 'sunburst', name: 'Sunburst', kind: 'rally', cd: 50, power: 0.5, dur: 12, radius: 1, desc: 'Towers in the glow attack twice as fast for 12 seconds.' }); } },
+    ], [
+      { name: 'Lantern Market', cost: 400, desc: 'Towers and upgrades bought in the glow cost 10% less.', icon: 'a market stall lit by lanterns', fx: s => { s.discount = 0.1; } },
+      { name: 'Cheap Wicks', cost: 600, desc: '15% off in the glow.', icon: 'a bundle of candle wicks', fx: s => { s.discount = 0.15; } },
+      { name: 'Night Market', cost: 1500, desc: '$250 more each round.', icon: 'a busy night market', fx: s => { s.income += 250; } },
+      { name: 'Lantern Bank', cost: 4800, desc: 'Pays 5% interest on your coins each round (up to $1000).', icon: 'a clay piggy bank shaped like a lantern', fx: s => { s.interest = 0.05; s.income += 200; } },
+      { name: 'Festival Treasury', cost: 24000, desc: 'Gold Rain brings coins worth 40 times the round; 20% off in the glow.', icon: 'a chest overflowing with gold coins', fx: s => { s.discount = 0.2; s.ability = ability({ id: 'goldrain', name: 'Gold Rain', kind: 'cash', cd: 50, power: -40, desc: 'Coins worth 40 times the round number.' }); } },
+    ]],
+  },
+  {
+    id: 'quinoa', name: 'Quinoa Terrace', role: 'Income each round', cost: 1000, r: 32, place: 'land', level: 3, income: true,
+    blurb: 'A little terrace of golden quinoa. Pays $80 at the end of every round.',
+    base: () => stats({ income: 80 }),
+    pathNames: ['Harvest', 'Market Day', 'Potato Keepers'],
+    paths: [[
+      { name: 'Rich Soil', cost: 500, desc: '$40 more each round.', icon: 'dark rich soil with a sprout', fx: s => { s.income += 40; } },
+      { name: 'Irrigation', cost: 700, desc: '$80 more each round.', icon: 'a stone irrigation channel with water', fx: s => { s.income += 80; } },
+      { name: 'Double Harvest', cost: 1800, desc: '$250 more each round.', icon: 'two sheaves of quinoa', fx: s => { s.income += 250; } },
+      { name: 'Golden Grain', cost: 5600, desc: '$600 more each round.', icon: 'glowing golden grain', fx: s => { s.income += 600; } },
+      { name: 'Breadbasket of the Andes', cost: 40000, desc: '$1800 more each round.', icon: 'an overflowing harvest basket', fx: s => { s.income += 1800; } },
+    ], [
+      { name: 'Granary', cost: 400, desc: '$60 more each round.', icon: 'a round stone granary hut', fx: s => { s.income += 60; } },
+      { name: 'Barter Stall', cost: 600, desc: 'Every tower sells back for 5% more while this stands.', icon: 'two paws trading goods', fx: s => { s.sellBonus = 0.05; } },
+      { name: 'Weekly Fair', cost: 1500, desc: '$150 more each round and 2% interest (up to $1000).', icon: 'a fair with striped awnings', fx: s => { s.income += 150; s.interest = 0.02; } },
+      { name: 'Trade Caravan', cost: 5200, desc: '$500 more each round.', icon: 'a llama caravan with packs', fx: s => { s.income += 500; } },
+      { name: 'Great Fair', cost: 30000, desc: 'Feast Day brings $4000 and 20 lives.', icon: 'a grand fair with a ferris wheel of flowers', fx: s => { s.income += 400; s.ability = ability({ id: 'feast', name: 'Feast Day', kind: 'cash', cd: 60, power: 4000, dur: 20, desc: '$4000 and 20 lives.' }); } },
+    ], [
+      { name: 'Scarecrow', cost: 250, desc: 'One life back each round.', icon: 'a cheerful scarecrow', fx: s => { s.lives += 1; } },
+      { name: 'Chuño Store', cost: 500, desc: 'Three lives back each round.', icon: 'a pile of freeze-dried potatoes', fx: s => { s.lives += 2; } },
+      { name: 'Healing Herbs', cost: 1650, desc: 'Six lives and $100 back each round.', icon: 'a bundle of green healing herbs', fx: s => { s.lives += 3; s.income += 100; } },
+      { name: 'Pachamama\'s Gift', cost: 5000, desc: 'Twelve lives a round, and towers nearby attack 5% faster.', icon: 'an earth-mother hand holding a sprout', fx: s => { s.lives += 6; s.aura = 160; s.auraRate *= 0.95; } },
+      { name: 'Harvest Blessing', cost: 19200, desc: 'Blessing restores 100 lives; $500 more each round.', icon: 'a glowing blessing over a harvest', fx: s => { s.income += 500; s.lives += 8; s.ability = ability({ id: 'blessing', name: 'Blessing', kind: 'lives', cd: 90, power: 100, desc: 'Restores 100 lives.' }); } },
+    ]],
+  },
+];
+
+export const TOWER: Record<string, TowerDef> = Object.fromEntries(TOWERS.map(t => [t.id, t]));

@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of one hundred and three original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of one hundred and four original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -112,7 +112,8 @@ Listed in arcade-menu order.
 | 100 | Every Creature | `/every-creature` | Shapeshift adventure |
 | 101 | The Arcade After Dark | `/after-dark` | Cabinet-hopping adventure |
 | 102 | Highburrow | `/highburrow` | Turn-based settlement strategy |
-| 103 | Little Red Dot: The Straits | `/straits` | 3D sailing adventure |
+| 103 | Cloudpop | `/cloudpop` | Tower defence |
+| 104 | Little Red Dot: The Straits | `/straits` | 3D sailing adventure |
 
 ## Run
 
@@ -1644,7 +1645,17 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/highburrow.md`](docs/highburrow.md) covers the code layout, controls, every rule and number, the art pipeline, the save format, the tests and bot results, the `window.__highburrow()` hook and what is weakest.
 
-### 103 · Little Red Dot: The Straits (`/straits`)
+### 103 · Cloudpop (`/cloudpop`)
+
+**Play:** a tower defence of layered storm-puffs. Clouds drift down an Andean valley to rain out the chinchillas' harvest festival, and every pop peels one coloured layer (wisp, drizzle, shower, squall, gale) until nothing is left. Specials need a plan: Hail shrugs off Light shots, Rumbles shrug off Heavy, Frost puffs can't be chilled, night puffs are invisible to towers without sight, fog regrows its lost layers, roped (fortified) puffs take twice the hits, and five Thunderhead-family bosses arrive on the boss rounds. Eleven towers (Pebble Slinger, Pan-Flute Busker, Ember Pot, Raspadilla Cart, Llama, Hay-Bale Cannon, Condor Roost, Reed Boat, Windmill, Lantern Keeper and Quinoa Terrace) each have three upgrade paths of five tiers: one path can go to tier 5 and a second to tier 2, the looks change at tiers 3 and 5, and many tier 5s carry an ability. Pick Dora or Enzo as the hero; they level 1 to 20 during a run with abilities at 3, 10 and 20. Eight painted maps across beginner, intermediate, advanced and expert (water for the boats, rocks and trees that block line of sight, two-road valleys); Easy ends at round 40, Medium 60, Hard 80, then freeplay; modes are Uphill, Single Kind, Lean Harvest, Nightfall and the Endless Storm. Between runs: player level, per-tower XP spent in the Tower Lab on tiers 4 and 5, the 44-node Burrow Lore acorn tree, medals for each map, difficulty and mode, 32 trophies, two hero looks and a seeded daily challenge. Assist is on by default (half again as many lives, a bigger round bonus, one second chance).
+
+**Controls:** pick a tower in the shop (or press `1`–`9`, `0`, `-`; `H` for the hero), then click the valley to build; on a touch screen tap once to see the spot and its range and tap again to build. Click a tower to open its panel: buy upgrades (`Z` `X` `C`), see what the next tier changes, set targeting (First, Last, Strong, Close; `T`), fire its ability (`Q`) and sell (`Backspace`). The big button starts the next round and then cycles 1×/2×/3× (`Space`); the top bar has pause (`P`), the speeds, auto-start (`A`) and the menu. `Esc` cancels.
+
+**Tests:** `npm run test:cloudpop` runs 26 engine tests (a seed replaying a run exactly, layer popping and damage overflow, immunities, night sight, the crosspath rule, Tower Lab caps, placement on roads, water and blockers, prices and selling, the economy and Lean Harvest, every tower's 15 upgrades having numbers and painted art, abilities, heroes, the maps, the 100-round curve and boss rounds, Assist's second chance, the save's repair and migration, Burrow Lore, the Lab, medals and trophies, the daily and the modes). `npm run bot:cloudpop` plays whole runs with bots that decide every 200–300 ms of game time and place imperfectly: a new player's casual bot must win Easy on both beginner maps at least 90% of the time, and a seasoned strategy bot must win Medium; it also reports Hard. `npm test` runs the engine tests and the bots' `--quick` mode. `npm run test:e2e:cloudpop` clicks every player action at 1280×800, 390×844 and 844×390.
+
+**Docs:** [`docs/cloudpop.md`](docs/cloudpop.md) covers the code layout, every rule and number, the towers and rounds, progression, the Codex art pipeline, the tests, bot results and what is weakest.
+
+### 104 · Little Red Dot: The Straits (`/straits`)
 
 **Play:** the first voyage of a 3D island-hopping sailing adventure. Pick Dora (turns quicker and reloads in 1.25 s, hull 100) or Enzo (hull 130, a harder ram, reloads in 1.6 s) and sail the Chope, a bumboat about a metre long with painted eyes and a tissue-packet sail, from the Tiong Bahru jetty to Pulau Ubin with a bale of hay. The sea is a toy strait about 190 m across with Sentosa, St John's, Kusu, Semakau and Ubin in it; the islands carry real names but are not where the real ones are. Five otter rafts patrol it. A raft that sees you gives chase, bumps the hull and throws clams; a volley of three peanuts goes off whichever side faces the nearest raft, and three volleys sink one. Each raft sunk leaves a crate of sunflower seeds, takes 15 off the otters' power and adds a bounty pip; at two pips the community cats send a hunter in a skiff, and at 40 power Captain Bishan casts off in a war raft. The first time you pass his kelong he stops you for a toll, and you answer once: **Bargain** gives up a quarter of the hay and the rafts leave you alone; **Bluff** keeps the whole bale if he believes you (about two times in three, less with a bounty) and brings him out if he doesn't; **Fight** brings him out at once. Jetties on Sentosa, St John's and at home patch the hull, add planks, buy bigger peanuts and pay off the bounty for seeds, and the two island jetties are viewpoints that fill in the map. Capsizing costs 15% of the hay and half the seeds and puts you back at the last jetty; the voyage ends if the hay runs out. Landing all of it is gold, 70% or more silver, anything less bronze. There is no sound yet and no going ashore.
 

@@ -116,5 +116,6 @@ export const GENRE_OF: Record<string, GenreId[]> = {
  '/every-creature': ['adventure', 'puzzle'],
  '/after-dark': ['adventure', 'action'],
  '/highburrow': ['strategy', 'cozy'],
+ '/cloudpop': ['strategy', 'action'],
  '/straits': ['adventure', 'action'],
 };

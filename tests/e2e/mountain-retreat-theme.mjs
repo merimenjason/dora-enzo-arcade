@@ -116,7 +116,7 @@ try {
   // Theme setting must not leak to the main arcade.
   await page.getByRole('link', { name: /MAIN ARCADE/ }).click();
   assert.equal(await page.locator('.mr-shell').count(), 0);
-  assert.equal(await page.locator('.arcade-card').count(),103);
+  assert.equal(await page.locator('.arcade-card').count(),104);
   const blocked = await browser.newPage({ colorScheme: 'light' });
   blocked.on('pageerror', (e) => errors.push(e.message));
   await blocked.addInitScript(() =>
