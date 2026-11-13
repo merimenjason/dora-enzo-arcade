@@ -262,7 +262,10 @@
     "test:e2e:brinelight": "node tests/e2e/brinelight.mjs",
     "test:above": "tsc lib/above-world.ts lib/above-rooms.ts lib/above-rooms2.ts lib/above-game.ts lib/above-art.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/above.mjs",
     "bot:above": "tsc lib/above-world.ts lib/above-rooms.ts lib/above-rooms2.ts lib/above-game.ts lib/above-art.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/above-bot.mjs",
-    "test:e2e:above": "node tests/e2e/above.mjs"
+    "test:e2e:above": "node tests/e2e/above.mjs",
+    "test:afterdark": "tsc lib/afterdark-art.ts lib/afterdark-worlds.ts lib/afterdark-core.ts lib/afterdark-move.ts lib/afterdark-things.ts lib/afterdark-flow.ts lib/afterdark-boss.ts lib/afterdark-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/afterdark.mjs",
+    "bot:afterdark": "tsc lib/afterdark-art.ts lib/afterdark-worlds.ts lib/afterdark-core.ts lib/afterdark-move.ts lib/afterdark-things.ts lib/afterdark-flow.ts lib/afterdark-boss.ts lib/afterdark-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/afterdark-bot.mjs",
+    "test:e2e:afterdark": "node tests/e2e/afterdark.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",
