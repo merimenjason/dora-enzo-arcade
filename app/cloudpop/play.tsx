@@ -25,7 +25,7 @@ export function TopBar({ p, onMenu }: { p: Play; onMenu: () => void }) {
       <span className="stat" title={`${DIFF_NAME[g.cfg.diff]} · ${MODE_INFO[g.cfg.mode].name}`}><Icon name="round" /> <b data-testid="round">{Math.min(g.round, g.freeplay ? g.round : g.lastRound)}</b><small>/{g.freeplay ? '∞' : g.lastRound}</small></span>
       <span className="grow" />
       <button className={'ibtn' + (p.paused ? ' on' : '')} data-testid="pause" title="Pause (P)" onClick={() => p.togglePause()}><Icon name={p.paused ? 'play' : 'pause'} size={26} /></button>
-      {[1, 2, 3].map(s => <button key={s} className={'ibtn sp' + (p.speed === s ? ' on' : '')} data-testid={'speed' + s} title={`${s}× speed`} onClick={() => p.setSpeed(s)}>{s === 1 ? <Icon name="play" size={22} /> : <Icon name={s === 2 ? 'ff' : 'fff'} size={22} />}</button>)}
+      {[1, 2, 3].map(s => <button key={s} className={'ibtn sp' + (p.speed === s ? ' on' : '')} data-testid={'speed' + s} title={`${s}× speed (click again to cycle)`} onClick={() => p.setSpeed(p.speed === s ? s % 3 + 1 : s)}>{s === 1 ? <Icon name="play" size={22} /> : <Icon name={s === 2 ? 'ff' : 'fff'} size={22} />}</button>)}
       <button className={'ibtn' + (g.auto ? ' on' : '')} data-testid="auto" title="Auto-start the next round (A)" onClick={() => p.toggleAuto()}><Icon name="auto" size={24} /></button>
       <button className="ibtn" data-testid="menu" title="Menu" onClick={onMenu}><Icon name="gear" size={24} /></button>
     </div>
