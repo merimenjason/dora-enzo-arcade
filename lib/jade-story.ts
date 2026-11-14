@@ -64,6 +64,14 @@ export const PEOPLE: Record<string, { name: string; face: string; who: string }>
   lim: { name: 'Mr Lim', face: 'face-lim', who: 'news-stand mynah' },
   bo: { name: 'Big Bo', face: 'face-bo', who: 'dock foreman' },
   bristle: { name: 'Captain Bristle', face: 'face-bristle', who: 'chief warden' },
+  hoon: { name: 'Auntie Hoon', face: 'face-hoon', who: 'chicken-rice goose auntie' },
+  teo: { name: 'Uncle Teo', face: 'face-teo', who: 'kopi uncle (a sun bear)' },
+  beng: { name: 'Ah Beng', face: 'face-beng', who: 'char kway teow rooster' },
+  ong: { name: 'Mr Ong', face: 'face-ong', who: 'karang guni man (a badger)' },
+  lily: { name: 'Lily Sparkle', face: 'face-lily', who: 'getai singer (a peacock)' },
+  goh: { name: 'Uncle Goh', face: 'face-goh', who: 'void-deck chess uncle (a macaque)' },
+  sleek: { name: 'Ma Sleek', face: 'face-sleek', who: 'Riverside Romp otter boss' },
+  kow: { name: 'Big Kow', face: 'face-kow', who: 'Bukit Bunch macaque boss' },
   gizmo: { name: 'Gizmo', face: 'face-gizmo', who: 'arcade DJ' },
   glint: { name: 'Madame Glint', face: 'face-glint', who: 'Kaypoh Crows boss' },
   pip: { name: 'Pip', face: 'face-pip', who: 'Kaypoh Crows rookie' },
@@ -77,9 +85,9 @@ export const HEIRLOOMS = [
   { id: 'koi', name: 'Silver Koi', sprite: 'h-koi', ch: 4 },
   { id: 'drum', name: 'Phoenix Drum', sprite: 'h-drum', ch: 5 },
 ] as const;
-/** which district each chapter's finale opens (chapter 1 is played in the Night Market) */
+/** which district each chapter's finale opens (chapter 1 is played in Smith Street) */
 export const CHAPTER_OPENS: District[] = ['temple', 'canal', 'docks', 'arcade'];
-export const CHAPTERS = ['The Night Market', 'Temple Hill', 'The Canal Quarter', 'The Docks', 'The Arcade Strip'];
+export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Clarke Quay'];
 
 // road crossings by name: X(v, h) is the lane tile where vertical road v meets horizontal road h
 const V = { a: 10, b: 26, c: 42, d: 60, e: 71, f: 90, g: 106 } as const;
@@ -87,7 +95,7 @@ const Hh = { n: 12, m: 30, s: 46, d: 62, x: 22 } as const;
 const X = (v: keyof typeof V, h: keyof typeof Hh): [number, number] => [V[v] + 2, Hh[h] + 2];
 
 export const MISSIONS: Mission[] = [
-  // ── Chapter 1: the Night Market (Jade Dragon)
+  // ── Chapter 1: Smith Street (Jade Dragon)
   { id: 'm1', ch: 1, title: 'Opening Night', giver: 'kee', at: 'kee', reward: 60, rep: 12, blurb: 'Help Uncle Kee get a crate of mangoes to Chef Mo.',
     steps: [
       { t: 'talk', lines: [['kee', 'Ah, hero! Good timing. The whole quarter is in a flap.', 'happy'], ['kee', 'The Kaypoh Crows swooped last night and took our five lucky heirlooms. Without them, no festival.', 'worried'], ['hero', 'Then we get them back. Where do we start?', 'smug'], ['mate', 'Together, like always. Two pairs of paws are faster than one.', 'happy'], ['kee', 'Start small. Chef Mo needs these mangoes for her stall, and my legs are slower than my stories.', 'calm']] },
@@ -133,13 +141,13 @@ export const MISSIONS: Mission[] = [
       { t: 'chase', who: 'cart', from: X('a', 'm'), route: [X('a', 's'), X('b', 's'), X('b', 'd'), X('c', 'd'), X('c', 'm'), X('a', 'm')], bumps: 3, loot: 'h-dragon', speed: 250, finish: 'snatch', label: 'Bump Pip’s cart twice, then ride alongside: F and {mate} grabs the Dragon', sets: [{ k: 'stall', at: [24, 50], wp: 2 }], cp: true },
       { t: 'pickup', at: 'loot', item: 'h-dragon', label: 'Grab the Jade Dragon' },
       { t: 'goto', at: 'kee', label: 'Take the Jade Dragon to Uncle Kee' },
-      { t: 'talk', lines: [['kee', 'The Jade Dragon! The Night Market will sleep easy tonight.', 'happy'], ['kee', 'The fog over Temple Hill is lifting. Brother Heron rang to say the Golden Bell is gone too.', 'worried']] },
+      { t: 'talk', lines: [['kee', 'The Jade Dragon! Smith Street will sleep easy tonight.', 'happy'], ['kee', 'The fog over Temple Street is lifting. Brother Heron rang to say the Golden Bell is gone too.', 'worried']] },
     ] },
-  // ── Chapter 2: Temple Hill (Golden Bell)
-  { id: 'm6', ch: 2, title: 'Auntie’s Tea Run', giver: 'pang', at: 'pang', reward: 90, rep: 12, blurb: 'Learn to trade: buy tea on Temple Hill, sell it in the Night Market.', tip: { market: 'market', good: 'tea', mult: 1.35 },
+  // ── Chapter 2: Temple Street (Golden Bell)
+  { id: 'm6', ch: 2, title: 'Auntie’s Tea Run', giver: 'pang', at: 'pang', reward: 90, rep: 12, blurb: 'Learn to trade: buy tea on Temple Street, sell it in Smith Street.', tip: { market: 'market', good: 'tea', mult: 1.35 },
     steps: [
-      { t: 'talk', lines: [['pang', 'So you are the one chasing crows. Chasing costs money, dear.', 'smug'], ['pang', 'Tea is cheap up here and dear in the Night Market tonight. Buy low, sell high.', 'calm'], ['pang', 'And haggle! Stop the needle in the middle and I’ll knock some off. Gently.', 'smug']] },
-      { t: 'trade', profit: 40, time: 200, label: 'Make 40 coins profit before the tea goes stale (Temple Hill → Night Market)', cp: true },
+      { t: 'talk', lines: [['pang', 'So you are the one chasing crows. Chasing costs money, dear.', 'smug'], ['pang', 'Tea is cheap up here and dear in Smith Street tonight. Buy low, sell high.', 'calm'], ['pang', 'And haggle! Stop the needle in the middle and I’ll knock some off. Gently.', 'smug']] },
+      { t: 'trade', profit: 40, time: 200, label: 'Make 40 coins profit before the tea goes stale (Temple Street → Smith Street)', cp: true },
       { t: 'goto', at: 'pang', label: 'Tell Auntie Pang how it went' },
       { t: 'talk', lines: [['pang', 'A natural! Your stall-keeper rep is growing. Better prices for you now.', 'happy']] },
     ] },
@@ -163,7 +171,7 @@ export const MISSIONS: Mission[] = [
       { t: 'deliver', to: 'temple-steps', time: 80, fragile: 6, item: 'cake', label: 'Deliver the cake before it melts (gently!)' },
       { t: 'talk', lines: [['heron', 'A perfect cake. The bride is crying happy tears.', 'happy']] },
     ] },
-  { id: 'm10', ch: 2, title: 'The Golden Bell', giver: 'heron', at: 'heron', reward: 300, rep: 20, blurb: 'Chase the cart carrying the Golden Bell down Temple Hill.',
+  { id: 'm10', ch: 2, title: 'The Golden Bell', giver: 'heron', at: 'heron', reward: 300, rep: 20, blurb: 'Chase the cart carrying the Golden Bell down Temple Street.',
     steps: [
       { t: 'talk', lines: [['heron', 'There! The cart with the Golden Bell, rolling down the hill road!', 'worried'], ['hero', 'Not on my watch.', 'cross']] },
       { t: 'ride', kind: 'scooter', near: [35, 14], label: 'Grab a scooter', cp: true },
@@ -172,9 +180,9 @@ export const MISSIONS: Mission[] = [
       { t: 'bag', at: 'here', loot: 'h-bell', time: 60, label: 'Knock the loot bag out of the crow’s claws (shoot it, or dash when it swoops low)', cp: true },
       { t: 'pickup', at: 'loot', item: 'h-bell', label: 'Grab the Golden Bell' },
       { t: 'goto', at: 'heron', label: 'Return the bell to Brother Heron' },
-      { t: 'talk', lines: [['heron', 'It rings again! Listen.', 'happy'], ['heron', 'The canal folk say a pearl glow was seen on a crow boat. The Canal Quarter is open to you.', 'calm']] },
+      { t: 'talk', lines: [['heron', 'It rings again! Listen.', 'happy'], ['heron', 'The canal folk say a pearl glow was seen on a crow boat. The Boat Quay is open to you.', 'calm']] },
     ] },
-  // ── Chapter 3: the Canal Quarter (Pearl Lantern)
+  // ── Chapter 3: Boat Quay (Pearl Lantern)
   { id: 'm11', ch: 3, title: 'Learn the Water', giver: 'kiri', at: 'kiri', reward: 110, rep: 12, blurb: 'Take a canal boat through Kiri’s course.',
     steps: [
       { t: 'talk', lines: [['kiri', 'Ever steered a boat? It’s like a scooter that’s had a big lunch.', 'smug'], ['kiri', 'Through my lantern gates and back, before the tide turns.', 'calm']] },
@@ -194,13 +202,13 @@ export const MISSIONS: Mission[] = [
   { id: 'm13', ch: 3, title: 'Hot Tip', giver: 'lim', at: 'lim', reward: 150, rep: 14, blurb: 'Use Mr Lim’s tip: porcelain is cheap on Canal Row and dear at the temple tonight.', tip: { market: 'temple', good: 'bowl', mult: 1.5 },
     steps: [
       { t: 'talk', lines: [['lim', 'Tip of the night: the temple’s caretakers smashed their bowls. They’ll pay double.', 'smug'], ['lim', 'Canal Row has porcelain going cheap. A bigger ride carries more!', 'calm']] },
-      { t: 'trade', profit: 120, time: 240, label: 'Make 120 coins profit before the temple buys elsewhere (Canal Row → Temple Hill)', cp: true },
+      { t: 'trade', profit: 120, time: 240, label: 'Make 120 coins profit before the temple buys elsewhere (Canal Row → Temple Street)', cp: true },
       { t: 'goto', at: 'lim', label: 'Tell Mr Lim' },
       { t: 'talk', lines: [['lim', 'Read all about it: young chinchilla makes a killing!', 'happy']] },
     ] },
   { id: 'm14', ch: 3, title: 'Wobbly Cargo', giver: 'kiri', at: 'kiri', reward: 160, rep: 14, blurb: 'Pedal a tower of clay pots over the canal bridges without a crash.',
     steps: [
-      { t: 'talk', lines: [['kiri', 'My cousin’s pots need to get to the Night Market square. A trishaw rides smoothest.', 'calm'], ['kiri', 'Six bumps and they’re shards. Slow round the corners!', 'worried']] },
+      { t: 'talk', lines: [['kiri', 'My cousin’s pots need to get to Smith Street square. A trishaw rides smoothest.', 'calm'], ['kiri', 'Six bumps and they’re shards. Slow round the corners!', 'worried']] },
       { t: 'ride', kind: 'trishaw', near: [62, 22], label: 'Get on the trishaw', cp: true },
       { t: 'pickup', at: [63, 25], item: 'pots', label: 'Load the pots' },
       { t: 'deliver', to: 'mk-market', time: 110, fragile: 4, item: 'pots', label: 'Deliver the pots in one piece' },
@@ -214,12 +222,12 @@ export const MISSIONS: Mission[] = [
       { t: 'chase', who: 'boat', from: [67, 30], route: [[67, 58], [67, 20], [67, 50], [67, 6]], bumps: 3, loot: 'h-lantern', speed: 225, label: 'Bump the crow boat three times', sets: [{ k: 'bridge', at: [67, 44], wp: 0 }], cp: true },
       { t: 'pickup', at: 'loot', item: 'h-lantern', label: 'Fish out the Pearl Lantern' },
       { t: 'goto', at: 'kiri', label: 'Bring the lantern to Kiri' },
-      { t: 'talk', lines: [['kiri', 'It glows like a moon on the water. Thank you.', 'happy'], ['kiri', 'Big Bo at the Docks says a silver fish was loaded into a crow crate. The Docks are open!', 'calm']] },
+      { t: 'talk', lines: [['kiri', 'It glows like a moon on the water. Thank you.', 'happy'], ['kiri', 'Big Bo at the Tanjong Pagar Docks says a silver fish was loaded into a crow crate. The Docks are open!', 'calm']] },
     ] },
-  // ── Chapter 4: the Docks (Silver Koi)
+  // ── Chapter 4: the Tanjong Pagar Docks (Silver Koi)
   { id: 'm16', ch: 4, title: 'Night Shift', giver: 'bo', at: 'bo', reward: 140, rep: 12, blurb: 'Ferry three dock workers home in a tuk-tuk.',
     steps: [
-      { t: 'talk', lines: [['bo', 'Welcome to the Docks, small one. My crew’s bus is broken and they’re sleepy.', 'calm'], ['bo', 'Grab that tuk-tuk. Pick them up, drop them home, three fares.', 'happy']] },
+      { t: 'talk', lines: [['bo', 'Welcome to the Tanjong Pagar Docks, small one. My crew’s bus is broken and they’re sleepy.', 'calm'], ['bo', 'Grab that tuk-tuk. Pick them up, drop them home, three fares.', 'happy']] },
       { t: 'ride', kind: 'tuktuk', near: [56, 64], label: 'Get in the tuk-tuk', cp: true },
       { t: 'fares', n: 3, label: 'Drive three dock workers home' },
       { t: 'talk', lines: [['bo', 'They’re singing your name. Badly, but warmly.', 'happy'], ['bo', 'Take this net launcher. Built it for crabs; works on carts.', 'smug']] },
@@ -258,9 +266,9 @@ export const MISSIONS: Mission[] = [
       { t: 'chase', who: 'cart', from: X('d', 'd'), route: [X('e', 'd'), X('f', 'd'), [92, 78], X('f', 'd'), [74, 78], X('d', 'd')], bumps: 3, loot: 'h-koi', speed: 275, finish: 'net', label: 'Bump the cart twice, then net it (click) or ride alongside for {mate}’s grab (F)', sets: [{ k: 'crane', at: [92, 71], wp: 2 }, { k: 'gate', at: [92, 74], wp: 2 }], cp: true },
       { t: 'pickup', at: 'loot', item: 'h-koi', label: 'Catch the Silver Koi' },
       { t: 'goto', at: 'bo', label: 'Bring it to Big Bo' },
-      { t: 'talk', lines: [['bo', 'Shiny! Now the last one. The Phoenix Drum is in Madame Glint’s roost, up the Arcade Strip.', 'happy'], ['bo', 'The neon lights are on for you.', 'smug']] },
+      { t: 'talk', lines: [['bo', 'Shiny! Now the last one. The Phoenix Drum is in Madame Glint’s roost, up Clarke Quay.', 'happy'], ['bo', 'The neon lights are on for you.', 'smug']] },
     ] },
-  // ── Chapter 5: the Arcade Strip (Phoenix Drum)
+  // ── Chapter 5: Clarke Quay (Phoenix Drum)
   { id: 'm21', ch: 5, title: 'Neon Night Race', giver: 'gizmo', at: 'gizmo', reward: 180, rep: 14, blurb: 'Beat a crow racer round the Strip on a scooter.',
     steps: [
       { t: 'talk', lines: [['gizmo', 'Yo yo! A crow racer says no chinchilla can beat him round the Strip.', 'smug'], ['gizmo', 'Prove him wrong and I’ll tell you how to get into the Roost.', 'calm']] },

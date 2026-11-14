@@ -1,6 +1,6 @@
 // Jade Street: breaking up the grid. Runs once on the built city (lib/jade-city.ts) before the shophouses are dressed:
-// it merges blocks of four shophouses into big landmarks (a food hall and an opera house in the Night Market, a bell
-// tower on Temple Hill, a clock tower by the canal, a cinema on the Strip), opens others into plazas with fountains,
+// it merges blocks of four shophouses into big landmarks (a food hall and an opera house in Smith Street, a bell
+// tower on Temple Street, a clock tower by the canal, a cinema on the Strip), opens others into plazas with fountains,
 // banyan trees, koi ponds, bamboo, benches and a statue, sets food-court tables by the stalls, puts a lighthouse on
 // the harbour, lays curving painted footpaths through the park and plazas, and plans the festival dressing (arches,
 // giant lanterns, the stage and the sky-lantern poles) that appears once the story is won. Every change only opens

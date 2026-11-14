@@ -53,7 +53,7 @@ export const GRAB_REACH = 130;
 export function grabTarget(w: World): Grab | null {
   const p = w.p, reach = GRAB_REACH * (w.assist ? 1.2 : 1);
   if (w.run) {
-    for (const a of w.run.actors) if (!a.gone && a.stun <= 0 && ['cart', 'runner', 'boss', 'boat', 'raider', 'decoy', 'bagbird'].includes(a.kind) && dist(a.b.x, a.b.y, p.x, p.y) < reach + (a.kind === 'bagbird' ? 0 : 20) && (a.kind !== 'bagbird' || (a.extra ?? 0) > 0)) return { kind: 'actor', a };
+    for (const a of w.run.actors) if (!a.gone && (a.stun <= 0 || dizzyGrab(w, a)) && ['cart', 'runner', 'boss', 'boat', 'raider', 'decoy', 'bagbird'].includes(a.kind) && dist(a.b.x, a.b.y, p.x, p.y) < reach + (a.kind === 'bagbird' ? 0 : 20) && (a.kind !== 'bagbird' || (a.extra ?? 0) > 0)) return { kind: 'actor', a };
     if (w.run.loot && dist(w.run.loot.x, w.run.loot.y, p.x, p.y) < reach + 20) return { kind: 'loot' };
     const it = w.run.items.find(i => !i.got && dist(i.x, i.y, p.x, p.y) < reach); if (it) return { kind: 'loot' };
   }
@@ -127,3 +127,7 @@ export function distractStep(w: World) {
 }
 export const pounceWindow = (w: World) => w.assist ? 1.2 : 0.8;
 export type { Actor };
+/** a chase target that is dizzy from your bump on its last hit can still be grabbed (you're jammed right beside it) */
+function dizzyGrab(w: World, a: Actor): boolean {
+  const st = w.run?.cur; return !!st && st.t === 'chase' && (st.finish === 'snatch' || st.finish === 'net') && a === w.run!.actors[0] && a.hits >= st.bumps - 1;
+}

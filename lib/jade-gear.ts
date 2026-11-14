@@ -31,7 +31,7 @@ export const GADGETS: Record<GadgetId, GadgetDef> = {
 export const GEAR_GIFT: Record<string, GadgetId[]> = { m3: ['sling', 'paint'], m8: ['popper'], m11: ['bubble'], m16: ['net'], m21: ['confetti'] };
 export const STALL_OPENS = 'm2';
 export const stallOpen = (s: Save) => s.done.includes(STALL_OPENS);
-/** Tock's toy stall: on the pavement at the Night Market's west end (a free walk tile near tile 24,57, beside the market square) */
+/** Tock's toy stall: on the pavement at Smith Street's west end (a free walk tile near tile 24,57, beside the market square) */
 let STALL: [number, number] | null = null;
 export function stallPos(w: World): [number, number] { if (!STALL) STALL = nearestFree(w.c, 'walk', 24 * T + T / 2, 57 * T + T / 2, new Set(['market']), 4); return STALL; }
 export type GearState = { own: GadgetId[]; ammo: Record<GadgetId, number>; clip: Record<GadgetId, number>; lvl: Record<GadgetId, number>; carry: Record<Hero, GadgetId[]>; slot: Record<Hero, number> };
@@ -99,7 +99,7 @@ export function shooterFor(w: World, p: Player): Player | null {
 }
 export function fire(w: World, p: Player, ax: number, ay: number): string | null {
   const s = w.s, who = p.who, g = carried(s, who);
-  if (!g) return s.gear.own.length ? 'Nothing in that hand: switch gadgets with 1 and 2' : 'No gadgets yet: Tock’s toy stall in the Night Market has some';
+  if (!g) return s.gear.own.length ? 'Nothing in that hand: switch gadgets with 1 and 2' : 'No gadgets yet: Tock’s toy stall in Smith Street has some';
   if (p.hide || p.act || p.stunT > 0) return 'busy';
   if (p.fireCd > 0 || p.reloadT > 0) return 'busy';
   const G = s.gear, def = GADGETS[g];

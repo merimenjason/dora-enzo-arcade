@@ -1,6 +1,6 @@
 // Jade Street music and voices, synthesised with WebAudio. Six themes, each with its own tempo, mode and band:
 //   street   free roam: a walking guzheng melody over soft woodblocks and a low drone
-//   market   a busier pluck with a hand-drum pattern and finger cymbals (in the Night Market and at the stalls)
+//   market   a busier pluck with a hand-drum pattern and finger cymbals (in Smith Street and at the stalls)
 //   chase    fast: the erhu lead over driving drums and a gong on the downbeat of each phrase
 //   boss     Madame Glint: a minor-mode erhu with tom rolls and a low pulse
 //   festival the lantern festival: bright guzheng runs, cymbals and a skipping drum

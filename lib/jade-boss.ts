@@ -1,4 +1,4 @@
-// Jade Street: Madame Glint, the finale, in three phases across the Arcade Strip, each with its own checkpoint.
+// Jade Street: Madame Glint, the finale, in three phases across Clarke Quay, each with its own checkpoint.
 //   1 · Decoys. Glint rides her scooter round the boulevard and every few seconds throws out two decoy riders who look
 //       just like her; only the real Glint sparkles gold. Bumping a decoy bursts it in a puff of feathers and paper
 //       and costs you a moment. Two bumps on the real one end the phase.

@@ -5,6 +5,7 @@
 // Pure data and queries: no drawing here (lib/jade-scene.ts paints it).
 import { rng } from './jade-rng.js';
 import { remodel, type Path, type FestivalSpot } from './jade-remodel.js';
+import { sgCity, type SgCity } from './jade-sgcity.js';
 
 export const T = 64;
 export const W = 120, H = 92;
@@ -21,7 +22,7 @@ export const F_ALLEY = 1, F_STAIRS = 2, F_ROOF = 4, F_BRIDGE = 8, F_PARK = 16;
 
 export type District = 'market' | 'temple' | 'canal' | 'docks' | 'arcade';
 export const DISTRICTS: District[] = ['market', 'temple', 'canal', 'docks', 'arcade'];
-export const DISTRICT_NAME: Record<District, string> = { market: 'Night Market', temple: 'Temple Hill', canal: 'Canal Quarter', docks: 'the Docks', arcade: 'Arcade Strip' };
+export const DISTRICT_NAME: Record<District, string> = { market: 'Smith Street', temple: 'Temple Street', canal: 'Boat Quay', docks: 'the Tanjong Pagar Docks', arcade: 'Clarke Quay' };
 export function districtAt(tx: number, ty: number): District {
   if (tx < 46) return ty < 30 ? 'temple' : 'market';
   if (ty >= 62) return 'docks';
@@ -39,6 +40,8 @@ export type City = {
   ladders: { x: number; y: number; rx: number; ry: number }[]; hides: { x: number; y: number }[]; parking: { x: number; y: number; d: District; kind: string; rot: number }[];
   /** painted footpaths that curve over open ground, the food-court tables, and the festival dressing (lib/jade-remodel.ts) */
   paths: Path[]; tables: Prop[]; festival: FestivalSpot[];
+  /** the Singapore pass (lib/jade-sgcity.ts) */
+  sg?: SgCity;
 };
 
 // the street plan: horizontal and vertical roads, 4 tiles wide (kerb, lane, lane, kerb)
@@ -48,10 +51,21 @@ export const ROADS: Road[] = [
   { axis: 'v', at: 10, from: 12, to: 81 }, { axis: 'v', at: 26, from: 12, to: 65 }, { axis: 'v', at: 42, from: 0, to: 81 }, { axis: 'v', at: 60, from: 0, to: 81 },
   { axis: 'v', at: 71, from: 0, to: 81 }, { axis: 'v', at: 90, from: 0, to: 81 }, { axis: 'v', at: 106, from: 12, to: 65 },
 ];
+/** real public street names of Singapore's Chinatown and the river, one per road above (no brands) */
+export const STREET_NAME = ['Pagoda Street', 'Trengganu Street', 'Smith Street', 'Keong Saik Road', 'River Valley Road',
+  'Neil Road', 'Temple Street', 'South Bridge Road', 'New Bridge Road', 'Boat Quay', 'Merchant Road', 'Hill Street'];
+/** the street a tile is on (null off the roads) */
+export function streetAt(tx: number, ty: number): string | null {
+  for (let i = 0; i < ROADS.length; i++) {
+    const r = ROADS[i];
+    if (r.axis === 'h' ? ty >= r.at && ty < r.at + 4 && tx >= r.from && tx <= r.to : tx >= r.at && tx < r.at + 4 && ty >= r.from && ty <= r.to) return STREET_NAME[i];
+  }
+  return null;
+}
 const CANAL_X0 = 66, CANAL_X1 = 68, SEA_Y = 82;
 
 let CACHE: City | null = null;
-export function city(): City { if (!CACHE) { CACHE = build(); remodel(CACHE); dressBuildings(CACHE); } return CACHE; }
+export function city(): City { if (!CACHE) { CACHE = build(); remodel(CACHE); dressBuildings(CACHE); sgCity(CACHE); } return CACHE; }
 
 const SIDEWALK: Record<District, G> = { market: G.WALK, temple: G.TEMPLE, canal: G.COBBLE, docks: G.DOCK, arcade: G.NEON };
 const FRONTS: Record<District, string[]> = {
@@ -107,7 +121,7 @@ function build(): City {
   // two footbridges over the canal
   for (const fy of [40, 56, 74]) { rect(CANAL_X0, fy, 3, 2, G.BRIDGE, S.OPEN, F_BRIDGE | F_ALLEY); decals.push({ x: (CANAL_X0 + 1.5) * T, y: (fy + 1) * T, sprite: 'd-bridge-wood', r: 0, solid: 'none', layer: 'ground', w: 4.2 * T, rot: 0 }); }
 
-  // ── Temple Hill park (north-west): lawns, earth paths, the temple on its steps, the pagoda, a lotus pond
+  // ── Temple Street park (north-west): lawns, earth paths, the temple on its steps, the pagoda, a lotus pond
   rect(0, 0, 42, 12, G.GRASS, S.OPEN, F_PARK);
   rect(4, 3, 6, 5, G.CANAL, S.WATER, F_PARK);
   rect(0, 9, 42, 3, G.PATH, S.OPEN, F_PARK);
@@ -122,27 +136,27 @@ function build(): City {
   prop(15, 6, 'lion-statue', 18, 'tall', 'over'); prop(22, 6, 'lion-statue', 18, 'tall', 'over'); prop(19, 6, 'urn', 16, 'tall', 'over');
 
   // ── reserved plans inside blocks (before the filler)
-  // Night Market: the market square, the food court, the grocer, safe house, garage, ferry pier
+  // Smith Street: the market square, the food court, the grocer, safe house, garage, ferry pier
   rect(14, 50, 12, 12, G.PLAZA);
   for (const [x, y, s] of [[15, 52, 'stall-red'], [18, 52, 'stall-fruit'], [21, 52, 'stall-tea'], [15, 56, 'stall-noodle'], [21, 56, 'stall-red'], [18, 59, 'stall-fruit']] as const) stall(x, y, s);
-  place('mk-market', 19, 55, 'market', 'Night Market stalls'); place('mo', 34, 70, 'contact', 'Chef Mo');
+  place('mk-market', 19, 55, 'market', 'Kreta Ayer market stalls'); place('mo', 34, 70, 'contact', 'Chef Mo');
   rect(30, 66, 12, 9, G.PLAZA);
   for (const [x, y, s] of [[31, 67, 'stall-noodle'], [36, 67, 'stall-red'], [31, 71, 'stall-tea'], [38, 72, 'stall-noodle']] as const) stall(x, y, s);
   place('wok-stall', 33, 69, 'spot');
   bld(14, 40, 3, 3, 'shop-4'); place('kee', 15, 43, 'contact', 'Uncle Kee'); rect(14, 43, 12, 3, G.WALK);
   bld(0, 56, 3, 3, 'lm-safe'); rect(0, 59, 10, 3, G.WALK); place('safe-market', 1, 59, 'safe', 'Lantern Lane safe house');
-  bld(30, 37, 3, 3, 'lm-garage'); rect(30, 40, 12, 2, G.WALK); place('garage-market', 31, 40, 'garage', 'Night Market garage');
+  bld(30, 37, 3, 3, 'lm-garage'); rect(30, 40, 12, 2, G.WALK); place('garage-market', 31, 40, 'garage', 'Smith Street garage');
   rect(10, SEA_Y, 4, 6, G.PLANK); place('ferry', 11, 86, 'spot');
   for (const x of [10, 13]) for (const y of [83, 85, 87]) prop(x, y, 'bollard', 10, 'low');
 
-  // Temple Hill blocks: the temple market plaza and Auntie Pang, Master Ren's practice yard, safe house
+  // Temple Street blocks: the temple market plaza and Auntie Pang, Master Ren's practice yard, safe house
   rect(30, 16, 12, 9, G.TEMPLE);
   for (const [x, y, s] of [[31, 17, 'stall-tea'], [35, 17, 'stall-red'], [39, 17, 'stall-fruit'], [33, 21, 'stall-tea']] as const) stall(x, y, s);
-  place('mk-temple', 36, 20, 'market', 'Temple Hill market'); place('pang', 37, 20, 'contact', 'Auntie Pang');
+  place('mk-temple', 36, 20, 'market', 'Temple Street market'); place('pang', 37, 20, 'contact', 'Auntie Pang');
   rect(14, 16, 6, 6, G.TEMPLE); place('ren', 16, 18, 'contact', 'Master Ren'); prop(18, 17, 'lucky-circle', 0, 'none');
   bld(0, 24, 3, 3, 'lm-safe'); rect(0, 27, 10, 3, G.TEMPLE); place('safe-temple', 1, 27, 'safe', 'Pine Steps safe house');
 
-  // Canal Quarter: the canal-side market, Kiri's boat jetty, Mr Lim's kiosk, safe house, garage
+  // Boat Quay: the canal-side market, Kiri's boat jetty, Mr Lim's kiosk, safe house, garage
   rect(46, 34, 14, 6, G.COBBLE);
   for (const [x, y, s] of [[47, 35, 'stall-fruit'], [51, 35, 'stall-tea'], [55, 35, 'stall-red']] as const) stall(x, y, s);
   place('mk-canal', 52, 38, 'market', 'Canal Row market');
@@ -151,7 +165,7 @@ function build(): City {
   bld(54, 50, 3, 3, 'lm-safe'); rect(46, 53, 14, 2, G.COBBLE); place('safe-canal', 55, 53, 'safe', 'Willow Water safe house');
   bld(77, 37, 3, 3, 'lm-garage'); rect(75, 40, 15, 2, G.NEON); place('garage-canal', 78, 40, 'garage', 'Strip garage');
 
-  // Arcade Strip: the neon market, Gizmo's arcade, the rooftop terraces, the Crow Roost (boss), safe house
+  // Clarke Quay: the neon market, Gizmo's arcade, the rooftop terraces, the Crow Roost (boss), safe house
   rect(110, 34, 10, 8, G.NEON);
   for (const [x, y, s] of [[111, 35, 'stall-red'], [115, 35, 'stall-noodle'], [111, 39, 'stall-tea']] as const) stall(x, y, s);
   place('mk-arcade', 115, 39, 'market', 'Neon Row market');
@@ -162,7 +176,7 @@ function build(): City {
   rect(94, 34, 12, 12, G.NEON);
   for (const [x, y] of [[94, 34], [98, 34], [102, 34], [94, 38], [98, 38], [102, 38], [94, 42], [98, 42], [102, 42]] as const) bld(x, y, 3, 3, 'flat-' + (1 + ((x + y) % 6)), false, true);
   ladders.push({ x: 93, y: 44, rx: 94, ry: 44 }, { x: 105, y: 33, rx: 104, ry: 34 });
-  // a second terrace run in the Night Market
+  // a second terrace run in Smith Street
   rect(0, 66, 10, 16, G.WALK);
   for (const [x, y] of [[0, 66], [4, 66], [0, 70], [4, 70], [0, 74], [4, 74], [0, 78], [4, 78]] as const) bld(x, y, 3, 3, 'flat-' + (1 + ((x * 3 + y) % 6)), false, true);
   ladders.push({ x: 8, y: 81, rx: 6, ry: 80 }, { x: 8, y: 66, rx: 6, ry: 66 });

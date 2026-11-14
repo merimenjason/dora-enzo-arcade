@@ -13,13 +13,13 @@ type Panel = { img: string; title: string; text: string; focus?: string };
 
 const OPENING: Panel[] = [
   { img: 'bg-story-1', title: 'The night before the Lantern Festival', focus: '50% 40%',
-    text: 'The Night Market glows red and gold. Every stall is hung with lanterns, and the whole quarter is getting ready for tomorrow’s Lantern Festival.' },
+    text: 'Smith Street glows red and gold. Every stall is hung with lanterns, and the whole quarter is getting ready for tomorrow’s Lantern Festival.' },
   { img: 'bg-story-2', title: 'The Kaypoh Crows strike', focus: '50% 35%',
     text: `While the city sleeps, Madame Glint and her Kaypoh Crows swoop into the temple and snatch the quarter’s five lucky heirlooms: the ${HEIRLOOMS.map(h => h.name).join(', ').replace(/, ([^,]*)$/, ' and $1')}.` },
   { img: 'bg-story-3', title: 'An empty altar', focus: '50% 40%',
     text: 'By morning the altar is bare. No heirlooms, no festival, no luck for the year ahead. The neighbours gather, worried and whispering.' },
   { img: 'bg-story-4', title: 'Dora and Enzo take the case', focus: '50% 45%',
-    text: `Two chinchillas with fast paws and a borrowed scooter. ${PEOPLE.kee.name} has a lead in the Night Market. Win back the heirlooms, one district at a time, before the lanterns rise.` },
+    text: `Two chinchillas with fast paws and a borrowed scooter. ${PEOPLE.kee.name} has a lead in Smith Street. Win back the heirlooms, one district at a time, before the lanterns rise.` },
 ];
 const ENDING: Panel[] = [
   { img: 'bg-end-1', title: 'The heirlooms come home', focus: '50% 40%',
