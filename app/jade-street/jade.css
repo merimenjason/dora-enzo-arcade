@@ -265,3 +265,23 @@
   .jade-shell .jade-tag { display: none; }
   .jade-shell .jade-toasts { top: 32%; }
 }
+
+/* third pass: the second meter, the warning line, mood portraits, businesses */
+.jade-shell .jade-job-row { flex-wrap: wrap; }
+.jade-shell .jade-warn { margin-top: 6px; padding: 5px 10px; border-radius: 8px; background: rgba(150, 20, 30, .88); color: #fff4e8; font-weight: 800; font-size: 13px; box-shadow: 0 0 0 2px rgba(255, 200, 120, .55); animation: jade-warn-pulse .9s ease-in-out infinite alternate; }
+@keyframes jade-warn-pulse { from { box-shadow: 0 0 0 2px rgba(255, 200, 120, .35); } to { box-shadow: 0 0 0 3px rgba(255, 220, 140, .9); } }
+@media (prefers-reduced-motion: reduce) { .jade-shell .jade-warn { animation: none; } }
+.jade-shell .jade-talk p { min-height: 2.6em; }
+.jade-shell .jade-biz-top { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.jade-shell .jade-biz-top > div { flex: 1 1 220px; min-width: 0; }
+.jade-shell .jade-biz-till { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0; font-weight: 700; }
+.jade-shell .jade-bars { display: inline-flex; align-items: flex-end; gap: 3px; height: 34px; min-width: 60px; padding: 2px 4px; border-radius: 6px; background: rgba(0, 0, 0, .28); }
+.jade-shell .jade-bars span { display: block; width: 8px; background: linear-gradient(#ffe08a, #e0a030); border-radius: 2px 2px 0 0; }
+.jade-shell .jade-bars em { font-size: 12px; font-style: normal; opacity: .85; align-self: center; }
+.jade-shell .jade-bizlist { display: grid; gap: 8px; margin: 10px 0; }
+.jade-shell .jade-bizrow { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; background: rgba(255, 255, 255, .06); }
+.jade-shell .jade-bizrow.mine { background: rgba(255, 210, 90, .14); box-shadow: inset 0 0 0 2px rgba(255, 210, 90, .4); }
+.jade-shell .jade-bizrow b { display: block; }
+.jade-shell .jade-bizrow small { display: block; opacity: .92; overflow-wrap: anywhere; }
+.jade-shell .jade-biz-total { display: grid; gap: 6px; justify-items: start; }
+@media (max-width: 520px) { .jade-shell .jade-bizrow { grid-template-columns: 48px minmax(0, 1fr); } .jade-shell .jade-bizrow .jade-bars { grid-column: 1 / -1; } }

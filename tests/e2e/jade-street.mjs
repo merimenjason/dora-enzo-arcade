@@ -8,9 +8,11 @@
 // Buy, Max, Sell, All), the safe house (jacket swap, both heroes, an outfit, stash and take, sleep), the garage (every
 // upgrade and a paint), and the failure card (Retry and Quit job). On every screen it checks for sideways scroll and
 // for text that is too faint to read against its own backing. Fails on any failed check, page error or console
-// error. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves a screenshot of every screen.
+// error. The third pass (voices, the typewriter, moods, set pieces, Glint's phases, businesses, raids, Reduce shake and
+// the new animations) is in ./jade-street-3.mjs. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves a screenshot of every screen.
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
+import { third } from './jade-street-3.mjs';
 const require = createRequire(import.meta.url);
 let chromium;
 try { ({ chromium } = require('playwright')); } catch { ({ chromium } = createRequire(process.cwd() + '/')('playwright')); }
@@ -136,7 +138,7 @@ async function viewport(name, w, h, touch) {
   check(await exists('hud') && await exists('cash'), `${name}: the HUD shows`);
   check(await exists('dialogue'), `${name}: the intro dialogue opens`); await look('intro');
   // advance the dialogue: tap it, or Space
-  for (let i = 0; i < 4 && await exists('dialogue'); i++) { if (touch) await press('dialogue'); else { await p.keyboard.press(' '); await wait(150); } }
+  for (let i = 0; i < 16 && await exists('dialogue'); i++) { if (touch) await press('dialogue'); else { await p.keyboard.press(' '); await wait(150); } }
   check(!(await exists('dialogue')), `${name}: the dialogue advances and closes`);
   check(await exists(touch ? 'stick' : 'hud'), `${name}: ${touch ? 'the touch stick shows' : 'the HUD stays'}`);
   check(await appear('jade-hint') && (await p.locator('[data-testid="jade-hint"]').getAttribute('data-lesson')) === 'move', `${name}: the first lesson teaches moving`); await look('lesson');
@@ -170,7 +172,7 @@ async function viewport(name, w, h, touch) {
   check(await appear('prompt'), `${name}: a prompt by Uncle Kee`); await look('prompt');
   await act();
   check(await appear('dialogue'), `${name}: talking to Uncle Kee`); await look('dialogue');
-  for (let i = 0; i < 8 && await exists('dialogue'); i++) { if (touch) await press('dialogue'); else { await p.keyboard.press('e'); await wait(150); } }
+  for (let i = 0; i < 24 && await exists('dialogue'); i++) { if (touch) await press('dialogue'); else { await p.keyboard.press('e'); await wait(150); } }
   const run = (await st()).run;
   check(run && run.id === 'm1', `${name}: the first job starts (${JSON.stringify(run)})`);
   check(await exists('job') && await exists('objective'), `${name}: the job and objective show`); await look('job');
@@ -378,7 +380,7 @@ async function viewport(name, w, h, touch) {
 
   // ── failing a job: Retry, then Quit job
   await W(() => window.__jade.jumpTo('m2')); await wait(200); await act();
-  for (let i = 0; i < 8 && await exists('dialogue'); i++) { if (touch) await press('dialogue'); else { await p.keyboard.press(' '); await wait(120); } }
+  for (let i = 0; i < 24 && await exists('dialogue'); i++) { if (touch) await press('dialogue'); else { await p.keyboard.press(' '); await wait(120); } }
   await settle(); check(!!(await st()).run, `${name}: the second job starts`);
   await W(() => window.__jade.world().fail('A test failure.')); await wait(200);
   check(await appear('fail'), `${name}: the failure card`); await look('fail');
@@ -394,6 +396,7 @@ async function viewport(name, w, h, touch) {
   await press('jade-credits-done');
   check(!(await exists('jade-credits')) && await W(() => window.__jade.world().festival && window.__jade.world().s.story.ending), `${name}: festival free roam after the credits`);
   await W(() => window.__jade.teleportTo('mk-market')); await wait(1500); await look('festival');
+  await third({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, touch, name, touchAt });
   await W(() => { window.__jade.world().s.done = ['m1', 'm2']; window.__jade.world().open = new Set(['market', 'temple']); });
 
   // ── back to the title, Continue, and both answers to starting over

@@ -1,6 +1,7 @@
 'use client';
 // Jade Street HUD: the hero plaque (portrait, coins, heat lanterns, night clock, district), the job plaque (objective,
-// timer, progress, meter), the action prompt, toasts and banners, the dialogue box with portraits, the failure card,
+// timer, progress, up to two meters and the warning line), the action prompt, toasts and banners, the dialogue box
+// (portraits with a mood per line, the line typing out; a tap shows it all), the failure card,
 // and the touch controls (a floating stick on the left, Action / Dash / Hop / Sneak on the right). React draws only
 // this layer; the city is on the canvas underneath.
 import { useEffect, useRef } from 'react';
@@ -15,6 +16,8 @@ import { GOODS } from '@/lib/jade-trade';
 
 export const clockText = (c: number) => { const m = Math.floor(c) + 19 * 60; const h = Math.floor(m / 60) % 24, mm = m % 60; const h12 = h % 12 === 0 ? 12 : h % 12; return `${h12}:${String(mm).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`; };
 const face = (who: string, hero: string) => who === 'dora' || who === 'enzo' ? `face-${who}` : PEOPLE[who]?.face ?? `face-${hero}`;
+/** the portrait for a line: the calm face, or the painted happy / worried / cross / smug one */
+export const moodFace = (who: string, hero: string, mood = 'calm') => mood === 'calm' ? face(who, hero) : `${face(who, hero)}-${mood}`;
 const nameOf = (who: string) => who === 'dora' ? 'Dora' : who === 'enzo' ? 'Enzo' : PEOPLE[who]?.name ?? who;
 
 export function TopHud({ play, onMap, onPause }: { play: Play; onMap: () => void; onPause: () => void }) {
@@ -48,8 +51,10 @@ export function TopHud({ play, onMap, onPause }: { play: Play; onMap: () => void
           <div className="jade-job-row">
             {run.timer !== null && <span className={'jade-timer' + (run.timer < 10 ? ' low' : '')} data-testid="timer">{Math.ceil(run.timer)}s</span>}
             {run.progress && <span className="jade-progress">{run.progress}</span>}
-            {run.meter && <span className={'jade-meter' + (run.meter.bad ? ' bad' : '')}><i>{run.meter.name}</i><b style={{ width: `${Math.round(run.meter.v * 100)}%` }} /></span>}
+            {run.meter && <span className={'jade-meter' + (run.meter.bad ? ' bad' : '')} data-testid="meter"><i>{run.meter.name}</i><b style={{ width: `${Math.round(run.meter.v * 100)}%` }} /></span>}
+            {run.meter2 && <span className={'jade-meter' + (run.meter2.bad ? ' bad' : '')} data-testid="meter2"><i>{run.meter2.name}</i><b style={{ width: `${Math.round(run.meter2.v * 100)}%` }} /></span>}
           </div>
+          {run.warning && <div className="jade-warn" role="alert" data-testid="warning">{run.warning.text}</div>}
         </div>
       )}
       {!run && w.waypoint && <div className="jade-job small"><div className="jade-job-label">Following your map pin</div></div>}
@@ -80,16 +85,17 @@ export function Prompt({ play, touch }: { play: Play; touch: boolean }) {
 
 export function Dialogue({ play }: { play: Play }) {
   const w = play.w, t = w.talk; if (!t) return null;
-  const [who, text] = t.lines[t.i] ?? ['', ''];
+  const [who, text, mood = 'calm'] = t.lines[t.i] ?? ['', ''];
   const hero = who === w.s.hero;
+  const typing = play.typed < text.length;
   return (
     <div className="jade-talk-wrap" onClick={() => play.advance()} data-testid="dialogue">
       <div className={'jade-talk' + (hero ? ' hero' : '')}>
-        <span className="jade-talk-face"><Sprite name={face(who, w.s.hero)} h={96} w={96} /></span>
+        <span className={'jade-talk-face mood-' + mood} data-testid="talk-face" data-mood={mood}><Sprite name={moodFace(who, w.s.hero, mood)} h={96} w={96} /></span>
         <div className="jade-talk-body">
           <div className="jade-talk-name">{nameOf(who)}</div>
-          <p>{text}</p>
-          <div className="jade-talk-next">{t.i + 1}/{t.lines.length} · tap, Space or E to continue</div>
+          <p key={t.i} aria-label={text} data-testid="talk-text" ref={el => { play.typeEl = el; if (el) el.textContent = text.slice(0, Math.floor(play.typed)); }} />
+          <div className="jade-talk-next">{t.i + 1}/{t.lines.length} · {typing ? 'tap, Space or E to show it all' : 'tap, Space or E to continue'}</div>
         </div>
       </div>
     </div>
