@@ -11,7 +11,6 @@ import type { World } from './jade-game.js';
 
 export type Warden = { id: number; b: Body; stun: number; leave: boolean; grab: number; pedal: number };
 export type Roadblock = { id: number; x: number; y: number; r: number; h: number; sprite: string; knocked: number };
-export const EVADE = { easy: 3.2, normal: 4.6 };
 export const SIGHT = 520;
 
 export function addHeat(w: World, n: number, why: string) {
@@ -35,7 +34,7 @@ export function heatStep(w: World, dt: number) {
     w.blimp.on = false;
   }
   // spawn wardens to match the lanterns, coming from off screen along open ground
-  const want = L === 0 ? 0 : Math.min(4, w.easy ? Math.max(1, L - 1) : L);
+  const want = L === 0 ? 0 : Math.min(4, Math.max(1, L + w.diff.extra));
   const active = w.wardens.filter(x => !x.leave).length;
   if (active < want && w.tick % 30 === 0) {
     // they come from behind or the sides, never out of the street you're running down
@@ -47,14 +46,14 @@ export function heatStep(w: World, dt: number) {
   // who can see you?
   let seen = false;
   if (!w.p.hide && L > 0) {
-    for (const wd of w.wardens) if (!wd.leave && wd.stun <= 0 && dist(wd.b.x, wd.b.y, px, py) < SIGHT && los(w.c, wd.b.x, wd.b.y, px, py)) { seen = true; break; }
+    for (const wd of w.wardens) if (!wd.leave && wd.stun <= 0 && dist(wd.b.x, wd.b.y, px, py) < w.diff.sight && los(w.c, wd.b.x, wd.b.y, px, py)) { seen = true; break; }
     if (w.blimp.on && dist(w.blimp.x, w.blimp.y, px, py) < 120 && !w.p.roof) seen = true;
   }
   if (L > 0) {
     if (seen) { w.seenT = 0; w.lastSeen = [px, py]; }
     else {
       w.seenT += dt * (w.p.hide ? 2 : 1);
-      if (w.seenT >= (w.easy ? EVADE.easy : EVADE.normal)) {
+      if (w.seenT >= w.diff.evade) {
         w.seenT = 0; w.heat = Math.max(0, Math.floor(w.heat) - 1 + 0.001);
         w.fx.push({ t: 'heat-down', k: Math.floor(w.heat) });
         if (Math.floor(w.heat) === 0) { w.heat = 0; w.s.stats.escapes++; w.say('You lost them! The lanterns are dark.', 'good'); w.run?.onHeatClear(); }
@@ -64,7 +63,7 @@ export function heatStep(w: World, dt: number) {
   // wardens ride to where they last saw you (straight at you when they can see you)
   const tgt = seen ? [px, py] : w.lastSeen;
   const f = L > 0 ? w.fieldTo('small', tgt[0], tgt[1]) : null;
-  const top = (w.easy ? 205 : 240) + L * 12;
+  const top = w.diff.warden + L * 12;
   for (const wd of w.wardens) {
     wd.pedal += dt;
     if (wd.stun > 0) { wd.stun -= dt; wd.b.speed *= 0.9; continue; }
@@ -84,7 +83,7 @@ export function heatStep(w: World, dt: number) {
     const near = dist(wd.b.x, wd.b.y, px, py) < (w.p.ride ? w.p.ride.b.r + 26 : 28);
     const vulnerable = !w.p.hide && !w.p.roof && !w.p.air && w.p.dashT <= 0 && (!w.p.ride || pb.speed < 50);
     wd.grab = near && vulnerable && !wd.leave ? wd.grab + dt : Math.max(0, wd.grab - dt * 2);
-    if (wd.grab > (w.p.ride ? 1.1 : (w.easy ? 0.35 : 0.2))) { caught(w); return; }
+    if (wd.grab > (w.p.ride ? 1.1 : w.diff.grab)) { caught(w); return; }
   }
   w.wardens = w.wardens.filter(x => !(x.leave && dist(x.b.x, x.b.y, px, py) > 1100));
   // roadblocks from three lanterns: a row of fruit crates across the road ahead
@@ -110,7 +109,7 @@ export function heatStep(w: World, dt: number) {
   if (L >= 4) {
     if (!w.blimp.on) { w.blimp = { x: px - 600, y: py - 500, on: true }; w.fx.push({ t: 'blimp' }); }
     const bx = w.lastSeen[0], by = w.lastSeen[1];
-    const sp = (w.easy ? 150 : 185) * dt; const d = dist(bx, by, w.blimp.x, w.blimp.y);
+    const sp = w.diff.blimp * dt; const d = dist(bx, by, w.blimp.x, w.blimp.y);
     if (d > 1) { w.blimp.x += (bx - w.blimp.x) / d * Math.min(d, sp); w.blimp.y += (by - w.blimp.y) / d * Math.min(d, sp); }
   } else w.blimp.on = false;
 }

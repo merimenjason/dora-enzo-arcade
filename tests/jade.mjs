@@ -18,6 +18,14 @@ import { GIG_DEFS, gigMission } from '../.checks/jade-gigs.js';
 import { LockGame, WireGame, WokGame, DumplingGame } from '../.checks/jade-mini.js';
 import { FRAMES, ATLASES, ATLAS_SIZE, TEXTURES, PLAIN, FILL } from '../.checks/jade-art.js';
 import { playMission, missionSave } from './jade-bot.mjs';
+import { ROADS } from '../.checks/jade-city.js';
+import { LIGHTS, CYCLE, lightOf } from '../.checks/jade-traffic.js';
+import { zebraAt, pedTile, dests } from '../.checks/jade-folk.js';
+import { spawn, eventAct, EVENT_KINDS } from '../.checks/jade-events.js';
+import { downhill } from '../.checks/jade-nav.js';
+import { rainAt } from '../.checks/jade-weather.js';
+import { medalOf, goals } from '../.checks/jade-medals.js';
+import { DIFF } from '../.checks/jade-diff.js';
 
 let n = 0;
 const test = (name, f) => { try { f(); n++; } catch (e) { console.error('FAILED:', name); throw e; } };
@@ -277,7 +285,7 @@ test('the save: round trip, repair and clamping, v1 migration, garage, wardrobe 
   const s = newSave(42); s.cash = 777; s.done = ['m1', 'm2']; s.cats = [1, 5]; s.cargo.tea = 3;
   assert.deepEqual(loadSave(JSON.stringify(s)), s);
   assert.equal(s.v, SAVE_VERSION);
-  const junk = loadSave(JSON.stringify({ v: 2, cash: -50, done: ['m1', 'zzz', 3], rep: { market: 400 }, upgrades: { speed: 9 }, paint: 'plaid', cats: [1, 1, 99, -1], settings: { diff: 'hard' } }));
+  const junk = loadSave(JSON.stringify({ v: 2, cash: -50, done: ['m1', 'zzz', 3], rep: { market: 400 }, upgrades: { speed: 9 }, paint: 'plaid', cats: [1, 1, 99, -1], settings: { diff: 'insane' } }));
   assert.equal(junk.cash, 0); assert.deepEqual(junk.done, ['m1']); assert.equal(junk.rep.market, 100); assert.equal(junk.upgrades.speed, 3); assert.equal(junk.paint, 'red'); assert.deepEqual(junk.cats, [1]); assert.equal(junk.settings.diff, 'easy');
   assert.equal(loadSave('{not json').cash, 100); assert.equal(loadSave(null).settings.assist, true, 'Assist is on by default');
   const v1 = loadSave(JSON.stringify({ v: 1, money: 321, done: 'm1,m2,m3', rep: 12, hero: 'enzo', seed: 9 }));
@@ -321,7 +329,177 @@ test('every painted asset exists, every frame sits inside its atlas and none is 
   for (const b of c.buildings) need.push(b.sprite);
   for (const p of c.props) if (!p.sprite.startsWith('lanterns') && !p.sprite.startsWith('containers')) need.push(p.sprite);
   for (const d of c.decals) need.push(d.sprite);
+  // the second batch: new actions, seated townsfolk, events, street props, the festival, fireworks, map and UI pieces
+  for (const h of ['dora', 'enzo']) for (const f of ['push-side-0', 'push-side-1', 'push-up-0', 'push-up-1', 'lantern', 'lookup', 'phone', 'eat', 'dance', 'kneel', 'clap', 'umbrella']) need.push(`${h}-${f}`);
+  for (const sp of ['rabbit', 'dog', 'squirrel', 'cat', 'duck', 'hedgehog']) for (const k of [0, 1]) need.push(`folk-${sp}-sit-${k}`);
+  need.push('duck-down-0', 'duck-down-1', 'duck-side', 'duck-lost', 'busker-0', 'busker-1', 'busk-hat', 'smoke', 'van-broken', 'mag-mango-0', 'mag-mango-1');
+  need.push('light-red', 'light-amber', 'light-green', 'umb-red', 'umb-jade', 'sky-lantern', 'ui-phone', 'ui-radio', 'c-key', 'c-space', 'c-stick', 'i-map');
+  for (const m of ['none', 'bronze', 'silver', 'gold']) need.push('ui-medal-' + m);
+  for (const f of c.festival) need.push(f.sprite);
+  for (const k of ['gold', 'red', 'violet', 'blue', 'orange', 'star']) need.push('fw-' + k);
+  for (const k of ['market', 'safe', 'garage', 'gig', 'job', 'cat', 'mural', 'star']) need.push('pin-' + k);
+  for (const k of ['temple', 'pagoda', 'crane', 'arcade', 'bridge', 'lighthouse', 'ferry', 'hall']) need.push('mi-' + k);
+  for (let i = 1; i <= 6; i++) need.push('fog-' + i);
   for (const n of need) assert.ok(FRAMES[n], `sprite ${n}`);
+  // the painted screens: loading, the five stalls, the storybook, chapter cards, the ending, the map paper and frame
+  const plain = ['loading', 'map-paper', ...['market', 'temple', 'canal', 'docks', 'arcade'].map(d => 'stall-' + d), ...[1, 2, 3, 4].map(i => 'story-' + i), ...[1, 2, 3, 4, 5].map(i => 'chapter-' + i), ...[1, 2, 3].map(i => 'end-' + i)];
+  for (const n of plain) { assert.ok(PLAIN['bg-' + n], `painting bg-${n}`); assert.ok(readFileSync(new URL(`bg-${n}.webp`, dir)).length > 20000, `bg-${n} is not empty`); }
+  for (const n of ['ui-map-frame', 'ui-lantern-on', 'ui-lantern-off']) assert.ok(readFileSync(new URL(`${n}.webp`, dir)).length > 1000, n);
+});
+
+test('traffic lights: green, amber and red in turn, never green both ways, and cars stop at the line on red', () => {
+  assert.ok(LIGHTS.length >= 10, `${LIGHTS.length} lights`);
+  for (let li = 0; li < LIGHTS.length; li++) for (let t = 0; t < CYCLE; t += 0.1) {
+    const h = lightOf({ time: t }, li, 'h'), v = lightOf({ time: t }, li, 'v');
+    assert.ok(!(h !== 'red' && v !== 'red'), `light ${li} at ${t.toFixed(1)}: ${h}/${v}`);
+  }
+  const seen = new Set(); for (let t = 0; t < CYCLE; t += 0.1) seen.add(lightOf({ time: t }, 0, 'h')); assert.equal(seen.size, 3);
+  // a long run: no car ever drives into a crossing while its light is red
+  const w = world({ done: allDone }); w.placePlayer(42 * T, 46 * T);
+  let checked = 0, greens = 0, waited = 0;
+  for (let i = 0; i < 60 * 90; i++) {
+    const before = w.cars.map(car => ({ car, x: car.x, y: car.y }));
+    w.step(NO_INPUT, DT);
+    for (const { car, x, y } of before) {
+      if (!w.cars.includes(car)) continue;
+      for (const [li, L] of LIGHTS.entries()) {
+        const hr = ROADS[L.h], vr = ROADS[L.v]; const axis = ROADS[car.r].axis;
+        if (car.r !== L.h && car.r !== L.v) continue;
+        if (car.speed < 1 && lightOf(w, li, axis) === 'red' && Math.abs(car.x - (vr.at + 2) * T) < 4 * T && Math.abs(car.y - (hr.at + 2) * T) < 4 * T) waited++;
+        const inBox = (px, py) => px > vr.at * T && px < (vr.at + 4) * T && py > hr.at * T && py < (hr.at + 4) * T;
+        if (!inBox(x, y) && inBox(car.x, car.y)) { checked++; if (lightOf(w, li, axis) === 'red') assert.equal(car.go, li, `car ${car.id} ran the red at light ${li}`); else greens++; }
+      }
+    }
+  }
+  assert.ok(checked > 5 && greens > 0, `cars went through lit crossings (${checked})`);
+  assert.ok(waited > 0, 'and cars waited at a red');
+});
+
+test('townsfolk walk to doors, stalls and seats, cross only at zebras, and never stand in the road for long', () => {
+  const w = world({ done: allDone }); w.placePlayer(20 * T, 60 * T);
+  const onRoad = new Map(); let maxRoad = 0, sat = 0, crossed = 0, arrived = 0;
+  for (let i = 0; i < 60 * 120; i++) {
+    w.step(NO_INPUT, DT);
+    for (const pd of w.peds) {
+      const tx = Math.floor(pd.x / T), ty = Math.floor(pd.y / T), g = w.c.ground[ty * W + tx];
+      if (pd.sit > 0) sat++;
+      if (g === G.ROAD) { if (pd.hop <= 0) assert.ok(zebraAt(tx, ty) >= 0 || pedTile(w.c, tx, ty), `ped ${pd.id} on a road tile ${tx},${ty} off the zebra`); const t = (onRoad.get(pd.id) ?? 0) + DT; onRoad.set(pd.id, t); maxRoad = Math.max(maxRoad, t); if (t > 0.5 && t < 0.52) crossed++; }
+      else onRoad.delete(pd.id);
+      if (pd.wait > 0 && pd.dest >= 0) arrived++;
+    }
+  }
+  assert.ok(maxRoad < 12, `nobody lingers in the road (${maxRoad.toFixed(1)}s)`);
+  assert.ok(sat > 0, 'somebody sat down to eat');
+  assert.ok(crossed > 0, 'somebody crossed at a zebra');
+  assert.ok(dests(w.c).length > 80, 'plenty of places to walk to');
+  void arrived;
+});
+
+test('street events: each kind starts in free roam and can be finished, and a job clears it', () => {
+  for (const kind of EVENT_KINDS) {
+    const w = world({ done: allDone }); w.placePlayer(30 * T, 46 * T);
+    let e = null; for (let k = 0; k < 8 && !e; k++) { w.placePlayer((10 + k * 12) * T, 46 * T); e = spawn(w, kind); }
+    assert.ok(e, `${kind} spawned`); assert.equal(w.street.kind, kind);
+    const cash = w.s.cash;
+    if (kind === 'magpie') { for (let i = 0; i < 60 * 30 && e.phase === 'on'; i++) { const b = e.b; const dx = b.x - w.p.x, dy = b.y - w.p.y, l = Math.hypot(dx, dy) || 1; w.step({ ...NO_INPUT, mx: dx / l, my: dy / l, dash: i % 20 === 0 && l < 90 }, DT); } }
+    if (kind === 'duckling') {
+      w.placePlayer(e.x, e.y + 30); w.step(NO_INPUT, DT); eventAct(w); for (let i = 0; i < 60; i++) w.step(NO_INPUT, DT);
+      assert.equal(e.phase, 'follow');
+      for (let i = 0; i < 60 * 100 && e.phase === 'follow'; i++) { const f = w.fieldTo('walk', e.home[0], e.home[1]); const n = downhill(w.c, f, w.p.x, w.p.y, w.open) ?? e.home; const dx = n[0] - w.p.x, dy = n[1] - w.p.y, l = Math.hypot(dx, dy) || 1; w.step({ ...NO_INPUT, mx: dx / l * 0.6, my: dy / l * 0.6 }, DT); }
+    }
+    if (kind === 'van') {
+      const r = e.ride; w.placePlayer(r.b.x - r.b.len / 2 - 20, r.b.y);
+      for (let i = 0; i < 60 * 12 && e.phase === 'on'; i++) { const dx = r.b.x - w.p.x, dy = r.b.y - w.p.y, l = Math.hypot(dx, dy) || 1; w.step({ ...NO_INPUT, mx: dx / l, my: dy / l }, DT); }
+      assert.equal(r.broken, false);
+    }
+    if (kind === 'busker') { w.s.cash = 50; w.placePlayer(e.x, e.y + 30); w.step(NO_INPUT, DT); eventAct(w); assert.ok(e.tipped); assert.ok(w.s.tips.some(t => t.from === 'the busker')); e.phase = 'done'; }
+    assert.ok(e.phase === 'done', `${kind} finished (${e.phase})`);
+    if (kind !== 'busker') assert.ok(w.s.cash > cash, `${kind} paid`);
+    const w2 = world({ done: ['m1'] }); w2.placePlayer(20 * T, 60 * T); spawn(w2, 'busker'); w2.startMission(MISSION.m2); assert.equal(w2.street, null, 'a job clears the event');
+  }
+});
+
+test('rain: passing showers are seeded, between 0 and 1, and some nights stay dry', () => {
+  let wet = 0, dry = 0;
+  for (let night = 1; night <= 40; night++) {
+    let any = false; for (let cl = 0; cl < 720; cl += 2) { const r = rainAt(7, night, cl); assert.ok(r >= 0 && r <= 1); if (r > 0.3) any = true; assert.equal(r, rainAt(7, night, cl)); }
+    if (any) wet++; else dry++;
+  }
+  assert.ok(wet >= 8 && dry >= 8, `wet ${wet} dry ${dry}`);
+  const w = world({ done: allDone }); w.rainForce = 0.8; w.placePlayer(20 * T, 60 * T); for (let i = 0; i < 120; i++) w.step({ ...NO_INPUT, mx: 0.5 }, DT);
+  assert.equal(w.p.anim, 'umbrella');
+});
+
+test('medals: the three marks, best kept, replays pay a quarter and keep the best', () => {
+  const m = MISSION.m3;
+  assert.equal(medalOf(m, { time: 10, maxHeat: 0, retries: 0 }), 3);
+  assert.equal(medalOf(m, { time: 9999, maxHeat: 0, retries: 0 }), 2);
+  assert.equal(medalOf(m, { time: 9999, maxHeat: 5, retries: 2 }), 0);
+  assert.equal(goals(m).length, 3);
+  const w = world({ done: ['m1', 'm2'] }); w.startMission(m); w.run.time = 10; w.run.maxHeat = 0; w.run.retries = 1; w.finishMission(m);
+  assert.equal(w.s.medals.m3.m, 2); assert.equal(w.s.done.includes('m3'), true);
+  const cash = w.s.cash;
+  assert.equal(w.replay('m9'), 'Finish this job in the story first');
+  assert.equal(w.replay('m3'), null); assert.equal(w.run.m.id, 'm3'); assert.ok(w.replaying);
+  w.run.time = 9999; w.run.maxHeat = 5; w.run.retries = 3; w.finishMission(m);
+  assert.equal(w.s.medals.m3.m, 2, 'best medal kept'); assert.equal(w.s.medals.m3.plays, 2);
+  assert.equal(w.s.cash, cash + Math.round(m.reward / 4));
+});
+
+test('difficulty: Easy, Normal and Hard numbers get steadily tougher', () => {
+  const [e, n, h] = [DIFF.easy, DIFF.normal, DIFF.hard];
+  assert.ok(e.evade < n.evade && n.evade < h.evade); assert.ok(e.warden < n.warden && n.warden < h.warden);
+  assert.ok(e.timer > n.timer && n.timer > h.timer); assert.ok(e.sight < n.sight && n.sight < h.sight);
+  const s = newSave(3); s.settings.diff = 'hard'; assert.equal(new World(s).diff, DIFF.hard);
+  assert.equal(loadSave(JSON.stringify({ ...newSave(1), settings: { ...newSave(1).settings, diff: 'hard' } })).settings.diff, 'hard');
+});
+
+test('save: the live v2 format migrates to v3 with medals, story, lessons and messages', () => {
+  const live = { v: 2, seed: 77, hero: 'enzo', cash: 640, night: 6, clock: 120, started: true, done: ['m1', 'm2', 'm3', 'm4', 'm5', 'm6'], cats: [2, 4], murals: [], rep: { market: 30, temple: 8, canal: 0, docks: 0, arcade: 0 },
+    cargo: { jade: 1, mooncake: 0, tea: 2, bowl: 0, fan: 0, mango: 0 }, stash: {}, upgrades: { speed: 1, cargo: 0, grip: 0 }, paint: 'red', outfit: { dora: 'classic', enzo: 'classic' }, safes: ['safe-market'], trophies: [], tips: [], dailyDone: [],
+    stats: { missions: 6, playTime: 900 }, settings: { diff: 'normal', assist: true, sound: true, music: true, touch: 'auto' } };
+  const s = loadSave(JSON.stringify(live));
+  assert.equal(s.v, SAVE_VERSION); assert.equal(s.cash, 640); assert.deepEqual(s.done, live.done); assert.equal(s.hero, 'enzo');
+  for (const id of live.done) assert.equal(s.medals[id].plays, 1);
+  assert.equal(s.story.intro, true, 'players with a game in progress skip the opening'); assert.equal(s.story.ch, chapterOf(s)); assert.equal(s.story.ending, false);
+  assert.ok(s.learned.includes('move'), 'and the first lessons');
+  assert.deepEqual(s.msgs, []); assert.equal(s.radio, 0); assert.equal(s.settings.diff, 'normal');
+  assert.deepEqual(loadSave(JSON.stringify(s)), s, 'round trip');
+  const fresh = newSave(1); assert.equal(fresh.story.intro, false); assert.deepEqual(fresh.learned, []);
+});
+
+test('lessons: a new player is taught to move, run, dash and hop in turn, and a ride teaches boost and honk', () => {
+  const s = newSave(9); s.started = true; s.story.intro = true; const w = new World(s, 9); w.quiet = true; w.talk = null;
+  // somewhere in the Night Market with no ride parked nearby, so the ride lesson waits
+  for (let k = 0; k < 400; k++) { const x = (4 + (k * 7) % 40) * T + T / 2, y = (32 + (k * 3) % 56) * T + T / 2; if (passable(c, 'walk', Math.floor(x / T), Math.floor(y / T)) && passable(c, 'walk', Math.floor(x / T) + 2, Math.floor(y / T)) && passable(c, 'walk', Math.floor(x / T) - 2, Math.floor(y / T)) && !w.rides.some(r => Math.hypot(r.b.x - x, r.b.y - y) < 500)) { w.placePlayer(x, y); break; } }
+  w.step(NO_INPUT, DT); assert.equal(w.tutor.cur, 'move');
+  for (let i = 0; i < 60 * 3; i++) w.step({ ...NO_INPUT, mx: i % 120 < 60 ? 1 : -1 }, DT);
+  assert.ok(w.s.learned.includes('move'));
+  for (let i = 0; i < 60 * 3; i++) w.step({ ...NO_INPUT, mx: i % 120 < 60 ? 1 : -1 }, DT);
+  assert.ok(w.s.learned.includes('run'), w.tutor.cur);
+  w.step({ ...NO_INPUT, dash: true }, DT); for (let i = 0; i < 30; i++) w.step(NO_INPUT, DT);
+  assert.ok(w.s.learned.includes('dash'), w.tutor.cur);
+  w.step({ ...NO_INPUT, hop: true }, DT); for (let i = 0; i < 30; i++) w.step(NO_INPUT, DT);
+  assert.ok(w.s.learned.includes('hop'), w.tutor.cur);
+});
+
+test('the phone: job offers and night tips arrive as texts, at most thirty kept', () => {
+  const s = newSave(4); s.started = true; s.story.intro = true; s.done = ['m1']; const w = new World(s, 4); w.quiet = true; w.talk = null;
+  for (let i = 0; i < 90; i++) w.step(NO_INPUT, DT);
+  assert.ok(w.s.msgs.length >= 1 && w.s.msgs.some(m => m.text.includes('Job')), 'a job offer');
+  for (let i = 0; i < 40; i++) w.newNight();
+  assert.ok(w.s.msgs.length <= 30); assert.ok(w.s.tips.some(t => t.from && t.mult > 1));
+});
+
+test('the city breaks the grid: landmarks, plazas, curving paths, tables, and no two touching buildings alike', () => {
+  const lm = c.buildings.filter(b => b.sprite.startsWith('lm2-')); assert.ok(lm.length >= 6, `${lm.length} new landmarks`);
+  assert.ok(c.paths.length >= 6, `${c.paths.length} curving paths`); assert.ok(c.tables.length >= 8, `${c.tables.length} tables`);
+  assert.ok(c.props.filter(p => ['fountain', 'banyan', 'koi-pond', 'crane-statue'].includes(p.sprite)).length >= 6, 'plaza centrepieces');
+  let same = 0;
+  for (const a of c.buildings) for (const b of c.buildings) if (a !== b && a.sprite === b.sprite && a.x <= b.x + b.w && a.x + a.w >= b.x && a.y <= b.y + b.h && a.y + a.h >= b.y) same++;
+  assert.equal(same, 0, 'touching buildings share a picture');
+  assert.ok(new Set(c.buildings.map(b => b.sprite)).size >= 50, `${new Set(c.buildings.map(b => b.sprite)).size} building pictures`);
+  assert.ok(c.festival.length >= 20, 'festival dressing planned');
 });
 
 console.log(`jade: ${n} tests ok`);

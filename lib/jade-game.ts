@@ -11,15 +11,17 @@ import { cargoCount, cargoValue, capacity, GOODS, GOOD, midPrice, prices, buy as
 import { type Save, type Hero, openDistricts, available, addRep, checkTrophies, safeOpen, SAFE_HOUSES, DAILY_NEED, dailyEvent } from './jade-save.js';
 import { MISSION, PEOPLE, type Mission } from './jade-story.js';
 import { Run, type Gig } from './jade-mission.js';
-import { trafficStep, pedStep, type Car, type Ped } from './jade-traffic.js';
+import { trafficStep, redRun, type Car } from './jade-traffic.js';
+import { pedStep, type Ped } from './jade-folk.js';
+import { DIFF } from './jade-diff.js';
 import { heatStep, addHeat, caught, type Warden, type Roadblock } from './jade-heat.js';
 
 export const DT = 1 / 60;
 export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop: boolean; act: boolean };
 export const NO_INPUT: Input = { mx: 0, my: 0, sneak: false, dash: false, hop: false, act: false };
-export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; locked: boolean; tint: number; mission?: boolean; seen?: number };
+export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; locked: boolean; tint: number; mission?: boolean; seen?: number; broken?: boolean };
 export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string };
-export type Near = { kind: 'mission' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe'; label: string; x: number; y: number; id?: string; ride?: Ride };
+export type Near = { kind: 'mission' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat'; label: string; x: number; y: number; id?: string; ride?: Ride };
 export type Snatcher = { x: number; y: number; h: number; t: number; out: boolean; took: number; wing: number };
 export type Act = { n: string; t: number; dur: number; then?: () => void };
 export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' } | { kind: 'map' };
@@ -46,6 +48,14 @@ export class World {
   snatchT = 20; spawnT = 0; daySales: Record<string, number> = {}; profitBase = 0; tripCost: Record<Good, number>;
   fieldCache = new Map<string, Field>();
   quiet = false;
+  /** a street event in progress (lib/jade-events.ts), the wait till the next, and a busker's crowd */
+  street: StreetEvent | null = null; streetT = 30; crowd: { x: number; y: number } | null = null; pushing = false;
+  inputMag = 0; inputAng = 0;
+  tutor: TutorState = newTutor(); offered = new Set<string>(); phoneT = 0;
+  /** rain from 0 to 1 (lib/jade-weather.ts) */
+  rain = 0; rainForce: number | null = null;
+  /** a replayed job pays a quarter and records a medal */
+  replaying = false;
 
   constructor(save: Save, seed = save.seed) {
     this.c = getCityOnce(); this.obs = obstacleGrid(this.c); this.s = save; this.R = rng(seed * 7919 + save.night);
@@ -60,6 +70,7 @@ export class World {
   }
   get assist() { return this.s.settings.assist; }
   get easy() { return this.s.settings.diff === 'easy'; }
+  get diff() { return DIFF[this.s.settings.diff]; }
   addRide(kind: VehicleKind, x: number, y: number, h: number, locked = false, tint = 0, mission = false): Ride {
     const v = VEHICLES[kind];
     const r: Ride = { id: this.nextId++, kind, b: { x, y, h, speed: 0, r: v.r, len: v.len, cls: v.cls }, parked: true, locked, tint, mission };
@@ -92,6 +103,11 @@ export class World {
     this.time += dt; this.tick++;
     this.s.stats.playTime += dt;
     this.clock(dt);
+    this.rain = this.rainForce ?? rainAt(this.s.seed, this.s.night, this.s.clock);
+    this.inputMag = Math.min(1, Math.hypot(inp.mx, inp.my)); if (this.inputMag > 0.1) this.inputAng = Math.atan2(inp.my, inp.mx);
+    const f0 = this.fx.length;
+    if (this.run) { this.run.time += dt; this.run.maxHeat = Math.max(this.run.maxHeat, this.heat); }
+    this.phoneT = Math.max(0, this.phoneT - dt);
     if (this.banner) { this.banner.t -= dt; if (this.banner.t <= 0) this.banner = null; }
     this.playerStep(inp, dt);
     this.collectStep();
@@ -99,10 +115,15 @@ export class World {
     heatStep(this, dt);
     if (this.run) this.run.step(dt, inp);
     this.snatchStep(dt);
+    eventsStep(this, dt);
+    phoneStep(this);
     this.findNear();
     if (inp.act) this.interact();
     this.routeT -= dt; if (this.routeT <= 0) { this.routeT = 0.5; this.updateRoute(); }
     for (const n of checkTrophies(this.s)) this.fx.push({ t: 'trophy', name: n });
+    const fxs = this.fx.slice(f0).map(f => f.t);
+    if (fxs.includes('text')) this.phoneT = 1.6;
+    tutorStep(this, dt, fxs);
     if (this.fx.length > 300) this.fx.splice(0, this.fx.length - 300);
   }
   /** events since the last drain (the scene and sound read these) */
@@ -117,6 +138,7 @@ export class World {
     this.s.tips = this.s.tips.filter(t => t.night >= this.s.night - 1);
     this.banner = { text: `Night ${this.s.night}`, sub: 'The markets set new prices', t: 3 };
     this.fx.push({ t: 'night' });
+    nightTip(this);
   }
 
   // ── the player
@@ -152,7 +174,8 @@ export class World {
     if (p.roof && !p.air) { const tx = Math.floor(p.b.x / T), ty = Math.floor(p.b.y / T); if (this.c.flags[ty * W + tx] & F_ROOF) p.lastRoof = [p.b.x, p.b.y]; }
     // facing and animation
     if (p.b.speed > 8) this.faceFrom(p.b.h);
-    p.anim = p.air ? 'hop' : p.dashT > 0 ? 'dash' : p.bumpT > 0 ? 'bump' : p.b.speed > 8 ? (p.carry ? 'carry' : p.sneak ? 'sneak' : p.b.speed > FOOT.walk + 10 ? 'run' : 'walk') : (p.carry ? 'carry-idle' : 'idle');
+    p.anim = p.air ? 'hop' : p.dashT > 0 ? 'dash' : p.bumpT > 0 ? 'bump' : this.pushing ? 'push' : p.b.speed > 8 ? (p.carry ? 'carry' : p.sneak ? 'sneak' : p.b.speed > FOOT.walk + 10 ? 'run' : this.rain > 0.3 ? 'umbrella' : 'walk') : (p.carry ? 'carry-idle' : this.phoneT > 0 ? 'phone' : 'idle');
+    if (this.pushing) this.faceFrom(this.inputAng);
   }
   land() {
     const p = this.p; const tx = Math.floor(p.b.x / T), ty = Math.floor(p.b.y / T);
@@ -186,6 +209,8 @@ export class World {
     const ox = r.b.x, oy = r.b.y;
     const res = drive(this.ctx(), r.b, mx, my, top, v.accel * (1 + up.speed * 0.05), turn, dt, false);
     const moved = Math.hypot(r.b.x - ox, r.b.y - oy);
+    // on Normal and Hard, a warden notices a ride that runs a red light
+    if (this.diff.redLight > 0 && r.kind !== 'boat' && r.b.speed > 90 && redRun(this, ox, oy, r.b.x, r.b.y, r.b.h) >= 0) { addHeat(this, this.diff.redLight, 'red-light'); this.say('You ran a red light! A warden saw you.', 'bad'); }
     if (r.kind === 'boat') this.s.stats.boated += moved; else this.s.stats.driven += moved;
     if (res.bump > 110) this.bumped(res.bump, r.b.x - res.nx * r.b.r, r.b.y - res.ny * r.b.r, 'wall');
     this.faceFrom(r.b.h);
@@ -209,6 +234,7 @@ export class World {
   // ── getting on and off
   enter(r: Ride) {
     const p = this.p;
+    if (r.broken) { this.say('It won’t start. Give it a push: lean into it on foot.', 'bad'); return; }
     if (r.locked) { this.ui = { kind: 'mini', mini: 'wires', level: 1, from: 'ride' }; this.pendingRide = r; this.fx.push({ t: 'mini' }); return; }
     p.act = { n: 'climb-on', t: 0, dur: 0.32, then: () => { p.ride = r; r.parked = false; p.b.x = r.b.x; p.b.y = r.b.y; p.hide = false; this.fx.push({ t: 'enter', kind: r.kind }); this.run?.onEnter(r); } };
     p.face = 'side'; p.flip = r.b.x < p.b.x;
@@ -274,6 +300,9 @@ export class World {
       if (pl.kind === 'garage') cand({ kind: 'garage', label: 'Garage: upgrades and paint', x: pl.x, y: pl.y, id }, 80);
     }
     if (!this.run) for (const g of this.gigs()) cand(g, 70);
+    const en = eventNear(this); if (en) cand(en, 80);
+    if (this.festival) for (const f of this.c.festival) if (f.kind !== 'arch') cand({ kind: 'festival', label: f.kind === 'stage' ? 'Dance on the festival stage' : 'Let a sky lantern go', x: f.x, y: f.y, id: f.kind }, 80);
+    for (const pr of this.tables()) cand({ kind: 'eat', label: 'Grab a bowl of noodles (3 coins)', x: pr.x, y: pr.y + 20 }, 56);
     for (const l of this.c.ladders) cand({ kind: 'ladder-up', label: 'Climb the ladder', x: l.x * T + T / 2, y: l.y * T + T / 2 }, 60);
     for (const h of this.c.hides) cand({ kind: 'hide', label: 'Hide here', x: h.x, y: h.y }, 52);
     for (const m of this.c.murals) if (!this.s.murals.includes(m.id) && this.open.has(districtAt(Math.floor(m.x / T), Math.floor(m.y / T)))) cand({ kind: 'mural', label: 'Restore the faded mural', x: m.x, y: m.y + 30, id: m.id }, 60);
@@ -297,34 +326,58 @@ export class World {
       case 'unhide': this.unhide(); break;
       case 'mural': p.act = { n: 'paint', t: 0, dur: 1.4, then: () => { this.s.murals.push(n.id!); this.s.cash += 30; this.s.stats.murals++; const d = districtAt(Math.floor(n.x / T), Math.floor(n.y / T)); addRep(this.s, d, 3); this.fx.push({ t: 'mural', x: n.x, y: n.y }); this.say(`Mural restored (${this.s.murals.length} of ${this.c.murals.length}) · +30 coins, +3 rep`, 'good'); } }; p.face = 'up'; break;
       case 'gig': startGig(this, n.id!); break;
+      case 'event': eventAct(this); break;
+      case 'festival': if (n.id === 'stage') { p.act = { n: 'dance', t: 0, dur: 2.4 }; this.fx.push({ t: 'dance' }); } else { p.act = { n: 'lantern', t: 0, dur: 1.2, then: () => { this.fx.push({ t: 'sky-lantern', x: p.b.x, y: p.b.y }); p.act = { n: 'look-up', t: 0, dur: 1.6 }; } }; } p.face = 'down'; break;
+      case 'eat': if (this.s.cash < 3) { this.say('You need 3 coins for noodles.', 'bad'); break; } this.s.cash -= 3; p.act = { n: 'eat', t: 0, dur: 2.6, then: () => this.say('Delicious! Chef Mo’s noodles hit the spot.', 'good') }; p.face = 'down'; this.fx.push({ t: 'eat' }); break;
     }
   }
   unhide() { this.p.hide = false; this.p.act = { n: 'climb-off', t: 0, dur: 0.25 }; this.fx.push({ t: 'unhide' }); }
 
+  /** food-court tables you can sit at */
+  tables() { return this.c.tables.filter(p => this.open.has(districtAt(Math.floor(p.x / T), Math.floor(p.y / T))) && Math.abs(p.x - this.p.x) < 120 && Math.abs(p.y - this.p.y) < 120); }
+  get festival() { return this.s.done.includes('m25'); }
   // ── story
+  /** play a finished job again from the jobs book: you walk out of the menu next to its contact */
+  replay(id: string): string | null {
+    const m = MISSION[id]; if (!m) return 'No such job';
+    if (!this.s.done.includes(id)) return 'Finish this job in the story first';
+    if (this.run) return 'Finish or quit the job you are on first';
+    if (this.p.ride) { this.p.ride.parked = true; this.p.ride.b.speed = 0; this.p.ride = null; }
+    const pl = this.c.places[m.at]; this.clearHeat(); this.street = null; this.crowd = null;
+    this.placePlayer(pl.x, pl.y + T * 0.8); this.p.roof = false; this.p.hide = false; this.p.carry = null;
+    this.replaying = true; this.startMission(m); return null;
+  }
   startMission(m: Mission, gig?: Gig) {
     if (this.run) return;
+    if (!gig) { this.street = null; this.crowd = null; this.pushing = false; }
     this.run = new Run(this, m, gig);
     this.fx.push({ t: 'mission-start', name: m.title });
     this.banner = { text: m.title, sub: gig ? 'Side gig' : `Chapter ${m.ch} · ${PEOPLE[m.giver].name}`, t: 2.6 };
     this.run.begin();
   }
   finishMission(m: Mission, gig?: Gig) {
-    this.run = null; this.route = [];
+    this.lastRun = this.run; this.run = null; this.route = [];
     if (gig) { this.s.cash += gig.reward; this.s.stats.gigs++; addRep(this.s, gig.d, 2); this.s.best[gig.key] = Math.max(this.s.best[gig.key] ?? 0, 1); this.fx.push({ t: 'mission-done', name: m.title, k: gig.reward }); this.banner = { text: 'Gig done!', sub: `+${gig.reward} coins`, t: 2.4 }; return; }
+    const run = this.lastRun; const res = { time: run?.time ?? 0, maxHeat: run?.maxHeat ?? 0, retries: run?.retries ?? 0 };
+    const medal = medalOf(m, res), was = this.s.medals[m.id];
+    this.s.medals[m.id] = { m: Math.max(was?.m ?? 0, medal), t: was?.t ? Math.min(was.t, res.time) : res.time, plays: (was?.plays ?? 0) + 1 };
+    this.lastMedal = { id: m.id, medal, ...res, best: !was || medal > was.m };
     if (!this.s.done.includes(m.id)) { this.s.done.push(m.id); this.s.cash += m.reward; this.s.stats.missions++; addRep(this.s, this.c.places[m.at]?.d ?? 'market', m.rep); }
+    else if (this.replaying) this.s.cash += Math.round(m.reward / 4);
+    this.replaying = false;
     if (m.tip) this.s.tips = this.s.tips.filter(t => !(t.market === m.tip!.market && t.good === m.tip!.good));
     const before = this.open.size; this.open = new Set(openDistricts(this.s)); this.fieldCache.clear();
     this.fx.push({ t: 'mission-done', name: m.title, k: m.reward });
-    this.banner = { text: 'Job done!', sub: `${m.title} · +${m.reward} coins`, t: 3 };
+    this.banner = { text: 'Job done!', sub: `${m.title} · ${MEDAL_NAME[medal]}${medal ? ' medal' : ''}`, t: 3 };
     this.p.act = { n: 'celebrate', t: 0, dur: 1.1 };
     if (this.p.ride) this.p.act = null;
     if (this.open.size > before) { const d = [...this.open][this.open.size - 1]; this.fx.push({ t: 'district', name: DISTRICT_NAME[d] }); this.banner = { text: `${DISTRICT_NAME[d][0].toUpperCase()}${DISTRICT_NAME[d].slice(1)} opens!`, sub: 'The fog lifts', t: 4 }; }
     if (m.id === 'm25') this.fx.push({ t: 'finale' });
   }
+  lastRun: Run | null = null; lastMedal: { id: string; medal: number; time: number; maxHeat: number; retries: number; best: boolean } | null = null;
   fail(reason: string) { if (!this.run) return; this.failed = { reason }; this.fx.push({ t: 'fail', msg: reason }); }
-  retry() { this.failed = null; this.heat = 0; this.clearHeat(); this.run?.restore(); }
-  quitJob() { this.failed = null; this.run?.cleanup(); this.run = null; this.route = []; this.p.carry = null; }
+  retry() { this.failed = null; this.heat = 0; this.clearHeat(); if (this.run) this.run.retries++; this.run?.restore(); }
+  quitJob() { this.failed = null; this.run?.cleanup(); this.run = null; this.route = []; this.p.carry = null; this.replaying = false; }
   clearHeat() { this.heat = 0; this.wardens = []; this.blocks = []; this.blimp.on = false; }
   advanceTalk() {
     const t = this.talk; if (!t) return;
@@ -341,6 +394,7 @@ export class World {
     if (this.run) return this.run.target();
     if (this.waypoint && dist(this.waypoint[0], this.waypoint[1], this.p.x, this.p.y) < 110) { this.waypoint = null; this.fx.push({ t: 'arrive' }); }
     if (this.waypoint) return this.waypoint;
+    const ev = eventTarget(this); if (ev && this.assist) return ev;
     // with Assist on and nothing else to do, point at the next job's contact
     if (this.assist && !this.p.roof) {
       let best: [number, number] | null = null, bd = 1e18;
@@ -451,4 +505,9 @@ export class World {
 const LEAN_AVG = 0.85;
 // late imports to keep the module graph acyclic at runtime
 import { gigBoards, startGig } from './jade-gigs.js';
+import { eventsStep, eventNear, eventAct, eventTarget, type StreetEvent } from './jade-events.js';
+import { phoneStep, nightTip } from './jade-phone.js';
+import { tutorStep, newTutor, type TutorState } from './jade-tutor.js';
+import { rainAt } from './jade-weather.js';
+import { medalOf, MEDAL_NAME } from './jade-medals.js';
 void cargoValue; void H; void F_ALLEY; void moveStep; void shove;

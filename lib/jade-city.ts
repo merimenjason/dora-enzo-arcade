@@ -4,6 +4,7 @@
 // Ground (what is painted), solid (what blocks you) and flags (alley, stairs, roof, bridge) are separate layers.
 // Pure data and queries: no drawing here (lib/jade-scene.ts paints it).
 import { rng } from './jade-rng.js';
+import { remodel, type Path, type FestivalSpot } from './jade-remodel.js';
 
 export const T = 64;
 export const W = 120, H = 92;
@@ -36,6 +37,8 @@ export type City = {
   buildings: Building[]; props: Prop[]; roads: Road[]; decals: Prop[];
   places: Record<string, Place>; cats: { x: number; y: number }[]; murals: { id: string; x: number; y: number }[];
   ladders: { x: number; y: number; rx: number; ry: number }[]; hides: { x: number; y: number }[]; parking: { x: number; y: number; d: District; kind: string; rot: number }[];
+  /** painted footpaths that curve over open ground, the food-court tables, and the festival dressing (lib/jade-remodel.ts) */
+  paths: Path[]; tables: Prop[]; festival: FestivalSpot[];
 };
 
 // the street plan: horizontal and vertical roads, 4 tiles wide (kerb, lane, lane, kerb)
@@ -48,19 +51,19 @@ export const ROADS: Road[] = [
 const CANAL_X0 = 66, CANAL_X1 = 68, SEA_Y = 82;
 
 let CACHE: City | null = null;
-export function city(): City { if (!CACHE) { CACHE = build(); dressBuildings(CACHE); } return CACHE; }
+export function city(): City { if (!CACHE) { CACHE = build(); remodel(CACHE); dressBuildings(CACHE); } return CACHE; }
 
 const SIDEWALK: Record<District, G> = { market: G.WALK, temple: G.TEMPLE, canal: G.COBBLE, docks: G.DOCK, arcade: G.NEON };
 const FRONTS: Record<District, string[]> = {
-  market: ['shop-1', 'shop-2', 'shop-3', 'shop-4', 'shop-5', 'shop-6'],
-  temple: ['bld-hill', 'shop-2', 'shop-5', 'bld-hill', 'shop-6'],
-  canal: ['bld-canal', 'bld-tea', 'shop-3', 'shop-1', 'bld-canal'],
-  docks: ['bld-office', 'bld-office', 'shop-4'],
-  arcade: ['bld-noodle', 'bld-karaoke', 'shop-1', 'bld-noodle', 'bld-karaoke', 'shop-3'],
+  market: ['shop-1', 'shop-2', 'shop-3', 'shop-4', 'shop-5', 'shop-6', 'shop-7', 'shop-8', 'shop-9', 'shop-10', 'shop-11', 'shop-12'],
+  temple: ['bld-hill', 'bld-pavilion', 'bld-incense', 'bld-callig', 'shop-2', 'shop-5', 'shop-9'],
+  canal: ['bld-canal', 'bld-tea', 'bld-boathouse', 'bld-flowers', 'bld-wheel', 'shop-3', 'shop-7'],
+  docks: ['bld-office', 'bld-fish', 'bld-rope', 'bld-chandler', 'shop-4'],
+  arcade: ['bld-noodle', 'bld-karaoke', 'bld-hotel', 'bld-robot', 'bld-boba', 'shop-10', 'shop-12'],
 };
 const ROOFS: Record<District, string[]> = {
-  market: ['roof-1', 'roof-2', 'roof-3', 'roof-4'], temple: ['roof-5', 'roof-6', 'roof-1'], canal: ['roof-2', 'roof-3', 'roof-6'],
-  docks: ['roof-4', 'roof-3'], arcade: ['roof-4', 'roof-1', 'roof-5'],
+  market: ['roof-1', 'roof-2', 'roof-3', 'roof-4', 'roof-7', 'roof-8', 'roof-10', 'roof-11'], temple: ['roof-5', 'roof-6', 'roof-1', 'roof-9', 'roof-11'],
+  canal: ['roof-2', 'roof-3', 'roof-6', 'roof-7', 'roof-9'], docks: ['roof-4', 'roof-3', 'roof-8', 'roof-10'], arcade: ['roof-4', 'roof-1', 'roof-5', 'roof-12', 'roof-8'],
 };
 
 function build(): City {
@@ -281,7 +284,7 @@ function build(): City {
   for (const [x, y] of odd) cats.push({ x: x * T + T / 2, y: y * T + T / 2 });
   for (let d = 2; cats.length < 50 && d > 0; d--) for (const [x, y] of pick(50 - cats.length, d, (x, y) => solid[at(x, y)] === S.OPEN)) cats.push({ x: x * T + T / 2, y: y * T + T / 2 });
 
-  return { ground, solid, flags, buildings, props, roads: ROADS, decals, places, cats: cats.slice(0, 50), murals, ladders, hides, parking };
+  return { ground, solid, flags, buildings, props, roads: ROADS, decals, places, cats: cats.slice(0, 50), murals, ladders, hides, parking, paths: [], tables: [], festival: [] };
 
   function stall(x: number, y: number, s: string) {
     for (let k = 0; k < 2; k++) { const i = at(x + k, y); solid[i] = S.TALL; reserved[i] = 1; }
@@ -331,7 +334,11 @@ function dressBuildings(c: City) {
     b.front = open >= 2;
     const d = districtAt(b.x, b.y);
     const list = b.front ? FRONTS[d] : ROOFS[d];
-    b.sprite = list[Math.floor(R() * list.length)];
+    // never the same picture as a building touching this one
+    const near = new Set(c.buildings.filter(o => o !== b && o.sprite && o.x <= b.x + b.w && o.x + o.w >= b.x && o.y <= b.y + b.h && o.y + o.h >= b.y).map(o => o.sprite));
+    const ok = list.filter(n => !near.has(n));
+    const pool = ok.length ? ok : list;
+    b.sprite = pool[Math.floor(R() * pool.length)];
   }
 }
 function findBlocks(ground: Uint8Array, reserved: Uint8Array) {

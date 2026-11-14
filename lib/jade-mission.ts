@@ -21,6 +21,8 @@ export class Run {
   actors: Actor[] = []; marks: [number, number][] = []; mark = 0; items: { x: number; y: number; got: boolean; sprite: string }[] = [];
   loot: { x: number; y: number; sprite: string } | null = null; snap!: Snap; phase = 0; count = 0; lost = 0; base = 0; hits = 0;
   spawned = 0; spawnT = 0; envelopes = 5; fare: { x: number; y: number; to: [number, number] | null; sp: string } | null = null;
+  /** for the medals: active seconds, the most heat, and retries from a checkpoint */
+  time = 0; maxHeat = 0; retries = 0;
   ride: Ride | null = null; private fieldKey = ''; private f: Field | null = null;
   constructor(public w: World, public m: Mission, public gig?: Gig) {}
 
@@ -67,7 +69,7 @@ export class Run {
     this.i = i; this.cur = this.m.steps[i]; const st = this.cur;
     if (st.cp && i > 0) { this.snap = this.snapshot(i); w.fx.push({ t: 'checkpoint' }); }
     this.label = 'label' in st ? st.label : '';
-    const k = (this.assist ? 1.4 : 1) * (this.easy ? 1 : 0.9);
+    const k = (this.assist ? 1.4 : 1) * this.w.diff.timer;
     switch (st.t) {
       case 'talk': {
         const hero = w.s.hero;
@@ -115,7 +117,7 @@ export class Run {
           const cls = st.rival === 'boat' ? 'boat' : st.rival === 'runner' ? 'foot' : 'small';
           const [x, y] = nearestFree(w.c, cls, w.p.x + 30, w.p.y + 30, w.open, 4);
           const sp = st.rival === 'runner' ? 214 : st.rival === 'scooter' ? 292 : 220;
-          this.actors.push(this.actor('rival-' + st.rival, x, y, cls, this.marks, sp * (this.assist ? 0.86 : 1) * (this.easy ? 1 : 1.04)));
+          this.actors.push(this.actor('rival-' + st.rival, x, y, cls, this.marks, sp * (this.assist ? 0.86 : 1) * this.w.diff.rival));
         }
         this.progress = `Gates 0/${this.marks.length}`;
         break;
@@ -229,7 +231,7 @@ export class Run {
     a.t += dt;
     if (a.stun > 0) { a.stun -= dt; a.b.speed *= 0.94; }
     else {
-      let sp = st.speed * (this.assist ? 0.84 : 1) * (this.easy ? 1 : 1.05);
+      let sp = st.speed * (this.assist ? 0.84 : 1) * this.w.diff.chase;
       if (d > 620) sp *= 0.72; else if (d < 160) sp *= 1.04;
       this.walk(a, dt, sp, true);
     }
@@ -247,7 +249,7 @@ export class Run {
     }
     const far = this.assist ? 1500 : 1150;
     this.lost = d > far ? this.lost + dt : 0;
-    if (this.lost > (this.assist ? 9 : 6)) this.fail('They got away! Stay closer next time.');
+    if (this.lost > (this.assist ? 9 : 6) * this.w.diff.lost) this.fail('They got away! Stay closer next time.');
   }
   tail(dt: number) {
     const w = this.w, a = this.actors[0], p = w.p; if (!a) return;
@@ -259,12 +261,12 @@ export class Run {
       if (done && dist(a.b.x, a.b.y, p.x, p.y) < 700) { this.next(); return; }
     }
     const d = dist(a.b.x, a.b.y, p.x, p.y);
-    const range = this.assist ? 165 : 210;
+    const range = (this.assist ? 165 : 210) * this.w.diff.look;
     const facing = a.look > 0 ? a.face : a.b.h;
     const inCone = Math.abs(angDiff(facing, Math.atan2(p.y - a.b.y, p.x - a.b.x))) < (a.look > 0 ? 1.2 : 0.55);
     const sees = !p.hide && d < range && (inCone || d < 60) && los(w.c, a.b.x, a.b.y, p.x, p.y);
     const m = this.meter!;
-    if (sees) m.v = Math.min(1, m.v + dt * (p.sneak && !p.ride ? 0.45 : 1.1) * (d < 90 ? 1.8 : 1) * (this.assist ? 0.7 : 1));
+    if (sees) m.v = Math.min(1, m.v + dt * (p.sneak && !p.ride ? 0.45 : 1.1) * (d < 90 ? 1.8 : 1) * (this.assist ? 0.7 : 1) * this.w.diff.look);
     else m.v = Math.max(0, m.v - dt * 0.25);
     m.bad = m.v > 0.6;
     if (m.v >= 1) return this.fail('Pip spotted you! Keep further back, sneak, or hide when he looks round.');
@@ -300,7 +302,7 @@ export class Run {
   }
   stealth(st: Extract<Step, { t: 'stealth' }>, dt: number) {
     const w = this.w, p = w.p;
-    const range = this.assist ? 170 : 215, cone = this.assist ? 0.45 : 0.55;
+    const range = (this.assist ? 170 : 215) * this.w.diff.look, cone = this.assist ? 0.45 : 0.55;
     let seen = false;
     for (const a of this.actors) {
       a.t += dt; this.walk(a, dt, 46, true);
@@ -309,7 +311,7 @@ export class Run {
       if (d < 34 && !p.hide) seen = true;
     }
     const m = this.meter!;
-    m.v = seen ? Math.min(1, m.v + dt * (p.sneak ? 0.7 : 1.4)) : Math.max(0, m.v - dt * 0.3); m.bad = m.v > 0.5;
+    m.v = seen ? Math.min(1, m.v + dt * (p.sneak ? 0.7 : 1.4) * this.w.diff.look) : Math.max(0, m.v - dt * 0.3); m.bad = m.v > 0.5;
     if (m.v >= 1) return this.fail('A lookout spotted you! Watch their torch beams and sneak.');
     if (this.phase === 0) {
       const [gx, gy] = this.spot(st.goal); this.label = 'Reach the yard office unseen';
