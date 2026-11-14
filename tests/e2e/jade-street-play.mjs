@@ -1,4 +1,5 @@
-// Jade Street play-through for frame rate: a save with every district open, then minutes of play in each district
+// Jade Street play-through for frame rate: a save with every district open, then minutes of play in each district,
+// half of it in the rain with a busker's crowd gathered,
 // at 1280×800 with real keys: running, dashing and hopping on foot, riding a scooter with boosts, a spell of five-lantern
 // heat (wardens, roadblocks and the blimp) and a jump to fresh streets every few seconds. Logs the frame rate per
 // district and fails when any district averages under 55 fps, or on a page error. Needs `npm run dev` (or BASE_URL)
@@ -19,7 +20,7 @@ await p.goto(base, { waitUntil: 'networkidle', timeout: 120000 });
 await p.waitForSelector('main[data-ready="true"]', { timeout: 60000 });
 // every job done but the last, so all five districts are open
 await p.evaluate(() => localStorage.setItem('jade-street-v2', JSON.stringify({ v: 2, seed: 77, started: true, hero: 'dora', cash: 3000, done: Array.from({ length: 24 }, (_, i) => 'm' + (i + 1)), settings: { music: false } })));
-await p.reload(); await p.waitForSelector('main[data-ready="true"]');
+await p.reload(); await p.waitForSelector('[data-testid="continue"]', { timeout: 120000 });
 await p.click('[data-testid="continue"]');
 await p.waitForFunction(() => !!window.__jade, null, { timeout: 30000 });
 await p.waitForTimeout(1500);
@@ -45,6 +46,8 @@ for (const d of DISTRICTS) {
         window.__jade.play.paused = false; window.__jade.play.bump();
       }, [d, k + DISTRICTS.indexOf(d) * 1000, rode]);
     }
+    // rain half the time, and a street event drawing a crowd, so the busiest city is what gets timed
+    if (k % 12 === 1) await p.evaluate(rain => { window.__jade.rain(rain ? 1 : null); window.__jade.event('busker', true); }, phase % 2 === 0);
     if (k % 30 === 10) await p.evaluate(() => window.__jade.heat(4.6));
     if (k % 30 === 25) await p.evaluate(() => { const w = window.__jade.world(); w.swapJacket(); w.p.act = null; });
     if (held) await p.keyboard.up(held);

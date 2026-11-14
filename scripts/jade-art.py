@@ -189,6 +189,28 @@ each('mg-parts', ['mg-pin', 'mg-pin-glow', 'mg-pick', 'mg-wrench', 'mg-plug-red'
 each('mg-food', ['mg-wok', 'mg-noodles', 'mg-prawn', 'mg-bokchoy', 'mg-chilli', 'mg-egg', 'mg-wrapper', 'mg-filled', 'mg-half', 'mg-dumpling', 'mg-messy', 'mg-steamer'], 4, 3,
      {'mg-wok': 220, 'mg-noodles': 60, 'mg-prawn': 52, 'mg-bokchoy': 52, 'mg-chilli': 48, 'mg-egg': 52, 'mg-wrapper': 120, 'mg-filled': 120, 'mg-half': 110, 'mg-dumpling': 100, 'mg-messy': 100, 'mg-steamer': 150})
 
+# ── second batch (docs/jade-street-art/jobs2.py): new hero actions, seated townsfolk, street events and props, the
+# festival and fireworks, more buildings and landmarks, the map pieces, medals, the phone and the controls pictures
+for h in ('dora', 'enzo'):
+    grid(f'{h}-act4', [f'{h}-push-side-0', f'{h}-push-side-1', f'{h}-push-up-0', f'{h}-push-up-1', f'{h}-lantern', f'{h}-lookup', f'{h}-phone', f'{h}-eat', f'{h}-dance', f'{h}-kneel', f'{h}-clap', f'{h}-umbrella'], 4, 3, 58, ref=f'{h}-clap', fix=cream if h == 'dora' else None)
+grid('folk3', [f'folk-{s}-sit-{k}' for s in ('rabbit', 'dog', 'squirrel', 'cat', 'duck', 'hedgehog') for k in (0, 1)], 4, 3, 42)
+each('events', ['duck-down-0', 'duck-down-1', 'duck-side', 'duck-lost', 'busker-0', 'busker-1', 'busk-hat', 'smoke', 'van-broken', 'mag-mango-0', 'mag-mango-1', 'oranges'], 4, 3,
+     {'duck-down-0': 24, 'duck-down-1': 24, 'duck-side': 26, 'duck-lost': 24, 'busker-0': 64, 'busker-1': 64, 'busk-hat': 28, 'smoke': 50, 'van-broken': 96, 'mag-mango-0': 56, 'mag-mango-1': 56, 'oranges': 28}, dim='h')
+each('street', ['light-red', 'light-amber', 'light-green', 'fountain', 'banyan', 'table', 'umb-red', 'umb-jade', 'plaza-bench', 'bamboo', 'koi-pond', 'crane-statue'], 4, 3,
+     {'light-red': 26, 'light-amber': 26, 'light-green': 26, 'fountain': 120, 'banyan': 190, 'table': 76, 'umb-red': 40, 'umb-jade': 40, 'plaza-bench': 70, 'bamboo': 90, 'koi-pond': 130, 'crane-statue': 50})
+each('festival', ['fest-arch', 'fest-dragon', 'sky-lantern', 'sky-lanterns', 'fest-stage', 'fest-rabbit', 'fest-carp', 'fest-bunting', 'fest-float', 'fest-stall', 'fest-pole', 'confetti'], 4, 3,
+     {'fest-arch': 270, 'fest-dragon': 200, 'sky-lantern': 26, 'sky-lanterns': 60, 'fest-stage': 170, 'fest-rabbit': 110, 'fest-carp': 120, 'fest-bunting': 270, 'fest-float': 130, 'fest-stall': 134, 'fest-pole': 44, 'confetti': 60})
+each('fireworks', ['fw-gold', 'fw-red', 'fw-violet', 'fw-blue', 'fw-orange', 'fw-star'], 3, 2, 220, green=True, lo=60)
+square('shops2', [f'shop-{i}' for i in range(7, 13)], 3, 2, 192)
+square('roofs2', [f'roof-{i}' for i in range(7, 13)], 3, 2, 192)
+square('bld3', ['bld-pavilion', 'bld-incense', 'bld-callig', 'bld-boathouse', 'bld-flowers', 'bld-wheel'], 3, 2, 192, green=True)
+square('bld4', ['bld-fish', 'bld-rope', 'bld-chandler', 'bld-hotel', 'bld-robot', 'bld-boba'], 3, 2, 192, green=True)
+square('landmarks2', ['lm2-hall', 'lm2-bell', 'lm2-clock', 'lm2-lighthouse', 'lm2-cinema', 'lm2-opera'], 3, 2, {'lm2-hall': 384, 'lm2-bell': 384, 'lm2-clock': 384, 'lm2-lighthouse': 192, 'lm2-cinema': 384, 'lm2-opera': 384}, green=True)
+fit('map-icons', ['pin-market', 'pin-safe', 'pin-garage', 'pin-gig', 'pin-job', 'pin-cat', 'pin-mural', 'pin-star', 'mi-temple', 'mi-pagoda', 'mi-crane', 'mi-arcade', 'mi-bridge', 'mi-lighthouse', 'mi-ferry', 'mi-hall'], 4, 4, 160)
+fit('map-fog', [f'fog-{i}' for i in range(1, 7)], 3, 2, 420, green=True, lo=50)
+fit('ui2', ['ui-medal-bronze', 'ui-medal-silver', 'ui-medal-gold', 'ui-medal-none', 'ui-phone', 'ui-bubble', 'ui-radio', 'ui-book', 'ui-watch', 'ui-calm', 'ui-charm', 'ui-sign'], 4, 3, 200)
+fit('controls', ['c-key', 'c-space', 'c-arrows', 'c-shift', 'c-mouse', 'c-stick', 'c-phone', 'c-tap', 'c-hide', 'c-heat', 'c-boost', 'c-horn'], 4, 3, 160)
+
 # ── seamless ground textures: crop each square, then blend it with its half-offset copy so the edges wrap
 TEX = {}
 def seamless(arr):
@@ -216,7 +238,8 @@ for f, names in (('ground', ['road', 'walk', 'plaza', 'grass', 'canal', 'plank']
 
 # ── full paintings
 PLAIN = {}
-for n, size in (('title', (1536, 1024)), ('mg-lock', (1280, 853)), ('mg-wire', (1280, 853)), ('mg-wok', (1280, 853)), ('mg-board', (1280, 853)), ('mg-haggle', (1280, 853))):
+BIG = ['loading'] + [f'stall-{d}' for d in ('market', 'temple', 'canal', 'docks', 'arcade')] + [f'story-{i}' for i in range(1, 5)] + [f'chapter-{i}' for i in range(1, 6)] + [f'end-{i}' for i in range(1, 4)]
+for n, size in (('title', (1536, 1024)), ('mg-lock', (1280, 853)), ('mg-wire', (1280, 853)), ('mg-wok', (1280, 853)), ('mg-board', (1280, 853)), ('mg-haggle', (1280, 853)), ('map-paper', (1024, 683))) + tuple((b, (1280, 853)) for b in BIG):
     p = SRC / f'{n}.png'
     if not p.exists(): MISSING.append(n); continue
     im = Image.open(p).convert('RGB').resize(size, Image.LANCZOS)
@@ -231,14 +254,21 @@ if 'ui-ring' in FRAMES:
     FRAMES['ui-ring-hollow'] = Image.fromarray(r)
 
 # ── stand-alone UI pieces for CSS border-image (plaques and round buttons stretch with their painted ends intact)
-for n in ('ui-plaque-jade', 'ui-plaque-red', 'ui-btn-jade', 'ui-btn-red', 'ui-ring'):
+for n in ('ui-plaque-jade', 'ui-plaque-red', 'ui-btn-jade', 'ui-btn-red', 'ui-ring', 'ui-lantern-on', 'ui-lantern-off'):
     if n in FRAMES: FRAMES[n].save(OUT / f'{n}.webp', 'WEBP', quality=88, method=6)
+# the map frame: keyed off its green and kept whole for CSS border-image
+if (SRC / 'map-frame.png').exists():
+    fr = Image.fromarray(key(Image.open(SRC / 'map-frame.png'), True, lo=60)); bb = fr.getbbox(); fr = fr.crop(bb)
+    fr.resize((1200, round(fr.height * 1200 / fr.width)), Image.LANCZOS).save(OUT / 'ui-map-frame.webp', 'WEBP', quality=86, method=6)
 
 # ── atlases
+NEW_BLD = tuple(f'shop-{i}' for i in range(7, 13)) + tuple(f'roof-{i}' for i in range(7, 13)) + ('bld-pavilion', 'bld-incense', 'bld-callig', 'bld-boathouse', 'bld-flowers', 'bld-wheel', 'bld-fish', 'bld-rope', 'bld-chandler', 'bld-hotel', 'bld-robot', 'bld-boba')
 GROUPS = [('dora', lambda n: n.startswith('dora-')), ('enzo', lambda n: n.startswith('enzo-')),
+          ('city2', lambda n: n in NEW_BLD), ('land', lambda n: n.startswith('lm2-')),
           ('city', lambda n: n.startswith(('shop-', 'roof-', 'flat-', 'bld-', 'lm-'))),
           ('rides', lambda n: n.startswith(('v-', 'car-', 'mag-cart', 'mag-boat', 'boss-', 'warden-bike'))),
           ('folk', lambda n: n.startswith(('folk-', 'mag-', 'warden-', 'blimp', 'block-', 'cone', 'face-'))),
+          ('ui', lambda n: n.startswith(('ui-', 'c-', 'pin-', 'mi-', 'fog-', 'i-'))),
           ('props', lambda n: True)]
 meta = {}; assigned = {}; SIZES = {}
 for n in FRAMES:

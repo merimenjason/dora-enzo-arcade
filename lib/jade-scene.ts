@@ -10,18 +10,27 @@ import type { World, Ride } from './jade-game.js';
 import type { Actor } from './jade-mission.js';
 import { OUTFITS, PAINTS } from './jade-save.js';
 import { lanterns } from './jade-heat.js';
+import { Life } from './jade-life.js';
 
 export const ART = '/art/jade-street/';
 const CH = 8; // tiles per chunk
 const images: Record<string, HTMLImageElement | HTMLCanvasElement> = {};
 let loaded = false;
 
-export function loadArt(base = ART): Promise<void> {
+/** load and decode every atlas and ground texture; `progress` gets (done, total); rejects with the files that failed */
+export function loadArt(base = ART, progress?: (done: number, total: number) => void): Promise<void> {
   const names = [...ATLASES.map(a => a as string), ...TEXTURES.map(t => 'tex-' + t)];
+  let done = 0; const failed: string[] = [];
+  progress?.(0, names.length);
   return Promise.all(names.map(n => new Promise<void>(res => {
-    if (images[n]) return res();
-    const im = new Image(); im.onload = () => res(); im.onerror = () => res(); im.src = `${base}${n}.webp`; images[n] = im;
-  }))).then(() => { loaded = true; });
+    const ok = () => { done++; progress?.(done, names.length); res(); };
+    const old = images[n] as HTMLImageElement | undefined;
+    if (old && old.complete && old.naturalWidth) return ok();
+    const im = new Image(); im.decoding = 'async';
+    im.onload = () => { (im.decode ? im.decode() : Promise.resolve()).catch(() => undefined).then(ok); };
+    im.onerror = () => { delete images[n]; failed.push(n); done++; progress?.(done, names.length); res(); };
+    im.src = `${base}${n}.webp${old ? '?r=' + Date.now() : ''}`; images[n] = im;
+  }))).then(() => { if (failed.length) throw new Error('Could not load: ' + failed.join(', ')); loaded = true; });
 }
 export const artLoaded = () => loaded;
 
@@ -112,6 +121,15 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     case 'talk': return `${h}-talk`;
     case 'wave': return `${h}-wave`;
     case 'barge': return face === 'side' ? `${h}-barge-side` : `${h}-barge-down`;
+    case 'push': return face === 'up' ? `${h}-push-up-${cyc(2, 4)}` : `${h}-push-side-${cyc(2, 4)}`;
+    case 'umbrella': return face === 'down' ? `${h}-umbrella` : `${h}-walk-${face}-${cyc(4, 7)}`;
+    case 'phone': return `${h}-phone`;
+    case 'eat': return `${h}-eat`;
+    case 'dance': return t % 0.8 < 0.4 ? `${h}-dance` : `${h}-cheer-${cyc(2, 4)}`;
+    case 'kneel': return `${h}-kneel`;
+    case 'clap': return t % 0.5 < 0.25 ? `${h}-clap` : `${h}-wave`;
+    case 'lantern': return `${h}-lantern`;
+    case 'look-up': return `${h}-lookup`;
     default: return `${h}-idle-${face}`;
   }
 }
@@ -128,6 +146,7 @@ export class Scene {
   dust: { x: number; y: number; t: number; vx: number; vy: number; c: string; s: number }[] = [];
   shake = 0; lookX = 0; lookY = 0; zoomRide = 1;
   minimap = { x: 0, y: 0, r: 0, on: true };
+  life = new Life(spr, (x, px, py, r, col) => this.glow(x, px, py, r, col));
   constructor(public cv: HTMLCanvasElement, public c: City) {
     this.x = cv.getContext('2d', { alpha: false })!;
     c.props.forEach((p, i) => { if (p.layer === 'ground') return; const k = Math.floor(p.x / T / CH) + Math.floor(p.y / T / CH) * 1000; const b = this.overBuckets.get(k) ?? []; b.push(i); this.overBuckets.set(k, b); });
@@ -137,7 +156,12 @@ export class Scene {
     this.w = w; this.h = h; this.dpr = dpr;
     this.cv.width = Math.round(w * dpr); this.cv.height = Math.round(h * dpr);
   }
-  baseZoom() { return Math.max(0.55, Math.min(1.35, Math.sqrt(this.w * this.h) / (14.5 * T))); }
+  /** how many world units fit: phones see about 6.5 tiles across their short side so the hero reads; desktops more */
+  baseZoom() {
+    const short = Math.min(this.w, this.h), long = Math.max(this.w, this.h);
+    if (short < 520) return Math.max(0.62, Math.min(1.1, Math.max(short / (6.2 * T), long / (13 * T))));
+    return Math.max(0.6, Math.min(1.35, Math.sqrt(this.w * this.h) / (14.5 * T)));
+  }
 
   // ── chunks: ground textures, kerbs, decals, building shadows, buildings and ground props
   private patterns: Record<string, CanvasPattern | null> = {};
@@ -200,6 +224,18 @@ export class Scene {
         x.fillRect(tx * T + (dx === 1 ? T - 5 : 0), ty * T + (dy === 1 ? T - 5 : 0), dx ? 5 : T, dy ? 5 : T);
       }
     }
+    for (const pa of c.paths) {
+      const xs = pa.pts.map(q => q[0]), ys = pa.pts.map(q => q[1]);
+      if (Math.max(...xs) < tx0 * T - 100 || Math.min(...xs) > (tx0 + nw) * T + 100 || Math.max(...ys) < ty0 * T - 100 || Math.min(...ys) > (ty0 + nh) * T + 100) continue;
+      const pt = this.pattern(x, pa.tex); if (!pt) continue;
+      pt.setTransform(new DOMMatrix([0.5, 0, 0, 0.5, 0, 0]));
+      x.save(); x.lineCap = 'round'; x.lineJoin = 'round'; x.beginPath(); x.moveTo(pa.pts[0][0], pa.pts[0][1]);
+      for (let i = 1; i < pa.pts.length - 1; i++) { const mx = (pa.pts[i][0] + pa.pts[i + 1][0]) / 2, my = (pa.pts[i][1] + pa.pts[i + 1][1]) / 2; x.quadraticCurveTo(pa.pts[i][0], pa.pts[i][1], mx, my); }
+      const lp = pa.pts[pa.pts.length - 1]; x.lineTo(lp[0], lp[1]);
+      x.strokeStyle = 'rgba(10,6,24,.35)'; x.lineWidth = pa.w + 8; x.stroke();
+      x.strokeStyle = pt; x.lineWidth = pa.w; x.stroke();
+      x.strokeStyle = 'rgba(14,8,32,.22)'; x.stroke(); x.restore();
+    }
     const inR = (px: number, py: number, m: number) => px > tx0 * T - m && px < (tx0 + nw) * T + m && py > ty0 * T - m && py < (ty0 + nh) * T + m;
     for (const d of c.decals) {
       if (!inR(d.x, d.y, 200)) continue;
@@ -244,10 +280,11 @@ export class Scene {
     const p = w.p; const ride = p.ride;
     // camera: lead in the direction of travel, pull out a little when riding fast
     const sp = ride ? ride.b.speed : p.b.speed, hd = ride ? ride.b.h : p.b.h;
-    const lead = ride ? Math.min(160, sp * 0.45) : Math.min(50, sp * 0.2);
+    const phone = Math.min(this.w, this.h) < 520;
+    const lead = ride ? Math.min(phone ? 210 : 160, sp * (phone ? 0.6 : 0.45)) : Math.min(50, sp * 0.2);
     this.lookX += (Math.cos(hd) * lead - this.lookX) * Math.min(1, dt * 2.5);
     this.lookY += (Math.sin(hd) * lead - this.lookY) * Math.min(1, dt * 2.5);
-    const zr = ride ? 0.9 - Math.min(0.1, sp / 3400) : 1;
+    const zr = ride ? (phone ? 0.86 - Math.min(0.14, sp / 2600) : 0.9 - Math.min(0.1, sp / 3400)) : 1;
     this.zoomRide += (zr - this.zoomRide) * Math.min(1, dt * 1.5);
     const k = this.baseZoom() * this.zoomRide;
     this.shake = Math.max(0, this.shake - dt * 3);
@@ -283,13 +320,14 @@ export class Scene {
     }
     for (const r of w.rides) if (r !== ride && vis(r.b.x, r.b.y)) list.push([r.b.y, () => this.ride(x, w, r, false)]);
     for (const c of w.cars) if (vis(c.x, c.y)) list.push([c.y, () => { x.fillStyle = 'rgba(0,0,0,.3)'; this.shadow(x, c.x + 5, c.y + 7, c.len * 0.5, c.rad); spr(x, c.sprite, c.x, c.y, { anchor: 'center', rot: c.h + Math.PI / 2 + (c.wob > 0 ? Math.sin(this.t * 40) * 0.06 : 0) }); }]);
-    for (const pd of w.peds) if (vis(pd.x, pd.y)) list.push([pd.y, () => this.ped(x, pd)]);
+    for (const pd of w.peds) if (vis(pd.x, pd.y)) list.push([pd.y, () => this.ped(x, w, pd)]);
     for (const wd of w.wardens) if (vis(wd.b.x, wd.b.y)) list.push([wd.b.y, () => this.warden(x, wd)]);
     for (const b of w.blocks) if (vis(b.x, b.y)) list.push([b.y, () => spr(x, b.sprite, b.x, b.y, { anchor: 'center', rot: b.h, w: 100, alpha: b.knocked > 0 ? Math.max(0, 1 - b.knocked) : 1 })]);
     if (w.run) for (const a of w.run.actors) if (vis(a.b.x, a.b.y) && a.kind !== 'swoop') list.push([a.b.y, () => this.actor(x, w, a)]);
     this.c.cats.forEach((ct, i) => { if (w.s.cats.includes(i) || !vis(ct.x, ct.y) || !w.open.has(districtAt(Math.floor(ct.x / T), Math.floor(ct.y / T)))) return; list.push([ct.y, () => this.cat(x, ct.x, ct.y, i)]); });
     for (const m of this.c.murals) if (vis(m.x, m.y)) list.push([m.y - 40, () => spr(x, w.s.murals.includes(m.id) ? 'mural-fresh' : 'mural-faded', m.x, m.y + 6, { w: 84 })]);
     for (const l of this.c.ladders) if (vis(l.x * T, l.y * T)) list.push([l.y * T + 10, () => spr(x, 'fire-ladder', l.x * T + T / 2, l.y * T + T - 4, { h: 96 })]);
+    this.life.sorted(x, w, list, vis, this.t);
     if (!p.roof) list.push([p.y + 1, () => this.hero(x, w)]);
     list.sort((a, b) => a[0] - b[0]);
     for (const [, f] of list) f();
@@ -303,6 +341,8 @@ export class Scene {
     }
     for (const m of w.snatchers) this.flyer(x, m.x, m.y, m.h, m.wing);
     if (w.run) for (const a of w.run.actors) if (a.kind === 'swoop') this.flyer(x, a.b.x, a.b.y, a.b.h + (a.stun > 0 ? this.t * 12 : 0), a.t * 9);
+    this.life.over(x, w, vis, dt, cam);
+    this.life.rainWorld(x, w, dt, cam);
     this.lights(x, w, ox, oy, cam.w, cam.h);
     if (w.blimp.on) this.blimp(x, w);
     this.fog(x, w, ox, oy, cam.w, cam.h);
@@ -315,6 +355,7 @@ export class Scene {
     const g = x.createRadialGradient(this.w / 2, this.h / 2, Math.min(this.w, this.h) * 0.45, this.w / 2, this.h / 2, Math.max(this.w, this.h) * 0.75);
     g.addColorStop(0, 'rgba(10,6,30,0)'); g.addColorStop(1, 'rgba(10,6,30,.45)'); x.fillStyle = g; x.fillRect(0, 0, this.w, this.h);
     if (lanterns(w) >= 1) { const a = 0.08 + 0.05 * Math.sin(this.t * 6); x.fillStyle = `rgba(255,40,60,${a * lanterns(w) / 5})`; x.fillRect(0, 0, this.w, 6); x.fillRect(0, this.h - 6, this.w, 6); }
+    this.life.rainScreen(x, w, this.w, this.h, this.t);
     if (this.minimap.on) this.drawMinimap(x, w);
   }
   /** a string of paper lanterns across the street: a sagging cable with upright painted lanterns hung along it */
@@ -339,7 +380,7 @@ export class Scene {
     spr(x, p.sprite, p.x, p.y + 12, {});
   }
   ride(x: CanvasRenderingContext2D, w: World, r: Ride, player: boolean) {
-    const name = 'v-' + r.kind; const paint = player ? PAINTS.find(q => q.id === w.s.paint)?.filter ?? 0 : [0, 140, 40, 210, 280][r.tint % 5];
+    const name = r.broken ? 'van-broken' : 'v-' + r.kind; const paint = player ? PAINTS.find(q => q.id === w.s.paint)?.filter ?? 0 : [0, 140, 40, 210, 280][r.tint % 5];
     x.fillStyle = 'rgba(0,0,0,.32)'; this.shadow(x, r.b.x + 5, r.b.y + 7, VEHICLES[r.kind].len * 0.45, VEHICLES[r.kind].r * 0.9);
     const bob = r.kind === 'boat' ? Math.sin(this.t * 2 + r.id) * 0.03 : 0;
     spr(x, name, r.b.x, r.b.y, { anchor: 'center', rot: r.b.h + Math.PI / 2 + bob, variant: paint ? 'paint:' + paint : '' });
@@ -364,23 +405,27 @@ export class Scene {
       if (p.carry) spr(x, itemSprite(p.carry), r.b.x, r.b.y, { w: 26, anchor: 'center', rot: r.b.h + Math.PI / 2 });
       return;
     }
-    const hop = p.anim === 'hop' ? Math.sin(Math.min(1, 1 - p.hopT / 0.42) * Math.PI) * 26 : p.anim === 'climb' ? Math.sin(p.act ? p.act.t * 12 : 0) * 6 + 10 : 0;
+    const hop = p.anim === 'umbrella' ? Math.abs(Math.sin(p.animT * 7)) * 2 : p.anim === 'hop' ? Math.sin(Math.min(1, 1 - p.hopT / 0.42) * Math.PI) * 26 : p.anim === 'climb' ? Math.sin(p.act ? p.act.t * 12 : 0) * 6 + 10 : 0;
     x.fillStyle = 'rgba(0,0,0,.35)'; this.shadow(x, p.b.x, p.b.y + 2, 16 - hop * 0.2, 7 - hop * 0.08);
     if (p.anim === 'dash') this.puff(p.b.x - Math.cos(p.b.h) * 14, p.b.y + 4, '#d8d0e8');
     const f = heroFrame(h, p.anim, p.face, p.act ? p.act.t : p.animT);
     const flip = p.face === 'side' && p.flip;
     spr(x, f, p.b.x, p.b.y + 4 - hop, { flip, variant, alpha: p.hide ? 0.55 : 1 }) || spr(x, `${h}-idle-down`, p.b.x, p.b.y + 4, { variant });
     if (p.carry && !p.anim.startsWith('carry')) spr(x, itemSprite(p.carry), p.b.x, p.b.y - 54 - hop, { w: 28 });
+    if (p.anim === 'umbrella' && p.face !== 'down') spr(x, 'umb-red', p.b.x, p.b.y - 46, { w: 46, anchor: 'center' });
   }
-  ped(x: CanvasRenderingContext2D, pd: World['peds'][number]) {
+  ped(x: CanvasRenderingContext2D, w: World, pd: World['peds'][number]) {
     const cx = Math.cos(pd.h), sy = Math.sin(pd.h);
     let f = `folk-${pd.sp}-`, flip = false;
+    const sit = this.life.pedOver(x, w, pd, this.t);
+    if (sit) { x.fillStyle = 'rgba(0,0,0,.3)'; this.shadow(x, pd.x, pd.y + 2, 14, 5); spr(x, sit, pd.x, pd.y + 6, { flip: cx < 0 }); return; }
     if (pd.hop > 0) f += 'hop';
     else if (Math.abs(cx) > Math.abs(sy)) { f += 'side-' + (Math.floor(pd.walk * 5) % 2); flip = cx < 0; }
     else f += sy > 0 ? 'down' : 'up';
     const hop = pd.hop > 0 ? Math.sin((1 - pd.hop / 0.42) * Math.PI) * 18 : Math.abs(Math.sin(pd.walk * 9)) * (pd.wait > 0 ? 0 : 2);
     x.fillStyle = 'rgba(0,0,0,.3)'; this.shadow(x, pd.x, pd.y + 2, 12, 5);
     spr(x, f, pd.x, pd.y + 4 - hop, { flip });
+    this.life.umbrella(x, w, pd, hop);
   }
   warden(x: CanvasRenderingContext2D, wd: World['wardens'][number]) {
     x.fillStyle = 'rgba(0,0,0,.3)'; this.shadow(x, wd.b.x + 4, wd.b.y + 6, 26, 12);
@@ -519,6 +564,8 @@ export class Scene {
       const bk = this.overBuckets.get(cx + cy * 1000); if (!bk) continue;
       for (const i of bk) {
         const p = this.c.props[i];
+        if (p.sprite === 'lamp') this.life.reflect(x, w, p.x, p.y - 10, 'rgba(255,190,110,1)');
+        else if (p.sprite.startsWith('stall')) this.life.reflect(x, w, p.x, p.y + 20, 'rgba(255,150,90,1)');
         if (p.sprite === 'lamp') { const g = x.createRadialGradient(p.x, p.y - 40, 0, p.x, p.y - 20, 120); g.addColorStop(0, 'rgba(255,190,110,.32)'); g.addColorStop(1, 'rgba(255,190,110,0)'); x.fillStyle = g; x.fillRect(p.x - 120, p.y - 140, 240, 240); }
         else if (p.sprite.startsWith('lanterns')) { for (const k of [-1, 0, 1]) { const ly = p.y + k * 80; const g = x.createRadialGradient(p.x, ly, 0, p.x, ly, 70); g.addColorStop(0, p.sprite.endsWith('gold') ? 'rgba(255,210,90,.22)' : 'rgba(255,80,60,.22)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(p.x - 70, ly - 70, 140, 140); } }
         else if (p.sprite.startsWith('stall')) { const g = x.createRadialGradient(p.x, p.y + 10, 0, p.x, p.y + 10, 110); g.addColorStop(0, 'rgba(255,170,90,.2)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(p.x - 110, p.y - 100, 220, 220); }
@@ -589,6 +636,11 @@ export class Scene {
       else if ((f.t === 'cat' || f.t === 'pickup' || f.t === 'gate' || f.t === 'mural') && f.x !== undefined) this.burst(f.x, f.y!, '#ffe68a', 14);
       else if (f.t === 'hop' && f.x !== undefined) this.puff(f.x, f.y! + 4, '#cfc8e0');
       else if (f.t === 'caught') this.shake = 0.8;
+      else if (f.t === 'sky-lantern' && f.x !== undefined) this.life.lantern(f.x, f.y!);
+      else if (f.t === 'good-deed') this.burst(w.p.x, w.p.y - 30, '#ffe68a', 18);
+      else if (f.t === 'push' && f.x !== undefined) this.puff(f.x, f.y! + 10, '#cfc8e0');
+      else if (f.t === 'smoke' && f.x !== undefined) this.burst(f.x, f.y!, '#a8a0b8', 12);
+      else if (f.t === 'dance') for (let i = 0; i < 3; i++) this.life.firework(w.p.x + (i - 1) * 160, w.p.y - 260 - i * 30);
     }
     void w;
   }
