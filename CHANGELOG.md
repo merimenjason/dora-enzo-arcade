@@ -2,6 +2,18 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 14-11-2026
+
+### Added
+
+- **Little Red Dot: The Straits**: wind. The boat is quickest with the wind across it, slower close to it and almost stopped head on, where rowing is faster. It veers every twenty seconds or so; a pennant on the mast and a dial on screen show where it is blowing and what the sail is making of it.
+- **Little Red Dot: The Straits**: two more meetings. Auntie Kera, a macaque on Sentosa's jetty, offers a coconut mortar that makes every volley hit harder, at the price of the otters' goodwill, or seeds for a little hay. Tok Tiong, a myna on St John's jetty, sells a wind that blows straight for Ubin, or calls the cats off. Taking the macaques' side means Captain Bishan will no longer bargain.
+
+### Changed
+
+- **Little Red Dot: The Straits**: port and starboard now fire and reload separately. Q fires to port and E to starboard, and Space still fires whichever side faces the nearest raft. A fan on the water shows each side's reach and turns gold when a raft is inside it. Docking moved from E to F.
+- **Little Red Dot: The Straits**: conversations sit at the bottom of the screen so you can see who is talking.
+
 ## 13-11-2026
 
 ### Added

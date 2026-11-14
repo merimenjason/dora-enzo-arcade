@@ -1,8 +1,9 @@
-// The Straits engine tests: steering and gears, a volley sinking a raft and what follows (otter power, bounty, loot,
-// the cat hunter), each answer to Captain Bishan, docks, capsizing, a seed replaying exactly, the save, and an
-// autopilot that lands the hay on Pulau Ubin. Run after compiling the engine into .checks/ (npm test does).
+// The Straits engine tests: steering and gears, the wind and the points of sail, port and starboard volleys, a raft
+// sinking and what follows (otter power, bounty, loot, the cat hunter), each answer to Captain Bishan, Auntie Kera and
+// Tok Tiong and how they bear on each other, docks, capsizing, a seed replaying exactly, the save, and an autopilot
+// that lands the hay on Pulau Ubin. Run after compiling the engine into .checks/ (npm test does).
 import assert from 'node:assert/strict';
-import { newGame, step, choose, dockAction, dockOptions, leaveDock, result, parseSave, freshSave, recordVoyage, NO_INPUT, DT, SPEEDS, HERO, KELONG, DOCKS, ISLANDS, forward, starboard } from '../.checks/straits-game.js';
+import { newGame, step, choose, talkOf, dockAction, dockOptions, leaveDock, result, parseSave, freshSave, recordVoyage, sailFactor, pointOfSail, offWind, NO_INPUT, DT, SPEEDS, HERO, KELONG, DOCKS, ISLANDS, ENCOUNTERS, forward, starboard } from '../.checks/straits-game.js';
 
 let n = 0; const fails = [];
 const test = (name, fn) => { try { fn(); n++; } catch (e) { fails.push(name); console.error(`FAIL ${name}\n  ${e.message.split('\n')[0]}`); } };
@@ -22,7 +23,10 @@ function autopilot(g, pts, answer = 'bargain', limit = 400) {
   }
 }
 const ROUTE = [[12, -46], [25, -37], [36, -20], [50, -2], [57, 22], [54, 40], [55.5, 48.5]];
-const quiet = hero => { const g = newGame(7, hero ?? 'dora'); g.foes.length = 0; return g; };
+/** Hold the wind dead astern of the starting heading, so speeds are the plain gear speeds. */
+const fair = g => { g.windHeld = true; g.wind = g.windTo = g.h; return g; };
+const quiet = hero => { const g = fair(newGame(7, hero ?? 'dora')); g.foes.length = 0; return g; };
+const at = (g, id) => { const e = ENCOUNTERS.find(k => k.id === id); g.x = e.x; g.z = e.z + (id === 'bishan' ? 11 : 5); step(g, { ...NO_INPUT }); return g; };
 
 test('gears set the speed, and the boat takes a moment to reach it', () => {
   const g = quiet(); tap(g, { faster: true }); tap(g, { faster: true }); assert.equal(g.gear, 2);
@@ -92,6 +96,7 @@ test('fight brings Bishan out at once; a bluff either works or does the same', (
 });
 test('a dock repairs and upgrades for seeds, and a viewpoint island reveals the map', () => {
   const g = quiet(); const d = DOCKS.find(k => k.id === 'sentosa'); g.x = d.x; g.z = d.z - 1; g.hull = 40; g.seeds = 30;
+  tap(g, {}); assert.equal(g.talkId, 'kera'); assert.ok(choose(g, 'decline'));
   tap(g, { act: true }); assert.equal(g.phase, 'dock'); assert.equal(g.lastDock, 'sentosa'); assert.equal(g.found.length, ISLANDS.length + 1);
   assert.equal(dockOptions(g).repair.cost, 6); assert.ok(dockAction(g, 'repair')); assert.equal(g.hull, 100); assert.equal(g.seeds, 24);
   assert.ok(dockAction(g, 'hull')); assert.equal(g.maxHull, 125); assert.ok(dockAction(g, 'volley')); assert.equal(g.volley, 16); assert.equal(g.seeds, 4);
@@ -110,10 +115,57 @@ test('bracing takes most of the sting out of a hit', () => {
   assert.equal(a.hull, 90); assert.equal(b.hull, 96);
 });
 test('ramming a raft at speed hurts it far more than it hurts you', () => {
-  const g = newGame(2, 'enzo'); const f = g.foes[0]; for (const o of g.foes.slice(1)) o.alive = false; f.path = [];
+  const g = fair(newGame(2, 'enzo')); const f = g.foes[0]; for (const o of g.foes.slice(1)) o.alive = false; f.path = [];
   tap(g, { faster: true }); tap(g, { faster: true }); run(g, {}, 2); const [fx, fz] = forward(g.h); f.x = g.x + fx * 4; f.z = g.z + fz * 4;
   tap(g, { ram: true }); run(g, {}, 1.2);
   assert.ok(!g.foes.includes(f) || f.hp <= 0, 'Enzo sinks a raft with one ram'); assert.ok(g.hull >= HERO.enzo.hull - 20);
+});
+test('the sail likes the wind across it, makes little of it close-hauled and almost nothing head on; rowing ignores it', () => {
+  assert.equal(sailFactor(0, 0, 3), 1); assert.ok(Math.abs(sailFactor(1.2, 0, 3) - 1.15) < 1e-9); assert.ok(sailFactor(2.4, 0, 3) < 0.71); assert.ok(sailFactor(Math.PI, 0, 3) <= 0.31);
+  assert.equal(sailFactor(Math.PI, 0, 1), 1); assert.equal(sailFactor(-1.2, 0, 2), sailFactor(1.2, 0, 2));
+  assert.deepEqual([0, 1.5, 2.3, 3].map(a => pointOfSail(a, 0)), ['RUNNING', 'REACHING', 'BEATING', 'IN IRONS']); assert.ok(Math.abs(offWind(0.2, -0.2) - 0.4) < 1e-9);
+  const speed = wind => { const g = quiet(); g.x = -80; g.z = -60; g.wind = g.windTo = wind; for (let i = 0; i < 3; i++) tap(g, { faster: true }); run(g, {}, 6); return g.v; };
+  const runV = speed(0), reach = speed(1.3), irons = speed(Math.PI);
+  assert.ok(reach > runV && runV > irons * 2.5, `reach ${reach.toFixed(2)} > run ${runV.toFixed(2)} > in irons ${irons.toFixed(2)}`);
+  const row = (() => { const g = quiet(); g.x = -80; g.z = -60; g.wind = g.windTo = Math.PI; tap(g, { faster: true }); run(g, {}, 4); return g.v; })(); assert.ok(row > irons, 'into the wind, rowing beats full sail');
+});
+test('the wind veers on its own until Tok Tiong holds it', () => {
+  const g = newGame(21, 'dora'); g.foes.length = 0; const w0 = g.wind; run(g, {}, 60); assert.notEqual(g.wind, w0);
+  const h = quiet(); const w1 = h.wind; run(h, {}, 60); assert.equal(h.wind, w1);
+});
+test('port and starboard reload on their own, and each fires its own way', () => {
+  const g = quiet(); const [sx, sz] = starboard(g.h); tap(g, { firePort: true, fireStar: true });
+  assert.equal(g.shots.length, 6); assert.ok(g.reloadP > 0 && g.reloadS > 0);
+  assert.ok(g.shots.slice(0, 3).every(s => s.vx * sx + s.vz * sz < 0), 'the first three go to port'); assert.ok(g.shots.slice(3).every(s => s.vx * sx + s.vz * sz > 0), 'the next three to starboard');
+  tap(g, { firePort: true }); assert.equal(g.shots.length, 6, 'port is still reloading');
+  run(g, {}, HERO.dora.reload + 0.05); tap(g, { fireStar: true }); assert.equal(g.shots.filter(s => s.ttl > 0.7).length, 3); assert.equal(g.reloadP, 0);
+});
+test('each conversation opens once, and Bishan does not hail once he has cast off', () => {
+  const g = quiet(); at(g, 'kera'); assert.equal(g.phase, 'talk'); assert.equal(talkOf(g).who, 'Auntie Kera'); choose(g, 'decline'); tap(g, {}); assert.equal(g.phase, 'sail');
+  at(g, 'tiong'); assert.equal(talkOf(g).who, 'Tok Tiong'); assert.equal(choose(g, 'bargain'), false, 'not an answer he takes'); choose(g, 'shoo');
+  const b = quiet(); b.power = 55; b.foes.push({ id: 99, kind: 'raft', x: b.x + 3, z: b.z, h: 0, hp: 1, max: 40, cool: 9, bump: 0, path: [], leg: 0, chasing: false, alive: true });
+  b.shots.push({ x: b.x + 3, z: b.z, vx: 0, vz: 0, ttl: 1, mine: true, dmg: 5 }); tap(b, {}); assert.ok(b.foes.some(f => f.kind === 'bishan'));
+  at(b, 'bishan'); assert.equal(b.phase, 'sail', 'no toll talk with his raft already out');
+});
+test('allying with the macaques arms the boat, sharpens the otters and rules out a bargain', () => {
+  const g = newGame(4, 'dora'); fair(g); const f = g.foes[0]; g.foes.length = 1; f.path = []; at(g, 'kera'); assert.ok(choose(g, 'ally'));
+  assert.equal(g.volley, 18); assert.ok(g.ally);
+  f.x = g.x + 22; f.z = g.z; tap(g, {}); assert.ok(f.chasing, 'a raft 22 m off now sees you (17 m before)');
+  g.foes.length = 0; at(g, 'bishan'); const t = talkOf(g); assert.ok(t.choices.find(c => c.id === 'bargain').no); assert.equal(choose(g, 'bargain'), false); assert.equal(g.phase, 'talk');
+  assert.ok(choose(g, 'fight')); assert.match(result(g).how, /macaques/);
+  const h = quiet(); at(h, 'bishan'); choose(h, 'bargain'); assert.equal(h.stance, 'calm'); at(h, 'kera'); choose(h, 'ally'); assert.equal(h.stance, 'hostile', 'the truce does not survive the mortar');
+});
+test('Auntie Kera buys a tenth of the bale, but not the last of it', () => {
+  const g = quiet(); at(g, 'kera'); assert.ok(choose(g, 'trade')); assert.equal(g.hay, 90); assert.equal(g.seeds, 15);
+  const h = quiet(); h.hay = 10; at(h, 'kera'); assert.equal(choose(h, 'trade'), false); assert.ok(talkOf(h).choices.find(c => c.id === 'trade').no);
+});
+test('Tok Tiong sells a wind that holds for Ubin, and calls the cats off for hay', () => {
+  const g = quiet(); g.windHeld = false; at(g, 'tiong'); assert.equal(choose(g, 'wind'), false, 'no seeds'); g.seeds = 9; assert.ok(choose(g, 'wind'));
+  const u = ISLANDS.find(i => i.id === 'ubin').dock; assert.equal(g.seeds, 3); assert.ok(g.windHeld); assert.ok(Math.abs(g.wind - Math.atan2(u[0] - g.x, u[1] - g.z)) < 1e-9);
+  g.h = g.wind; assert.equal(pointOfSail(g.h, g.wind), 'RUNNING');
+  const h = quiet(); at(h, 'tiong'); assert.equal(choose(h, 'cats'), false, 'no bounty to lose');
+  h.bounty = 3; h.foes.push({ id: 98, kind: 'hunter', x: 0, z: 0, h: 0, hp: 90, max: 90, cool: 1, bump: 0, path: [], leg: 0, chasing: false, alive: true });
+  assert.ok(choose(h, 'cats')); assert.equal(h.bounty, 0); assert.equal(h.hay, 90); assert.ok(!h.foes.some(f => f.kind === 'hunter'));
 });
 test('the same seed and inputs replay exactly', () => {
   const play = () => { const g = newGame(1234, 'dora'); autopilot(g, ROUTE.slice(0, 4), 'fight', 60); return JSON.stringify(g); };
