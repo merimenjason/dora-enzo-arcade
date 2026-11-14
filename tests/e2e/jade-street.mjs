@@ -9,7 +9,7 @@
 // upgrade and a paint), and the failure card (Retry and Quit job). On every screen it checks for sideways scroll and
 // for text that is too faint to read against its own backing. Fails on any failed check, page error or console
 // error. The third pass (voices, the typewriter, moods, set pieces, Glint's phases, businesses, raids, Reduce shake and
-// the new animations) is in ./jade-street-3.mjs. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves a screenshot of every screen.
+// the new animations) is in ./jade-street-3.mjs and runs at 1280×800 only, since Jade Street is a desktop game. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves a screenshot of every screen.
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { third } from './jade-street-3.mjs';
@@ -396,7 +396,8 @@ async function viewport(name, w, h, touch) {
   await press('jade-credits-done');
   check(!(await exists('jade-credits')) && await W(() => window.__jade.world().festival && window.__jade.world().s.story.ending), `${name}: festival free roam after the credits`);
   await W(() => window.__jade.teleportTo('mk-market')); await wait(1500); await look('festival');
-  await third({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, touch, name, touchAt });
+  // the third pass's features are checked at 1280×800 only: Jade Street is a desktop game (owner, 14-11-2026)
+  if (!touch) await third({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
   await W(() => { window.__jade.world().s.done = ['m1', 'm2']; window.__jade.world().open = new Set(['market', 'temple']); });
 
   // ── back to the title, Continue, and both answers to starting over

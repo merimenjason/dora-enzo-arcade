@@ -6,6 +6,11 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Jade Street**: businesses. Buy stakes in six stalls across the quarter (500 to 1,500 coins), upgrade each twice so it looks grander in the street, and collect what it takes each night (more with reputation, rain for the right stall, busy nights, tips and festivals) at the stall or any safe house. Magpies sometimes raid a full till: you get a text, then a race to chase them off. A Businesses page in the pause menu shows each stall's nights, and three new trophies.
+- **Jade Street**: set pieces in every heirloom chase, each warned before it happens: a fruit stall smashed into rubble, temple drums rolling down the steps, a drawbridge lowering over the canal, and a swinging crane and closing gate in the container yard. Madame Glint is now a three-phase boss (decoys, falling neon signs, then a leap from the rooftops onto her festival float) with a checkpoint at each phase.
+- **Jade Street**: game feel. Hits pause the action for a moment and shake the camera by how hard they land, smashes throw painted debris, loot and heirlooms slow time with a zoom punch, boosts draw speed lines and a trail, the hero squashes on landing, skids on a hard turn and has new animations for leaping, tumbling, ducking, shooing and dealing, pickups pop and coins tally up, and a new lantern of heat flashes the screen. A Reduce shake setting joins Screen shake, and the system's reduced-motion setting is honoured.
+- **Jade Street**: voices and moods. Dialogue types out in each character's own babble voice (a press shows the whole line), with three or four painted portraits per speaker chosen by each line's mood; the music adds guzheng, erhu and percussion and crossfades between street, market, chase, boss and festival themes.
+
 - **Jade Street**: a story told in paintings. A storybook opens a new game, a painted card opens each chapter, and winning brings an ending, credits and free roam through the Lantern Festival (lantern arches, giant lanterns, a dance stage, sky lanterns to let go and fireworks). All of it can be skipped.
 - **Jade Street**: a living city. Traffic lights at twelve crossings that cars stop for; townsfolk who walk to doors, stalls, food-court seats and benches, cross on the zebras when it is safe, sit and eat, and open umbrellas in passing showers with ripples and wet reflections; street events in free roam (a magpie with a mango, a lost duckling, a broken-down van to push-start, a busker to tip); night sounds for each district; a radio with original stations on every ride (R or tap it); and texts from contacts on a phone in the corner (T).
 - **Jade Street**: the city breaks its grid with six landmarks (a food hall, an opera house, a bell tower, a clock tower, a cinema and a lighthouse), plazas with fountains, banyans and koi ponds, food-court tables, curving footpaths and 36 new building paintings; no two neighbouring buildings match.
@@ -19,6 +24,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Jade Street**: fairer failing. Every job shows how close you are to failing with a meter or timer and warns you before it happens; thieves and race rivals stop at red lights on Normal and Hard; Container Maze, Neon Night Race and Glint's Last Flight are gentler, with a checkpoint after you grab the manifest; each retry eases rivals and lookouts a little; and Hard is tighter than Normal throughout. Saves move to a new version and keep all progress.
 - **Jade Street**: Normal is harder: wardens are faster and see further and take longer to lose, job timers are tighter, thieves and racers are quicker, lookouts sharper, crashing into cars brings more heat, and running a red light on a ride brings a warden. Easy and Assist play as before.
 - **Jade Street**: a painted loading screen that lights lanterns as the paintings arrive, draws nothing until every one has, and offers Try again if any fail.
 - **Jade Street**: the markets are painted stalls, each with its own keeper (Uncle Kee, Auntie Pang, Kiri, Captain Bristle and Gizmo), with the price list beside the stall on wide screens and under it on phones; the market title no longer reads "Night Market market".
@@ -30,6 +36,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Jade Street**: in The Pearl Lantern, the thief's dropped loot could land on the quay out of reach of the boat; it now lands on the water.
 - **Jade Street**: the mini-game bar fits at every screen size; the wok's first chip was cut off on landscape phones.
 
 ## 13-11-2026

@@ -1,12 +1,13 @@
-// Jade Street in the browser, the third pass (called from tests/e2e/jade-street.mjs at each viewport): the babble
+// Jade Street in the browser, the third pass (called from tests/e2e/jade-street.mjs at 1280×800 only; the game is
+// desktop-only): the babble
 // voice and the typewriter (a press shows the whole line, the next press moves on), a painted mood portrait for every
 // line, each chase set piece fired through the hooks (its warning on screen, then live), a knock from the rubble with
 // its debris and shake, Madame Glint's three phases (decoys, falling signs, then the fire ladder, a rooftop flag and
-// the leap onto her float with a real E press or Action tap), the businesses (buy a stake, upgrade, collect at the
+// the leap onto her float with a real E press), the businesses (buy a stake, upgrade, collect at the
 // stall and at a safe house, the Businesses page in the pause menu, and a magpie raid defended by dashing into the
 // magpies), the Reduce shake setting, and the new hero animations (deal, mend, collect, shoo, leap, tumble, skid).
 export async function third(h) {
-  const { p, W, press, loc, exists, appear, look, check, until, wait, act, settle, touch, name } = h;
+  const { p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name } = h;
   const st = () => W(() => window.__jade.state());
   const keep = await W(() => { const s = window.__jade.world().s; return { night: s.night, clock: s.clock, done: s.done.slice() }; });
   // every animation the hero plays from here on
@@ -22,7 +23,7 @@ export async function third(h) {
   check(t0.typed < t0.len, `${name}: the line types out (${t0.typed}/${t0.len})`);
   await wait(250);
   check(await W(() => (window.__jade.play.snd?.__n ?? 1) > 0), `${name}: the speaker babbles while it types`);
-  const skip = async () => { if (touch) await press('dialogue'); else { await p.keyboard.press(' '); await wait(120); } };
+  const skip = async () => { await p.keyboard.press(' '); await wait(120); };
   await skip(); const t1 = await W(() => window.__jade.typed());
   check(t1.typed === t1.len && await W(() => window.__jade.world().talk?.i === 0), `${name}: a press shows the whole line first`);
   check((await p.locator('[data-testid="talk-text"]').textContent()).length === t1.len, `${name}: the whole line is on screen`);
@@ -100,7 +101,7 @@ export async function third(h) {
   check(await until(() => window.__jade.run()?.t === 'raid', null, 3000), `${name}: the magpies burst out`); await wait(300); await look('raid');
   for (let i = 0; i < 40 && await W(() => !!window.__jade.run()); i++) {
     const ok = await W(() => { const w = window.__jade.world(), r = w.run; if (!r) return false; const a = r.actors.find(x => !x.gone && x.stun <= 0); if (!a) return false; w.placePlayer(a.b.x - 30, a.b.y); return true; });
-    if (ok) { if (touch) await press('t-dash'); else await p.keyboard.press(' '); }
+    if (ok) await p.keyboard.press(' ');
     await wait(160);
   }
   check(await W(() => !window.__jade.world().run && window.__jade.world().s.biz.noodle.defended >= 1), `${name}: the raid is chased off`);
@@ -116,15 +117,7 @@ export async function third(h) {
 
   // ── a skid: run one way, then turn hard
   await W(() => window.__jade.teleportTo('mk-market'));
-  if (touch) {
-    // one finger on the stick: run left (open street from the market sign), then flick it hard right without letting go
-    const r = await loc('stick').boundingBox(); const x0 = r.x + r.width * 0.5, y0 = r.y + r.height * 0.6;
-    for (let k = 0; k < 3 && !(await seen()).includes('skid'); k++) {
-      await h.touchAt('touchStart', x0, y0); await h.touchAt('touchMove', x0 - 70, y0); await wait(700);
-      await h.touchAt('touchMove', x0 + 70, y0); await wait(250); await h.touchAt('touchEnd', 0, 0); await wait(100);
-    }
-  }
-  else for (let k = 0; k < 3 && !(await seen()).includes('skid'); k++) { await p.keyboard.down('a'); await wait(700); await p.keyboard.up('a'); await p.keyboard.down('d'); await wait(250); await p.keyboard.up('d'); }
+for (let k = 0; k < 3 && !(await seen()).includes('skid'); k++) { await p.keyboard.down('a'); await wait(700); await p.keyboard.up('a'); await p.keyboard.down('d'); await wait(250); await p.keyboard.up('d'); }
   check((await seen()).includes('skid'), `${name}: a hard turn at a run skids ${await W(() => JSON.stringify({ v: window.__vmax, st: window.__jade.play.stick, ui: window.__jade.world().ui?.kind, talk: !!window.__jade.world().talk, paused: window.__jade.play.paused, run: window.__jade.world().run?.m.id }))}`);
   check((await seen()).some(a => a === 'tumble' || a === 'duck'), `${name}: a knock plays the tumble`);
 
