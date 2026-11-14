@@ -14,6 +14,7 @@ import { lanterns } from './jade-heat.js';
 import { Life } from './jade-life.js';
 import { Juice } from './jade-juice.js';
 import { setGround, setSorted, drawDecoy, realGlint } from './jade-setdraw.js';
+import { sgGround, sgSorted, sgOver, sgFlash } from './jade-sgdraw.js';
 import { drawHero, gearGround, gearSorted, gearOver, wardenHitFrame, aimLine, setItemSprite } from './jade-duodraw.js';
 import { shooterFor } from './jade-gear.js';
 
@@ -338,6 +339,7 @@ export class Scene {
     this.routeLine(x, w);
     this.markers(x, w, 'ground');
     setGround(this, x, w);
+    sgGround(this, x, w, ox, oy, cam.w, cam.h);
     const vis0 = (px: number, py: number, mm = 160) => px > ox - mm && px < ox + cam.w + mm && py > oy - mm && py < oy + cam.h + mm * 1.5;
     gearGround(this, x, w, vis0);
     // y-sorted things
@@ -358,6 +360,7 @@ export class Scene {
     for (const l of this.c.ladders) if (vis(l.x * T, l.y * T)) list.push([l.y * T + 10, () => spr(x, 'fire-ladder', l.x * T + T / 2, l.y * T + T - 4, { h: 96 })]);
     this.life.sorted(x, w, list, vis, this.t);
     setSorted(this, x, w, list, vis);
+    sgSorted(this, x, w, list, vis);
     gearSorted(this, x, w, list, vis);
     if (!p.roof) list.push([p.y + 1, () => this.hero(x, w)]);
     if (!m.roof && !m.seat && vis(m.x, m.y)) list.push([m.y + 0.5, () => drawHero(this, x, w, m, w.two)]);
@@ -374,6 +377,7 @@ export class Scene {
     }
     for (const sn of w.snatchers) { this.flyer(x, sn.x, sn.y, sn.h + ((sn.dizzy ?? 0) > 0 ? this.t * 12 : 0), sn.wing); if ((sn.dizzy ?? 0) > 0) this.stars(x, sn.x, sn.y - 24); }
     gearOver(this, x, w, vis);
+    sgOver(this, x, w, vis);
     if (w.run) for (const a of w.run.actors) if (a.kind === 'swoop') this.flyer(x, a.b.x, a.b.y, a.b.h + (a.stun > 0 ? this.t * 12 : 0), a.t * 9);
     this.life.over(x, w, vis, dt, cam);
     this.life.rainWorld(x, w, dt, cam);
@@ -389,6 +393,7 @@ export class Scene {
     if (cl > 630) { x.fillStyle = `rgba(255,140,120,${0.14 * (cl - 630) / 90})`; x.fillRect(0, 0, this.w, this.h); }
     const g = x.createRadialGradient(this.w / 2, this.h / 2, Math.min(this.w, this.h) * 0.45, this.w / 2, this.h / 2, Math.max(this.w, this.h) * 0.75);
     g.addColorStop(0, 'rgba(10,6,30,0)'); g.addColorStop(1, 'rgba(10,6,30,.45)'); x.fillStyle = g; x.fillRect(0, 0, this.w, this.h);
+    sgFlash(x, w, this.cv.width, this.cv.height);
     if (lanterns(w) >= 1) { const a = 0.08 + 0.05 * Math.sin(this.t * 6); x.fillStyle = `rgba(255,40,60,${a * lanterns(w) / 5})`; x.fillRect(0, 0, this.w, 6); x.fillRect(0, this.h - 6, this.w, 6); }
     this.life.rainScreen(x, w, this.w, this.h, this.t);
     this.juice.drawScreen(x, this.w, this.h, ride ? sp : 0, hd, !!ride && p.boostT > 0, w.heat);
@@ -416,7 +421,7 @@ export class Scene {
     spr(x, p.sprite, p.x, p.y + 12, {});
   }
   ride(x: CanvasRenderingContext2D, w: World, r: Ride, player: boolean) {
-    const name = r.broken ? 'van-broken' : 'v-' + r.kind; const paint = player ? PAINTS.find(q => q.id === w.s.paint)?.filter ?? 0 : [0, 140, 40, 210, 280][r.tint % 5];
+    const name = r.broken ? 'van-broken' : r.kind === 'boat' ? (r.id % 2 ? 'v-bumboat-b' : 'v-bumboat') : 'v-' + r.kind; const paint = player ? PAINTS.find(q => q.id === w.s.paint)?.filter ?? 0 : [0, 140, 40, 210, 280][r.tint % 5];
     x.fillStyle = 'rgba(0,0,0,.32)'; this.shadow(x, r.b.x + 5, r.b.y + 7, VEHICLES[r.kind].len * 0.45, VEHICLES[r.kind].r * 0.9);
     const bob = r.kind === 'boat' ? Math.sin(this.t * 2 + r.id) * 0.03 : 0;
     spr(x, name, r.b.x, r.b.y, { anchor: 'center', rot: r.b.h + Math.PI / 2 + bob, variant: paint ? 'paint:' + paint : '' });
@@ -457,7 +462,7 @@ export class Scene {
       case 'cart': this.shadow(x, b.x + 4, b.y + 6, 36, 18); spr(x, `crow-cart-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 + (a.stun > 0 ? Math.sin(this.t * 30) * 0.3 : 0) }); if (a.stun > 0) this.stars(x, b.x, b.y - 30); break;
       case 'decoy': drawDecoy(this, x, a); break;
       case 'boss': realGlint(this, x, w, a); this.shadow(x, b.x + 4, b.y + 6, 30, 14); spr(x, `boss-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 + (a.stun > 0 ? Math.sin(this.t * 30) * 0.3 : 0) }); if (a.stun > 0) this.stars(x, b.x, b.y - 30); this.glow(x, b.x, b.y, 70, 'rgba(190,80,255,.35)'); break;
-      case 'boat': spr(x, `crow-boat-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 + Math.sin(this.t * 3) * 0.04 }); if (a.stun > 0) this.stars(x, b.x, b.y - 30); this.glow(x, b.x, b.y, 60, 'rgba(255,250,220,.3)'); break;
+      case 'boat': spr(x, a.skin === 'otter' ? `sleek-boat-${fl}` : `crow-boat-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 + Math.sin(this.t * 3) * 0.04 }); if (a.stun > 0) this.stars(x, b.x, b.y - 30); this.glow(x, b.x, b.y, 60, 'rgba(255,250,220,.3)'); break;
       case 'rival-scooter': this.shadow(x, b.x + 4, b.y + 6, 30, 14); spr(x, `boss-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2, w: 32, variant: 'paint:120' }); break;
       case 'rival-boat': spr(x, `crow-boat-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 }); break;
       case 'runner': case 'rival-runner': case 'pip': case 'lookout': case 'raider': {
@@ -465,13 +470,15 @@ export class Scene {
         const cx = Math.cos(b.h), sy = Math.sin(b.h); let f: string, flip = false;
         if (a.stun > 0) f = 'crow-dizzy';
         else if (a.look > 0) f = `crow-look-${Math.floor(a.look * 2) % 2}`;
+        else if (a.kind === 'lookout' && (a.extra ?? 0) > 0) f = `crow-look-${Math.floor(a.t * 1.5) % 2}`;
         else if (b.speed < 5) f = a.kind === 'pip' && a.t < 1 ? 'crow-taunt' : 'crow-walk-down-0';
         else if (Math.abs(cx) > Math.abs(sy)) { f = `crow-run-${Math.floor(a.t * (a.kind === 'pip' || a.kind === 'lookout' ? 5 : 9)) % 2}`; flip = cx < 0; }
         else f = `crow-walk-${sy > 0 ? 'down' : 'up'}-${fl}`;
         if (a.kind === 'lookout') this.beam(x, b.x, b.y - 20, a.b.h, w.assist ? 170 : 215, w.assist ? 0.45 : 0.55);
         if (a.kind === 'pip' && a.look > 0) this.beam(x, b.x, b.y - 20, a.face, w.assist ? 165 : 210, 1.2);
+        if (a.skin === 'mac') f = f.startsWith('crow-look') ? 'mac-taunt' : f.replace(/^crow-/, 'mac-');
         spr(x, f, b.x, b.y + 4, { flip });
-        if ((a.kind === 'runner' || a.kind === 'raider') && a.stun <= 0) spr(x, 'coins', b.x, b.y - 52, { w: 20 });
+        if ((a.kind === 'runner' || a.kind === 'raider') && a.stun <= 0) spr(x, a.skin === 'mac' ? 'bun' : 'coins', b.x, b.y - 52, { w: 20 });
         break;
       }
       case 'lion': this.shadow(x, b.x, b.y + 4, 44, 14); spr(x, `lion-${Math.floor(a.t * 3) % 2}`, b.x, b.y + 8, { flip: Math.cos(b.h) < 0 }); break;
@@ -530,8 +537,25 @@ export class Scene {
     x.setLineDash([14, 18]); x.lineDashOffset = -this.t * 40; x.strokeStyle = 'rgba(255,230,140,.85)'; x.lineWidth = 6; x.stroke();
     x.restore();
   }
+  /** colour-blind-safe marks (Settings): each kind of marker also gets its own shape, outlined black and white so it
+   * reads on any colour: the goal a diamond, loot a star, things to collect a ring, a job a square, a ticket warden a
+   * triangle, a gang member a cross */
+  cb(x: CanvasRenderingContext2D, kind: 'goal' | 'loot' | 'item' | 'job' | 'warn' | 'gang', px: number, py: number, r = 12) {
+    x.save(); x.translate(px, py); x.beginPath();
+    if (kind === 'goal') { x.moveTo(0, -r); x.lineTo(r, 0); x.lineTo(0, r); x.lineTo(-r, 0); x.closePath(); }
+    else if (kind === 'loot') for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; x[i ? 'lineTo' : 'moveTo'](Math.cos(a) * rr, Math.sin(a) * rr); }
+    else if (kind === 'item') { x.arc(0, 0, r, 0, Math.PI * 2); x.moveTo(r * 0.45, 0); x.arc(0, 0, r * 0.45, 0, Math.PI * 2); }
+    else if (kind === 'job') x.rect(-r * 0.85, -r * 0.85, r * 1.7, r * 1.7);
+    else if (kind === 'warn') { x.moveTo(0, -r); x.lineTo(r, r * 0.8); x.lineTo(-r, r * 0.8); x.closePath(); }
+    else { x.moveTo(-r, -r); x.lineTo(r, r); x.moveTo(r, -r); x.lineTo(-r, r); }
+    if (kind === 'loot' || kind === 'goal' || kind === 'job' || kind === 'warn') { x.closePath(); x.fillStyle = 'rgba(255,255,255,.9)'; x.fill('evenodd'); }
+    x.lineWidth = 5; x.strokeStyle = '#000'; x.stroke(); x.lineWidth = 2.2; x.strokeStyle = '#fff'; x.stroke();
+    if (kind === 'goal' || kind === 'job') { x.beginPath(); x.moveTo(-r * 0.4, -r * 0.4); x.lineTo(r * 0.4, r * 0.4); x.moveTo(r * 0.4, -r * 0.4); x.lineTo(-r * 0.4, r * 0.4); x.lineWidth = 2; x.strokeStyle = '#000'; x.stroke(); }
+    if (kind === 'warn') { x.fillStyle = '#000'; x.fillRect(-1.5, -r * 0.35, 3, r * 0.6); x.fillRect(-1.5, r * 0.4, 3, 3); }
+    x.restore();
+  }
   markers(x: CanvasRenderingContext2D, w: World, layer: 'ground' | 'over' | 'roof') {
-    const run = w.run; const b = Math.sin(this.t * 4) * 5;
+    const run = w.run; const b = Math.sin(this.t * 4) * 5; const cb = w.s.settings.cbMarks;
     if (layer === 'ground') {
       // pins: contacts with a job for you, markets, safe houses, garages, gigs
       if (!run) {
@@ -540,8 +564,8 @@ export class Scene {
         }
       }
       if (run) {
-        for (const it of run.items) if (!it.got) { this.glow(x, it.x, it.y, 46, 'rgba(255,200,80,.4)'); spr(x, itemSprite(it.sprite), it.x, it.y + 10, { w: it.sprite === 'lookout' ? 60 : 30 }); }
-        if (run.loot) { this.glow(x, run.loot.x, run.loot.y, 54, 'rgba(120,255,200,.45)'); spr(x, run.loot.sprite, run.loot.x, run.loot.y + 8 + b * 0.4, { w: 40 }); }
+        for (const it of run.items) if (!it.got) { this.glow(x, it.x, it.y, 46, 'rgba(255,200,80,.4)'); spr(x, itemSprite(it.sprite), it.x, it.y + 10, { w: it.sprite === 'lookout' ? 60 : 30 }); if (cb) this.cb(x, 'item', it.x + 26, it.y - 30); }
+        if (run.loot) { this.glow(x, run.loot.x, run.loot.y, 54, 'rgba(120,255,200,.45)'); spr(x, run.loot.sprite, run.loot.x, run.loot.y + 8 + b * 0.4, { w: 40 }); if (cb) this.cb(x, 'loot', run.loot.x + 30, run.loot.y - 34, 14); }
         if (run.cur.t === 'pickup' && run.cur.at !== 'loot') { const [px, py] = run.spot(run.cur.at); spr(x, itemSprite(run.cur.item), px, py + 10, { w: 34 }); }
         if (run.fare) { const f = run.fare; if (!f.to) spr(x, `folk-${f.sp}-hop`, f.x, f.y + 4, {}); }
       }
@@ -552,7 +576,7 @@ export class Scene {
         const marks = run.marks; const st = run.cur;
         if (st && st.t === 'race' && !!st.roof === (layer === 'roof')) for (let i = run.mark; i < Math.min(marks.length, run.mark + 2); i++) spr(x, 'gate', marks[i][0], marks[i][1] + 16, { w: i === run.mark ? 76 : 50, alpha: i === run.mark ? 1 : 0.5 });
         const o = w.objective();
-        if (o && layer === 'over' && !(st && st.t === 'race')) { this.glow(x, o[0], o[1], 50, 'rgba(255,220,90,.4)'); spr(x, 'ui-arrow', o[0], o[1] - 50 + b, { w: 34, rot: Math.PI, anchor: 'center' }); }
+        if (o && layer === 'over' && !(st && st.t === 'race')) { this.glow(x, o[0], o[1], 50, 'rgba(255,220,90,.4)'); spr(x, 'ui-arrow', o[0], o[1] - 50 + b, { w: 34, rot: Math.PI, anchor: 'center' }); if (cb) this.cb(x, 'goal', o[0], o[1] - 88 + b, 14); }
       }
       if (layer === 'over' && !run) for (const n of nearList(w)) {
         if (n.kind !== 'mission') continue;
@@ -560,6 +584,7 @@ export class Scene {
         spr(x, 'ui-ring', n.x, n.y - 40 + b, { w: 64, anchor: 'center' });
         spr(x, m, n.x, n.y - 40 + b, { w: 46, anchor: 'center' });
         spr(x, 'ui-pin', n.x, n.y - 2 + b * 0.3, { w: 22 });
+        if (cb) this.cb(x, 'job', n.x + 36, n.y - 64 + b, 11);
       }
       if (layer === 'over') for (const [, pl] of Object.entries(this.c.places)) {
         if (!w.open.has(pl.d)) continue;
@@ -660,15 +685,15 @@ export class Scene {
 }
 
 export function itemSprite(item: string) {
-  return ({ crate: 'crates', cake: 'cake', pots: 'pots', parcel: 'rice', coins: 'coins', manifest: 'i-map', lookout: 'crates', token: 'claw' } as Record<string, string>)[item] ?? item;
+  return ({ crate: 'crates', cake: 'cake', pots: 'pots', parcel: 'rice', coins: 'coins', manifest: 'i-map', lookout: 'crates', token: 'claw', durian: 'durian-crate', recipe: 'ticket', bag: 'handbag', prawns: 'fish-basket', lantern: 'kid-lantern' } as Record<string, string>)[item] ?? item;
 }
 function contactFace(name: string) {
   return ({ 'Uncle Kee': 'kee', 'Chef Mo': 'mo', 'Auntie Pang': 'pang', 'Brother Heron': 'heron', 'Master Ren': 'ren', Kiri: 'kiri', 'Mr Lim': 'lim', 'Big Bo': 'bo', Gizmo: 'gizmo' } as Record<string, string>)[name] ?? 'kee';
 }
-import { available } from './jade-save.js';
+import { offered } from './jade-save.js';
 import { MISSION, PEOPLE } from './jade-story.js';
 function nearList(w: World) {
-  return available(w.s).map(m => { const pl = w.c.places[m.at]; return { kind: 'mission', x: pl?.x ?? 0, y: pl?.y ?? 0, id: m.id }; });
+  return offered(w.s).map(m => { const pl = w.c.places[m.at]; return { kind: 'mission', x: pl?.x ?? 0, y: pl?.y ?? 0, id: m.id }; });
 }
 setItemSprite(itemSprite);
 function MISSION_FACE(id: string) { const m = MISSION[id]; return PEOPLE[m.giver]?.face ?? 'face-kee'; }

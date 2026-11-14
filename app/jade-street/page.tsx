@@ -1,5 +1,5 @@
 'use client';
-// Jade Street: the page. Holds the save (localStorage 'jade-street-v3', migrating v2 and v1), the painted loading
+// Jade Street: the page. Holds the save (localStorage 'jade-street-v6', migrating v5 back to v1), the painted loading
 // screen (nothing draws until every painting has decoded), the title screen with continue / new game (confirmed in
 // the page) and the hero pick, the storybook opening, chapter cards, the ending and credits (./story.tsx), then the
 // running game: the canvas (./controller.ts and lib/jade-scene.ts), the HUD (./hud.tsx), lesson hints, the phone and
@@ -18,6 +18,8 @@ import { Loader, Hint, PhoneHud, PhoneView, RadioHud, switchStation } from './ex
 import { chapterOf } from '@/lib/jade-save';
 import { learn } from '@/lib/jade-tutor';
 import { MiniGame } from './minis';
+import { TicketCard, MamaShop, KopiMini } from './sg';
+import './sg.css';
 import { store, Sprite, ART } from './ui';
 import './jade.css';
 import './duo.css';
@@ -123,16 +125,16 @@ export default function JadeStreetPage() {
   const ready2 = useCallback(() => setScreen('title'), []);
 
   return (
-    <main className="jade-shell" data-ready={ready ? 'true' : 'false'} data-screen={screen} data-touch={touch ? 'true' : 'false'}>
+    <main className="jade-shell" data-ready={ready ? 'true' : 'false'} data-screen={screen} data-touch={touch ? 'true' : 'false'} data-big={(w?.s ?? save).settings.bigText ? 'true' : 'false'} data-cb={(w?.s ?? save).settings.cbMarks ? 'true' : 'false'}>
       {screen === 'loading' && <Loader onReady={ready2} />}
       {screen === 'title' && (
         <section className="jade-title" style={{ backgroundImage: `url(${ART}bg-title.webp)` }}>
           <div className="jade-title-card">
             <h1>Jade Street</h1>
-            <p className="jade-tag">A night-time caper in the harbour quarter. Win back five lucky heirlooms from the Kaypoh Crows before the Lantern Festival.</p>
+            <p className="jade-tag">A night-time caper in Singapore’s Chinatown. Win back five lucky heirlooms from the Kaypoh Crows before the Lantern Festival, and mind the fines.</p>
             {!confirm && !pick && (
               <div className="jade-title-btns">
-                {save.started && <button type="button" className="jade-btn jade big" data-testid="continue" onClick={() => begin(saveRef.current)}>Continue · night {save.night}, {save.done.length}/25 jobs</button>}
+                {save.started && <button type="button" className="jade-btn jade big" data-testid="continue" onClick={() => begin(saveRef.current)}>Continue · night {save.night}, {save.done.filter(id => id.startsWith('m')).length}/25 jobs</button>}
                 <button type="button" className={'jade-btn big ' + (save.started ? 'plain' : 'jade')} data-testid="new" onClick={() => save.started ? setConfirm(true) : setPick(true)}>New game</button>
               </div>
             )}
@@ -178,7 +180,10 @@ export default function JadeStreetPage() {
               {w.ui?.kind === 'garage' && <Garage play={play} snd={sndRef.current} onClose={closeUi} onSave={() => persist(w.s)} />}
               {w.ui?.kind === 'gear' && <GearStall play={play} snd={sndRef.current} onClose={closeUi} onSave={() => persist(w.s)} />}
               {w.ui?.kind === 'biz' && <BizPanel play={play} id={w.ui.id} snd={sndRef.current} onClose={closeUi} onSave={() => persist(w.s)} />}
-              {w.ui?.kind === 'mini' && <MiniGame key={`${w.ui.mini}-${w.s.stats.minis}`} kind={w.ui.mini} level={w.ui.level} assist={w.assist} seed={w.s.seed + w.s.stats.minis * 7 + w.tick} snd={sndRef.current} onDone={ok => { w.miniDone(ok); persist(w.s); play.bump(); }} />}
+              {w.ui?.kind === 'mama' && <MamaShop play={play} snd={sndRef.current} onClose={closeUi} onSave={() => persist(w.s)} />}
+              {!w.ui && !w.talk && <TicketCard play={play} />}
+              {w.ui?.kind === 'mini' && w.ui.mini === 'kopi' && <KopiMini key={`kopi-${w.s.stats.minis}`} level={w.ui.level} assist={w.assist} seed={w.s.seed + w.s.stats.minis * 7 + w.tick} snd={sndRef.current} onDone={ok => { w.miniDone(ok); persist(w.s); play.bump(); }} />}
+              {w.ui?.kind === 'mini' && w.ui.mini !== 'kopi' && <MiniGame key={`${w.ui.mini}-${w.s.stats.minis}`} kind={w.ui.mini} level={w.ui.level} assist={w.assist} seed={w.s.seed + w.s.stats.minis * 7 + w.tick} snd={sndRef.current} onDone={ok => { w.miniDone(ok); persist(w.s); play.bump(); }} />}
               {mapOpen && <PaintedMap play={play} onClose={resume} />}
               {phone && <PhoneView play={play} onClose={resume} />}
               {paused && <Pause play={play} snd={sndRef.current} touch={touch} onReplay={replay} onClose={resume} onQuit={toTitle} onSave={() => persist(w.s)} onNew={() => { setPaused(false); setScreen('title'); setPick(true); }} />}

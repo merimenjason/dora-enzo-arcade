@@ -3,7 +3,7 @@
 // texts live in the save (the last 30); the HUD shows the phone with an unread badge.
 import { DISTRICT_NAME, type District } from './jade-city.js';
 import { GOODS, GOOD } from './jade-trade.js';
-import { available } from './jade-save.js';
+import { offered } from './jade-save.js';
 import { PEOPLE } from './jade-story.js';
 import type { World } from './jade-game.js';
 
@@ -20,8 +20,8 @@ export function readAll(w: World) { for (const m of w.s.msgs) m.read = true; }
 /** job offers: text once for each job that becomes available (not the very first, Uncle Kee is right there) */
 export function phoneStep(w: World) {
   if (w.tick % 30 !== 0 || !w.s.story.intro) return;
-  const ids = available(w.s).map(m => m.id);
-  for (const m of available(w.s)) {
+  const ids = offered(w.s).map(m => m.id);
+  for (const m of offered(w.s)) {
     if (w.offered.has(m.id)) continue;
     w.offered.add(m.id);
     if (m.id === 'm1' || w.run) continue;

@@ -6,7 +6,8 @@ import { useEffect, useState } from 'react';
 import { loadArt } from '@/lib/jade-scene';
 import { lesson } from '@/lib/jade-tutor';
 import { unread, readAll } from '@/lib/jade-phone';
-import { MISSIONS, CHAPTERS, PEOPLE } from '@/lib/jade-story';
+import { MISSIONS, SIDE, CHAPTERS, PEOPLE } from '@/lib/jade-story';
+import { FinesList, Glossary } from './sg';
 import { MEDAL_NAME, MEDAL_SPRITE, goals, fmtTime } from '@/lib/jade-medals';
 import type { Play } from './controller';
 import type { JadeSound } from './sound';
@@ -74,15 +75,20 @@ export function PhoneView({ play, onClose }: { play: Play; onClose: () => void }
   const w = play.w;
   useEffect(() => { readAll(w); play.bump(); }, [w, play]);
   const msgs = w.s.msgs.slice().reverse();
+  const [tab, setTab] = useState<'msgs' | 'fines' | 'lingo'>('msgs');
+  const TABS: [typeof tab, string][] = [['msgs', 'Messages'], ['fines', `Fines (${w.s.fines.n})`], ['lingo', 'Kopi lingo']];
   return (
     <div className="jade-modal-back" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="jade-panel phone" role="dialog" aria-label="Messages" data-testid="jade-phone-msgs">
-        <div className="jade-panel-head"><h2>Messages</h2><button type="button" className="jade-x" aria-label="Close" data-testid="close" onClick={onClose}>×</button></div>
+      <div className="jade-panel phone" role="dialog" aria-label="Phone" data-testid="jade-phone-msgs">
+        <div className="jade-panel-head"><h2>Phone</h2><button type="button" className="jade-x" aria-label="Close" data-testid="close" onClick={onClose}>×</button></div>
+        <div className="jade-book-tabs" role="tablist">{TABS.map(([k, n]) => <button key={k} type="button" role="tab" aria-selected={tab === k} className={'jade-tab' + (tab === k ? ' on' : '')} data-testid={`phone-${k}`} onClick={() => setTab(k)}>{n}</button>)}</div>
         <div className="jade-panel-body">
-          {!msgs.length && <p>No texts yet. Your contacts text job offers, market tips and calls for help.</p>}
-          {msgs.map(m => (
+          {tab === 'msgs' && !msgs.length && <p>No texts yet. Your contacts text job offers, market tips and calls for help.</p>}
+          {tab === 'msgs' && msgs.map(m => (
             <div key={m.id} className="jade-text-msg"><Sprite name={PEOPLE[m.from]?.face ?? 'face-kee'} h={40} w={40} /><p><b>{PEOPLE[m.from]?.name ?? m.from}</b> <small>night {m.night}</small><br />{m.text}</p></div>
           ))}
+          {tab === 'fines' && <FinesList play={play} />}
+          {tab === 'lingo' && <><p className="small">Order like a local. Uncle Teo calls the drinks this way at his kopi counter.</p><Glossary /></>}
         </div>
       </div>
     </div>
@@ -111,21 +117,25 @@ export function switchStation(play: Play, snd: JadeSound | null) {
 // ── the jobs book
 export function JobsBook({ play, onReplay }: { play: Play; onReplay: (id: string) => void }) {
   const s = play.w.s; const [ch, setCh] = useState(() => Math.max(1, Math.min(5, MISSIONS.find(m => !s.done.includes(m.id))?.ch ?? 5)));
+  const story = s.done.filter(id => MISSIONS.some(m => m.id === id)).length;
+  const list = ch === 6 ? SIDE : MISSIONS.filter(m => m.ch === ch);
   const total = MISSIONS.reduce((a, m) => a + (s.medals[m.id]?.m ?? 0), 0);
   return (
     <div className="jade-book" data-testid="jade-jobs">
-      <p className="jade-book-sum"><Sprite name="ui-medal-gold" h={24} w={24} /> {MISSIONS.filter(m => s.medals[m.id]?.m === 3).length} gold · {total}/75 marks · {s.done.length}/25 jobs</p>
+      <p className="jade-book-sum"><Sprite name="ui-medal-gold" h={24} w={24} /> {MISSIONS.filter(m => s.medals[m.id]?.m === 3).length} gold · {total}/75 marks · {story}/25 jobs · {s.done.length - story}/{SIDE.length} Hawker Tales</p>
       <div className="jade-book-tabs" role="tablist">
         {CHAPTERS.map((c, i) => <button key={c} type="button" role="tab" aria-selected={ch === i + 1} className={'jade-tab' + (ch === i + 1 ? ' on' : '')} data-testid={`jade-jobs-ch${i + 1}`} onClick={() => setCh(i + 1)}>{i + 1}. {c}</button>)}
+        <button type="button" role="tab" aria-selected={ch === 6} className={'jade-tab' + (ch === 6 ? ' on' : '')} data-testid="jade-jobs-side" onClick={() => setCh(6)}>Hawker Tales</button>
       </div>
       <ol className="jade-book-list">
-        {MISSIONS.filter(m => m.ch === ch).map(m => {
+        {list.map(m => {
           const md = s.medals[m.id], done = s.done.includes(m.id), p = PEOPLE[m.giver];
           return (
             <li key={m.id} data-testid={`jade-job-${m.id}`} className={done ? 'done' : ''}>
               <Sprite name={done ? MEDAL_SPRITE[md?.m ?? 0] : 'ui-medal-none'} h={44} w={44} title={done ? MEDAL_NAME[md?.m ?? 0] : 'Not done yet'} />
               <div className="jade-book-job">
-                <b>{done || s.done.length >= MISSIONS.indexOf(m) ? m.title : '???'}</b>
+                <b>{done || (m.side ? s.done.includes(m.side) : s.done.length >= MISSIONS.indexOf(m)) ? m.title : '???'}</b>
+                {m.side && !done && !s.done.includes(m.side) && <small>Opens after “{MISSIONS.find(x => x.id === m.side)?.title}”</small>}
                 <small>{p?.name ?? m.giver}{md?.t ? ` · best ${fmtTime(md.t)}` : ''}{md ? ` · played ${md.plays}×` : ''}</small>
                 <span className="jade-goals">{goals(m).map(g => <em key={g}>{g}</em>)}</span>
               </div>

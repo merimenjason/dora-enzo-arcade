@@ -28,7 +28,9 @@ import type { Player } from './jade-game.js';
 export type Gig = { key: string; reward: number; d: District };
 export type Actor = { id: number; kind: string; b: Body; route: [number, number][]; wp: number; speed: number; t: number; stun: number; look: number; lookCd: number; face: number; gone: boolean; hits: number; extra?: number;
   /** painted blind (seconds), staring at a distraction (seconds, and at what), tangled in a net, the last single pounce */
-  extra2?: number; stare?: number; stareX?: number; stareY?: number; stareAt?: string; netT?: number; pz?: { by: 'you' | 'mate'; t: number } };
+  extra2?: number; stare?: number; stareX?: number; stareY?: number; stareAt?: string; netT?: number; pz?: { by: 'you' | 'mate'; t: number };
+  /** a rival gang's look for a chase (an otter's sampan, a macaque) */
+  skin?: 'otter' | 'mac' };
 export type Meter = { name: string; v: number; bad?: boolean };
 type Snap = { i: number; x: number; y: number; h?: number; roof: boolean; ride: VehicleKind | null; carry: string | null; phase?: number;
   /** who you were playing and where the partner was (and what they had been told to do) */
@@ -142,8 +144,8 @@ export class Run {
         const [x, y] = this.spot(st.from);
         const cls = st.who === 'boat' ? 'boat' : st.who === 'runner' ? 'foot' : 'small';
         const [sx, sy] = nearestFree(w.c, cls, x, y, w.open, 6);
-        this.actors.push(this.actor(st.who, sx, sy, cls, this.path(st.route, cls), st.speed));
-        this.progress = `Bumps 0/${st.bumps}`; this.meter = { name: 'Getaway', v: 0 }; this.grace = 4;
+        this.actors.push(this.actor(st.who, sx, sy, cls, this.path(st.route, cls), st.speed)); if (st.skin) this.actors[this.actors.length - 1].skin = st.skin;
+        this.progress = chaseProgress(st, 0); this.meter = { name: 'Getaway', v: 0 }; this.grace = 4;
         this.sets = makeSets(this, st.sets);
         if (st.who === 'boss' && st.phase) bossEnter(this, st);
         w.fx.push({ t: 'chase' });
@@ -254,6 +256,7 @@ export class Run {
       }
       case 'deliver': {
         const [x, y] = this.spot(st.to);
+        if (st.stink) stinkStep(this, dt);
         if (dist(px, py, x, y) < 90) { p.carry = null; w.fx.push({ t: 'deliver', x, y }); this.next(); }
         break;
       }
@@ -371,7 +374,7 @@ export class Run {
     if (last && st.finish === 'net' && how !== 'net' && how !== 'grab') return trip(`Tangle the cart in the net, or get alongside so ${n} can grab it (F)!`);
     a.hits++; a.stun = 0.9; this.hits = a.hits; a.b.speed *= 0.4;
     w.fx.push({ t: 'hit', x: a.b.x, y: a.b.y, k: a.hits, kind: how });
-    this.progress = `Bumps ${a.hits}/${st.bumps}`;
+    this.progress = chaseProgress(st, a.hits);
     if (a.hits >= st.bumps) {
       // the loot lands where you can reach it the way you're travelling: in the water after a boat chase; a grab
       // or a net puts it straight in your paws
@@ -495,7 +498,11 @@ export class Run {
     // the lookouts watch you (and, with a second player, your partner too); a painted or distracted one sees nothing
     const heroes: Player[] = w.two ? [p, w.mate] : [p];
     for (const a of this.actors) {
-      a.t += dt; if (!((a.stare ?? 0) > 0)) this.walk(a, dt, 46, true); else a.b.speed = 0;
+      a.t += dt;
+      // a pause at the ends of the beat: the lookout stands and sweeps its torch (Container Maze), then walks on
+      if (st.pause && (a.extra ?? 0) > 0) { a.extra = (a.extra ?? 0) - dt; a.b.speed = 0; a.b.h += Math.sin(a.t * 2.2) * dt * 0.9; }
+      else if (!((a.stare ?? 0) > 0)) { const wp = a.wp; this.walk(a, dt, 46, true); if (st.pause && a.wp !== wp) a.extra = st.pause; }
+      else a.b.speed = 0;
       if (blind(a)) continue;
       for (const h of heroes) {
         const d = dist(a.b.x, a.b.y, h.x, h.y);
@@ -506,7 +513,7 @@ export class Run {
     if (this.grace > 0) { this.grace -= dt; seen = false; }
     const m = this.meter!;
     // the Alert meter: it rises while a beam is on you (slower when you sneak) and falls once you're out of it
-    m.v = seen ? Math.min(1, m.v + dt * (p.sneak ? 0.4 : 1) * this.w.diff.look * this.mercy()) : Math.max(0, m.v - dt * 0.6); m.bad = m.v > 0.5;
+    m.v = seen ? Math.min(1, m.v + dt * (p.sneak ? 0.4 : 1) * this.w.diff.look * this.mercy() * (st.calm ?? 1)) : Math.max(0, m.v - dt * 0.6); m.bad = m.v > 0.5;
     if (m.v > 0.5 && this.warned < 1) { this.warned = 1; this.warn('A lookout is turning your way! Get out of the beam or hide!'); }
     if (m.v < 0.2) this.warned = 0;
     if (m.v >= 1) return this.fail('A lookout spotted you! Watch their torch beams and sneak.');
@@ -634,4 +641,22 @@ function timeUp(st: Step): string {
   if (st.t === 'race') return 'Out of time! Cut the corners and use your boost.';
   if (st.t === 'fares') return 'The fare got fed up and walked! Drive them home quicker.';
   return 'Out of time!';
+}
+
+/** the chase counter: the plain bumps, then the finishing move on its own (a job that says "bump twice, then net
+ * it" shows "Bumps 0/2 · then net it", never "Bumps 0/3") */
+export function chaseProgress(st: { bumps: number; finish?: 'pounce' | 'snatch' | 'net' }, hits: number): string {
+  if (!st.finish) return `Bumps ${hits}/${st.bumps}`;
+  const n = st.bumps - 1, fin = { pounce: 'pounce together', snatch: 'grab it (F)', net: 'net it' }[st.finish];
+  return hits >= st.bumps ? `Bumps ${n}/${n} · done` : hits >= n ? `Now ${fin}!` : `Bumps ${hits}/${n} · then ${fin}`;
+}
+
+/** a stinky cargo (the durians): a smell cloud left every so often, and any warden who comes near it grows curious.
+ * The heat it adds stops short of a lantern, so it never starts a chase on its own; the wardens' sight does the rest */
+function stinkStep(r: Run, dt: number) {
+  const w = r.w, p = w.p;
+  r.base += dt;
+  if (r.base > 1.4) { r.base = 0; w.splats.push({ x: p.x + (w.R() - 0.5) * 20, y: p.y + 10, sprite: 'stink-cloud', t: 0, life: 7, rot: 0 }); w.fx.push({ t: 'stink', x: p.x, y: p.y }); }
+  const near = w.wardens.some(wd => !wd.leave && wd.stun <= 0 && w.splats.some(sp => sp.sprite === 'stink-cloud' && Math.hypot(sp.x - wd.b.x, sp.y - wd.b.y) < 120));
+  if (near && w.heat < 0.85) { w.heat = Math.min(0.85, w.heat + dt * (w.assist ? 0.05 : 0.09)); if (!r.warning) r.warning = { text: 'A warden sniffs the air… keep moving!', t: 2 }; }
 }

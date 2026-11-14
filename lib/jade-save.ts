@@ -6,7 +6,7 @@
 // forward, keeping every bit of progress.
 import { DISTRICTS, type District } from './jade-city.js';
 import { emptyCargo, GOODS, type Cargo, type Tip } from './jade-trade.js';
-import { MISSIONS, CHAPTER_OPENS } from './jade-story.js';
+import { MISSIONS, SIDE, MISSION, CHAPTER_OPENS } from './jade-story.js';
 import { hashStr, rng } from './jade-rng.js';
 import { asDiff, type Diff } from './jade-diff.js';
 import { BIZ, newBiz, type BizState } from './jade-biz.js';
@@ -113,7 +113,7 @@ export function loadSave(raw: string | null): Save {
   s.cash = Math.floor(num(o.cash, 100, 0, 1e7));
   s.night = Math.floor(num(o.night, 1, 1, 1e5)); s.clock = num(o.clock, 0, 0, 719);
   s.cargo = cargoOf(o.cargo); s.stash = cargoOf(o.stash);
-  const ids = new Set(MISSIONS.map(m => m.id));
+  const ids = new Set([...MISSIONS, ...SIDE].map(m => m.id));
   s.done = strs(o.done, x => ids.has(x));
   const rep = (o.rep ?? {}) as Record<string, unknown>;
   for (const d of DISTRICTS) s.rep[d] = num(rep[d], 0, 0, 100);
@@ -229,6 +229,11 @@ export function available(s: Save) {
   const nonFinal = todo.filter(m => m.id !== `m${ch * 5}`);
   return (nonFinal.length ? nonFinal.slice(0, 2) : todo.slice(0, 1));
 }
+/** Hawker Tales side jobs open now: their story job is done (two offered at a time, in order) */
+export function sideJobs(s: Save) { return SIDE.filter(m => !s.done.includes(m.id) && s.done.includes(m.side!)).slice(0, 2); }
+/** every job a contact offers right now: the story's and the side jobs */
+export const offered = (s: Save) => [...available(s), ...sideJobs(s)];
+export const isSide = (id: string) => !!MISSION[id]?.side;
 export const safeOpen = (s: Save, id: string) => { const h = SAFE_HOUSES.find(x => x.id === id); return !!h && openDistricts(s).includes(h.d) && (h.need === 0 || s.trophies.includes('safe:' + id) || boughtSafe(s, id)); };
 export const boughtSafe = (s: Save, id: string) => s.dailyDone.includes('house:' + id) || s.best['house:' + id] === 1;
 export function buySafe(s: Save, id: string): string | null {

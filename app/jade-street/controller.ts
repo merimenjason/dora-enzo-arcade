@@ -5,13 +5,15 @@
 // Lines of dialogue type out with each speaker's babble voice (Space, E or a tap shows the whole line, then moves on).
 // Hit-stop and slow motion scale the time fed to the fixed step (lib/jade-juice.ts). Test hooks live on window.__jade.
 // The duo and the gadgets: Tab switches hero, F is the tag-team key, the mouse aims and the left button fires, 1 and 2
-// (or the wheel) pick a gadget, X reloads. A second player joins from the pause menu (or a gamepad's Start): they use
+// (or the wheel) pick a gadget, X reloads. Player 1's keys can be remapped (lib/jade-keys.ts) and a gamepad drives
+// player 1 (and the panels and mini-games). A second player joins from the pause menu (or a gamepad's Back): they use
 // the arrow keys with / dash, . hop, , action, ; fire, ' gadget and Right Shift sneak, or a gamepad.
 import { World, DT, NO_INPUT, type Input } from '@/lib/jade-game';
 import { Scene, loadArt, artLoaded } from '@/lib/jade-scene';
 import { spawn, EVENT_KINDS, type EventKind } from '@/lib/jade-events';
 import { nearestFree } from '@/lib/jade-nav';
 import { city, T, districtAt } from '@/lib/jade-city';
+import { translate, PAD } from '@/lib/jade-keys';
 import { dailyEvent, dayKey, openDistricts, chapterOf, type Save } from '@/lib/jade-save';
 import { MISSION, MISSIONS } from '@/lib/jade-story';
 import type { JadeSound } from './sound';
@@ -87,7 +89,10 @@ export class Play {
   onKey: ((k: string) => boolean) | null = null;
   kd = (e: KeyboardEvent) => {
     const t = e.target as HTMLElement | null; if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return;
-    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    const raw = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    // player 1's remapped keys stand in for the default key of their action (not while a mini-game has the keys)
+    const k = this.w.ui?.kind === 'mini' || !e.isTrusted ? raw : translate(this.w.s.settings.keys, raw);
+    if (!k) { e.preventDefault(); return; }
     if (this.onKey && this.onKey(k)) { e.preventDefault(); return; }
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(k)) e.preventDefault();
     if (k === 'Tab') e.preventDefault();
@@ -107,7 +112,7 @@ export class Play {
     // the second player's buttons on the right of the keyboard
     if (two) { if (k === '/') this.pend2.dash = true; if (k === '.') this.pend2.hop = true; if (k === ',' || k === 'Enter') this.pend2.act = true; if (k === ';') this.pend2.fire = true; if (k === "'") this.pend2.slot = -1; if (k === 'l') this.pend2.tag = true; }
   };
-  ku = (e: KeyboardEvent) => { const k = e.key.length === 1 ? e.key.toLowerCase() : e.key; this.keys.delete(e.code === 'ShiftRight' ? 'ShiftRight' : k); if (k === 'Shift') this.keys.delete('ShiftRight'); };
+  ku = (e: KeyboardEvent) => { const raw = e.key.length === 1 ? e.key.toLowerCase() : e.key; const k = translate(this.w.s.settings.keys, raw) || raw; this.keys.delete(raw); this.keys.delete(e.code === 'ShiftRight' ? 'ShiftRight' : k); if (k === 'Shift') this.keys.delete('ShiftRight'); };
   input(): Input {
     const k = this.keys, two = this.w.two; let mx = 0, my = 0;
     // with a second player the arrow keys are theirs
@@ -115,10 +120,19 @@ export class Play {
     if (k.has('w') || (!two && k.has('ArrowUp'))) my -= 1; if (k.has('s') || (!two && k.has('ArrowDown'))) my += 1;
     const l = Math.hypot(mx, my); if (l > 0) { mx /= l; my /= l; }
     if (this.stick.on) { mx = this.stick.x; my = this.stick.y; }
-    const aim = this.aimWorld();
+    let aim = this.aimWorld();
+    // player 1's gamepad: the left stick or d-pad moves, the right stick aims (Assist picks the target otherwise)
+    const g = this.p1pad; let padSneak = false;
+    if (g) {
+      const ax = g.axes[0] ?? 0, ay = g.axes[1] ?? 0;
+      if (Math.hypot(ax, ay) > 0.2) { mx = ax; my = ay; }
+      const rx = g.axes[2] ?? 0, ry = g.axes[3] ?? 0; const p = this.w.p;
+      if (Math.hypot(rx, ry) > 0.35) aim = [p.x + rx * 320, p.y + ry * 320]; else if (this.padUsed) aim = null;
+      padSneak = !!g.buttons[PAD.LT];
+    }
     // holding the button keeps firing (the gadget's own cooldown paces it)
     const fire = this.pend.fire || (this.mouse.down && this.mouse.held > 0.25);
-    return { mx, my, sneak: k.has('Shift') || (!two && k.has('ShiftRight')) || this.touchSneak, dash: this.pend.dash, hop: this.pend.hop, act: this.pend.act,
+    return { mx, my, sneak: k.has('Shift') || (!two && k.has('ShiftRight')) || this.touchSneak || padSneak, dash: this.pend.dash, hop: this.pend.hop, act: this.pend.act,
       swap: this.pend.swap, tag: this.pend.tag, reload: this.pend.reload, slot: this.pend.slot, fire, ax: aim ? aim[0] : NaN, ay: aim ? aim[1] : NaN };
   }
   /** the second player: arrow keys and the right-hand keys, or the first gamepad (stick, A dash, B hop, X action, RT or
@@ -127,7 +141,7 @@ export class Play {
     const k = this.keys; let mx = 0, my = 0;
     if (k.has('ArrowLeft')) mx -= 1; if (k.has('ArrowRight')) mx += 1; if (k.has('ArrowUp')) my -= 1; if (k.has('ArrowDown')) my += 1;
     const l = Math.hypot(mx, my); if (l > 0) { mx /= l; my /= l; }
-    const pad = this.pad(); let sneak = k.has('ShiftRight');
+    const pad = this.p2pad; let sneak = k.has('ShiftRight');
     if (pad) {
       const ax = pad.axes[0] ?? 0, ay = pad.axes[1] ?? 0; if (Math.hypot(ax, ay) > 0.2) { mx = ax; my = ay; }
       const b = pad.buttons, was = this.padPrev; const hit = (i: number) => !!b[i] && !was[i];
@@ -137,13 +151,70 @@ export class Play {
     }
     return { mx, my, sneak, dash: this.pend2.dash, hop: this.pend2.hop, act: this.pend2.act, fire: this.pend2.fire, slot: this.pend2.slot, tag: this.pend2.tag, ax: NaN, ay: NaN };
   }
-  pad(): { axes: number[]; buttons: boolean[] } | null {
-    if (this.fakePad) return this.fakePad;
-    const gp = typeof navigator !== 'undefined' && navigator.getGamepads ? [...navigator.getGamepads()].find(g => g && g.connected) : null;
-    return gp ? { axes: [...gp.axes], buttons: gp.buttons.map(b => b.pressed) } : null;
+  pads(): { axes: number[]; buttons: boolean[] }[] {
+    if (this.fakePad) return [this.fakePad, ...(this.fakePad2 ? [this.fakePad2] : [])];
+    const gps = typeof navigator !== 'undefined' && navigator.getGamepads ? [...navigator.getGamepads()].filter(g => g && g.connected) : [];
+    return gps.map(gp => ({ axes: [...gp!.axes], buttons: gp!.buttons.map(b => b.pressed) }));
   }
-  /** a gamepad's Start (or the pause menu) brings a second player in or out */
-  padJoin() { const p = this.pad(); if (!p) return; const st = !!p.buttons[9]; if (st && !this.startPrev) this.setTwo(!this.w.two); this.startPrev = st; }
+  pad() { return this.pads()[0] ?? null; }
+  /** which pad is whose: alone, the first pad is player 1's; with two players and one pad it is player 2's (the
+   * keyboard stays player 1's); with two pads, one each */
+  p1pad: { axes: number[]; buttons: boolean[] } | null = null; p2pad: { axes: number[]; buttons: boolean[] } | null = null;
+  padUsed = false; p1Prev: boolean[] = []; p1Axis = [0, 0]; menuPrev: boolean[] = []; menuAxis = [0, 0];
+  /** Back (Select) brings a second player in or out; Start pauses (Escape); the face buttons drive player 1 or, with
+   * a panel or mini-game open, move the focus and press buttons */
+  padJoin() {
+    const ps = this.pads(); const two = this.w.two;
+    this.p1pad = !two ? ps[0] ?? null : ps.length >= 2 ? ps[0] : null;
+    this.p2pad = two ? (ps.length >= 2 ? ps[1] : ps[0]) ?? null : null;
+    const lead = ps[0]; if (!lead) { this.p1Prev = []; return; }
+    const back = !!lead.buttons[PAD.BACK] || (ps.length >= 2 && !!ps[1].buttons[PAD.START]);
+    if (back && !this.startPrev) this.setTwo(!this.w.two);
+    this.startPrev = back;
+    const g = this.p1pad; if (!g) return;
+    const b = g.buttons, was = this.p1Prev, hit = (i: number) => !!b[i] && !was[i];
+    if (b.some(Boolean) || Math.hypot(g.axes[0] ?? 0, g.axes[1] ?? 0) > 0.3) this.padUsed = true;
+    const menu = typeof document !== 'undefined' && !!document.querySelector('.jade-modal-back, .jade-mini, .jade-pmap-back');
+    if (hit(PAD.START)) this.synth('Escape');
+    if (menu) this.padMenu(g, hit);
+    else if (this.w.talk) { if (hit(PAD.A) || hit(PAD.X)) this.advance(); }
+    else {
+      if (hit(PAD.A)) this.pend.dash = true; if (hit(PAD.B)) this.pend.hop = true; if (hit(PAD.X)) this.pend.act = true; if (hit(PAD.Y)) this.pend.tag = true;
+      if (hit(PAD.RB) || hit(PAD.RT)) this.pend.fire = true; if (hit(PAD.LB)) this.pend.slot = 1 - this.w.s.gear.slot[this.w.p.who];
+      if (hit(PAD.L3) || hit(PAD.R3) || hit(PAD.RIGHT)) this.pend.swap = true; if (hit(PAD.LEFT)) this.pend.reload = true;
+      // the d-pad: up opens the map, down the phone
+      if (hit(PAD.UP)) this.synth('m'); if (hit(PAD.DOWN)) this.synth('t');
+      // holding RB keeps firing
+      if (b[PAD.RB] && was[PAD.RB]) this.pend.fire = this.w.tick % 12 === 0 || this.pend.fire;
+    }
+    this.p1Prev = b.slice();
+  }
+  /** a pad in a panel: the d-pad or stick moves the focus between buttons, A presses, B closes; in a mini-game the
+   * d-pad and A stand in for the arrow keys and Space */
+  padMenu(g: { axes: number[]; buttons: boolean[] }, hit: (i: number) => boolean) {
+    const ax = g.axes[0] ?? 0, ay = g.axes[1] ?? 0;
+    const dir = (i: number, a: number, s: number) => hit(i) || (Math.abs(a) > 0.6 && Math.sign(a) === s && Math.abs(this.menuAxis[i < 14 ? 1 : 0]) <= 0.6);
+    const up = dir(PAD.UP, ay, -1), down = dir(PAD.DOWN, ay, 1), left = dir(PAD.LEFT, ax, -1), right = dir(PAD.RIGHT, ax, 1);
+    this.menuAxis = [ax, ay];
+    const mini = document.querySelector('.jade-mini');
+    if (mini) {
+      for (const [on, key, i] of [[up, 'ArrowUp', PAD.UP], [down, 'ArrowDown', PAD.DOWN], [left, 'ArrowLeft', PAD.LEFT], [right, 'ArrowRight', PAD.RIGHT]] as [boolean, string, number][]) {
+        if (on) this.synth(key); if (!g.buttons[i] && this.p1Prev[i]) this.synth(key, 'keyup');
+      }
+      if (hit(PAD.A)) this.synth(' '); if (!g.buttons[PAD.A] && this.p1Prev[PAD.A]) this.synth(' ', 'keyup');
+      if (hit(PAD.X)) this.synth('Enter');
+      return;
+    }
+    const root = [...document.querySelectorAll('.jade-modal-back, .jade-pmap-back')].pop() as HTMLElement | undefined; if (!root) return;
+    const btns = [...root.querySelectorAll<HTMLElement>('button:not([disabled]), select, input')].filter(e => e.offsetParent !== null);
+    if (!btns.length) return;
+    const i = btns.indexOf(document.activeElement as HTMLElement);
+    if (up || left) btns[(i <= 0 ? btns.length : i) - 1].focus(); else if (down || right) btns[(i + 1) % btns.length].focus();
+    if (hit(PAD.A)) { const el = document.activeElement as HTMLElement | null; if (el && btns.includes(el)) el.click(); else btns[0].focus(); }
+    if (hit(PAD.B)) this.synth('Escape');
+  }
+  synth(key: string, type: 'keydown' | 'keyup' = 'keydown') { window.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true })); }
+  fakePad2: { axes: number[]; buttons: boolean[] } | null = null;
   startPrev = false;
   setTwo(on: boolean) { applyTwo(this.w, on); this.toast(on ? `Player 2 joins as ${this.w.mate.who === 'dora' ? 'Dora' : 'Enzo'}! Arrows to move, / dash, . hop, , action, ; fire, ' gadget.` : 'Player 2 left. The partner follows you again.', 'good'); this.bump(); }
   /** the current line of dialogue: who, the words, the mood */
@@ -289,7 +360,7 @@ export class Play {
       give: (ids?: GadgetId[]) => { for (const g of ids ?? GADGET_IDS) giveGadget(this.w.s, g); this.bump(); return this.w.s.gear.own.slice(); },
       buy: (what: 'gadget' | 'ammo' | 'up' | 'carry', g: GadgetId) => { const s = this.w.s; const r = what === 'gadget' ? buyGadget(s, g) : what === 'ammo' ? buyAmmo(s, g) : what === 'up' ? upgradeGadget(s, g) : carry(s, this.w.p.who, g); this.bump(); return r; },
       two: (on: boolean) => this.setTwo(on),
-      fakePad: (pad: { axes: number[]; buttons: boolean[] } | null) => { this.fakePad = pad; },
+      fakePad: (pad: { axes: number[]; buttons: boolean[] } | null, pad2?: { axes: number[]; buttons: boolean[] } | null) => { this.fakePad = pad; this.fakePad2 = pad2 ?? null; },
       aimAt: (tx: number, ty: number) => { const c = this.scene.cam; this.mouse.x = (tx * T - (c.x - c.w / 2)) * c.k; this.mouse.y = (ty * T - (c.y - c.h / 2)) * c.k; this.mouse.seen = performance.now(); },
       wardens: () => this.w.wardens.map(wd => ({ x: wd.b.x / T, y: wd.b.y / T, stun: wd.stun, hit: wd.hitKind ?? null })),
       crowNear: () => { const w = this.w, e = w.street; if (!e?.b) return false; e.b.x = w.mate.x + 140; e.b.y = w.mate.y; e.x = e.b.x; e.y = e.b.y; return true; },

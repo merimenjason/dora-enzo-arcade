@@ -10,7 +10,7 @@ import { VEHICLES, FOOT, drive, step as moveStep, obstacleGrid, shove, overlappi
 import { nearestFree, field, pathFrom, type Field } from './jade-nav.js';
 import { rng, clamp, angDiff, dist } from './jade-rng.js';
 import { cargoCount, cargoValue, capacity, GOODS, GOOD, midPrice, prices, buy as tBuy, sell as tSell, moveGoods, type Good } from './jade-trade.js';
-import { type Save, type Hero, openDistricts, available, addRep, checkTrophies, safeOpen, SAFE_HOUSES, DAILY_NEED, dailyEvent } from './jade-save.js';
+import { type Save, type Hero, openDistricts, offered, addRep, checkTrophies, safeOpen, SAFE_HOUSES, DAILY_NEED, dailyEvent } from './jade-save.js';
 import { MISSION, PEOPLE, type Mission } from './jade-story.js';
 import { Run, type Gig } from './jade-mission.js';
 import { trafficStep, redRun, type Car } from './jade-traffic.js';
@@ -410,7 +410,7 @@ export class World {
       this.near = best; return;
     }
     if (p.roof) { const lp = this.run?.nearAction(x, y); if (lp) { this.near = lp; return; } for (const l of this.c.ladders) cand({ kind: 'ladder-down', label: 'Climb down', x: l.rx * T + T / 2, y: l.ry * T + T / 2 }, 70); this.near = best; return; }
-    if (!this.run) for (const m of available(this.s)) { const pl = this.c.places[m.at]; if (pl) cand({ kind: 'mission', label: `${PEOPLE[m.giver].name}: “${m.title}”`, x: pl.x, y: pl.y, id: m.id }, 80); }
+    if (!this.run) for (const m of offered(this.s)) { const pl = this.c.places[m.at]; if (pl) cand({ kind: 'mission', label: `${PEOPLE[m.giver].name}: “${m.title}”`, x: pl.x, y: pl.y, id: m.id }, 80); }
     const rm = this.run?.nearAction(x, y); if (rm) cand(rm, 90);
     for (const [id, pl] of Object.entries(this.c.places)) {
       if (!this.open.has(pl.d)) continue;
@@ -480,7 +480,7 @@ export class World {
     if (!gig) { this.street = null; this.crowd = null; this.pushing = false; }
     this.run = new Run(this, m, gig);
     this.fx.push({ t: 'mission-start', name: m.title });
-    this.banner = { text: m.title, sub: gig ? 'Side gig' : `Chapter ${m.ch} · ${PEOPLE[m.giver].name}`, t: 2.6 };
+    this.banner = { text: m.title, sub: gig ? 'Side gig' : m.side ? `Hawker Tales · ${PEOPLE[m.giver].name}` : `Chapter ${m.ch} · ${PEOPLE[m.giver].name}`, t: 2.6 };
     this.run.begin();
   }
   finishMission(m: Mission, gig?: Gig) {
@@ -534,7 +534,7 @@ export class World {
     // with Assist on and nothing else to do, point at the next job's contact
     if (this.assist && !this.p.roof) {
       let best: [number, number] | null = null, bd = 1e18;
-      for (const m of available(this.s)) { const pl = this.c.places[m.at]; if (!pl) continue; const d = dist(pl.x, pl.y, this.p.x, this.p.y); if (d < bd && d > 90) { bd = d; best = [pl.x, pl.y]; } }
+      for (const m of offered(this.s)) { const pl = this.c.places[m.at]; if (!pl) continue; const d = dist(pl.x, pl.y, this.p.x, this.p.y); if (d < bd && d > 90) { bd = d; best = [pl.x, pl.y]; } }
       return best;
     }
     return null;

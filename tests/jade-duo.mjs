@@ -269,3 +269,5 @@ test('lessons never hang about: each basic one gives up after a while, and the f
 });
 
 console.log(`jade (fourth pass): ${n} tests ok`);
+// the fifth pass: Singapore
+await import('./jade-sg.mjs');
