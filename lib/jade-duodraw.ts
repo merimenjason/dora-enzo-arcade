@@ -84,9 +84,10 @@ function driver(sc: Scene, x: X, w: World, p: Player, r: Ride, variant: string) 
 /** the partner on the back seat (scooters and boats show them; a tuk-tuk, a van and a trishaw's cab hide them) */
 export function passenger(sc: Scene, x: X, w: World, r: Ride) {
   const m = w.mate.seat === r ? w.mate : w.p.seat === r ? w.p : null; if (!m) return;
-  if (r.kind !== 'scooter' && r.kind !== 'boat') return;
+  // pillion on a scooter, on the bench of a trishaw, in the bow of a boat; a tuk-tuk or van carries them inside the cab
+  if (r.kind !== 'scooter' && r.kind !== 'boat' && r.kind !== 'trishaw') return;
   const of = OUTFITS.findIndex(o => o.id === w.s.outfit[m.who]); const variant = of > 0 ? `${m.who}:${of}` : '';
-  const back = r.kind === 'boat' ? 0.12 : -0.26;
+  const back = r.kind === 'boat' ? 0.12 : r.kind === 'trishaw' ? 0.2 : -0.26;
   const px = r.b.x + Math.cos(r.b.h) * VEHICLES[r.kind].len * back, py = r.b.y + Math.sin(r.b.h) * VEHICLES[r.kind].len * back;
   // which side the passenger leans to: toward what they aim at or grab
   const side = Math.sin(m.aimH - r.b.h) < 0;

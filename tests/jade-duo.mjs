@@ -256,4 +256,16 @@ test('the fourth batch of paintings: every gadget, shot, splat, pose, passenger 
   for (const k of need) { const f = FRAMES[k]; assert.ok(f[3] > 4 && f[4] > 4, `${k} has size`); }
 });
 
+test('lessons never hang about: each basic one gives up after a while, and the festival ending plays once', () => {
+  const s = newSave(9); s.started = true; s.story.intro = true; s.done = ['m1']; const w = new World(s, 9); w.quiet = true; w.talk = null;
+  w.placePlayer(20 * T + 32, 47 * T + 32);
+  let shown = null, since = 0, longest = 0;
+  for (let i = 0; i < 60 * 90; i++) { w.step(NO_INPUT, DT); if (w.talk) w.talk = null; const c = w.tutor.cur; if (c !== shown) { shown = c; since = 0; } else if (c) since += DT; if (c) longest = Math.max(longest, since); }
+  assert.ok(longest < 31, `no lesson stays up more than its limit (${longest.toFixed(1)}s)`);
+  for (const id of ['move', 'run', 'dash', 'hop']) assert.ok(w.s.learned.includes(id), `${id} given up on`);
+  // beating Glint again does not replay the ending
+  const w2 = world({ done: allDone.slice(0, 24) }); w2.s.story.ending = false; w2.finishMission(MISSION.m25); assert.ok(w2.fx.some(f => f.t === 'finale'), 'the first time');
+  w2.s.story.ending = true; w2.fx.length = 0; w2.finishMission(MISSION.m25); assert.ok(!w2.fx.some(f => f.t === 'finale'), 'not on a replay');
+});
+
 console.log(`jade (fourth pass): ${n} tests ok`);
