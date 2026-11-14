@@ -77,7 +77,7 @@ J['end-2'] = (L, REF + ['city.png'], STYLE + CHIN + DORA + ENZO + PANEL + "The L
 J['end-3'] = (L, REF + ['portraits.png', 'city.png'], STYLE + CHIN + DORA + ENZO + CAST + PANEL + "The festival party: fireworks of gold, "
   "red and violet bursting over the harbour, a red-and-gold lion dance in the lantern-lit street, the whole cast celebrating together "
   "(Uncle Kee, Auntie Pang, Kiri, Big Bo, Gizmo, the raccoon wardens and even the magpies in purple windbreakers dancing), Dora and Enzo in "
-  "the middle cheering. No text.")
+  "the middle cheering. No text: clothes are plain colours with simple flower and crane patterns only, no letters or scribbles on any jacket.")
 J['ui2'] = (L, SREF, STYLE + "A game UI sheet painted like enamel shop signs and lacquered wood with gold trim. A 4 by 3 grid of twelve "
   "separate elements, blank, NO text. Top row: (1) a bronze medal on a short red ribbon; (2) a silver medal on a jade ribbon; (3) a gold medal "
   "on a red-and-gold ribbon, shining; (4) an empty medal slot: a dull dark round dish. Middle row: (5) a small smartphone in a jade-green case "
