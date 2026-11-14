@@ -4,12 +4,12 @@
 // The gamepad (standard layout): left stick or d-pad moves, A dash, B hop, X action, Y tag-team, RB or RT fire, LB
 // gadget, LT sneak, right stick aims, d-pad up map, down phone, left reload, right (or L3/R3) switches hero, Back
 // (Select) brings player 2 in or out, Start pauses. In a panel the d-pad moves between buttons, A presses, B closes.
-export type KeyAction = 'up' | 'down' | 'left' | 'right' | 'dash' | 'hop' | 'act' | 'sneak' | 'tag' | 'swap' | 'reload' | 'map' | 'phone';
+export type KeyAction = 'up' | 'down' | 'left' | 'right' | 'dash' | 'hop' | 'act' | 'sneak' | 'tag' | 'swap' | 'reload' | 'map' | 'phone' | 'hail';
 export const KEY_ACTIONS: { id: KeyAction; name: string; def: string }[] = [
   { id: 'up', name: 'Move up', def: 'w' }, { id: 'down', name: 'Move down', def: 's' }, { id: 'left', name: 'Move left', def: 'a' }, { id: 'right', name: 'Move right', def: 'd' },
   { id: 'dash', name: 'Dash (boost on a ride)', def: 'Space' }, { id: 'hop', name: 'Hop (honk on a ride)', def: 'q' }, { id: 'act', name: 'Action / pay a fine', def: 'e' },
   { id: 'sneak', name: 'Sneak', def: 'Shift' }, { id: 'tag', name: 'Tag-team move', def: 'f' }, { id: 'swap', name: 'Switch hero', def: 'Tab' },
-  { id: 'reload', name: 'Reload gadget', def: 'x' }, { id: 'map', name: 'Map', def: 'm' }, { id: 'phone', name: 'Phone', def: 't' },
+  { id: 'reload', name: 'Reload gadget', def: 'x' }, { id: 'map', name: 'Map', def: 'm' }, { id: 'phone', name: 'Phone', def: 't' }, { id: 'hail', name: 'Hail a taxi', def: 'g' },
 ];
 /** a KeyboardEvent key (lower-cased when it is one letter) as a saved name, and back */
 export const keyName = (k: string) => k === ' ' ? 'Space' : k;

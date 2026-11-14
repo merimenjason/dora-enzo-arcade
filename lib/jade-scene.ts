@@ -5,7 +5,8 @@
 // districts, dust and sparkles; game feel (shake, hit-stop, debris, speed lines) is in lib/jade-juice.ts and the set
 // pieces, the finale and the business stalls are drawn by lib/jade-setdraw.ts. Every picture is a Codex painting from the atlases in public/art/jade-street/.
 import { FRAMES, ATLASES, ATLAS_SIZE, TEXTURES } from './jade-art.js';
-import { T, W, H, G, GROUND_NAMES, F_ROOF, districtAt, type City, type District } from './jade-city.js';
+import { T, W, H, G, OW, GROUND_NAMES, F_ROOF, districtAt, type City, type District } from './jade-city.js';
+import { F_XWAY } from './jade-island.js';
 import { VEHICLES } from './jade-move.js';
 import type { World, Ride } from './jade-game.js';
 import type { Actor } from './jade-mission.js';
@@ -17,6 +18,7 @@ import { setGround, setSorted, drawDecoy, realGlint } from './jade-setdraw.js';
 import { sgGround, sgSorted, sgOver, sgFlash } from './jade-sgdraw.js';
 import { drawHero, gearGround, gearSorted, gearOver, wardenHitFrame, aimLine, setItemSprite } from './jade-duodraw.js';
 import { shooterFor } from './jade-gear.js';
+import { isleSorted, isleOver, isleActor, isleGround } from './jade-isledraw.js';
 
 export const ART = '/art/jade-street/';
 const CH = 8; // tiles per chunk
@@ -146,6 +148,16 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     case 'mend': return `${h}-mend`;
     case 'skid': return `${h}-skid`;
     case 'tumble': return `${h}-tumble`;
+    // the island: hailing a taxi, tapping a fare card at the gates, the train's handrail, out of breath after beating
+    // the train, pointing the taxi on its way, the playground slide, the Island Night dance
+    case 'hail': return face === 'side' ? `${h}-hail-side` : `${h}-hail-down`;
+    case 'tap-card': return `${h}-tap-card`;
+    case 'pole': return `${h}-pole-${cyc(2, 2)}`;
+    case 'seat': return `${h}-seat`;
+    case 'panting': return `${h}-panting`;
+    case 'point': return `${h}-point`;
+    case 'slide': return `${h}-slide`;
+    case 'isle-dance': return `${h}-dance-${cyc(2, 3)}`;
     default: return `${h}-idle-${face}`;
   }
 }
@@ -204,18 +216,18 @@ export class Scene {
   /** paint tiles (tx0..tx0+n) of the city's ground layer into x (already transformed to world units) */
   paintGround(x: CanvasRenderingContext2D, tx0: number, ty0: number, nw: number, nh: number, simple = false) {
     const c = this.c;
-    const texOf = (g: number) => g === G.BRIDGE ? 'canal' : g === G.STAIRS ? 'temple' : g === G.BLD ? 'plaza' : GROUND_NAMES[g];
+    const texOf = (g: number, i: number) => g === G.ROAD && (c.flags[i] & F_XWAY) ? 'xway' : g === G.BRIDGE ? (i % W >= OW ? 'xway' : 'canal') : g === G.STAIRS ? 'temple' : g === G.BLD ? (i % W >= OW ? (Math.floor(i / W) < 38 ? 'hdb' : 'granite') : 'plaza') : GROUND_NAMES[g];
     const byTex = new Map<string, number[]>();
     for (let ty = ty0; ty < ty0 + nh; ty++) for (let tx = tx0; tx < tx0 + nw; tx++) {
       if (tx < 0 || ty < 0 || tx >= W || ty >= H) continue;
-      const n = texOf(c.ground[ty * W + tx]); const a = byTex.get(n) ?? []; a.push(tx, ty); byTex.set(n, a);
+      const n = texOf(c.ground[ty * W + tx], ty * W + tx); const a = byTex.get(n) ?? []; a.push(tx, ty); byTex.set(n, a);
     }
     for (const [n, a] of byTex) {
       const p = this.pattern(x, n);
       if (p) { p.setTransform(new DOMMatrix([0.5, 0, 0, 0.5, 0, 0])); x.fillStyle = p; } else x.fillStyle = '#2a2440';
       x.beginPath(); for (let i = 0; i < a.length; i += 2) x.rect(a[i] * T - 0.5, a[i + 1] * T - 0.5, T + 1, T + 1); x.fill();
       // night: the painted ground sits a little darker so lamps, signs and people read on top of it
-      const dim = n === 'canal' || n === 'sea' ? 0.12 : n === 'walk' || n === 'plaza' || n === 'temple' ? 0.34 : 0.24;
+      const dim = n === 'canal' || n === 'sea' || n === 'bay' ? 0.12 : n === 'walk' || n === 'plaza' || n === 'temple' ? 0.34 : 0.24;
       x.fillStyle = `rgba(14,8,32,${dim})`; x.fill();
     }
     // kerbs: a lit edge and a soft shadow where the pavement meets the road; water edges get a stone lip
@@ -224,7 +236,7 @@ export class Scene {
       if (tx < 0 || ty < 0 || tx >= W || ty >= H) continue;
       const g = c.ground[ty * W + tx];
       const nb = (dx: number, dy: number) => { const X = tx + dx, Y = ty + dy; return X < 0 || Y < 0 || X >= W || Y >= H ? g : c.ground[Y * W + X]; };
-      const water = (v: number) => v === G.CANAL || v === G.SEA;
+      const water = (v: number) => v === G.CANAL || v === G.SEA || v === G.BAY;
       if (g === G.ROAD) {
         for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
           const o = nb(dx, dy); if (o === G.ROAD || o === G.BRIDGE || o === G.BLD) continue;
@@ -342,6 +354,7 @@ export class Scene {
     sgGround(this, x, w, ox, oy, cam.w, cam.h);
     const vis0 = (px: number, py: number, mm = 160) => px > ox - mm && px < ox + cam.w + mm && py > oy - mm && py < oy + cam.h + mm * 1.5;
     gearGround(this, x, w, vis0);
+    isleGround(this, x, w, vis0);
     // y-sorted things
     const list: [number, () => void][] = [];
     const vis = (px: number, py: number, m = 160) => px > ox - m && px < ox + cam.w + m && py > oy - m && py < oy + cam.h + m * 1.5;
@@ -362,6 +375,7 @@ export class Scene {
     setSorted(this, x, w, list, vis);
     sgSorted(this, x, w, list, vis);
     gearSorted(this, x, w, list, vis);
+    isleSorted(this, x, w, list, vis);
     if (!p.roof) list.push([p.y + 1, () => this.hero(x, w)]);
     if (!m.roof && !m.seat && vis(m.x, m.y)) list.push([m.y + 0.5, () => drawHero(this, x, w, m, w.two)]);
     list.sort((a, b) => a[0] - b[0]);
@@ -378,6 +392,7 @@ export class Scene {
     for (const sn of w.snatchers) { this.flyer(x, sn.x, sn.y, sn.h + ((sn.dizzy ?? 0) > 0 ? this.t * 12 : 0), sn.wing); if ((sn.dizzy ?? 0) > 0) this.stars(x, sn.x, sn.y - 24); }
     gearOver(this, x, w, vis);
     sgOver(this, x, w, vis);
+    isleOver(this, x, w, vis);
     if (w.run) for (const a of w.run.actors) if (a.kind === 'swoop') this.flyer(x, a.b.x, a.b.y, a.b.h + (a.stun > 0 ? this.t * 12 : 0), a.t * 9);
     this.life.over(x, w, vis, dt, cam);
     this.life.rainWorld(x, w, dt, cam);
@@ -458,6 +473,7 @@ export class Scene {
   actor(x: CanvasRenderingContext2D, w: World, a: Actor) {
     const b = a.b; const fl = Math.floor(a.t * 6) % 2;
     x.fillStyle = 'rgba(0,0,0,.3)';
+    if (isleActor(this, x, a)) return;
     switch (a.kind) {
       case 'cart': this.shadow(x, b.x + 4, b.y + 6, 36, 18); spr(x, `crow-cart-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 + (a.stun > 0 ? Math.sin(this.t * 30) * 0.3 : 0) }); if (a.stun > 0) this.stars(x, b.x, b.y - 30); break;
       case 'decoy': drawDecoy(this, x, a); break;
@@ -516,7 +532,7 @@ export class Scene {
     const tx0 = Math.max(0, Math.floor(ox / T)), tx1 = Math.min(W - 1, Math.floor((ox + cw) / T)), ty0 = Math.max(0, Math.floor(oy / T)), ty1 = Math.min(H - 1, Math.floor((oy + ch) / T));
     x.save(); x.globalCompositeOperation = 'lighter';
     for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
-      const g = this.c.ground[ty * W + tx]; if (g !== G.CANAL && g !== G.SEA) continue;
+      const g = this.c.ground[ty * W + tx]; if (g !== G.CANAL && g !== G.SEA && g !== G.BAY) continue;
       const a = 0.05 + 0.05 * Math.sin(this.t * 1.7 + tx * 0.9 + ty * 1.3);
       x.fillStyle = `rgba(120,200,255,${a})`; x.fillRect(tx * T + 8 + Math.sin(this.t + ty) * 8, ty * T + 20, 30, 3);
       x.fillStyle = `rgba(255,160,120,${a * 0.8})`; x.fillRect(tx * T + 30 + Math.cos(this.t * 1.3 + tx) * 8, ty * T + 44, 22, 2);

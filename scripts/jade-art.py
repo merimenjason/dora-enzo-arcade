@@ -283,6 +283,33 @@ grid('macaques', ['mac-walk-down-0', 'mac-walk-down-1', 'mac-walk-up-0', 'mac-wa
 each('gang-rides', ['otter-raft-0', 'otter-raft-1', 'mac-cart-0', 'mac-cart-1', 'sleek-boat-0', 'sleek-boat-1'], 3, 2, {'otter-raft-0': 84, 'otter-raft-1': 84, 'mac-cart-0': 80, 'mac-cart-1': 80, 'sleek-boat-0': 100, 'sleek-boat-1': 100}, dim='h')
 each('fines', ['pigeon-0', 'pigeon-1', 'pigeon-fly', 'seed-bag', 'gum', 'gum-stuck', 'litter', 'ticket', 'warden-write', 'warden-ticket', 'crate-float', 'bananas', 'handbag', 'bun', 'litter-bin', 'fish-basket'], 4, 4,
      {'pigeon-0': 28, 'pigeon-1': 28, 'pigeon-fly': 40, 'seed-bag': 22, 'gum': 20, 'gum-stuck': 20, 'litter': 36, 'ticket': 40, 'warden-write': 54, 'warden-ticket': 58, 'crate-float': 52, 'bananas': 30, 'handbag': 26, 'bun': 20, 'litter-bin': 36, 'fish-basket': 36})
+# ── sixth batch (docs/jade-street-art/jobs6.py): the island. Toa Payoh's estate and Marina Bay's front (buildings keyed
+# off green and stretched to their tile footprints at 1 px per world unit), the island's props and rides, the Longkang
+# Lizards, the new cast and townsfolk, the heroes' train and taxi poses, and the phone and map icons
+def rect(file, names, gx, gy, sizes, **kw):
+    """buildings with a non-square footprint: stretched to (w, h) tiles at 1 atlas px per world unit"""
+    for n, c in zip(names, cells(file, gx, gy, **kw)):
+        if not n or c is None: continue
+        w, h = sizes[n]; FRAMES[n] = Image.fromarray(c).resize((w * 64, h * 64), Image.LANCZOS)
+rect('hdb-bld', ['hdb-slab-a', 'hdb-slab-b', 'hdb-point-a', 'hdb-mscp', 'hdb-nc', 'hdb-market'], 3, 2, {'hdb-slab-a': (10, 4), 'hdb-slab-b': (10, 4), 'hdb-point-a': (4, 4), 'hdb-mscp': (6, 5), 'hdb-nc': (8, 4), 'hdb-market': (6, 6)}, green=True)
+rect('hdb-bld2', ['hdb-point-b', 'hdb-kopitiam', 'hdb-stn', 'hdb-cc', 'hdb-hawker', 'hdb-bus'], 3, 2, {'hdb-point-b': (4, 4), 'hdb-kopitiam': (4, 4), 'hdb-stn': (8, 4), 'hdb-cc': (5, 5), 'hdb-hawker': (5, 4), 'hdb-bus': (8, 3)}, green=True)
+rect('bay-bld', ['bay-tower-a', 'bay-tower-b', 'bay-tower-c', 'bay-resort', 'bay-stage', 'bay-domes'], 3, 2, {'bay-tower-a': (6, 6), 'bay-tower-b': (5, 5), 'bay-tower-c': (6, 5), 'bay-resort': (12, 6), 'bay-stage': (8, 6), 'bay-domes': (10, 5)}, green=True)
+rect('bay-bld2', ['bay-stn', 'bay-wheel', 'bay-mall', 'bay-grove', 'bay-hotel', 'bay-tower-d'], 3, 2, {'bay-stn': (4, 2), 'bay-wheel': (5, 5), 'bay-mall': (9, 3), 'bay-grove': (4, 4), 'bay-hotel': (6, 4), 'bay-tower-d': (5, 5)}, green=True)
+each('isle-props', ['playground', 'void-table', 'letterbox', 'bicycles', 'laundry', 'exercise', 'bus-stop', 'taxi-stand', 'durian-stall', 'bougain', 'prom-palm', 'prom-lamp', 'prom-bench', 'xw-barrier', 'cones', 'spin-top'], 4, 4,
+     {'playground': 150, 'void-table': 84, 'letterbox': 84, 'bicycles': 90, 'laundry': 96, 'exercise': 90, 'bus-stop': 110, 'taxi-stand': 110, 'durian-stall': 96, 'bougain': 60, 'prom-palm': 70, 'prom-lamp': 54, 'prom-bench': 72, 'xw-barrier': 128, 'cones': 60, 'spin-top': 90})
+each('isle-props2', ['rail', 'rail-pillar', 'psd', 'fare-gate', 'hide-liz', 'hide-otter', 'hide-mac', 'crow-nest', 'light-crate', 'carpet', 'statuette', 'jetty-sign', 'stn-pillar', 'mooncakes', 'balloons', 'stools'], 4, 4,
+     {'rail': 256, 'rail-pillar': 52, 'psd': 120, 'fare-gate': 70, 'hide-liz': 120, 'hide-otter': 130, 'hide-mac': 150, 'crow-nest': 120, 'light-crate': 60, 'carpet': 70, 'statuette': 34, 'jetty-sign': 40, 'stn-pillar': 40, 'mooncakes': 36, 'balloons': 50, 'stools': 44})
+each('isle-rides', ['mrt-front', 'mrt-mid', 'v-taxi', 'v-taxi-b', 'wscoot-0', 'wscoot-1', 'liz-trolley-0', 'liz-trolley-1'], 4, 2,
+     {'mrt-front': 230, 'mrt-mid': 230, 'v-taxi': 80, 'v-taxi-b': 80, 'wscoot-0': 60, 'wscoot-1': 60, 'liz-trolley-0': 60, 'liz-trolley-1': 60}, dim='h')
+grid('lizards', ['liz-walk-down-0', 'liz-walk-down-1', 'liz-walk-up-0', 'liz-walk-up-1', 'liz-run-0', 'liz-run-1', 'liz-swim', 'liz-lepak', 'liz-taunt', 'liz-dizzy', 'liz-slip', 'liz-netted'], 4, 3, 50, ref='liz-taunt')
+fit('isle-faces', [f'face-{w}{m}' for w in ('kamal', 'vanda', 'lepak', 'kaw') for m in ('', '-happy', '-worried', '-cross')], 4, 4, 256)
+grid('folk5', [f'folk-{s}-{k}' for s in ('tapir', 'mousedeer', 'civet') for k in ('down', 'up', 'side-0', 'side-1', 'hop')], 5, 3, 50)
+each('isle-npc', ['kamal-0', 'kamal-flag', 'vanda-0', 'vanda-point', 'lepak-chair', 'lepak-cross', 'kaw-brief', 'kaw-flap', 'mynahs', 'piglet', 'crowd', 'crow-sales'], 4, 3,
+     {'kamal-0': 60, 'kamal-flag': 60, 'vanda-0': 64, 'vanda-point': 64, 'lepak-chair': 76, 'lepak-cross': 70, 'kaw-brief': 64, 'kaw-flap': 76, 'mynahs': 44, 'piglet': 40, 'crowd': 86, 'crow-sales': 60}, dim='h')
+for h in ('dora', 'enzo'):
+    fx = cream if h == 'dora' else None
+    grid(f'{h}-act9', [f'{h}-{a}' for a in ('hail-down', 'hail-side', 'tap-card', 'pole-0', 'pole-1', 'seat', 'phone', 'slide', 'point', 'dance-0', 'dance-1', 'panting')], 4, 3, 58, ref=f'{h}-tap-card', fix=fx)
+fit('isle-ui', ['i-taxiapp', 'i-mrt', 'pin-train', 'pin-taxi', 'pin-liz', 'mi-resort', 'mi-hdb', 'mi-wheel'], 4, 2, 128)
 FRAMES = {k: v for k, v in FRAMES.items() if v is not None}
 
 # ── seamless ground textures: crop each square, then blend it with its half-offset copy so the edges wrap
@@ -294,7 +321,7 @@ def seamless(arr):
     m = np.minimum(np.minimum(xx, w - 1 - xx) / (w * 0.5), np.minimum(yy, h - 1 - yy) / (h * 0.5))
     m = np.clip(m * 2.2, 0, 1)[..., None]
     return (arr * m + rolled * (1 - m)).astype(np.uint8)
-for f, names in (('ground', ['road', 'walk', 'plaza', 'grass', 'canal', 'plank']), ('ground2', ['temple', 'sea', 'dock', 'neon', 'path', 'cobble'])):
+for f, names in (('ground', ['road', 'walk', 'plaza', 'grass', 'canal', 'plank']), ('ground2', ['temple', 'sea', 'dock', 'neon', 'path', 'cobble']), ('ground3', ['xway', 'hdb', 'rubber', 'granite', 'deck', 'bay'])):
     p = SRC / f'{f}.png'
     if not p.exists(): MISSING.append(f); continue
     a = np.asarray(Image.open(p).convert('RGB'))
@@ -312,7 +339,7 @@ for f, names in (('ground', ['road', 'walk', 'plaza', 'grass', 'canal', 'plank']
 
 # ── full paintings
 PLAIN = {}
-BIG = ['loading'] + [f'stall-{d}' for d in ('market', 'temple', 'canal', 'docks', 'arcade')] + [f'story-{i}' for i in range(1, 5)] + [f'chapter-{i}' for i in range(1, 6)] + [f'end-{i}' for i in range(1, 4)] + ['gadget-shop']
+BIG = ['loading'] + [f'stall-{d}' for d in ('market', 'temple', 'canal', 'docks', 'arcade')] + [f'story-{i}' for i in range(1, 5)] + [f'chapter-{i}' for i in range(1, 6)] + [f'end-{i}' for i in range(1, 4)] + ['gadget-shop', 'chapter-6', 'end-4', 'mrt-ride', 'stall-heartland', 'stall-bay']
 for n, size in (('title', (1536, 1024)), ('mg-lock', (1280, 853)), ('mg-wire', (1280, 853)), ('mg-wok', (1280, 853)), ('mg-board', (1280, 853)), ('mg-haggle', (1280, 853)), ('mg-kopi', (1280, 853)), ('map-paper', (1024, 683))) + tuple((b, (1280, 853)) for b in BIG):
     p = SRC / f'{n}-crow.png' if (SRC / f'{n}-crow.png').exists() else SRC / f'{n}.png'
     if not p.exists(): MISSING.append(n); continue
@@ -338,7 +365,9 @@ if (SRC / 'map-frame.png').exists():
 # ── atlases
 NEW_BLD = tuple(f'shop-{i}' for i in range(7, 13)) + tuple(f'roof-{i}' for i in range(7, 13)) + ('bld-pavilion', 'bld-incense', 'bld-callig', 'bld-boathouse', 'bld-flowers', 'bld-wheel', 'bld-fish', 'bld-rope', 'bld-chandler', 'bld-hotel', 'bld-robot', 'bld-boba')
 GROUPS = [('dora', lambda n: n.startswith('dora-')), ('enzo', lambda n: n.startswith('enzo-')),
-          ('city2', lambda n: n in NEW_BLD), ('land', lambda n: n.startswith('lm2-')),
+          ('city2', lambda n: n in NEW_BLD),
+          ('isle', lambda n: n.startswith(('hdb-', 'bay-'))),
+          ('isle2', lambda n: n.startswith(('liz-', 'kamal-', 'vanda-', 'lepak-', 'kaw-', 'mynahs', 'piglet', 'crowd', 'crow-sales', 'folk-tapir', 'folk-mousedeer', 'folk-civet', 'mrt-', 'v-taxi', 'wscoot', 'rail', 'psd', 'fare-gate', 'hide-', 'crow-nest', 'playground', 'void-table', 'letterbox', 'bicycles', 'laundry', 'exercise', 'bus-stop', 'taxi-stand', 'durian-stall', 'bougain', 'prom-', 'xw-barrier', 'cones', 'spin-top', 'light-crate', 'carpet', 'statuette', 'jetty-sign', 'stn-pillar', 'mooncakes', 'balloons', 'stools'))), ('land', lambda n: n.startswith('lm2-')),
           ('city', lambda n: n.startswith(('shop-', 'roof-', 'flat-', 'bld-', 'lm-'))),
           ('rides', lambda n: n.startswith(('v-', 'car-', 'crow-cart', 'crow-boat', 'boss-', 'warden-bike'))),
           ('gear', lambda n: n.startswith(('g-', 'crate-', 'shot-', 'net-open', 'satchel', 'sp-', 'crow-netted', 'cart-netted', 'warden-slip', 'warden-paint', 'warden-dazed', 'crow-drop', 'awning-splat', 'glint-netted', 'lever-', 'sluice-', 'shutter-', 'pulley', 'boost-spot', 'window-', 'loot-bag', 'gadget-stall'))),

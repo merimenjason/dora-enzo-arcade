@@ -52,6 +52,13 @@ export function sgSorted(sc: Scene, x: X, w: World, list: List, vis: Vis) {
   // the ticket wardens on foot: strolling, writing, holding out a ticket
   for (const pt of w.patrols) if (vis(pt.b.x, pt.b.y)) {
     const tk = w.ticket?.pid === pt.id;
+    // a scooter warden: the painted raccoon on his little navy scooter, seen from above, with a flashing lamp
+    if (pt.ride) { list.push([pt.b.y, () => {
+      x.fillStyle = 'rgba(0,0,0,.3)'; sc.shadow(x, pt.b.x + 4, pt.b.y + 6, 24, 12);
+      spr(x, pt.write > 0 || pt.b.speed < 10 ? 'wscoot-0' : `wscoot-${Math.floor(pt.pace * 4) % 2}`, pt.b.x, pt.b.y, { anchor: 'center', rot: pt.b.h + Math.PI / 2, w: 34 });
+      if (tk) sc.glow(x, pt.b.x, pt.b.y, 50, Math.floor(t * 6) % 2 ? 'rgba(255,60,60,.5)' : 'rgba(80,140,255,.5)');
+      if (tk && w.s.settings.cbMarks) sc.cb(x, 'warn', pt.b.x, pt.b.y - 50, 12);
+    }]); continue; }
     list.push([pt.b.y, () => {
       x.fillStyle = 'rgba(0,0,0,.3)'; sc.shadow(x, pt.b.x, pt.b.y + 2, 16, 6);
       const cx = Math.cos(pt.b.h), side = Math.abs(cx) > Math.abs(Math.sin(pt.b.h)), k = Math.floor(pt.pace * 5) % 2;
@@ -65,7 +72,7 @@ export function sgSorted(sc: Scene, x: X, w: World, list: List, vis: Vis) {
   if (ev) for (const m of ev.mobs) if (m.st !== 'gone' && vis(m.b.x, m.b.y)) list.push([m.b.y, () => {
     const f = mobSprite(ev.kind, m); x.fillStyle = 'rgba(0,0,0,.28)'; if (m.st !== 'swim') sc.shadow(x, m.b.x, m.b.y + 2, 14, 6);
     spr(x, f.name, m.b.x, m.b.y + 6, { flip: f.flip, w: 52 });
-    if (m.has && m.st === 'run') spr(x, ev.kind === 'otters' ? 'crate-float' : 'bun', m.b.x, m.b.y - 44, { w: 22 });
+    if (m.has && m.st === 'run') spr(x, ev.kind === 'otters' ? 'crate-float' : ev.kind === 'lizards' ? 'mooncakes' : 'bun', m.b.x, m.b.y - 44, { w: 22 });
     if (m.st === 'dizzy' || m.st === 'netted') sc.stars(x, m.b.x, m.b.y - 40);
     if (w.s.settings.cbMarks && m.has) sc.cb(x, 'gang', m.b.x + 22, m.b.y - 52, 9);
   }]);

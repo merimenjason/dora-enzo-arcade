@@ -13,7 +13,7 @@ import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
 import { MISSIONS, MISSION, SIDE } from '../.checks/jade-story.js';
 import { newSave, available, offered } from '../.checks/jade-save.js';
 import { VEHICLES } from '../.checks/jade-move.js';
-import { T, W, S, F_ROOF } from '../.checks/jade-city.js';
+import { T, W, S, F_ROOF, OW, city } from '../.checks/jade-city.js';
 import { downhill, los } from '../.checks/jade-nav.js';
 import { rng } from '../.checks/jade-rng.js';
 import { makeMini } from '../.checks/jade-mini.js';
@@ -41,6 +41,9 @@ export function missionSave(id, o = {}) {
   s.settings.assist = o.assist ?? true; s.settings.diff = o.diff ?? 'easy';
   // start at the safe house nearest the job's contact
   s.safe = 'safe-market';
+  // on the island, the safe house of the contact's district
+  const d = city().places[MISSION[id]?.at]?.d;
+  if (d === 'heartland' || d === 'bay') s.safe = `safe-${d}`;
   return s;
 }
 
@@ -98,7 +101,7 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
     if (w.near?.kind === 'ride' && w.near.ride === r) { press('act'); return; }
     go(r.b.x, r.b.y);
   };
-  const districtOf = (x, y) => { const tx = Math.floor(x / T), ty = Math.floor(y / T); return tx < 46 ? (ty < 30 ? 'temple' : 'market') : ty >= 62 ? 'docks' : tx < 75 ? 'canal' : 'arcade'; };
+  const districtOf = (x, y) => { const tx = Math.floor(x / T), ty = Math.floor(y / T); return tx >= OW ? (ty < 38 ? 'heartland' : 'bay') : tx < 46 ? (ty < 30 ? 'temple' : 'market') : ty >= 62 ? 'docks' : tx < 75 ? 'canal' : 'arcade'; };
   const offFoot = () => { if (w.p.ride && w.near?.kind === 'exit') press('act'); };
 
   // what a careful player sees coming: rubble rings, drum lanes, the container's shadow, sign shadows and decoys
@@ -186,7 +189,7 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
       }
       case 'goto': {
         const [x, y] = run.spot(st.at);
-        if (st.ride === 'foot' && p.ride) { if (dist(p.x, p.y, x, y) < 400 || w.near?.kind === 'exit') offFoot(); else go(x, y); return; }
+        if (st.ride === 'foot' && p.ride) { if ((dist(p.x, p.y, x, y) < 400 || w.near?.kind === 'exit') && (w.tick & 63) < 32) offFoot(); else go(x, y); return; }
         if (st.ride && st.ride !== 'foot' && p.ride?.kind !== st.ride) { getRide(r => r.kind === st.ride); return; }
         if (p.roof) { const l = w.c.ladders.map(l => [l.rx * T + 32, l.ry * T + 32]).sort((a, b) => dist(...a, p.x, p.y) - dist(...b, p.x, p.y))[0]; if (w.near?.kind === 'ladder-down') press('act'); else go(l[0], l[1]); return; }
         go(x, y); return;
@@ -198,6 +201,12 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
         return;
       }
       case 'pickup': { const [x, y] = run.spot(st.at); go(x, y, 0.8); return; }
+      case 'train': {
+        if (p.ride) { offFoot(); return; }
+        if (w.near?.kind === 'station') { press('act'); return; }
+        const tg = run.target(); if (tg) go(tg[0], tg[1]); return;
+      }
+      case 'beat': { if (!p.ride) { getRide(r => r.kind === 'scooter'); return; } const [x, y] = run.spot(st.to); go(x, y); return; }
       case 'deliver': { const [x, y] = run.spot(st.to); go(x, y, st.fragile ? 0.62 : 1); if (st.fragile && p.ride && p.ride.b.speed > 200) { inp.mx *= 0.2; inp.my *= 0.2; } return; }
       case 'chase': {
         const a = run.actors[0]; if (!a) return;
@@ -219,6 +228,8 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
           if (da < 120) { const sp = p.ride.b.speed, as = a.b.speed; if (sp > as + 30) { inp.mx *= 0.4; inp.my *= 0.4; } }
           return;
         }
+        // the net on foot: trip it first, then throw the net
+        if (last && st.finish === 'net' && !p.ride) { if (!s.gear.carry[p.who].includes('net') && s.gear.carry[w.mate.who].includes('net') && !w.mate.seat) { press('swap'); return; } wantGadget(['net']); if (da < 330 && a.stun <= 0 && shoot(a.b.x, a.b.y, ['net'])) return; }
         if (!p.ride && da < 90) press('dash');
         if (p.ride && da > 300 && R() < 0.3) press('dash');
 

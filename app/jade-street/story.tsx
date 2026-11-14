@@ -1,6 +1,6 @@
 'use client';
 // Jade Street story screens: the painted storybook that opens a new game, the chapter card between chapters, the
-// ending at the Lantern Festival and the credits that lead into festival free roam. Every picture is a Codex painting
+// ending at the Lantern Festival, the island's ending on Island Night (chapter six), and the credits that lead into festival free roam. Every picture is a Codex painting
 // (public/art/jade-street/bg-story-*, bg-chapter-*, bg-end-*); code only adds the slow pan and floating lantern light.
 // Every screen can be skipped (Skip or Escape); a tap, click, Space or Enter turns the page.
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -30,6 +30,12 @@ const ENDING: Panel[] = [
     text: 'Fireworks burst gold, red and violet over the harbour. Even the Kaypoh Crows get a front-row seat, on their best behaviour.' },
 ];
 
+const ISLE_END: Panel[] = [
+  { img: 'bg-chapter-6', title: 'The whole island, lit up', focus: '50% 40%',
+    text: 'Director Kaw’s company is closed for good. The Bukit Bunch, the Longkang Lizards and the Riverside Romp shake paws on the promenade.' },
+  { img: 'bg-end-4', title: 'Island Night', focus: '50% 35%',
+    text: 'On the Float-About Stage, the Golden Chinchilla goes to the heroes of the island, and the fireworks go up over the bay. Kaw holds the mop. Nobody minds.' },
+];
 /** keyboard and timing for a run of painted panels */
 function usePages(n: number, onDone: () => void) {
   const [i, setI] = useState(0);
@@ -105,6 +111,7 @@ export function ChapterCard({ ch, onDone }: { ch: number; onDone: () => void }) 
         <h2>{CHAPTERS[c - 1]}</h2>
         {opened && <p>{DISTRICT_NAME[opened].replace(/^the /, 'The ')} is open.</p>}
         {heir && <p>Find the {heir.name}.</p>}
+        {c === 6 && <><p>Toa Payoh and Marina Bay are open: take the Jade Line from Chinatown station.</p><p>Stop Director Kaw.</p></>}
         <div className="jade-chapter-bar"><span /></div>
       </div>
       <button type="button" className="jade-btn plain jade-story-skip" data-testid="jade-story-skip" onClick={e => { e.stopPropagation(); finish(); }}>Skip ›</button>
@@ -113,9 +120,9 @@ export function ChapterCard({ ch, onDone }: { ch: number; onDone: () => void }) 
 }
 
 /** the ending panels; hero picks who is named first */
-export function Ending({ hero, onDone }: { hero: 'dora' | 'enzo'; onDone: () => void }) {
+export function Ending({ hero, isle = false, onDone }: { hero: 'dora' | 'enzo'; isle?: boolean; onDone: () => void }) {
   const a = hero === 'enzo' ? 'Enzo' : 'Dora', b = hero === 'enzo' ? 'Dora' : 'Enzo';
-  const panels = ENDING.map((p, k) => k === 0 ? { ...p, text: `${a} and ${b} did it. ` + p.text } : p);
+  const panels = (isle ? ISLE_END : ENDING).map((p, k) => k === 0 ? { ...p, text: `${a} and ${b} did it. ` + p.text } : p);
   return <Pages panels={panels} onDone={onDone} testid="jade-ending" last="Credits ›" />;
 }
 

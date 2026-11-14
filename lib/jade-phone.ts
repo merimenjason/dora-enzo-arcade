@@ -7,7 +7,7 @@ import { offered } from './jade-save.js';
 import { PEOPLE } from './jade-story.js';
 import type { World } from './jade-game.js';
 
-export const CONTACT_OF: Record<District, string> = { market: 'kee', temple: 'pang', canal: 'kiri', docks: 'bo', arcade: 'gizmo' };
+export const CONTACT_OF: Record<District, string> = { market: 'kee', temple: 'pang', canal: 'kiri', docks: 'bo', arcade: 'gizmo', heartland: 'kamal', bay: 'vanda' };
 export function text(w: World, from: string, msg: string) {
   const s = w.s; const id = (s.msgs[s.msgs.length - 1]?.id ?? 0) + 1;
   s.msgs.push({ id, from, text: msg, night: s.night, read: false });

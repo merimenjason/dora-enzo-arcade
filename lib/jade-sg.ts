@@ -34,8 +34,11 @@ export const BARKS = {
 export type Bark = { x: number; y: number; text: string; t: number; hero?: boolean };
 export function bark(w: World, x: number, y: number, list: string[], hero = false) {
   if (w.barks.some(b => dist(b.x, b.y, x, y) < 90 && b.t < 2)) return;
+  // one queue for the pop-ups: passers-by keep quiet while a talk or an important notice is up, and no more than two
+  // remarks hang in the air at once (a hero's own line always gets through)
+  if (!hero && (w.talk || w.hush || w.barks.filter(b => b.t < 2.2).length >= 2)) return;
   w.barks.push({ x, y, text: list[Math.floor(w.R() * list.length)], t: 0, hero });
-  if (w.barks.length > 4) w.barks.shift();
+  if (w.barks.length > 3) w.barks.shift();
   w.fx.push({ t: 'bark', x, y });
 }
 

@@ -24,14 +24,14 @@ export type Step =
   | { t: 'deliver'; to: Spot; time: number; label: string; item: string; fragile?: number; stink?: boolean; cp?: boolean }
   | { t: 'mini'; kind: MiniKind; level: number; label: string; cp?: boolean }
   /** `finish`: the last bump must be a double pounce (both heroes within a moment), the passenger's grab, or a net */
-  | { t: 'chase'; who: 'cart' | 'boat' | 'boss' | 'runner'; from: Spot; route: Spot[]; bumps: number; loot: string; label: string; speed: number; sets?: SetDef[]; phase?: 1 | 2; finish?: 'pounce' | 'snatch' | 'net'; skin?: 'otter' | 'mac'; cp?: boolean }
+  | { t: 'chase'; who: 'cart' | 'boat' | 'boss' | 'runner'; from: Spot; route: Spot[]; bumps: number; loot: string; label: string; speed: number; sets?: SetDef[]; phase?: 1 | 2; finish?: 'pounce' | 'snatch' | 'net'; skin?: 'otter' | 'mac' | 'liz' | 'kaw'; cp?: boolean }
   /** `rope`: the float only swings in under the flags while the partner hauls the bunting rope there */
   | { t: 'float'; label: string; rope?: Spot; cp?: boolean }
   | { t: 'raid'; at: Spot; n: number; label: string; cp?: boolean }
   /** `relay`: from waypoint `at` on, the hero who started is easy for Pip to spot; the partner waits at `spot` */
   | { t: 'tail'; from: Spot; route: Spot[]; label: string; relay?: { at: number; spot: Spot }; cp?: boolean }
   /** `flanks`: crows come in pairs from both sides and the partner guards the far flank */
-  | { t: 'escort'; from: Spot; route: Spot[]; label: string; crows: number; flanks?: boolean; cp?: boolean }
+  | { t: 'escort'; from: Spot; route: Spot[]; label: string; crows: number; flanks?: boolean; skin?: 'otter'; cp?: boolean }
   /** `relay`: the marks from this one on count only for the partner waiting there (a hand-off) */
   | { t: 'race'; marks: Spot[]; label: string; rival?: 'runner' | 'scooter' | 'boat'; roof?: boolean; time?: number; ride?: VehicleKind | 'foot'; relay?: number; cp?: boolean }
   /** `shutter`: the goal's shutter is down unless the partner holds its lever there */
@@ -43,6 +43,10 @@ export type Step =
   | { t: 'heat'; level: number; label: string; cp?: boolean }
   | { t: 'trade'; profit: number; label: string; time?: number; cp?: boolean }
   | { t: 'fares'; n: number; label: string; cp?: boolean }
+  /** ride the Jade Line to station `to` (E at a station entrance) */
+  | { t: 'train'; to: string; label: string; cp?: boolean }
+  /** race the train: it leaves station `from` as the step starts; reach station `to` before it pulls in */
+  | { t: 'beat'; from: string; to: string; label: string; cp?: boolean }
   /** the partner is sent somewhere (to wait, hold or guard); `wait` holds the job until they are there */
   | { t: 'post'; at: Spot; mode?: 'post' | 'hold' | 'guard' | 'stay'; wait?: boolean; label: string; cp?: boolean }
   /** take control of the other hero (Tab) */
@@ -77,6 +81,10 @@ export const PEOPLE: Record<string, { name: string; face: string; who: string }>
   sleek: { name: 'Ma Sleek', face: 'face-sleek', who: 'Riverside Romp otter boss' },
   kow: { name: 'Big Kow', face: 'face-kow', who: 'Bukit Bunch macaque boss' },
   gizmo: { name: 'Gizmo', face: 'face-gizmo', who: 'arcade DJ' },
+  kamal: { name: 'Mr Kamal', face: 'face-kamal', who: 'Toa Payoh station master (a colugo)' },
+  vanda: { name: 'Ms Vanda', face: 'face-vanda', who: 'Island Night producer (a hornbill)' },
+  lepak: { name: 'Lord Lepak', face: 'face-lepak', who: 'Longkang Lizards boss (a water monitor)' },
+  kaw: { name: 'Director Kaw', face: 'face-kaw', who: 'Kaypoh Crows Pte Ltd (a house crow)' },
   glint: { name: 'Madame Glint', face: 'face-glint', who: 'Kaypoh Crows boss' },
   pip: { name: 'Pip', face: 'face-pip', who: 'Kaypoh Crows rookie' },
   dora: { name: 'Dora', face: 'face-dora', who: 'you' },
@@ -91,7 +99,9 @@ export const HEIRLOOMS = [
 ] as const;
 /** which district each chapter's finale opens (chapter 1 is played in Smith Street) */
 export const CHAPTER_OPENS: District[] = ['temple', 'canal', 'docks', 'arcade'];
-export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Clarke Quay'];
+export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Clarke Quay', 'The Island'];
+/** the last job of each chapter (its finale) */
+export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35'];
 
 // road crossings by name: X(v, h) is the lane tile where vertical road v meets horizontal road h
 const V = { a: 10, b: 26, c: 42, d: 60, e: 71, f: 90, g: 106 } as const;
@@ -172,7 +182,7 @@ export const MISSIONS: Mission[] = [
       { t: 'talk', lines: [['mo', 'A wedding at the temple and the cake is MELTING. Take my van, it has the cool box.', 'worried'], ['mo', 'Smooth driving! Every bump wobbles it.', 'cross']] },
       { t: 'ride', kind: 'van', near: [35, 64], label: 'Get in Chef Mo’s van' },
       { t: 'pickup', at: [34, 65], item: 'cake', label: 'Load the wedding cake', cp: true },
-      { t: 'deliver', to: 'temple-steps', time: 80, fragile: 6, item: 'cake', label: 'Deliver the cake before it melts (gently!)' },
+      { t: 'deliver', to: 'temple-steps', time: 80, fragile: 7, item: 'cake', label: 'Deliver the cake before it melts (gently!)' },
       { t: 'talk', lines: [['heron', 'A perfect cake. The bride is crying happy tears.', 'happy']] },
     ] },
   { id: 'm10', ch: 2, title: 'The Golden Bell', giver: 'heron', at: 'heron', reward: 300, rep: 20, blurb: 'Chase the cart carrying the Golden Bell down Temple Street.',
@@ -316,6 +326,102 @@ export const MISSIONS: Mission[] = [
       { t: 'float', rope: [107, 32], label: 'Send {mate} to the bunting rope (F), climb the fire ladder and leap onto Glint’s float from a flag', cp: true },
       { t: 'pickup', at: 'loot', item: 'h-drum', label: 'Take back the Phoenix Drum' },
       { t: 'talk', lines: [['glint', 'Fine, FINE. Shiny things are just so… shiny.', 'worried'], ['pip', 'Boss, maybe we could join the festival instead?', 'worried'], ['glint', '…With a nice seat near the lanterns?', 'smug'], ['kee', 'All five heirlooms home! Light the lanterns, the festival begins!', 'happy'], ['hero', 'Best night ever.', 'happy'], ['mate', 'Best team ever.', 'happy']] },
+    ] },  // ── Chapter 6: the Island (Toa Payoh and Marina Bay). Director Kaw, Madame Glint's cousin, franchises the Kaypoh
+  // Crows across the island and hires its gangs for one big caper: the Golden Chinchilla at the Float-About Stage
+  { id: 'm26', ch: 6, title: 'Next Stop, Toa Payoh', giver: 'glint', at: 'stn-chinatown', reward: 260, rep: 14, blurb: 'Ride the Jade Line to Toa Payoh and catch the crow who pinched Mr Kamal’s station keys.',
+    steps: [
+      { t: 'talk', lines: [['glint', 'Darlings! Bad news. My cousin, Director Kaw, has turned the Crew into a company. Kaypoh Crows Pte Ltd.', 'worried'], ['pip', 'He has a briefcase. And a slogan. Franchising mischief island-wide!', 'worried'], ['hero', 'Then we go island-wide too.', 'smug'], ['mate', 'The Jade Line runs from right here. Two coins a ride. And no durians on the train!', 'smug']] },
+      { t: 'train', to: 'stn-toapayoh', label: 'Take the Jade Line to Toa Payoh (E at the station entrance)', cp: true },
+      { t: 'talk', lines: [['kamal', 'Welcome to Toa Payoh! I’m Mr Kamal, station master. Also: robbed. A crow in a little tie snatched my station keys!', 'worried'], ['kamal', 'There he goes, round the bus interchange!', 'cross'], ['mate', 'Crows are slippery. Pounce together: F sends me in, you dash.', 'smug']] },
+      { t: 'chase', who: 'runner', from: [158, 33], route: [[165, 33], [165, 24], [150, 24], [143, 30], [150, 34]], bumps: 2, loot: 'loot-bag', speed: 200, finish: 'pounce', label: 'Pounce on the crow together: F sends {mate} in, then dash into him', cp: true },
+      { t: 'pickup', at: 'loot', item: 'loot-bag', label: 'Grab Mr Kamal’s keys' },
+      { t: 'goto', at: 'kamal', label: 'Bring the keys back to Mr Kamal', ride: 'foot' },
+      { t: 'talk', lines: [['kamal', 'My keys! The trains can sleep tonight. The heartlands owe you one.', 'happy'], ['kamal', 'That crow said Director Kaw is hiring. The Bukit Bunch, the lizards in the longkang, even the bay otters.', 'worried'], ['hero', 'Then we talk to them first.', 'smug']] },
+    ] },
+  { id: 'm27', ch: 6, title: 'Void Deck Monkeys', giver: 'kow', at: 'raintree', reward: 280, rep: 14, blurb: 'Big Kow’s nephews are stashing mooncake boxes on the void-deck ledges for Director Kaw.',
+    steps: [
+      { t: 'talk', lines: [['kow', 'Ooh ooh. Okay, okay. A crow in a suit promised my nephews a lifetime of bananas.', 'worried'], ['kow', 'They pinched the residents’ mooncakes and hid them up on the ledges. Paiseh!', 'worried'], ['mate', 'Ledges are my job. You drive under them, I knock the boxes down.', 'smug'], ['hero', 'Mooncakes up on the ledges. Scooter first, then we hop up and get them.', 'calm']] },
+      { t: 'ride', kind: 'scooter', near: [142, 10], label: 'Get on a scooter ({mate} hops on behind)', cp: true },
+      { t: 'collect', items: [[131, 9], [148, 9], [162, 9], [176, 11]], item: 'mooncakes', time: 95, high: true, label: 'Ride under each ledge and press F: {mate} knocks the mooncakes down (or shoot them)' },
+      { t: 'goto', at: 'raintree', label: 'Back to Big Kow’s rain tree', ride: 'foot' },
+      { t: 'talk', lines: [['kow', 'All of them? Wah. My nephew Ah Tan still has the biggest box. He’s running!', 'cross'], ['mate', 'Net him. Monkeys can’t wriggle out of a net.', 'smug']] },
+      { t: 'chase', who: 'runner', skin: 'mac', from: [140, 6], route: [[150, 10], [160, 14], [150, 18], [140, 14], [140, 6]], bumps: 2, loot: 'mooncakes', speed: 195, finish: 'net', label: 'Trip Ah Tan, then tangle him in the net (click)', cp: true },
+      { t: 'pickup', at: 'loot', item: 'mooncakes', label: 'Pick up the mooncake box' },
+      { t: 'talk', lines: [['kow', 'Okay lah. The Bukit Bunch is out of Kaw’s company. Bananas are not everything.', 'happy'], ['kow', 'He said the lizards in the drain are keeping something for him.', 'calm']] },
+    ] },
+  { id: 'm28', ch: 6, title: 'Longkang Lizards', giver: 'lepak', at: 'lepak', reward: 300, rep: 14, blurb: 'Tail Kaw’s courier to the storm drain where the Longkang Lizards keep his stash.',
+    steps: [
+      { t: 'talk', lines: [['lepak', 'Mmm. I am Lord Lepak. Lepak means I don’t move much. Why are you disturbing my sunbathing?', 'calm'], ['hero', 'Your lizards are keeping things for Director Kaw.', 'smug'], ['lepak', 'Are they? Hmm. I was sleeping. Follow his courier and see.', 'calm'], ['mate', 'The courier will know your face. I’ll wait by the wet market: switch to me there.', 'smug']] },
+      { t: 'tail', from: [136, 24], route: [[143, 24], [150, 24], [157, 24], [163, 24], [164, 30]], relay: { at: 3, spot: [155, 21] }, label: 'Follow the courier out of sight; switch to {mate} at the corner (Tab)', cp: true },
+      { t: 'talk', lines: [['hero', 'He handed a sack to a lizard behind the wet market!', 'cross'], ['lepak', 'Ah. That is Kriss, my fastest. Slippery on soap, though.', 'calm']] },
+      { t: 'chase', who: 'runner', skin: 'liz', from: [163, 32], route: [[156, 34], [146, 34], [140, 31], [134, 33], [143, 24], [158, 24]], bumps: 2, loot: 'loot-bag', speed: 190, finish: 'net', label: 'Trip Kriss (a bubble makes a lizard slip), then net him (click)', cp: true },
+      { t: 'pickup', at: 'loot', item: 'loot-bag', label: 'Grab the sack' },
+      { t: 'goto', at: 'lepak', label: 'Show Lord Lepak what was in it', ride: 'foot' },
+      { t: 'talk', lines: [['lepak', 'Stage passes for Island Night at the Float-About Stage. And a drawing of the Golden Chinchilla.', 'worried'], ['lepak', 'Kaw paid us in kueh. Very nice kueh. But the Longkang Lizards don’t steal awards. Too much effort.', 'happy'], ['mate', 'So Island Night is the big caper.', 'cross']] },
+    ] },
+  { id: 'm29', ch: 6, title: 'Tumpang Rush', giver: 'kamal', at: 'kamal', reward: 260, rep: 12, blurb: 'The interchange buses are stuck behind a crow roadblock. Give the stranded heartlanders a lift home.',
+    steps: [
+      { t: 'talk', lines: [['kamal', 'The crows parked carts across the bus interchange. The aunties are stranded!', 'worried'], ['kamal', 'Borrow the tuk-tuk by the market. Tumpang, means give them a lift.', 'calm'], ['mate', 'I’ll ride up front and hold the shopping. Mind the silver zones, the uncles cross slowly.', 'smug'], ['hero', 'Three fares, one tuk-tuk. Hold on to your shopping, aunties!', 'smug']] },
+      { t: 'ride', kind: 'tuktuk', near: [158, 34], label: 'Take the tuk-tuk by the provision shop', cp: true },
+      { t: 'fares', n: 3, label: 'Pick up the fares' },
+      { t: 'goto', at: 'kamal', label: 'Back to Mr Kamal' },
+      { t: 'talk', lines: [['kamal', 'Everyone home, nobody fined. Toa Payoh salutes you!', 'happy'], ['kamal', 'Ms Vanda at the bay needs you. Her stage lights went missing on the expressway.', 'worried']] },
+    ] },
+  { id: 'm30', ch: 6, title: 'Expressway Express', giver: 'vanda', at: 'vanda', reward: 320, rep: 14, blurb: 'A crow cart is speeding the stolen stage lights round the expressways. Catch it before the gantries empty your purse.',
+    steps: [
+      { t: 'talk', lines: [['vanda', 'I’m Ms Vanda, producer of Island Night. My stage lights! A crow cart took them up the parkway!', 'worried'], ['vanda', 'The gantries charge every pass, darling. Make it quick.', 'calm'], ['mate', 'Bump it, then ride alongside: I’ll grab the crate off the back (F).', 'smug'], ['hero', 'A cart on the expressway? Then we take the fast lane too.', 'smug']] },
+      { t: 'ride', kind: 'scooter', near: [165, 63], label: 'Get on a scooter by Marina Way', cp: true },
+      { t: 'chase', who: 'cart', from: [168, 64], route: [[168, 80], [124, 80], [124, 38], [190, 38], [198, 50], [198, 64], [168, 64]], bumps: 3, loot: 'light-crate', speed: 245, finish: 'snatch', label: 'Bump the crow cart twice, then ride alongside for {mate}’s grab (F)', cp: true },
+      { t: 'pickup', at: 'loot', item: 'light-crate', label: 'Catch the crate of lights' },
+      { t: 'goto', at: 'vanda', label: 'Bring the lights to Ms Vanda' },
+      { t: 'talk', lines: [['vanda', 'Not a scratch! You two drive like a music video.', 'happy'], ['vanda', 'The otters on the bay say the crows are chasing them off the promenade. Can you help?', 'worried']] },
+    ] },
+  { id: 'm31', ch: 6, title: 'Otters of the Bay', giver: 'sleek', at: 'promenade', reward: 320, rep: 14, blurb: 'Walk Ma Sleek’s pups along the promenade past Kaw’s crows, then sail them home to the holt.',
+    steps: [
+      { t: 'talk', lines: [['sleek', 'Hehe, hello again. Kaw’s crows want my pups to swim their stolen things across the bay.', 'cross'], ['sleek', 'My pups said no. Now the crows chase them every night!', 'worried'], ['mate', 'Both flanks, like the lion dance. Bubbles keep otters happy, nets keep crows busy.', 'smug'], ['hero', 'Stay close, little ones. We’ll walk you right past the crows.', 'calm']] },
+      { t: 'escort', from: [146, 66], route: [[154, 66], [162, 66], [172, 66], [182, 66], [191, 66]], crows: 7, flanks: true, skin: 'otter', label: 'Guard the otter pups along the promenade ({mate} takes the far side)', cp: true },
+      { t: 'ride', kind: 'boat', near: [193, 70], label: 'Take the bumboat at the boardwalk' },
+      { t: 'goto', at: 'holt', label: 'Sail round to the otters’ holt on the breakwater', ride: 'boat', r: 140 },
+      { t: 'talk', lines: [['sleek', 'Home! The Riverside Romp is with you, fluffies.', 'happy'], ['sleek', 'Kaw keeps his plans in his office at Raffles Place. Top floor, crows everywhere.', 'calm']] },
+    ] },
+  { id: 'm32', ch: 6, title: 'Office Hours', giver: 'vanda', at: 'raffles', reward: 340, rep: 14, blurb: 'Sneak into the Kaypoh Crows’ head office at Raffles Place and find Kaw’s plan for Island Night.',
+    steps: [
+      { t: 'talk', lines: [['vanda', 'Kaypoh Crows Pte Ltd has a head office now. With a water cooler.', 'worried'], ['mate', 'Its shutter only stays up while someone holds the lever. Send me (F), then sneak in.', 'smug'], ['hero', 'Sneak. Shift. Got it.', 'calm']] },
+      { t: 'stealth', lookouts: [[[132, 57], [138, 57]], [[132, 61], [139, 61]], [[139, 56], [139, 60]]], goal: 'crownest', exit: [142, 58], shutter: [133, 60], calm: 0.85, pause: 1.4, label: 'Send {mate} to the shutter lever (F), reach Kaw’s desk unseen, then get out', cp: true },
+      { t: 'talk', lines: [['hero', 'A plan with arrows. At the big finale, they swap the Golden Chinchilla for a chocolate one.', 'cross'], ['vanda', 'The prize for Island Night! And his runner already took the stage pass onto the train at Bayfront.', 'worried']] },
+    ] },
+  { id: 'm33', ch: 6, title: 'MRT Chase', giver: 'vanda', at: 'vanda', reward: 360, rep: 15, blurb: 'Kaw’s runner is on the train to Toa Payoh with the stage pass. Beat the train there.',
+    steps: [
+      { t: 'talk', lines: [['vanda', 'The runner rides the viaduct to Toa Payoh. Can a scooter beat a train?', 'worried'], ['hero', 'On Bayfront Avenue, at night? Watch us.', 'smug'], ['mate', 'Keep to the lights. And no speeding in the silver zones!', 'smug']] },
+      { t: 'ride', kind: 'scooter', near: [200, 62], label: 'Get on a scooter by Bayfront station', cp: true },
+      { t: 'beat', from: 'stn-bayfront', to: 'stn-toapayoh', label: 'Beat the train to Toa Payoh station: it’s on the viaduct overhead' },
+      { t: 'goto', at: 'stn-toapayoh', ride: 'foot', r: 160, label: 'Hop off at the station steps' },
+      { t: 'talk', lines: [['hero', 'Doors opening… there he is!', 'cross'], ['mate', 'Pounce together when he steps off!', 'smug']] },
+      { t: 'chase', who: 'runner', from: [147, 33], route: [[144, 33], [143, 24], [158, 24], [165, 30], [151, 34]], bumps: 2, loot: 'loot-bag', speed: 205, finish: 'pounce', label: 'Pounce on the runner together: F sends {mate} in, then dash', cp: true },
+      { t: 'pickup', at: 'loot', item: 'loot-bag', label: 'Grab the stage pass' },
+      { t: 'talk', lines: [['kamal', 'Fastest arrival I’ve ever seen. And nobody fined!', 'happy'], ['vanda', 'Without the pass he can’t get backstage. He’ll try something loud instead.', 'worried']] },
+    ] },
+  { id: 'm34', ch: 6, title: 'Showtime Setup', giver: 'vanda', at: 'vanda', reward: 360, rep: 15, blurb: 'Gather the concert lights the crows hid round the bay and wire up the Float-About Stage.',
+    steps: [
+      { t: 'talk', lines: [['vanda', 'Island Night starts soon and the crows hid my last lights around the bay!', 'worried'], ['mate', 'A crow lookout in the mall window. Paint the glass or let me pull faces at it.', 'smug'], ['hero', 'Five crates of lights, one stage. Let’s light it up.', 'smug']] },
+      { t: 'collect', items: [[148, 64], [164, 64], [183, 62], [191, 66], [145, 76]], item: 'light-crate', time: 110, watch: [190, 61], label: 'Collect the five crates of lights; paint the window lookout or send {mate} to distract it (F)', cp: true },
+      { t: 'goto', at: 'stage', label: 'Over the walkway to the Float-About Stage', ride: 'foot', r: 110 },
+      { t: 'mini', kind: 'wires', level: 2, label: 'Wire up the stage lights' },
+      { t: 'talk', lines: [['vanda', 'Lights! Sound! Fluffballs! We’re ready.', 'happy'], ['lepak', 'I will watch from my deck chair. Very supportive.', 'calm'], ['kow', 'Bukit Bunch in the front row!', 'happy']] },
+    ] },
+  { id: 'm35', ch: 6, title: 'Bay Front Finale', giver: 'kaw', at: 'stage', reward: 900, rep: 25, blurb: 'Director Kaw grabs the Golden Chinchilla in the middle of Island Night. Stop him on the bay.',
+    steps: [
+      { t: 'talk', lines: [['kaw', 'Ladies, gentlemen, fluffballs. Kaypoh Crows Pte Ltd thanks you for your business!', 'happy'], ['vanda', 'He’s taken the Golden Chinchilla! Into a boat!', 'worried'], ['mate', 'Boats by the boardwalk. Go go go!', 'cross']] },
+      { t: 'ride', kind: 'boat', near: [146, 69], label: 'Jump in the bumboat by the boardwalk', cp: true },
+      { t: 'chase', who: 'boat', from: [151, 72], route: [[166, 76], [180, 76], [190, 71], [176, 70], [160, 72], [150, 78]], bumps: 3, loot: '', speed: 205, finish: 'net', label: 'Bump Kaw’s boat twice, then net it (click)', cp: true },
+      { t: 'talk', lines: [['kaw', 'Nets! How unprofessional. I’ll take the promenade!', 'cross'], ['mate', 'He’s heading for the promenade. Bring the boat in by the resort!', 'cross']] },
+      { t: 'goto', at: [193, 70], label: 'Pull up at the boardwalk by the resort', ride: 'boat', r: 130 },
+      { t: 'goto', at: [195, 68], label: 'Jump ashore', ride: 'foot', r: 140 },
+      { t: 'chase', who: 'runner', skin: 'kaw', from: [190, 66], route: [[180, 66], [170, 66], [160, 64], [150, 66], [146, 62], [165, 63]], bumps: 2, loot: '', speed: 210, finish: 'pounce', label: 'Pounce on Director Kaw together: F sends {mate} in, then dash', cp: true },
+      { t: 'talk', lines: [['kaw', 'Fine! Then nobody gets it! Fly, Crow Number Nine!', 'cross']] },
+      { t: 'bag', at: 'here', loot: 'statuette', time: 60, label: 'Knock the Golden Chinchilla out of the crow’s claws (shoot it, or dash when it swoops low)', cp: true },
+      { t: 'pickup', at: 'loot', item: 'statuette', label: 'Catch the Golden Chinchilla' },
+      { t: 'talk', lines: [['kaw', 'I… may need to restructure.', 'worried'], ['glint', 'Cousin. Come home. The festival needs someone to hold the lanterns.', 'smug'], ['vanda', 'And the Golden Chinchilla for Island Night goes to… the heroes of the island!', 'happy'], ['hero', 'Best island ever.', 'happy'], ['mate', 'Best team ever. Again.', 'happy']] },
     ] },
 ];
 // ── Hawker Tales: the Singapore side jobs. They sit outside the five chapters (ch 0), open once their story job is

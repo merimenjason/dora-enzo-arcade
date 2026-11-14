@@ -7,6 +7,8 @@ import { MISSIONS, type Mission } from './jade-story.js';
 export const PAR: Record<string, number> = {
   // Hawker Tales
   k1: 40, k2: 65, k3: 80, k4: 55, k5: 145, k6: 75, k7: 50,
+  // the island (chapter six), about 1.7 times the solver's time
+  m26: 55, m27: 90, m28: 90, m29: 70, m30: 55, m31: 220, m32: 50, m33: 80, m34: 75, m35: 65,
   m1: 30, m2: 55, m3: 65, m4: 120, m5: 45, m6: 65, m7: 55, m8: 105, m9: 70, m10: 50,
   m11: 80, m12: 155, m13: 60, m14: 85, m15: 75, m16: 70, m17: 110, m18: 80, m19: 60, m20: 60,
   m21: 105, m22: 85, m23: 110, m24: 135, m25: 105,

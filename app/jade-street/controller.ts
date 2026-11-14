@@ -23,21 +23,23 @@ import { BIZ_IDS, BIZ_OF, raidMission, type BizId } from '@/lib/jade-biz';
 import { applyTwo } from '@/lib/jade-duo';
 import { duoFrame } from '@/lib/jade-duodraw';
 import { tagOption } from '@/lib/jade-tag';
+import { Notices } from '@/lib/jade-notice';
 import { stallPos, giveGadget, buyGadget, buyAmmo, upgradeGadget, carry, carried, GADGET_IDS, type GadgetId } from '@/lib/jade-gear';
 
 export type Toast = { id: number; msg: string; kind: string; t: number };
 export class Play {
   w: World; scene: Scene; raf = 0; last = 0; acc = 0; paused = false; alive = true;
   keys = new Set<string>(); stick = { x: 0, y: 0, on: false }; touchSneak = false;
-  pend = { dash: false, hop: false, act: false, swap: false, tag: false, fire: false, reload: false, slot: undefined as number | undefined };
+  pend = { dash: false, hop: false, act: false, swap: false, tag: false, fire: false, reload: false, hail: false, slot: undefined as number | undefined };
   /** the second player's presses, the mouse (screen position, held, seen recently) and a fake or real gamepad */
   pend2 = { dash: false, hop: false, act: false, fire: false, slot: undefined as number | undefined, tag: false };
   mouse = { x: 0, y: 0, down: false, seen: -9, held: 0 }; padPrev: boolean[] = []; fakePad: { axes: number[]; buttons: boolean[] } | null = null;
   fps = 60; frames = 0; fpsT = 0; fpsLog: number[] = [];
-  toasts: Toast[] = []; tid = 1; ver = 0; notifyT = 0; lastKey = '';
+  /** the pop-ups over the street, one priority queue (lib/jade-notice.ts) */
+  notices = new Notices(); get toasts(): Toast[] { return this.notices.shown; } tid = 1; ver = 0; notifyT = 0; lastKey = '';
   saveT = 0; ro: ResizeObserver | null = null; ambT = 0;
   /** the page shows the ending a moment after the last job is done */
-  endingT = 0; onEnding: (() => void) | null = null;
+  endingT = 0; endingKind = ''; onEnding: (() => void) | null = null;
   /** the typewriter: characters of the current line shown so far, the line it belongs to, and the element it fills */
   typed = 0; typeKey = ''; typeEl: HTMLElement | null = null; reduced = false;
   constructor(public cv: HTMLCanvasElement, public save: Save, public snd: JadeSound | null, public onChange: () => void, public persist: (s: Save) => void) {
@@ -109,6 +111,7 @@ export class Play {
     if (k === 'Tab') this.pend.swap = true;
     if (k === 'f') this.pend.tag = true;
     if (k === 'x') this.pend.reload = true;
+    if (k === 'g') this.pend.hail = true;
     if (k === '1' || k === '2') this.pend.slot = +k - 1;
     // the second player's buttons on the right of the keyboard
     if (two) { if (k === '/') this.pend2.dash = true; if (k === '.') this.pend2.hop = true; if (k === ',' || k === 'Enter') this.pend2.act = true; if (k === ';') this.pend2.fire = true; if (k === "'") this.pend2.slot = -1; if (k === 'l') this.pend2.tag = true; }
@@ -134,7 +137,7 @@ export class Play {
     // holding the button keeps firing (the gadget's own cooldown paces it)
     const fire = this.pend.fire || (this.mouse.down && this.mouse.held > 0.25);
     return { mx, my, sneak: k.has('Shift') || (!two && k.has('ShiftRight')) || this.touchSneak || padSneak, dash: this.pend.dash, hop: this.pend.hop, act: this.pend.act,
-      swap: this.pend.swap, tag: this.pend.tag, reload: this.pend.reload, slot: this.pend.slot, fire, ax: aim ? aim[0] : NaN, ay: aim ? aim[1] : NaN };
+      swap: this.pend.swap, tag: this.pend.tag, reload: this.pend.reload, hail: this.pend.hail, slot: this.pend.slot, fire, ax: aim ? aim[0] : NaN, ay: aim ? aim[1] : NaN };
   }
   /** the second player: arrow keys and the right-hand keys, or the first gamepad (stick, A dash, B hop, X action, RT or
    * Y fire, LB/RB gadget, Start joins and leaves) */
@@ -260,7 +263,7 @@ export class Play {
       while (this.acc >= DT && n < 6) {
         const inp = this.input();
         w.step(inp, DT, w.two ? this.input2() : undefined);
-        this.pend.dash = this.pend.hop = this.pend.act = this.pend.swap = this.pend.tag = this.pend.fire = this.pend.reload = false; this.pend.slot = undefined;
+        this.pend.dash = this.pend.hop = this.pend.act = this.pend.swap = this.pend.tag = this.pend.fire = this.pend.reload = this.pend.hail = false; this.pend.slot = undefined;
         this.pend2.dash = this.pend2.hop = this.pend2.act = this.pend2.fire = this.pend2.tag = false; this.pend2.slot = undefined;
         this.acc -= DT; n++;
       }
@@ -279,7 +282,7 @@ export class Play {
     this.snd?.radio(w.p.ride?.kind ?? null);
     this.ambT -= dt; if (this.ambT <= 0) { this.ambT = 1; this.snd?.ambient(districtAt(Math.floor(w.p.x / T), Math.floor(w.p.y / T)), w.rain); }
     if (this.endingT > 0 && !this.paused) { this.endingT -= dt; if (this.endingT <= 0) this.onEnding?.(); }
-    this.toasts = this.toasts.filter(t => (t.t -= dt) > 0);
+    this.notices.step(dt); this.w.hush = this.notices.busy || !!this.w.banner;
   };
   events(fx: ReturnType<World['drain']>) {
     this.scene.consume(this.w, fx);
@@ -289,7 +292,7 @@ export class Play {
       else if (f.t === 'trophy' && f.name) this.toast(`Trophy: ${f.name}`, 'gold');
       else if (f.t === 'caught') this.toast(f.msg ?? 'Caught! The wardens fined you and sent you to a safe house.', 'bad');
       else if (f.t === 'heat-up' && f.k) this.toast(f.k === 1 ? 'A warden spotted you! Break line of sight, hide, or swap jackets at a safe house.' : `${f.k} lanterns of heat!`, 'bad');
-      else if (f.t === 'finale') this.endingT = 3;
+      else if (f.t === 'finale') { this.endingT = 3; this.endingKind = f.kind === 'isle' ? 'isle' : ''; }
       else if (f.t === 'learned') this.snd?.fx([{ t: 'lesson' }]);
       if (f.t === 'mission-done' && this.w.lastMedal) { const m = this.w.lastMedal; this.snd?.fx([{ t: 'medal', k: m.medal }]); if (m.best && m.medal) this.toast(`New best medal: ${['', 'bronze', 'silver', 'gold'][m.medal]}!`, 'gold'); }
       if (f.t === 'mission-done' || f.t === 'district' || f.t === 'trophy') this.persist(this.w.s);
@@ -298,14 +301,14 @@ export class Play {
   /** which music theme fits the moment: Glint's finale, a chase or race, the festival, a market, or the street */
   theme(): Theme {
     const w = this.w, t = w.run?.cur?.t ?? '';
-    if (w.run?.m.id === 'm25' && (t === 'chase' || t === 'float')) return 'boss';
+    if ((w.run?.m.id === 'm25' && (t === 'chase' || t === 'float')) || (w.run?.m.id === 'm35' && (t === 'chase' || t === 'bag'))) return 'boss';
     if (w.heat >= 1 || ['chase', 'race', 'escort', 'raid'].includes(t)) return 'chase';
     if (w.festival && !w.run) return 'festival';
     if (w.ui?.kind === 'market' || w.ui?.kind === 'biz') return 'market';
     for (const pl of Object.values(w.c.places)) if (pl.kind === 'market' && Math.hypot(pl.x - w.p.x, pl.y - w.p.y) < 6 * T) return 'market';
     return 'street';
   }
-  toast(msg: string, kind = '') { this.toasts.push({ id: this.tid++, msg, kind, t: 3.2 }); if (this.toasts.length > 3) this.toasts.shift(); }
+  toast(msg: string, kind = '') { this.notices.push(msg, kind); }
 
   // ── test hooks
   hooks() {
@@ -363,7 +366,7 @@ export class Play {
       theme: () => this.theme(),
       /** the fourth pass: both heroes, tag-team moves, gadgets and the second player */
       duo: () => { const w = this.w, p = w.p, m = w.mate; return { who: p.who, mate: m.who, two: w.two, px: p.x / T, py: p.y / T, mx: m.x / T, my: m.y / T, mode: m.ai.mode, holding: m.ai.holding, seat: !!m.seat, mroof: m.roof, roof: p.roof, anim: p.anim, manim: m.anim, dist: Math.hypot(p.x - m.x, p.y - m.y) / T, tag: tagOption(w)?.kind ?? null, tagLabel: tagOption(w)?.label ?? null }; },
-      press: (what: 'swap' | 'tag' | 'fire' | 'reload' | 'dash' | 'hop' | 'act', n = 1) => { (this.pend as Record<string, unknown>)[what] = true; for (let i = 0; i < n; i++) { const inp = this.input(); this.w.step(inp, DT, this.w.two ? this.input2() : undefined); this.pend.dash = this.pend.hop = this.pend.act = this.pend.swap = this.pend.tag = this.pend.fire = this.pend.reload = false; this.pend.slot = undefined; } const fx = this.w.drain(); if (fx.length) this.events(fx); this.bump(); },
+      press: (what: 'swap' | 'tag' | 'fire' | 'reload' | 'dash' | 'hop' | 'act' | 'hail', n = 1) => { (this.pend as Record<string, unknown>)[what] = true; for (let i = 0; i < n; i++) { const inp = this.input(); this.w.step(inp, DT, this.w.two ? this.input2() : undefined); this.pend.dash = this.pend.hop = this.pend.act = this.pend.swap = this.pend.tag = this.pend.fire = this.pend.reload = this.pend.hail = false; this.pend.slot = undefined; } const fx = this.w.drain(); if (fx.length) this.events(fx); this.bump(); },
       gear: () => { const s = this.w.s; return { own: s.gear.own.slice(), ammo: { ...s.gear.ammo }, clip: { ...s.gear.clip }, lvl: { ...s.gear.lvl }, carry: { dora: s.gear.carry.dora.slice(), enzo: s.gear.carry.enzo.slice() }, slot: { ...s.gear.slot }, hand: carried(s, this.w.p.who), shots: this.w.shots.length, splats: this.w.splats.length, crates: this.w.crates.length }; },
       give: (ids?: GadgetId[]) => { for (const g of ids ?? GADGET_IDS) giveGadget(this.w.s, g); this.bump(); return this.w.s.gear.own.slice(); },
       buy: (what: 'gadget' | 'ammo' | 'up' | 'carry', g: GadgetId) => { const s = this.w.s; const r = what === 'gadget' ? buyGadget(s, g) : what === 'ammo' ? buyAmmo(s, g) : what === 'up' ? upgradeGadget(s, g) : carry(s, this.w.p.who, g); this.bump(); return r; },

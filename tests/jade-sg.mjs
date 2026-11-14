@@ -37,7 +37,7 @@ test('the Singapore places are on open ground, in the right districts, with real
   }
   for (const t of sg.tables) assert.equal(tile(w, Math.floor(t.x / T), Math.floor(t.y / T)), S.OPEN, 'hawker tables on the floor');
   assert.ok(sg.fivefoot.reduce((a, b) => a + b, 0) > 150, 'plenty of five-foot way');
-  assert.equal(sg.gantries.length, 6);
+  assert.equal(sg.gantries.filter(g => g.tx < 120).length, 6, 'six gantries in Chinatown');
   for (const g of sg.gantries) assert.equal(c.ground[(g.ty + (g.axis === 'v' ? 0 : 1)) * W + g.tx + (g.axis === 'v' ? 1 : 0)], G.ROAD, 'a gantry stands over a road');
   assert.equal(DISTRICT_NAME.market, 'Smith Street'); assert.equal(DISTRICT_NAME.canal, 'Boat Quay');
   assert.ok(STREET_NAME.includes('Pagoda Street') && STREET_NAME.includes('South Bridge Road'));
@@ -161,7 +161,7 @@ test('the kopi counter: orders in kopi lingo, a wrong cup costs a try, all order
 });
 
 test('Hawker Tales: seven side jobs, each offered after its story job, outside the chapters', () => {
-  assert.equal(SIDE.length, 7); assert.equal(MISSIONS.length, 25);
+  assert.equal(SIDE.length, 7); assert.equal(MISSIONS.length, 35);
   for (const m of SIDE) { assert.ok(MISSION[m.id] === m); assert.ok(MISSIONS.some(x => x.id === m.side), `${m.id} opens after a story job`); assert.equal(m.ch, 0); }
   const s = newSave(2); s.done = ['m1', 'm2', 'm3']; assert.deepEqual(sideJobs(s).map(m => m.id), ['k1']);
   assert.ok(offered(s).some(m => m.id === 'k1') && offered(s).some(m => m.side === undefined));
@@ -190,16 +190,15 @@ test('remapped keys stand in for their action; a taken key swaps; reserved keys 
   const k = {}; assert.equal(bind(k, 'dash', 'j'), null); assert.equal(translate(k, 'j'), ' '); assert.equal(translate(k, ' '), '', 'the old key is free');
   assert.equal(bind(k, 'hop', 'j'), null); assert.equal(boundTo(k, 'hop'), 'j'); assert.equal(boundTo(k, 'dash'), 'q', 'dash took hop’s old key');
   assert.match(bind(k, 'act', 'Escape'), /kept/); assert.equal(translate({}, 'e'), 'e');
-  assert.equal(KEY_ACTIONS.length, 13);
+  assert.equal(KEY_ACTIONS.length, 14);
   const s = newSave(1); s.settings.keys = { dash: 'j', bogus: 'Space Bar!' }; const s2 = loadSave(JSON.stringify(s)); assert.deepEqual(s2.settings.keys, { dash: 'j' });
 });
 
-test('save v6: a v5 save migrates with a bag, a clean fines record and default settings; v6 round trips', () => {
-  assert.equal(SAVE_VERSION, 6); assert.equal(SAVE_KEY, 'jade-street-v6');
+test('save: a v5 save migrates with a bag, a clean fines record and default settings; it round trips', () => {
   const v5 = { ...newSave(9), v: 5 }; delete v5.bag; delete v5.fines; delete v5.lingo; v5.done = ['m1', 'm2']; v5.cash = 321;
   v5.settings = { ...v5.settings }; delete v5.settings.keys; delete v5.settings.bigText; delete v5.settings.cbMarks;
   const s = loadSave(JSON.stringify(v5));
-  assert.equal(s.v, 6); assert.equal(s.cash, 321); assert.deepEqual(s.done, ['m1', 'm2']);
+  assert.equal(s.v, SAVE_VERSION); assert.equal(s.cash, 321); assert.deepEqual(s.done, ['m1', 'm2']);
   assert.equal(s.bag.tissue, 2); assert.equal(s.fines.n, 0); assert.deepEqual(s.settings.keys, {}); assert.equal(s.settings.bigText, false); assert.equal(s.settings.cbMarks, false);
   s.fines.n = 2; s.fines.paid = 50; s.fines.list.push({ kind: 'gum', amt: 40, night: 3 }); s.bag.banana = 4; s.done.push('k1');
   assert.deepEqual(loadSave(JSON.stringify(s)), s, 'v6 round trip (side jobs kept)');
@@ -220,3 +219,4 @@ test('every new painting is in the atlas', () => {
 });
 
 console.log(`jade (fifth pass): ${n} tests ok`);
+await import('./jade-island.mjs');
