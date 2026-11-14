@@ -2,7 +2,10 @@
 // mini-game, chase, tail, escort, race, stealth, collect, heat, trade, fares), spawning the actors each step needs
 // (the magpie cart, Pip on foot, the lion dance, lookouts, rivals, fares), and keeping a checkpoint so a failure
 // restarts from the last one: you never lose more than a step or two. Assist widens timers, slows targets, eases
-// lookouts and lets bumps land from a little further away.
+// lookouts and lets bumps land from a little further away. Every job has a readable way to fail with its own meter or
+// timer and a warning before it bites: the getaway meter in chases, the troupe meter in escorts, suspicion and alert
+// when tailing and sneaking, wobble for fragile cargo, timers on deliveries, trades, races and hurried trips. Chase set
+// pieces live in lib/jade-setpiece.ts, Madame Glint's phases and float in lib/jade-boss.ts, raids in lib/jade-biz.ts.
 import { T, W, S, F_ROOF, districtAt, type District } from './jade-city.js';
 import { VEHICLES, drive, type Body, type VehicleKind } from './jade-move.js';
 import { los, downhill, nearestFree, type Field } from './jade-nav.js';
@@ -11,18 +14,30 @@ import { PEOPLE, type Mission, type Step, type Spot } from './jade-story.js';
 import type { World, Ride, Near, Input } from './jade-game.js';
 import type { Car } from './jade-traffic.js';
 import { addHeat } from './jade-heat.js';
+import { redAhead } from './jade-traffic.js';
+import { makeSets, stepSets, type SetState } from './jade-setpiece.js';
+import { bossEnter, bossStep, floatEnter, floatStep, floatNear, tryLeap, inWindow, leapSpot, LADDER, type Sign, type Float } from './jade-boss.js';
+import { raidEnter, raidStep } from './jade-biz.js';
 
 export type Gig = { key: string; reward: number; d: District };
 export type Actor = { id: number; kind: string; b: Body; route: [number, number][]; wp: number; speed: number; t: number; stun: number; look: number; lookCd: number; face: number; gone: boolean; hits: number; extra?: number };
-type Snap = { i: number; x: number; y: number; h?: number; roof: boolean; ride: VehicleKind | null; carry: string | null };
+export type Meter = { name: string; v: number; bad?: boolean };
+type Snap = { i: number; x: number; y: number; h?: number; roof: boolean; ride: VehicleKind | null; carry: string | null; phase?: number };
 
 export class Run {
-  i = -1; cur!: Step; label = ''; timer: number | null = null; meter: { name: string; v: number; bad?: boolean } | null = null; progress = '';
+  i = -1; cur!: Step; label = ''; timer: number | null = null; meter: Meter | null = null; meter2: Meter | null = null; progress = '';
+  /** the warning on screen (a hazard coming, a meter running high) and how long it stays */
+  warning: { text: string; t: number } | null = null;
+  sets: SetState[] = []; signs: Sign[] = []; float: Float | null = null; private warned = 0;
+  /** seconds after a checkpoint restore when lookouts and Pip don't notice you yet */
+  grace = 0;
   actors: Actor[] = []; marks: [number, number][] = []; mark = 0; items: { x: number; y: number; got: boolean; sprite: string }[] = [];
   loot: { x: number; y: number; sprite: string } | null = null; snap!: Snap; phase = 0; count = 0; lost = 0; base = 0; hits = 0;
   spawned = 0; spawnT = 0; envelopes = 5; fare: { x: number; y: number; to: [number, number] | null; sp: string } | null = null;
   /** for the medals: active seconds, the most heat, and retries from a checkpoint */
   time = 0; maxHeat = 0; retries = 0;
+  /** a little give after each retry (4% a time, at most 12%): rivals ease off and lookouts take longer to be sure */
+  mercy() { return 1 - Math.min(0.12, 0.04 * this.retries); }
   ride: Ride | null = null; private fieldKey = ''; private f: Field | null = null;
   constructor(public w: World, public m: Mission, public gig?: Gig) {}
 
@@ -56,15 +71,20 @@ export class Run {
     } else { p.roof = s.roof; if (s.roof) { p.b.x = s.x; p.b.y = s.y; p.lastRoof = [s.x, s.y]; } else w.placePlayer(s.x, s.y); }
     w.fx.push({ t: 'checkpoint' });
     this.enter(s.i);
+    // a checkpoint taken part-way through a step (the shipping list in hand) picks up from there
+    if (s.phase) { this.phase = s.phase; p.carry = s.carry; }
+    this.grace = Math.max(this.grace, 2.5);
   }
   cleanup(all = true) {
-    this.actors = []; this.items = []; this.marks = []; this.loot = null; this.fare = null; this.timer = null; this.meter = null; this.progress = '';
+    this.actors = []; this.items = []; this.marks = []; this.loot = null; this.fare = null; this.timer = null; this.meter = null; this.meter2 = null; this.progress = '';
+    this.sets = []; this.signs = []; this.float = null; this.warning = null;
     if (all) { this.w.p.carry = null; if (this.m.tip) this.w.s.tips = this.w.s.tips.filter(t => !(t.market === this.m.tip!.market && t.good === this.m.tip!.good)); }
   }
   next() { this.enter(this.i + 1); }
   enter(i: number) {
     const w = this.w;
-    this.actors = []; this.items = []; this.marks = []; this.timer = null; this.meter = null; this.progress = ''; this.phase = 0; this.count = 0; this.lost = 0; this.hits = 0; this.spawned = 0; this.spawnT = 0;
+    this.actors = []; this.items = []; this.marks = []; this.timer = null; this.meter = null; this.meter2 = null; this.progress = ''; this.phase = 0;
+    this.sets = []; this.signs = []; this.warned = 0; if (!(this.m.steps[i]?.t === 'pickup')) this.float = null; this.count = 0; this.lost = 0; this.hits = 0; this.spawned = 0; this.spawnT = 0;
     if (i >= this.m.steps.length) { this.cleanup(); w.finishMission(this.m, this.gig); return; }
     this.i = i; this.cur = this.m.steps[i]; const st = this.cur;
     if (st.cp && i > 0) { this.snap = this.snapshot(i); w.fx.push({ t: 'checkpoint' }); }
@@ -73,7 +93,7 @@ export class Run {
     switch (st.t) {
       case 'talk': {
         const hero = w.s.hero;
-        w.talk = { lines: st.lines.map(([who, text]) => [who === 'hero' ? hero : who, text] as [string, string]), i: 0, done: () => this.next() };
+        w.talk = { lines: st.lines.map(([who, text, mood]) => [who === 'hero' ? hero : who, text, mood ?? 'calm'] as [string, string, string]), i: 0, done: () => this.next() };
         w.fx.push({ t: 'talk' });
         break;
       }
@@ -85,6 +105,9 @@ export class Run {
         this.ride = r;
         break;
       }
+      case 'goto': if (st.time) this.timer = st.time * k; break;
+      case 'float': floatEnter(this); break;
+      case 'raid': raidEnter(this, st); break;
       case 'deliver': this.timer = st.time * k; this.hits = 0; if (st.fragile) this.meter = { name: 'Wobble', v: 0 }; if (!w.p.carry) w.p.carry = st.item; break;
       case 'mini': w.ui = { kind: 'mini', mini: st.kind, level: st.level, from: 'mission' }; w.fx.push({ t: 'mini' }); break;
       case 'chase': {
@@ -92,7 +115,9 @@ export class Run {
         const cls = st.who === 'boat' ? 'boat' : st.who === 'runner' ? 'foot' : 'small';
         const [sx, sy] = nearestFree(w.c, cls, x, y, w.open, 6);
         this.actors.push(this.actor(st.who, sx, sy, cls, this.path(st.route, cls), st.speed));
-        this.progress = `Bumps 0/${st.bumps}`;
+        this.progress = `Bumps 0/${st.bumps}`; this.meter = { name: 'Getaway', v: 0 }; this.grace = 4;
+        this.sets = makeSets(this, st.sets);
+        if (st.who === 'boss' && st.phase) bossEnter(this, st);
         w.fx.push({ t: 'chase' });
         break;
       }
@@ -107,7 +132,7 @@ export class Run {
         const [x, y] = this.spot(st.from);
         const [sx, sy] = nearestFree(w.c, 'foot', x, y, w.open, 6);
         this.actors.push(this.actor('lion', sx, sy, 'foot', this.path(st.route, 'foot'), 52));
-        this.envelopes = 5; this.meter = { name: 'Red envelopes', v: 1 }; this.spawnT = 3;
+        this.envelopes = 5; this.meter = { name: 'Red envelopes', v: 1 }; this.meter2 = { name: 'Troupe waiting', v: 0 }; this.spawnT = 3;
         break;
       }
       case 'race': {
@@ -116,8 +141,8 @@ export class Run {
         if (st.rival) {
           const cls = st.rival === 'boat' ? 'boat' : st.rival === 'runner' ? 'foot' : 'small';
           const [x, y] = nearestFree(w.c, cls, w.p.x + 30, w.p.y + 30, w.open, 4);
-          const sp = st.rival === 'runner' ? 214 : st.rival === 'scooter' ? 292 : 220;
-          this.actors.push(this.actor('rival-' + st.rival, x, y, cls, this.marks, sp * (this.assist ? 0.86 : 1) * this.w.diff.rival));
+          const sp = st.rival === 'runner' ? 204 : st.rival === 'scooter' ? 292 : 220;
+          this.actors.push(this.actor('rival-' + st.rival, x, y, cls, this.marks, sp * (this.assist ? 0.86 : 1) * this.w.diff.rival * this.mercy()));
         }
         this.progress = `Gates 0/${this.marks.length}`;
         break;
@@ -128,8 +153,13 @@ export class Run {
         break;
       }
       case 'collect': this.items = st.items.map(s => { const [x, y] = this.spot(s); return { x, y, got: false, sprite: st.item }; }); this.timer = st.time * k; this.progress = `0/${st.items.length}`; break;
-      case 'heat': w.clearHeat(); addHeat(w, st.level + 0.2, 'story'); w.lastSeen = [w.p.x, w.p.y]; break;
-      case 'trade': this.base = w.s.stats.profit; this.meter = { name: 'Profit', v: 0 }; if (this.m.tip) this.addTip(); break;
+      case 'heat': {
+        w.clearHeat(); addHeat(w, st.level + 0.2, 'story'); w.lastSeen = [w.p.x, w.p.y];
+        // a getaway scooter waits right beside you, so a chase starts as a fair race, not a grab on the spot
+        if (!w.p.ride && !w.rides.some(r => r.parked && !r.locked && r.kind === 'scooter' && dist(r.b.x, r.b.y, w.p.x, w.p.y) < 200)) { const [rx, ry] = w.rideSpot('scooter', w.p.x + 60, w.p.y); w.addRide('scooter', rx, ry, 0, false, 0, true); }
+        break;
+      }
+      case 'trade': this.base = w.s.stats.profit; this.meter = { name: 'Profit', v: 0 }; if (st.time) this.timer = st.time * k; if (this.m.tip) this.addTip(); break;
       case 'fares': this.count = 0; this.newFare(); break;
     }
   }
@@ -158,14 +188,19 @@ export class Run {
     }
     const dx = nx - a.b.x, dy = ny - a.b.y, l = Math.hypot(dx, dy) || 1;
     if (a.b.cls === 'fly') { a.b.h = Math.atan2(dy, dx); a.b.x += dx / l * Math.min(l, speed * dt); a.b.y += dy / l * Math.min(l, speed * dt); a.b.speed = speed; return false; }
-    drive(w.ctx(), a.b, dx / l, dy / l, speed, 900, 10, dt, a.b.cls === 'foot');
+    drive(w.ctx(false, false, false), a.b, dx / l, dy / l, speed, 900, 10, dt, a.b.cls === 'foot');
     return false;
   }
 
   step(dt: number, inp: Input) {
     const w = this.w, st = this.cur, p = w.p; if (!st || w.talk || w.ui) return;
     void inp;
-    if (this.timer !== null) { this.timer -= dt; if (this.timer <= 0) { this.timer = 0; return this.fail(st.t === 'deliver' && st.item === 'cake' ? 'The cake melted!' : 'Out of time!'); } }
+    if (this.warning) { this.warning.t -= dt; if (this.warning.t <= 0) this.warning = null; }
+    if (this.timer !== null) {
+      const was = this.timer; this.timer -= dt;
+      if (was > 10 && this.timer <= 10) this.warn('Ten seconds left!');
+      if (this.timer <= 0) { this.timer = 0; return this.fail(timeUp(st)); }
+    }
     const px = p.x, py = p.y, pb = p.ride ? p.ride.b : p.b;
     switch (st.t) {
       case 'goto': {
@@ -178,8 +213,8 @@ export class Run {
       case 'pickup': {
         const [x, y] = this.spot(st.at);
         if (dist(px, py, x, y) < 56 && !p.act) {
-          if (!p.ride) { p.act = { n: 'pickup', t: 0, dur: 0.45, then: () => { p.carry = st.item; this.loot = null; w.fx.push({ t: 'pickup', x, y }); this.next(); } }; }
-          else { p.carry = st.item; this.loot = null; w.fx.push({ t: 'pickup', x, y }); this.next(); }
+          if (!p.ride) { p.act = { n: 'pickup', t: 0, dur: 0.45, then: () => { p.carry = st.item; this.loot = null; w.fx.push({ t: 'pickup', x, y, kind: st.item.startsWith('h-') ? 'heirloom' : 'item' }); this.next(); } }; }
+          else { p.carry = st.item; this.loot = null; w.fx.push({ t: 'pickup', x, y, kind: st.item.startsWith('h-') ? 'heirloom' : 'item' }); this.next(); }
         }
         break;
       }
@@ -189,6 +224,8 @@ export class Run {
         break;
       }
       case 'chase': this.chase(st, dt, pb); break;
+      case 'float': floatStep(this, dt); break;
+      case 'raid': raidStep(this, st, dt); break;
       case 'tail': this.tail(dt); break;
       case 'escort': this.escort(st, dt, pb); break;
       case 'race': {
@@ -203,8 +240,14 @@ export class Run {
         for (const a of this.actors) {
           if (a.gone) continue;
           const rubber = dist(a.b.x, a.b.y, px, py) > 500 && a.wp > this.mark ? 0.7 : 1;
+          // the racer keeps the same rules you do: on Normal and Hard it waits at a red light
+          if (w.diff.redLight > 0 && !st.roof && a.kind !== 'rival-boat' && redAhead(w, a.b.x, a.b.y, a.b.h, 60)) { a.b.speed = Math.max(0, a.b.speed - 900 * dt); continue; }
           const end = this.walk(a, dt, a.speed * rubber, false);
-          if (end && a.wp === a.route.length - 1) { a.gone = true; return this.fail('The rival got there first!'); }
+          if (end && a.wp === a.route.length - 1) { a.gone = true; return this.fail('The rival got there first! Cut the corners and save your dash for the straights.'); }
+          // the rival's progress is a meter beside yours, red when they are ahead, with a warning near the finish
+          const ahead = a.wp > this.mark;
+          this.meter = { name: 'Rival', v: clamp(a.wp / a.route.length, 0, 1), bad: ahead };
+          if (ahead && a.wp >= a.route.length - 2 && this.warned < 1) { this.warned = 1; this.warn('The rival is nearly home! Go all out!'); }
         }
         break;
       }
@@ -224,6 +267,8 @@ export class Run {
     }
   }
   fail(why: string) { this.w.fail(why); }
+  /** a warning on screen for three seconds (and a sound); the same text isn't repeated while it shows */
+  warn(text: string) { if (this.warning?.text === text) { this.warning.t = 3; return; } this.warning = { text, t: 3 }; this.w.fx.push({ t: 'warn', msg: text }); }
 
   chase(st: Extract<Step, { t: 'chase' }>, dt: number, pb: Body) {
     const w = this.w, a = this.actors[0]; if (!a) return;
@@ -232,8 +277,11 @@ export class Run {
     if (a.stun > 0) { a.stun -= dt; a.b.speed *= 0.94; }
     else {
       let sp = st.speed * (this.assist ? 0.84 : 1) * this.w.diff.chase;
-      if (d > 620) sp *= 0.72; else if (d < 160) sp *= 1.04;
-      this.walk(a, dt, sp, true);
+      // the thief eases off when far ahead so a chase stays a chase (less so on Normal, hardly on Hard)
+      if (d > 620) sp *= this.assist ? 0.72 : w.s.settings.diff === 'hard' ? 0.94 : 0.86; else if (d < 160) sp *= 1.04;
+      // on Normal and Hard everyone keeps to the lights: the thief waits at a red too
+      if (w.diff.redLight > 0 && a.kind !== 'boat' && redAhead(w, a.b.x, a.b.y, a.b.h, 60)) a.b.speed = Math.max(0, a.b.speed - 900 * dt);
+      else this.walk(a, dt, sp, true);
     }
     // a bump: ride into it, or dash into it on foot
     const reach = a.b.r + pb.r + (this.assist ? 16 : 6);
@@ -243,13 +291,22 @@ export class Run {
       w.fx.push({ t: 'hit', x: a.b.x, y: a.b.y, k: a.hits });
       this.progress = `Bumps ${a.hits}/${st.bumps}`;
       if (a.hits >= st.bumps) {
-        if (st.loot) { const [lx, ly] = nearestFree(w.c, 'foot', a.b.x, a.b.y, w.open, 3); this.loot = { x: lx, y: ly, sprite: st.loot }; w.fx.push({ t: 'loot', x: lx, y: ly }); }
+        // the loot lands where you can reach it the way you're travelling: in the water after a boat chase
+        if (st.loot) { const [lx, ly] = nearestFree(w.c, w.p.ride?.kind === 'boat' ? 'boat' : 'foot', a.b.x, a.b.y, w.open, 3); this.loot = { x: lx, y: ly, sprite: st.loot }; w.fx.push({ t: 'loot', x: lx, y: ly, kind: st.loot.startsWith('h-') ? 'heirloom' : 'loot' }); }
         this.next(); return;
       }
     }
-    const far = this.assist ? 1500 : 1150;
-    this.lost = d > far ? this.lost + dt : 0;
-    if (this.lost > (this.assist ? 9 : 6) * this.w.diff.lost) this.fail('They got away! Stay closer next time.');
+    stepSets(this, dt);
+    if (st.who === 'boss' && st.phase) bossStep(this, st, dt);
+    // the getaway meter: it fills while the thief is well ahead (faster when far ahead) and drains when you are close
+    const far = this.assist ? 1150 : 900, m = this.meter!;
+    const fill = 1 / ((this.assist ? 9 : 6) * this.w.diff.lost);
+    if (this.grace > 0) this.grace -= dt;
+    else if (d > far) m.v += dt * fill * (d > far * 1.5 ? 1.6 : 1); else if (d < 460) m.v -= dt * 0.1;
+    m.v = clamp(m.v, 0, 1); m.bad = m.v > 0.6;
+    if (m.v > 0.6 && this.warned < 1) { this.warned = 1; this.warn(st.who === 'boat' ? 'The magpie boat is pulling away! Close the gap!' : 'They’re getting away! Close the gap!'); }
+    if (m.v < 0.3) this.warned = 0;
+    if (m.v >= 1) this.fail(st.who === 'boss' ? 'Madame Glint got away! Keep her in sight and dodge what she throws at you.' : 'They got away! Keep the getaway meter low by staying close.');
   }
   tail(dt: number) {
     const w = this.w, a = this.actors[0], p = w.p; if (!a) return;
@@ -269,8 +326,13 @@ export class Run {
     if (sees) m.v = Math.min(1, m.v + dt * (p.sneak && !p.ride ? 0.45 : 1.1) * (d < 90 ? 1.8 : 1) * (this.assist ? 0.7 : 1) * this.w.diff.look);
     else m.v = Math.max(0, m.v - dt * 0.25);
     m.bad = m.v > 0.6;
+    if (m.v > 0.6 && this.warned < 1) { this.warned = 1; this.warn('Pip is getting suspicious! Drop back, sneak or hide!'); }
+    if (m.v < 0.25 && this.warned === 1) this.warned = 0;
     if (m.v >= 1) return this.fail('Pip spotted you! Keep further back, sneak, or hide when he looks round.');
-    this.lost = d > (this.assist ? 680 : 540) ? this.lost + dt : 0;
+    // the other way to fail is falling too far behind: a second meter shows how close he is to slipping away
+    this.lost = d > (this.assist ? 680 : 540) ? this.lost + dt : Math.max(0, this.lost - dt * 2);
+    this.meter2 = this.lost > 0 ? { name: 'Losing him', v: Math.min(1, this.lost / 6), bad: this.lost > 3 } : null;
+    if (this.lost > 3 && this.warned !== 2) { this.warned = 2; this.warn('Pip is slipping away! Keep him in sight!'); }
     if (this.lost > 6) this.fail('You lost him. Keep him in sight.');
   }
   escort(st: Extract<Step, { t: 'escort' }>, dt: number, pb: Body) {
@@ -278,6 +340,12 @@ export class Run {
     lion.t += dt;
     const far = dist(lion.b.x, lion.b.y, pb.x, pb.y) > 420;
     if (!far) { if (this.walk(lion, dt, 52, false) && this.spawned >= st.magpies && this.actors.length === 1) { this.next(); return; } } else lion.b.speed = 0;
+    // the troupe waits for you, but not for ever
+    const tm = this.meter2!; const gone = dist(lion.b.x, lion.b.y, pb.x, pb.y) > 520;
+    tm.v = clamp(tm.v + (gone ? dt / (this.assist ? 14 : 6.5) : -dt * 0.2), 0, 1); tm.bad = tm.v > 0.5;
+    if (tm.v > 0.5 && this.warned < 1) { this.warned = 1; this.warn('The lion-dance troupe is waiting for you! Get back to them!'); }
+    if (tm.v < 0.2) this.warned = 0;
+    if (tm.v >= 1) return this.fail('You left the lion-dance troupe behind! Stay close to the lion.');
     if (lion.wp === lion.route.length - 1 && dist(lion.b.x, lion.b.y, lion.route[lion.wp][0], lion.route[lion.wp][1]) < 30 && this.actors.filter(a => a.kind === 'swoop' && !a.gone).length === 0) { this.next(); return; }
     this.spawnT -= dt;
     if (this.spawned < st.magpies && this.spawnT <= 0) {
@@ -310,12 +378,16 @@ export class Run {
       if (!p.hide && d < range && Math.abs(angDiff(a.b.h, Math.atan2(p.y - a.b.y, p.x - a.b.x))) < cone && los(w.c, a.b.x, a.b.y, p.x, p.y)) seen = true;
       if (d < 34 && !p.hide) seen = true;
     }
+    if (this.grace > 0) { this.grace -= dt; seen = false; }
     const m = this.meter!;
-    m.v = seen ? Math.min(1, m.v + dt * (p.sneak ? 0.7 : 1.4) * this.w.diff.look) : Math.max(0, m.v - dt * 0.3); m.bad = m.v > 0.5;
+    // the Alert meter: it rises while a beam is on you (slower when you sneak) and falls once you're out of it
+    m.v = seen ? Math.min(1, m.v + dt * (p.sneak ? 0.4 : 1) * this.w.diff.look * this.mercy()) : Math.max(0, m.v - dt * 0.6); m.bad = m.v > 0.5;
+    if (m.v > 0.5 && this.warned < 1) { this.warned = 1; this.warn('A lookout is turning your way! Get out of the beam or hide!'); }
+    if (m.v < 0.2) this.warned = 0;
     if (m.v >= 1) return this.fail('A lookout spotted you! Watch their torch beams and sneak.');
     if (this.phase === 0) {
       const [gx, gy] = this.spot(st.goal); this.label = 'Reach the yard office unseen';
-      if (dist(p.x, p.y, gx, gy) < 60 && !p.act) { p.act = { n: 'pickup', t: 0, dur: 0.45, then: () => { p.carry = 'manifest'; w.fx.push({ t: 'pickup' }); this.phase = 1; } }; }
+      if (dist(p.x, p.y, gx, gy) < 60 && !p.act) { p.act = { n: 'pickup', t: 0, dur: 0.45, then: () => { p.carry = 'manifest'; w.fx.push({ t: 'pickup' }); this.phase = 1; this.snap = { ...this.snapshot(this.i), phase: 1 }; w.fx.push({ t: 'checkpoint' }); } }; }
     } else {
       const [ex, ey] = this.spot(st.exit); this.label = 'Sneak back out through the gate';
       if (dist(p.x, p.y, ex, ey) < 70) { p.carry = null; this.next(); }
@@ -355,7 +427,7 @@ export class Run {
           if (this.fareOk(tx, ty)) { f.to = [tx * T + T / 2, ty * T + T / 2]; break; }
         }
         if (!f.to) { const pl = w.c.places['bo']; f.to = [pl.x, pl.y]; }
-        this.timer = (dist(p.x, p.y, f.to[0], f.to[1]) / 160 + 12) * (this.assist ? 1.5 : 1.1);
+        this.timer = (dist(p.x, p.y, f.to[0], f.to[1]) / 160 + 12) * (this.assist ? 1.5 : this.w.diff.timer * 1.75);
         this.label = `Drive the fare home (${this.count + 1}/${st.n})`;
       }
     } else if (dist(p.x, p.y, f.to[0], f.to[1]) < 100) {
@@ -371,7 +443,8 @@ export class Run {
     if (k < 150 && what === 'wall') return;
     this.hits++; this.meter = { name: 'Wobble', v: this.hits / st.fragile, bad: this.hits >= st.fragile - 2 };
     this.w.fx.push({ t: 'wobble', x: this.w.p.x, y: this.w.p.y });
-    if (this.hits >= st.fragile) this.fail(st.item === 'cake' ? 'Splat! The cake toppled. Smoother driving!' : 'Crash! The pots broke. Gently round the corners!');
+    if (this.hits === st.fragile - 2) this.warn(st.item === 'cake' ? 'The cake is wobbling! Two more bumps and it topples!' : 'Careful! Two more bumps and it’s ruined!');
+    if (this.hits >= st.fragile) this.fail(st.item === 'cake' ? 'Splat! The cake toppled. Smoother driving!' : st.item === 'crate' ? 'The mangoes are bruised to pulp! Steer round the bumps.' : 'Crash! The pots broke. Gently round the corners!');
   }
   onCarTouch(_c: Car) { }
   onEnter(_r: Ride) { }
@@ -381,7 +454,9 @@ export class Run {
     if (ok) this.next();
     else { this.w.say('Not quite! Have another go.', 'bad'); this.w.ui = { kind: 'mini', mini: st.kind, level: st.level, from: 'mission' }; }
   }
-  nearAction(_x: number, _y: number): Near | null { return null; }
+  nearAction(x: number, y: number): Near | null { return this.cur?.t === 'float' ? floatNear(this, x, y) : null; }
+  /** a hop off the roof edge near a flag, or the Action button on a flag, during the float phase */
+  leap(fromHop = false) { return this.cur?.t === 'float' && tryLeap(this, fromHop); }
   wantsRide() { return false; }
   /** what the route arrow points at */
   target(): [number, number] | null {
@@ -398,6 +473,8 @@ export class Run {
       case 'collect': { const it = this.items.filter(i => !i.got).sort((a, b) => dist(a.x, a.y, w.p.x, w.p.y) - dist(b.x, b.y, w.p.x, w.p.y))[0]; return it ? [it.x, it.y] : null; }
       case 'heat': return null;
       case 'trade': return null;
+      case 'float': { if (!w.p.roof) return [LADDER[0] * T + T / 2, LADDER[1] * T + T / 2]; const f = this.float; if (!f) return null; const i = inWindow(this); if (i >= 0) return leapSpot(i); const spots = [0, 1, 2].map(leapSpot).filter(s => s[0] < f.x - 40); return spots[0] ?? leapSpot(2); }
+      case 'raid': { const a = this.actors.filter(x => !x.gone && x.stun <= 0).sort((a, b) => dist(a.b.x, a.b.y, w.p.x, w.p.y) - dist(b.b.x, b.b.y, w.p.x, w.p.y))[0]; return a ? [a.b.x, a.b.y] : null; }
       case 'fares': return this.fare ? (this.fare.to ?? [this.fare.x, this.fare.y]) : null;
       default: return null;
     }
@@ -405,8 +482,20 @@ export class Run {
   aimAt(): [number, number] | null {
     const st = this.cur; if (!st) return null;
     if (st.t === 'chase' && this.actors[0]) return [this.actors[0].b.x, this.actors[0].b.y];
+    if (st.t === 'raid') return this.target();
     if (st.t === 'escort') { const m = this.actors.filter(a => a.kind === 'swoop' && a.stun <= 0).sort((a, b) => dist(a.b.x, a.b.y, this.w.p.x, this.w.p.y) - dist(b.b.x, b.b.y, this.w.p.x, this.w.p.y))[0]; return m ? [m.b.x, m.b.y] : null; }
     return null;
   }
 }
 void F_ROOF;
+
+/** what the failure card says when a step's timer runs out */
+function timeUp(st: Step): string {
+  if (st.t === 'deliver') return st.item === 'cake' ? 'The cake melted!' : st.item === 'crate' ? 'Chef Mo’s queue gave up waiting for the mangoes!' : 'Out of time! The parcel was too late.';
+  if (st.t === 'trade') return 'Out of time! The buyers went elsewhere. Buy low, ride quickly, sell high.';
+  if (st.t === 'goto') return st.label.includes('magpies') ? 'Too slow! The magpies cleared out the till.' : 'The jump-start faded before you got there!';
+  if (st.t === 'collect') return 'Out of time! Grab them in the order the gold line suggests.';
+  if (st.t === 'race') return 'Out of time! Cut the corners and use your boost.';
+  if (st.t === 'fares') return 'The fare got fed up and walked! Drive them home quicker.';
+  return 'Out of time!';
+}

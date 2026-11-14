@@ -20,8 +20,8 @@ export type DiffNumbers = {
 };
 export const DIFF: Record<Diff, DiffNumbers> = {
   easy: { evade: 3.2, warden: 205, extra: -1, grab: 0.35, blimp: 150, sight: 520, timer: 1, chase: 1, rival: 1, look: 1, lost: 1, crash: 1, redLight: 0 },
-  normal: { evade: 5.4, warden: 256, extra: 0, grab: 0.2, blimp: 190, sight: 580, timer: 0.6, chase: 1.08, rival: 1.05, look: 1.16, lost: 0.6, crash: 2, redLight: 0.55 },
-  hard: { evade: 6.6, warden: 276, extra: 1, grab: 0.15, blimp: 215, sight: 620, timer: 0.5, chase: 1.12, rival: 1.08, look: 1.22, lost: 0.5, crash: 3, redLight: 0.8 },
+  normal: { evade: 5.4, warden: 256, extra: 0, grab: 0.2, blimp: 190, sight: 580, timer: 0.56, chase: 1.1, rival: 1.02, look: 1.16, lost: 0.6, crash: 2, redLight: 0.55 },
+  hard: { evade: 6.6, warden: 276, extra: 1, grab: 0.15, blimp: 215, sight: 620, timer: 0.47, chase: 1.16, rival: 1.08, look: 1.26, lost: 0.45, crash: 3, redLight: 0.8 },
 };
 export const DIFF_NAME: Record<Diff, string> = { easy: 'Easy', normal: 'Normal', hard: 'Hard' };
 export const asDiff = (v: unknown): Diff => v === 'normal' || v === 'hard' ? v : 'easy';

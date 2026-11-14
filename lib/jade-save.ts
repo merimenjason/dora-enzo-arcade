@@ -1,19 +1,21 @@
-// Jade Street: the save (localStorage 'jade-street-v2'), its repair and migration, progression (districts opened by the
+// Jade Street: the save (localStorage 'jade-street-v4'), its repair and migration, progression (districts opened by the
 // story, reputation tiers, safe houses, outfits, garage upgrades and paint), trophies and the stats screen.
 // Version 1 saves (the pre-release shape: `money`, `done` as a comma string, one shared rep number) and version 2 saves
-// (the first release, 'jade-street-v2': no medals, story flags, lessons, messages or radio) migrate forward.
+// (the first release, 'jade-street-v2': no medals, story flags, lessons, messages or radio) and version 3 saves (the
+// second release: no businesses, no Reduce shake) migrate forward, keeping every bit of progress.
 import { DISTRICTS, type District } from './jade-city.js';
 import { emptyCargo, GOODS, type Cargo, type Tip } from './jade-trade.js';
 import { MISSIONS, CHAPTER_OPENS } from './jade-story.js';
 import { hashStr, rng } from './jade-rng.js';
 import { asDiff, type Diff } from './jade-diff.js';
+import { BIZ, newBiz, type BizState } from './jade-biz.js';
 
-export const SAVE_KEY = 'jade-street-v3';
-export const OLD_KEYS = ['jade-street-v2', 'jade-street-v1'];
-export const SAVE_VERSION = 3;
+export const SAVE_KEY = 'jade-street-v4';
+export const OLD_KEYS = ['jade-street-v3', 'jade-street-v2', 'jade-street-v1'];
+export const SAVE_VERSION = 4;
 export type Hero = 'dora' | 'enzo';
-export type Settings = { sound: boolean; music: boolean; assist: boolean; diff: Diff; touch: 'auto' | 'on' | 'off'; shake: boolean };
-export type Stats = { walked: number; driven: number; boated: number; missions: number; gigs: number; trades: number; profit: number; caught: number; escapes: number; bumps: number; cats: number; murals: number; maxHeat: number; playTime: number; minis: number };
+export type Settings = { sound: boolean; music: boolean; assist: boolean; diff: Diff; touch: 'auto' | 'on' | 'off'; shake: boolean; calm: boolean };
+export type Stats = { walked: number; driven: number; boated: number; missions: number; gigs: number; trades: number; profit: number; caught: number; escapes: number; bumps: number; cats: number; murals: number; maxHeat: number; playTime: number; minis: number; bizCoins: number };
 export type Save = {
   v: number; seed: number; hero: Hero; started: boolean;
   cash: number; night: number; clock: number; cargo: Cargo; stash: Cargo;
@@ -35,6 +37,8 @@ export type Save = {
   radio: number;
   /** street events helped with */
   helped: number;
+  /** the businesses you own (lib/jade-biz.ts) and the quarter's takings for the last nights */
+  biz: Record<string, BizState>; bizLog: number[];
 };
 export type Medal = { m: number; t: number; plays: number };
 export type Msg = { id: number; from: string; text: string; night: number; read: boolean };
@@ -65,9 +69,10 @@ export function newSave(seed = 1): Save {
     upgrades: { speed: 0, grip: 0, cargo: 0 }, paint: 'red',
     outfits: { dora: ['classic'], enzo: ['classic'] }, outfit: { dora: 'classic', enzo: 'classic' },
     cats: [], murals: [], trophies: [], tips: [], safe: 'safe-market', best: {}, daily: '', dailyDone: [],
-    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0 },
-    settings: { sound: true, music: true, assist: true, diff: 'easy', touch: 'auto', shake: true },
+    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0 },
+    settings: { sound: true, music: true, assist: true, diff: 'easy', touch: 'auto', shake: true, calm: false },
     medals: {}, story: { intro: false, ch: 0, ending: false }, learned: [], msgs: [], radio: 0, helped: 0,
+    biz: Object.fromEntries(BIZ.map(b => [b.id, newBiz()])), bizLog: [],
   };
 }
 
@@ -82,6 +87,7 @@ export function loadSave(raw: string | null): Save {
   if (!o || typeof o !== 'object') return newSave(1 + (hashStr(String(raw)) % 100000));
   if ((o.v ?? 1) === 1) o = migrate1(o);
   if (o.v === 2) o = migrate2(o);
+  if (o.v === 3) o = migrate3(o);
   const s = newSave(Math.floor(num(o.seed, 1, 1, 2 ** 31)));
   s.hero = o.hero === 'enzo' ? 'enzo' : 'dora';
   s.started = o.started === true;
@@ -109,7 +115,7 @@ export function loadSave(raw: string | null): Save {
   const st = (o.stats ?? {}) as Record<string, unknown>;
   for (const k of Object.keys(s.stats) as (keyof Stats)[]) s.stats[k] = num(st[k], 0, 0, 1e12);
   const se = (o.settings ?? {}) as Record<string, unknown>;
-  s.settings = { sound: se.sound !== false, music: se.music !== false, assist: se.assist !== false, diff: asDiff(se.diff), touch: se.touch === 'on' || se.touch === 'off' ? se.touch : 'auto', shake: se.shake !== false };
+  s.settings = { sound: se.sound !== false, music: se.music !== false, assist: se.assist !== false, diff: asDiff(se.diff), touch: se.touch === 'on' || se.touch === 'off' ? se.touch : 'auto', shake: se.shake !== false, calm: se.calm === true };
   const md = (o.medals ?? {}) as Record<string, unknown>;
   for (const [k, v] of Object.entries(md)) if (ids.has(k) && v && typeof v === 'object') { const x = v as Record<string, unknown>; s.medals[k] = { m: Math.floor(num(x.m, 0, 0, 3)), t: num(x.t, 0, 0, 1e6), plays: Math.floor(num(x.plays, 1, 1, 1e6)) }; }
   const sy = (o.story ?? {}) as Record<string, unknown>;
@@ -117,6 +123,13 @@ export function loadSave(raw: string | null): Save {
   s.learned = strs(o.learned);
   s.msgs = Array.isArray(o.msgs) ? (o.msgs as Msg[]).filter(m => m && typeof m.text === 'string' && typeof m.from === 'string').slice(-30).map((m, i) => ({ id: Number.isInteger(m.id) ? m.id : i + 1, from: m.from, text: m.text, night: num(m.night, 1, 1, 1e5), read: m.read === true })) : [];
   s.radio = Math.floor(num(o.radio, 0, -1, 9)); s.helped = Math.floor(num(o.helped, 0, 0, 1e6));
+  const bz = (o.biz ?? {}) as Record<string, unknown>;
+  for (const b of BIZ) {
+    const x = (bz[b.id] ?? {}) as Record<string, unknown>;
+    const hist = Array.isArray(x.hist) ? (x.hist as unknown[]).filter((v): v is number => typeof v === 'number' && isFinite(v)).map(v => Math.max(0, Math.round(v))).slice(-10) : [];
+    s.biz[b.id] = { lvl: Math.floor(num(x.lvl, 0, 0, 3)), bank: num(x.bank, 0, 0, 1e6), tonight: num(x.tonight, 0, 0, 1e6), hist, raids: Math.floor(num(x.raids, 0, 0, 1e6)), defended: Math.floor(num(x.defended, 0, 0, 1e6)) };
+  }
+  s.bizLog = Array.isArray(o.bizLog) ? (o.bizLog as unknown[]).filter((v): v is number => typeof v === 'number' && isFinite(v)).map(v => Math.max(0, Math.round(v))).slice(-10) : [];
   return s;
 }
 /** version 2 (the first release): everything kept; a player who has started already saw the opening, has the
@@ -128,6 +141,11 @@ function migrate2(o: Record<string, unknown>): Record<string, unknown> {
   const medals: Record<string, Medal> = {};
   for (const id of done) medals[id] = { m: 0, t: 0, plays: 1 };
   return { ...o, v: 3, medals, story: { intro: o.started === true, ch: o.started === true ? ch : 0, ending: done.includes('m25') }, learned: done.length ? [...LESSON_IDS] : [], msgs: [], radio: 0, helped: 0 };
+}
+/** version 3 (the second release): everything kept as it was; no business is owned yet, Reduce shake starts off */
+function migrate3(o: Record<string, unknown>): Record<string, unknown> {
+  const se = (o.settings ?? {}) as Record<string, unknown>;
+  return { ...o, v: 4, biz: {}, bizLog: [], settings: { ...se, calm: false } };
 }
 /** the onboarding lessons (lib/jade-tutor.ts) */
 export const LESSON_IDS = ['move', 'run', 'dash', 'hop', 'ride', 'boost', 'honk', 'map', 'market', 'heat', 'hide', 'sneak'] as const;
@@ -207,6 +225,9 @@ export const TROPHIES: { id: string; name: string; desc: string; test: (s: Save)
   { id: 'rep', name: 'Local Legend', desc: 'Reach 80 reputation in a district.', test: s => Object.values(s.rep).some(v => v >= 80) },
   { id: 'daily', name: 'Regular', desc: 'Finish a daily market event.', test: s => s.dailyDone.some(x => x.startsWith('day:')) },
   { id: 'chefs', name: 'Kitchen Hand', desc: 'Play the mini-games 10 times.', test: s => s.stats.minis >= 10 },
+  { id: 'stake', name: 'Stallholder', desc: 'Buy a stake in a business.', test: s => Object.values(s.biz).some(b => b.lvl > 0) },
+  { id: 'magnate', name: 'Quarter Magnate', desc: 'Own all six businesses at their grandest.', test: s => BIZ.every(b => s.biz[b.id]?.lvl >= 3) },
+  { id: 'defender', name: 'Till Keeper', desc: 'Chase off three magpie raids.', test: s => Object.values(s.biz).reduce((a, b) => a + b.defended, 0) >= 3 },
 ];
 /** award any trophies newly earned; returns their names */
 export function checkTrophies(s: Save): string[] {
