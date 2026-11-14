@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Jade Street** (game 105, `/jade-street`): a night-time open-city caper. The Magpie Crew stole five lucky heirlooms the night before the Lantern Festival, and Dora or Enzo wins them back across a lantern-lit harbour quarter of five districts that open one chapter at a time: 25 story jobs (deliveries, tails, chases, races, a lion-dance escort, a container-yard sneak, taxi fares, a canal-boat chase) with checkpoints, five lanterns of heat with raccoon wardens, roadblocks and a blimp, six goods to trade between five night markets, scooters, trishaws, tuk-tuks, vans and canal boats, rooftops, safe houses, outfits, garage upgrades, side gigs, 50 lucky cats, murals, four mini-games and a daily market event. Keys, mouse and touch; Assist on by default.
+
 - **Little Red Dot: The Straits**: wind. The boat is quickest with the wind across it, slower close to it and almost stopped head on, where rowing is faster. It veers every twenty seconds or so; a pennant on the mast and a dial on screen show where it is blowing and what the sail is making of it.
 - **Little Red Dot: The Straits**: two more meetings. Auntie Kera, a macaque on Sentosa's jetty, offers a coconut mortar that makes every volley hit harder, at the price of the otters' goodwill, or seeds for a little hay. Tok Tiong, a myna on St John's jetty, sells a wind that blows straight for Ubin, or calls the cats off. Taking the macaques' side means Captain Bishan will no longer bargain.
 

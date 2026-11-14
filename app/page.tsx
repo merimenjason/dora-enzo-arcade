@@ -106,14 +106,15 @@ const GAMES=[
  {href:'/highburrow',title:'Highburrow',tag:'NEW · SETTLEMENT STRATEGY',blurb:'Lead the chinchillas up an Andean valley, one hex at a time. Dora scouts the mist, Enzo founds burrow-villages, llama caravans haul goods uphill, and the vicuñas, condors and viscachas trade and teach. Keep every village warm through the frost nights and hold the summit festival before turn 60.',color:'#c8643c',art:'🏔️'},
  {href:'/cloudpop',title:'Cloudpop',tag:'NEW · TOWER DEFENCE',blurb:'Storm-puffs drift down an Andean valley to rain out the harvest festival. Build slingers, buskers, ember pots, llamas, hay cannons and condors, pop the clouds layer by layer, upgrade each crew down three paths to tier five, and face the Thunderheads. Eight painted maps, three difficulties, Dora or Enzo as your hero, and Burrow Lore between runs.',color:'#5bb7e8',art:'☁️'},
  {href:'/straits',title:'Little Red Dot: The Straits',tag:'NEW · SAILING ADVENTURE',blurb:'Sail a bumboat the size of a shoebox from Tiong Bahru to Pulau Ubin with a bale of hay. The Marina otters hold the strait: outrun their rafts, sink them with peanut volleys, or talk Captain Bishan round at his kelong. Dock at the islands to patch the hull, and mind the cats if you make trouble.',color:'#1c8fa0',art:'⛵'},
+ {href:'/jade-street',title:'Jade Street',tag:'NEW · OPEN-CITY CAPER',blurb:'The night before the Lantern Festival the Magpie Crew steal five lucky heirlooms. Dora and Enzo run, hop and ride scooters, trishaws, tuk-tuks, vans and canal boats across a lantern-lit harbour quarter: 25 story jobs, raccoon wardens and five lanterns of heat, night markets to trade between, lucky cats, murals and mini-games.',color:'#1f9a6a',art:'🏮'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">ONE HUNDRED AND FOUR ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>One hundred and four ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, one hundred and four cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">ONE HUNDRED AND FIVE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>One hundred and five ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, one hundred and five cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <ArcadeGrid games={GAMES}/>

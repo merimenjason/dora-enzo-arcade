@@ -5,7 +5,7 @@
 // Test hooks live on window.__jade.
 import { World, DT, NO_INPUT, type Input } from '@/lib/jade-game';
 import { Scene, loadArt } from '@/lib/jade-scene';
-import { city, T } from '@/lib/jade-city';
+import { city, T, districtAt } from '@/lib/jade-city';
 import { dailyEvent, dayKey, openDistricts, type Save } from '@/lib/jade-save';
 import { MISSION, MISSIONS } from '@/lib/jade-story';
 import type { JadeSound } from './sound';
@@ -136,6 +136,7 @@ export class Play {
       step: (n = 60, inp?: Partial<Input>) => { for (let i = 0; i < n; i++) this.w.step({ ...NO_INPUT, ...inp }, DT); },
       heat: (n: number) => { this.w.heat = n; },
       cash: (n: number) => { this.w.s.cash = n; },
+      district: (tx: number, ty: number) => districtAt(tx, ty),
     };
   }
 }

@@ -28,6 +28,10 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 **Working practice that held up this round:** build in a worktree off `origin/main` with `node_modules` symlinked; one agent per game, stopping at an open PR; review its contact sheet of screenshots before asking to merge. Stacked PRs: merge the child into its parent branch first, then the parent into `main`, which avoids a force-push (the auto-mode classifier blocks force-pushes and `git worktree remove`). Merge only when the user says "merge N".
 
+## Jade Street (14-11-2026)
+
+Game 105, `/jade-street`: a top-down open-city caper with 25 story jobs over five districts, heat, trading, rides and mini-games. Engine `lib/jade-*.ts` (one file per system, `lib/jade-game.ts` is the world), scene `lib/jade-scene.ts` (Canvas 2D: cached ground chunks, y-sorted painted sprites, code-drawn light and route lines), page `app/jade-street/` (React HUD and panels over the canvas). All art is painted by Codex; `scripts/jade-art.py` packs it into atlases and writes `lib/jade-art.ts`. Rules, numbers, tests and weak spots are in [`docs/jade-street.md`](docs/jade-street.md).
+
 ## Little Red Dot: The Straits (13-11-2026)
 
 Game 104, `/straits`: a first playable slice of a sailing adventure (one voyage, one conversation, five rafts, a boss, a bounty hunter, three jetties). Engine `lib/straits-game.ts`, scene `lib/straits-scene.ts`, page `app/straits/`. It is the first game to use `lib/chinchilla-3d.ts`, the furred Dora and Enzo ported from the playpen prototype. [`docs/straits.md`](docs/straits.md) lists what is missing: going ashore, more conversations, the macaques, wind, and balance from real play (only an autopilot and one browser run have played it). Sound was added the same day in `app/straits/sound.ts` and has not been listened to by anyone. On 14-11-2026 it gained wind and points of sail, separate port and starboard volleys with firing arcs, and two more conversations (Auntie Kera on Sentosa, Tok Tiong on St John's); the dock key moved from E to F.
