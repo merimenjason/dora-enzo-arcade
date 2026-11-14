@@ -1,21 +1,23 @@
-// Jade Street: the save (localStorage 'jade-street-v4'), its repair and migration, progression (districts opened by the
+// Jade Street: the save (localStorage 'jade-street-v5'), its repair and migration, progression (districts opened by the
 // story, reputation tiers, safe houses, outfits, garage upgrades and paint), trophies and the stats screen.
 // Version 1 saves (the pre-release shape: `money`, `done` as a comma string, one shared rep number) and version 2 saves
 // (the first release, 'jade-street-v2': no medals, story flags, lessons, messages or radio) and version 3 saves (the
-// second release: no businesses, no Reduce shake) migrate forward, keeping every bit of progress.
+// second release: no businesses, no Reduce shake) and version 4 saves (the third release: no gadgets) migrate
+// forward, keeping every bit of progress.
 import { DISTRICTS, type District } from './jade-city.js';
 import { emptyCargo, GOODS, type Cargo, type Tip } from './jade-trade.js';
 import { MISSIONS, CHAPTER_OPENS } from './jade-story.js';
 import { hashStr, rng } from './jade-rng.js';
 import { asDiff, type Diff } from './jade-diff.js';
 import { BIZ, newBiz, type BizState } from './jade-biz.js';
+import { newGear, giveGadget, clipOf, ammoCap, GEAR_GIFT, GADGET_IDS, type GearState, type GadgetId } from './jade-gear.js';
 
-export const SAVE_KEY = 'jade-street-v4';
-export const OLD_KEYS = ['jade-street-v3', 'jade-street-v2', 'jade-street-v1'];
-export const SAVE_VERSION = 4;
+export const SAVE_KEY = 'jade-street-v5';
+export const OLD_KEYS = ['jade-street-v4', 'jade-street-v3', 'jade-street-v2', 'jade-street-v1'];
+export const SAVE_VERSION = 5;
 export type Hero = 'dora' | 'enzo';
 export type Settings = { sound: boolean; music: boolean; assist: boolean; diff: Diff; touch: 'auto' | 'on' | 'off'; shake: boolean; calm: boolean };
-export type Stats = { walked: number; driven: number; boated: number; missions: number; gigs: number; trades: number; profit: number; caught: number; escapes: number; bumps: number; cats: number; murals: number; maxHeat: number; playTime: number; minis: number; bizCoins: number };
+export type Stats = { walked: number; driven: number; boated: number; missions: number; gigs: number; trades: number; profit: number; caught: number; escapes: number; bumps: number; cats: number; murals: number; maxHeat: number; playTime: number; minis: number; bizCoins: number; shots: number; tags: number; switches: number };
 export type Save = {
   v: number; seed: number; hero: Hero; started: boolean;
   cash: number; night: number; clock: number; cargo: Cargo; stash: Cargo;
@@ -39,6 +41,8 @@ export type Save = {
   helped: number;
   /** the businesses you own (lib/jade-biz.ts) and the quarter's takings for the last nights */
   biz: Record<string, BizState>; bizLog: number[];
+  /** the cartoon gadgets: owned, ammo, upgrades, who carries what (lib/jade-gear.ts) */
+  gear: GearState;
 };
 export type Medal = { m: number; t: number; plays: number };
 export type Msg = { id: number; from: string; text: string; night: number; read: boolean };
@@ -69,10 +73,10 @@ export function newSave(seed = 1): Save {
     upgrades: { speed: 0, grip: 0, cargo: 0 }, paint: 'red',
     outfits: { dora: ['classic'], enzo: ['classic'] }, outfit: { dora: 'classic', enzo: 'classic' },
     cats: [], murals: [], trophies: [], tips: [], safe: 'safe-market', best: {}, daily: '', dailyDone: [],
-    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0 },
+    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0 },
     settings: { sound: true, music: true, assist: true, diff: 'easy', touch: 'auto', shake: true, calm: false },
     medals: {}, story: { intro: false, ch: 0, ending: false }, learned: [], msgs: [], radio: 0, helped: 0,
-    biz: Object.fromEntries(BIZ.map(b => [b.id, newBiz()])), bizLog: [],
+    biz: Object.fromEntries(BIZ.map(b => [b.id, newBiz()])), bizLog: [], gear: newGear(),
   };
 }
 
@@ -88,6 +92,7 @@ export function loadSave(raw: string | null): Save {
   if ((o.v ?? 1) === 1) o = migrate1(o);
   if (o.v === 2) o = migrate2(o);
   if (o.v === 3) o = migrate3(o);
+  if (o.v === 4) o = migrate4(o);
   const s = newSave(Math.floor(num(o.seed, 1, 1, 2 ** 31)));
   s.hero = o.hero === 'enzo' ? 'enzo' : 'dora';
   s.started = o.started === true;
@@ -129,6 +134,7 @@ export function loadSave(raw: string | null): Save {
     const hist = Array.isArray(x.hist) ? (x.hist as unknown[]).filter((v): v is number => typeof v === 'number' && isFinite(v)).map(v => Math.max(0, Math.round(v))).slice(-10) : [];
     s.biz[b.id] = { lvl: Math.floor(num(x.lvl, 0, 0, 3)), bank: num(x.bank, 0, 0, 1e6), tonight: num(x.tonight, 0, 0, 1e6), hist, raids: Math.floor(num(x.raids, 0, 0, 1e6)), defended: Math.floor(num(x.defended, 0, 0, 1e6)) };
   }
+  s.gear = gearOf(o.gear, s);
   s.bizLog = Array.isArray(o.bizLog) ? (o.bizLog as unknown[]).filter((v): v is number => typeof v === 'number' && isFinite(v)).map(v => Math.max(0, Math.round(v))).slice(-10) : [];
   return s;
 }
@@ -141,6 +147,26 @@ function migrate2(o: Record<string, unknown>): Record<string, unknown> {
   const medals: Record<string, Medal> = {};
   for (const id of done) medals[id] = { m: 0, t: 0, plays: 1 };
   return { ...o, v: 3, medals, story: { intro: o.started === true, ch: o.started === true ? ch : 0, ending: done.includes('m25') }, learned: done.length ? [...LESSON_IDS] : [], msgs: [], radio: 0, helped: 0 };
+}
+/** version 4 (the third release): everything kept; the gadgets the story would have handed over are given, loaded */
+function migrate4(o: Record<string, unknown>): Record<string, unknown> {
+  const s = newSave(1); const done = Array.isArray(o.done) ? o.done as string[] : [];
+  for (const id of Object.keys(GEAR_GIFT)) if (done.includes(id)) for (const g of GEAR_GIFT[id]) giveGadget(s, g);
+  return { ...o, v: 5, gear: s.gear };
+}
+/** the gadget kit, repaired: known gadgets only, ammo and levels in range, each hero carrying at most two owned ones */
+function gearOf(v: unknown, s: Save): GearState {
+  const G = newGear(), o = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
+  G.own = strs(o.own, x => (GADGET_IDS as string[]).includes(x)) as GadgetId[];
+  const rec = (k: string) => (o[k] && typeof o[k] === 'object' ? o[k] : {}) as Record<string, unknown>;
+  for (const g of GADGET_IDS) { G.lvl[g] = Math.floor(num(rec('lvl')[g], 0, 0, 2)); }
+  const tmp = { ...s, gear: G };
+  for (const g of GADGET_IDS) { G.clip[g] = Math.floor(num(rec('clip')[g], 0, 0, clipOf(tmp, g))); G.ammo[g] = Math.floor(num(rec('ammo')[g], 0, 0, ammoCap(tmp, g))); }
+  const cr = rec('carry'), sl = rec('slot'), seen = new Set<string>();
+  for (const h of ['dora', 'enzo'] as Hero[]) { G.carry[h] = strs(cr[h], x => G.own.includes(x as GadgetId) && !seen.has(x)).slice(0, 2) as GadgetId[]; G.carry[h].forEach(x => seen.add(x)); G.slot[h] = Math.floor(num(sl[h], 0, 0, 1)); }
+  // an owned gadget nobody carries goes to a free hand
+  for (const g of G.own) if (!seen.has(g)) { const h = (['dora', 'enzo'] as Hero[]).find(h => G.carry[h].length < 2); if (h) { G.carry[h].push(g); seen.add(g); } }
+  return G;
 }
 /** version 3 (the second release): everything kept as it was; no business is owned yet, Reduce shake starts off */
 function migrate3(o: Record<string, unknown>): Record<string, unknown> {

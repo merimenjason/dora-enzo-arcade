@@ -2,7 +2,7 @@
 // shopkeepers, five chapters, each ending in a chase for one heirloom that clears the fog from the next district.
 // Missions are lists of steps the runner in lib/jade-mission.ts understands; `cp` marks a checkpoint (a failed step
 // restarts from the last one). Places are names from lib/jade-city.ts or [tileX, tileY] pairs. 'hero' in a line is
-// whoever you are playing (Dora or Enzo).
+// whoever you are playing (Dora or Enzo) and 'mate' is the other one, your partner.
 import type { District } from './jade-city.js';
 import type { VehicleKind } from './jade-move.js';
 import type { Good } from './jade-trade.js';
@@ -22,17 +22,34 @@ export type Step =
   | { t: 'pickup'; at: Spot; item: string; label: string; cp?: boolean }
   | { t: 'deliver'; to: Spot; time: number; label: string; item: string; fragile?: number; cp?: boolean }
   | { t: 'mini'; kind: MiniKind; level: number; label: string; cp?: boolean }
-  | { t: 'chase'; who: 'cart' | 'boat' | 'boss' | 'runner'; from: Spot; route: Spot[]; bumps: number; loot: string; label: string; speed: number; sets?: SetDef[]; phase?: 1 | 2; cp?: boolean }
-  | { t: 'float'; label: string; cp?: boolean }
+  /** `finish`: the last bump must be a double pounce (both heroes within a moment), the passenger's grab, or a net */
+  | { t: 'chase'; who: 'cart' | 'boat' | 'boss' | 'runner'; from: Spot; route: Spot[]; bumps: number; loot: string; label: string; speed: number; sets?: SetDef[]; phase?: 1 | 2; finish?: 'pounce' | 'snatch' | 'net'; cp?: boolean }
+  /** `rope`: the float only swings in under the flags while the partner hauls the bunting rope there */
+  | { t: 'float'; label: string; rope?: Spot; cp?: boolean }
   | { t: 'raid'; at: Spot; n: number; label: string; cp?: boolean }
-  | { t: 'tail'; from: Spot; route: Spot[]; label: string; cp?: boolean }
-  | { t: 'escort'; from: Spot; route: Spot[]; label: string; magpies: number; cp?: boolean }
-  | { t: 'race'; marks: Spot[]; label: string; rival?: 'runner' | 'scooter' | 'boat'; roof?: boolean; time?: number; ride?: VehicleKind | 'foot'; cp?: boolean }
-  | { t: 'stealth'; lookouts: Spot[][]; goal: Spot; exit: Spot; label: string; cp?: boolean }
-  | { t: 'collect'; items: Spot[]; item: string; time: number; label: string; cp?: boolean }
+  /** `relay`: from waypoint `at` on, the hero who started is easy for Pip to spot; the partner waits at `spot` */
+  | { t: 'tail'; from: Spot; route: Spot[]; label: string; relay?: { at: number; spot: Spot }; cp?: boolean }
+  /** `flanks`: magpies come in pairs from both sides and the partner guards the far flank */
+  | { t: 'escort'; from: Spot; route: Spot[]; label: string; magpies: number; flanks?: boolean; cp?: boolean }
+  /** `relay`: the marks from this one on count only for the partner waiting there (a hand-off) */
+  | { t: 'race'; marks: Spot[]; label: string; rival?: 'runner' | 'scooter' | 'boat'; roof?: boolean; time?: number; ride?: VehicleKind | 'foot'; relay?: number; cp?: boolean }
+  /** `shutter`: the goal's shutter is down unless the partner holds its lever there */
+  | { t: 'stealth'; lookouts: Spot[][]; goal: Spot; exit: Spot; label: string; shutter?: Spot; cp?: boolean }
+  /** `high`: up on balconies, reached only by the passenger's grab or a gadget; `watch`: a window lookout there */
+  | { t: 'collect'; items: Spot[]; item: string; time: number; label: string; high?: boolean; watch?: [number, number]; cp?: boolean }
   | { t: 'heat'; level: number; label: string; cp?: boolean }
   | { t: 'trade'; profit: number; label: string; time?: number; cp?: boolean }
-  | { t: 'fares'; n: number; label: string; cp?: boolean };
+  | { t: 'fares'; n: number; label: string; cp?: boolean }
+  /** the partner is sent somewhere (to wait, hold or guard); `wait` holds the job until they are there */
+  | { t: 'post'; at: Spot; mode?: 'post' | 'hold' | 'guard' | 'stay'; wait?: boolean; label: string; cp?: boolean }
+  /** take control of the other hero (Tab) */
+  | { t: 'switch'; label: string; cp?: boolean }
+  /** the partner holds the lever (F near it) while you go through the gate tiles it opens */
+  | { t: 'hold'; lever: Spot; gate: [number, number][]; through: Spot; r?: number; time?: number; label: string; cp?: boolean }
+  /** give the partner a boost onto the roof at boost spot `at` (lib/jade-tag.ts BOOSTS) */
+  | { t: 'boost'; at: number; label: string; cp?: boolean }
+  /** a magpie circles with a loot bag: knock it loose with a gadget, or pounce when it swoops low */
+  | { t: 'bag'; at: Spot; loot?: string; time?: number; label: string; cp?: boolean };
 export type MiniKind = 'lock' | 'wires' | 'wok' | 'dumpling' | 'haggle';
 export type Mission = { id: string; ch: number; title: string; giver: string; at: string; blurb: string; reward: number; rep: number; steps: Step[]; tip?: { market: District; good: Good; mult: number } };
 

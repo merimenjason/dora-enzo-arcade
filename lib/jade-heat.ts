@@ -9,7 +9,9 @@ import { los, downhill, nearestFree } from './jade-nav.js';
 import { dist, clamp } from './jade-rng.js';
 import type { World } from './jade-game.js';
 
-export type Warden = { id: number; b: Body; stun: number; leave: boolean; grab: number; pedal: number };
+export type Warden = { id: number; b: Body; stun: number; leave: boolean; grab: number; pedal: number;
+  /** hit by a gadget (how, for the painted pose, and for how long); staring at a dancing partner */
+  hitKind?: string; hitT?: number; stare?: number };
 export type Roadblock = { id: number; x: number; y: number; r: number; h: number; sprite: string; knocked: number };
 export const SIGHT = 520;
 
@@ -66,6 +68,7 @@ export function heatStep(w: World, dt: number) {
   const top = w.diff.warden + L * 12;
   for (const wd of w.wardens) {
     wd.pedal += dt;
+    if (wd.hitT) wd.hitT = Math.max(0, wd.hitT - dt); if (wd.stare) wd.stare = Math.max(0, wd.stare - dt);
     if (wd.stun > 0) { wd.stun -= dt; wd.b.speed *= 0.9; continue; }
     let gx: number, gy: number;
     if (wd.leave) { gx = wd.b.x + Math.cos(wd.b.h) * 200; gy = wd.b.y + Math.sin(wd.b.h) * 200; }
