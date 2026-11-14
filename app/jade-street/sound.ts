@@ -1,5 +1,5 @@
-// Jade Street sounds, all synthesised with WebAudio: a pentatonic night-market tune on a plucked "guzheng" voice over
-// a soft woodblock beat, a faster chase tune with a gong when the lanterns light or a chase starts, and short effects
+// Jade Street sounds, all synthesised with WebAudio: the music themes (street, market, chase, boss, festival, menu, with
+// crossfades) and the characters' babble voices live in music.ts; a gong when the lanterns light or a chase starts, and short effects
 // for every action (scooter putter on getting on, a whistle for wardens, coins, the lucky-cat chime, a wobble for the
 // cake, clicks and sparks for the mini-games). Silent until the first input; effects are rate-limited.
 // On a ride the street tune gives way to the ride radio (stations in radio.ts; the chase tune still wins when the
@@ -8,10 +8,12 @@
 // the Strip) plus rain hiss and drips during showers.
 import type { Fx } from '@/lib/jade-game';
 import { stationList, stationOf, OFF, type Station } from './radio';
+import { Music, syllable, voiceOf, type Theme } from './music';
 
 const mtof = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
-type Tune = 'street' | 'chase' | 'menu' | null;
-const TUNES: Record<Exclude<Tune, null>, { bpm: number; lead: number[]; bass: number[] }> = {
+type Tune = Theme | null;
+/** the old single-layer tunes are kept only as the menu fallback; the themes live in music.ts */
+const TUNES: Record<'street' | 'chase' | 'menu', { bpm: number; lead: number[]; bass: number[] }> = {
   // G major pentatonic, a gentle walking tune
   street: { bpm: 96, lead: [74, 0, 76, 79, 81, 0, 79, 76, 74, 0, 71, 0, 69, 71, 74, 0, 76, 0, 79, 76, 74, 71, 69, 0, 67, 0, 69, 71, 74, 0, 0, 0], bass: [43, 50, 40, 47, 45, 52, 38, 45] },
   chase: { bpm: 138, lead: [79, 81, 83, 0, 86, 83, 81, 79, 76, 0, 79, 81, 79, 76, 74, 0, 79, 81, 83, 86, 88, 86, 83, 81, 79, 0, 76, 74, 76, 0, 0, 0], bass: [43, 43, 50, 43, 40, 40, 47, 40] },
@@ -25,7 +27,7 @@ export class JadeSound {
   /** the ride the radio is in (null on foot), the station index, and what the scheduler is playing now */
   private radioKind: string | null = null; private radioIx = 0; private playing = '';
   private amb: GainNode | null = null; private beds: Record<string, GainNode> = {}; private rainG: GainNode | null = null;
-  private district = ''; private rain = 0;
+  private district = ''; private rain = 0; private music: Music | null = null;
 
   start() {
     if (this.ctx) { if (this.ctx.state === 'suspended') void this.ctx.resume(); return; }
@@ -39,12 +41,15 @@ export class JadeSound {
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
       this.noise = b;
       this.amb = C.createGain(); this.amb.gain.value = this.sfxOn ? 1 : 0; this.amb.connect(this.out);
+      this.music = new Music(C, this.mus, b);
       this.timer = window.setInterval(() => { this.schedule(); this.ambientTick(); }, 60);
     } catch { this.ctx = null; }
   }
-  stop() { if (this.timer !== null) clearInterval(this.timer); this.timer = null; void this.ctx?.close(); this.ctx = null; this.amb = null; this.rainG = null; this.beds = {}; this.playing = ''; }
+  stop() { if (this.timer !== null) clearInterval(this.timer); this.timer = null; void this.ctx?.close(); this.ctx = null; this.music = null; this.amb = null; this.rainG = null; this.beds = {}; this.playing = ''; }
   setMusic(on: boolean) { this.musicOn = on; if (this.mus && this.ctx) this.mus.gain.setTargetAtTime(on ? 0.075 : 0, this.ctx.currentTime, 0.2); }
-  play(t: Tune) { if (t === this.tune) return; this.tune = t; this.n = 0; if (this.ctx) this.next = this.ctx.currentTime + 0.15; if (t === 'chase') this.gong(); }
+  play(t: Tune) { if (t === this.tune) return; this.tune = t; this.n = 0; if (this.ctx) this.next = this.ctx.currentTime + 0.15; if (t === 'chase' || t === 'boss') this.gong(); }
+  /** one syllable of a character's babble while their line types out */
+  blip(who: string, k: number, mood = 'calm') { if (!this.ctx || !this.sfxOn || !this.noise) return; syllable(this.ctx, this.out!, this.noise, voiceOf(who), k, mood); }
 
   // ── the ride radio
   /** the station names for a ride kind ('boat' has its own), "Radio off" last */
@@ -71,9 +76,10 @@ export class JadeSound {
     const off = this.tune === 'street' && this.radioKind && !this.onAir();
     const key = off ? 'off' : st ? 'radio:' + st.name : this.tune;
     if (key !== this.playing) { this.playing = key; this.n = 0; this.next = Math.max(this.next, C.currentTime + 0.15); }
-    if (off) { this.next = C.currentTime; return; }
-    if (st) { this.scheduleRadio(st); return; }
-    const T = TUNES[this.tune], step = 60 / T.bpm / 2;
+    if (off) { this.music?.hush(); this.music?.schedule(); this.next = C.currentTime; return; }
+    if (st) { this.music?.hush(); this.music?.schedule(); this.scheduleRadio(st); return; }
+    if (this.music) { this.music.set(this.tune); this.music.schedule(); return; }
+    const T = TUNES[this.tune === 'chase' || this.tune === 'boss' ? 'chase' : this.tune === 'menu' ? 'menu' : 'street'], step = 60 / T.bpm / 2;
     while (this.next < C.currentTime + 0.3) {
       const i = this.n % T.lead.length, m = T.lead[i];
       if (m) this.pluck(mtof(m), this.next, step * 2.4, this.mus);
@@ -256,6 +262,10 @@ export class JadeSound {
   slurp() { if (!this.ok('slurp', 0.6)) return; const t = this.t; this.burst(t, 0.3, 1200, 2, 0.1); this.tone(300, t, 0.3, 'sine', 0.06, this.out!, 2.2); }
   firework() { if (!this.ok('firework', 0.15)) return; const t = this.t; this.tone(900, t, 0.5, 'sine', 0.04, this.out!, 2.2); this.burst(t + 0.5, 0.5, 600, 0.5, 0.3); this.tone(80, t + 0.5, 0.3, 'sine', 0.2, this.out!, 0.5); this.burst(t + 0.6, 0.6, 5000, 0.4, 0.06); }
   medal(k = 1) { if (!this.ctx) return; const t = this.t; const n = [79, 84, 88, 91].slice(0, 1 + Math.max(1, Math.min(3, k))); n.forEach((m, i) => this.pluck(mtof(m), t + i * 0.12, 0.9, this.out!, 0.3)); if (k >= 3) this.tone(mtof(96), t + 0.5, 1.2, 'sine', 0.08, this.out!); }
+  ding() { if (!this.ok('ding', 0.3)) return; const t = this.t; this.tone(1320, t, 0.6, 'sine', 0.12, this.out!); this.tone(1980, t, 0.4, 'sine', 0.05, this.out!); }
+  rumble() { if (!this.ok('rumble', 0.6)) return; const t = this.t; this.burst(t, 0.6, 160, 0.5, 0.3); this.tone(60, t, 0.6, 'sine', 0.25, this.out!, 0.8); }
+  alarm() { if (!this.ok('alarm', 0.4)) return; const t = this.t; this.tone(880, t, 0.12, 'square', 0.05, this.out!); this.tone(660, t + 0.14, 0.12, 'square', 0.05, this.out!); }
+  skid() { if (!this.ok('skid', 0.3)) return; this.burst(this.t, 0.22, 3000, 1.5, 0.12); }
   lesson() { if (!this.ok('lesson', 0.5)) return; this.tone(mtof(86), this.t, 0.08, 'sine', 0.08, this.out!); }
 
   /** play the world's events */
@@ -301,6 +311,20 @@ export class JadeSound {
       case 'hide': case 'unhide': this.thud(); break;
       case 'look': this.bad(); break;
       case 'chase': this.gong(); break;
+      case 'impact': this.bump(Math.min(1, (f.k ?? 0.6) + 0.2)); break;
+      case 'smash': this.bump(1); this.burst(this.t, 0.3, 1800, 0.6, 0.25); break;
+      case 'warn': this.bad(); break;
+      case 'bell': this.ding(); break;
+      case 'rumble': case 'creak': this.rumble(); break;
+      case 'alarm': case 'flicker': this.alarm(); break;
+      case 'clang': this.clank(); this.bump(0.6); break;
+      case 'poof': case 'decoy': this.caw(); break;
+      case 'leap': this.whoosh(); break;
+      case 'land': if ((f.k ?? 0) >= 0.5) this.thud(); break;
+      case 'boss-down': case 'loot': this.gong(); this.chime(); break;
+      case 'float-go': this.gong(); break;
+      case 'coins': case 'biz-buy': case 'biz-up': this.coins(); this.good(); break;
+      case 'skid': this.skid(); break;
     }
   }
   /** mini-game events */

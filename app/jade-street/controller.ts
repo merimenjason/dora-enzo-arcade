@@ -2,7 +2,8 @@
 // 60 Hz step and the draw on requestAnimationFrame, turns keyboard, touch stick and buttons into the engine's Input,
 // plays the world's events through the sound, and tells the React HUD when something it shows has changed (at most
 // ten times a second, or at once when a panel, dialogue or failure opens). The world is never re-rendered by React.
-// Test hooks live on window.__jade.
+// Lines of dialogue type out with each speaker's babble voice (Space, E or a tap shows the whole line, then moves on).
+// Hit-stop and slow motion scale the time fed to the fixed step (lib/jade-juice.ts). Test hooks live on window.__jade.
 import { World, DT, NO_INPUT, type Input } from '@/lib/jade-game';
 import { Scene, loadArt, artLoaded } from '@/lib/jade-scene';
 import { spawn, EVENT_KINDS, type EventKind } from '@/lib/jade-events';
@@ -11,6 +12,8 @@ import { city, T, districtAt } from '@/lib/jade-city';
 import { dailyEvent, dayKey, openDistricts, chapterOf, type Save } from '@/lib/jade-save';
 import { MISSION, MISSIONS } from '@/lib/jade-story';
 import type { JadeSound } from './sound';
+import type { Theme } from './music';
+import { BIZ_IDS, BIZ_OF, raidMission, type BizId } from '@/lib/jade-biz';
 
 export type Toast = { id: number; msg: string; kind: string; t: number };
 export class Play {
@@ -22,6 +25,8 @@ export class Play {
   saveT = 0; ro: ResizeObserver | null = null; ambT = 0;
   /** the page shows the ending a moment after the last job is done */
   endingT = 0; onEnding: (() => void) | null = null;
+  /** the typewriter: characters of the current line shown so far, the line it belongs to, and the element it fills */
+  typed = 0; typeKey = ''; typeEl: HTMLElement | null = null; reduced = false;
   constructor(public cv: HTMLCanvasElement, public save: Save, public snd: JadeSound | null, public onChange: () => void, public persist: (s: Save) => void) {
     this.w = new World(save);
     this.w.event = dailyEvent(dayKey(new Date()));
@@ -33,6 +38,7 @@ export class Play {
     if (host && typeof ResizeObserver !== 'undefined') { this.ro = new ResizeObserver(() => this.resize()); this.ro.observe(host); }
     window.addEventListener('keydown', this.kd); window.addEventListener('keyup', this.ku); window.addEventListener('blur', this.blur);
     document.addEventListener('visibilitychange', this.vis);
+    this.reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.raf = requestAnimationFrame(this.frame);
     this.hooks();
   }
@@ -78,7 +84,27 @@ export class Play {
     if (this.stick.on) { mx = this.stick.x; my = this.stick.y; }
     return { mx, my, sneak: k.has('Shift') || this.touchSneak, dash: this.pend.dash, hop: this.pend.hop, act: this.pend.act };
   }
-  advance() { if (!this.w.talk) return; this.w.advanceTalk(); this.snd?.talk(this.w.talk?.i ?? 0); this.bump(); }
+  /** the current line of dialogue: who, the words, the mood */
+  line(): [string, string, string] | null { const t = this.w.talk; if (!t) return null; const l = t.lines[t.i]; return l ? [l[0], l[1], l[2] ?? 'calm'] : null; }
+  /** Space, E or a tap: show the whole line if it is still typing, otherwise the next line */
+  advance() {
+    if (!this.w.talk) return;
+    const l = this.line(); if (l && this.typed < l[1].length) { this.typed = l[1].length; this.fill(); this.bump(); return; }
+    this.w.advanceTalk(); this.snd?.talk(this.w.talk?.i ?? 0); this.bump();
+  }
+  fill() { const l = this.line(); if (this.typeEl && l) this.typeEl.textContent = l[1].slice(0, Math.floor(this.typed)); }
+  /** type out the line, one babble syllable every other letter */
+  typeStep(dt: number) {
+    const l = this.line(); if (!l) { this.typeKey = ''; return; }
+    const key = `${this.w.talk!.i}|${l[1]}`;
+    if (key !== this.typeKey) { this.typeKey = key; this.typed = 0; }
+    if (this.typed >= l[1].length) return;
+    const before = Math.floor(this.typed); this.typed = Math.min(l[1].length, this.typed + dt * (this.reduced ? 90 : 48));
+    const now = Math.floor(this.typed);
+    for (let i = before; i < now; i++) if (i % 2 === 0 && /[A-Za-z]/.test(l[1][i])) this.snd?.blip(l[0], i + l[1].length, l[2]);
+    this.fill();
+    if (now >= l[1].length) this.bump();
+  }
   press(b: 'dash' | 'hop' | 'act') { if (b === 'act' && this.w.talk) { this.advance(); return; } this.pend[b] = true; }
   bump() { this.ver++; this.onChange(); }
 
@@ -89,8 +115,10 @@ export class Play {
     this.frames++; this.fpsT += dt;
     if (this.fpsT >= 0.5) { this.fps = this.frames / this.fpsT; this.fpsLog.push(this.fps); if (this.fpsLog.length > 600) this.fpsLog.shift(); this.frames = 0; this.fpsT = 0; }
     const w = this.w;
+    const st = w.s.settings; this.scene.juice.opt = { shake: st.shake, calm: st.calm, reduced: this.reduced };
+    this.typeStep(dt);
     if (!this.paused) {
-      this.acc += dt;
+      this.acc += dt * this.scene.juice.rate();
       let n = 0;
       while (this.acc >= DT && n < 6) {
         const inp = this.input();
@@ -109,8 +137,7 @@ export class Play {
     if (key !== this.lastKey || this.notifyT <= 0) { this.lastKey = key; this.notifyT = 0.1; this.bump(); }
     this.saveT += dt; if (this.saveT > 5) { this.saveT = 0; this.persist(w.s); }
     // music follows the action
-    const chase = w.heat >= 1 || (w.run && ['chase', 'race', 'escort'].includes(w.run.cur?.t ?? ''));
-    this.snd?.play(chase ? 'chase' : 'street');
+    this.snd?.play(this.theme());
     this.snd?.radio(w.p.ride?.kind ?? null);
     this.ambT -= dt; if (this.ambT <= 0) { this.ambT = 1; this.snd?.ambient(districtAt(Math.floor(w.p.x / T), Math.floor(w.p.y / T)), w.rain); }
     if (this.endingT > 0 && !this.paused) { this.endingT -= dt; if (this.endingT <= 0) this.onEnding?.(); }
@@ -129,6 +156,16 @@ export class Play {
       if (f.t === 'mission-done' && this.w.lastMedal) { const m = this.w.lastMedal; this.snd?.fx([{ t: 'medal', k: m.medal }]); if (m.best && m.medal) this.toast(`New best medal: ${['', 'bronze', 'silver', 'gold'][m.medal]}!`, 'gold'); }
       if (f.t === 'mission-done' || f.t === 'district' || f.t === 'trophy') this.persist(this.w.s);
     }
+  }
+  /** which music theme fits the moment: Glint's finale, a chase or race, the festival, a market, or the street */
+  theme(): Theme {
+    const w = this.w, t = w.run?.cur?.t ?? '';
+    if (w.run?.m.id === 'm25' && (t === 'chase' || t === 'float')) return 'boss';
+    if (w.heat >= 1 || ['chase', 'race', 'escort', 'raid'].includes(t)) return 'chase';
+    if (w.festival && !w.run) return 'festival';
+    if (w.ui?.kind === 'market' || w.ui?.kind === 'biz') return 'market';
+    for (const pl of Object.values(w.c.places)) if (pl.kind === 'market' && Math.hypot(pl.x - w.p.x, pl.y - w.p.y) < 6 * T) return 'market';
+    return 'street';
   }
   toast(msg: string, kind = '') { this.toasts.push({ id: this.tid++, msg, kind, t: 3.2 }); if (this.toasts.length > 3) this.toasts.shift(); }
 
@@ -165,6 +202,20 @@ export class Play {
       finishAll: () => { this.w.s.done = MISSIONS.map(m => m.id); this.w.open = new Set(openDistricts(this.w.s)); this.w.fieldCache.clear(); this.scene.map = null; },
       medals: () => ({ ...this.w.s.medals }),
       lights: () => this.w.time,
+      /** the third pass: set pieces, Glint's phases, the float, businesses, raids, voices and game feel */
+      sets: () => this.w.run ? this.w.run.sets.map(s => ({ k: s.def.k, ph: s.ph, down: s.down, swing: s.swing, rubble: s.rubble.length, drums: s.drums.length })) : [],
+      fireSets: () => { const r = this.w.run; if (!r) return 0; const s0 = r.sets.find(s => s.ph === 'wait') ?? r.sets[0]; for (const s of r.sets) if (s.ph === 'wait') { const a = r.actors[0]; if (a) { a.wp = Math.max(a.wp, s.def.wp); a.b.x = s.x; a.b.y = s.y + 1.6 * T; a.stun = 3; } } if (s0) { const [x, y] = nearestFree(this.w.c, this.w.p.ride ? 'small' : 'walk', s0.x - 3 * T, s0.y - 2 * T, this.w.open, 6); this.w.placePlayer(x, y); if (this.w.p.ride) { this.w.p.ride.b.x = x; this.w.p.ride.b.y = y; } } return r.sets.length; },
+      /** jump to a job and start it, dialogue skipped */
+      start: (id: string) => { (g.__jade as { jumpTo: (id: string) => void }).jumpTo(id); this.w.startMission(MISSION[id]); this.w.talk = null; this.bump(); return this.w.run?.m.id ?? null; },
+      stepOf: (t: string, k?: string) => this.w.run ? this.w.run.m.steps.findIndex(st => st.t === t && (!k || (k === 'sets' ? 'sets' in st && !!st.sets : 'phase' in st && String(st.phase) === k))) : -1,
+      enterStep: (i: number) => { const r = this.w.run; if (!r) return null; this.w.talk = null; r.snap = r.snapshot(i); r.enter(i); return r.cur?.t ?? null; },
+      run: () => { const r = this.w.run; return r ? { id: r.m.id, i: r.i, t: r.cur?.t, phase: r.cur && 'phase' in r.cur ? r.cur.phase ?? 0 : 0, meter: r.meter, meter2: r.meter2, warning: r.warning?.text ?? null, signs: r.signs.length, decoys: r.actors.filter(a => a.kind === 'decoy' && !a.gone).length, float: r.float ? { x: r.float.x / T, moving: r.float.moving, done: r.float.done } : null, actors: r.actors.length, timer: r.timer } : null; },
+      biz: () => Object.fromEntries(BIZ_IDS.map(id => [id, { ...this.w.s.biz[id] }])),
+      bizLog: () => this.w.s.bizLog.slice(),
+      raid: (id: BizId) => { this.w.quitJob(); this.w.startMission(raidMission(this.w, id), { key: 'raid:' + id, reward: 40, d: BIZ_OF[id].d }); this.w.talk = null; return this.w.run?.cur?.t ?? null; },
+      typed: () => ({ typed: Math.floor(this.typed), len: this.line()?.[1].length ?? 0, mood: this.line()?.[2] ?? null, who: this.line()?.[0] ?? null }),
+      juice: () => { const j = this.scene.juice; return { debris: j.debris.length, pops: j.pops.length, trauma: j.trauma, slow: j.slow, stop: j.stop, opt: { ...j.opt } }; },
+      theme: () => this.theme(),
     };
   }
 }

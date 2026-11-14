@@ -1,7 +1,7 @@
 'use client';
 // Jade Street panels: the market stall (the painted counter and its keeper, prices, cargo, tips and the haggle
 // needle), the safe house (jacket swap, sleep, stash, wardrobe, switching heroes, buying the house), the garage
-// (upgrades and paint), and the pause menu with the jobs book, story, controls, settings, trophies and stats.
+// (upgrades and paint), and the pause menu with the jobs book, story, businesses, controls, settings, trophies and stats.
 // The map is in ./map.tsx.
 import { useEffect, useRef, useState } from 'react';
 import { GOODS, GOOD, cargoCount, haggleZone, haggleResult, needle, bestRoute, type Good } from '@/lib/jade-trade';
@@ -15,6 +15,7 @@ import { Sprite, Icon, Btn, fmt, GOOD_ICON, ART } from './ui';
 import type { JadeSound } from './sound';
 import { JobsBook, Controls } from './extras';
 import { learn } from '@/lib/jade-tutor';
+import { BizPage, CollectAll } from './biz';
 
 const dName = (d: District) => DISTRICT_NAME[d].replace(/^the /, 'The ');
 export const MARKET_NAME: Record<District, string> = { market: 'Night Market', temple: 'Temple Hill Bazaar', canal: 'Floating Market', docks: 'Harbour Market', arcade: 'Neon Market' };
@@ -131,6 +132,7 @@ export function SafeHouse({ play, id, snd, onClose, onSave }: { play: Play; id: 
         <section>
           <h3>Lie low</h3>
           <Btn kind="jade" testid="swap" onClick={() => { w.swapJacket(); done(null, L ? 'New jacket, new you. The wardens lose the trail.' : 'Fresh jacket on. You were not in trouble anyway!'); onClose(); }}><Icon name="i-jacket" size={22} /> Swap jackets{L ? ` (clear ${L} lantern${L > 1 ? 's' : ''})` : ''}</Btn>
+          <CollectAll play={play} onDone={m => done(null, m)} />
           <Btn kind="plain" testid="sleep" disabled={!!w.run} onClick={() => { w.sleep(); done(null, `Good morning! It is night ${s.night} and the markets have new prices.`); onClose(); }}>Sleep till next night</Btn>
           <p className="small">Saved: your progress saves on its own whenever you finish a job, and every few seconds.</p>
         </section>
@@ -210,7 +212,7 @@ export function Garage({ play, snd, onClose, onSave }: { play: Play; snd: JadeSo
 }
 
 // ── pause menu
-type Tab = 'menu' | 'settings' | 'trophies' | 'stats' | 'story' | 'jobs' | 'controls';
+type Tab = 'menu' | 'settings' | 'trophies' | 'stats' | 'story' | 'jobs' | 'controls' | 'businesses';
 export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, touch }: { play: Play; onClose: () => void; onQuit: () => void; onNew: () => void; onSave: () => void; snd: JadeSound | null; onReplay: (id: string) => void; touch: boolean }) {
   const [tab, setTab] = useState<Tab>('menu'); const [confirm, setConfirm] = useState(false); const [, force] = useState(0);
   const s = play.w.s;
@@ -223,6 +225,7 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
           <Btn kind="jade" testid="resume" onClick={onClose}>Resume</Btn>
           <Btn kind="plain" testid="tab-jobs" onClick={() => setTab('jobs')}>Jobs book</Btn>
           <Btn kind="plain" testid="tab-story" onClick={() => setTab('story')}>Story</Btn>
+          <Btn kind="plain" testid="tab-biz" onClick={() => setTab('businesses')}>Businesses</Btn>
           <Btn kind="plain" testid="tab-controls" onClick={() => setTab('controls')}>Controls</Btn>
           <Btn kind="plain" testid="tab-settings" onClick={() => setTab('settings')}>Settings</Btn>
           <Btn kind="plain" testid="tab-trophies" onClick={() => setTab('trophies')}>Trophies ({s.trophies.length}/{TROPHIES.length})</Btn>
@@ -244,7 +247,8 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
           <label>Difficulty <select data-testid="set-diff" value={s.settings.diff} onChange={e => set(x => { x.diff = e.target.value as 'easy' | 'normal' | 'hard'; })}><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>
           <label><input type="checkbox" data-testid="set-sound" checked={s.settings.sound} onChange={e => set(x => { x.sound = e.target.checked; })} /> Sound effects</label>
           <label><input type="checkbox" data-testid="set-music" checked={s.settings.music} onChange={e => set(x => { x.music = e.target.checked; })} /> Music</label>
-          <label><input type="checkbox" checked={s.settings.shake} onChange={e => set(x => { x.shake = e.target.checked; })} /> Screen shake</label>
+          <label><input type="checkbox" data-testid="set-shake" checked={s.settings.shake} onChange={e => set(x => { x.shake = e.target.checked; })} /> Screen shake</label>
+          <label><input type="checkbox" data-testid="set-calm" checked={s.settings.calm} onChange={e => set(x => { x.calm = e.target.checked; })} /> Reduce shake: gentler shake, no flashes, short slow motion</label>
           <label>Touch controls <select data-testid="set-touch" value={s.settings.touch} onChange={e => set(x => { x.touch = e.target.value as 'auto' | 'on' | 'off'; })}><option value="auto">Automatic</option><option value="on">Always</option><option value="off">Never</option></select></label>
           <p className="small">Keys: WASD or arrows move · Shift sneak · Space dash (boost on a ride) · Q hop (honk on a ride) · E action · M map · Esc pause.</p>
         </div>
@@ -266,6 +270,7 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
         </dl>
       )}
       {tab === 'jobs' && <JobsBook play={play} onReplay={onReplay} />}
+      {tab === 'businesses' && <BizPage play={play} />}
       {tab === 'controls' && <Controls touch={touch} />}
       {tab === 'story' && (
         <div className="jade-story" data-testid="story">

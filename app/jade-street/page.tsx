@@ -10,6 +10,7 @@ import { Play } from './controller';
 import { JadeSound } from './sound';
 import { TopHud, Toasts, Prompt, Dialogue, FailCard, TouchControls, KeyHelp } from './hud';
 import { Market, SafeHouse, Garage, Pause } from './panels';
+import { BizPanel } from './biz';
 import { PaintedMap } from './map';
 import { Storybook, ChapterCard, Ending, Credits } from './story';
 import { Loader, Hint, PhoneHud, PhoneView, RadioHud, switchStation } from './extras';
@@ -172,6 +173,7 @@ export default function JadeStreetPage() {
               {w.ui?.kind === 'market' && <Market play={play} d={w.ui.d} snd={sndRef.current} onClose={closeUi} />}
               {w.ui?.kind === 'safe' && <SafeHouse play={play} id={w.ui.id} snd={sndRef.current} onClose={closeUi} onSave={() => persist(w.s)} />}
               {w.ui?.kind === 'garage' && <Garage play={play} snd={sndRef.current} onClose={closeUi} onSave={() => persist(w.s)} />}
+              {w.ui?.kind === 'biz' && <BizPanel play={play} id={w.ui.id} snd={sndRef.current} onClose={closeUi} onSave={() => persist(w.s)} />}
               {w.ui?.kind === 'mini' && <MiniGame key={`${w.ui.mini}-${w.s.stats.minis}`} kind={w.ui.mini} level={w.ui.level} assist={w.assist} seed={w.s.seed + w.s.stats.minis * 7 + w.tick} snd={sndRef.current} onDone={ok => { w.miniDone(ok); persist(w.s); play.bump(); }} />}
               {mapOpen && <PaintedMap play={play} onClose={resume} />}
               {phone && <PhoneView play={play} onClose={resume} />}
