@@ -227,6 +227,21 @@ for f, who in (('expr1', ('kee', 'pang', 'mo', 'heron')), ('expr2', ('kiri', 'bo
     fit(f, [f'face-{w}-{m}' for w in who for m in ('happy', 'worried', 'cross', 'smug')], 4, 4, 256, lo=95)
 fit('expr4', [f'face-{w}-{m}' for w in ('dora', 'enzo') for m in ('happy', 'worried', 'cross', 'smug')], 4, 2, 256)
 
+# ── fourth batch (docs/jade-street-art/jobs4.py): both heroes together (tag-team poses and the passenger's seat), the
+# six cartoon gadgets (fire poses, the toys, their shots and impacts), the props the duo works with, Tock and his stall
+for h in ('dora', 'enzo'):
+    fx = cream if h == 'dora' else None
+    grid(f'{h}-act6', [f'{h}-boost-give', f'{h}-boost-rise', f'{h}-hold-0', f'{h}-hold-1', f'{h}-haul-0', f'{h}-haul-1', f'{h}-distract-0', f'{h}-distract-1', f'{h}-pounce-side', f'{h}-pounce-down', f'{h}-snatch', f'{h}-reload'], 4, 3, 58, ref=f'{h}-reload', fix=fx)
+    grid(f'{h}-fire', [f'{h}-fire-{g}-{d}' for d in ('side',) for g in ('sling', 'paint', 'popper', 'net', 'bubble', 'confetti')] + [f'{h}-fire-{g}-down' for g in ('sling', 'paint', 'popper', 'net', 'bubble', 'confetti')], 4, 3, 60, ref=f'{h}-fire-paint-down', fix=fx)
+    grid(f'{h}-ride2', [f'{h}-pass-0', f'{h}-pass-1', f'{h}-pass-grab', f'{h}-pass-aim', f'{h}-pass-sit', f'{h}-pass-cheer', f'{h}-pass-wave', f'{h}-pass-duck'], 4, 2, 46, fix=fx)
+each('gear', ['g-sling', 'g-paint', 'g-popper', 'g-net', 'g-bubble', 'g-confetti', 'crate-shut', 'crate-open', 'shot-sling', 'shot-paint', 'shot-popper', 'shot-net', 'shot-bubble', 'shot-confetti', 'net-open', 'satchel'], 4, 4,
+     {'g-sling': 40, 'g-paint': 40, 'g-popper': 40, 'g-net': 44, 'g-bubble': 40, 'g-confetti': 44, 'crate-shut': 46, 'crate-open': 46, 'shot-sling': 16, 'shot-paint': 30, 'shot-popper': 26, 'shot-net': 24, 'shot-bubble': 26, 'shot-confetti': 30, 'net-open': 84, 'satchel': 34})
+each('splat', ['sp-rice', 'sp-pink', 'sp-teal', 'sp-pop', 'sp-net', 'sp-bubble', 'sp-puddle', 'sp-confetti', 'mag-netted', 'cart-netted', 'warden-slip', 'warden-paint', 'warden-dazed', 'mag-drop', 'awning-splat', 'glint-netted'], 4, 4,
+     {'sp-rice': 40, 'sp-pink': 70, 'sp-teal': 70, 'sp-pop': 96, 'sp-net': 70, 'sp-bubble': 64, 'sp-puddle': 100, 'sp-confetti': 110, 'mag-netted': 62, 'cart-netted': 70, 'warden-slip': 66, 'warden-paint': 62, 'warden-dazed': 62, 'mag-drop': 60, 'awning-splat': 120, 'glint-netted': 72})
+each('tag', ['lever-up', 'lever-down', 'sluice-shut', 'sluice-open', 'shutter-shut', 'shutter-open', 'pulley', 'boost-spot', 'window-lookout', 'window-paint', 'loot-bag', 'gadget-stall'], 4, 3,
+     {'lever-up': 52, 'lever-down': 52, 'sluice-shut': 128, 'sluice-open': 128, 'shutter-shut': 112, 'shutter-open': 112, 'pulley': 60, 'boost-spot': 90, 'window-lookout': 96, 'window-paint': 96, 'loot-bag': 34, 'gadget-stall': 134})
+fit('tock', ['face-tock', 'face-tock-happy', 'face-tock-worried', 'face-tock-cross', 'face-tock-smug', 'face-tock-surprised'], 3, 2, 256)
+
 # ── seamless ground textures: crop each square, then blend it with its half-offset copy so the edges wrap
 TEX = {}
 def seamless(arr):
@@ -254,7 +269,7 @@ for f, names in (('ground', ['road', 'walk', 'plaza', 'grass', 'canal', 'plank']
 
 # ── full paintings
 PLAIN = {}
-BIG = ['loading'] + [f'stall-{d}' for d in ('market', 'temple', 'canal', 'docks', 'arcade')] + [f'story-{i}' for i in range(1, 5)] + [f'chapter-{i}' for i in range(1, 6)] + [f'end-{i}' for i in range(1, 4)]
+BIG = ['loading'] + [f'stall-{d}' for d in ('market', 'temple', 'canal', 'docks', 'arcade')] + [f'story-{i}' for i in range(1, 5)] + [f'chapter-{i}' for i in range(1, 6)] + [f'end-{i}' for i in range(1, 4)] + ['gadget-shop']
 for n, size in (('title', (1536, 1024)), ('mg-lock', (1280, 853)), ('mg-wire', (1280, 853)), ('mg-wok', (1280, 853)), ('mg-board', (1280, 853)), ('mg-haggle', (1280, 853)), ('map-paper', (1024, 683))) + tuple((b, (1280, 853)) for b in BIG):
     p = SRC / f'{n}.png'
     if not p.exists(): MISSING.append(n); continue
@@ -283,6 +298,7 @@ GROUPS = [('dora', lambda n: n.startswith('dora-')), ('enzo', lambda n: n.starts
           ('city2', lambda n: n in NEW_BLD), ('land', lambda n: n.startswith('lm2-')),
           ('city', lambda n: n.startswith(('shop-', 'roof-', 'flat-', 'bld-', 'lm-'))),
           ('rides', lambda n: n.startswith(('v-', 'car-', 'mag-cart', 'mag-boat', 'boss-', 'warden-bike'))),
+          ('gear', lambda n: n.startswith(('g-', 'crate-', 'shot-', 'net-open', 'satchel', 'sp-', 'mag-netted', 'cart-netted', 'warden-slip', 'warden-paint', 'warden-dazed', 'mag-drop', 'awning-splat', 'glint-netted', 'lever-', 'sluice-', 'shutter-', 'pulley', 'boost-spot', 'window-', 'loot-bag', 'gadget-stall'))),
           ('faces', lambda n: n.startswith('face-') and n.count('-') >= 2 and n.split('-')[-1] in ('happy', 'worried', 'cross', 'smug')),
           ('set', lambda n: n.startswith(('stall-smash', 'drum-', 'warn-bell', 'bridge-', 'crane-load', 'gate-', 'neon-', 'float', 'decoy-', 'bunting', 'ramp', 'db-', 'glint-', 'biz-'))),
           ('folk', lambda n: n.startswith(('folk-', 'mag-', 'warden-', 'blimp', 'block-', 'cone', 'face-'))),
