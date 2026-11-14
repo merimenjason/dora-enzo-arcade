@@ -228,18 +228,18 @@ test('two players: P2 steers the partner, the leash keeps both on one screen, an
 });
 
 test('save v5: v2, v3 and v4 saves migrate, with the gadgets the story gave by then', () => {
-  assert.equal(SAVE_VERSION, 5);
+  assert.equal(SAVE_VERSION, 6);
   const v3 = JSON.parse(readFileSync(new URL('./fixtures/jade-save-v3.json', import.meta.url), 'utf8'));
-  const s3 = loadSave(JSON.stringify(v3)); assert.equal(s3.v, 5);
+  const s3 = loadSave(JSON.stringify(v3)); assert.equal(s3.v, 6);
   const want = v3.done.flatMap(d => GEAR_GIFT[d] ?? []);
   assert.deepEqual([...s3.gear.own].sort(), [...want].sort(), 'v3: the gifts of every done job');
   const live2 = { v: 2, seed: 77, hero: 'enzo', cash: 640, night: 6, clock: 120, started: true, done: MISSIONS.slice(0, 17).map(m => m.id), cats: [], murals: [], rep: { market: 30, temple: 8, canal: 0, docks: 0, arcade: 0 },
     cargo: { jade: 0, mooncake: 0, tea: 0, bowl: 0, fan: 0, mango: 0 }, stash: {}, upgrades: { speed: 0, cargo: 0, grip: 0 }, paint: 'red', outfit: { dora: 'classic', enzo: 'classic' }, safes: [], trophies: [], tips: [], dailyDone: [],
     stats: { missions: 17 }, settings: { diff: 'normal', assist: true, sound: true, music: true, touch: 'auto' } };
-  const s2 = loadSave(JSON.stringify(live2)); assert.equal(s2.v, 5); assert.deepEqual([...s2.gear.own].sort(), ['bubble', 'net', 'paint', 'popper', 'sling']);
+  const s2 = loadSave(JSON.stringify(live2)); assert.equal(s2.v, 6); assert.deepEqual([...s2.gear.own].sort(), ['bubble', 'net', 'paint', 'popper', 'sling']);
   for (const g of s2.gear.own) assert.ok(s2.gear.clip[g] === clipOf(s2, g) && s2.gear.ammo[g] > 0, `${g} loaded`);
   const v4 = newSave(4); v4.v = 4; v4.done = ['m1', 'm2', 'm3', 'm4']; delete v4.gear; v4.stats = { ...v4.stats }; delete v4.stats.shots;
-  const s4 = loadSave(JSON.stringify(v4)); assert.equal(s4.v, 5); assert.deepEqual([...s4.gear.own].sort(), ['paint', 'sling']); assert.equal(s4.stats.shots, 0);
+  const s4 = loadSave(JSON.stringify(v4)); assert.equal(s4.v, 6); assert.deepEqual([...s4.gear.own].sort(), ['paint', 'sling']); assert.equal(s4.stats.shots, 0);
   assert.equal(s4.gear.carry.dora.length + s4.gear.carry.enzo.length, 2, 'carried by someone');
   const junk = loadSave(JSON.stringify({ ...s4, gear: { own: ['sling', 'bogus'], ammo: { sling: -3 }, clip: { sling: 99 }, lvl: { sling: 7 }, carry: { dora: ['sling', 'sling', 'net'], enzo: 'x' }, slot: {} } }));
   assert.deepEqual(junk.gear.own, ['sling']); assert.equal(junk.gear.ammo.sling, 0); assert.ok(junk.gear.clip.sling <= clipOf(junk, 'sling')); assert.ok(junk.gear.lvl.sling <= 2);

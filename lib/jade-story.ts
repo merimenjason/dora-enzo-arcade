@@ -50,7 +50,7 @@ export type Step =
   | { t: 'boost'; at: number; label: string; cp?: boolean }
   /** a crow circles with a loot bag: knock it loose with a gadget, or pounce when it swoops low */
   | { t: 'bag'; at: Spot; loot?: string; time?: number; label: string; cp?: boolean };
-export type MiniKind = 'lock' | 'wires' | 'wok' | 'dumpling' | 'haggle';
+export type MiniKind = 'lock' | 'wires' | 'wok' | 'dumpling' | 'haggle' | 'kopi';
 export type Mission = { id: string; ch: number; title: string; giver: string; at: string; blurb: string; reward: number; rep: number; steps: Step[]; tip?: { market: District; good: Good; mult: number } };
 
 export const PEOPLE: Record<string, { name: string; face: string; who: string }> = {
@@ -60,7 +60,7 @@ export const PEOPLE: Record<string, { name: string; face: string; who: string }>
   pang: { name: 'Auntie Pang', face: 'face-pang', who: 'pangolin trader' },
   heron: { name: 'Brother Heron', face: 'face-heron', who: 'temple keeper' },
   ren: { name: 'Master Ren', face: 'face-ren', who: 'lion-dance master' },
-  kiri: { name: 'Kiri', face: 'face-kiri', who: 'canal boatwoman' },
+  kiri: { name: 'Kiri', face: 'face-kiri', who: 'bumboat captain' },
   lim: { name: 'Mr Lim', face: 'face-lim', who: 'news-stand mynah' },
   bo: { name: 'Big Bo', face: 'face-bo', who: 'dock foreman' },
   bristle: { name: 'Captain Bristle', face: 'face-bristle', who: 'chief warden' },
@@ -109,7 +109,7 @@ export const MISSIONS: Mission[] = [
       { t: 'talk', lines: [['mo', 'The queue is round the corner! Grab a wok. Catch what the order needs, toss before it scorches.', 'calm'], ['hero', 'How hard can it be?', 'smug']] },
       { t: 'mini', kind: 'wok', level: 1, label: 'Cook the order', cp: true },
       { t: 'talk', lines: [['mo', 'Hey! That crow just pinched my tip jar!', 'cross'], ['pip', 'Finders keepers, fluffballs!', 'smug'], ['mate', 'He’s too slippery for one of us. Pounce together: I dive, you dash!', 'cross']] },
-      { t: 'chase', who: 'runner', from: [34, 74], route: [[38, 76], [40, 66], [28, 66], [28, 76]], bumps: 2, loot: 'coins', speed: 205, finish: 'pounce', label: 'Pounce on Pip together: F sends {mate} in, then dash into him', cp: true },
+      { t: 'chase', who: 'runner', from: [34, 74], route: [[41, 76], [40, 66], [28, 66], [28, 76]], bumps: 2, loot: 'coins', speed: 205, finish: 'pounce', label: 'Pounce on Pip together: F sends {mate} in, then dash into him', cp: true },
       { t: 'pickup', at: 'loot', item: 'coins', label: 'Grab the tip jar' },
       { t: 'goto', at: 'mo', label: 'Bring the jar back to Chef Mo' },
       { t: 'talk', lines: [['mo', 'My hero. That little one called himself Pip. He’ll be back.', 'happy']] },
@@ -183,10 +183,10 @@ export const MISSIONS: Mission[] = [
       { t: 'talk', lines: [['heron', 'It rings again! Listen.', 'happy'], ['heron', 'The canal folk say a pearl glow was seen on a crow boat. The Boat Quay is open to you.', 'calm']] },
     ] },
   // ── Chapter 3: Boat Quay (Pearl Lantern)
-  { id: 'm11', ch: 3, title: 'Learn the Water', giver: 'kiri', at: 'kiri', reward: 110, rep: 12, blurb: 'Take a canal boat through Kiri’s course.',
+  { id: 'm11', ch: 3, title: 'Learn the Water', giver: 'kiri', at: 'kiri', reward: 110, rep: 12, blurb: 'Take a bumboat through Kiri’s course.',
     steps: [
       { t: 'talk', lines: [['kiri', 'Ever steered a boat? It’s like a scooter that’s had a big lunch.', 'smug'], ['kiri', 'Through my lantern gates and back, before the tide turns.', 'calm']] },
-      { t: 'ride', kind: 'boat', near: 'jetty', label: 'Step into the canal boat', cp: true },
+      { t: 'ride', kind: 'boat', near: 'jetty', label: 'Step into the bumboat', cp: true },
       { t: 'race', ride: 'boat', time: 59, marks: [[67, 32], [67, 46], [67, 58], [67, 40], [67, 14], [67, 26]], label: 'Steer through every lantern gate' },
       { t: 'talk', lines: [['kiri', 'Not bad! You only scared three ducks.', 'happy'], ['kiri', 'Take my bubble blower. Wardens slip on the soapy puddles, and crows hate wet feathers.', 'smug']] },
     ] },

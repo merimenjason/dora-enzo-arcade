@@ -6,6 +6,7 @@ import { T, ROADS, districtAt } from './jade-city.js';
 import { shove } from './jade-move.js';
 import { dist } from './jade-rng.js';
 import type { World } from './jade-game.js';
+import { sgBlockers } from './jade-sg.js';
 import { addHeat } from './jade-heat.js';
 
 export const CAR_SPRITES = ['car-mint', 'car-cream', 'car-van', 'car-taxi', 'car-bus', 'car-purple', 'car-fruit', 'car-moto'];
@@ -66,6 +67,7 @@ export function trafficStep(w: World, dt: number) {
     for (const pd of w.peds) if (pd.hop <= 0) look(pd.x, pd.y, 10);
     for (const wd of w.wardens) look(wd.b.x, wd.b.y, 14);
     for (const b of w.blocks) look(b.x, b.y, b.r);
+    for (const [bx, by, br] of sgBlockers(w)) look(bx, by, br);
     // the lights: stop at the line before the crossing (an amber you are too close to stop for, you go through)
     for (const x of CROSS[c.r]) {
       const li = LIGHT_AT.get(r.axis === 'h' ? `${c.r}:${x.r}` : `${x.r}:${c.r}`); if (li === undefined) continue;

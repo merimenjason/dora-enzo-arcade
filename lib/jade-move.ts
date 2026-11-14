@@ -13,7 +13,7 @@ export const VEHICLES: Record<VehicleKind, VStats> = {
   trishaw: { name: 'Trishaw', speed: 250, accel: 600, turn: 10, r: 19, len: 58, cargo: 16, cls: 'big', seats: 2, blurb: 'Slow and steady, with a seat for a fare and room for goods.' },
   tuktuk: { name: 'Tuk-tuk', speed: 310, accel: 750, turn: 10, r: 21, len: 60, cargo: 20, cls: 'big', seats: 2, blurb: 'Zippy three-wheeler with a passenger bench.' },
   van: { name: 'Delivery van', speed: 285, accel: 620, turn: 8.5, r: 24, len: 80, cargo: 40, cls: 'big', seats: 2, blurb: 'Big hold for trading runs. Too wide for alleys.' },
-  boat: { name: 'Canal boat', speed: 250, accel: 520, turn: 7, r: 21, len: 78, cargo: 30, cls: 'boat', seats: 2, blurb: 'Glides along the canal and the harbour.' },
+  boat: { name: 'Bumboat', speed: 250, accel: 520, turn: 7, r: 21, len: 78, cargo: 30, cls: 'boat', seats: 2, blurb: 'A painted river bumboat: glides along the Singapore River and the harbour.' },
 };
 export const FOOT = { walk: 145, run: 235, dash: 560, dashT: 0.22, dashCd: 0.75, hopT: 0.42, hopCd: 0.35, r: 12, cargo: 4 };
 

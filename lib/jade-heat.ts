@@ -46,9 +46,10 @@ export function heatStep(w: World, dt: number) {
   }
   while (w.wardens.filter(x => !x.leave).length > want) { const x = w.wardens.find(x => !x.leave); if (!x) break; x.leave = true; }
   // who can see you?
+  // under a five-foot way the wardens see you from only about half as far
   let seen = false;
   if (!w.p.hide && L > 0) {
-    for (const wd of w.wardens) if (!wd.leave && wd.stun <= 0 && dist(wd.b.x, wd.b.y, px, py) < w.diff.sight && los(w.c, wd.b.x, wd.b.y, px, py)) { seen = true; break; }
+    for (const wd of w.wardens) if (!wd.leave && wd.stun <= 0 && dist(wd.b.x, wd.b.y, px, py) < w.diff.sight * (w.p.shade && !w.p.ride ? 0.6 : 1) && los(w.c, wd.b.x, wd.b.y, px, py)) { seen = true; break; }
     if (w.blimp.on && dist(w.blimp.x, w.blimp.y, px, py) < 120 && !w.p.roof) seen = true;
   }
   if (L > 0) {

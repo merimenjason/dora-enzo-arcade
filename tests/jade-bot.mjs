@@ -364,6 +364,12 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
     } else if (ui.mini === 'wires') {
       if (!mini.wired) { const l = mini.links.findIndex(x => x === null); mini.pick(l); mini.connect(R() < 0.12 * P.slop ? (mini.right.indexOf(l) + 1) % 4 : mini.right.indexOf(l)); }
       else mini.turnKey();
+    } else if (ui.mini === 'kopi') {
+      // read the order, a field every half second or so; a slip now and then serves one field wrong
+      if (R() < 0.06) {
+        const o = mini.order, c = mini.cup; const wrong = ['base', 'milk', 'sugar', 'temp'].filter(k => o[k] !== c[k]);
+        if (wrong.length && !(wrong.length === 1 && R() < 0.05 * P.slop)) mini.set(wrong[0], o[wrong[0]]); else mini.serve();
+      }
     } else if (ui.mini === 'wok') {
       const want = mini.items.filter(i => (mini.need[i.f] ?? 0) > (mini.got[i.f] ?? 0) && i.vy > 0 && i.y < 0.8).sort((a, b) => b.y - a.y)[0];
       if (want) mini.moveTo(want.x + err * 0.06);
