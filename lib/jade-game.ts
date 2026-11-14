@@ -140,8 +140,8 @@ export class World {
     let top = p.sneak ? FOOT.walk : FOOT.run;
     if (over) top = FOOT.walk * 0.75;
     if (p.dashT > 0) { p.dashT -= dt; top = FOOT.dash; if (Math.hypot(mx, my) < 0.2) { mx = Math.cos(p.b.h); my = Math.sin(p.b.h); } }
-    if (p.air) { p.hopT -= dt; if (Math.hypot(mx, my) < 0.2 && p.b.speed > 40) { mx = Math.cos(p.b.h); my = Math.sin(p.b.h); } top = Math.max(top, 230); }
     const wasAir = p.air;
+    if (p.air) { p.hopT -= dt; if (Math.hypot(mx, my) < 0.2 && p.b.speed > 40) { mx = Math.cos(p.b.h); my = Math.sin(p.b.h); } top = Math.max(top, 230); }
     const ctx = this.ctx(p.roof, p.air || wasAir);
     const ox = p.b.x, oy = p.b.y;
     const res = drive(ctx, p.b, mx, my, top, 2400, 30, dt, true);

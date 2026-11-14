@@ -47,7 +47,7 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
   const m = MISSION[id];
   let inp = { ...NO_INPUT }, think = 0, fails = 0, t = 0, mini = null, miniT = 0, stuck = 0, lastPos = [0, 0], unstick = 0, uDir = [0, 0];
   const maxT = o.maxT ?? 900;
-  let started = false;
+  let started = false, forced = false;
   const wantMission = () => { const a = available(s); return a.some(x => x.id === id); };
   assert.ok(wantMission(), `${id} is offered at the start`);
 
@@ -239,6 +239,8 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
 
   while (t < maxT) {
     if (w.failed) { fails++; w.retry(); if (fails > (o.maxFails ?? 6)) break; continue; }
+    // tests: fail on purpose the first time the job reaches step `failAt`, to prove the checkpoint restores
+    if (o.failAt !== undefined && !forced && w.run && w.run.i === o.failAt && !w.talk && (!w.ui || w.ui.kind === 'mini') && !w.p.act) { forced = true; if (w.ui) { w.ui = null; mini = null; } w.fail('test: a forced failure'); }
     if (w.talk) { w.advanceTalk(); t += 0.25; continue; }
     if (w.ui) {
       if (w.ui.kind === 'mini') { t += playMini(); continue; }
@@ -257,7 +259,7 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
     }
     if (unstick > 0) { unstick -= DT; inp.mx = uDir[0]; inp.my = uDir[1]; }
     w.step(inp, DT); t += DT;
-    if (o.trace && Math.floor(t / o.trace) !== Math.floor((t - DT) / o.trace)) { const r = w.run; const a = r?.actors[0]; console.log(`t${Math.round(t)} p(${Math.round(w.p.x / T)},${Math.round(w.p.y / T)}) ride=${w.p.ride?.kind ?? '-'} roof=${w.p.roof} step=${r?.i}:${r?.cur?.t} near=${w.near?.kind ?? '-'} inp=${inp.mx.toFixed(1)},${inp.my.toFixed(1)}${a ? ` a(${Math.round(a.b.x / T)},${Math.round(a.b.y / T)}) wp${a.wp}/${a.route.length} look${a.look.toFixed(1)}` : ''} meter=${r?.meter ? r.meter.name + ':' + r.meter.v.toFixed(2) : '-'} heat=${w.heat.toFixed(1)} ui=${w.ui?.kind ?? '-'}${o.traceRide && r?.ride ? ` rr(${(r.ride.b.x / T).toFixed(1)},${(r.ride.b.y / T).toFixed(1)} ${r.ride.parked} ${r.ride.locked}) nr(${w.near?.ride ? (w.near.ride.b.x / T).toFixed(1) + ',' + (w.near.ride.b.y / T).toFixed(1) + ' ' + w.near.ride.kind + ' ' + w.near.ride.locked : '-'}) act=${w.p.act?.n ?? '-'}` : ''}`); }
+    if (o.trace && Math.floor(t / o.trace) !== Math.floor((t - DT) / o.trace)) { const r = w.run; const a = r?.actors[0]; console.log(`t${Math.round(t)} p(${Math.round(w.p.x / T)},${Math.round(w.p.y / T)}) ride=${w.p.ride?.kind ?? '-'} roof=${w.p.roof} step=${r?.i}:${r?.cur?.t} near=${w.near?.kind ?? '-'} inp=${inp.mx.toFixed(1)},${inp.my.toFixed(1)}${a ? ` a(${Math.round(a.b.x / T)},${Math.round(a.b.y / T)}) wp${a.wp}/${a.route.length} look${a.look.toFixed(1)}` : ''} meter=${r?.meter ? r.meter.name + ':' + r.meter.v.toFixed(2) : '-'} heat=${w.heat.toFixed(1)} ui=${w.ui?.kind ?? "-"} wd=${w.wardens.map(x => Math.round(Math.hypot(x.b.x - w.p.x, x.b.y - w.p.y)) + "@" + Math.round(x.b.x) + "," + Math.round(x.b.y) + (x.leave ? "L" : "")).join("|")} pp=${Math.round(w.p.x)},${Math.round(w.p.y)} fail=${w.failed ?? ""}${o.traceRide && r?.ride ? ` rr(${(r.ride.b.x / T).toFixed(1)},${(r.ride.b.y / T).toFixed(1)} ${r.ride.parked} ${r.ride.locked}) nr(${w.near?.ride ? (w.near.ride.b.x / T).toFixed(1) + ',' + (w.near.ride.b.y / T).toFixed(1) + ' ' + w.near.ride.kind + ' ' + w.near.ride.locked : '-'}) act=${w.p.act?.n ?? '-'}` : ''}`); }
     w.drain();
     inp.act = false; inp.dash = false; inp.hop = false;
     if (s.done.includes(id)) return { won: true, time: Math.round(t), fails };

@@ -38,7 +38,8 @@ export function heatStep(w: World, dt: number) {
   const want = L === 0 ? 0 : Math.min(4, w.easy ? Math.max(1, L - 1) : L);
   const active = w.wardens.filter(x => !x.leave).length;
   if (active < want && w.tick % 30 === 0) {
-    const a = w.R() * Math.PI * 2;
+    // they come from behind or the sides, never out of the street you're running down
+    const a = (pb.speed > 40 ? pb.h + Math.PI : w.R() * Math.PI * 2) + (w.R() - 0.5) * 2.4;
     const [sx, sy] = nearestFree(w.c, 'small', px + Math.cos(a) * 760, py + Math.sin(a) * 520, w.open, 6);
     if (dist(sx, sy, px, py) > 420) w.wardens.push({ id: w.nextId++, b: { x: sx, y: sy, h: a + Math.PI, speed: 0, r: 15, len: 40, cls: 'small' }, stun: 0, leave: false, grab: 0, pedal: 0 });
   }
