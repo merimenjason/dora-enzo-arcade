@@ -324,7 +324,7 @@ async function viewport(name, w, h, touch) {
   await press('sellall-mango'); check((await cargo('mango')) === 0, `${name}: All`);
   const stallOk = d => W(d => { const f = document.querySelector(`[data-testid="stall-${d}"]`); if (!f) return 'missing'; const im = f.querySelector('img'); const r = f.getBoundingClientRect(), hg = document.querySelector('.jade-haggle').getBoundingClientRect(); return im.complete && im.naturalWidth > 0 && r.width > 120 && r.left >= -1 && r.right <= innerWidth + 1 && hg.top >= r.bottom - 1 ? 'ok' : JSON.stringify([im.naturalWidth, r.width, r.left, r.right, hg.top, r.bottom]); }, d);
   check((await stallOk('market')) === 'ok', `${name}: the stall painting is whole, with Haggle under it (${await stallOk('market')})`);
-  check((await p.locator('[data-testid="market"] h2').textContent()) === 'Night Market', `${name}: the market's own name`);
+  check((await p.locator('[data-testid="market"] h2').textContent()) === 'Smith Street Market', `${name}: the market's own name`);
   await press('buy-fan'); await press('close'); check(!(await exists('market')), `${name}: close the market`);
   for (const d of ['temple', 'canal', 'docks', 'arcade']) {
     await W(d => { const w = window.__jade.world(); w.ui = { kind: 'market', d }; window.__jade.play.bump(); }, d); await appear('market'); await until(d => { const im = document.querySelector(`[data-testid="stall-${d}"] img`); return im && im.complete && im.naturalWidth > 0; }, d, 8000);

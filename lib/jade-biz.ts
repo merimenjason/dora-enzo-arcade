@@ -1,4 +1,4 @@
-// Jade Street: owning businesses. Six stalls around the quarter (a noodle cart, a mooncake bakery, a tea house, a fan
+// Jade Street: owning businesses. Eleven stalls (the six below and five hawker stalls) around the quarter (a noodle cart, a mooncake bakery, a tea house, a fan
 // shop, a jade counter and a claw-machine booth) can be bought into once their district is open and its keepers trust
 // you (reputation). Each earns coins through the night: a nightly rate set by its level, the district's reputation, the
 // weather, tips and the daily event, and a local event that changes every night. Earnings pile up in the stall's till
@@ -16,7 +16,7 @@ import type { World } from './jade-game.js';
 import type { Mission, Step } from './jade-story.js';
 import type { Run, Actor } from './jade-mission.js';
 
-export type BizId = 'noodle' | 'cake' | 'tea' | 'fan' | 'jade' | 'claw';
+export type BizId = 'noodle' | 'cake' | 'tea' | 'fan' | 'jade' | 'claw' | 'ckt' | 'chicken' | 'satay' | 'laksa' | 'kopi';
 export type BizDef = { id: BizId; name: string; keeper: string; d: District; at: [number, number]; good: Good | null; price: number; up: [number, number]; income: [number, number, number, number]; rain: number; need: number };
 export const BIZ: BizDef[] = [
   { id: 'noodle', name: 'Noodle Cart', keeper: 'mo', d: 'market', at: [39, 68], good: 'bowl', price: 500, up: [600, 1000], income: [0, 70, 120, 190], rain: 1.2, need: 15 },
@@ -25,6 +25,12 @@ export const BIZ: BizDef[] = [
   { id: 'fan', name: 'Canal Fan Shop', keeper: 'kiri', d: 'canal', at: [57, 38], good: 'fan', price: 950, up: [1150, 1900], income: [0, 130, 220, 345], rain: 0.85, need: 20 },
   { id: 'jade', name: 'Harbour Jade Counter', keeper: 'bo', d: 'docks', at: [81, 79], good: 'jade', price: 1500, up: [1800, 3000], income: [0, 205, 345, 540], rain: 1, need: 25 },
   { id: 'claw', name: 'Neon Claw Booth', keeper: 'gizmo', d: 'arcade', at: [118, 37], good: null, price: 1200, up: [1450, 2400], income: [0, 165, 280, 440], rain: 1.3, need: 25 },
+  // the hawker centre on Smith Street (lib/jade-sgcity.ts): cheap stakes, small steady takings, busier in the rain
+  { id: 'ckt', name: 'Char Kway Teow Stall', keeper: 'beng', d: 'market', at: [15, 68], good: null, price: 300, up: [380, 640], income: [0, 45, 80, 125], rain: 1.15, need: 8 },
+  { id: 'chicken', name: 'Chicken Rice Stall', keeper: 'hoon', d: 'market', at: [18, 68], good: null, price: 350, up: [430, 720], income: [0, 52, 90, 140], rain: 1.1, need: 10 },
+  { id: 'satay', name: 'Satay Stall', keeper: 'mo', d: 'market', at: [21, 68], good: null, price: 400, up: [480, 800], income: [0, 58, 100, 155], rain: 0.9, need: 12 },
+  { id: 'laksa', name: 'Laksa Pot', keeper: 'pang', d: 'market', at: [24, 68], good: null, price: 420, up: [500, 840], income: [0, 60, 104, 162], rain: 1.25, need: 12 },
+  { id: 'kopi', name: 'Uncle Teo’s Kopi Stall', keeper: 'teo', d: 'market', at: [15, 73], good: null, price: 280, up: [360, 600], income: [0, 42, 76, 118], rain: 1.2, need: 6 },
 ];
 export const BIZ_OF = Object.fromEntries(BIZ.map(b => [b.id, b])) as Record<BizId, BizDef>;
 export const BIZ_IDS = BIZ.map(b => b.id);

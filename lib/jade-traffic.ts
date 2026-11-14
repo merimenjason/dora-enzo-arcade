@@ -53,7 +53,7 @@ export function trafficStep(w: World, dt: number) {
     carXY(c);
     const dd = dist(c.x, c.y, px, py);
     const tx = Math.floor(c.x / T), ty = Math.floor(c.y / T);
-    if (dd > 760 && dd < 1500 && w.open.has(districtAt(tx, ty)) && !w.cars.some(o => dist(o.x, o.y, c.x, c.y) < 200)) { c.speed = c.cruise; w.cars.push(c); }
+    if (dd > 760 && dd < 1500 && w.open.has(districtAt(tx, ty)) && !w.cars.some(o => dist(o.x, o.y, c.x, c.y) < 200) && !CROSS[ri].some(x => d > 0 ? c.s > x.a - 4 * T && c.s < x.b : c.s > x.a && c.s < x.b + 4 * T)) { c.speed = c.cruise; w.cars.push(c); }
   }
   for (const c of w.cars) {
     const r = ROADS[c.r];

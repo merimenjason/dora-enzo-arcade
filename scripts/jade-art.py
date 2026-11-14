@@ -152,7 +152,7 @@ each('riders', ['crow-cart-0', 'crow-cart-1', 'warden-bike-a', 'warden-bike-b', 
 each('traffic', ['car-mint', 'car-cream', 'car-van', 'car-taxi', 'car-bus', 'car-purple', 'car-fruit', 'car-moto'], 4, 2,
      {'car-mint': 80, 'car-cream': 80, 'car-van': 88, 'car-taxi': 80, 'car-bus': 112, 'car-purple': 76, 'car-fruit': 92, 'car-moto': 52}, dim='h', lo=95)
 # ── rivals, wardens, townsfolk
-grid('crows', ['crow-walk-down-0', 'crow-walk-down-1', 'crow-walk-up-0', 'crow-walk-up-1', 'crow-run-0', 'crow-run-1', 'crow-look-0', 'crow-look-1', 'crow-taunt', 'crow-dizzy', 'crow-fly-0', 'crow-fly-1'], 4, 3, 54, lo=95)
+grid('magpies', ['crow-walk-down-0', 'crow-walk-down-1', 'crow-walk-up-0', 'crow-walk-up-1', 'crow-run-0', 'crow-run-1', 'crow-look-0', 'crow-look-1', 'crow-taunt', 'crow-dizzy', 'crow-fly-0', 'crow-fly-1'], 4, 3, 54, lo=95)
 FRAMES['crow-fly-0'] = FRAMES['crow-fly-0'].resize((140, round(FRAMES['crow-fly-0'].height * 140 / FRAMES['crow-fly-0'].width)), Image.LANCZOS) if 'crow-fly-0' in FRAMES else None
 FRAMES['crow-fly-1'] = FRAMES['crow-fly-1'].resize((120, round(FRAMES['crow-fly-1'].height * 120 / FRAMES['crow-fly-1'].width)), Image.LANCZOS) if 'crow-fly-1' in FRAMES else None
 FRAMES = {k: v for k, v in FRAMES.items() if v is not None}
@@ -242,6 +242,49 @@ each('tag', ['lever-up', 'lever-down', 'sluice-shut', 'sluice-open', 'shutter-sh
      {'lever-up': 52, 'lever-down': 52, 'sluice-shut': 128, 'sluice-open': 128, 'shutter-shut': 112, 'shutter-open': 112, 'pulley': 60, 'boost-spot': 90, 'window-lookout': 96, 'window-paint': 96, 'loot-bag': 34, 'gadget-stall': 134})
 fit('tock', ['face-tock', 'face-tock-happy', 'face-tock-worried', 'face-tock-cross', 'face-tock-smug', 'face-tock-surprised'], 3, 2, 256)
 
+# ── fifth batch (docs/jade-street-art/jobs5.py and jobs5b.py): Singapore. The crow repaints (each `<sheet>-crow.png`
+# is the original sheet with the magpies painted as house crows; only the crow frames are taken from it), the hawker
+# stalls, the HDB block, kopitiam and shophouses, the townsfolk and their portraits, the kopi drinks, the bumboat and
+# the gantry, the fine-city props, the two rival gangs and the heroes' new poses
+_N = None
+grid('magpies-crow', ['crow-walk-down-0', 'crow-walk-down-1', 'crow-walk-up-0', 'crow-walk-up-1', 'crow-run-0', 'crow-run-1', 'crow-look-0', 'crow-look-1', 'crow-taunt', 'crow-dizzy', 'crow-fly-0', 'crow-fly-1'], 4, 3, 54, lo=95)
+for _n, _w in (('crow-fly-0', 140), ('crow-fly-1', 120)):
+    if (SRC / 'magpies-crow.png').exists() and _n in FRAMES: FRAMES[_n] = FRAMES[_n].resize((_w, round(FRAMES[_n].height * _w / FRAMES[_n].width)), Image.LANCZOS)
+each('riders-crow', ['crow-cart-0', 'crow-cart-1', _N, _N, 'boss-0', 'boss-1', 'crow-boat-0', 'crow-boat-1'], 4, 2, {'crow-cart-0': 80, 'crow-cart-1': 80, 'boss-0': 70, 'boss-1': 70, 'crow-boat-0': 96, 'crow-boat-1': 96}, dim='h', lo=95)
+fit('portraits-crow', [_N] * 8 + ['face-glint', 'face-pip'] + [_N] * 6, 4, 4, 256, lo=95)
+fit('expr3-crow', [f'face-{w}-{m}' for w in ('glint', 'pip') for m in ('happy', 'worried', 'cross', 'smug')] + [_N] * 8, 4, 4, 256, lo=95)
+grid('glint-crow', ['glint-run-0', 'glint-run-1', 'glint-down-0', 'glint-down-1', 'glint-taunt', 'glint-leap', 'glint-wave', 'glint-dizzy', 'glint-give', 'decoy-run-0', 'decoy-run-1', 'decoy-pop'], 4, 3, 64, ref='glint-taunt', lo=95)
+each('set2-crow', [_N, _N, _N, 'float', 'decoy-ride-0', 'decoy-ride-1', 'decoy-poof', _N, _N], 3, 3, {'float': 230, 'decoy-ride-0': 70, 'decoy-ride-1': 70, 'decoy-poof': 90}, dim='w', lo=95)
+each('splat-crow', [_N] * 8 + ['crow-netted', _N, _N, _N, _N, 'crow-drop', _N, 'glint-netted'], 4, 4, {'crow-netted': 62, 'crow-drop': 60, 'glint-netted': 72})
+each('events-crow', [_N] * 9 + ['crow-mango-0', 'crow-mango-1', _N], 4, 3, {'crow-mango-0': 56, 'crow-mango-1': 56})
+each('tag-crow', [_N] * 8 + ['window-lookout', 'window-paint', _N, _N], 4, 3, {'window-lookout': 96, 'window-paint': 96})
+fit('debris-crow', [_N] * 7 + ['db-feather-b'] + [_N] * 8, 4, 4, 64)
+for h in ('dora', 'enzo'):
+    fx = cream if h == 'dora' else None
+    grid(f'{h}-act7', [f'{h}-{a}' for a in ('chope', 'chope-done', 'tray-down', 'tray-side', 'serve', 'durian-side', 'durian-down', 'lantern-down', 'lantern-side', 'sell-junk', 'shake-wet', 'sit-chess')], 4, 3, 58, ref=f'{h}-serve', fix=fx)
+    grid(f'{h}-act8', [f'{h}-{a}' for a in ('feed', 'gum', 'pay-fine', 'ticket', 'toss', 'pick-litter', 'bin-litter', 'shiok')], 4, 2, 58, ref=f'{h}-pay-fine', fix=fx)
+fit('sg-faces1', [f'face-{w}{m}' for w in ('hoon', 'teo', 'beng', 'ong') for m in ('', '-happy', '-worried', '-cross')], 4, 4, 256)
+fit('sg-faces2', [f'face-{w}{m}' for w in ('lily', 'goh') for m in ('', '-happy', '-worried', '-cross')], 4, 2, 256)
+fit('gang-faces', [f'face-{w}{m}' for w in ('sleek', 'kow') for m in ('', '-happy', '-worried', '-cross')], 4, 2, 256)
+grid('folk4', [f'folk-{s}-{k}' for s in ('goose', 'sunbear', 'rooster') for k in ('down', 'up', 'side-0', 'side-1', 'hop')], 5, 3, 50)
+each('sg-npc', ['auntie-chope', 'auntie-fan', 'goh-chess-0', 'goh-chess-1', 'ong-trike-0', 'ong-trike-1', 'lily-sing-0', 'lily-sing-1', 'liondance-0', 'liondance-1', 'kid-lantern', 'drummer'], 4, 3,
+     {'auntie-chope': 60, 'auntie-fan': 60, 'goh-chess-0': 62, 'goh-chess-1': 62, 'ong-trike-0': 96, 'ong-trike-1': 96, 'lily-sing-0': 66, 'lily-sing-1': 66, 'liondance-0': 130, 'liondance-1': 130, 'kid-lantern': 46, 'drummer': 62}, dim='h')
+each('sg-props', ['tissue', 'table-chope', 'table-empty', 'durian', 'durian-crate', 'kueh-tray', 'wok', 'mic', 'getai-stage', 'spirit-seats', 'newspapers', 'junk-heap', 'kopi-tray', 'stink-cloud', 'hawker-arch', 'angpao'], 4, 4,
+     {'tissue': 22, 'table-chope': 80, 'table-empty': 80, 'durian': 30, 'durian-crate': 58, 'kueh-tray': 40, 'wok': 42, 'mic': 26, 'getai-stage': 230, 'spirit-seats': 110, 'newspapers': 36, 'junk-heap': 66, 'kopi-tray': 40, 'stink-cloud': 70, 'hawker-arch': 230, 'angpao': 22})
+each('sg-rides', ['v-bumboat', 'v-bumboat-b', 'trike-top', 'drum-cart', _N, _N], 3, 2, {'v-bumboat': 120, 'v-bumboat-b': 120, 'trike-top': 70, 'drum-cart': 80}, dim='h')
+each('sg-rides', [_N] * 4 + ['gantry', 'pontoon'], 3, 2, {'gantry': 282, 'pontoon': 150}, dim='w')
+grid('biz3', [f'biz-{b}-{l}' for b in ('ckt', 'chicken', 'satay') for l in range(4)], 4, 3, 112, ref='biz-ckt-1')
+grid('biz4', [f'biz-{b}-{l}' for b in ('laksa', 'kopi') for l in range(4)] + [_N] * 4, 4, 3, 112, ref='biz-laksa-1')
+each('biz4', [_N] * 8 + ['stall-fish', 'stall-veg', 'mama-shop', 'chess-table'], 4, 3, {'stall-fish': 92, 'stall-veg': 92, 'mama-shop': 100, 'chess-table': 70})
+square('sg-bld', ['sg-hdb', 'sg-kopitiam', 'shop-sg1', 'shop-sg2', 'sg-wetmarket', 'sg-clan'], 3, 2, {'sg-hdb': 384, 'sg-kopitiam': 192, 'shop-sg1': 192, 'shop-sg2': 192, 'sg-wetmarket': 384, 'sg-clan': 192}, green=True)
+fit('sg-drinks', [f'drink-{d}' for d in ('kopi-o', 'kopi', 'kopi-c', 'teh', 'teh-o', 'teh-c', 'kopi-peng', 'teh-peng', 'kopi-o-peng', 'teh-o-peng', 'kopi-c-peng', 'teh-c-peng')] + ['tin-condensed', 'tin-evap', 'jar-sugar', 'bucket-ice'], 4, 4, 128)
+grid('otters', ['otter-walk-down-0', 'otter-walk-down-1', 'otter-walk-up-0', 'otter-walk-up-1', 'otter-run-0', 'otter-run-1', 'otter-swim-0', 'otter-swim-1', 'otter-taunt', 'otter-dizzy', 'otter-bubble', 'otter-netted'], 4, 3, 46, ref='otter-taunt')
+grid('macaques', ['mac-walk-down-0', 'mac-walk-down-1', 'mac-walk-up-0', 'mac-walk-up-1', 'mac-run-0', 'mac-run-1', 'mac-snatch', 'mac-munch', 'mac-taunt', 'mac-startled', 'mac-dizzy', 'mac-paint'], 4, 3, 50, ref='mac-taunt')
+each('gang-rides', ['otter-raft-0', 'otter-raft-1', 'mac-cart-0', 'mac-cart-1', 'sleek-boat-0', 'sleek-boat-1'], 3, 2, {'otter-raft-0': 84, 'otter-raft-1': 84, 'mac-cart-0': 80, 'mac-cart-1': 80, 'sleek-boat-0': 100, 'sleek-boat-1': 100}, dim='h')
+each('fines', ['pigeon-0', 'pigeon-1', 'pigeon-fly', 'seed-bag', 'gum', 'gum-stuck', 'litter', 'ticket', 'warden-write', 'warden-ticket', 'crate-float', 'bananas', 'handbag', 'bun', 'litter-bin', 'fish-basket'], 4, 4,
+     {'pigeon-0': 28, 'pigeon-1': 28, 'pigeon-fly': 40, 'seed-bag': 22, 'gum': 20, 'gum-stuck': 20, 'litter': 36, 'ticket': 40, 'warden-write': 54, 'warden-ticket': 58, 'crate-float': 52, 'bananas': 30, 'handbag': 26, 'bun': 20, 'litter-bin': 36, 'fish-basket': 36})
+FRAMES = {k: v for k, v in FRAMES.items() if v is not None}
+
 # ── seamless ground textures: crop each square, then blend it with its half-offset copy so the edges wrap
 TEX = {}
 def seamless(arr):
@@ -270,8 +313,8 @@ for f, names in (('ground', ['road', 'walk', 'plaza', 'grass', 'canal', 'plank']
 # ── full paintings
 PLAIN = {}
 BIG = ['loading'] + [f'stall-{d}' for d in ('market', 'temple', 'canal', 'docks', 'arcade')] + [f'story-{i}' for i in range(1, 5)] + [f'chapter-{i}' for i in range(1, 6)] + [f'end-{i}' for i in range(1, 4)] + ['gadget-shop']
-for n, size in (('title', (1536, 1024)), ('mg-lock', (1280, 853)), ('mg-wire', (1280, 853)), ('mg-wok', (1280, 853)), ('mg-board', (1280, 853)), ('mg-haggle', (1280, 853)), ('map-paper', (1024, 683))) + tuple((b, (1280, 853)) for b in BIG):
-    p = SRC / f'{n}.png'
+for n, size in (('title', (1536, 1024)), ('mg-lock', (1280, 853)), ('mg-wire', (1280, 853)), ('mg-wok', (1280, 853)), ('mg-board', (1280, 853)), ('mg-haggle', (1280, 853)), ('mg-kopi', (1280, 853)), ('map-paper', (1024, 683))) + tuple((b, (1280, 853)) for b in BIG):
+    p = SRC / f'{n}-crow.png' if (SRC / f'{n}-crow.png').exists() else SRC / f'{n}.png'
     if not p.exists(): MISSING.append(n); continue
     im = Image.open(p).convert('RGB').resize(size, Image.LANCZOS)
     im.save(OUT / f'bg-{n}.webp', 'WEBP', quality=80, method=6); PLAIN['bg-' + n] = size
@@ -303,6 +346,7 @@ GROUPS = [('dora', lambda n: n.startswith('dora-')), ('enzo', lambda n: n.starts
           ('set', lambda n: n.startswith(('stall-smash', 'drum-', 'warn-bell', 'bridge-', 'crane-load', 'gate-', 'neon-', 'float', 'decoy-', 'bunting', 'ramp', 'db-', 'glint-', 'biz-'))),
           ('folk', lambda n: n.startswith(('folk-', 'crow-', 'warden-', 'blimp', 'block-', 'cone', 'face-'))),
           ('ui', lambda n: n.startswith(('ui-', 'c-', 'pin-', 'mi-', 'fog-', 'i-'))),
+          ('sg', lambda n: n.startswith(('otter-', 'mac-', 'sleek-', 'pigeon', 'drink-', 'tin-', 'jar-', 'bucket-', 'auntie-', 'goh-', 'ong-', 'lily-', 'liondance', 'kid-lantern', 'drummer', 'sg-', 'shop-sg'))),
           ('props', lambda n: True)]
 meta = {}; assigned = {}; SIZES = {}
 for n in FRAMES:

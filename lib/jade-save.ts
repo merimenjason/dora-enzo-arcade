@@ -223,7 +223,7 @@ export function buyPaint(s: Save, id: string): string | null {
 export function buyOutfit(s: Save, h: Hero, id: string): string | null {
   const f = OUTFITS.find(x => x.id === id); if (!f) return 'No such outfit';
   if (s.outfits[h].includes(id)) { s.outfit[h] = id; return null; }
-  if (f.need && s.rep[f.need.d] < f.need.rep) return `Needs ${f.need.rep} reputation in ${f.need.d === 'market' ? 'the Night Market' : f.need.d}`;
+  if (f.need && s.rep[f.need.d] < f.need.rep) return `Needs ${f.need.rep} reputation in ${f.need.d === 'market' ? 'Smith Street' : f.need.d}`;
   if (s.cash < f.price) return `Needs ${f.price} coins`;
   s.cash -= f.price; s.outfits[h].push(id); s.outfit[h] = id; return null;
 }
@@ -264,12 +264,12 @@ export function checkTrophies(s: Save): string[] {
 
 // ── the daily market event (same for everyone on a given date)
 export const EVENTS = [
-  { name: 'Mooncake Festival Eve', desc: 'Temple Hill pays half again for mooncakes tonight.', market: 'temple' as District, good: 'mooncake' as const, mult: 1.5, task: 'Sell 6 mooncakes at Temple Hill' },
+  { name: 'Mooncake Festival Eve', desc: 'Temple Street pays half again for mooncakes tonight.', market: 'temple' as District, good: 'mooncake' as const, mult: 1.5, task: 'Sell 6 mooncakes at Temple Street' },
   { name: 'Mango Glut', desc: 'Mango boats arrived: mangoes are cheap everywhere.', market: undefined, good: 'mango' as const, mult: 0.7, task: 'Sell 10 mangoes anywhere' },
-  { name: 'Collectors in Town', desc: 'The Arcade Strip pays extra for jade tonight.', market: 'arcade' as District, good: 'jade' as const, mult: 1.35, task: 'Sell 3 jade bangles on the Strip' },
-  { name: 'Typhoon Warning', desc: 'Tea is scarce at the Docks: prices up.', market: 'docks' as District, good: 'tea' as const, mult: 1.45, task: 'Sell 8 tins of tea at the Docks' },
+  { name: 'Collectors in Town', desc: 'The Clarke Quay pays extra for jade tonight.', market: 'arcade' as District, good: 'jade' as const, mult: 1.35, task: 'Sell 3 jade bangles on the Strip' },
+  { name: 'Typhoon Warning', desc: 'Tea is scarce at the Tanjong Pagar Docks: prices up.', market: 'docks' as District, good: 'tea' as const, mult: 1.45, task: 'Sell 8 tins of tea at the Tanjong Pagar Docks' },
   { name: 'Fan Dance Night', desc: 'Canal Row wants silk fans for the dance.', market: 'canal' as District, good: 'fan' as const, mult: 1.4, task: 'Sell 5 silk fans on Canal Row' },
-  { name: 'Wedding Season', desc: 'Porcelain bowls are in demand at the Night Market.', market: 'market' as District, good: 'bowl' as const, mult: 1.35, task: 'Sell 4 porcelain bowls in the Night Market' },
+  { name: 'Wedding Season', desc: 'Porcelain bowls are in demand at Smith Street.', market: 'market' as District, good: 'bowl' as const, mult: 1.35, task: 'Sell 4 porcelain bowls in Smith Street' },
 ];
 export function dailyEvent(day: string) { const r = rng(hashStr('jade-day:' + day)); return { ...EVENTS[Math.floor(r() * EVENTS.length)], day, need: 0 }; }
 export function dayKey(d: Date) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }

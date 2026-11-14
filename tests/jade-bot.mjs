@@ -211,12 +211,15 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
         if (last && (st.finish === 'snatch' || st.finish === 'net') && p.ride) {
           // alongside for the grab, or the net from the back seat
           if (tagIf('snatch')) return;
+          // still dizzy from the last bump: hold back and let it roll on, or every nudge dizzies it again
+          if (a.stun > 0 && da < 140) { inp.mx = 0; inp.my = 0; return; }
           if (st.finish === 'net') { wantGadget(['net']); if (da < 380) shoot(a.b.x, a.b.y, ['net']); }
           if (da < 120) { const sp = p.ride.b.speed, as = a.b.speed; if (sp > as + 30) { inp.mx *= 0.4; inp.my *= 0.4; } }
           return;
         }
         if (!p.ride && da < 90) press('dash');
         if (p.ride && da > 300 && R() < 0.3) press('dash');
+
         return;
       }
       case 'tail': {

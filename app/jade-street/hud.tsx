@@ -5,6 +5,7 @@
 // and the touch controls (a floating stick on the left, Action / Dash / Hop / Sneak on the right). React draws only
 // this layer; the city is on the canvas underneath.
 import { useEffect, useRef } from 'react';
+import { FRAMES } from '@/lib/jade-art';
 import { districtAt, DISTRICT_NAME, T } from '@/lib/jade-city';
 import { lanterns } from '@/lib/jade-heat';
 import { cargoCount } from '@/lib/jade-trade';
@@ -17,7 +18,7 @@ import { GOODS } from '@/lib/jade-trade';
 export const clockText = (c: number) => { const m = Math.floor(c) + 19 * 60; const h = Math.floor(m / 60) % 24, mm = m % 60; const h12 = h % 12 === 0 ? 12 : h % 12; return `${h12}:${String(mm).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`; };
 const face = (who: string, hero: string) => who === 'dora' || who === 'enzo' ? `face-${who}` : PEOPLE[who]?.face ?? `face-${hero}`;
 /** the portrait for a line: the calm face, or the painted happy / worried / cross / smug one */
-export const moodFace = (who: string, hero: string, mood = 'calm') => mood === 'calm' ? face(who, hero) : `${face(who, hero)}-${mood}`;
+export const moodFace = (who: string, hero: string, mood = 'calm') => { const f = face(who, hero); return mood === 'calm' || !FRAMES[`${f}-${mood}`] ? f : `${f}-${mood}`; };
 const nameOf = (who: string) => who === 'dora' ? 'Dora' : who === 'enzo' ? 'Enzo' : PEOPLE[who]?.name ?? who;
 
 export function TopHud({ play, onMap, onPause }: { play: Play; onMap: () => void; onPause: () => void }) {
