@@ -1,0 +1,256 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito:wght@600;800;900&display=swap');
+/* Jade Street: night-market lacquer. Dark indigo panels with jade and gold trim; buttons are the Codex-painted jade and
+   red plaques (public/art/jade-street/ui-*.webp) stretched with border-image. Every rule is scoped under .jade-shell so
+   nothing leaks into the rest of the arcade. The minimap is drawn on the canvas (top right, see controller resize()). */
+.jade-shell {
+  --ink: #fdf3dc; --muted: #d9c9ac; --panel: rgba(17, 12, 34, .94); --panel2: rgba(30, 22, 54, .96); --jade: #1f9a6a; --jade-d: #0f5e40; --gold: #f2c14e; --red: #d8443a; --good: #7be3a6; --bad: #ff8a7a;
+  --display: "Fredoka", "Nunito", system-ui, sans-serif; --body: "Nunito", system-ui, sans-serif;
+  position: fixed; inset: 0; overflow: hidden; background: #0d0a1c; color: var(--ink); font-family: var(--body); font-size: 15px;
+  -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; touch-action: none;
+}
+.jade-shell * { box-sizing: border-box; }
+.jade-shell button { font-family: var(--body); color: inherit; cursor: pointer; border: 0; background: none; padding: 0; }
+.jade-shell button:disabled { cursor: not-allowed; }
+.jade-shell h1, .jade-shell h2, .jade-shell h3 { font-family: var(--display); margin: 0; line-height: 1.1; color: var(--ink); }
+.jade-shell p { margin: .4em 0; line-height: 1.4; color: inherit; font-size: inherit; }
+.jade-shell small, .jade-shell .small { font-size: 13px; color: var(--muted); }
+.jade-shell .jade-spr { display: inline-block; background-repeat: no-repeat; flex: none; vertical-align: middle; }
+.jade-shell kbd { font: 900 12px var(--body); background: var(--gold); color: #2a1a06; border-radius: 5px; padding: 1px 6px; }
+.jade-shell a { color: var(--gold); }
+
+/* painted buttons */
+.jade-shell .jade-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 2px 10px; font: 900 15px var(--body); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.7);
+  border: solid transparent; border-width: 8px 20px; border-image: url(/art/jade-street/ui-plaque-jade.webp) 16 40 fill / 8px 20px stretch; background-clip: padding-box; transition: transform .08s, filter .15s; white-space: nowrap; }
+.jade-shell .jade-btn.red { border-image-source: url(/art/jade-street/ui-plaque-red.webp); }
+.jade-shell .jade-btn.gold { border-image-source: url(/art/jade-street/ui-plaque-red.webp); filter: hue-rotate(38deg) saturate(1.3) brightness(1.1); color: #fff; }
+.jade-shell .jade-btn.plain { border: 2px solid rgba(242,193,78,.65); border-image: none; background: rgba(40, 30, 70, .9); border-radius: 12px; padding: 6px 16px; color: var(--ink); text-shadow: none; }
+.jade-shell .jade-btn:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
+.jade-shell .jade-btn.gold:hover:not(:disabled) { filter: hue-rotate(38deg) saturate(1.3) brightness(1.22); }
+.jade-shell .jade-btn:active:not(:disabled) { transform: translateY(1px); }
+.jade-shell .jade-btn:disabled { filter: grayscale(.8) brightness(.7); opacity: .75; }
+.jade-shell .jade-btn.big { font-size: 18px; min-height: 52px; padding: 4px 18px; }
+.jade-shell .jade-btn:focus-visible, .jade-shell button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.jade-shell .jade-link { color: var(--gold); text-decoration: underline; font-weight: 800; margin-left: 8px; }
+
+/* ── title */
+.jade-shell .jade-title { position: absolute; inset: 0; background-size: cover; background-position: 50% 40%; display: flex; align-items: flex-end; justify-content: center; padding: 16px; overflow-y: auto; }
+.jade-shell .jade-title-card { width: min(560px, 100%); background: var(--panel); border: 2px solid var(--gold); border-radius: 22px; padding: 18px 20px 14px; text-align: center; box-shadow: 0 18px 50px rgba(0,0,0,.6); margin-bottom: 2vh; }
+.jade-shell .jade-title h1 { font-size: clamp(38px, 8vw, 64px); color: var(--gold); text-shadow: 0 3px 0 #7a1d16, 0 6px 18px rgba(0,0,0,.7); letter-spacing: 1px; }
+.jade-shell .jade-tag { color: var(--ink); font-size: 16px; }
+.jade-shell .jade-title-btns { display: flex; flex-direction: column; gap: 10px; align-items: center; margin: 12px 0 6px; }
+.jade-shell .jade-how { color: var(--muted); font-size: 13px; }
+.jade-shell .jade-back { font-size: 13px; font-weight: 800; }
+.jade-shell .jade-confirm { background: rgba(80, 20, 20, .5); border: 2px solid var(--red); border-radius: 14px; padding: 10px 12px; margin: 10px 0; }
+.jade-shell .jade-card-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+.jade-shell .jade-heroes { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 8px 0; }
+.jade-shell .jade-hero-pick { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 14px; border-radius: 16px; border: 2px solid rgba(242,193,78,.5); background: rgba(40,30,70,.85); min-width: 130px; }
+.jade-shell .jade-hero-pick span { font: 700 18px var(--display); }
+.jade-shell .jade-hero-pick small { max-width: 150px; }
+.jade-shell .jade-hero-pick:hover, .jade-shell .jade-hero-pick.on { border-color: var(--gold); background: rgba(31,154,106,.45); }
+
+/* ── game */
+.jade-shell .jade-game, .jade-shell .jade-stage { position: absolute; inset: 0; }
+.jade-shell .jade-cv { display: block; width: 100%; height: 100%; }
+.jade-shell .jade-hud-left { position: absolute; left: 12px; top: 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; pointer-events: none; max-width: 46vw; }
+.jade-shell .jade-hero-plaque { display: flex; gap: 8px; align-items: center; background: var(--panel); border: 2px solid var(--gold); border-radius: 40px 16px 16px 40px; padding: 4px 12px 4px 4px; }
+.jade-shell .jade-face-ring { width: 54px; height: 54px; border-radius: 50%; background: radial-gradient(#2a7a5a, #0f3f2c); border: 3px solid var(--gold); display: grid; place-items: center; overflow: hidden; }
+.jade-shell .jade-hero-stats { display: flex; flex-direction: column; gap: 2px; }
+.jade-shell .jade-cash { font: 700 19px var(--display); color: #ffe7a0; display: flex; align-items: center; gap: 5px; }
+.jade-shell .jade-lanterns { display: flex; gap: 2px; }
+.jade-shell .jade-lanterns .lit { filter: drop-shadow(0 0 6px rgba(255,80,60,.95)); animation: jade-sway 1.2s ease-in-out infinite; }
+@keyframes jade-sway { 50% { transform: rotate(8deg); } }
+.jade-shell .jade-where { background: var(--panel); border-radius: 10px; padding: 3px 10px; font-size: 13px; font-weight: 800; color: var(--ink); }
+.jade-shell .jade-cargo { display: flex; gap: 6px; align-items: center; background: var(--panel); border-radius: 10px; padding: 3px 8px; font-size: 13px; font-weight: 800; flex-wrap: wrap; }
+.jade-shell .jade-cargo span { display: inline-flex; align-items: center; gap: 1px; }
+.jade-shell .jade-cargo b.over { color: var(--bad); }
+.jade-shell .jade-hud-right { position: absolute; right: 12px; top: 10px; display: flex; gap: 8px; }
+.jade-shell .jade-round { width: 46px; height: 46px; border-radius: 50%; background: var(--panel); border: 2px solid var(--gold); display: grid; place-items: center; }
+.jade-shell .jade-round:hover { background: rgba(31,154,106,.6); }
+.jade-shell .jade-pause-glyph { width: 16px; height: 18px; border-left: 6px solid var(--ink); border-right: 6px solid var(--ink); }
+.jade-shell .jade-job { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: min(460px, calc(100vw - 480px)); min-width: 260px; background: var(--panel); border: 2px solid var(--jade); border-radius: 16px; padding: 7px 14px 8px; text-align: center; pointer-events: none; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
+.jade-shell .jade-job.small { padding: 4px 12px; }
+.jade-shell .jade-job-title { font: 700 13px var(--display); color: var(--gold); text-transform: uppercase; letter-spacing: .5px; }
+.jade-shell .jade-job-label { font-weight: 900; font-size: 16px; color: var(--ink); }
+.jade-shell .jade-job-row { display: flex; gap: 10px; justify-content: center; align-items: center; margin-top: 3px; flex-wrap: wrap; }
+.jade-shell .jade-timer { font: 700 16px var(--display); color: #ffe7a0; background: rgba(0,0,0,.35); border-radius: 8px; padding: 0 8px; }
+.jade-shell .jade-timer.low { color: #fff; background: var(--red); animation: jade-pulse .6s infinite alternate; }
+@keyframes jade-pulse { to { transform: scale(1.08); } }
+.jade-shell .jade-progress { font-weight: 900; color: var(--good); }
+.jade-shell .jade-meter { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; }
+.jade-shell .jade-meter i { font-style: normal; }
+.jade-shell .jade-meter b { display: inline-block; height: 9px; width: 0; min-width: 2px; max-width: 110px; background: var(--good); border-radius: 5px; box-shadow: 0 0 0 2px rgba(0,0,0,.4); }
+.jade-shell .jade-meter { position: relative; }
+.jade-shell .jade-meter::after { content: ''; position: absolute; right: 0; top: 50%; width: 110px; height: 9px; margin-top: -4.5px; border-radius: 5px; box-shadow: inset 0 0 0 2px rgba(255,255,255,.25); pointer-events: none; }
+.jade-shell .jade-meter b { margin-right: 0; }
+.jade-shell .jade-meter { padding-right: 0; }
+.jade-shell .jade-meter.bad b { background: var(--bad); }
+.jade-shell .jade-toasts { position: absolute; left: 50%; top: 26%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; width: min(520px, calc(100vw - 24px)); }
+.jade-shell .jade-banner { display: flex; flex-direction: column; align-items: center; background: linear-gradient(180deg, rgba(120,24,24,.95), rgba(80,14,20,.95)); border: 3px solid var(--gold); border-radius: 18px; padding: 8px 24px; animation: jade-in .35s ease-out; text-align: center; }
+.jade-shell .jade-banner b { font: 700 clamp(22px, 4vw, 32px) var(--display); color: #ffe7a0; }
+.jade-shell .jade-banner span { font-weight: 800; color: var(--ink); }
+@keyframes jade-in { from { transform: scale(.7); opacity: 0; } }
+.jade-shell .jade-toast { background: var(--panel); border-left: 5px solid var(--jade); border-radius: 10px; padding: 6px 12px; font-weight: 800; font-size: 14px; animation: jade-in .25s ease-out; text-align: center; }
+.jade-shell .jade-toast.bad { border-left-color: var(--red); }
+.jade-shell .jade-toast.good { border-left-color: var(--good); }
+.jade-shell .jade-toast.gold { border-left-color: var(--gold); color: #ffe7a0; }
+.jade-shell .jade-prompt { position: absolute; left: 50%; bottom: 46px; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; background: var(--panel); border: 2px solid var(--gold); border-radius: 24px; padding: 8px 18px; font-weight: 900; font-size: 16px; max-width: calc(100vw - 24px); box-shadow: 0 6px 20px rgba(0,0,0,.5); animation: jade-in .2s ease-out; }
+.jade-shell .jade-prompt span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jade-shell .jade-prompt.touch { bottom: auto; top: 46%; max-width: calc(100vw - 40px); }
+.jade-shell .jade-keys { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); font-size: 12px; font-weight: 800; color: var(--ink); background: rgba(13,10,28,.75); border-radius: 8px; padding: 3px 10px; white-space: nowrap; pointer-events: none; }
+
+/* dialogue */
+.jade-shell .jade-talk-wrap { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding: 14px; background: linear-gradient(180deg, transparent 50%, rgba(8,5,20,.55)); cursor: pointer; }
+.jade-shell .jade-talk { display: flex; gap: 12px; align-items: center; width: min(760px, 100%); background: var(--panel2); border: 3px solid var(--gold); border-radius: 20px; padding: 10px 16px 10px 10px; animation: jade-in .2s ease-out; box-shadow: 0 10px 30px rgba(0,0,0,.6); }
+.jade-shell .jade-talk.hero { border-color: var(--jade); }
+.jade-shell .jade-talk-face { flex: none; width: 104px; height: 104px; border-radius: 50%; background: radial-gradient(#3a2a6a, #1a1236); border: 3px solid var(--gold); display: grid; place-items: center; overflow: hidden; }
+.jade-shell .jade-talk-name { font: 700 18px var(--display); color: var(--gold); }
+.jade-shell .jade-talk p { font-size: 17px; font-weight: 700; margin: 2px 0 4px; }
+.jade-shell .jade-talk-next { font-size: 12px; color: var(--muted); font-weight: 800; }
+
+/* modal panels */
+.jade-shell .jade-modal-back { position: absolute; inset: 0; background: rgba(8, 5, 20, .55); display: flex; align-items: center; justify-content: center; padding: 10px; z-index: 5; }
+.jade-shell .jade-card { width: min(440px, 100%); background: var(--panel2); border: 3px solid var(--gold); border-radius: 20px; padding: 16px 18px; text-align: center; }
+.jade-shell .jade-card.fail { border-color: var(--red); }
+.jade-shell .jade-card h2 { color: var(--bad); font-size: 26px; }
+.jade-shell .jade-panel { width: min(800px, 100%); max-height: 100%; display: flex; flex-direction: column; background: var(--panel2); border: 3px solid var(--gold); border-radius: 20px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,.6); }
+.jade-shell .jade-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px 8px 18px; background: linear-gradient(180deg, #1f7a55, #0f4a33); border-bottom: 2px solid var(--gold); }
+.jade-shell .jade-panel-head h2 { font-size: 22px; color: #fff3cf; }
+.jade-shell .jade-x { width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,.35); font: 900 26px/1 var(--body); color: #fff; }
+.jade-shell .jade-x:hover { background: var(--red); }
+.jade-shell .jade-panel-body { padding: 12px 16px 16px; overflow-y: auto; overflow-x: hidden; touch-action: pan-y; user-select: text; -webkit-user-select: text; }
+.jade-shell .jade-panel h3 { font-size: 17px; color: var(--gold); margin: 6px 0; }
+.jade-shell .jade-msg { background: rgba(31,154,106,.25); border-left: 4px solid var(--good); padding: 5px 10px; border-radius: 8px; font-weight: 800; }
+
+/* market */
+.jade-shell .jade-market-hero { height: 150px; margin: -12px -16px 8px; background-size: cover; background-position: 50% 28%; position: relative; }
+.jade-shell .jade-haggle { position: absolute; left: 12px; right: 12px; bottom: 10px; display: flex; gap: 10px; align-items: center; justify-content: center; }
+.jade-shell .jade-needle { position: relative; flex: 1; max-width: 420px; height: 26px; background: rgba(20,10,5,.85); border: 2px solid var(--gold); border-radius: 14px; overflow: hidden; cursor: pointer; }
+.jade-shell .jade-needle .zone { position: absolute; top: 0; bottom: 0; background: rgba(123,227,166,.55); }
+.jade-shell .jade-needle .zone.great { background: rgba(255,214,90,.85); }
+.jade-shell .jade-needle .pin { position: absolute; top: -2px; bottom: -2px; width: 6px; margin-left: -3px; background: #fff; box-shadow: 0 0 6px #fff; }
+.jade-shell .jade-grade { font: 700 18px var(--display); background: var(--panel); border-radius: 10px; padding: 4px 12px; }
+.jade-shell .jade-grade.great, .jade-shell .jade-grade.good { color: var(--good); }
+.jade-shell .jade-grade.sour { color: var(--bad); }
+.jade-shell .jade-market-info { display: flex; gap: 14px; flex-wrap: wrap; font-weight: 800; margin-bottom: 6px; align-items: center; }
+.jade-shell .jade-market-info span { display: inline-flex; align-items: center; gap: 4px; }
+.jade-shell .jade-goods { width: 100%; border-collapse: collapse; }
+.jade-shell .jade-goods th { text-align: left; font-size: 12px; color: var(--muted); padding: 2px 4px; }
+.jade-shell .jade-goods td { padding: 3px 4px; border-top: 1px solid rgba(255,255,255,.1); font-weight: 800; white-space: nowrap; }
+.jade-shell .jade-goods td:first-child { white-space: normal; }
+.jade-shell .jade-goods td.btns { display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap; }
+.jade-shell .jade-goods .jade-btn { min-height: 36px; min-width: 64px; font-size: 14px; padding: 0 4px; border-width: 6px 16px; border-image-width: 6px 16px; }
+.jade-shell .jade-goods .jade-btn.plain { padding: 4px 10px; border-width: 2px; }
+.jade-shell .jade-goods em.tip { color: var(--gold); font-style: normal; font-weight: 900; }
+.jade-shell .jade-tips p { font-size: 14px; margin: 4px 0; }
+.jade-shell .jade-tips .hint { color: var(--good); }
+
+/* safe house, garage */
+.jade-shell .jade-safe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
+.jade-shell .jade-safe-grid section { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.jade-shell .jade-safe-grid section.wide { grid-column: 1 / -1; }
+.jade-shell .jade-outfits, .jade-shell .jade-paints { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; width: 100%; }
+.jade-shell .jade-outfit, .jade-shell .jade-paint { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px; border-radius: 12px; border: 2px solid rgba(255,255,255,.15); background: rgba(40,30,70,.85); text-align: center; }
+.jade-shell .jade-outfit.on, .jade-shell .jade-paint.on { border-color: var(--gold); background: rgba(31,154,106,.4); }
+.jade-shell .jade-swatch { width: 40px; height: 22px; border-radius: 8px; box-shadow: inset 0 0 0 2px rgba(0,0,0,.4); }
+.jade-shell .jade-swatch.h0 { background: linear-gradient(90deg, #1f8a5a 50%, #d8443a 50%); }
+.jade-shell .jade-swatch.h1 { background: linear-gradient(90deg, #2f4fb0 50%, #7a2fb0 50%); }
+.jade-shell .jade-swatch.h2 { background: linear-gradient(90deg, #c99a1f 50%, #c96f1f 50%); }
+.jade-shell .jade-swatch.h3 { background: linear-gradient(90deg, #1fa6a6 50%, #1f8ac9 50%); }
+.jade-shell .jade-swatch.h4 { background: linear-gradient(90deg, #8a2f9a 50%, #2f3fa6 50%); }
+.jade-shell .jade-swatch.h5 { background: linear-gradient(90deg, #e04aa8 50%, #b04ae0 50%); }
+.jade-shell .jade-swatch.p-red { background: #d8443a; } .jade-shell .jade-swatch.p-jade { background: #1f9a6a; } .jade-shell .jade-swatch.p-gold { background: #e2b53a; } .jade-shell .jade-swatch.p-blue { background: #2f6fd8; } .jade-shell .jade-swatch.p-violet { background: #8a3ad8; }
+.jade-shell .jade-ups { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.jade-shell .jade-up { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; background: rgba(40,30,70,.85); border-radius: 12px; padding: 10px; }
+.jade-shell .jade-up b { font: 700 17px var(--display); }
+.jade-shell .jade-up .lv { display: flex; gap: 4px; }
+.jade-shell .jade-up .lv i { width: 22px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.2); }
+.jade-shell .jade-up .lv i.on { background: var(--gold); }
+
+/* map */
+.jade-shell .jade-panel.map { width: min(1100px, 100%); height: 100%; }
+.jade-shell .jade-panel.map .jade-panel-body { display: flex; flex-direction: column; flex: 1; padding: 6px; overflow: hidden; }
+.jade-shell .jade-map-cv { flex: 1; width: 100%; min-height: 0; cursor: crosshair; border-radius: 12px; }
+.jade-shell .jade-map-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; font-weight: 800; padding: 6px 4px 0; }
+.jade-shell .jade-map-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.jade-shell .jade-map-legend i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(0,0,0,.6); }
+
+/* pause */
+.jade-shell .jade-panel.pause { width: min(620px, 100%); }
+.jade-shell .jade-menu { display: flex; flex-direction: column; gap: 8px; align-items: stretch; max-width: 340px; margin: 0 auto; }
+.jade-shell .jade-settings { display: flex; flex-direction: column; gap: 10px; font-weight: 800; }
+.jade-shell .jade-settings label { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.jade-shell .jade-settings input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--jade); }
+.jade-shell .jade-settings select { font: 800 15px var(--body); padding: 4px 8px; border-radius: 8px; background: #2a2050; color: var(--ink); border: 2px solid var(--gold); }
+.jade-shell .jade-trophies { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.jade-shell .jade-trophy { display: grid; grid-template-columns: 34px 1fr; gap: 0 6px; align-items: center; background: rgba(40,30,70,.7); border-radius: 10px; padding: 6px; opacity: .6; }
+.jade-shell .jade-trophy .jade-spr { grid-row: span 2; filter: grayscale(1); }
+.jade-shell .jade-trophy.got { opacity: 1; border: 2px solid var(--gold); }
+.jade-shell .jade-trophy.got .jade-spr { filter: none; }
+.jade-shell .jade-stats { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0; font-weight: 800; }
+.jade-shell .jade-stats dt { color: var(--muted); } .jade-shell .jade-stats dd { margin: 0; }
+.jade-shell .jade-heirlooms { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 8px 0; }
+.jade-shell .jade-heirlooms div { display: flex; flex-direction: column; align-items: center; width: 104px; text-align: center; opacity: .45; filter: grayscale(.9); }
+.jade-shell .jade-heirlooms div.got { opacity: 1; filter: none; }
+
+/* mini-games */
+.jade-shell .jade-mini { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; background: #140f24; }
+.jade-shell .jade-mini-head { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 8px 14px; background: linear-gradient(180deg, #1f7a55, #0f4a33); border-bottom: 2px solid var(--gold); }
+.jade-shell .jade-mini-head b { font: 700 20px var(--display); color: #fff3cf; }
+.jade-shell .jade-mini-head span { font-weight: 800; font-size: 14px; }
+.jade-shell .jade-mini-cv { flex: 1; min-height: 0; width: 100%; display: block; touch-action: none; cursor: pointer; }
+.jade-shell .jade-mini-foot { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 8px 12px; background: var(--panel2); border-top: 2px solid var(--gold); }
+.jade-shell .jade-mini-keys { font-size: 12px; color: var(--muted); font-weight: 800; }
+.jade-shell .jade-order { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-weight: 900; }
+.jade-shell .jade-order span { display: inline-flex; align-items: center; gap: 3px; background: rgba(40,30,70,.9); border-radius: 10px; padding: 2px 8px; }
+.jade-shell .jade-order span.got { background: rgba(31,154,106,.6); }
+.jade-shell .jade-order .strikes { color: var(--bad); }
+.jade-shell .jade-mini-end { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); font: 700 clamp(28px, 6vw, 48px) var(--display); background: var(--panel2); border: 3px solid var(--gold); border-radius: 20px; padding: 10px 28px; animation: jade-in .3s ease-out; pointer-events: none; text-align: center; }
+.jade-shell .jade-mini-end.ok { color: var(--good); } .jade-shell .jade-mini-end.bad { color: var(--bad); border-color: var(--red); }
+
+/* touch controls */
+.jade-shell .jade-stick-zone { position: absolute; left: 0; bottom: 0; width: 50%; height: 62%; touch-action: none; }
+.jade-shell .jade-stick { position: absolute; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; background: rgba(13,10,28,.45); border: 3px solid rgba(242,193,78,.7); opacity: .45; pointer-events: none; }
+.jade-shell .jade-knob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #4fd39b, #127a52); border: 3px solid var(--gold); }
+.jade-shell .jade-tbtns { position: absolute; right: 14px; bottom: 18px; width: 206px; height: 200px; pointer-events: none; }
+.jade-shell .jade-tbtn { position: absolute; pointer-events: auto; display: grid; place-items: center; border-radius: 50%; background: url(/art/jade-street/ui-btn-jade.webp) center / 100% 100% no-repeat; font: 900 14px var(--body); color: #fff; text-shadow: 0 1px 3px #000, 0 0 2px #000; touch-action: none; }
+.jade-shell .jade-tbtn span { pointer-events: none; }
+.jade-shell .jade-tbtn.act { width: 92px; height: 92px; right: 0; bottom: 0; background-image: url(/art/jade-street/ui-btn-red.webp); font-size: 16px; }
+.jade-shell .jade-tbtn.act.ready { filter: drop-shadow(0 0 10px rgba(255,214,90,.95)); }
+.jade-shell .jade-tbtn.dash { width: 70px; height: 70px; right: 100px; bottom: 4px; }
+.jade-shell .jade-tbtn.hop { width: 70px; height: 70px; right: 14px; bottom: 100px; }
+.jade-shell .jade-tbtn.sneak { width: 62px; height: 62px; right: 96px; bottom: 92px; filter: saturate(.4); }
+.jade-shell .jade-tbtn.sneak.on { filter: drop-shadow(0 0 10px rgba(123,227,166,.95)); }
+.jade-shell .jade-tbtn:active { transform: scale(.94); }
+.jade-shell[data-touch="true"] .jade-prompt { bottom: auto; top: 44%; }
+
+/* narrow screens: the job plaque drops under the hero plaque, left of the minimap */
+@media (max-width: 720px) {
+  .jade-shell .jade-job { top: 164px; left: 10px; right: 10px; transform: none; width: auto; min-width: 0; }
+  .jade-shell .jade-hud-left { max-width: calc(100vw - 140px); }
+  .jade-shell .jade-safe-grid { grid-template-columns: 1fr; }
+  .jade-shell .jade-goods th:nth-child(4), .jade-shell .jade-goods td:nth-child(4) { display: none; }
+  .jade-shell .jade-goods td:first-child { font-size: 13px; }
+  .jade-shell .jade-market-hero { height: 110px; }
+  .jade-shell .jade-talk-face { width: 72px; height: 72px; }
+  .jade-shell .jade-talk p { font-size: 15px; }
+  .jade-shell .jade-keys { display: none; }
+}
+/* short screens (phones on their side) */
+@media (max-height: 480px) {
+  .jade-shell .jade-job { top: 8px; left: 50%; right: auto; transform: translateX(-50%); width: min(360px, calc(100vw - 420px)); min-width: 220px; padding: 4px 10px; }
+  .jade-shell .jade-job-label { font-size: 14px; }
+  .jade-shell .jade-hero-plaque { padding: 2px 10px 2px 2px; }
+  .jade-shell .jade-face-ring { width: 42px; height: 42px; }
+  .jade-shell .jade-where { font-size: 12px; }
+  .jade-shell .jade-talk-face { width: 64px; height: 64px; }
+  .jade-shell .jade-talk p { font-size: 14px; }
+  .jade-shell .jade-market-hero { height: 80px; }
+  .jade-shell .jade-tbtns { transform: scale(.82); transform-origin: right bottom; }
+  .jade-shell .jade-mini-head { padding: 4px 10px; } .jade-shell .jade-mini-head span { display: none; }
+  .jade-shell .jade-mini-foot { padding: 4px 8px; } .jade-shell .jade-mini-keys { display: none; }
+  .jade-shell .jade-title { align-items: center; }
+  .jade-shell .jade-title-card { padding: 10px 14px; }
+  .jade-shell .jade-title h1 { font-size: 34px; }
+  .jade-shell .jade-tag { display: none; }
+  .jade-shell .jade-toasts { top: 32%; }
+}

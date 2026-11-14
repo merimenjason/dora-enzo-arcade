@@ -44,7 +44,7 @@ export class World {
   time = 0; tick = 0; nextId = 1; open: Set<District>; route: [number, number][] = []; routeT = 0;
   failed: { reason: string } | null = null; banner: { text: string; sub: string; t: number } | null = null;
   snatchT = 20; spawnT = 0; daySales: Record<string, number> = {}; profitBase = 0; tripCost: Record<Good, number>;
-  private fieldCache = new Map<string, Field>();
+  fieldCache = new Map<string, Field>();
   quiet = false;
 
   constructor(save: Save, seed = save.seed) {
@@ -335,7 +335,20 @@ export class World {
   setHero(h: Hero) { this.s.hero = h; }
 
   // ── the route arrow: a path to the current objective
-  objective(): [number, number] | null { return this.run ? this.run.target() : null; }
+  /** a pin the player dropped on the full map (used when no job is running) */
+  waypoint: [number, number] | null = null;
+  objective(): [number, number] | null {
+    if (this.run) return this.run.target();
+    if (this.waypoint && dist(this.waypoint[0], this.waypoint[1], this.p.x, this.p.y) < 110) { this.waypoint = null; this.fx.push({ t: 'arrive' }); }
+    if (this.waypoint) return this.waypoint;
+    // with Assist on and nothing else to do, point at the next job's contact
+    if (this.assist && !this.p.roof) {
+      let best: [number, number] | null = null, bd = 1e18;
+      for (const m of available(this.s)) { const pl = this.c.places[m.at]; if (!pl) continue; const d = dist(pl.x, pl.y, this.p.x, this.p.y); if (d < bd && d > 90) { bd = d; best = [pl.x, pl.y]; } }
+      return best;
+    }
+    return null;
+  }
   updateRoute() {
     const o = this.objective(); if (!o) { this.route = []; return; }
     const cls = this.p.ride ? VEHICLES[this.p.ride.kind].cls : 'foot';
