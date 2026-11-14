@@ -17,6 +17,8 @@ export const EVENT_KINDS: EventKind[] = ['magpie', 'duckling', 'van', 'busker'];
 export type StreetEvent = {
   kind: EventKind; d: District; x: number; y: number; t: number; phase: 'on' | 'follow' | 'done' | 'gone';
   b?: Body; goal?: [number, number]; home?: [number, number]; ride?: Ride; push?: number; tipped?: boolean; caught?: boolean;
+  /** slowed by a bubble shot (seconds) */
+  slowT?: number;
 };
 export const EVENT_NAME: Record<EventKind, string> = { magpie: 'Stop, thief!', duckling: 'Lost duckling', van: 'Broken-down van', busker: 'Busker' };
 const LIFE: Record<EventKind, number> = { magpie: 40, duckling: 160, van: 120, busker: 80 };
@@ -41,13 +43,15 @@ export function eventsStep(w: World, dt: number) {
       const b = e.b!;
       if (!e.goal || dist(b.x, b.y, e.goal[0], e.goal[1]) < 40) e.goal = farSpot(w, b.x, b.y);
       const close = dist(b.x, b.y, pb.x, pb.y);
-      const sp = (close < 260 ? 200 : 150) * (w.assist ? 0.86 : 1) * (close > 900 ? 0.6 : 1);
+      if (e.slowT) e.slowT = Math.max(0, e.slowT - dt);
+      const sp = (close < 260 ? 200 : 150) * (w.assist ? 0.86 : 1) * (close > 900 ? 0.6 : 1) * (e.slowT ? 0.45 : 1);
       const f = w.fieldTo('walk', e.goal[0], e.goal[1]); const n = downhill(w.c, f, b.x, b.y, w.open) ?? e.goal;
       const dx = n[0] - b.x, dy = n[1] - b.y, l = Math.hypot(dx, dy) || 1;
       drive(w.ctx(), b, dx / l, dy / l, sp, 900, 10, dt, true);
       e.x = b.x; e.y = b.y;
       const hitting = p.ride ? pb.speed > 90 : (p.dashT > 0 || p.hopT > 0);
-      if (close < b.r + pb.r + (w.assist ? 18 : 8) && hitting) {
+      // a dash, a ride, or a gadget shot, the partner's pounce or the passenger's grab (lib/jade-gear.ts, lib/jade-tag.ts)
+      if ((close < b.r + pb.r + (w.assist ? 18 : 8) && hitting) || e.caught) {
         e.phase = 'done'; e.t = 0; reward(w, e, 40, 2); w.fx.push({ t: 'hit', x: b.x, y: b.y });
         text(w, CONTACT_OF[e.d], 'You got my mango back from that cheeky magpie! Here, a little something for your trouble.');
       }

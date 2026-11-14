@@ -210,22 +210,22 @@ test('magpie raids: a text and a defend job; idle and they escape (losing part o
 });
 
 // ── saves
-test('save v4: real v2 and v3 saves migrate with every bit of progress, and businesses start empty', () => {
-  assert.equal(SAVE_VERSION, 4); assert.equal(SAVE_KEY, 'jade-street-v4'); assert.ok(OLD_KEYS.includes('jade-street-v3') && OLD_KEYS.includes('jade-street-v2'));
+test('save: real v2 and v3 saves migrate with every bit of progress, and businesses start empty', () => {
+  assert.equal(SAVE_VERSION, 5); assert.equal(SAVE_KEY, 'jade-street-v5'); assert.ok(OLD_KEYS.includes('jade-street-v3') && OLD_KEYS.includes('jade-street-v2'));
   const v3 = JSON.parse(readFileSync(new URL('./fixtures/jade-save-v3.json', import.meta.url), 'utf8'));
   assert.equal(v3.v, 3);
   const s = loadSave(JSON.stringify(v3));
-  assert.equal(s.v, 4);
+  assert.equal(s.v, 5);
   for (const k of ['seed', 'hero', 'cash', 'night', 'clock', 'started', 'done', 'cats', 'murals', 'rep', 'cargo', 'stash', 'upgrades', 'paint', 'outfit', 'safes', 'trophies', 'tips', 'medals', 'story', 'learned', 'msgs', 'radio', 'helped', 'best', 'daily', 'dailyDone']) assert.deepEqual(s[k], v3[k], `v3 ${k} kept`);
   for (const k of Object.keys(v3.stats)) assert.equal(s.stats[k], v3.stats[k], `v3 stats.${k} kept`);
   for (const k of Object.keys(v3.settings)) assert.equal(s.settings[k], v3.settings[k], `v3 settings.${k} kept`);
   assert.equal(s.settings.calm, false); assert.deepEqual(s.bizLog, []); for (const b of BIZ) assert.equal(s.biz[b.id].lvl, 0);
-  assert.deepEqual(loadSave(JSON.stringify(s)), s, 'v4 round trip');
+  assert.deepEqual(loadSave(JSON.stringify(s)), s, 'v5 round trip');
   const live2 = { v: 2, seed: 77, hero: 'enzo', cash: 640, night: 6, clock: 120, started: true, done: ['m1', 'm2', 'm3', 'm4', 'm5', 'm6'], cats: [2, 4], murals: [], rep: { market: 30, temple: 8, canal: 0, docks: 0, arcade: 0 },
     cargo: { jade: 1, mooncake: 0, tea: 2, bowl: 0, fan: 0, mango: 0 }, stash: {}, upgrades: { speed: 1, cargo: 0, grip: 0 }, paint: 'red', outfit: { dora: 'classic', enzo: 'classic' }, safes: ['safe-market'], trophies: [], tips: [], dailyDone: [],
     stats: { missions: 6, playTime: 900 }, settings: { diff: 'normal', assist: true, sound: true, music: true, touch: 'auto' } };
   const s2 = loadSave(JSON.stringify(live2));
-  assert.equal(s2.v, 4); assert.equal(s2.cash, 640); assert.deepEqual(s2.done, live2.done); assert.equal(s2.story.ch, chapterOf(s2)); assert.equal(s2.settings.diff, 'normal');
+  assert.equal(s2.v, 5); assert.equal(s2.cash, 640); assert.deepEqual(s2.done, live2.done); assert.equal(s2.story.ch, chapterOf(s2)); assert.equal(s2.settings.diff, 'normal');
   assert.equal(s2.settings.calm, false); assert.equal(s2.biz.noodle.lvl, 0); assert.equal(s2.stats.bizCoins, 0);
   // a v4 save with a business keeps it, and junk is repaired
   const own = newSave(3); own.biz.tea = { lvl: 2, bank: 55.5, tonight: 3, hist: [100, 120], raids: 1, defended: 1 }; own.bizLog = [220];

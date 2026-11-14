@@ -12,6 +12,8 @@ export const FOLK = ['rabbit', 'dog', 'squirrel', 'cat', 'duck', 'hedgehog'];
 export type Ped = {
   id: number; sp: string; x: number; y: number; h: number; tx: number; ty: number; hop: number; hx: number; hy: number; scare: number; wait: number; walk: number;
   dest: number; sit: number; roadT: number; watch: boolean;
+  /** splattered by a gadget: the splat sprite and how long it stays */
+  splat?: string; splatT?: number;
 };
 export const MAX_PEDS = 30;
 
@@ -123,6 +125,7 @@ export function pedStep(w: World, dt: number) {
   for (const pd of w.peds) {
     const ctx = Math.floor(pd.x / T), cty = Math.floor(pd.y / T);
     pd.roadT = w.c.ground[cty * W + ctx] === G.ROAD ? pd.roadT + dt : 0;
+    if (pd.splatT) { pd.splatT = Math.max(0, pd.splatT - dt); if (!pd.splatT) pd.splat = ''; }
     if (pd.hop > 0) {
       pd.hop -= dt; const k = dt / 0.42;
       const nx = pd.x + pd.hx * k, ny = pd.y + pd.hy * k;

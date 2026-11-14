@@ -18,11 +18,21 @@ import { redAhead } from './jade-traffic.js';
 import { makeSets, stepSets, type SetState } from './jade-setpiece.js';
 import { bossEnter, bossStep, floatEnter, floatStep, floatNear, tryLeap, inWindow, leapSpot, LADDER, type Sign, type Float } from './jade-boss.js';
 import { raidEnter, raidStep } from './jade-biz.js';
+import { teamEnter, teamStep, teamTag, guardGoal, guardHits, onGadget, onBurst, watchStep, blind, postMate, releaseMate, holding, dropBag } from './jade-team.js';
+import { matePounceHit, pounce, pounceWindow, nameOf, GRAB_REACH, type TagOpt } from './jade-tag.js';
+import { seat, newAI, type MateMode } from './jade-duo.js';
+import type { GadgetId } from './jade-gear.js';
+import type { Hero } from './jade-save.js';
+import type { Player } from './jade-game.js';
 
 export type Gig = { key: string; reward: number; d: District };
-export type Actor = { id: number; kind: string; b: Body; route: [number, number][]; wp: number; speed: number; t: number; stun: number; look: number; lookCd: number; face: number; gone: boolean; hits: number; extra?: number };
+export type Actor = { id: number; kind: string; b: Body; route: [number, number][]; wp: number; speed: number; t: number; stun: number; look: number; lookCd: number; face: number; gone: boolean; hits: number; extra?: number;
+  /** painted blind (seconds), staring at a distraction (seconds, and at what), tangled in a net, the last single pounce */
+  extra2?: number; stare?: number; stareX?: number; stareY?: number; stareAt?: string; netT?: number; pz?: { by: 'you' | 'mate'; t: number } };
 export type Meter = { name: string; v: number; bad?: boolean };
-type Snap = { i: number; x: number; y: number; h?: number; roof: boolean; ride: VehicleKind | null; carry: string | null; phase?: number };
+type Snap = { i: number; x: number; y: number; h?: number; roof: boolean; ride: VehicleKind | null; carry: string | null; phase?: number;
+  /** who you were playing and where the partner was (and what they had been told to do) */
+  who: Hero; mate: { x: number; y: number; roof: boolean; seat: boolean; mode: MateMode; at: [number, number] | null; story: boolean } };
 
 export class Run {
   i = -1; cur!: Step; label = ''; timer: number | null = null; meter: Meter | null = null; meter2: Meter | null = null; progress = '';
@@ -39,6 +49,8 @@ export class Run {
   /** a little give after each retry (4% a time, at most 12%): rivals ease off and lookouts take longer to be sure */
   mercy() { return 1 - Math.min(0.12, 0.04 * this.retries); }
   ride: Ride | null = null; private fieldKey = ''; private f: Field | null = null;
+  /** the hero a switch step waits for, where you stood when the step began, the hero who started a relay */
+  want = ''; here: [number, number] = [0, 0]; starter = '';
   constructor(public w: World, public m: Mission, public gig?: Gig) {}
 
   get assist() { return this.w.assist; }
@@ -54,9 +66,16 @@ export class Run {
     this.enter(0);
   }
   addTip() { const t = this.m.tip!; const s = this.w.s; if (!s.tips.some(x => x.night === s.night && x.market === t.market && x.good === t.good)) s.tips.push({ night: s.night, market: t.market, good: t.good, mult: t.mult, from: PEOPLE[this.m.giver].name, text: this.m.blurb }); }
-  snapshot(i: number): Snap { const p = this.w.p; return { i, x: p.x, y: p.y, h: p.ride ? p.ride.b.h : p.b.h, roof: p.roof, ride: p.ride?.kind ?? null, carry: p.carry }; }
+  snapshot(i: number): Snap {
+    const p = this.w.p, m = this.w.mate;
+    return { i, x: p.x, y: p.y, h: p.ride ? p.ride.b.h : p.b.h, roof: p.roof, ride: p.ride?.kind ?? null, carry: p.carry, who: p.who,
+      mate: { x: m.x, y: m.y, roof: m.roof, seat: !!m.seat && m.seat === p.ride, mode: m.ai.mode === 'pounce' || m.ai.mode === 'distract' ? 'follow' : m.ai.mode, at: m.ai.at, story: m.ai.story } };
+  }
   restore() {
     const w = this.w, s = this.snap; this.cleanup(false);
+    // the checkpoint puts you back in the paws of the hero you were playing then
+    if (w.p.who !== s.who && !w.two) { const a = w.p; w.p = w.mate; w.mate = a; w.s.hero = w.p.who; }
+    const m = w.mate; m.act = null; m.hide = false; if (m.seat) m.seat = null; if (m.ride) { m.ride.parked = true; m.ride.b.speed = 0; m.ride = null; }
     const p = w.p;
     // the ride you were on comes back with you when the checkpoint had one of that kind
     const keep = p.ride && p.ride.kind === s.ride ? p.ride : null;
@@ -69,6 +88,10 @@ export class Run {
       r.b.x = x; r.b.y = y; r.b.h = s.h ?? r.b.h; r.b.speed = 0;
       p.ride = r; r.parked = false; p.b.x = x; p.b.y = y; p.roof = false;
     } else { p.roof = s.roof; if (s.roof) { p.b.x = s.x; p.b.y = s.y; p.lastRoof = [s.x, s.y]; } else w.placePlayer(s.x, s.y); }
+    // the partner too: back in the passenger seat, or where they stood, doing what they had been told
+    m.ai = { ...newAI(), mode: s.mate.mode, at: s.mate.at, story: s.mate.story };
+    if (s.mate.seat && p.ride) seat(w, m, p.ride);
+    else { m.roof = s.mate.roof; if (m.roof) { m.b.x = s.mate.x; m.b.y = s.mate.y; m.lastRoof = [s.mate.x, s.mate.y]; } else { const [x, y] = nearestFree(w.c, 'walk', s.mate.x, s.mate.y, w.open, 4); m.b.x = x; m.b.y = y; } m.b.speed = 0; }
     w.fx.push({ t: 'checkpoint' });
     this.enter(s.i);
     // a checkpoint taken part-way through a step (the shipping list in hand) picks up from there
@@ -78,7 +101,7 @@ export class Run {
   cleanup(all = true) {
     this.actors = []; this.items = []; this.marks = []; this.loot = null; this.fare = null; this.timer = null; this.meter = null; this.meter2 = null; this.progress = '';
     this.sets = []; this.signs = []; this.float = null; this.warning = null;
-    if (all) { this.w.p.carry = null; if (this.m.tip) this.w.s.tips = this.w.s.tips.filter(t => !(t.market === this.m.tip!.market && t.good === this.m.tip!.good)); }
+    if (all) { releaseMate(this); this.w.p.carry = null; if (this.m.tip) this.w.s.tips = this.w.s.tips.filter(t => !(t.market === this.m.tip!.market && t.good === this.m.tip!.good)); }
   }
   next() { this.enter(this.i + 1); }
   enter(i: number) {
@@ -86,14 +109,15 @@ export class Run {
     this.actors = []; this.items = []; this.marks = []; this.timer = null; this.meter = null; this.meter2 = null; this.progress = ''; this.phase = 0;
     this.sets = []; this.signs = []; this.warned = 0; if (!(this.m.steps[i]?.t === 'pickup')) this.float = null; this.count = 0; this.lost = 0; this.hits = 0; this.spawned = 0; this.spawnT = 0;
     if (i >= this.m.steps.length) { this.cleanup(); w.finishMission(this.m, this.gig); return; }
-    this.i = i; this.cur = this.m.steps[i]; const st = this.cur;
+    this.i = i; this.cur = this.m.steps[i]; const st = this.cur; this.here = [w.p.x, w.p.y];
     if (st.cp && i > 0) { this.snap = this.snapshot(i); w.fx.push({ t: 'checkpoint' }); }
     this.label = 'label' in st ? st.label : '';
     const k = (this.assist ? 1.4 : 1) * this.w.diff.timer;
+    if (teamEnter(this, st)) return;
     switch (st.t) {
       case 'talk': {
-        const hero = w.s.hero;
-        w.talk = { lines: st.lines.map(([who, text, mood]) => [who === 'hero' ? hero : who, text, mood ?? 'calm'] as [string, string, string]), i: 0, done: () => this.next() };
+        const hero = w.p.who, mate = w.mate.who;
+        w.talk = { lines: st.lines.map(([who, text, mood]) => [who === 'hero' ? hero : who === 'mate' ? mate : who, text.replace(/\{mate\}/g, nameOf(mate)).replace(/\{hero\}/g, nameOf(hero)), mood ?? 'calm'] as [string, string, string]), i: 0, done: () => this.next() };
         w.fx.push({ t: 'talk' });
         break;
       }
@@ -125,7 +149,8 @@ export class Run {
         const [x, y] = this.spot(st.from);
         const [sx, sy] = nearestFree(w.c, 'foot', x, y, w.open, 6);
         this.actors.push(this.actor('pip', sx, sy, 'foot', this.path(st.route, 'foot'), 72));
-        this.meter = { name: 'Suspicion', v: 0 };
+        this.meter = { name: 'Suspicion', v: 0 }; this.starter = w.p.who;
+        if (st.relay) postMate(this, 'post', this.spot(st.relay.spot));
         break;
       }
       case 'escort': {
@@ -133,6 +158,7 @@ export class Run {
         const [sx, sy] = nearestFree(w.c, 'foot', x, y, w.open, 6);
         this.actors.push(this.actor('lion', sx, sy, 'foot', this.path(st.route, 'foot'), 52));
         this.envelopes = 5; this.meter = { name: 'Red envelopes', v: 1 }; this.meter2 = { name: 'Troupe waiting', v: 0 }; this.spawnT = 3;
+        if (st.flanks) postMate(this, 'guard', [sx, sy]);
         break;
       }
       case 'race': {
@@ -144,7 +170,7 @@ export class Run {
           const sp = st.rival === 'runner' ? 204 : st.rival === 'scooter' ? 292 : 220;
           this.actors.push(this.actor('rival-' + st.rival, x, y, cls, this.marks, sp * (this.assist ? 0.86 : 1) * this.w.diff.rival * this.mercy()));
         }
-        this.progress = `Gates 0/${this.marks.length}`;
+        this.progress = `Gates 0/${this.marks.length}`; this.starter = w.p.who;
         break;
       }
       case 'stealth': {
@@ -152,7 +178,9 @@ export class Run {
         this.meter = { name: 'Alert', v: 0 }; this.phase = 0;
         break;
       }
-      case 'collect': this.items = st.items.map(s => { const [x, y] = this.spot(s); return { x, y, got: false, sprite: st.item }; }); this.timer = st.time * k; this.progress = `0/${st.items.length}`; break;
+      case 'collect': this.items = st.items.map(s => { const [x, y] = this.spot(s); return { x, y, got: false, sprite: st.item }; }); this.timer = st.time * k; this.progress = `0/${st.items.length}`;
+        if (st.watch) { const [x, y] = this.spot(st.watch); const a = this.actor('window', x, y, 'fly', [], 0); a.b.h = Math.PI / 2; this.actors.push(a); this.meter2 = { name: 'Window lookout', v: 0 }; }
+        break;
       case 'heat': {
         w.clearHeat(); addHeat(w, st.level + 0.2, 'story'); w.lastSeen = [w.p.x, w.p.y];
         // a getaway scooter waits right beside you, so a chase starts as a fair race, not a grab on the spot
@@ -202,6 +230,8 @@ export class Run {
       if (this.timer <= 0) { this.timer = 0; return this.fail(timeUp(st)); }
     }
     const px = p.x, py = p.y, pb = p.ride ? p.ride.b : p.b;
+    watchStep(this, dt);
+    if (teamStep(this, st, dt)) return;
     switch (st.t) {
       case 'goto': {
         const [x, y] = this.spot(st.at);
@@ -224,15 +254,29 @@ export class Run {
         break;
       }
       case 'chase': this.chase(st, dt, pb); break;
-      case 'float': floatStep(this, dt); break;
+      case 'float': {
+        // the rope: on Assist, a partner who wasn't sent runs for it once you are up on the roof
+        if (st.rope && w.assist && p.roof && w.mate.ai.mode !== 'hold') { postMate(this, 'hold', this.spot(st.rope)); w.say(`${nameOf(w.mate.who)} runs for the bunting rope!`, 'good'); }
+        floatStep(this, dt);
+        if (st.rope && this.float && !this.float.done && p.roof && !holding(this)) this.label = w.mate.ai.mode === 'hold' ? `${nameOf(w.mate.who)} is running for the rope…` : `The float is too far out: send ${nameOf(w.mate.who)} to haul the bunting rope (F)`;
+        break;
+      }
       case 'raid': raidStep(this, st, dt); break;
       case 'tail': this.tail(dt); break;
-      case 'escort': this.escort(st, dt, pb); break;
+      case 'escort': this.escort(st, dt, pb); guardHits(this); break;
       case 'race': {
         const [mx, my] = this.marks[this.mark];
         const okRide = !st.ride || (st.ride === 'foot' ? !p.ride : p.ride?.kind === st.ride);
         if (!okRide) this.label = st.ride === 'foot' ? 'On foot only: get off' : `Race on the ${VEHICLES[st.ride as VehicleKind].name.toLowerCase()}`;
         else this.label = st.label;
+        // a relay: the partner waits at the hand-off mark and runs the rest; the starter's marks stop counting there
+        const relayed = st.relay !== undefined && this.mark >= st.relay;
+        if (relayed && p.who === this.starter) {
+          this.label = `Hand off to ${nameOf(w.mate.who)} at the relay mark!`;
+          if (dist(px, py, w.mate.x, w.mate.y) < 110 && p.roof === w.mate.roof && !w.two) { w.fx.push({ t: 'handoff', x: px, y: py }); releaseMate(this); w.switchHero(); }
+          else if (w.two && dist(px, py, w.mate.x, w.mate.y) < 110) { w.fx.push({ t: 'handoff', x: px, y: py }); const a = w.p; w.p = w.mate; w.mate = a; w.s.hero = w.p.who; }
+          break;
+        }
         if (okRide && dist(px, py, mx, my) < (st.roof ? 60 : 90) && p.roof === !!st.roof) {
           this.mark++; w.fx.push({ t: 'gate', x: mx, y: my }); this.progress = `Gates ${this.mark}/${this.marks.length}`;
           if (this.mark >= this.marks.length) { w.fx.push({ t: 'win' }); this.next(); return; }
@@ -253,7 +297,7 @@ export class Run {
       }
       case 'stealth': this.stealth(st, dt); break;
       case 'collect': {
-        for (const it of this.items) if (!it.got && dist(px, py, it.x, it.y) < (p.ride ? 64 : 48)) {
+        for (const it of this.items) if (!st.high && !it.got && dist(px, py, it.x, it.y) < (p.ride ? 64 : 48)) {
           it.got = true; this.count++; w.fx.push({ t: it.sprite === 'lookout' ? 'spill' : 'pickup', x: it.x, y: it.y });
           if (it.sprite === 'lookout') addHeat(w, 0.4, 'story');
         }
@@ -286,16 +330,9 @@ export class Run {
     // a bump: ride into it, or dash into it on foot
     const reach = a.b.r + pb.r + (this.assist ? 16 : 6);
     const hitting = w.p.ride ? pb.speed > 90 : (w.p.dashT > 0 || w.p.hopT > 0);
-    if (a.stun <= 0 && d < reach && hitting) {
-      a.hits++; a.stun = 0.9; this.hits = a.hits; a.b.speed *= 0.4;
-      w.fx.push({ t: 'hit', x: a.b.x, y: a.b.y, k: a.hits });
-      this.progress = `Bumps ${a.hits}/${st.bumps}`;
-      if (a.hits >= st.bumps) {
-        // the loot lands where you can reach it the way you're travelling: in the water after a boat chase
-        if (st.loot) { const [lx, ly] = nearestFree(w.c, w.p.ride?.kind === 'boat' ? 'boat' : 'foot', a.b.x, a.b.y, w.open, 3); this.loot = { x: lx, y: ly, sprite: st.loot }; w.fx.push({ t: 'loot', x: lx, y: ly, kind: st.loot.startsWith('h-') ? 'heirloom' : 'loot' }); }
-        this.next(); return;
-      }
-    }
+    if (a.stun <= 0 && d < reach && hitting) { if (this.chaseHit(a, w.p.ride ? 'bump' : 'you')) return; }
+    if (matePounceHit(w) && w.mate.ai.tgt === a.id) { if (this.chaseHit(a, 'mate')) return; }
+    if (a.netT) a.netT = Math.max(0, a.netT - dt);
     stepSets(this, dt);
     if (st.who === 'boss' && st.phase) bossStep(this, st, dt);
     // the getaway meter: it fills while the thief is well ahead (faster when far ahead) and drains when you are close
@@ -308,6 +345,74 @@ export class Run {
     if (m.v < 0.3) this.warned = 0;
     if (m.v >= 1) this.fail(st.who === 'boss' ? 'Madame Glint got away! Keep her in sight and dodge what she throws at you.' : 'They got away! Keep the getaway meter low by staying close.');
   }
+  /** a hit on the chase target: a bump, your pounce, the partner's pounce, the passenger's grab or a net. A job can
+   * ask for its last bump to be a double pounce, a grab or a net; anything else then only trips the thief */
+  chaseHit(a: Actor, how: 'bump' | 'you' | 'mate' | 'grab' | 'net'): boolean {
+    const w = this.w, st = this.cur as Extract<Step, { t: 'chase' }>, n = nameOf(w.mate.who);
+    if (st.t !== 'chase' || a !== this.actors[0]) { a.stun = Math.max(a.stun, 0.6); return false; }
+    const trip = (msg: string) => { a.stun = Math.max(a.stun, 0.4); a.b.speed *= 0.5; w.fx.push({ t: 'hit', x: a.b.x, y: a.b.y, k: 0 }); this.warn(msg); return false; };
+    if (st.finish === 'pounce') {
+      if (how === 'bump' || how === 'grab' || how === 'net') return trip('Pip wriggles free! Pounce on him together.');
+      const other = how === 'you' ? 'mate' : 'you';
+      if (!(a.pz && a.pz.by === other && w.time - a.pz.t < pounceWindow(w))) {
+        a.pz = { by: how, t: w.time };
+        // on Assist your partner dives in with you when you pounce
+        if (how === 'you' && this.assist && w.mate.ai.mode !== 'pounce' && !w.mate.seat && !w.two && dist(w.mate.x, w.mate.y, a.b.x, a.b.y) < 360) pounce(w, a.id);
+        return trip(how === 'you' ? `Too slippery for one! Pounce together: F sends ${n} in too.` : `${n} pounced! Dash in now!`);
+      }
+      a.pz = undefined; w.fx.push({ t: 'double-pounce', x: a.b.x, y: a.b.y });
+    }
+    const last = a.hits >= st.bumps - 1;
+    if (last && st.finish === 'snatch' && how !== 'grab') return trip(`Get alongside and press F: ${n} grabs it off the cart!`);
+    if (last && st.finish === 'net' && how !== 'net' && how !== 'grab') return trip(`Tangle the cart in the net, or get alongside so ${n} can grab it (F)!`);
+    a.hits++; a.stun = 0.9; this.hits = a.hits; a.b.speed *= 0.4;
+    w.fx.push({ t: 'hit', x: a.b.x, y: a.b.y, k: a.hits, kind: how });
+    this.progress = `Bumps ${a.hits}/${st.bumps}`;
+    if (a.hits >= st.bumps) {
+      // the loot lands where you can reach it the way you're travelling: in the water after a boat chase; a grab
+      // or a net puts it straight in your paws
+      if (st.loot) {
+        if (how === 'grab') { this.loot = null; w.fx.push({ t: 'loot', x: a.b.x, y: a.b.y, kind: st.loot.startsWith('h-') ? 'heirloom' : 'loot' }); this.next(); if (this.cur?.t === 'pickup' && this.cur.at === 'loot') this.grabPickup(); return true; }
+        const [lx, ly] = nearestFree(w.c, w.p.ride?.kind === 'boat' ? 'boat' : 'foot', a.b.x, a.b.y, w.open, 3); this.loot = { x: lx, y: ly, sprite: st.loot }; w.fx.push({ t: 'loot', x: lx, y: ly, kind: st.loot.startsWith('h-') ? 'heirloom' : 'loot' });
+      }
+      this.next(); return true;
+    }
+    return false;
+  }
+  /** a pick-up step done by the passenger's grab: the item is in your paws without stopping */
+  grabPickup() {
+    const st = this.cur; if (!st || st.t !== 'pickup') return;
+    this.w.p.carry = st.item; this.loot = null; this.w.fx.push({ t: 'pickup', x: this.w.p.x, y: this.w.p.y, kind: st.item.startsWith('h-') ? 'heirloom' : 'item' }); this.next();
+  }
+  /** the passenger's grab (F on a ride): a thief, a raider, a decoy, a swooping bag-magpie, the loot, a high item */
+  onGrab(a: Actor | null) {
+    const w = this.w, st = this.cur; if (!st) return;
+    if (a) {
+      if (a.kind === 'raider') return this.raiderCaught(a);
+      if (a.kind === 'decoy') { a.gone = true; w.fx.push({ t: 'poof', x: a.b.x, y: a.b.y, kind: 'feather' }); return; }
+      if (a.kind === 'bagbird') return dropBag(this, a);
+      this.chaseHit(a, 'grab'); return;
+    }
+    if (st.t === 'pickup' && this.loot && dist(this.loot.x, this.loot.y, w.p.x, w.p.y) < GRAB_REACH * 1.5) return this.grabPickup();
+    if (st.t === 'collect') { const it = this.items.filter(i => !i.got).sort((a, b) => dist(a.x, a.y, w.p.x, w.p.y) - dist(b.x, b.y, w.p.x, w.p.y))[0]; if (it && dist(it.x, it.y, w.p.x, w.p.y) < GRAB_REACH * 1.3) this.collectItem(it); }
+  }
+  collectItem(it: { x: number; y: number; got: boolean; sprite: string }) {
+    const w = this.w, st = this.cur as Extract<Step, { t: 'collect' }>;
+    it.got = true; this.count++; w.fx.push({ t: it.sprite === 'lookout' ? 'spill' : 'pickup', x: it.x, y: it.y });
+    if (it.sprite === 'lookout') addHeat(w, 0.4, 'story');
+    this.progress = `${this.count}/${this.items.length}`;
+    if (this.items.every(i => i.got)) { void st; this.next(); }
+  }
+  /** a shot passing close to a high item knocks it down (true: the shot is used up) */
+  shotAt(x: number, y: number): boolean {
+    const st = this.cur; if (!st || st.t !== 'collect' || !st.high) return false;
+    const it = this.items.find(i => !i.got && dist(i.x, i.y, x, y) < 40); if (!it) return false;
+    this.collectItem(it); return true;
+  }
+  raiderCaught(a: Actor) {
+    const w = this.w; if (a.stun > 0 || a.gone) return;
+    a.stun = 0.8; a.hits = 1; this.count++; w.fx.push({ t: 'shoo', x: a.b.x, y: a.b.y }); w.fx.push({ t: 'hit', x: a.b.x, y: a.b.y, k: 1, kind: 'feather' });
+  }
   tail(dt: number) {
     const w = this.w, a = this.actors[0], p = w.p; if (!a) return;
     a.t += dt;
@@ -319,18 +424,24 @@ export class Run {
     }
     const d = dist(a.b.x, a.b.y, p.x, p.y);
     const range = (this.assist ? 165 : 210) * this.w.diff.look;
+    // a relay: once Pip is past the corner, he knows the face of the hero who started; the partner waits there
+    const st = this.cur as Extract<Step, { t: 'tail' }>;
+    const known = !!st.relay && a.wp >= st.relay.at && p.who === this.starter;
+    if (known) this.label = `Pip knows your face now: switch to ${nameOf(w.mate.who)} (Tab), waiting at the corner`;
+    else if (st.relay && p.who !== this.starter) { this.label = st.label; if (w.mate.ai.story) releaseMate(this); }
     const facing = a.look > 0 ? a.face : a.b.h;
     const inCone = Math.abs(angDiff(facing, Math.atan2(p.y - a.b.y, p.x - a.b.x))) < (a.look > 0 ? 1.2 : 0.55);
     const sees = !p.hide && d < range && (inCone || d < 60) && los(w.c, a.b.x, a.b.y, p.x, p.y);
     const m = this.meter!;
-    if (sees) m.v = Math.min(1, m.v + dt * (p.sneak && !p.ride ? 0.45 : 1.1) * (d < 90 ? 1.8 : 1) * (this.assist ? 0.7 : 1) * this.w.diff.look);
+    if (sees) m.v = Math.min(1, m.v + dt * (p.sneak && !p.ride ? 0.45 : 1.1) * (d < 90 ? 1.8 : 1) * (this.assist ? 0.7 : 1) * this.w.diff.look * (known ? 3 : 1));
     else m.v = Math.max(0, m.v - dt * 0.25);
     m.bad = m.v > 0.6;
     if (m.v > 0.6 && this.warned < 1) { this.warned = 1; this.warn('Pip is getting suspicious! Drop back, sneak or hide!'); }
     if (m.v < 0.25 && this.warned === 1) this.warned = 0;
     if (m.v >= 1) return this.fail('Pip spotted you! Keep further back, sneak, or hide when he looks round.');
     // the other way to fail is falling too far behind: a second meter shows how close he is to slipping away
-    this.lost = d > (this.assist ? 680 : 540) ? this.lost + dt : Math.max(0, this.lost - dt * 2);
+    const dm = st.relay ? Math.min(d, dist(a.b.x, a.b.y, w.mate.x, w.mate.y)) : d;
+    this.lost = dm > (this.assist ? 680 : 540) ? this.lost + dt : Math.max(0, this.lost - dt * 2);
     this.meter2 = this.lost > 0 ? { name: 'Losing him', v: Math.min(1, this.lost / 6), bad: this.lost > 3 } : null;
     if (this.lost > 3 && this.warned !== 2) { this.warned = 2; this.warn('Pip is slipping away! Keep him in sight!'); }
     if (this.lost > 6) this.fail('You lost him. Keep him in sight.');
@@ -339,20 +450,25 @@ export class Run {
     const w = this.w, lion = this.actors[0]; if (!lion) return;
     lion.t += dt;
     const far = dist(lion.b.x, lion.b.y, pb.x, pb.y) > 420;
-    if (!far) { if (this.walk(lion, dt, 52, false) && this.spawned >= st.magpies && this.actors.length === 1) { this.next(); return; } } else lion.b.speed = 0;
+    if (!far) { if (this.walk(lion, dt, 52, false) && this.spawned >= st.magpies && this.actors.length === 1) { releaseMate(this); this.next(); return; } } else lion.b.speed = 0;
     // the troupe waits for you, but not for ever
     const tm = this.meter2!; const gone = dist(lion.b.x, lion.b.y, pb.x, pb.y) > 520;
     tm.v = clamp(tm.v + (gone ? dt / (this.assist ? 14 : 6.5) : -dt * 0.2), 0, 1); tm.bad = tm.v > 0.5;
     if (tm.v > 0.5 && this.warned < 1) { this.warned = 1; this.warn('The lion-dance troupe is waiting for you! Get back to them!'); }
     if (tm.v < 0.2) this.warned = 0;
     if (tm.v >= 1) return this.fail('You left the lion-dance troupe behind! Stay close to the lion.');
-    if (lion.wp === lion.route.length - 1 && dist(lion.b.x, lion.b.y, lion.route[lion.wp][0], lion.route[lion.wp][1]) < 30 && this.actors.filter(a => a.kind === 'swoop' && !a.gone).length === 0) { this.next(); return; }
+    if (lion.wp === lion.route.length - 1 && dist(lion.b.x, lion.b.y, lion.route[lion.wp][0], lion.route[lion.wp][1]) < 30 && this.actors.filter(a => a.kind === 'swoop' && !a.gone).length === 0) { releaseMate(this); this.next(); return; }
     this.spawnT -= dt;
     if (this.spawned < st.magpies && this.spawnT <= 0) {
-      this.spawnT = this.assist ? 6.5 : 5;
-      const ang = (this.spawned * 2.4) % (Math.PI * 2);
-      const m = this.actor('swoop', lion.b.x + Math.cos(ang) * 560, lion.b.y + Math.sin(ang) * 420, 'fly', [], this.assist ? 105 : 130);
-      this.actors.push(m); this.spawned++; w.fx.push({ t: 'caw' });
+      // on two flanks they come in pairs from opposite sides: one for you, one for your partner
+      const pair = st.flanks && this.spawned + 1 < st.magpies ? 2 : 1;
+      this.spawnT = (this.assist ? 6.5 : 5) * (pair === 2 ? 1.5 : 1);
+      for (let k = 0; k < pair; k++) {
+        const ang = ((this.spawned - k) * 2.4) % (Math.PI * 2) + k * Math.PI;
+        const m = this.actor('swoop', lion.b.x + Math.cos(ang) * 560, lion.b.y + Math.sin(ang) * 420, 'fly', [], this.assist ? 105 : 130);
+        this.actors.push(m); this.spawned++;
+      }
+      w.fx.push({ t: 'caw' });
     }
     for (const m of this.actors) {
       if (m.kind !== 'swoop' || m.gone) continue;
@@ -372,11 +488,16 @@ export class Run {
     const w = this.w, p = w.p;
     const range = (this.assist ? 170 : 215) * this.w.diff.look, cone = this.assist ? 0.45 : 0.55;
     let seen = false;
+    // the lookouts watch you (and, with a second player, your partner too); a painted or distracted one sees nothing
+    const heroes: Player[] = w.two ? [p, w.mate] : [p];
     for (const a of this.actors) {
-      a.t += dt; this.walk(a, dt, 46, true);
-      const d = dist(a.b.x, a.b.y, p.x, p.y);
-      if (!p.hide && d < range && Math.abs(angDiff(a.b.h, Math.atan2(p.y - a.b.y, p.x - a.b.x))) < cone && los(w.c, a.b.x, a.b.y, p.x, p.y)) seen = true;
-      if (d < 34 && !p.hide) seen = true;
+      a.t += dt; if (!((a.stare ?? 0) > 0)) this.walk(a, dt, 46, true); else a.b.speed = 0;
+      if (blind(a)) continue;
+      for (const h of heroes) {
+        const d = dist(a.b.x, a.b.y, h.x, h.y);
+        if (!h.hide && d < range && Math.abs(angDiff(a.b.h, Math.atan2(h.y - a.b.y, h.x - a.b.x))) < cone && los(w.c, a.b.x, a.b.y, h.x, h.y)) seen = true;
+        if (d < 34 && !h.hide) seen = true;
+      }
     }
     if (this.grace > 0) { this.grace -= dt; seen = false; }
     const m = this.meter!;
@@ -386,8 +507,10 @@ export class Run {
     if (m.v < 0.2) this.warned = 0;
     if (m.v >= 1) return this.fail('A lookout spotted you! Watch their torch beams and sneak.');
     if (this.phase === 0) {
-      const [gx, gy] = this.spot(st.goal); this.label = 'Reach the yard office unseen';
-      if (dist(p.x, p.y, gx, gy) < 60 && !p.act) { p.act = { n: 'pickup', t: 0, dur: 0.45, then: () => { p.carry = 'manifest'; w.fx.push({ t: 'pickup' }); this.phase = 1; this.snap = { ...this.snapshot(this.i), phase: 1 }; w.fx.push({ t: 'checkpoint' }); } }; }
+      const [gx, gy] = this.spot(st.goal);
+      const shut = !!st.shutter && !holding(this);
+      this.label = shut ? (w.mate.ai.mode === 'hold' ? `${nameOf(w.mate.who)} is sneaking round to the shutter lever…` : `The office shutter is down: send ${nameOf(w.mate.who)} to hold its lever (F)`) : 'Reach the yard office unseen';
+      if (dist(p.x, p.y, gx, gy) < 60 && !p.act && !shut) { p.act = { n: 'pickup', t: 0, dur: 0.45, then: () => { p.carry = 'manifest'; w.fx.push({ t: 'pickup' }); this.phase = 1; releaseMate(this); this.snap = { ...this.snapshot(this.i), phase: 1 }; w.fx.push({ t: 'checkpoint' }); } }; }
     } else {
       const [ex, ey] = this.spot(st.exit); this.label = 'Sneak back out through the gate';
       if (dist(p.x, p.y, ex, ey) < 70) { p.carry = null; this.next(); }
@@ -454,6 +577,15 @@ export class Run {
     if (ok) this.next();
     else { this.w.say('Not quite! Have another go.', 'bad'); this.w.ui = { kind: 'mini', mini: st.kind, level: st.level, from: 'mission' }; }
   }
+  // ── the duo and the gadgets (lib/jade-team.ts)
+  tagOption(): TagOpt | null { return teamTag(this); }
+  guardGoal(m: Player) { return guardGoal(this, m); }
+  postRoof(goal: [number, number]) { return (this.w.c.flags[Math.floor(goal[1] / T) * W + Math.floor(goal[0] / T)] & F_ROOF) > 0; }
+  holdAnim() { const st = this.cur; return st?.t === 'float' ? 'haul' : 'hold'; }
+  noSwitch(): string | null { return null; }
+  onSwitch() { }
+  onGadget(a: Actor, g: GadgetId, pw: number, x: number, y: number) { return onGadget(this, a, g, pw, x, y); }
+  onBurst(g: GadgetId, x: number, y: number, r: number) { onBurst(this, g, x, y, r); }
   nearAction(x: number, y: number): Near | null { return this.cur?.t === 'float' ? floatNear(this, x, y) : null; }
   /** a hop off the roof edge near a flag, or the Action button on a flag, during the float phase */
   leap(fromHop = false) { return this.cur?.t === 'float' && tryLeap(this, fromHop); }
@@ -487,7 +619,7 @@ export class Run {
     return null;
   }
 }
-void F_ROOF;
+
 
 /** what the failure card says when a step's timer runs out */
 function timeUp(st: Step): string {

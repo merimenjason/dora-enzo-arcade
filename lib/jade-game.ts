@@ -2,7 +2,9 @@
 // traffic and townsfolk, the wardens and the heat, the story job or side gig in progress, the night clock and the
 // magpies who swoop for your cargo. Everything the page and the scene need is read from here; the page sends input
 // and commands (interact, trade, garage, safe house). No DOM. Mission logic: lib/jade-mission.ts; traffic:
-// lib/jade-traffic.ts; heat and wardens: lib/jade-heat.ts.
+// lib/jade-traffic.ts; heat and wardens: lib/jade-heat.ts. Both heroes are always out: `p` is the one you control,
+// `mate` the partner (lib/jade-duo.ts: AI, switching, the second player); tag-team moves: lib/jade-tag.ts; the
+// cartoon gadgets: lib/jade-gear.ts.
 import { city as getCityOnce, T, W, H, S, F_ROOF, F_ALLEY, districtAt, DISTRICT_NAME, type City, type District } from './jade-city.js';
 import { VEHICLES, FOOT, drive, step as moveStep, obstacleGrid, shove, overlapping, type Body, type Ctx, type VehicleKind, type Obstacle } from './jade-move.js';
 import { nearestFree, field, pathFrom, type Field } from './jade-nav.js';
@@ -17,16 +19,24 @@ import { DIFF } from './jade-diff.js';
 import { heatStep, addHeat, caught, type Warden, type Roadblock } from './jade-heat.js';
 
 export const DT = 1 / 60;
-export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop: boolean; act: boolean };
+export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop: boolean; act: boolean;
+  /** switch hero (Tab), tag-team move (F), fire at (ax, ay) (no aim: Assist or straight ahead), gadget slot (0/1, or
+   * -1 for the other one), reload */
+  swap?: boolean; tag?: boolean; fire?: boolean; ax?: number; ay?: number; slot?: number; reload?: boolean };
 export const NO_INPUT: Input = { mx: 0, my: 0, sneak: false, dash: false, hop: false, act: false };
 export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; locked: boolean; tint: number; mission?: boolean; seen?: number; broken?: boolean };
 export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string };
 export type Near = { kind: 'mission' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz'; label: string; x: number; y: number; id?: string; ride?: Ride };
-export type Snatcher = { x: number; y: number; h: number; t: number; out: boolean; took: number; wing: number };
+export type Snatcher = { x: number; y: number; h: number; t: number; out: boolean; took: number; wing: number; good?: string; dizzy?: number };
 export type Act = { n: string; t: number; dur: number; then?: () => void };
 export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' } | { kind: 'map' } | { kind: 'biz'; id: BizId };
 
 export class Player {
+  constructor(public who: Hero = 'dora') { }
+  /** the passenger seat of a ride someone else drives; the partner's brain (lib/jade-duo.ts) */
+  seat: Ride | null = null; ai: MateAI = newAI();
+  /** gadgets: fire cooldown, the firing pose (time, gadget, aim angle), a reload; a passenger's grab; a cheer */
+  fireCd = 0; fireT = 0; fireG = ''; aimH = 0; reloadT = 0; reloadG = ''; grabT = 0; cheerT = 0;
   b: Body = { x: 0, y: 0, h: Math.PI / 2, speed: 0, r: FOOT.r, len: 0, cls: 'foot' };
   ride: Ride | null = null; roof = false; lastRoof: [number, number] = [0, 0];
   dashT = 0; dashCd = 0; hopT = 0; hopCd = 0; boostT = 0; boostCd = 0;
@@ -60,6 +70,12 @@ export class World {
   replaying = false;
   /** tiles a set piece has closed (the lowered drawbridge, the shut yard gate) and a magpie raid waiting to start */
   gates = new Set<number>(); raidWait: { id: BizId; t: number } | null = null;
+  /** the partner; a second player driving them; the leash pulling the two of you together (seconds of tug shown) */
+  mate: Player; two = false; leashT = 0;
+  /** gadget shots in flight, splats on the ground, supply crates, splattered stalls (prop index -> seconds) */
+  shots: Shot[] = []; splats: Splat[] = []; crates: Crate[] = []; stallSplat = new Map<number, number>();
+  /** a pounce in progress (for the double pounce) */
+  pounceAt: { id: number; t: number; mate: boolean; you: boolean } | null = null;
 
   constructor(save: Save, seed = save.seed) {
     this.c = getCityOnce(); this.obs = obstacleGrid(this.c); this.s = save; this.R = rng(seed * 7919 + save.night);
@@ -71,9 +87,18 @@ export class World {
     // the business stalls stand on the pavement like any stall
     for (const b of BIZ) { const [bx, by] = bizPos(b); const tx = b.at[0], ty = b.at[1]; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) this.obs[(ty + dy) * W + tx + dx].push({ x: bx, y: by + 6, r: 30 }); }
     for (const pk of this.c.parking) this.addRide(pk.kind as VehicleKind, pk.x, pk.y, pk.rot, R() < 0.18 && pk.kind === 'scooter', Math.floor(R() * 5));
+    this.p = new Player(save.hero); this.mate = new Player(save.hero === 'dora' ? 'enzo' : 'dora');
+    this.crates = makeCrates(this);
     const home = this.c.places[save.safe] ?? this.c.places['safe-market'];
     this.placePlayer(home.x, home.y + T * 0.6);
   }
+  mateOf(p: Player) { return p === this.p ? this.mate : this.p; }
+  /** where a pounce's target is now: a job actor by id, or (-1) the street magpie */
+  pounceTarget(id: number): [number, number] | null {
+    if (id === -1) { const e = this.street; return e && e.kind === 'magpie' && e.phase === 'on' && e.b ? [e.b.x, e.b.y] : null; }
+    const a = this.run?.actors.find(a => a.id === id && !a.gone); return a ? [a.b.x, a.b.y] : null;
+  }
+  switchHero() { return switchHero(this); }
   get assist() { return this.s.settings.assist; }
   get easy() { return this.s.settings.diff === 'easy'; }
   get diff() { return DIFF[this.s.settings.diff]; }
@@ -97,6 +122,15 @@ export class World {
   placePlayer(x: number, y: number) {
     const [fx, fy] = nearestFree(this.c, 'foot', x, y, this.open);
     this.p.b.x = fx; this.p.b.y = fy; this.p.b.speed = 0; this.p.roof = false; this.p.hide = false;
+    this.regroup();
+  }
+  /** the partner back at your side (a new place, a respawn, a replay) */
+  regroup() {
+    const m = this.mate; m.seat = null; m.act = null; m.hide = false; m.roof = this.p.roof; m.carry = null;
+    if (m.ride) { m.ride.parked = true; m.ride.b.speed = 0; m.ride = null; }
+    m.ai = newAI();
+    if (this.p.ride) { seat(this, m, this.p.ride); return; }
+    const [x, y] = nearestFree(this.c, 'walk', this.p.b.x - 44, this.p.b.y + 10, this.open, 3); m.b.x = x; m.b.y = y; m.b.speed = 0; m.face = 'down';
   }
   /** the player's current move class and capacity */
   get mode() { return this.p.ride ? this.p.ride.kind : 'foot'; }
@@ -104,8 +138,9 @@ export class World {
   overloaded() { return cargoCount(this.s.cargo) > this.cap(); }
 
   // ── the step
-  step(inp: Input, dt = DT) {
+  step(inp: Input, dt = DT, inp2?: Input) {
     if (this.talk || this.ui || this.failed) return;
+    if (inp.swap) this.switchHero();
     this.time += dt; this.tick++;
     this.s.stats.playTime += dt;
     this.clock(dt);
@@ -118,6 +153,13 @@ export class World {
     if (this.banner) { this.banner.t -= dt; if (this.banner.t <= 0) this.banner = null; }
     this.gates.clear(); if (this.run) closedTiles(this.run.sets, this.gates);
     this.playerStep(inp, dt);
+    this.p.grabT = Math.max(0, this.p.grabT - dt); this.p.cheerT = Math.max(0, this.p.cheerT - dt);
+    if (this.two) this.p2Step(inp2 ?? NO_INPUT, dt); else mateStep(this, dt);
+    leash(this); this.leashT = Math.max(0, this.leashT - dt);
+    distractStep(this);
+    if (inp.tag) tag(this);
+    this.gearInput(this.p, inp);
+    gearStep(this, dt);
     this.collectStep();
     trafficStep(this, dt); pedStep(this, dt);
     heatStep(this, dt);
@@ -133,6 +175,28 @@ export class World {
     if (fxs.includes('text')) this.phoneT = 1.6;
     tutorStep(this, dt, fxs);
     if (this.fx.length > 300) this.fx.splice(0, this.fx.length - 300);
+  }
+  /** gadget keys for one player: fire, switch, reload (on a ride the passenger fires for the driver) */
+  gearInput(p: Player, inp: Input) {
+    const sh = shooterFor(this, p); if (!sh) { if (inp.fire && p.ride) this.say('Only the passenger can fire from a ride.', 'bad'); return; }
+    if (inp.slot !== undefined) switchSlot(this, sh, inp.slot < 0 ? undefined : inp.slot);
+    if (inp.reload) startReload(this, sh);
+    if (inp.fire) { const r = fire(this, sh, inp.ax ?? NaN, inp.ay ?? NaN); if (r && r !== 'busy' && r !== 'reloading') this.say(r, 'bad'); }
+  }
+  /** the second player drives the partner: the same moves, through the same helpers (the world is briefly theirs) */
+  p2Step(inp: Input, dt: number) {
+    const m = this.mate;
+    if (m.seat) { mateStep(this, dt); if (inp.act) leaveSeat(this, m); this.gearInput(m, inp); return; }
+    const a = this.p, near = this.near;
+    this.p = m; this.mate = a;
+    try {
+      this.playerStep(inp, dt);
+      // the second player can board the first player's ride as the passenger, or use what is in reach
+      if (inp.act && !m.ride && !m.act && a.ride && dist(a.ride.b.x, a.ride.b.y, m.b.x, m.b.y) < 100) board(this, m, a.ride);
+      else if (inp.act) { this.findNear(); const n = this.near; if (n && P2_KINDS.includes(n.kind)) this.interact(); }
+      if (inp.tag) tag(this);
+      this.gearInput(m, inp);
+    } finally { this.p = a; this.mate = m; this.near = near; }
   }
   /** events since the last drain (the scene and sound read these) */
   drain(): Fx[] { const out = this.fx; this.fx = []; return out; }
@@ -170,6 +234,7 @@ export class World {
   playerStep(inp: Input, dt: number) {
     const p = this.p;
     p.animT += dt;
+    if (p.seat) { const r = p.seat; p.b.x = r.b.x; p.b.y = r.b.y; p.anim = p.fireT > 0 ? 'pass-aim' : 'pass'; if (inp.act) leaveSeat(this, p); if (!this.rides.includes(r) || (this.mate.ride !== r)) leaveSeat(this, p); return; }
     if (p.act) {
       p.act.t += dt; p.anim = p.act.n;
       if (p.act.t >= p.act.dur) { const f = p.act.then; p.act = null; f?.(); }
@@ -207,7 +272,7 @@ export class World {
     if (this.pushing) this.faceFrom(this.inputAng);
   }
   land() {
-    const p = this.p; const tx = Math.floor(p.b.x / T), ty = Math.floor(p.b.y / T);
+    const p = this.p; if (p.roof && this.mate.roof && this.two && p === this.mate) return; const tx = Math.floor(p.b.x / T), ty = Math.floor(p.b.y / T);
     const i = ty * W + tx;
     if (p.roof && !(this.c.flags[i] & F_ROOF)) {
       if (this.run?.leap(true)) return;
@@ -314,6 +379,7 @@ export class World {
     const p = this.p, x = p.x, y = p.y; let best: Near | null = null, bd = 1e9;
     const cand = (n: Near, r: number) => { const d = dist(n.x, n.y, x, y); if (d < r && d < bd) { bd = d; best = n; } };
     if (p.hide) { this.near = { kind: 'unhide', label: 'Come out', x, y }; return; }
+    if (p.seat) { this.near = null; return; }
     if (p.ride) {
       if (this.run?.wantsRide()) { this.near = null; }
       for (const id of ['garage-market', 'garage-canal']) { const g = this.c.places[id]; if (this.open.has(g.d)) cand({ kind: 'garage', label: 'Garage: upgrades and paint', x: g.x, y: g.y, id }, 110); }
@@ -407,9 +473,13 @@ export class World {
     this.banner = { text: 'Job done!', sub: `${m.title} · ${MEDAL_NAME[medal]}${medal ? ' medal' : ''}`, t: 3 };
     this.p.act = { n: 'celebrate', t: 0, dur: 1.1 };
     if (this.p.ride) this.p.act = null;
+    this.cheer();
+    for (const g of GEAR_GIFT[m.id] ?? []) if (giveGadget(this.s, g)) { this.fx.push({ t: 'gadget-gift', kind: g }); this.say(`New gadget: the ${GADGETS[g].name.toLowerCase()}! ${GADGETS[g].blurb}`, 'good'); }
     if (this.open.size > before) { const d = [...this.open][this.open.size - 1]; this.fx.push({ t: 'district', name: DISTRICT_NAME[d] }); this.banner = { text: `${DISTRICT_NAME[d][0].toUpperCase()}${DISTRICT_NAME[d].slice(1)} opens!`, sub: 'The fog lifts', t: 4 }; }
     if (m.id === 'm25') this.fx.push({ t: 'finale' });
   }
+  /** the partner cheers (a job done, a catch) */
+  cheer() { const m = this.mate; if (m.seat) m.cheerT = 1.2; else if (!m.act && !m.ride && !m.hide) m.act = { n: 'celebrate', t: 0, dur: 1.1 }; }
   lastRun: Run | null = null; lastMedal: { id: string; medal: number; time: number; maxHeat: number; retries: number; best: boolean } | null = null;
   fail(reason: string) { if (!this.run) return; this.failed = { reason }; this.fx.push({ t: 'fail', msg: reason }); }
   retry() { this.failed = null; this.heat = 0; this.clearHeat(); if (this.run) this.run.retries++; this.run?.restore(); }
@@ -421,8 +491,9 @@ export class World {
     t.i++;
     if (t.i >= t.lines.length) { this.talk = null; t.done?.(); }
   }
-  heroName() { return this.s.hero === 'dora' ? 'Dora' : 'Enzo'; }
-  setHero(h: Hero) { this.s.hero = h; }
+  heroName() { return this.p.who === 'dora' ? 'Dora' : 'Enzo'; }
+  /** choose who you control (the title screen); the other becomes the partner */
+  setHero(h: Hero) { if (this.p.who !== h) { const a = this.p; this.p = this.mate; this.mate = a; const [x, y] = [a.b.x, a.b.y]; a.b.x = this.p.b.x; a.b.y = this.p.b.y; this.p.b.x = x; this.p.b.y = y; } this.s.hero = h; }
 
   // ── the route arrow: a path to the current objective
   /** a pin the player dropped on the full map (used when no job is running) */
@@ -465,7 +536,7 @@ export class World {
       }
     }
     for (const m of this.snatchers) {
-      m.t += dt; m.wing += dt * 9;
+      m.t += dt; m.wing += dt * 9; if (m.dizzy) m.dizzy = Math.max(0, m.dizzy - dt);
       const sp = m.out ? 380 : (this.assist ? 230 : 260);
       const tx = m.out ? m.x + Math.cos(m.h) * 100 : this.p.x, ty = m.out ? m.y + Math.sin(m.h) * 100 : this.p.y;
       const ang = Math.atan2(ty - m.y, tx - m.x);
@@ -476,7 +547,7 @@ export class World {
         const dodging = this.p.dashT > 0 || this.p.boostT > 0 || this.p.hopT > 0 || this.p.hide;
         if (d < 30 && !dodging) {
           const have = GOODS.filter(g => this.s.cargo[g] > 0).sort((a, b) => GOOD[b].base - GOOD[a].base);
-          if (have.length) { const g = have[0]; const k = Math.min(2, this.s.cargo[g]); this.s.cargo[g] -= k; m.took = k; this.say(`The magpie snatched ${k} ${GOOD[g].name.toLowerCase()}!`, 'bad'); this.fx.push({ t: 'snatch', x: m.x, y: m.y }); }
+          if (have.length) { const g = have[0]; const k = Math.min(2, this.s.cargo[g]); this.s.cargo[g] -= k; m.took = k; m.good = g; this.say(`The magpie snatched ${k} ${GOOD[g].name.toLowerCase()}!`, 'bad'); this.fx.push({ t: 'snatch', x: m.x, y: m.y }); }
           m.out = true;
         } else if (d < 60 && dodging) { m.out = true; this.say('Dodged! The magpie flaps off empty-clawed.', 'good'); this.fx.push({ t: 'dodge', x: m.x, y: m.y }); }
         if (m.t > 14) { m.out = true; }
@@ -552,6 +623,10 @@ import { tutorStep, newTutor, type TutorState } from './jade-tutor.js';
 import { rainAt } from './jade-weather.js';
 import { medalOf, MEDAL_NAME } from './jade-medals.js';
 import { closedTiles } from './jade-setpiece.js';
+import { mateStep, switchHero, leash, seat, board, leaveSeat, newAI, type MateAI } from './jade-duo.js';
+import { tag, distractStep } from './jade-tag.js';
+import { gearStep, fire, startReload, switchSlot, shooterFor, makeCrates, giveGadget, GEAR_GIFT, GADGETS, type Shot, type Splat, type Crate } from './jade-gear.js';
+const P2_KINDS: Near['kind'][] = ['ride', 'exit', 'ladder-up', 'ladder-down', 'hide', 'unhide', 'leap', 'event'];
 import { BIZ, BIZ_OF, bizPos, accrue, closeNight, raidCheck, raidMission, raidWon, raidLost, raidId, buyBiz, upgradeBiz, collect, type BizId } from './jade-biz.js';
 import { text } from './jade-phone.js';
 void cargoValue; void H; void F_ALLEY; void moveStep; void shove;
