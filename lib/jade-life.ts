@@ -1,5 +1,5 @@
 // Jade Street: drawing the living city on top of lib/jade-scene.ts — traffic lights at the main crossings, street
-// events (the magpie with a mango, the lost duckling and its mother, the broken-down van, the busker and their hat),
+// events (the crow with a mango, the lost duckling and its mother, the broken-down van, the busker and their hat),
 // the Lantern Festival dressing once the story is won (arches, giant lanterns, the stage, sky lanterns rising and
 // fireworks), passing rain (streaks, ripples on the ground and wet reflections under the lamps) and umbrellas.
 // Code draws only light, rain and ripples; every picture is a painted atlas frame.
@@ -39,7 +39,7 @@ export class Life {
     // the street event
     const e = w.street;
     if (e && e.phase !== 'gone') {
-      if (e.kind === 'magpie' && e.b && e.phase === 'on') list.push([e.b.y, () => spr(x, `mag-mango-${Math.floor(t * 6) % 2}`, e.b!.x, e.b!.y + 6, { h: 56, flip: Math.cos(e.b!.h) < 0 })]);
+      if (e.kind === 'crow' && e.b && e.phase === 'on') list.push([e.b.y, () => spr(x, `crow-mango-${Math.floor(t * 6) % 2}`, e.b!.x, e.b!.y + 6, { h: 56, flip: Math.cos(e.b!.h) < 0 })]);
       if (e.kind === 'duckling' && e.b) {
         const b = e.b, moving = b.speed > 5;
         list.push([b.y, () => spr(x, e.phase === 'on' ? 'duck-lost' : moving ? (Math.abs(Math.cos(b.h)) > 0.7 ? 'duck-side' : `duck-down-${Math.floor(t * 6) % 2}`) : 'duck-down-0', b.x, b.y + 4, { h: 24, flip: Math.cos(b.h) < 0 })]);

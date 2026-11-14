@@ -1,6 +1,6 @@
 // Jade Street: the world. One deterministic step (fixed 1/60 s) moves Dora or Enzo on foot or on any ride, the
 // traffic and townsfolk, the wardens and the heat, the story job or side gig in progress, the night clock and the
-// magpies who swoop for your cargo. Everything the page and the scene need is read from here; the page sends input
+// crows who swoop for your cargo. Everything the page and the scene need is read from here; the page sends input
 // and commands (interact, trade, garage, safe house). No DOM. Mission logic: lib/jade-mission.ts; traffic:
 // lib/jade-traffic.ts; heat and wardens: lib/jade-heat.ts. Both heroes are always out: `p` is the one you control,
 // `mate` the partner (lib/jade-duo.ts: AI, switching, the second player); tag-team moves: lib/jade-tag.ts; the
@@ -68,7 +68,7 @@ export class World {
   rain = 0; rainForce: number | null = null;
   /** a replayed job pays a quarter and records a medal */
   replaying = false;
-  /** tiles a set piece has closed (the lowered drawbridge, the shut yard gate) and a magpie raid waiting to start */
+  /** tiles a set piece has closed (the lowered drawbridge, the shut yard gate) and a crow raid waiting to start */
   gates = new Set<number>(); raidWait: { id: BizId; t: number } | null = null;
   /** the partner; a second player driving them; the leash pulling the two of you together (seconds of tug shown) */
   mate: Player; two = false; leashT = 0;
@@ -93,9 +93,9 @@ export class World {
     this.placePlayer(home.x, home.y + T * 0.6);
   }
   mateOf(p: Player) { return p === this.p ? this.mate : this.p; }
-  /** where a pounce's target is now: a job actor by id, or (-1) the street magpie */
+  /** where a pounce's target is now: a job actor by id, or (-1) the street crow */
   pounceTarget(id: number): [number, number] | null {
-    if (id === -1) { const e = this.street; return e && e.kind === 'magpie' && e.phase === 'on' && e.b ? [e.b.x, e.b.y] : null; }
+    if (id === -1) { const e = this.street; return e && e.kind === 'crow' && e.phase === 'on' && e.b ? [e.b.x, e.b.y] : null; }
     const a = this.run?.actors.find(a => a.id === id && !a.gone); return a ? [a.b.x, a.b.y] : null;
   }
   switchHero() { return switchHero(this); }
@@ -157,7 +157,7 @@ export class World {
     if (this.two) this.p2Step(inp2 ?? NO_INPUT, dt); else mateStep(this, dt);
     leash(this); this.leashT = Math.max(0, this.leashT - dt);
     distractStep(this);
-    // the partner's pounce on the street magpie (a job's pounces are checked by the job)
+    // the partner's pounce on the street crow (a job's pounces are checked by the job)
     if (this.mate.ai.mode === 'pounce' && this.mate.ai.tgt === -1) matePounceHit(this);
     if (inp.tag) tag(this);
     this.gearInput(this.p, inp);
@@ -208,7 +208,7 @@ export class World {
     this.s.clock += dt * (this.assist ? 0.85 : 1); // one game minute a second; 12 h nights
     accrue(this, Math.min(720, this.s.clock) - before);
     const r = raidCheck(this, before, this.s.clock);
-    if (r) { this.raidWait = { id: r, t: 0 }; const b = BIZ_OF[r]; text(this, b.keeper, `Help! Magpies are raiding the ${b.name}! Get here quick and chase them off before they empty the till.`); }
+    if (r) { this.raidWait = { id: r, t: 0 }; const b = BIZ_OF[r]; text(this, b.keeper, `Help! Crows are raiding the ${b.name}! Get here quick and chase them off before they empty the till.`); }
     if (this.s.clock >= 720) this.newNight();
   }
   /** a raid starts as soon as you are free to answer it (not in a job, a menu, a talk or the middle of an action) */
@@ -490,7 +490,7 @@ export class World {
   lastRun: Run | null = null; lastMedal: { id: string; medal: number; time: number; maxHeat: number; retries: number; best: boolean } | null = null;
   fail(reason: string) { if (!this.run) return; this.failed = { reason }; this.fx.push({ t: 'fail', msg: reason }); }
   retry() { this.failed = null; this.heat = 0; this.clearHeat(); if (this.run) this.run.retries++; this.run?.restore(); }
-  quitJob() { const rid = this.run ? raidId(this.run.m.id) : null; if (rid) { const k = raidLost(this.s, rid); this.say(`The magpies made off with ${k} coins from the ${BIZ_OF[rid].name}.`, 'bad'); }
+  quitJob() { const rid = this.run ? raidId(this.run.m.id) : null; if (rid) { const k = raidLost(this.s, rid); this.say(`The crows made off with ${k} coins from the ${BIZ_OF[rid].name}.`, 'bad'); }
     this.failed = null; if (this.run && this.banner?.text === this.run.m.title) this.banner = null; this.run?.cleanup(); this.run = null; this.route = []; this.p.carry = null; this.replaying = false; }
   clearHeat() { this.heat = 0; this.wardens = []; this.blocks = []; this.blimp.on = false; }
   advanceTalk() {
@@ -527,7 +527,7 @@ export class World {
     if (!this.route.length) { const g = this.fieldTo('foot', o[0], o[1]); this.route = pathFrom(this.c, g, this.p.x, this.p.y, this.open); }
   }
 
-  // ── magpies swooping for cargo
+  // ── crows swooping for cargo
   snatchStep(dt: number) {
     const n = cargoCount(this.s.cargo);
     if (n > 0 && !this.run && !this.p.hide && !this.p.roof) {
@@ -538,7 +538,7 @@ export class World {
         if (this.R() < chance && this.snatchers.length === 0) {
           const a = this.R() * Math.PI * 2;
           this.snatchers.push({ x: this.p.x + Math.cos(a) * 700, y: this.p.y + Math.sin(a) * 500, h: a + Math.PI, t: 0, out: false, took: 0, wing: 0 });
-          this.fx.push({ t: 'caw' }); this.say('Caw! A magpie is after your cargo. Outrun it, or dash and boost to dodge!', 'bad');
+          this.fx.push({ t: 'caw' }); this.say('Caw! A crow is after your cargo. Outrun it, or dash and boost to dodge!', 'bad');
         }
       }
     }
@@ -554,9 +554,9 @@ export class World {
         const dodging = this.p.dashT > 0 || this.p.boostT > 0 || this.p.hopT > 0 || this.p.hide;
         if (d < 30 && !dodging) {
           const have = GOODS.filter(g => this.s.cargo[g] > 0).sort((a, b) => GOOD[b].base - GOOD[a].base);
-          if (have.length) { const g = have[0]; const k = Math.min(2, this.s.cargo[g]); this.s.cargo[g] -= k; m.took = k; m.good = g; this.say(`The magpie snatched ${k} ${GOOD[g].name.toLowerCase()}!`, 'bad'); this.fx.push({ t: 'snatch', x: m.x, y: m.y }); }
+          if (have.length) { const g = have[0]; const k = Math.min(2, this.s.cargo[g]); this.s.cargo[g] -= k; m.took = k; m.good = g; this.say(`The crow snatched ${k} ${GOOD[g].name.toLowerCase()}!`, 'bad'); this.fx.push({ t: 'snatch', x: m.x, y: m.y }); }
           m.out = true;
-        } else if (d < 60 && dodging) { m.out = true; this.say('Dodged! The magpie flaps off empty-clawed.', 'good'); this.fx.push({ t: 'dodge', x: m.x, y: m.y }); }
+        } else if (d < 60 && dodging) { m.out = true; this.say('Dodged! The crow flaps off empty-clawed.', 'good'); this.fx.push({ t: 'dodge', x: m.x, y: m.y }); }
         if (m.t > 14) { m.out = true; }
       }
     }

@@ -5,8 +5,8 @@
 // its debris and shake, Madame Glint’s three phases (decoys, falling signs, then F to send the partner to the bunting
 // rope, a rooftop flag and
 // the leap onto her float with a real E press), the businesses (buy a stake, upgrade, collect at the
-// stall and at a safe house, the Businesses page in the pause menu, and a magpie raid defended by dashing into the
-// magpies), the Reduce shake setting, and the new hero animations (deal, mend, collect, shoo, leap, tumble, skid).
+// stall and at a safe house, the Businesses page in the pause menu, and a crow raid defended by dashing into the
+// crows), the Reduce shake setting, and the new hero animations (deal, mend, collect, shoo, leap, tumble, skid).
 export async function third(h) {
   const { p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name } = h;
   const st = () => W(() => window.__jade.state());
@@ -99,11 +99,11 @@ export async function third(h) {
   await press('pause-btn'); await press('tab-biz'); check(await exists('biz-page') && await exists('biz-row-noodle'), `${name}: the Businesses page`);
   await look('businesses page'); await press('close'); await press('resume');
 
-  // ── a magpie raid: get there, then dash into the magpies
+  // ── a crow raid: get there, then dash into the crows
   await W(() => { window.__jade.world().s.biz.noodle.bank = 150; window.__jade.raid('noodle'); });
   check(await W(() => window.__jade.run()?.t === 'goto' && /raid/i.test(window.__jade.run().id)), `${name}: a raid starts a defend job`);
   await W(() => window.__jade.world().placePlayer(39 * 64 + 32, 70 * 64 + 32));
-  check(await until(() => window.__jade.run()?.t === 'raid', null, 3000), `${name}: the magpies burst out`); await wait(300); await look('raid');
+  check(await until(() => window.__jade.run()?.t === 'raid', null, 3000), `${name}: the crows burst out`); await wait(300); await look('raid');
   for (let i = 0; i < 40 && await W(() => !!window.__jade.run()); i++) {
     const ok = await W(() => { const w = window.__jade.world(), r = w.run; if (!r) return false; const a = r.actors.find(x => !x.gone && x.stun <= 0); if (!a) return false; w.placePlayer(a.b.x - 30, a.b.y); return true; });
     if (ok) await p.keyboard.press(' ');

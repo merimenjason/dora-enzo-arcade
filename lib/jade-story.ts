@@ -1,4 +1,4 @@
-// Jade Street: the story. The Magpie Crew swiped the quarter's five lucky heirlooms; twenty-five jobs from the
+// Jade Street: the story. The Kaypoh Crows swiped the quarter's five lucky heirlooms; twenty-five jobs from the
 // shopkeepers, five chapters, each ending in a chase for one heirloom that clears the fog from the next district.
 // Missions are lists of steps the runner in lib/jade-mission.ts understands; `cp` marks a checkpoint (a failed step
 // restarts from the last one). Places are names from lib/jade-city.ts or [tileX, tileY] pairs. 'hero' in a line is
@@ -29,8 +29,8 @@ export type Step =
   | { t: 'raid'; at: Spot; n: number; label: string; cp?: boolean }
   /** `relay`: from waypoint `at` on, the hero who started is easy for Pip to spot; the partner waits at `spot` */
   | { t: 'tail'; from: Spot; route: Spot[]; label: string; relay?: { at: number; spot: Spot }; cp?: boolean }
-  /** `flanks`: magpies come in pairs from both sides and the partner guards the far flank */
-  | { t: 'escort'; from: Spot; route: Spot[]; label: string; magpies: number; flanks?: boolean; cp?: boolean }
+  /** `flanks`: crows come in pairs from both sides and the partner guards the far flank */
+  | { t: 'escort'; from: Spot; route: Spot[]; label: string; crows: number; flanks?: boolean; cp?: boolean }
   /** `relay`: the marks from this one on count only for the partner waiting there (a hand-off) */
   | { t: 'race'; marks: Spot[]; label: string; rival?: 'runner' | 'scooter' | 'boat'; roof?: boolean; time?: number; ride?: VehicleKind | 'foot'; relay?: number; cp?: boolean }
   /** `shutter`: the goal's shutter is down unless the partner holds its lever there */
@@ -48,7 +48,7 @@ export type Step =
   | { t: 'hold'; lever: Spot; gate: [number, number][]; through: Spot; r?: number; time?: number; label: string; cp?: boolean }
   /** give the partner a boost onto the roof at boost spot `at` (lib/jade-tag.ts BOOSTS) */
   | { t: 'boost'; at: number; label: string; cp?: boolean }
-  /** a magpie circles with a loot bag: knock it loose with a gadget, or pounce when it swoops low */
+  /** a crow circles with a loot bag: knock it loose with a gadget, or pounce when it swoops low */
   | { t: 'bag'; at: Spot; loot?: string; time?: number; label: string; cp?: boolean };
 export type MiniKind = 'lock' | 'wires' | 'wok' | 'dumpling' | 'haggle';
 export type Mission = { id: string; ch: number; title: string; giver: string; at: string; blurb: string; reward: number; rep: number; steps: Step[]; tip?: { market: District; good: Good; mult: number } };
@@ -65,8 +65,8 @@ export const PEOPLE: Record<string, { name: string; face: string; who: string }>
   bo: { name: 'Big Bo', face: 'face-bo', who: 'dock foreman' },
   bristle: { name: 'Captain Bristle', face: 'face-bristle', who: 'chief warden' },
   gizmo: { name: 'Gizmo', face: 'face-gizmo', who: 'arcade DJ' },
-  glint: { name: 'Madame Glint', face: 'face-glint', who: 'Magpie Crew boss' },
-  pip: { name: 'Pip', face: 'face-pip', who: 'Magpie Crew rookie' },
+  glint: { name: 'Madame Glint', face: 'face-glint', who: 'Kaypoh Crows boss' },
+  pip: { name: 'Pip', face: 'face-pip', who: 'Kaypoh Crows rookie' },
   dora: { name: 'Dora', face: 'face-dora', who: 'you' },
   enzo: { name: 'Enzo', face: 'face-enzo', who: 'you' },
 };
@@ -90,33 +90,33 @@ export const MISSIONS: Mission[] = [
   // ── Chapter 1: the Night Market (Jade Dragon)
   { id: 'm1', ch: 1, title: 'Opening Night', giver: 'kee', at: 'kee', reward: 60, rep: 12, blurb: 'Help Uncle Kee get a crate of mangoes to Chef Mo.',
     steps: [
-      { t: 'talk', lines: [['kee', 'Ah, hero! Good timing. The whole quarter is in a flap.', 'happy'], ['kee', 'The Magpie Crew swooped last night and took our five lucky heirlooms. Without them, no festival.', 'worried'], ['hero', 'Then we get them back. Where do we start?', 'smug'], ['mate', 'Together, like always. Two pairs of paws are faster than one.', 'happy'], ['kee', 'Start small. Chef Mo needs these mangoes for her stall, and my legs are slower than my stories.', 'calm']] },
+      { t: 'talk', lines: [['kee', 'Ah, hero! Good timing. The whole quarter is in a flap.', 'happy'], ['kee', 'The Kaypoh Crows swooped last night and took our five lucky heirlooms. Without them, no festival.', 'worried'], ['hero', 'Then we get them back. Where do we start?', 'smug'], ['mate', 'Together, like always. Two pairs of paws are faster than one.', 'happy'], ['kee', 'Start small. Chef Mo needs these mangoes for her stall, and my legs are slower than my stories.', 'calm']] },
       { t: 'pickup', at: [16, 44], item: 'crate', label: 'Pick up the crate of mangoes', cp: true },
       { t: 'ride', kind: 'scooter', near: [19, 45], locked: true, label: 'Get on the red scooter by the kerb' },
       { t: 'deliver', to: 'mo', time: 75, fragile: 8, item: 'crate', label: 'Ride the mangoes to Chef Mo before they bruise' },
-      { t: 'talk', lines: [['mo', 'Mangoes! You are a lifesaver. Hop off and say hi properly.', 'happy'], ['mo', 'A magpie has been circling my wok all night. Something tells me we will be busy.', 'worried']] },
+      { t: 'talk', lines: [['mo', 'Mangoes! You are a lifesaver. Hop off and say hi properly.', 'happy'], ['mo', 'A crow has been circling my wok all night. Something tells me we will be busy.', 'worried']] },
     ] },
   { id: 'm2', ch: 1, title: 'Hot Wok, Cold Trail', giver: 'mo', at: 'mo', reward: 80, rep: 12, blurb: 'Cook for Chef Mo’s queue, then catch the tip-jar thief.',
     steps: [
       { t: 'talk', lines: [['mo', 'The queue is round the corner! Grab a wok. Catch what the order needs, toss before it scorches.', 'calm'], ['hero', 'How hard can it be?', 'smug']] },
       { t: 'mini', kind: 'wok', level: 1, label: 'Cook the order', cp: true },
-      { t: 'talk', lines: [['mo', 'Hey! That magpie just pinched my tip jar!', 'cross'], ['pip', 'Finders keepers, fluffballs!', 'smug'], ['mate', 'He’s too slippery for one of us. Pounce together: I dive, you dash!', 'cross']] },
+      { t: 'talk', lines: [['mo', 'Hey! That crow just pinched my tip jar!', 'cross'], ['pip', 'Finders keepers, fluffballs!', 'smug'], ['mate', 'He’s too slippery for one of us. Pounce together: I dive, you dash!', 'cross']] },
       { t: 'chase', who: 'runner', from: [34, 74], route: [[38, 76], [40, 66], [28, 66], [28, 76]], bumps: 2, loot: 'coins', speed: 205, finish: 'pounce', label: 'Pounce on Pip together: F sends {mate} in, then dash into him', cp: true },
       { t: 'pickup', at: 'loot', item: 'coins', label: 'Grab the tip jar' },
       { t: 'goto', at: 'mo', label: 'Bring the jar back to Chef Mo' },
       { t: 'talk', lines: [['mo', 'My hero. That little one called himself Pip. He’ll be back.', 'happy']] },
     ] },
-  { id: 'm3', ch: 1, title: 'Whistle Stop', giver: 'kee', at: 'kee', reward: 90, rep: 12, blurb: 'Knock over the magpies’ lookout crates, then shake off the wardens.',
+  { id: 'm3', ch: 1, title: 'Whistle Stop', giver: 'kee', at: 'kee', reward: 90, rep: 12, blurb: 'Knock over the crows’ lookout crates, then shake off the wardens.',
     steps: [
-      { t: 'talk', lines: [['kee', 'The magpies stack crates by the market to spy from. Knock them down!', 'cross'], ['kee', 'Mind you, the raccoon wardens hate a mess. Lanterns light up when you make trouble.', 'worried'], ['hero', 'And then?', 'calm'], ['kee', 'Then you lose them. Alleys, a bead curtain, or a quick jacket swap at your safe house.', 'smug']] },
+      { t: 'talk', lines: [['kee', 'The crows stack crates by the market to spy from. Knock them down!', 'cross'], ['kee', 'Mind you, the raccoon wardens hate a mess. Lanterns light up when you make trouble.', 'worried'], ['hero', 'And then?', 'calm'], ['kee', 'Then you lose them. Alleys, a bead curtain, or a quick jacket swap at your safe house.', 'smug']] },
       { t: 'talk', lines: [['mate', 'Those crates are up on the balconies. You drive, I’ll ride behind and knock them off!', 'smug']] },
       { t: 'ride', kind: 'scooter', near: [19, 45], label: 'Get on a scooter ({mate} hops on behind)' },
       { t: 'collect', items: [[24, 63], [14, 64], [4, 48]], item: 'lookout', time: 70, high: true, label: 'Ride under each balcony crate and press F: {mate} knocks it down', cp: true },
       { t: 'heat', level: 2, label: 'Lose the wardens: break their line of sight or hide' },
       { t: 'goto', at: 'kee', label: 'Report back to Uncle Kee' },
-      { t: 'talk', lines: [['kee', 'Ha! Captain Bristle will be chewing his moustache. Well done.', 'happy'], ['kee', 'Here, toys from my nephew Tock’s stall: a slingshot of sticky-rice balls and a paint squirter. Magpies hate a sticky beak.', 'smug'], ['mate', 'Festival toys! Click to fire, 1 and 2 to swap. Wardens don’t like being splatted, mind.', 'happy']] },
+      { t: 'talk', lines: [['kee', 'Ha! Captain Bristle will be chewing his moustache. Well done.', 'happy'], ['kee', 'Here, toys from my nephew Tock’s stall: a slingshot of sticky-rice balls and a paint squirter. Crows hate a sticky beak.', 'smug'], ['mate', 'Festival toys! Click to fire, 1 and 2 to swap. Wardens don’t like being splatted, mind.', 'happy']] },
     ] },
-  { id: 'm4', ch: 1, title: 'Shadow the Feathers', giver: 'mo', at: 'mo', reward: 100, rep: 14, blurb: 'Tail Pip to the Magpie hideout without being spotted.',
+  { id: 'm4', ch: 1, title: 'Shadow the Feathers', giver: 'mo', at: 'mo', reward: 100, rep: 14, blurb: 'Tail Pip to the Crow hideout without being spotted.',
     steps: [
       { t: 'talk', lines: [['mo', 'Pip is back, strutting about with a sack. Follow him, but not too close.', 'worried'], ['mo', 'Hold the walk button to sneak. If he turns round, duck behind something.', 'calm'], ['mate', 'He’ll know your face after a while. I’ll wait at the corner by the lanterns and take over from there.', 'smug']] },
       { t: 'tail', from: [30, 64], route: [[28, 58], [28, 48], [20, 48], [12, 48], [12, 36], [2, 36]], relay: { at: 3, spot: [14, 44] }, label: 'Follow Pip, but stay out of sight; switch to {mate} at the corner (Tab)', cp: true },
@@ -138,22 +138,22 @@ export const MISSIONS: Mission[] = [
   // ── Chapter 2: Temple Hill (Golden Bell)
   { id: 'm6', ch: 2, title: 'Auntie’s Tea Run', giver: 'pang', at: 'pang', reward: 90, rep: 12, blurb: 'Learn to trade: buy tea on Temple Hill, sell it in the Night Market.', tip: { market: 'market', good: 'tea', mult: 1.35 },
     steps: [
-      { t: 'talk', lines: [['pang', 'So you are the one chasing magpies. Chasing costs money, dear.', 'smug'], ['pang', 'Tea is cheap up here and dear in the Night Market tonight. Buy low, sell high.', 'calm'], ['pang', 'And haggle! Stop the needle in the middle and I’ll knock some off. Gently.', 'smug']] },
+      { t: 'talk', lines: [['pang', 'So you are the one chasing crows. Chasing costs money, dear.', 'smug'], ['pang', 'Tea is cheap up here and dear in the Night Market tonight. Buy low, sell high.', 'calm'], ['pang', 'And haggle! Stop the needle in the middle and I’ll knock some off. Gently.', 'smug']] },
       { t: 'trade', profit: 40, time: 200, label: 'Make 40 coins profit before the tea goes stale (Temple Hill → Night Market)', cp: true },
       { t: 'goto', at: 'pang', label: 'Tell Auntie Pang how it went' },
       { t: 'talk', lines: [['pang', 'A natural! Your stall-keeper rep is growing. Better prices for you now.', 'happy']] },
     ] },
-  { id: 'm7', ch: 2, title: 'The Hundred Steps', giver: 'heron', at: 'heron', reward: 110, rep: 14, blurb: 'Race a magpie up the temple path on foot.',
+  { id: 'm7', ch: 2, title: 'The Hundred Steps', giver: 'heron', at: 'heron', reward: 110, rep: 14, blurb: 'Race a crow up the temple path on foot.',
     steps: [
-      { t: 'talk', lines: [['heron', 'Peace, little one. A magpie boasts it can beat anyone to the top of the hill.', 'calm'], ['heron', 'Wheels are not allowed on the steps. Hop the hedges, dash the paths.', 'smug']] },
-      { t: 'race', ride: 'foot', rival: 'runner', marks: [[36, 14], [37, 10], [26, 9], [11, 9], [11, 3], [19, 7]], label: 'Beat the magpie to the temple', cp: true },
-      { t: 'talk', lines: [['heron', 'Swift feet. The magpie muttered something about the bell being taken down the hill tonight.', 'worried']] },
+      { t: 'talk', lines: [['heron', 'Peace, little one. A crow boasts it can beat anyone to the top of the hill.', 'calm'], ['heron', 'Wheels are not allowed on the steps. Hop the hedges, dash the paths.', 'smug']] },
+      { t: 'race', ride: 'foot', rival: 'runner', marks: [[36, 14], [37, 10], [26, 9], [11, 9], [11, 3], [19, 7]], label: 'Beat the crow to the temple', cp: true },
+      { t: 'talk', lines: [['heron', 'Swift feet. The crow muttered something about the bell being taken down the hill tonight.', 'worried']] },
     ] },
-  { id: 'm8', ch: 2, title: 'The Lion Wakes', giver: 'ren', at: 'ren', reward: 130, rep: 14, blurb: 'Escort the lion-dance troupe and shoo the magpies.',
+  { id: 'm8', ch: 2, title: 'The Lion Wakes', giver: 'ren', at: 'ren', reward: 130, rep: 14, blurb: 'Escort the lion-dance troupe and shoo the crows.',
     steps: [
-      { t: 'talk', lines: [['ren', 'My lion dances to the market square for luck. The magpies want its red envelopes.', 'calm'], ['ren', 'Stay close. Dash into any magpie that swoops in. A gentle bump sends them packing.', 'calm'], ['mate', 'They’ll come from both sides. I’ll guard the far flank, you take the near one!', 'smug']] },
-      { t: 'escort', from: [17, 20], route: [[18, 26], [18, 32], [22, 32], [22, 44], [20, 48], [20, 50]], magpies: 6, flanks: true, label: 'Keep the magpies off the lion dance ({mate} guards the far side)', cp: true },
-      { t: 'talk', lines: [['ren', 'Wonderful! The lion bows to you both. Here, a box of party poppers for the festival.', 'happy'], ['mate', 'Lob one and the sparks stun everything close. Perfect for magpie traffic jams.', 'happy']] },
+      { t: 'talk', lines: [['ren', 'My lion dances to the market square for luck. The crows want its red envelopes.', 'calm'], ['ren', 'Stay close. Dash into any crow that swoops in. A gentle bump sends them packing.', 'calm'], ['mate', 'They’ll come from both sides. I’ll guard the far flank, you take the near one!', 'smug']] },
+      { t: 'escort', from: [17, 20], route: [[18, 26], [18, 32], [22, 32], [22, 44], [20, 48], [20, 50]], crows: 6, flanks: true, label: 'Keep the crows off the lion dance ({mate} guards the far side)', cp: true },
+      { t: 'talk', lines: [['ren', 'Wonderful! The lion bows to you both. Here, a box of party poppers for the festival.', 'happy'], ['mate', 'Lob one and the sparks stun everything close. Perfect for crow traffic jams.', 'happy']] },
     ] },
   { id: 'm9', ch: 2, title: 'Wedding Cake Weather', giver: 'mo', at: 'mo', reward: 150, rep: 14, blurb: 'Rush a melting wedding cake up to the temple.',
     steps: [
@@ -168,11 +168,11 @@ export const MISSIONS: Mission[] = [
       { t: 'talk', lines: [['heron', 'There! The cart with the Golden Bell, rolling down the hill road!', 'worried'], ['hero', 'Not on my watch.', 'cross']] },
       { t: 'ride', kind: 'scooter', near: [35, 14], label: 'Grab a scooter', cp: true },
       { t: 'chase', who: 'cart', from: X('b', 'n'), route: [X('a', 'n'), X('a', 'm'), X('c', 'm'), X('c', 'n'), X('b', 'n')], bumps: 3, loot: '', speed: 265, label: 'Bump the bell cart three times', sets: [{ k: 'drums', at: [19, 13], wp: 0 }], cp: true },
-      { t: 'talk', lines: [['mate', 'The bell’s in a bag and a magpie’s got it! Up there, circling!', 'worried'], ['hero', 'Knock it loose with a shot, or catch it when it swoops low!', 'cross']] },
-      { t: 'bag', at: 'here', loot: 'h-bell', time: 60, label: 'Knock the loot bag out of the magpie’s claws (shoot it, or dash when it swoops low)', cp: true },
+      { t: 'talk', lines: [['mate', 'The bell’s in a bag and a crow’s got it! Up there, circling!', 'worried'], ['hero', 'Knock it loose with a shot, or catch it when it swoops low!', 'cross']] },
+      { t: 'bag', at: 'here', loot: 'h-bell', time: 60, label: 'Knock the loot bag out of the crow’s claws (shoot it, or dash when it swoops low)', cp: true },
       { t: 'pickup', at: 'loot', item: 'h-bell', label: 'Grab the Golden Bell' },
       { t: 'goto', at: 'heron', label: 'Return the bell to Brother Heron' },
-      { t: 'talk', lines: [['heron', 'It rings again! Listen.', 'happy'], ['heron', 'The canal folk say a pearl glow was seen on a magpie boat. The Canal Quarter is open to you.', 'calm']] },
+      { t: 'talk', lines: [['heron', 'It rings again! Listen.', 'happy'], ['heron', 'The canal folk say a pearl glow was seen on a crow boat. The Canal Quarter is open to you.', 'calm']] },
     ] },
   // ── Chapter 3: the Canal Quarter (Pearl Lantern)
   { id: 'm11', ch: 3, title: 'Learn the Water', giver: 'kiri', at: 'kiri', reward: 110, rep: 12, blurb: 'Take a canal boat through Kiri’s course.',
@@ -180,11 +180,11 @@ export const MISSIONS: Mission[] = [
       { t: 'talk', lines: [['kiri', 'Ever steered a boat? It’s like a scooter that’s had a big lunch.', 'smug'], ['kiri', 'Through my lantern gates and back, before the tide turns.', 'calm']] },
       { t: 'ride', kind: 'boat', near: 'jetty', label: 'Step into the canal boat', cp: true },
       { t: 'race', ride: 'boat', time: 59, marks: [[67, 32], [67, 46], [67, 58], [67, 40], [67, 14], [67, 26]], label: 'Steer through every lantern gate' },
-      { t: 'talk', lines: [['kiri', 'Not bad! You only scared three ducks.', 'happy'], ['kiri', 'Take my bubble blower. Wardens slip on the soapy puddles, and magpies hate wet feathers.', 'smug']] },
+      { t: 'talk', lines: [['kiri', 'Not bad! You only scared three ducks.', 'happy'], ['kiri', 'Take my bubble blower. Wardens slip on the soapy puddles, and crows hate wet feathers.', 'smug']] },
     ] },
-  { id: 'm12', ch: 3, title: 'Dumpling Disguise', giver: 'mo', at: 'lim', reward: 130, rep: 14, blurb: 'Fold dumplings as cover, then follow the magpie courier.',
+  { id: 'm12', ch: 3, title: 'Dumpling Disguise', giver: 'mo', at: 'lim', reward: 130, rep: 14, blurb: 'Fold dumplings as cover, then follow the crow courier.',
     steps: [
-      { t: 'talk', lines: [['lim', 'Psst. Magpies meet at the canal stall at midnight. Fold dumplings, look busy, listen.', 'smug'], ['hero', 'I can fold a dumpling. Probably.', 'worried']] },
+      { t: 'talk', lines: [['lim', 'Psst. Crows meet at the canal stall at midnight. Fold dumplings, look busy, listen.', 'smug'], ['hero', 'I can fold a dumpling. Probably.', 'worried']] },
       { t: 'goto', at: [52, 37], label: 'Go to the canal market stall', ride: 'foot', cp: true },
       { t: 'mini', kind: 'dumpling', level: 1, label: 'Fold dumplings and keep your ears open' },
       { t: 'talk', lines: [['pip', '…the lantern goes by boat at dawn…', 'smug'], ['hero', 'Got it. Now to follow that courier.', 'smug']] },
@@ -208,13 +208,13 @@ export const MISSIONS: Mission[] = [
     ] },
   { id: 'm15', ch: 3, title: 'The Pearl Lantern', giver: 'kiri', at: 'kiri', reward: 350, rep: 20, blurb: 'Boat chase down the canal after the Pearl Lantern.',
     steps: [
-      { t: 'talk', lines: [['kiri', 'There’s the magpie boat, pearl glow and all! It slipped through the lock gate!', 'cross'], ['mate', 'The lever on the bank holds the gate open. I’ll hang on to it, you take the boat through!', 'smug']] },
+      { t: 'talk', lines: [['kiri', 'There’s the crow boat, pearl glow and all! It slipped through the lock gate!', 'cross'], ['mate', 'The lever on the bank holds the gate open. I’ll hang on to it, you take the boat through!', 'smug']] },
       { t: 'ride', kind: 'boat', near: 'jetty', label: 'Jump into the boat', cp: true },
       { t: 'hold', lever: [65, 26], gate: [[66, 27], [67, 27], [68, 27]], through: [67, 29], r: 80, label: 'Get {mate} on the lock lever (F), then steer through the gate: Through the lock gate before it shuts!' },
-      { t: 'chase', who: 'boat', from: [67, 30], route: [[67, 58], [67, 20], [67, 50], [67, 6]], bumps: 3, loot: 'h-lantern', speed: 225, label: 'Bump the magpie boat three times', sets: [{ k: 'bridge', at: [67, 44], wp: 0 }], cp: true },
+      { t: 'chase', who: 'boat', from: [67, 30], route: [[67, 58], [67, 20], [67, 50], [67, 6]], bumps: 3, loot: 'h-lantern', speed: 225, label: 'Bump the crow boat three times', sets: [{ k: 'bridge', at: [67, 44], wp: 0 }], cp: true },
       { t: 'pickup', at: 'loot', item: 'h-lantern', label: 'Fish out the Pearl Lantern' },
       { t: 'goto', at: 'kiri', label: 'Bring the lantern to Kiri' },
-      { t: 'talk', lines: [['kiri', 'It glows like a moon on the water. Thank you.', 'happy'], ['kiri', 'Big Bo at the Docks says a silver fish was loaded into a magpie crate. The Docks are open!', 'calm']] },
+      { t: 'talk', lines: [['kiri', 'It glows like a moon on the water. Thank you.', 'happy'], ['kiri', 'Big Bo at the Docks says a silver fish was loaded into a crow crate. The Docks are open!', 'calm']] },
     ] },
   // ── Chapter 4: the Docks (Silver Koi)
   { id: 'm16', ch: 4, title: 'Night Shift', giver: 'bo', at: 'bo', reward: 140, rep: 12, blurb: 'Ferry three dock workers home in a tuk-tuk.',
@@ -226,22 +226,22 @@ export const MISSIONS: Mission[] = [
     ] },
   { id: 'm17', ch: 4, title: 'Container Maze', giver: 'bo', at: 'bo', reward: 180, rep: 14, blurb: 'Sneak through the container yard and pinch the shipping list.',
     steps: [
-      { t: 'talk', lines: [['bo', 'The magpies run the container yard at night. Their shipping list is in the yard office.', 'worried'], ['bo', 'Lookouts everywhere. Keep out of their torch beams. Sneak, wait, go.', 'cross']] },
+      { t: 'talk', lines: [['bo', 'The crows run the container yard at night. Their shipping list is in the yard office.', 'worried'], ['bo', 'Lookouts everywhere. Keep out of their torch beams. Sneak, wait, go.', 'cross']] },
       { t: 'goto', at: 'yard-gate', label: 'Go to the yard gate', ride: 'foot', cp: true },
       { t: 'talk', lines: [['mate', 'The office shutter is down. I’ll sneak round the back and hold its lever; you slip in and grab the list.', 'smug']] },
       { t: 'stealth', lookouts: [[[99, 69], [103, 69], [103, 72], [99, 72]], [[106, 72], [112, 72], [112, 73], [106, 73]], [[99, 77], [108, 77]], [[113, 76], [113, 80], [118, 80]]], goal: 'manifest', exit: 'yard-gate', shutter: [114, 66], label: 'Send {mate} to the shutter (F), reach the office unseen, take the list, get out' },
       { t: 'talk', lines: [['bo', 'The Silver Koi ships at dawn in crate eleven. We’ll be ready.', 'smug']] },
     ] },
-  { id: 'm18', ch: 4, title: 'Hot Goods', giver: 'bristle', at: 'bo', reward: 160, rep: 14, blurb: 'The magpies framed you. Lose five lanterns of heat.',
+  { id: 'm18', ch: 4, title: 'Hot Goods', giver: 'bristle', at: 'bo', reward: 160, rep: 14, blurb: 'The crows framed you. Lose five lanterns of heat.',
     steps: [
-      { t: 'talk', lines: [['bristle', 'Halt! A report says a chinchilla has been bumping my crates. Wardens, after them!', 'cross'], ['hero', 'That was the magpies!', 'worried'], ['bo', 'Run, little one! Lose them, then we sort it out.', 'worried']] },
+      { t: 'talk', lines: [['bristle', 'Halt! A report says a chinchilla has been bumping my crates. Wardens, after them!', 'cross'], ['hero', 'That was the crows!', 'worried'], ['bo', 'Run, little one! Lose them, then we sort it out.', 'worried']] },
       { t: 'heat', level: 5, label: 'Lose all five lanterns of heat', cp: true },
       { t: 'goto', at: 'bo', label: 'Sneak back to Big Bo' },
       { t: 'talk', lines: [['bristle', 'Hmph. Big Bo vouches for you. Mind my crates.', 'cross'], ['bo', 'He likes you really.', 'smug']] },
     ] },
-  { id: 'm19', ch: 4, title: 'Jump-Start Jamboree', giver: 'bo', at: 'bo', reward: 170, rep: 14, blurb: 'Magpies cut the dock scooters’ wires. Fix two and ride them to the garage.',
+  { id: 'm19', ch: 4, title: 'Jump-Start Jamboree', giver: 'bo', at: 'bo', reward: 170, rep: 14, blurb: 'Crows cut the dock scooters’ wires. Fix two and ride them to the garage.',
     steps: [
-      { t: 'talk', lines: [['bo', 'Snip, snip, the magpies cut every scooter’s wires. Match the colours, she’ll start.', 'cross'], ['mate', 'Two scooters, two of us. I’ll wait by the second one; switch to me when yours is in.', 'smug']] },
+      { t: 'talk', lines: [['bo', 'Snip, snip, the crows cut every scooter’s wires. Match the colours, she’ll start.', 'cross'], ['mate', 'Two scooters, two of us. I’ll wait by the second one; switch to me when yours is in.', 'smug']] },
       { t: 'post', at: [75, 65], mode: 'stay', label: '{mate} heads for the second scooter' },
       { t: 'ride', kind: 'scooter', near: [58, 68], locked: true, label: 'Jump-start the first scooter', cp: true },
       { t: 'goto', at: [57, 79], label: 'Ride it to the Tide Shed before the jump-start fades', r: 120, time: 40 },
@@ -252,7 +252,7 @@ export const MISSIONS: Mission[] = [
     ] },
   { id: 'm20', ch: 4, title: 'The Silver Koi', giver: 'bo', at: 'bo', reward: 400, rep: 20, blurb: 'Chase crate eleven through the docks.',
     steps: [
-      { t: 'talk', lines: [['bo', 'Crate eleven is on that magpie cart! Go go go!', 'cross']] },
+      { t: 'talk', lines: [['bo', 'Crate eleven is on that crow cart! Go go go!', 'cross']] },
       { t: 'ride', kind: 'scooter', near: [53, 64], label: 'Grab a scooter', cp: true },
       { t: 'talk', lines: [['mate', 'Bump it twice, then I’ll net it from the back seat. Or get me alongside and I’ll grab the crate!', 'smug']] },
       { t: 'chase', who: 'cart', from: X('d', 'd'), route: [X('e', 'd'), X('f', 'd'), [92, 78], X('f', 'd'), [74, 78], X('d', 'd')], bumps: 3, loot: 'h-koi', speed: 275, finish: 'net', label: 'Bump the cart twice, then net it (click) or ride alongside for {mate}’s grab (F)', sets: [{ k: 'crane', at: [92, 71], wp: 2 }, { k: 'gate', at: [92, 74], wp: 2 }], cp: true },
@@ -261,9 +261,9 @@ export const MISSIONS: Mission[] = [
       { t: 'talk', lines: [['bo', 'Shiny! Now the last one. The Phoenix Drum is in Madame Glint’s roost, up the Arcade Strip.', 'happy'], ['bo', 'The neon lights are on for you.', 'smug']] },
     ] },
   // ── Chapter 5: the Arcade Strip (Phoenix Drum)
-  { id: 'm21', ch: 5, title: 'Neon Night Race', giver: 'gizmo', at: 'gizmo', reward: 180, rep: 14, blurb: 'Beat a magpie racer round the Strip on a scooter.',
+  { id: 'm21', ch: 5, title: 'Neon Night Race', giver: 'gizmo', at: 'gizmo', reward: 180, rep: 14, blurb: 'Beat a crow racer round the Strip on a scooter.',
     steps: [
-      { t: 'talk', lines: [['gizmo', 'Yo yo! A magpie racer says no chinchilla can beat him round the Strip.', 'smug'], ['gizmo', 'Prove him wrong and I’ll tell you how to get into the Roost.', 'calm']] },
+      { t: 'talk', lines: [['gizmo', 'Yo yo! A crow racer says no chinchilla can beat him round the Strip.', 'smug'], ['gizmo', 'Prove him wrong and I’ll tell you how to get into the Roost.', 'calm']] },
       { t: 'ride', kind: 'scooter', near: [100, 25], label: 'Hop on a scooter', cp: true },
       { t: 'race', ride: 'scooter', rival: 'scooter', marks: [X('g', 'x'), X('g', 's'), X('f', 's'), X('f', 'm'), X('e', 'm'), X('e', 'x'), X('f', 'x'), [100, 24]], label: 'Win the race' },
       { t: 'talk', lines: [['gizmo', 'Legendary! The Roost has a back way: across the rooftops.', 'happy'], ['gizmo', 'And take my confetti cannon. One blast scatters a whole flock. Party trick!', 'smug']] },
@@ -279,7 +279,7 @@ export const MISSIONS: Mission[] = [
     ] },
   { id: 'm23', ch: 5, title: 'Crack the Claw', giver: 'gizmo', at: 'gizmo', reward: 220, rep: 14, blurb: 'Collect the crew passcodes hidden around the Strip.',
     steps: [
-      { t: 'talk', lines: [['gizmo', 'The Roost door wants three passcode tokens. Magpies stash them in claw machines.', 'calm']] },
+      { t: 'talk', lines: [['gizmo', 'The Roost door wants three passcode tokens. Crows stash them in claw machines.', 'calm']] },
       { t: 'talk', lines: [['mate', 'See that lit window over the claw machines? A lookout. Paint the glass, or I’ll go and pull faces at it.', 'smug']] },
       { t: 'collect', items: [[85, 33], [104, 48], [115, 27]], item: 'token', time: 80, watch: [104, 45], label: 'Collect the three tokens; paint the window lookout or send {mate} to distract it (F)', cp: true },
       { t: 'goto', at: [113, 57], label: 'Go to the Roost door', ride: 'foot' },
@@ -290,7 +290,7 @@ export const MISSIONS: Mission[] = [
     steps: [
       { t: 'talk', lines: [['ren', 'The parade must go through the Strip for the festival to begin. The whole Crew is waiting.', 'worried'], ['hero', 'Let them try.', 'smug']] },
       { t: 'talk', lines: [['mate', 'Both flanks again. Confetti scatters a whole flock if they bunch up!', 'smug']] },
-      { t: 'escort', from: [80, 24], route: [[88, 24], [96, 24], [104, 24], [112, 24], [116, 24]], magpies: 8, flanks: true, label: 'Protect the lion dance ({mate} guards the far side)', cp: true },
+      { t: 'escort', from: [80, 24], route: [[88, 24], [96, 24], [104, 24], [112, 24], [116, 24]], crows: 8, flanks: true, label: 'Protect the lion dance ({mate} guards the far side)', cp: true },
       { t: 'talk', lines: [['ren', 'The Crew scatters! Only Madame Glint remains.', 'happy']] },
     ] },
   { id: 'm25', ch: 5, title: 'Glint’s Last Flight', giver: 'glint', at: 'gizmo', reward: 600, rep: 25, blurb: 'Catch Madame Glint and win back the Phoenix Drum.',

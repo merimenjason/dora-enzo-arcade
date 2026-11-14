@@ -3,7 +3,7 @@
 // (switch with 1 and 2 or the wheel); aim with the mouse, or let Assist pick the nearest fair target. Every gadget has
 // a clip and a satchel of spare ammo (reload with X, or it reloads itself when empty); ammo comes from the red supply
 // crates around the quarter and from Tock's toy stall, which also sells gadgets and two upgrades for each.
-// What they do: magpies get dizzy and drop what they hold, carts wobble and slow (a net tangles one), flocks scatter,
+// What they do: crows get dizzy and drop what they hold, carts wobble and slow (a net tangles one), flocks scatter,
 // lookouts can be blinded with paint or turned by a popper. Hitting a warden or a townsfolk raises heat, and a stall
 // that gets splattered leaves its owner cross. Pure engine: projectiles step with the world; reactions of job actors
 // are in lib/jade-team.ts.
@@ -20,12 +20,12 @@ export type GadgetId = 'sling' | 'paint' | 'popper' | 'net' | 'bubble' | 'confet
 export const GADGET_IDS: GadgetId[] = ['sling', 'paint', 'popper', 'net', 'bubble', 'confetti'];
 export type GadgetDef = { name: string; ammoName: string; blurb: string; kind: 'shot' | 'lob' | 'burst'; speed: number; range: number; clip: number; reload: number; cd: number; price: number; pack: number; packPrice: number; up: [number, number] };
 export const GADGETS: Record<GadgetId, GadgetDef> = {
-  sling: { name: 'Slingshot', ammoName: 'rice balls', blurb: 'Sticky-rice balls: a magpie gets dizzy and drops what it holds; a cart wobbles.', kind: 'shot', speed: 780, range: 560, clip: 6, reload: 0.9, cd: 0.3, price: 120, pack: 12, packPrice: 20, up: [150, 320] },
-  paint: { name: 'Paint squirter', ammoName: 'paint blobs', blurb: 'Pink and teal splats: a painted lookout sees nothing, and a dizzy magpie lets go.', kind: 'shot', speed: 560, range: 440, clip: 5, reload: 1.1, cd: 0.4, price: 160, pack: 10, packPrice: 25, up: [180, 360] },
+  sling: { name: 'Slingshot', ammoName: 'rice balls', blurb: 'Sticky-rice balls: a crow gets dizzy and drops what it holds; a cart wobbles.', kind: 'shot', speed: 780, range: 560, clip: 6, reload: 0.9, cd: 0.3, price: 120, pack: 12, packPrice: 20, up: [150, 320] },
+  paint: { name: 'Paint squirter', ammoName: 'paint blobs', blurb: 'Pink and teal splats: a painted lookout sees nothing, and a dizzy crow lets go.', kind: 'shot', speed: 560, range: 440, clip: 5, reload: 1.1, cd: 0.4, price: 160, pack: 10, packPrice: 25, up: [180, 360] },
   popper: { name: 'Popper box', ammoName: 'party poppers', blurb: 'Lob a party popper: its burst of sparks stuns everything close by for a moment.', kind: 'lob', speed: 520, range: 400, clip: 3, reload: 1.2, cd: 0.6, price: 200, pack: 6, packPrice: 30, up: [200, 420] },
-  net: { name: 'Net launcher', ammoName: 'nets', blurb: 'A rope net that opens wide: catches a magpie or tangles a getaway cart.', kind: 'shot', speed: 620, range: 470, clip: 2, reload: 1.6, cd: 0.8, price: 260, pack: 4, packPrice: 40, up: [240, 480] },
+  net: { name: 'Net launcher', ammoName: 'nets', blurb: 'A rope net that opens wide: catches a crow or tangles a getaway cart.', kind: 'shot', speed: 620, range: 470, clip: 2, reload: 1.6, cd: 0.8, price: 260, pack: 4, packPrice: 40, up: [240, 480] },
   bubble: { name: 'Bubble blower', ammoName: 'bubble soap', blurb: 'A spray of bubbles slows whatever it hits; wardens slip on the soapy puddles.', kind: 'shot', speed: 430, range: 300, clip: 8, reload: 1.0, cd: 0.2, price: 180, pack: 16, packPrice: 25, up: [180, 380] },
-  confetti: { name: 'Confetti cannon', ammoName: 'confetti tubes', blurb: 'A festival burst that scatters a whole flock of magpies at once.', kind: 'burst', speed: 520, range: 320, clip: 2, reload: 1.4, cd: 0.7, price: 220, pack: 4, packPrice: 30, up: [200, 420] },
+  confetti: { name: 'Confetti cannon', ammoName: 'confetti tubes', blurb: 'A festival burst that scatters a whole flock of crows at once.', kind: 'burst', speed: 520, range: 320, clip: 2, reload: 1.4, cd: 0.7, price: 220, pack: 4, packPrice: 30, up: [200, 420] },
 };
 /** who gives which gadget in the story (free), and the stall's stock: everything, once Tock's stall opens after job 2 */
 export const GEAR_GIFT: Record<string, GadgetId[]> = { m3: ['sling', 'paint'], m8: ['popper'], m11: ['bubble'], m16: ['net'], m21: ['confetti'] };
@@ -56,14 +56,14 @@ export function carried(s: Save, h: Hero): GadgetId | null { const c = s.gear.ca
 export type Shot = { id: number; g: GadgetId; by: Hero; x: number; y: number; sx: number; sy: number; vx: number; vy: number; t: number; life: number; power: number; tx: number; ty: number; roof: boolean };
 export type Splat = { x: number; y: number; sprite: string; t: number; life: number; rot: number; puddle?: boolean };
 export type Crate = { x: number; y: number; back: number };
-/** something a shot can hit: job actors, cargo snatchers, the street-event magpie, wardens, townsfolk */
+/** something a shot can hit: job actors, cargo snatchers, the street-event crow, wardens, townsfolk */
 export type Target = { kind: 'actor' | 'snatcher' | 'event' | 'warden' | 'ped'; x: number; y: number; r: number; fair: boolean; ref: unknown };
 
 export function targets(w: World): Target[] {
   const out: Target[] = [];
   if (w.run) for (const a of w.run.actors) if (!a.gone && aimable(a)) out.push({ kind: 'actor', x: a.b.x, y: a.b.y, r: a.kind === 'cart' || a.kind === 'boat' || a.kind === 'boss' ? 26 : 18, fair: a.kind !== 'pip', ref: a });
   for (const m of w.snatchers) if (!m.out) out.push({ kind: 'snatcher', x: m.x, y: m.y, r: 22, fair: true, ref: m });
-  const e = w.street; if (e && e.kind === 'magpie' && e.phase === 'on' && e.b) out.push({ kind: 'event', x: e.b.x, y: e.b.y, r: 18, fair: true, ref: e });
+  const e = w.street; if (e && e.kind === 'crow' && e.phase === 'on' && e.b) out.push({ kind: 'event', x: e.b.x, y: e.b.y, r: 18, fair: true, ref: e });
   for (const wd of w.wardens) if (!wd.leave) out.push({ kind: 'warden', x: wd.b.x, y: wd.b.y, r: 18, fair: false, ref: wd });
   for (const pd of w.peds) if (pd.sit <= 0) out.push({ kind: 'ped', x: pd.x, y: pd.y, r: 14, fair: false, ref: pd });
   return out;
@@ -193,18 +193,18 @@ export function hit(w: World, t: Target, g: GadgetId, pw: number, x: number, y: 
     case 'snatcher': {
       const m = t.ref as World['snatchers'][number]; if (m.out) return false;
       m.out = true; m.dizzy = 1.2;
-      if (m.took > 0 && m.good) { w.s.cargo[m.good as Good] += m.took; w.say(`The magpie dropped your ${GOOD[m.good as Good].name.toLowerCase()}!`, 'good'); m.took = 0; }
-      else w.say(g === 'confetti' ? 'Confetti! The magpie flaps off in a fluster.' : 'Bonk! The dizzy magpie flaps away empty-clawed.', 'good');
+      if (m.took > 0 && m.good) { w.s.cargo[m.good as Good] += m.took; w.say(`The crow dropped your ${GOOD[m.good as Good].name.toLowerCase()}!`, 'good'); m.took = 0; }
+      else w.say(g === 'confetti' ? 'Confetti! The crow flaps off in a fluster.' : 'Bonk! The dizzy crow flaps away empty-clawed.', 'good');
       w.fx.push({ t: 'dizzy', x: m.x, y: m.y, kind: g }); return true;
     }
-    case 'event': { const e = t.ref as NonNullable<World['street']>; if (g === 'bubble') { if (e.b) e.b.speed *= 0.3; e.slowT = 2; return true; } catchEventMagpie(w, e); return true; }
+    case 'event': { const e = t.ref as NonNullable<World['street']>; if (g === 'bubble') { if (e.b) e.b.speed *= 0.3; e.slowT = 2; return true; } catchEventCrow(w, e); return true; }
     case 'warden': {
       const wd = t.ref as World['wardens'][number];
       const stun = { sling: 0.8, paint: 1.5, popper: 1.2, net: 2.5, bubble: 1.4, confetti: 0.5 }[g] * pw;
       wd.stun = Math.max(wd.stun, stun); wd.hitKind = g === 'paint' ? 'paint' : g === 'bubble' ? 'slip' : g === 'net' ? 'net' : 'dazed'; wd.hitT = stun;
       addHeat(w, g === 'confetti' ? 0.15 : 0.3, 'gadget');
       w.fx.push({ t: 'warden-hit', kind: g, x: wd.b.x, y: wd.b.y }); w.fx.push({ t: 'whistle', x: wd.b.x, y: wd.b.y });
-      if (!w.s.learned.includes('warden-hit')) { w.s.learned.push('warden-hit'); w.say('Hitting a warden brings more heat! Aim for the magpies.', 'bad'); }
+      if (!w.s.learned.includes('warden-hit')) { w.s.learned.push('warden-hit'); w.say('Hitting a warden brings more heat! Aim for the crows.', 'bad'); }
       return true;
     }
     case 'ped': {
@@ -228,8 +228,8 @@ export function stallHit(w: World, x: number, y: number, g: GadgetId) {
   w.fx.push({ t: 'stall-splat', x, y, kind: g });
   if (!was) { addHeat(w, 0.12, 'gadget'); w.say('Oi! My awning! The stallholder shakes a fist.', 'bad'); }
 }
-/** the street magpie caught by a shot or a pounce: the same reward as a dash */
-export function catchEventMagpie(w: World, e: NonNullable<World['street']>) { e.caught = true; }
+/** the street crow caught by a shot or a pounce: the same reward as a dash */
+export function catchEventCrow(w: World, e: NonNullable<World['street']>) { e.caught = true; }
 
 /** supply crates: a few around each district's market, safe house and garage; walk or ride into one for ammo */
 export function makeCrates(w: World): Crate[] {

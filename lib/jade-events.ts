@@ -1,5 +1,5 @@
 // Jade Street: street events in free roam. Every minute or so, when no job is running and the lanterns are dark,
-// something happens near you: a magpie snatches a mango from a stall (dash into it, or ride it down, to get it back),
+// something happens near you: a crow snatches a mango from a stall (dash into it, or ride it down, to get it back),
 // a lost duckling needs walking home to its mother, a broken-down van needs a push-start, or a busker draws a crowd
 // (tip them and they hum you a market tip). Each pays a few coins and a little reputation. Seeded like the rest.
 import { T, districtAt, DISTRICT_NAME, type District } from './jade-city.js';
@@ -12,16 +12,16 @@ import { pedTile, dests } from './jade-folk.js';
 import { text, CONTACT_OF } from './jade-phone.js';
 import type { World, Near, Ride } from './jade-game.js';
 
-export type EventKind = 'magpie' | 'duckling' | 'van' | 'busker';
-export const EVENT_KINDS: EventKind[] = ['magpie', 'duckling', 'van', 'busker'];
+export type EventKind = 'crow' | 'duckling' | 'van' | 'busker';
+export const EVENT_KINDS: EventKind[] = ['crow', 'duckling', 'van', 'busker'];
 export type StreetEvent = {
   kind: EventKind; d: District; x: number; y: number; t: number; phase: 'on' | 'follow' | 'done' | 'gone';
   b?: Body; goal?: [number, number]; home?: [number, number]; ride?: Ride; push?: number; tipped?: boolean; caught?: boolean;
   /** slowed by a bubble shot (seconds) */
   slowT?: number;
 };
-export const EVENT_NAME: Record<EventKind, string> = { magpie: 'Stop, thief!', duckling: 'Lost duckling', van: 'Broken-down van', busker: 'Busker' };
-const LIFE: Record<EventKind, number> = { magpie: 40, duckling: 160, van: 120, busker: 80 };
+export const EVENT_NAME: Record<EventKind, string> = { crow: 'Stop, thief!', duckling: 'Lost duckling', van: 'Broken-down van', busker: 'Busker' };
+const LIFE: Record<EventKind, number> = { crow: 40, duckling: 160, van: 120, busker: 80 };
 
 export function eventsStep(w: World, dt: number) {
   const e = w.street;
@@ -34,12 +34,12 @@ export function eventsStep(w: World, dt: number) {
   e.t += dt;
   if (e.phase === 'done' || e.phase === 'gone') { if (e.t > 3) end(w); return; }
   if (w.run || e.t > LIFE[e.kind] * (w.assist ? 1.3 : 1) || dist(e.x, e.y, w.p.x, w.p.y) > 2200) {
-    if (e.kind === 'magpie') w.say('The magpie got away with the mango.', 'bad');
+    if (e.kind === 'crow') w.say('The crow got away with the mango.', 'bad');
     e.phase = 'gone'; e.t = 0; if (e.kind === 'busker') w.crowd = null; return;
   }
   const p = w.p, pb = p.ride ? p.ride.b : p.b;
   switch (e.kind) {
-    case 'magpie': {
+    case 'crow': {
       const b = e.b!;
       if (!e.goal || dist(b.x, b.y, e.goal[0], e.goal[1]) < 40) e.goal = farSpot(w, b.x, b.y);
       const close = dist(b.x, b.y, pb.x, pb.y);
@@ -53,7 +53,7 @@ export function eventsStep(w: World, dt: number) {
       // a dash, a ride, or a gadget shot, the partner's pounce or the passenger's grab (lib/jade-gear.ts, lib/jade-tag.ts)
       if ((close < b.r + pb.r + (w.assist ? 18 : 8) && hitting) || e.caught) {
         e.phase = 'done'; e.t = 0; reward(w, e, 40, 2); w.fx.push({ t: 'hit', x: b.x, y: b.y });
-        text(w, CONTACT_OF[e.d], 'You got my mango back from that cheeky magpie! Here, a little something for your trouble.');
+        text(w, CONTACT_OF[e.d], 'You got my mango back from that cheeky crow! Here, a little something for your trouble.');
       }
       break;
     }
@@ -106,14 +106,14 @@ export function spawn(w: World, kind: EventKind): StreetEvent | null {
   const px = w.p.x, py = w.p.y;
   const near = (x: number, y: number, lo: number, hi: number) => { const d = dist(x, y, px, py); return d > lo && d < hi && w.open.has(districtAt(Math.floor(x / T), Math.floor(y / T))); };
   let e: StreetEvent | null = null;
-  if (kind === 'magpie') {
+  if (kind === 'crow') {
     const stalls = w.c.props.filter(p => p.sprite.startsWith('stall') && near(p.x, p.y, 200, 900));
     if (!stalls.length) return null;
     const st = stalls[Math.floor(w.R() * stalls.length)];
     const [x, y] = nearestFree(w.c, 'walk', st.x, st.y + T, w.open, 3);
     const d = districtAt(Math.floor(x / T), Math.floor(y / T));
     e = { kind, d, x, y, t: 0, phase: 'on', b: { x, y, h: 0, speed: 0, r: 12, len: 0, cls: 'walk' } };
-    text(w, CONTACT_OF[d], `Help! A magpie just snatched a mango from a stall near you in ${DISTRICT_NAME[d].replace(/^the /, 'the ')}. Dash into it to make it drop it!`);
+    text(w, CONTACT_OF[d], `Help! A crow just snatched a mango from a stall near you in ${DISTRICT_NAME[d].replace(/^the /, 'the ')}. Dash into it to make it drop it!`);
   } else if (kind === 'duckling') {
     const all = dests(w.c).filter(d => near(d.x, d.y, 160, 520) && d.kind !== 'seat');
     const homes = dests(w.c).filter(d => near(d.x, d.y, 12 * T, 22 * T) && d.kind !== 'seat');

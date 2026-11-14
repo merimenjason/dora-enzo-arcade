@@ -3,8 +3,8 @@
 // you (reputation). Each earns coins through the night: a nightly rate set by its level, the district's reputation, the
 // weather, tips and the daily event, and a local event that changes every night. Earnings pile up in the stall's till
 // (at most three nights' worth) until you collect them at the stall or at a safe house; a night skipped by sleeping
-// earns only for the part you were awake. Upgrades change the painted stall. Now and then magpies raid an owned stall:
-// a text, then a short defend job (get there, then dash into the fleeing magpies before they get away); a lost raid
+// earns only for the part you were awake. Upgrades change the painted stall. Now and then crows raid an owned stall:
+// a text, then a short defend job (get there, then dash into the fleeing crows before they get away); a lost raid
 // costs part of the till. No DOM; all randomness is seeded.
 import { T, DISTRICT_NAME, type District } from './jade-city.js';
 import { rng, hashStr, dist, clamp } from './jade-rng.js';
@@ -113,17 +113,17 @@ export function raidCheck(w: World, before: number, after: number): BizId | null
   if (R() > (w.assist ? 0.3 : 0.4)) return null;
   return mine[Math.floor(R() * mine.length)].id;
 }
-/** the defend job: hurry to the stall, then catch the magpies fleeing with the till */
+/** the defend job: hurry to the stall, then catch the crows fleeing with the till */
 export function raidMission(w: World, id: BizId): Mission {
   const b = BIZ_OF[id]; const [x, y] = bizPos(b);
   const far = dist(x, y, w.p.x, w.p.y) / T;
   const steps: Step[] = [
-    { t: 'goto', at: b.at, label: `Hurry to the ${b.name}: magpies are raiding the till`, r: 150, time: Math.round(far * 1.1 + 25) },
-    { t: 'raid', at: b.at, n: w.diff.extra > 0 ? 4 : 3, label: 'Dash or ride into each magpie before it gets away', cp: true },
+    { t: 'goto', at: b.at, label: `Hurry to the ${b.name}: crows are raiding the till`, r: 150, time: Math.round(far * 1.1 + 25) },
+    { t: 'raid', at: b.at, n: w.diff.extra > 0 ? 4 : 3, label: 'Dash or ride into each crow before it gets away', cp: true },
   ];
   return { id: 'raid-' + id, ch: 0, title: `Raid on the ${b.name}`, giver: b.keeper, at: '', blurb: '', reward: 40, rep: 2, steps };
 }
-/** the magpies burst out of the stall and run in different directions; each one that gets far enough away escapes */
+/** the crows burst out of the stall and run in different directions; each one that gets far enough away escapes */
 export function raidEnter(run: Run, st: Extract<Step, { t: 'raid' }>) {
   const w = run.w; const [x, y] = run.spot(st.at);
   for (let i = 0; i < st.n; i++) {
@@ -147,15 +147,15 @@ export function raidStep(run: Run, st: Extract<Step, { t: 'raid' }>, dt: number)
     const reach = 26 + pb.r + (w.assist ? 16 : 4);
     const hitting = p.ride ? pb.speed > 80 : (p.dashT > 0 || p.hopT > 0);
     if (dist(a.b.x, a.b.y, pb.x, pb.y) < reach && hitting) { a.stun = 0.8; a.hits = 1; run.count++; if (!p.ride && !p.act) p.act = { n: 'shoo', t: 0, dur: 0.45 }; w.fx.push({ t: 'shoo', x: a.b.x, y: a.b.y }); w.fx.push({ t: 'hit', x: a.b.x, y: a.b.y, k: 1, kind: 'feather' }); continue; }
-    if ((end && a.t > 1) || dist(a.b.x, a.b.y, x, y) > 10 * T) { a.gone = true; run.lost++; w.fx.push({ t: 'snatch', x: a.b.x, y: a.b.y }); w.say('A magpie got away with some coins!', 'bad'); }
+    if ((end && a.t > 1) || dist(a.b.x, a.b.y, x, y) > 10 * T) { a.gone = true; run.lost++; w.fx.push({ t: 'snatch', x: a.b.x, y: a.b.y }); w.say('A crow got away with some coins!', 'bad'); }
   }
   const allow = w.assist ? 2 : 1;
   run.progress = `Caught ${run.count}/${st.n}`;
   run.meter = { name: `Got away ${run.lost}/${allow + 1}`, v: run.lost / (allow + 1), bad: run.lost >= allow };
-  if (run.lost > allow) return run.fail('Too many magpies got away with the till! Dash into them sooner.');
+  if (run.lost > allow) return run.fail('Too many crows got away with the till! Dash into them sooner.');
   if (run.actors.every(a => a.gone)) run.next();
 }
-/** a raid you didn't win: the magpies take 40% of that stall's till */
+/** a raid you didn't win: the crows take 40% of that stall's till */
 export function raidLost(s: Save, id: BizId) { const st = s.biz[id]; if (!st) return 0; const k = Math.floor(st.bank * 0.4); st.bank -= k; st.raids++; return k; }
 export function raidWon(s: Save, id: BizId) { const st = s.biz[id]; if (st) { st.defended++; st.raids++; } }
 export const raidId = (missionId: string): BizId | null => missionId.startsWith('raid-') ? missionId.slice(5) as BizId : null;

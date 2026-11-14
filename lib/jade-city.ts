@@ -151,12 +151,12 @@ function build(): City {
   bld(54, 50, 3, 3, 'lm-safe'); rect(46, 53, 14, 2, G.COBBLE); place('safe-canal', 55, 53, 'safe', 'Willow Water safe house');
   bld(77, 37, 3, 3, 'lm-garage'); rect(75, 40, 15, 2, G.NEON); place('garage-canal', 78, 40, 'garage', 'Strip garage');
 
-  // Arcade Strip: the neon market, Gizmo's arcade, the rooftop terraces, the Magpie Roost (boss), safe house
+  // Arcade Strip: the neon market, Gizmo's arcade, the rooftop terraces, the Crow Roost (boss), safe house
   rect(110, 34, 10, 8, G.NEON);
   for (const [x, y, s] of [[111, 35, 'stall-red'], [115, 35, 'stall-noodle'], [111, 39, 'stall-tea']] as const) stall(x, y, s);
   place('mk-arcade', 115, 39, 'market', 'Neon Row market');
   bld(94, 16, 6, 6, 'lm-arcade'); place('gizmo', 97, 22, 'contact', 'Gizmo'); // fronts onto the neon boulevard
-  bld(110, 50, 6, 6, 'lm-arcade'); place('roost', 112, 56, 'spot', 'the Magpie Roost'); rect(110, 56, 10, 6, G.NEON);
+  bld(110, 50, 6, 6, 'lm-arcade'); place('roost', 112, 56, 'spot', 'the Crow Roost'); rect(110, 56, 10, 6, G.NEON);
   bld(80, 26, 3, 3, 'lm-safe'); rect(75, 29, 15, 1, G.NEON); place('safe-arcade', 81, 29, 'safe', 'Neon Loft safe house');
   // rooftop terraces: flat roofs with one-tile gaps you hop across on foot, a ladder at each end
   rect(94, 34, 12, 12, G.NEON);

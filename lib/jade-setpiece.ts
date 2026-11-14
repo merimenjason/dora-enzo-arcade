@@ -1,7 +1,7 @@
 // Jade Street: the chase set pieces. Each heirloom chase has scripted moments that fire when the thief reaches a leg
 // of its route, every one telegraphed before it can hurt: the Jade Dragon cart smashes through a fruit stall and
 // leaves a heap of rubble on the road (red rings show where it will land); drums tumble off the temple steps across
-// the road in lanes that glow first; the canal drawbridge rings its bell and swings down behind the magpie boat (get
+// the road in lanes that glow first; the canal drawbridge rings its bell and swings down behind the crow boat (get
 // under it before it closes, or wait while the boat gets away); a dock crane swings a container back and forth over
 // the road (its shadow shows where); and the yard gate's lamps flash before it rolls shut. A hit stops you for a
 // moment (no damage): it costs ground, and the getaway meter does the rest. All timings are seeded and stepped at
@@ -86,7 +86,7 @@ export function stepSets(run: Run, dt: number) {
         break;
       }
       case 'bridge': {
-        // up (open to boats) until the magpie boat has gone under; then the bell, the lowering, a closed spell, the lift
+        // up (open to boats) until the crow boat has gone under; then the bell, the lowering, a closed spell, the lift
         if (s.ph === 'wait' && a.wp >= s.def.wp && a.b.y > s.y + 1.2 * T) { s.ph = 'warn'; s.t = 0; run.warn('Clang! The drawbridge is coming down. Get under it before it closes!'); w.fx.push({ t: 'bell', x: s.x, y: s.y }); }
         else if (s.ph === 'warn') { if (s.t > telegraph(run, 2.2)) { s.ph = 'go'; s.t = 0; } else if (Math.floor(s.t * 2) !== Math.floor((s.t - dt) * 2)) w.fx.push({ t: 'bell', x: s.x, y: s.y }); }
         else if (s.ph === 'go') {

@@ -1,6 +1,6 @@
 // Jade Street: the job runner. Walks a story mission or side gig through its steps (talk, go, ride, pick up, deliver,
 // mini-game, chase, tail, escort, race, stealth, collect, heat, trade, fares), spawning the actors each step needs
-// (the magpie cart, Pip on foot, the lion dance, lookouts, rivals, fares), and keeping a checkpoint so a failure
+// (the crow cart, Pip on foot, the lion dance, lookouts, rivals, fares), and keeping a checkpoint so a failure
 // restarts from the last one: you never lose more than a step or two. Assist widens timers, slows targets, eases
 // lookouts and lets bumps land from a little further away. Every job has a readable way to fail with its own meter or
 // timer and a warning before it bites: the getaway meter in chases, the troupe meter in escorts, suspicion and alert
@@ -345,7 +345,7 @@ export class Run {
     if (this.grace > 0) this.grace -= dt;
     else if (d > far) m.v += dt * fill * (d > far * 1.5 ? 1.6 : 1); else if (d < 460) m.v -= dt * 0.1;
     m.v = clamp(m.v, 0, 1); m.bad = m.v > 0.6;
-    if (m.v > 0.6 && this.warned < 1) { this.warned = 1; this.warn(st.who === 'boat' ? 'The magpie boat is pulling away! Close the gap!' : 'They’re getting away! Close the gap!'); }
+    if (m.v > 0.6 && this.warned < 1) { this.warned = 1; this.warn(st.who === 'boat' ? 'The crow boat is pulling away! Close the gap!' : 'They’re getting away! Close the gap!'); }
     if (m.v < 0.3) this.warned = 0;
     if (m.v >= 1) this.fail(st.who === 'boss' ? 'Madame Glint got away! Keep her in sight and dodge what she throws at you.' : 'They got away! Keep the getaway meter low by staying close.');
   }
@@ -388,7 +388,7 @@ export class Run {
     const st = this.cur; if (!st || st.t !== 'pickup') return;
     this.w.p.carry = st.item; this.loot = null; this.w.fx.push({ t: 'pickup', x: this.w.p.x, y: this.w.p.y, kind: st.item.startsWith('h-') ? 'heirloom' : 'item' }); this.next();
   }
-  /** the passenger's grab (F on a ride): a thief, a raider, a decoy, a swooping bag-magpie, the loot, a high item */
+  /** the passenger's grab (F on a ride): a thief, a raider, a decoy, a swooping bag-crow, the loot, a high item */
   onGrab(a: Actor | null) {
     const w = this.w, st = this.cur; if (!st) return;
     if (a) {
@@ -454,7 +454,7 @@ export class Run {
     const w = this.w, lion = this.actors[0]; if (!lion) return;
     lion.t += dt;
     const far = dist(lion.b.x, lion.b.y, pb.x, pb.y) > 420;
-    if (!far) { if (this.walk(lion, dt, 52, false) && this.spawned >= st.magpies && this.actors.length === 1) { releaseMate(this); this.next(); return; } } else lion.b.speed = 0;
+    if (!far) { if (this.walk(lion, dt, 52, false) && this.spawned >= st.crows && this.actors.length === 1) { releaseMate(this); this.next(); return; } } else lion.b.speed = 0;
     // the troupe waits for you, but not for ever
     const tm = this.meter2!; const gone = dist(lion.b.x, lion.b.y, pb.x, pb.y) > 520;
     tm.v = clamp(tm.v + (gone ? dt / (this.assist ? 14 : 6.5) : -dt * 0.2), 0, 1); tm.bad = tm.v > 0.5;
@@ -463,9 +463,9 @@ export class Run {
     if (tm.v >= 1) return this.fail('You left the lion-dance troupe behind! Stay close to the lion.');
     if (lion.wp === lion.route.length - 1 && dist(lion.b.x, lion.b.y, lion.route[lion.wp][0], lion.route[lion.wp][1]) < 30 && this.actors.filter(a => a.kind === 'swoop' && !a.gone).length === 0) { releaseMate(this); this.next(); return; }
     this.spawnT -= dt;
-    if (this.spawned < st.magpies && this.spawnT <= 0) {
+    if (this.spawned < st.crows && this.spawnT <= 0) {
       // on two flanks they come in pairs from opposite sides: one for you, one for your partner
-      const pair = st.flanks && this.spawned + 1 < st.magpies ? 2 : 1;
+      const pair = st.flanks && this.spawned + 1 < st.crows ? 2 : 1;
       this.spawnT = (this.assist ? 6.5 : 5) * (pair === 2 ? 1.5 : 1);
       for (let k = 0; k < pair; k++) {
         const ang = ((this.spawned - k) * 2.4) % (Math.PI * 2) + k * Math.PI;
@@ -483,10 +483,10 @@ export class Run {
       const reach = 30 + pb.r + (this.assist ? 18 : 6);
       const hitting = w.p.ride ? pb.speed > 60 : (w.p.dashT > 0 || w.p.hopT > 0 || w.p.b.speed > 150);
       if (dist(m.b.x, m.b.y, pb.x, pb.y) < reach && hitting) { m.stun = 1.2; m.b.h += Math.PI; w.fx.push({ t: 'shoo', x: m.b.x, y: m.b.y }); continue; }
-      if (l < 34) { this.envelopes--; m.stun = 1.2; m.b.h += Math.PI; w.fx.push({ t: 'snatch', x: m.b.x, y: m.b.y }); this.meter = { name: 'Red envelopes', v: this.envelopes / 5, bad: this.envelopes <= 2 }; if (this.envelopes <= 0) return this.fail('The magpies took every red envelope!'); }
+      if (l < 34) { this.envelopes--; m.stun = 1.2; m.b.h += Math.PI; w.fx.push({ t: 'snatch', x: m.b.x, y: m.b.y }); this.meter = { name: 'Red envelopes', v: this.envelopes / 5, bad: this.envelopes <= 2 }; if (this.envelopes <= 0) return this.fail('The crows took every red envelope!'); }
     }
     this.actors = this.actors.filter(a => !a.gone);
-    this.progress = `Magpies ${this.spawned}/${st.magpies}`;
+    this.progress = `Crows ${this.spawned}/${st.crows}`;
   }
   stealth(st: Extract<Step, { t: 'stealth' }>, dt: number) {
     const w = this.w, p = w.p;
@@ -629,7 +629,7 @@ export class Run {
 function timeUp(st: Step): string {
   if (st.t === 'deliver') return st.item === 'cake' ? 'The cake melted!' : st.item === 'crate' ? 'Chef Mo’s queue gave up waiting for the mangoes!' : 'Out of time! The parcel was too late.';
   if (st.t === 'trade') return 'Out of time! The buyers went elsewhere. Buy low, ride quickly, sell high.';
-  if (st.t === 'goto') return st.label.includes('magpies') ? 'Too slow! The magpies cleared out the till.' : 'The jump-start faded before you got there!';
+  if (st.t === 'goto') return st.label.includes('crows') ? 'Too slow! The crows cleared out the till.' : 'The jump-start faded before you got there!';
   if (st.t === 'collect') return 'Out of time! Grab them in the order the gold line suggests.';
   if (st.t === 'race') return 'Out of time! Cut the corners and use your boost.';
   if (st.t === 'fares') return 'The fare got fed up and walked! Drive them home quicker.';

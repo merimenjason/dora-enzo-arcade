@@ -102,7 +102,7 @@ export function Market({ play, d, snd, onClose }: { play: Play; d: District; snd
         {tips.map((t, i) => <p key={i}><b>{t.from}:</b> {GOOD[t.good].name} at {dName(t.market)} {t.mult > 1 ? 'pays well' : 'is cheap'} tonight.</p>)}
         {ev && <p><b>Daily event · {ev.name}:</b> {ev.desc} ({ev.task}{s.dailyDone.includes('day:' + ev.day) ? ', done!' : ''})</p>}
         {hint && hint.gain > 0.15 && <p className="hint"><b>Assist tip:</b> {GOOD[hint.good].name} are cheap at {dName(hint.from)} and pay at {dName(hint.to)}.</p>}
-        <p className="small">Prices change every night. Magpies swoop at riders carrying valuable cargo: dash or boost to dodge.</p>
+        <p className="small">Prices change every night. Crows swoop at riders carrying valuable cargo: dash or boost to dodge.</p>
       </div>
         </div>
       </div>
@@ -275,7 +275,7 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
       {tab === 'controls' && <Controls touch={touch} />}
       {tab === 'story' && (
         <div className="jade-story" data-testid="story">
-          <p>The Magpie Crew stole the quarter’s five lucky heirlooms the night before the Lantern Festival. Win them back, chapter by chapter, and the fog over each district lifts.</p>
+          <p>The Kaypoh Crows stole the quarter’s five lucky heirlooms the night before the Lantern Festival. Win them back, chapter by chapter, and the fog over each district lifts.</p>
           <div className="jade-heirlooms">{HEIRLOOMS.map((h, i) => <div key={h.id} className={s.done.includes(`m${(i + 1) * 5}`) ? 'got' : ''}><Sprite name={h.sprite} h={56} w={56} /><b>{h.name}</b><small>{CHAPTERS[i]}</small></div>)}</div>
           <p className="small">{s.done.length} of {MISSIONS.length} jobs done. Side gigs, lucky cats and murals are waiting in every open district.</p>
         </div>

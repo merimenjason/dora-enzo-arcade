@@ -356,11 +356,11 @@ async function viewport(name, w, h, touch) {
   await press('close');
 
   // ── street events, texts on the phone, rain
-  for (const k of ['magpie', 'duckling', 'van', 'busker']) {
+  for (const k of ['crow', 'duckling', 'van', 'busker']) {
     await W(() => window.__jade.teleport(20, 60));
     const got = await W(k => window.__jade.event(k), k);
     check(got === k && (await W(() => window.__jade.street()?.kind)) === k, `${name}: street event ${k} (${got})`);
-    await wait(250); if (k === 'busker' || k === 'magpie') await look(`event ${k}`);
+    await wait(250); if (k === 'busker' || k === 'crow') await look(`event ${k}`);
   }
   check(await appear('jade-phone') && await W(() => window.__jade.world().s.msgs.length > 0), `${name}: a text arrives on the phone`);
   await press('jade-phone'); check(await appear('jade-phone-msgs'), `${name}: read the messages`); await look('messages');

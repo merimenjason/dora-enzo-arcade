@@ -1,13 +1,13 @@
 // Jade Street: tag-team moves, all on one key (F). What F does depends on where you are: on a ride with your partner
-// behind you, they grab (a magpie's loot, a thief's prize, a cargo snatcher); at a wall with crates against it, your
-// partner gives you a boost up onto the roof (and from the roof edge you haul them up after you); near a magpie on
+// behind you, they grab (a crow's loot, a thief's prize, a cargo snatcher); at a wall with crates against it, your
+// partner gives you a boost up onto the roof (and from the roof edge you haul them up after you); near a crow on
 // foot, the two of you pounce together; with a warden on your tail, your partner waves and pulls a silly dance to
 // draw them off; a job may ask for more (hold a lever, wait at a relay point: lib/jade-team.ts). Otherwise F tells
 // your partner to wait, or calls them back. Each move has its own painted animation for both heroes.
 import { T, districtAt } from './jade-city.js';
 import { dist } from './jade-rng.js';
 import { nearestFree } from './jade-nav.js';
-import { catchEventMagpie } from './jade-gear.js';
+import { catchEventCrow } from './jade-gear.js';
 import { GOOD, type Good } from './jade-trade.js';
 import type { World, Player } from './jade-game.js';
 import type { Actor } from './jade-mission.js';
@@ -39,7 +39,7 @@ export function tagOption(w: World): TagOpt | null {
   const d = dist(p.x, p.y, m.x, m.y);
   if (!p.roof && !m.roof && d < 200) { const b = boostNear(w, p); if (b >= 0) return { kind: 'boost', label: `${n} gives you a boost onto the roof`, go: () => boost(w, p, m, b) }; }
   if (p.roof && !m.roof) { const b = boostNear(w, p, true, 90); if (b >= 0) return { kind: 'haul', label: `Haul ${n} up onto the roof`, go: () => haul(w, p, m, b) }; }
-  const pt = pounceNear(w, m, p); if (pt) return { kind: 'pounce', label: 'Pounce on the magpie together!', go: () => pounce(w, pt.id) };
+  const pt = pounceNear(w, m, p); if (pt) return { kind: 'pounce', label: 'Pounce on the crow together!', go: () => pounce(w, pt.id) };
   if (w.heat >= 1 && !p.roof && !m.roof) { const wd = w.wardens.find(x => !x.leave && x.stun <= 0 && dist(x.b.x, x.b.y, m.x, m.y) < 560); if (wd) return { kind: 'distract', label: `${n} distracts the warden`, go: () => distract(w, wd.b.x, wd.b.y, 5) }; }
   if (m.ai.mode === 'follow') return { kind: 'wait', label: `${n} waits here`, go: () => { m.ai = { ...m.ai, mode: 'stay', at: [m.x, m.y], story: false }; w.fx.push({ t: 'tag-wait', x: m.x, y: m.y }); } };
   if (!m.ai.story) return { kind: 'call', label: `Call ${n} over`, go: () => { m.ai = { ...m.ai, mode: 'follow', story: false }; w.fx.push({ t: 'tag-call', x: m.x, y: m.y }); } };
@@ -57,7 +57,7 @@ export function grabTarget(w: World): Grab | null {
     if (w.run.loot && dist(w.run.loot.x, w.run.loot.y, p.x, p.y) < reach + 20) return { kind: 'loot' };
     const it = w.run.items.find(i => !i.got && dist(i.x, i.y, p.x, p.y) < reach); if (it) return { kind: 'loot' };
   }
-  const e = w.street; if (e && e.kind === 'magpie' && e.phase === 'on' && e.b && dist(e.b.x, e.b.y, p.x, p.y) < reach) return { kind: 'event' };
+  const e = w.street; if (e && e.kind === 'crow' && e.phase === 'on' && e.b && dist(e.b.x, e.b.y, p.x, p.y) < reach) return { kind: 'event' };
   const si = w.snatchers.findIndex(m => !m.out && dist(m.x, m.y, p.x, p.y) < reach); if (si >= 0) return { kind: 'snatcher', i: si };
   return null;
 }
@@ -66,8 +66,8 @@ export function snatch(w: World, t: Grab) {
   w.fx.push({ t: 'grab', x: p.x, y: p.y, name: m.who });
   if (t.kind === 'actor') { w.run?.onGrab(t.a); return; }
   if (t.kind === 'loot') { w.run?.onGrab(null); return; }
-  if (t.kind === 'event' && w.street) { catchEventMagpie(w, w.street); return; }
-  if (t.kind === 'snatcher') { const s = w.snatchers[t.i]; s.out = true; s.dizzy = 1; if (s.took > 0 && s.good) { w.s.cargo[s.good as Good] += s.took; w.say(`${nameOf(m.who)} snatched your ${GOOD[s.good as Good].name.toLowerCase()} back!`, 'good'); s.took = 0; } else w.say(`${nameOf(m.who)} shooed the magpie off!`, 'good'); }
+  if (t.kind === 'event' && w.street) { catchEventCrow(w, w.street); return; }
+  if (t.kind === 'snatcher') { const s = w.snatchers[t.i]; s.out = true; s.dizzy = 1; if (s.took > 0 && s.good) { w.s.cargo[s.good as Good] += s.took; w.say(`${nameOf(m.who)} snatched your ${GOOD[s.good as Good].name.toLowerCase()} back!`, 'good'); s.took = 0; } else w.say(`${nameOf(m.who)} shooed the crow off!`, 'good'); }
 }
 
 // ── boost up and haul up
@@ -92,11 +92,11 @@ export function haul(w: World, p: Player, m: Player, i: number) {
   go();
 }
 
-// ── pounce together: the partner dives at the magpie; dash into it too within a moment for a double pounce
+// ── pounce together: the partner dives at the crow; dash into it too within a moment for a double pounce
 export function pounceNear(w: World, m: Player, p: Player): { id: number } | null {
   if (m.roof || p.ride || m.seat) return null;
   if (w.run) { const a = w.run.actors.find(a => !a.gone && a.stun <= 0 && ['runner', 'raider', 'decoy', 'bagbird', 'boss'].includes(a.kind) && (a.b.cls === 'foot' || a.kind === 'bagbird') && dist(a.b.x, a.b.y, m.x, m.y) < 340 && (a.kind !== 'bagbird' || (a.extra ?? 0) > 0)); if (a) return { id: a.id }; }
-  const e = w.street; if (e && e.kind === 'magpie' && e.phase === 'on' && e.b && dist(e.b.x, e.b.y, m.x, m.y) < 340) return { id: -1 };
+  const e = w.street; if (e && e.kind === 'crow' && e.phase === 'on' && e.b && dist(e.b.x, e.b.y, m.x, m.y) < 340) return { id: -1 };
   return null;
 }
 export function pounce(w: World, id: number) {
@@ -109,7 +109,7 @@ export function matePounceHit(w: World): boolean {
   const m = w.mate; if (m.ai.mode !== 'pounce') return false;
   const t = w.pounceTarget(m.ai.tgt); if (!t || dist(t[0], t[1], m.b.x, m.b.y) > 34) return false;
   m.ai.mode = 'follow'; m.act = { n: 'pounce', t: 0, dur: 0.3 };
-  if (m.ai.tgt === -1 && w.street) { catchEventMagpie(w, w.street); return true; }
+  if (m.ai.tgt === -1 && w.street) { catchEventCrow(w, w.street); return true; }
   return true;
 }
 

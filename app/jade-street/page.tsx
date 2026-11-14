@@ -66,7 +66,7 @@ export default function JadeStreetPage() {
     sndRef.current?.play('street');
     if (!saveRef.current.done.length && !saveRef.current.started) {
       const h = saveRef.current.hero;
-      play.w.talk = { lines: [[h, 'The Magpie Crew stole all five lucky heirlooms, the night before the Lantern Festival!'], [h, 'Uncle Kee at the grocery will know what to do. Follow the gold line.']], i: 0 };
+      play.w.talk = { lines: [[h, 'The Kaypoh Crows stole all five lucky heirlooms, the night before the Lantern Festival!'], [h, 'Uncle Kee at the grocery will know what to do. Follow the gold line.']], i: 0 };
     }
     saveRef.current.started = true; persist(saveRef.current);
     if (!saveRef.current.story.intro) { play.paused = true; setStory('intro'); }
@@ -129,7 +129,7 @@ export default function JadeStreetPage() {
         <section className="jade-title" style={{ backgroundImage: `url(${ART}bg-title.webp)` }}>
           <div className="jade-title-card">
             <h1>Jade Street</h1>
-            <p className="jade-tag">A night-time caper in the harbour quarter. Win back five lucky heirlooms from the Magpie Crew before the Lantern Festival.</p>
+            <p className="jade-tag">A night-time caper in the harbour quarter. Win back five lucky heirlooms from the Kaypoh Crows before the Lantern Festival.</p>
             {!confirm && !pick && (
               <div className="jade-title-btns">
                 {save.started && <button type="button" className="jade-btn jade big" data-testid="continue" onClick={() => begin(saveRef.current)}>Continue · night {save.night}, {save.done.length}/25 jobs</button>}

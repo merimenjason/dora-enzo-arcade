@@ -209,7 +209,7 @@ test('trading: prices, spreads, rep, tips, haggling, capacity, buying, selling a
   for (const g of GOODS) assert.ok(GOOD[g].base > 0);
 });
 
-test('magpies snatch cargo from a slow rider and miss one who dashes', () => {
+test('crows snatch cargo from a slow rider and miss one who dashes', () => {
   const w = world({ done: allDone }); w.placePlayer(20 * T + 32, 47 * T + 32); w.s.cargo.jade = 4;
   w.snatchers.push({ x: w.p.x + 200, y: w.p.y, h: Math.PI, t: 0, out: false, took: 0, wing: 0 });
   for (let i = 0; i < 120; i++) w.step(NO_INPUT, DT);
@@ -334,7 +334,7 @@ test('every painted asset exists, every frame sits inside its atlas and none is 
   // the second batch: new actions, seated townsfolk, events, street props, the festival, fireworks, map and UI pieces
   for (const h of ['dora', 'enzo']) for (const f of ['push-side-0', 'push-side-1', 'push-up-0', 'push-up-1', 'lantern', 'lookup', 'phone', 'eat', 'dance', 'kneel', 'clap', 'umbrella']) need.push(`${h}-${f}`);
   for (const sp of ['rabbit', 'dog', 'squirrel', 'cat', 'duck', 'hedgehog']) for (const k of [0, 1]) need.push(`folk-${sp}-sit-${k}`);
-  need.push('duck-down-0', 'duck-down-1', 'duck-side', 'duck-lost', 'busker-0', 'busker-1', 'busk-hat', 'smoke', 'van-broken', 'mag-mango-0', 'mag-mango-1');
+  need.push('duck-down-0', 'duck-down-1', 'duck-side', 'duck-lost', 'busker-0', 'busker-1', 'busk-hat', 'smoke', 'van-broken', 'crow-mango-0', 'crow-mango-1');
   need.push('light-red', 'light-amber', 'light-green', 'umb-red', 'umb-jade', 'sky-lantern', 'ui-phone', 'ui-radio', 'c-key', 'c-space', 'c-stick', 'i-map');
   for (const m of ['none', 'bronze', 'silver', 'gold']) need.push('ui-medal-' + m);
   for (const f of c.festival) need.push(f.sprite);
@@ -403,7 +403,7 @@ test('street events: each kind starts in free roam and can be finished, and a jo
     let e = null; for (let k = 0; k < 8 && !e; k++) { w.placePlayer((10 + k * 12) * T, 46 * T); e = spawn(w, kind); }
     assert.ok(e, `${kind} spawned`); assert.equal(w.street.kind, kind);
     const cash = w.s.cash;
-    if (kind === 'magpie') { for (let i = 0; i < 60 * 30 && e.phase === 'on'; i++) { const b = e.b; const dx = b.x - w.p.x, dy = b.y - w.p.y, l = Math.hypot(dx, dy) || 1; w.step({ ...NO_INPUT, mx: dx / l, my: dy / l, dash: i % 20 === 0 && l < 90 }, DT); } }
+    if (kind === 'crow') { for (let i = 0; i < 60 * 30 && e.phase === 'on'; i++) { const b = e.b; const dx = b.x - w.p.x, dy = b.y - w.p.y, l = Math.hypot(dx, dy) || 1; w.step({ ...NO_INPUT, mx: dx / l, my: dy / l, dash: i % 20 === 0 && l < 90 }, DT); } }
     if (kind === 'duckling') {
       w.placePlayer(e.x, e.y + 30); w.step(NO_INPUT, DT); eventAct(w); for (let i = 0; i < 60; i++) w.step(NO_INPUT, DT);
       assert.equal(e.phase, 'follow');

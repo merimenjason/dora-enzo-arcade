@@ -40,13 +40,13 @@ export async function fourth(h) {
   await key('f', 1300); check((await duo()).mroof, `${name}: F hauls the partner onto the roof`);
   await W(() => window.__jade.teleportTo('safe-market')); await wait(500);
 
-  // ── pounce together on the street magpie
-  const ev = await W(() => window.__jade.event('magpie')); check(ev === 'magpie', `${name}: a street magpie`);
-  await wait(300); await W(() => window.__jade.magpieNear());
-  check(await until(() => window.__jade.duo().tag === 'pounce', null, 3000), `${name}: F offers a pounce near the magpie`);
-  await key('f', 60); await W(() => window.__jade.magpieNear()); await key(' ', 900);
+  // ── pounce together on the street crow
+  const ev = await W(() => window.__jade.event('crow')); check(ev === 'crow', `${name}: a street crow`);
+  await wait(300); await W(() => window.__jade.crowNear());
+  check(await until(() => window.__jade.duo().tag === 'pounce', null, 3000), `${name}: F offers a pounce near the crow`);
+  await key('f', 60); await W(() => window.__jade.crowNear()); await key(' ', 900);
   const ph = await W(() => window.__jade.street()?.phase ?? 'none');
-  check(ph === 'done' || ph === 'none', `${name}: the pounce catches the magpie (${ph})`);
+  check(ph === 'done' || ph === 'none', `${name}: the pounce catches the crow (${ph})`);
 
   // ── distract a warden
   await W(() => { window.__jade.teleportTo('safe-market'); window.__jade.heat(1.4); }); await wait(2500);
@@ -83,11 +83,11 @@ export async function fourth(h) {
   const an = await W(() => window.__jade.frame()); check(an.includes('reload'), `${name}: the reload pose (${an})`);
   await wait(1200);
   await press('gear-slot-1'); await wait(150); check(await W(() => window.__jade.world().s.gear.slot[window.__jade.world().p.who]) === 1, `${name}: clicking a gadget slot picks it`);
-  // a magpie hit by a shot gets dizzy
+  // a crow hit by a shot gets dizzy
   await key('1'); await W(() => window.__jade.snatch()); await wait(500);
   const mp = await W(() => { const m = window.__jade.world().snatchers[0]; return m ? { x: m.x / 64, y: m.y / 64 } : null; });
   if (mp) { const [sx, sy] = await W(([x, y]) => window.__jade.screenOf(x, y), [mp.x, mp.y]); await W(() => { window.__jade.world().s.settings.assist = true; }); await p.mouse.move(sx, sy); await p.mouse.down(); await wait(60); await p.mouse.up(); }
-  check(await until(() => window.__jade.world().snatchers.every(m => m.out), null, 3000), `${name}: a shot magpie gets dizzy and flaps off`);
+  check(await until(() => window.__jade.world().snatchers.every(m => m.out), null, 3000), `${name}: a shot crow gets dizzy and flaps off`);
   // a warden hit: a stun, its own pose and more heat
   await W(() => { window.__jade.heat(1.2); }); await wait(2500);
   const ww = await W(() => { const w = window.__jade.world(); const wd = w.wardens[0]; if (!wd) return null; wd.b.x = w.p.x + 220; wd.b.y = w.p.y; wd.stun = 0; return w.heat; });

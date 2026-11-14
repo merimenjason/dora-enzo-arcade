@@ -28,7 +28,7 @@ export const LESSONS: Lesson[] = [
   // the basics, in order; each one gives up after a while on screen, so none hangs about for a player who never needs it
   { id: 'move', text: 'Move around the quarter.', keys: ['W', 'A', 'S', 'D'], touch: 'stick', when: w => onFoot(w), done: w => w.tutor.moved > 3 * 64, max: 14 },
   { id: 'run', text: 'Push all the way to run.', kbText: 'Keep a direction held to run; Shift walks quietly.', keys: ['W', 'A', 'S', 'D'], touch: 'stick', when: w => onFoot(w) && learned(w, 'move') && !w.p.sneak, done: w => w.tutor.ran > 1, max: 10 },
-  { id: 'dash', text: 'Dash for a quick burst: it knocks thieves over and dodges magpies.', keys: ['Space'], touch: 'Dash', when: w => onFoot(w) && learned(w, 'run'), done: (_w, fx) => fx.includes('dash'), max: 14 },
+  { id: 'dash', text: 'Dash for a quick burst: it knocks thieves over and dodges crows.', keys: ['Space'], touch: 'Dash', when: w => onFoot(w) && learned(w, 'run'), done: (_w, fx) => fx.includes('dash'), max: 14 },
   { id: 'hop', text: 'Hop over crates, benches and hedges.', keys: ['Q'], touch: 'Hop', when: w => onFoot(w) && learned(w, 'dash'), done: (_w, fx) => fx.includes('hop'), max: 14 },
 ];
 export type TutorState = { moved: number; ran: number; shownT: number; cur: string | null };

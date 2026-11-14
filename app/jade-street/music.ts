@@ -9,7 +9,7 @@
 // erhu is a bowed, filtered sawtooth that slides between notes with a slow vibrato. Changing theme crossfades: the old
 // layer keeps playing while it fades out over about a second and a half, so nothing cuts off.
 // Voices: while a line types out, each character "speaks" in short pitched syllables (a babble), with their own pitch,
-// timbre and speed: Uncle Kee low and slow, Pip squeaky and quick, Gizmo in chiptune, the magpies in rasps.
+// timbre and speed: Uncle Kee low and slow, Pip squeaky and quick, Gizmo in chiptune, the crows in rasps.
 const mtof = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 export type Theme = 'street' | 'market' | 'chase' | 'boss' | 'festival' | 'menu';
 type Song = { bpm: number; lead: number[]; bass: number[]; lv: 'pluck' | 'erhu'; drums: string; perc: string; cym: string; pad?: number[]; v: number };
@@ -125,7 +125,7 @@ export const VOICES: Record<string, Voice> = {
   pip: { base: 78, spread: 6, wave: 'square', rate: 0.05, formant: 2600, v: 0.045, rasp: true },
   dora: { base: 74, spread: 5, wave: 'sine', rate: 0.07, formant: 2000, v: 0.13 },
   enzo: { base: 65, spread: 5, wave: 'triangle', rate: 0.075, formant: 1500, v: 0.13 },
-  magpie: { base: 72, spread: 9, wave: 'sawtooth', rate: 0.06, formant: 1200, v: 0.05, rasp: true },
+  crow: { base: 72, spread: 9, wave: 'sawtooth', rate: 0.06, formant: 1200, v: 0.05, rasp: true },
   warden: { base: 50, spread: 3, wave: 'square', rate: 0.1, formant: 700, v: 0.05, rasp: true },
 };
 export const voiceOf = (who: string) => VOICES[who] ?? VOICES.kee;

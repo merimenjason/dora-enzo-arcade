@@ -87,7 +87,7 @@ export function GearStall({ play, snd, onClose, onSave }: { play: Play; snd: Jad
     <Panel title="Tock’s toy stall" onClose={onClose} cls="gear" testid="gear-stall">
       <div className="jade-gear-head">
         <Sprite name="face-tock-happy" h={88} w={88} />
-        <p>“Festival toys, never weapons! Splat a magpie, dizzy a cart. Mind the wardens, they don’t laugh.” <span className="small"><Icon name="ui-coin" size={16} /> {fmt(s.cash)}</span></p>
+        <p>“Festival toys, never weapons! Splat a crow, dizzy a cart. Mind the wardens, they don’t laugh.” <span className="small"><Icon name="ui-coin" size={16} /> {fmt(s.cash)}</span></p>
       </div>
       {msg && <p className="jade-msg" data-testid="gear-msg">{msg}</p>}
       <div className="jade-gear-list">

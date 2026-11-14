@@ -1,6 +1,6 @@
 // Jade Street: drawing the city (Canvas 2D). The ground, decals, building blocks and ground-level props are baked into
 // 8×8-tile chunk canvases on demand (an LRU keeps ~40), so a frame draws a dozen chunk images plus only the moving
-// and tall things on screen, y-sorted: stalls, lamps, trees, rides, traffic, townsfolk, wardens, magpies and the hero.
+// and tall things on screen, y-sorted: stalls, lamps, trees, rides, traffic, townsfolk, wardens, crows and the hero.
 // Code draws only light and effects: lamp glows, the route line, torch beams, the blimp's spotlight, fog over locked
 // districts, dust and sparkles; game feel (shake, hit-stop, debris, speed lines) is in lib/jade-juice.ts and the set
 // pieces, the finale and the business stalls are drawn by lib/jade-setdraw.ts. Every picture is a Codex painting from the atlases in public/art/jade-street/.
@@ -454,20 +454,20 @@ export class Scene {
     const b = a.b; const fl = Math.floor(a.t * 6) % 2;
     x.fillStyle = 'rgba(0,0,0,.3)';
     switch (a.kind) {
-      case 'cart': this.shadow(x, b.x + 4, b.y + 6, 36, 18); spr(x, `mag-cart-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 + (a.stun > 0 ? Math.sin(this.t * 30) * 0.3 : 0) }); if (a.stun > 0) this.stars(x, b.x, b.y - 30); break;
+      case 'cart': this.shadow(x, b.x + 4, b.y + 6, 36, 18); spr(x, `crow-cart-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 + (a.stun > 0 ? Math.sin(this.t * 30) * 0.3 : 0) }); if (a.stun > 0) this.stars(x, b.x, b.y - 30); break;
       case 'decoy': drawDecoy(this, x, a); break;
       case 'boss': realGlint(this, x, w, a); this.shadow(x, b.x + 4, b.y + 6, 30, 14); spr(x, `boss-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 + (a.stun > 0 ? Math.sin(this.t * 30) * 0.3 : 0) }); if (a.stun > 0) this.stars(x, b.x, b.y - 30); this.glow(x, b.x, b.y, 70, 'rgba(190,80,255,.35)'); break;
-      case 'boat': spr(x, `mag-boat-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 + Math.sin(this.t * 3) * 0.04 }); if (a.stun > 0) this.stars(x, b.x, b.y - 30); this.glow(x, b.x, b.y, 60, 'rgba(255,250,220,.3)'); break;
+      case 'boat': spr(x, `crow-boat-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 + Math.sin(this.t * 3) * 0.04 }); if (a.stun > 0) this.stars(x, b.x, b.y - 30); this.glow(x, b.x, b.y, 60, 'rgba(255,250,220,.3)'); break;
       case 'rival-scooter': this.shadow(x, b.x + 4, b.y + 6, 30, 14); spr(x, `boss-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2, w: 32, variant: 'paint:120' }); break;
-      case 'rival-boat': spr(x, `mag-boat-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 }); break;
+      case 'rival-boat': spr(x, `crow-boat-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 }); break;
       case 'runner': case 'rival-runner': case 'pip': case 'lookout': case 'raider': {
         this.shadow(x, b.x, b.y + 2, 14, 6);
         const cx = Math.cos(b.h), sy = Math.sin(b.h); let f: string, flip = false;
-        if (a.stun > 0) f = 'mag-dizzy';
-        else if (a.look > 0) f = `mag-look-${Math.floor(a.look * 2) % 2}`;
-        else if (b.speed < 5) f = a.kind === 'pip' && a.t < 1 ? 'mag-taunt' : 'mag-walk-down-0';
-        else if (Math.abs(cx) > Math.abs(sy)) { f = `mag-run-${Math.floor(a.t * (a.kind === 'pip' || a.kind === 'lookout' ? 5 : 9)) % 2}`; flip = cx < 0; }
-        else f = `mag-walk-${sy > 0 ? 'down' : 'up'}-${fl}`;
+        if (a.stun > 0) f = 'crow-dizzy';
+        else if (a.look > 0) f = `crow-look-${Math.floor(a.look * 2) % 2}`;
+        else if (b.speed < 5) f = a.kind === 'pip' && a.t < 1 ? 'crow-taunt' : 'crow-walk-down-0';
+        else if (Math.abs(cx) > Math.abs(sy)) { f = `crow-run-${Math.floor(a.t * (a.kind === 'pip' || a.kind === 'lookout' ? 5 : 9)) % 2}`; flip = cx < 0; }
+        else f = `crow-walk-${sy > 0 ? 'down' : 'up'}-${fl}`;
         if (a.kind === 'lookout') this.beam(x, b.x, b.y - 20, a.b.h, w.assist ? 170 : 215, w.assist ? 0.45 : 0.55);
         if (a.kind === 'pip' && a.look > 0) this.beam(x, b.x, b.y - 20, a.face, w.assist ? 165 : 210, 1.2);
         spr(x, f, b.x, b.y + 4, { flip });
@@ -479,7 +479,7 @@ export class Scene {
   }
   flyer(x: CanvasRenderingContext2D, px: number, py: number, h: number, wing: number) {
     x.fillStyle = 'rgba(0,0,0,.22)'; this.shadow(x, px + 30, py + 50, 22, 10);
-    spr(x, Math.floor(wing) % 2 ? 'mag-fly-0' : 'mag-fly-1', px, py, { anchor: 'center', rot: h + Math.PI / 2 });
+    spr(x, Math.floor(wing) % 2 ? 'crow-fly-0' : 'crow-fly-1', px, py, { anchor: 'center', rot: h + Math.PI / 2 });
   }
   cat(x: CanvasRenderingContext2D, px: number, py: number, i: number) {
     const b = Math.sin(this.t * 3 + i) * 3;
