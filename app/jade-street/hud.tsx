@@ -60,7 +60,7 @@ export function Toasts({ play }: { play: Play }) {
   const w = play.w;
   return (
     <div className="jade-toasts" aria-live="polite">
-      {w.banner && <div className="jade-banner" key={w.banner.text}><b>{w.banner.text}</b><span>{w.banner.sub}</span></div>}
+      {w.banner && !w.failed && !w.ui && <div className="jade-banner" key={w.banner.text}><b>{w.banner.text}</b><span>{w.banner.sub}</span></div>}
       {play.toasts.map(t => <div key={t.id} className={'jade-toast ' + t.kind}>{t.msg}</div>)}
     </div>
   );
@@ -134,9 +134,9 @@ export function TouchControls({ play }: { play: Play }) {
       show(ox, oy, dx, dy, true); e.preventDefault();
     };
     const up = (e: PointerEvent) => { if (e.pointerId !== id) return; id = null; play.stick.on = false; play.stick.x = play.stick.y = 0; rest(); };
-    z.addEventListener('pointerdown', down); z.addEventListener('pointermove', move); z.addEventListener('pointerup', up); z.addEventListener('pointercancel', up);
+    z.addEventListener('pointerdown', down); z.addEventListener('pointermove', move); z.addEventListener('pointerup', up); z.addEventListener('pointercancel', up); z.addEventListener('lostpointercapture', up);
     window.addEventListener('resize', rest);
-    return () => { z.removeEventListener('pointerdown', down); z.removeEventListener('pointermove', move); z.removeEventListener('pointerup', up); z.removeEventListener('pointercancel', up); window.removeEventListener('resize', rest); };
+    return () => { z.removeEventListener('pointerdown', down); z.removeEventListener('pointermove', move); z.removeEventListener('pointerup', up); z.removeEventListener('pointercancel', up); z.removeEventListener('lostpointercapture', up); window.removeEventListener('resize', rest); };
   }, [play]);
   const w = play.w, riding = !!w.p.ride;
   const btn = (k: 'dash' | 'hop' | 'act', label: string, cls: string, testid: string) => (

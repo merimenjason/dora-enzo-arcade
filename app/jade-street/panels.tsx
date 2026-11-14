@@ -64,7 +64,7 @@ export function Market({ play, d, snd, onClose }: { play: Play; d: District; snd
         <span>Rep {Math.floor(s.rep[d])}</span>
       </div>
       {msg && <p className="jade-msg" data-testid="market-msg">{msg}</p>}
-      <table className="jade-goods">
+      <table className="jade-goods trade">
         <thead><tr><th>Goods</th><th>Buy</th><th>Sell</th><th>You have</th><th /></tr></thead>
         <tbody>
           {GOODS.map(g => {
@@ -72,7 +72,7 @@ export function Market({ play, d, snd, onClose }: { play: Play; d: District; snd
             const tip = tips.find(t => t.market === d && t.good === g);
             return (
               <tr key={g} data-good={g}>
-                <td><Icon name={GOOD_ICON[g]} size={30} /> {GOOD[g].name}{tip && <em className="tip"> tip!</em>}</td>
+                <td><Icon name={GOOD_ICON[g]} size={30} /> {GOOD[g].name}{tip && <em className="tip"> tip!</em>}{s.cargo[g] > 0 && <small className="have"> ×{s.cargo[g]}</small>}</td>
                 <td>{p.buy}</td><td>{p.sell}</td><td>{s.cargo[g]}</td>
                 <td className="btns">
                   <Btn kind="jade" testid={`buy-${g}`} onClick={() => act(w.buy(d, g, 1, mult))}>Buy</Btn>

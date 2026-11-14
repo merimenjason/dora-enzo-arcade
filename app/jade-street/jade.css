@@ -3,7 +3,7 @@
    red plaques (public/art/jade-street/ui-*.webp) stretched with border-image. Every rule is scoped under .jade-shell so
    nothing leaks into the rest of the arcade. The minimap is drawn on the canvas (top right, see controller resize()). */
 .jade-shell {
-  --ink: #fdf3dc; --muted: #d9c9ac; --panel: rgba(17, 12, 34, .94); --panel2: rgba(30, 22, 54, .96); --jade: #1f9a6a; --jade-d: #0f5e40; --gold: #f2c14e; --red: #d8443a; --good: #7be3a6; --bad: #ff8a7a;
+  --ink: #fdf3dc; --muted: #d9c9ac; --panel: rgba(17, 12, 34, .94); --panel2: #1e1636; --jade: #1f9a6a; --jade-d: #0f5e40; --gold: #f2c14e; --red: #d8443a; --good: #7be3a6; --bad: #ff8a7a;
   --display: "Fredoka", "Nunito", system-ui, sans-serif; --body: "Nunito", system-ui, sans-serif;
   position: fixed; inset: 0; overflow: hidden; background: #0d0a1c; color: var(--ink); font-family: var(--body); font-size: 15px;
   -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; touch-action: none;
@@ -140,6 +140,7 @@
 .jade-shell .jade-goods td.btns { display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap; }
 .jade-shell .jade-goods .jade-btn { min-height: 36px; min-width: 64px; font-size: 14px; padding: 0 4px; border-width: 6px 16px; border-image-width: 6px 16px; }
 .jade-shell .jade-goods .jade-btn.plain { padding: 4px 10px; border-width: 2px; }
+.jade-shell .jade-goods small.have { display: none; color: var(--gold); font-weight: 900; }
 .jade-shell .jade-goods em.tip { color: var(--gold); font-style: normal; font-weight: 900; }
 .jade-shell .jade-tips p { font-size: 14px; margin: 4px 0; }
 .jade-shell .jade-tips .hint { color: var(--good); }
@@ -228,7 +229,8 @@
   .jade-shell .jade-job { top: 164px; left: 10px; right: 10px; transform: none; width: auto; min-width: 0; }
   .jade-shell .jade-hud-left { max-width: calc(100vw - 140px); }
   .jade-shell .jade-safe-grid { grid-template-columns: 1fr; }
-  .jade-shell .jade-goods th:nth-child(4), .jade-shell .jade-goods td:nth-child(4) { display: none; }
+  .jade-shell .jade-goods.trade th:nth-child(4), .jade-shell .jade-goods.trade td:nth-child(4) { display: none; }
+  .jade-shell .jade-goods.trade small.have { display: inline; }
   .jade-shell .jade-goods td:first-child { font-size: 13px; }
   .jade-shell .jade-market-hero { height: 110px; }
   .jade-shell .jade-talk-face { width: 72px; height: 72px; }
