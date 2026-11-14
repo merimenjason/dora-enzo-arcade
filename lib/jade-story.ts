@@ -20,10 +20,11 @@ export type Step =
   | { t: 'goto'; at: Spot; label: string; r?: number; ride?: VehicleKind | 'foot'; time?: number; cp?: boolean }
   | { t: 'ride'; kind: VehicleKind; label: string; near?: Spot; locked?: boolean; cp?: boolean }
   | { t: 'pickup'; at: Spot; item: string; label: string; cp?: boolean }
-  | { t: 'deliver'; to: Spot; time: number; label: string; item: string; fragile?: number; cp?: boolean }
+  /** `stink`: the cargo leaves a smell trail, and a warden who walks into it starts to wonder (heat, never a chase) */
+  | { t: 'deliver'; to: Spot; time: number; label: string; item: string; fragile?: number; stink?: boolean; cp?: boolean }
   | { t: 'mini'; kind: MiniKind; level: number; label: string; cp?: boolean }
   /** `finish`: the last bump must be a double pounce (both heroes within a moment), the passenger's grab, or a net */
-  | { t: 'chase'; who: 'cart' | 'boat' | 'boss' | 'runner'; from: Spot; route: Spot[]; bumps: number; loot: string; label: string; speed: number; sets?: SetDef[]; phase?: 1 | 2; finish?: 'pounce' | 'snatch' | 'net'; cp?: boolean }
+  | { t: 'chase'; who: 'cart' | 'boat' | 'boss' | 'runner'; from: Spot; route: Spot[]; bumps: number; loot: string; label: string; speed: number; sets?: SetDef[]; phase?: 1 | 2; finish?: 'pounce' | 'snatch' | 'net'; skin?: 'otter' | 'mac'; cp?: boolean }
   /** `rope`: the float only swings in under the flags while the partner hauls the bunting rope there */
   | { t: 'float'; label: string; rope?: Spot; cp?: boolean }
   | { t: 'raid'; at: Spot; n: number; label: string; cp?: boolean }
@@ -34,7 +35,9 @@ export type Step =
   /** `relay`: the marks from this one on count only for the partner waiting there (a hand-off) */
   | { t: 'race'; marks: Spot[]; label: string; rival?: 'runner' | 'scooter' | 'boat'; roof?: boolean; time?: number; ride?: VehicleKind | 'foot'; relay?: number; cp?: boolean }
   /** `shutter`: the goal's shutter is down unless the partner holds its lever there */
-  | { t: 'stealth'; lookouts: Spot[][]; goal: Spot; exit: Spot; label: string; shutter?: Spot; cp?: boolean }
+  /** `calm`: lookouts grow sure more slowly (a multiplier on the Alert meter's rise); `pause`: each stops this many
+   * seconds at the ends of its beat, sweeping its torch, so a careful player can read the gap */
+  | { t: 'stealth'; lookouts: Spot[][]; goal: Spot; exit: Spot; label: string; shutter?: Spot; calm?: number; pause?: number; cp?: boolean }
   /** `high`: up on balconies, reached only by the passenger's grab or a gadget; `watch`: a window lookout there */
   | { t: 'collect'; items: Spot[]; item: string; time: number; label: string; high?: boolean; watch?: [number, number]; cp?: boolean }
   | { t: 'heat'; level: number; label: string; cp?: boolean }
@@ -51,7 +54,8 @@ export type Step =
   /** a crow circles with a loot bag: knock it loose with a gadget, or pounce when it swoops low */
   | { t: 'bag'; at: Spot; loot?: string; time?: number; label: string; cp?: boolean };
 export type MiniKind = 'lock' | 'wires' | 'wok' | 'dumpling' | 'haggle' | 'kopi';
-export type Mission = { id: string; ch: number; title: string; giver: string; at: string; blurb: string; reward: number; rep: number; steps: Step[]; tip?: { market: District; good: Good; mult: number } };
+/** `side`: a Hawker Tales side job, offered once that story job is done (lib/jade-save.ts sideJobs) */
+export type Mission = { id: string; side?: string; ch: number; title: string; giver: string; at: string; blurb: string; reward: number; rep: number; steps: Step[]; tip?: { market: District; good: Good; mult: number } };
 
 export const PEOPLE: Record<string, { name: string; face: string; who: string }> = {
   kee: { name: 'Uncle Kee', face: 'face-kee', who: 'tortoise grocer' },
@@ -237,7 +241,7 @@ export const MISSIONS: Mission[] = [
       { t: 'talk', lines: [['bo', 'The crows run the container yard at night. Their shipping list is in the yard office.', 'worried'], ['bo', 'Lookouts everywhere. Keep out of their torch beams. Sneak, wait, go.', 'cross']] },
       { t: 'goto', at: 'yard-gate', label: 'Go to the yard gate', ride: 'foot', cp: true },
       { t: 'talk', lines: [['mate', 'The office shutter is down. I’ll sneak round the back and hold its lever; you slip in and grab the list.', 'smug']] },
-      { t: 'stealth', lookouts: [[[99, 69], [103, 69], [103, 72], [99, 72]], [[106, 72], [112, 72], [112, 73], [106, 73]], [[99, 77], [108, 77]], [[113, 76], [113, 80], [118, 80]]], goal: 'manifest', exit: 'yard-gate', shutter: [114, 66], label: 'Send {mate} to the shutter (F), reach the office unseen, take the list, get out' },
+      { t: 'stealth', lookouts: [[[99, 69], [103, 69], [103, 72], [99, 72]], [[106, 72], [112, 72], [112, 73], [106, 73]], [[99, 77], [108, 77]], [[113, 76], [113, 80], [118, 80]]], goal: 'manifest', exit: 'yard-gate', shutter: [114, 66], calm: 0.8, pause: 1.4, label: 'Send {mate} to the shutter (F), reach the office unseen, take the list, get out' },
       { t: 'talk', lines: [['bo', 'The Silver Koi ships at dawn in crate eleven. We’ll be ready.', 'smug']] },
     ] },
   { id: 'm18', ch: 4, title: 'Hot Goods', giver: 'bristle', at: 'bo', reward: 160, rep: 14, blurb: 'The crows framed you. Lose five lanterns of heat.',
@@ -314,4 +318,68 @@ export const MISSIONS: Mission[] = [
       { t: 'talk', lines: [['glint', 'Fine, FINE. Shiny things are just so… shiny.', 'worried'], ['pip', 'Boss, maybe we could join the festival instead?', 'worried'], ['glint', '…With a nice seat near the lanterns?', 'smug'], ['kee', 'All five heirlooms home! Light the lanterns, the festival begins!', 'happy'], ['hero', 'Best night ever.', 'happy'], ['mate', 'Best team ever.', 'happy']] },
     ] },
 ];
-export const MISSION = Object.fromEntries(MISSIONS.map(m => [m.id, m])) as Record<string, Mission>;
+// ── Hawker Tales: the Singapore side jobs. They sit outside the five chapters (ch 0), open once their story job is
+// done, and pay like a story job; the townsfolk they help are in PEOPLE.
+export const SIDE: Mission[] = [
+  { id: 'k1', side: 'm3', ch: 0, title: 'The Kopi Run', giver: 'teo', at: 'teo', reward: 70, rep: 8, blurb: 'Make Uncle Teo’s kopi orders, then run the tray to Uncle Goh’s chess game.',
+    steps: [
+      { t: 'talk', lines: [['teo', 'Eh, hero! My hands so busy today. You know kopi lingo or not?', 'calm'], ['hero', 'Kopi… is coffee?', 'calm'], ['teo', 'Kopi-O is no milk, C is evaporated milk, kosong is no sugar, peng is ice. Simple! Your phone has the list.', 'happy'], ['teo', 'Make the orders for the chess uncles at the void deck. Then run them over, don’t spill!', 'calm']] },
+      { t: 'goto', at: 'teo', label: 'Step behind Uncle Teo’s kopi counter', r: 110, ride: 'foot' },
+      { t: 'mini', kind: 'kopi', level: 1, label: 'Make the drinks the way Uncle Teo calls them', cp: true },
+      { t: 'deliver', to: 'goh', time: 70, fragile: 6, item: 'kopi-tray', label: 'Carry the kopi tray to Uncle Goh at the void deck (gently!)' },
+      { t: 'talk', lines: [['goh', 'Wah, my kopi-O kosong! Still hot some more. Steady lah.', 'happy'], ['goh', 'You play chess? Next time. Now I must win this game first.', 'calm']] },
+    ] },
+  { id: 'k2', side: 'm5', ch: 0, title: 'The Stolen Wok', giver: 'beng', at: 'beng', reward: 110, rep: 10, blurb: 'Ah Beng’s seasoned wok rolled off on a Kaypoh Crows cart. Get it back before the dinner rush.',
+    steps: [
+      { t: 'talk', lines: [['beng', 'Bro! Bro! The crows took my wok! Twenty years of wok hei inside!', 'worried'], ['hero', 'A whole wok? On what?', 'calm'], ['beng', 'On a cart lah! Bump it twice, then ride alongside: your partner grab the wok. Can or not?', 'cross'], ['hero', 'Can!', 'happy']] },
+      { t: 'chase', who: 'cart', from: X('a', 's'), route: [X('b', 's'), X('b', 'd'), X('a', 'd'), X('a', 's'), X('b', 's')], bumps: 3, loot: 'wok', speed: 235, finish: 'snatch', label: 'Bump the crows’ cart twice, then ride alongside: F and {mate} grabs the wok', cp: true },
+      { t: 'pickup', at: 'loot', item: 'wok', label: 'Grab the wok' },
+      { t: 'goto', at: 'beng', label: 'Bring the wok back to Ah Beng', cp: true },
+      { t: 'mini', kind: 'wok', level: 1, label: 'Christen it: toss a plate of char kway teow' },
+      { t: 'talk', lines: [['beng', 'Wah, the wok hei is back! Shiok!', 'happy'], ['beng', 'Free plate for you anytime, bro. Steady!', 'happy']] },
+    ] },
+  { id: 'k3', side: 'm7', ch: 0, title: 'Durian Run', giver: 'goh', at: 'goh', reward: 120, rep: 10, blurb: 'Carry a crate of prize durians from the wet market to the temple. Everyone will smell you coming.',
+    steps: [
+      { t: 'talk', lines: [['goh', 'My cousin at Temple Street wants the best durians in Chinatown. Only from the wet market, you know.', 'calm'], ['hero', 'What’s that smell?', 'worried'], ['goh', 'That is the smell of quality! But no durian on the bus or the trishaw hor. Fine, you know.', 'happy'], ['goh', 'And the wardens can follow the smell. Keep moving, keep away from them.', 'calm']] },
+      { t: 'pickup', at: 'wetmarket', item: 'durian', label: 'Pick up the durian crate at the wet market', cp: true },
+      { t: 'deliver', to: 'temple-steps', time: 110, stink: true, item: 'durian', label: 'Carry the durians to the temple steps (no buses! keep clear of wardens)' },
+      { t: 'talk', lines: [['goh', 'My cousin says: wah, very shiok. He sends you this. Don’t eat it all at once.', 'happy']] },
+    ] },
+  { id: 'k4', side: 'm8', ch: 0, title: 'Monkey Business', giver: 'hoon', at: 'hoon', reward: 120, rep: 10, blurb: 'The Bukit Bunch snatched the hawker centre’s takeaway bags. Big Kow’s fastest boy has the last one.',
+    steps: [
+      { t: 'talk', lines: [['hoon', 'Aiyoh! Those monkeys again! They grabbed all my takeaway bags!', 'worried'], ['kow', 'Ooh ooh! Finders keepers, auntie!', 'happy'], ['hoon', 'They dropped some running away. Pick them up, then catch the one with the big bag.', 'cross']] },
+      { t: 'collect', items: [[13, 61], [26, 61], [29, 57]], item: 'bag', time: 90, label: 'Pick up the three takeaway bags the macaques dropped', cp: true },
+      { t: 'chase', who: 'runner', skin: 'mac', from: [34, 74], route: [[41, 76], [40, 66], [28, 66], [28, 76]], bumps: 2, loot: 'bun', speed: 200, finish: 'pounce', label: 'Pounce on the macaque together: F sends {mate} in, then dash into it', cp: true },
+      { t: 'pickup', at: 'loot', item: 'bun', label: 'Grab the bag of buns' },
+      { t: 'goto', at: 'hoon', label: 'Bring the bags back to Auntie Hoon' },
+      { t: 'talk', lines: [['kow', 'Ooh. Paiseh, auntie. Can have one bun or not?', 'worried'], ['hoon', 'Aiyah, take one lah. Only one!', 'happy']] },
+    ] },
+  { id: 'k5', side: 'm9', ch: 0, title: 'The Kueh Recipe', giver: 'hoon', at: 'hoon', reward: 140, rep: 12, blurb: 'Auntie Hoon’s grandmother’s kueh lapis recipe has gone missing. Pip has been seen with a scrap of paper.',
+    steps: [
+      { t: 'talk', lines: [['hoon', 'My mama’s kueh lapis recipe! Forty layers! Gone from my tin!', 'worried'], ['hero', 'Pip was on Smith Street this morning…', 'calm'], ['hoon', 'Follow him. Don’t let him see you, he will fly off with it.', 'cross']] },
+      { t: 'tail', from: [30, 64], route: [[28, 58], [28, 48], [20, 48], [12, 48], [12, 36], [2, 36]], label: 'Follow Pip, but stay out of sight (the five-foot ways hide you)', cp: true },
+      { t: 'bag', at: 'here', loot: 'recipe', time: 60, label: 'A crow has the recipe! Knock it loose (shoot it, or dash when it swoops low)', cp: true },
+      { t: 'goto', at: 'hoon', label: 'Bring the recipe back to Auntie Hoon' },
+      { t: 'talk', lines: [['hoon', 'Wah, still in one piece! Tomorrow I make kueh, you come eat.', 'happy'], ['pip', 'Can I have a slice too? …No? Okay.', 'worried']] },
+    ] },
+  { id: 'k6', side: 'm12', ch: 0, title: 'The Otter Smugglers', giver: 'mo', at: 'mo', reward: 150, rep: 12, blurb: 'Ma Sleek is running crates of stolen prawns up the Singapore River in her sampan. Bump it to a stop.',
+    steps: [
+      { t: 'talk', lines: [['mo', 'My prawns for the satay stall! Ma Sleek’s otters took the whole crate.', 'cross'], ['sleek', 'Hehe! Borrowing only! Catch me on the river if you can!', 'happy'], ['hero', 'Bumboat it is.', 'calm']] },
+      { t: 'ride', kind: 'boat', label: 'Step into a bumboat', near: [66, 24] },
+      { t: 'chase', who: 'boat', skin: 'otter', from: [67, 30], route: [[67, 58], [67, 20], [67, 50], [67, 6]], bumps: 3, loot: 'prawns', speed: 210, label: 'Bump Ma Sleek’s sampan three times', cp: true },
+      { t: 'pickup', at: 'loot', item: 'prawns', label: 'Fish out the crate of prawns' },
+      { t: 'goto', at: 'kiri', label: 'Bring the prawns to Kiri’s jetty (she runs them to Chef Mo)' },
+      { t: 'talk', lines: [['sleek', 'Aww, no fair. Okay okay, next time we pay.', 'worried'], ['mo', 'Next time, you buy like everyone else!', 'cross']] },
+    ] },
+  { id: 'k7', side: 'm17', ch: 0, title: 'Getai Rescue', giver: 'lily', at: 'lily', reward: 160, rep: 12, blurb: 'Lily Sparkle’s getai show is tonight, but the stage lights are dead and a crow ran off with her microphone.',
+    steps: [
+      { t: 'talk', lines: [['lily', 'Aiyoh, aiyoh! The show starts soon and my lights are dead!', 'worried'], ['lily', 'And a cheeky crow took my microphone! The spirits are waiting in the front row!', 'cross'], ['hero', 'Lights first, then the crow.', 'calm']] },
+      { t: 'goto', at: 'getai', label: 'Go to the getai stage', r: 110, ride: 'foot' },
+      { t: 'mini', kind: 'wires', level: 2, label: 'Rewire the stage lights', cp: true },
+      { t: 'chase', who: 'runner', from: [60, 74], route: [[65, 74], [64, 66], [56, 66], [56, 74]], bumps: 2, loot: 'mic', speed: 205, finish: 'pounce', label: 'Pounce on the crow together: F sends {mate} in, then dash into it', cp: true },
+      { t: 'pickup', at: 'loot', item: 'mic', label: 'Grab the microphone' },
+      { t: 'goto', at: 'lily', label: 'Bring the microphone to Lily Sparkle' },
+      { t: 'talk', lines: [['lily', 'Thank you, thank you! This song is for you two!', 'happy'], ['lily', 'Front row? No, no, that one is for the spirits. You sit second row.', 'calm']] },
+    ] },
+];
+export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id, m])) as Record<string, Mission>;

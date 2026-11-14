@@ -38,6 +38,10 @@ export function duoFrame(p: Player, t: number): { f: string; flip: boolean } {
     case 'reload': return { f: `${h}-reload`, flip: false };
     case 'fire': return { f: `${h}-fire-sling-down`, flip: false };
   }
+  // the Singapore carries have their own poses (a kopi tray, a durian crate held at arm's length, a festival lantern)
+  const held = p.carry ? SG_CARRY[p.carry] : undefined;
+  if (held && anim.startsWith('carry')) return { f: `${h}-${held}-${p.face === 'side' ? 'side' : 'down'}`, flip };
+  if (SG_ACTS.has(anim)) return { f: `${h}-${anim}`, flip };
   return { f: heroFrame(h, anim, p.face, t), flip };
 }
 
@@ -64,6 +68,8 @@ export function drawHero(sc: Scene, x: X, w: World, p: Player, active: boolean) 
 }
 const dist2 = (a: Player, b: Player) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 let itemOf: (s: string) => string = s => s;
+const SG_CARRY: Record<string, string> = { 'kopi-tray': 'tray', durian: 'durian', lantern: 'lantern' };
+const SG_ACTS = new Set(['chope', 'chope-done', 'serve', 'sell-junk', 'shake-wet', 'sit-chess', 'feed', 'gum', 'pay-fine', 'ticket', 'toss', 'pick-litter', 'bin-litter', 'shiok']);
 export function setItemSprite(f: (s: string) => string) { itemOf = f; }
 function ring(x: X, px: number, py: number, rgb: string, a: number) {
   x.save(); x.globalCompositeOperation = 'lighter';

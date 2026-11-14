@@ -10,6 +10,7 @@ import { OUTFITS, PAINTS, UPGRADE_COST, SAFE_HOUSES, TROPHIES, buyUpgrade, buyPa
 import { VEHICLES } from '@/lib/jade-move';
 import { MISSIONS, HEIRLOOMS, CHAPTERS } from '@/lib/jade-story';
 import { lanterns } from '@/lib/jade-heat';
+import { KEY_ACTIONS, bind, boundTo, keyName, type KeyAction } from '@/lib/jade-keys';
 import type { Play } from './controller';
 import { Sprite, Icon, Btn, fmt, GOOD_ICON, ART } from './ui';
 import type { JadeSound } from './sound';
@@ -251,6 +252,9 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
           <label><input type="checkbox" data-testid="set-shake" checked={s.settings.shake} onChange={e => set(x => { x.shake = e.target.checked; })} /> Screen shake</label>
           <label><input type="checkbox" data-testid="set-calm" checked={s.settings.calm} onChange={e => set(x => { x.calm = e.target.checked; })} /> Reduce shake: gentler shake, no flashes, short slow motion</label>
           <label>Touch controls <select data-testid="set-touch" value={s.settings.touch} onChange={e => set(x => { x.touch = e.target.value as 'auto' | 'on' | 'off'; })}><option value="auto">Automatic</option><option value="on">Always</option><option value="off">Never</option></select></label>
+          <label><input type="checkbox" data-testid="set-bigtext" checked={s.settings.bigText} onChange={e => set(x => { x.bigText = e.target.checked; })} /> Larger text: bigger prompts, dialogue, HUD and panels</label>
+          <label><input type="checkbox" data-testid="set-cbmarks" checked={s.settings.cbMarks} onChange={e => set(x => { x.cbMarks = e.target.checked; })} /> Colour-blind-safe markers: shapes and patterns on map pins, goals and lanterns</label>
+          <KeyRemap play={play} onSave={onSave} />
           <p className="small">Keys: WASD or arrows move · Shift sneak · Space dash (boost on a ride) · Q hop (honk on a ride) · E action · Tab switch hero · F tag-team move · mouse aim, click fire · 1 and 2 gadget · X reload · M map · Esc pause.</p>
         </div>
       )}
@@ -284,3 +288,32 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
   );
 }
 void DAILY_NEED;
+
+/** player 1's keys: click an action, then press the key you want for it (Esc cancels); a key in use swaps over */
+function KeyRemap({ play, onSave }: { play: Play; onSave: () => void }) {
+  const keys = play.w.s.settings.keys; const [wait, setWait] = useState<KeyAction | null>(null); const [msg, setMsg] = useState(''); const [, force] = useState(0);
+  useEffect(() => {
+    if (!wait) return;
+    const kd = (e: KeyboardEvent) => {
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (e.key === 'Escape') { setWait(null); return; }
+      const n = keyName(e.key.length === 1 ? e.key.toLowerCase() : e.key);
+      const r = bind(keys, wait, n); setMsg(r ?? ''); setWait(null); onSave(); force(x => x + 1); play.bump();
+    };
+    window.addEventListener('keydown', kd, true); return () => window.removeEventListener('keydown', kd, true);
+  }, [wait, keys, onSave, play]);
+  return (
+    <div className="jade-remap" data-testid="remap">
+      <b>Player 1 keys</b>{msg && <span className="jade-msg">{msg}</span>}
+      <div className="jade-remap-grid">
+        {KEY_ACTIONS.map(a => (
+          <button type="button" key={a.id} data-testid={`key-${a.id}`} className={'jade-remap-btn' + (wait === a.id ? ' on' : '')} onClick={() => setWait(a.id)}>
+            <span>{a.name}</span><kbd>{wait === a.id ? 'press a key…' : boundTo(keys, a.id)}</kbd>
+          </button>
+        ))}
+      </div>
+      <Btn kind="plain" testid="keys-reset" onClick={() => { for (const k of Object.keys(keys)) delete keys[k]; onSave(); force(x => x + 1); play.bump(); }}>Reset keys</Btn>
+      <p className="small">Gamepad: left stick move · A dash · B hop · X action · Y tag-team · RB/RT fire · LB gadget · LT sneak · right stick aim · d-pad up map, down phone, left reload, right switch hero · Start pause · Back brings in player 2. In menus the d-pad moves, A presses, B closes.</p>
+    </div>
+  );
+}

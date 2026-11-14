@@ -10,8 +10,8 @@
 // `--quick` (npm test) runs fewer seeds; `--diff` runs only the Normal and Hard players. Exports `playMission` and `missionSave` for tests/jade.mjs.
 import assert from 'node:assert/strict';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
-import { MISSIONS, MISSION } from '../.checks/jade-story.js';
-import { newSave, available } from '../.checks/jade-save.js';
+import { MISSIONS, MISSION, SIDE } from '../.checks/jade-story.js';
+import { newSave, available, offered } from '../.checks/jade-save.js';
 import { VEHICLES } from '../.checks/jade-move.js';
 import { T, W, S, F_ROOF } from '../.checks/jade-city.js';
 import { downhill, los } from '../.checks/jade-nav.js';
@@ -30,15 +30,17 @@ const MAIN = import.meta.url === `file://${process.argv[1]}`;
 /** a save that has finished every job before `id` */
 export function missionSave(id, o = {}) {
   const s = newSave(o.seed ?? 7);
-  const i = MISSIONS.findIndex(m => m.id === id);
+  // a Hawker Tales side job: the story up to (and including) the job that opens it
+  const side = MISSION[id]?.side;
+  const i = side ? MISSIONS.findIndex(m => m.id === side) + 1 : MISSIONS.findIndex(m => m.id === id);
   s.done = MISSIONS.slice(0, i).map(m => m.id);
+  if (side) s.done.push(...SIDE.slice(0, SIDE.findIndex(m => m.id === id)).map(m => m.id));
   // the gadgets the story handed over by then (each job that gives one)
   if (o.gear !== false) for (const d of s.done) for (const g of GEAR_GIFT[d] ?? []) giveGadget(s, g);
   s.started = true; s.cash = o.cash ?? 400;
   s.settings.assist = o.assist ?? true; s.settings.diff = o.diff ?? 'easy';
   // start at the safe house nearest the job's contact
-  const m = MISSIONS[i];
-  s.safe = { 1: 'safe-market', 2: 'safe-market', 3: 'safe-market', 4: 'safe-market', 5: 'safe-market' }[m.ch];
+  s.safe = 'safe-market';
   return s;
 }
 
@@ -58,7 +60,7 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
   const why = []; let lapse = 0, inp = { ...NO_INPUT }, think = 0, fails = 0, t = 0, mini = null, miniT = 0, stuck = 0, lastPos = [0, 0], unstick = 0, uDir = [0, 0];
   const maxT = o.maxT ?? 900;
   let started = false, forced = false;
-  const wantMission = () => { const a = available(s); return a.some(x => x.id === id); };
+  const wantMission = () => { const a = offered(s); return a.some(x => x.id === id); };
   assert.ok(wantMission(), `${id} is offered at the start`);
 
   // steering toward a world point with the right flow field
@@ -406,6 +408,8 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
       if (stuck > 1.2) { unstick = 0.6; const a = R() * Math.PI * 2; uDir = [Math.cos(a), Math.sin(a)]; stuck = 0; }
     }
     if (unstick > 0) { unstick -= DT; inp.mx = uDir[0]; inp.my = uDir[1]; }
+    // a ticket from a warden: pay it at once (a person reads the popup within a moment or so)
+    if (w.ticket && w.ticket.t > 0.6 && !w.p.act) inp.act = true;
     w.step(inp, DT); t += DT;
     if (o.trace && Math.floor(t / o.trace) !== Math.floor((t - DT) / o.trace)) { const r = w.run; const a = r?.actors[0]; console.log(`t${Math.round(t)} p(${Math.round(w.p.x / T)},${Math.round(w.p.y / T)}) ride=${w.p.ride?.kind ?? '-'} roof=${w.p.roof} step=${r?.i}:${r?.cur?.t} near=${w.near?.kind ?? '-'} inp=${inp.mx.toFixed(1)},${inp.my.toFixed(1)}${a ? ` a(${Math.round(a.b.x / T)},${Math.round(a.b.y / T)}) wp${a.wp}/${a.route.length} look${a.look.toFixed(1)}` : ''} meter=${r?.meter ? r.meter.name + ':' + r.meter.v.toFixed(2) : '-'} heat=${w.heat.toFixed(1)} ui=${w.ui?.kind ?? "-"} wd=${w.wardens.map(x => Math.round(Math.hypot(x.b.x - w.p.x, x.b.y - w.p.y)) + "@" + Math.round(x.b.x) + "," + Math.round(x.b.y) + (x.leave ? "L" : "")).join("|")} pp=${Math.round(w.p.x)},${Math.round(w.p.y)} fail=${w.failed ?? ""}${o.traceRide && r?.ride ? ` rr(${(r.ride.b.x / T).toFixed(1)},${(r.ride.b.y / T).toFixed(1)} ${r.ride.parked} ${r.ride.locked}) nr(${w.near?.ride ? (w.near.ride.b.x / T).toFixed(1) + ',' + (w.near.ride.b.y / T).toFixed(1) + ' ' + w.near.ride.kind + ' ' + w.near.ride.locked : '-'}) act=${w.p.act?.n ?? '-'}` : ''}`); }
     w.drain();
@@ -416,8 +420,8 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
 }
 
 if (MAIN) {
-  const only = process.argv.find(a => /^m\d+$/.test(a));
-  const ids = only ? [only] : MISSIONS.map(m => m.id);
+  const only = process.argv.find(a => /^[mk]\d+$/.test(a));
+  const ids = only ? [only] : [...MISSIONS, ...SIDE].map(m => m.id);
   // the casual bot plays the same 10 seeds in --quick (npm test) as in the full run: with fewer, one unlucky run could
   // sink a job below 90% by itself; --quick only trims the Normal and Hard runs and the perfect bot
   const seeds = 10;

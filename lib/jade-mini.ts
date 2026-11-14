@@ -46,7 +46,9 @@ export class LockGame {
 // ── wires
 export const WIRE_COLS = ['red', 'blue', 'yellow', 'green'] as const;
 export class WireGame {
-  right: number[]; links: (number | null)[] = [null, null, null, null]; picked: number | null = null; started = false; time: number; ev: MiniEv[] = []; done = false; failed = false; buzz = 0;
+  right: number[]; links: (number | null)[] = [null, null, null, null]; picked: number | null = null; started = false;
+  /** the keyboard and gamepad cursor (a row, 0-3) */
+  cur = 0; time: number; ev: MiniEv[] = []; done = false; failed = false; buzz = 0;
   constructor(public o: MiniOpts) {
     const R = rng(o.seed); const a = [0, 1, 2, 3];
     for (let i = 3; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }

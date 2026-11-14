@@ -13,7 +13,7 @@ const BG: Record<string, string> = { lock: 'bg-mg-lock', wires: 'bg-mg-wire', wo
 const FOCUS: Record<string, [number, number, number, number]> = { lock: [300, 170, 1000, 720], wires: [300, 200, 1000, 700], wok: [150, 120, 1130, 853], dumpling: [180, 60, 1100, 760] };
 const TITLE: Record<string, [string, string, string]> = {
   lock: ['Pick the lock', 'Hold a pin to lift it. Let go while it glows gold.', 'Tap and hold a pin · or ← → and hold Space'],
-  wires: ['Jump-start it', 'Join each wire to the socket of the same colour, then turn the key.', 'Tap a wire, then its socket · or keys 1-4 then 1-4, Enter for the key'],
+  wires: ['Jump-start it', 'Join each wire to the socket of the same colour, then turn the key.', 'Tap a wire, then its socket · or keys 1-4 then 1-4 (or ↑ ↓ to choose, ← pick, → plug), Enter for the key'],
   wok: ['Work the wok', 'Catch what the order needs. Skip the chillies. Toss before it scorches.', 'Slide to move the wok · or ← →, Space to toss'],
   dumpling: ['Fold dumplings', 'Drop the filling in the middle, then pinch three pleats on the gold marks.', 'Tap anywhere · or Space'],
 };
@@ -75,7 +75,13 @@ export function MiniGame({ kind, level, assist, seed, snd, onDone }: { kind: str
       const k = e.key;
       if (['ArrowLeft', 'ArrowRight', ' ', 'Enter', 'ArrowUp', 'ArrowDown'].includes(k)) e.preventDefault();
       if (g instanceof LockGame) { if (e.repeat) return; if (k === 'ArrowLeft' || k === 'a') g.move(-1); if (k === 'ArrowRight' || k === 'd') g.move(1); if (k === ' ' || k === 'Enter') g.hold(true); }
-      else if (g instanceof WireGame) { if (/^[1-4]$/.test(k)) { const i = +k - 1; if (g.picked === null) g.pick(i); else g.connect(i); } if (k === 'Enter' || k === ' ') g.turnKey(); }
+      else if (g instanceof WireGame) {
+        if (/^[1-4]$/.test(k)) { const i = +k - 1; if (g.picked === null) g.pick(i); else g.connect(i); }
+        // the arrows (and a gamepad's d-pad): up and down move the cursor, left picks the wire, right plugs it in
+        if (k === 'ArrowUp' || k === 'ArrowDown') { g.cur = (g.cur + (k === 'ArrowUp' ? 3 : 1)) % 4; }
+        if (k === 'ArrowLeft') g.pick(g.cur); if (k === 'ArrowRight') g.connect(g.cur);
+        if (k === 'Enter' || k === ' ') g.turnKey();
+      }
       else if (g instanceof WokGame) { if (k === ' ' || k === 'ArrowUp' || k === 'w') g.toss(); }
       else if (g instanceof DumplingGame) { if (!e.repeat && (k === ' ' || k === 'Enter')) g.press(); }
     };
@@ -171,6 +177,8 @@ function draw(x: CanvasRenderingContext2D, c: HTMLCanvasElement, g: AnyMini, bg:
       spr(x, `mg-plug-${col}`, 410, WY[i], { h: 70, anchor: 'center', rot: -Math.PI / 2, alpha: l !== null || g.picked === i ? 0.45 : 1 });
       if (g.picked === i) glow(410, WY[i], 70, 'rgba(255,255,200,.45)');
     }
+    // the keyboard / gamepad cursor: a gold bracket on both sides of its row
+    x.strokeStyle = 'rgba(255,215,90,.9)'; x.lineWidth = 5; x.strokeRect(340, WY[g.cur] - 46, 140, 92); x.strokeRect(812, WY[g.cur] - 46, 140, 92);
     if (g.buzz > 0) { spr(x, 'mg-spark', 640 + Math.sin(t * 50) * 30, 440, { h: 120, anchor: 'center' }); }
     spr(x, 'mg-key', 640, 690, { h: 120, anchor: 'center', rot: g.started ? Math.PI / 2 : 0 });
     if (g.wired) glow(640, 690, 110, `rgba(255,220,100,${0.35 + 0.2 * Math.sin(t * 6)})`);

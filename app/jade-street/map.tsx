@@ -6,7 +6,7 @@
 // zoom; tap a pin for its name and a "Route here" button. Code draws only the tints, fog fallback and the route line.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DISTRICTS, DISTRICT_NAME, T, W, H, districtAt, type District } from '@/lib/jade-city';
-import { available, safeOpen } from '@/lib/jade-save';
+import { offered, safeOpen } from '@/lib/jade-save';
 import { PEOPLE } from '@/lib/jade-story';
 import { spr, artLoaded, type Scene } from '@/lib/jade-scene';
 import type { Play } from './controller';
@@ -83,7 +83,7 @@ function pinsOf(play: Play): Pin[] {
   }
   for (const g of w.gigs()) add({ kind: 'gig', name: g.label, x: g.x, y: g.y, key: 'gig-' + (g.id ?? g.label) });
   if (w.run) { const o = w.objective(); if (o) out.push({ kind: 'job', name: w.run.label || 'Current job', sub: 'Your job’s next stop', x: o[0], y: o[1], key: 'job-now' }); }
-  else for (const m of available(w.s)) { const pl = w.c.places[m.at]; if (pl) add({ kind: 'job', name: m.title, sub: `Job from ${PEOPLE[m.giver]?.name ?? 'a friend'}`, x: pl.x, y: pl.y, key: 'job-' + m.id }); }
+  else for (const m of offered(w.s)) { const pl = w.c.places[m.at]; if (pl) add({ kind: 'job', name: m.title, sub: `Job from ${PEOPLE[m.giver]?.name ?? 'a friend'}`, x: pl.x, y: pl.y, key: 'job-' + m.id }); }
   w.s.cats.forEach(i => { const ct = w.c.cats[i]; if (ct) add({ kind: 'cat', name: 'Lucky cat', sub: 'Found', x: ct.x, y: ct.y, key: 'cat-' + i }); });
   for (const m of w.c.murals) if (w.s.murals.includes(m.id)) add({ kind: 'mural', name: 'Mural', sub: 'Painted', x: m.x, y: m.y, key: m.id });
   if (w.waypoint) out.push({ kind: 'pin', name: 'Your pin', sub: 'The gold line leads here', x: w.waypoint[0], y: w.waypoint[1], key: 'waypoint' });

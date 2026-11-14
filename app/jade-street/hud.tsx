@@ -35,6 +35,7 @@ export function TopHud({ play, onMap, onPause }: { play: Play; onMap: () => void
             <div className="jade-cash" data-testid="cash"><Icon name="ui-coin" size={20} /> {fmt(s.cash)}</div>
             <div className="jade-lanterns" aria-label={`Heat: ${L} of 5 lanterns`} data-heat={L}>
               {[0, 1, 2, 3, 4].map(i => <Sprite key={i} name={i < L ? 'ui-lantern-on' : 'ui-lantern-off'} h={20} cls={i < L ? 'lit' : ''} />)}
+              {w.s.settings.cbMarks && <b className="jade-cb-count" data-testid="heat-count">{L}/5</b>}
             </div>
           </div>
         </div>
@@ -47,7 +48,7 @@ export function TopHud({ play, onMap, onPause }: { play: Play; onMap: () => void
       </div>
       {run && (
         <div className="jade-job" data-testid="job">
-          <div className="jade-job-title">{run.gig ? 'Side gig' : `Chapter ${run.m.ch}`} · {run.m.title}</div>
+          <div className="jade-job-title">{run.gig ? 'Side gig' : run.m.side ? 'Hawker Tales' : `Chapter ${run.m.ch}`} · {run.m.title}</div>
           <div className="jade-job-label" data-testid="objective">{run.label || 'Listen'}</div>
           <div className="jade-job-row">
             {run.timer !== null && <span className={'jade-timer' + (run.timer < 10 ? ' low' : '')} data-testid="timer">{Math.ceil(run.timer)}s</span>}
