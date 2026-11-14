@@ -147,10 +147,55 @@ export class DumplingGame {
     } }
   }
 }
-export type AnyMini = LockGame | WireGame | WokGame | DumplingGame;
+export type AnyMini = LockGame | WireGame | WokGame | DumplingGame | KopiGame;
 export function makeMini(kind: string, o: MiniOpts): AnyMini {
   if (kind === 'lock') return new LockGame(o);
   if (kind === 'wires') return new WireGame(o);
   if (kind === 'wok') return new WokGame(o);
+  if (kind === 'kopi') return new KopiGame(o);
   return new DumplingGame(o);
+}
+
+// ── the kopi counter: Uncle Teo calls an order in kopi lingo; set the drink (coffee or tea, the milk, the sugar, hot or
+// iced) and serve it. Two orders (three from level 2); a wrong cup costs a try (three on Assist, two without).
+export type KopiOrder = { base: 'kopi' | 'teh'; milk: 'condensed' | 'none' | 'evap'; sugar: 'normal' | 'less' | 'none' | 'more'; temp: 'hot' | 'iced' };
+export const KOPI_FIELDS: { k: keyof KopiOrder; opts: string[]; names: string[] }[] = [
+  { k: 'base', opts: ['kopi', 'teh'], names: ['Coffee', 'Tea'] },
+  { k: 'milk', opts: ['condensed', 'none', 'evap'], names: ['Condensed milk', 'No milk (O)', 'Evaporated milk (C)'] },
+  { k: 'sugar', opts: ['normal', 'less', 'none', 'more'], names: ['Normal sugar', 'Less sweet (siew dai)', 'No sugar (kosong)', 'Extra sweet (ga dai)'] },
+  { k: 'temp', opts: ['hot', 'iced'], names: ['Hot', 'Iced (peng)'] },
+];
+/** the order as Uncle Teo calls it: "Kopi-O kosong", "Teh-C peng siew dai", plain "Kopi" */
+export function kopiName(o: KopiOrder): string {
+  const head = (o.base === 'kopi' ? 'Kopi' : 'Teh') + (o.milk === 'none' ? '-O' : o.milk === 'evap' ? '-C' : '');
+  const tail = [o.temp === 'iced' ? 'peng' : '', o.sugar === 'less' ? 'siew dai' : o.sugar === 'none' ? 'kosong' : o.sugar === 'more' ? 'ga dai' : ''].filter(Boolean);
+  return [head, ...tail].join(' ');
+}
+/** the painted cup for a drink (sugar doesn't show) */
+export const kopiSprite = (o: Partial<KopiOrder>) => `drink-${o.base ?? 'kopi'}${o.milk === 'none' ? '-o' : o.milk === 'evap' ? '-c' : ''}${o.temp === 'iced' ? '-peng' : ''}`;
+export class KopiGame {
+  orders: KopiOrder[] = []; i = 0; cup: KopiOrder = { base: 'kopi', milk: 'condensed', sugar: 'normal', temp: 'hot' };
+  tries: number; time: number; ev: MiniEv[] = []; done = false; failed = false; served = 0;
+  constructor(public o: MiniOpts) {
+    const R = rng(o.seed * 31 + 7); const n = o.level > 1 ? 3 : 2;
+    for (let k = 0; k < n; k++) {
+      const pick = <T,>(a: T[]) => a[Math.floor(R() * a.length)];
+      this.orders.push({ base: pick(['kopi', 'teh'] as const), milk: pick(['condensed', 'none', 'evap'] as const), sugar: pick(['normal', 'less', 'none', 'more'] as const), temp: pick(['hot', 'iced'] as const) });
+    }
+    this.tries = o.assist ? 3 : 2; this.time = (o.assist ? 70 : 45) + (n - 2) * 15;
+  }
+  get order() { return this.orders[this.i]; }
+  set(k: keyof KopiOrder, v: string) { if (this.done || this.failed) return; (this.cup as Record<string, string>)[k] = v; this.ev.push({ t: 'tick' }); }
+  /** cycle a field to its next option (keys and the gamepad) */
+  cycle(f: number, d = 1) { const F = KOPI_FIELDS[f]; const j = F.opts.indexOf(this.cup[F.k] as string); this.set(F.k, F.opts[(j + d + F.opts.length) % F.opts.length]); }
+  serve() {
+    if (this.done || this.failed) return;
+    const o = this.order, c = this.cup;
+    if (o.base === c.base && o.milk === c.milk && o.sugar === c.sugar && o.temp === c.temp) {
+      this.served++; this.ev.push({ t: 'serve', i: this.i }); this.i++;
+      this.cup = { base: 'kopi', milk: 'condensed', sugar: 'normal', temp: 'hot' };
+      if (this.i >= this.orders.length) { this.done = true; this.ev.push({ t: 'open' }); }
+    } else { this.tries--; this.ev.push({ t: 'wrong' }); if (this.tries <= 0) { this.failed = true; this.ev.push({ t: 'fail' }); } }
+  }
+  step(dt: number) { if (this.done || this.failed) return; this.time -= dt; if (this.time <= 0) { this.failed = true; this.ev.push({ t: 'fail' }); } }
 }

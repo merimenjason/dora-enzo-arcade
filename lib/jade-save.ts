@@ -12,12 +12,14 @@ import { asDiff, type Diff } from './jade-diff.js';
 import { BIZ, newBiz, type BizState } from './jade-biz.js';
 import { newGear, giveGadget, clipOf, ammoCap, GEAR_GIFT, GADGET_IDS, type GearState, type GadgetId } from './jade-gear.js';
 
-export const SAVE_KEY = 'jade-street-v5';
-export const OLD_KEYS = ['jade-street-v4', 'jade-street-v3', 'jade-street-v2', 'jade-street-v1'];
-export const SAVE_VERSION = 5;
+export const SAVE_KEY = 'jade-street-v6';
+export const OLD_KEYS = ['jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2', 'jade-street-v1'];
+export const SAVE_VERSION = 6;
 export type Hero = 'dora' | 'enzo';
-export type Settings = { sound: boolean; music: boolean; assist: boolean; diff: Diff; touch: 'auto' | 'on' | 'off'; shake: boolean; calm: boolean };
-export type Stats = { walked: number; driven: number; boated: number; missions: number; gigs: number; trades: number; profit: number; caught: number; escapes: number; bumps: number; cats: number; murals: number; maxHeat: number; playTime: number; minis: number; bizCoins: number; shots: number; tags: number; switches: number };
+/** `keys`: remapped keyboard actions (action -> KeyboardEvent.code); `bigText`: larger HUD text; `cbMarks`: colour-blind-safe
+ * markers (shapes and patterns, not only colour) */
+export type Settings = { sound: boolean; music: boolean; assist: boolean; diff: Diff; touch: 'auto' | 'on' | 'off'; shake: boolean; calm: boolean; keys: Record<string, string>; bigText: boolean; cbMarks: boolean };
+export type Stats = { walked: number; driven: number; boated: number; missions: number; gigs: number; trades: number; profit: number; caught: number; escapes: number; bumps: number; cats: number; murals: number; maxHeat: number; playTime: number; minis: number; bizCoins: number; shots: number; tags: number; switches: number; tolls: number; junk: number; kopi: number; chope: number };
 export type Save = {
   v: number; seed: number; hero: Hero; started: boolean;
   cash: number; night: number; clock: number; cargo: Cargo; stash: Cargo;
@@ -43,7 +45,18 @@ export type Save = {
   biz: Record<string, BizState>; bizLog: number[];
   /** the cartoon gadgets: owned, ammo, upgrades, who carries what (lib/jade-gear.ts) */
   gear: GearState;
+  /** pocket things for the Singapore streets: tissue packets (chope), bird seed, bananas, chewing gum, old newspapers */
+  bag: Bag;
+  /** the fine city: total paid, tickets, repeat counts per offence, the last tickets */
+  fines: Fines;
+  /** the kopi lingo you have ordered at least once (the glossary ticks them) */
+  lingo: string[];
 };
+export type Bag = { tissue: number; seed: number; banana: number; gum: number; junk: number };
+export type FineRec = { kind: string; amt: number; night: number };
+export type Fines = { paid: number; n: number; by: Record<string, number>; list: FineRec[]; fled: number };
+export const newBag = (): Bag => ({ tissue: 2, seed: 0, banana: 0, gum: 0, junk: 0 });
+export const newFines = (): Fines => ({ paid: 0, n: 0, by: {}, list: [], fled: 0 });
 export type Medal = { m: number; t: number; plays: number };
 export type Msg = { id: number; from: string; text: string; night: number; read: boolean };
 export const OUTFITS: { id: string; name: string; hero: Hero | 'both'; price: number; need: { d: District; rep: number } | null; hue: number }[] = [
@@ -73,10 +86,10 @@ export function newSave(seed = 1): Save {
     upgrades: { speed: 0, grip: 0, cargo: 0 }, paint: 'red',
     outfits: { dora: ['classic'], enzo: ['classic'] }, outfit: { dora: 'classic', enzo: 'classic' },
     cats: [], murals: [], trophies: [], tips: [], safe: 'safe-market', best: {}, daily: '', dailyDone: [],
-    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0 },
-    settings: { sound: true, music: true, assist: true, diff: 'easy', touch: 'auto', shake: true, calm: false },
+    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0, tolls: 0, junk: 0, kopi: 0, chope: 0 },
+    settings: { sound: true, music: true, assist: true, diff: 'easy', touch: 'auto', shake: true, calm: false, keys: {}, bigText: false, cbMarks: false },
     medals: {}, story: { intro: false, ch: 0, ending: false }, learned: [], msgs: [], radio: 0, helped: 0,
-    biz: Object.fromEntries(BIZ.map(b => [b.id, newBiz()])), bizLog: [], gear: newGear(),
+    biz: Object.fromEntries(BIZ.map(b => [b.id, newBiz()])), bizLog: [], gear: newGear(), bag: newBag(), fines: newFines(), lingo: [],
   };
 }
 
@@ -93,6 +106,7 @@ export function loadSave(raw: string | null): Save {
   if (o.v === 2) o = migrate2(o);
   if (o.v === 3) o = migrate3(o);
   if (o.v === 4) o = migrate4(o);
+  if (o.v === 5) o = migrate5(o);
   const s = newSave(Math.floor(num(o.seed, 1, 1, 2 ** 31)));
   s.hero = o.hero === 'enzo' ? 'enzo' : 'dora';
   s.started = o.started === true;
@@ -120,7 +134,7 @@ export function loadSave(raw: string | null): Save {
   const st = (o.stats ?? {}) as Record<string, unknown>;
   for (const k of Object.keys(s.stats) as (keyof Stats)[]) s.stats[k] = num(st[k], 0, 0, 1e12);
   const se = (o.settings ?? {}) as Record<string, unknown>;
-  s.settings = { sound: se.sound !== false, music: se.music !== false, assist: se.assist !== false, diff: asDiff(se.diff), touch: se.touch === 'on' || se.touch === 'off' ? se.touch : 'auto', shake: se.shake !== false, calm: se.calm === true };
+  s.settings = { sound: se.sound !== false, music: se.music !== false, assist: se.assist !== false, diff: asDiff(se.diff), touch: se.touch === 'on' || se.touch === 'off' ? se.touch : 'auto', shake: se.shake !== false, calm: se.calm === true, keys: keysOf(se.keys), bigText: se.bigText === true, cbMarks: se.cbMarks === true };
   const md = (o.medals ?? {}) as Record<string, unknown>;
   for (const [k, v] of Object.entries(md)) if (ids.has(k) && v && typeof v === 'object') { const x = v as Record<string, unknown>; s.medals[k] = { m: Math.floor(num(x.m, 0, 0, 3)), t: num(x.t, 0, 0, 1e6), plays: Math.floor(num(x.plays, 1, 1, 1e6)) }; }
   const sy = (o.story ?? {}) as Record<string, unknown>;
@@ -135,6 +149,12 @@ export function loadSave(raw: string | null): Save {
     s.biz[b.id] = { lvl: Math.floor(num(x.lvl, 0, 0, 3)), bank: num(x.bank, 0, 0, 1e6), tonight: num(x.tonight, 0, 0, 1e6), hist, raids: Math.floor(num(x.raids, 0, 0, 1e6)), defended: Math.floor(num(x.defended, 0, 0, 1e6)) };
   }
   s.gear = gearOf(o.gear, s);
+  const bg = (o.bag ?? {}) as Record<string, unknown>; const nb = newBag();
+  s.bag = { tissue: Math.floor(num(bg.tissue, nb.tissue, 0, 99)), seed: Math.floor(num(bg.seed, 0, 0, 99)), banana: Math.floor(num(bg.banana, 0, 0, 99)), gum: Math.floor(num(bg.gum, 0, 0, 1)), junk: Math.floor(num(bg.junk, 0, 0, 6)) };
+  const fi = (o.fines ?? {}) as Record<string, unknown>; const by = (fi.by ?? {}) as Record<string, unknown>;
+  s.fines = { paid: num(fi.paid, 0, 0, 1e9), n: Math.floor(num(fi.n, 0, 0, 1e6)), fled: Math.floor(num(fi.fled, 0, 0, 1e6)), by: Object.fromEntries(Object.entries(by).filter(([, v]) => typeof v === 'number' && isFinite(v)).map(([k, v]) => [k, Math.max(0, Math.floor(v as number))])),
+    list: Array.isArray(fi.list) ? (fi.list as FineRec[]).filter(f => f && typeof f.kind === 'string' && typeof f.amt === 'number').slice(-12).map(f => ({ kind: f.kind, amt: Math.max(0, Math.round(f.amt)), night: Math.floor(num(f.night, 1, 1, 1e5)) })) : [] };
+  s.lingo = strs(o.lingo).slice(0, 40);
   s.bizLog = Array.isArray(o.bizLog) ? (o.bizLog as unknown[]).filter((v): v is number => typeof v === 'number' && isFinite(v)).map(v => Math.max(0, Math.round(v))).slice(-10) : [];
   return s;
 }
@@ -169,6 +189,18 @@ function gearOf(v: unknown, s: Save): GearState {
   return G;
 }
 /** version 3 (the second release): everything kept as it was; no business is owned yet, Reduce shake starts off */
+/** version 5 (pass four): everything kept; the Singapore pocket (two tissue packets to start), no fines yet, default
+ * keys, normal text and markers */
+function migrate5(o: Record<string, unknown>): Record<string, unknown> {
+  const se = (o.settings ?? {}) as Record<string, unknown>;
+  return { ...o, v: 6, bag: newBag(), fines: newFines(), lingo: [], settings: { ...se, keys: {}, bigText: false, cbMarks: false } };
+}
+/** remapped keys: action names to KeyboardEvent codes, each code used once */
+function keysOf(v: unknown): Record<string, string> {
+  const out: Record<string, string> = {}; const used = new Set<string>();
+  if (v && typeof v === 'object') for (const [k, c] of Object.entries(v as Record<string, unknown>)) if (/^[a-z0-9]{1,12}$/.test(k) && typeof c === 'string' && /^[A-Za-z0-9]{1,20}$/.test(c) && !used.has(c)) { out[k] = c; used.add(c); }
+  return out;
+}
 function migrate3(o: Record<string, unknown>): Record<string, unknown> {
   const se = (o.settings ?? {}) as Record<string, unknown>;
   return { ...o, v: 4, biz: {}, bizLog: [], settings: { ...se, calm: false } };

@@ -8,7 +8,9 @@ import { dist } from './jade-rng.js';
 import type { World } from './jade-game.js';
 import { lightOf, LIGHT_AT } from './jade-traffic.js';
 
-export const FOLK = ['rabbit', 'dog', 'squirrel', 'cat', 'duck', 'hedgehog'];
+export const FOLK = ['rabbit', 'dog', 'squirrel', 'cat', 'duck', 'hedgehog', 'goose', 'sunbear', 'rooster'];
+/** the Singapore townsfolk, who say a word or two of Singlish (lib/jade-sg.ts) */
+export const SG_FOLK = ['goose', 'sunbear', 'rooster'];
 export type Ped = {
   id: number; sp: string; x: number; y: number; h: number; tx: number; ty: number; hop: number; hx: number; hy: number; scare: number; wait: number; walk: number;
   dest: number; sit: number; roadT: number; watch: boolean;

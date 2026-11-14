@@ -11,6 +11,8 @@ import { T, W, S, F_ROOF, districtAt } from './jade-city.js';
 import { nearestFree } from './jade-nav.js';
 import { dist, angDiff, clamp } from './jade-rng.js';
 import { addHeat } from './jade-heat.js';
+import { offence } from './jade-fines.js';
+import { gangHit, type Mob } from './jade-gangs.js';
 import type { World, Player } from './jade-game.js';
 import type { Hero, Save } from './jade-save.js';
 import type { Actor } from './jade-mission.js';
@@ -57,13 +59,14 @@ export type Shot = { id: number; g: GadgetId; by: Hero; x: number; y: number; sx
 export type Splat = { x: number; y: number; sprite: string; t: number; life: number; rot: number; puddle?: boolean };
 export type Crate = { x: number; y: number; back: number };
 /** something a shot can hit: job actors, cargo snatchers, the street-event crow, wardens, townsfolk */
-export type Target = { kind: 'actor' | 'snatcher' | 'event' | 'warden' | 'ped'; x: number; y: number; r: number; fair: boolean; ref: unknown };
+export type Target = { kind: 'actor' | 'snatcher' | 'event' | 'warden' | 'ped' | 'gang'; x: number; y: number; r: number; fair: boolean; ref: unknown };
 
 export function targets(w: World): Target[] {
   const out: Target[] = [];
   if (w.run) for (const a of w.run.actors) if (!a.gone && aimable(a)) out.push({ kind: 'actor', x: a.b.x, y: a.b.y, r: a.kind === 'cart' || a.kind === 'boat' || a.kind === 'boss' ? 26 : 18, fair: a.kind !== 'pip', ref: a });
   for (const m of w.snatchers) if (!m.out) out.push({ kind: 'snatcher', x: m.x, y: m.y, r: 22, fair: true, ref: m });
   const e = w.street; if (e && e.kind === 'crow' && e.phase === 'on' && e.b) out.push({ kind: 'event', x: e.b.x, y: e.b.y, r: 18, fair: true, ref: e });
+  const ge = w.gangs.ev; if (ge && !ge.done) for (const m of ge.mobs) if (m.st === 'run' || m.st === 'leap') out.push({ kind: 'gang', x: m.b.x, y: m.b.y, r: 16, fair: true, ref: m });
   for (const wd of w.wardens) if (!wd.leave) out.push({ kind: 'warden', x: wd.b.x, y: wd.b.y, r: 18, fair: false, ref: wd });
   for (const pd of w.peds) if (pd.sit <= 0) out.push({ kind: 'ped', x: pd.x, y: pd.y, r: 14, fair: false, ref: pd });
   return out;
@@ -175,6 +178,8 @@ export function gearStep(w: World, dt: number) {
 function land(w: World, sh: Shot, onTarget = false) {
   const sprite = sh.g === 'sling' ? 'sp-rice' : sh.g === 'paint' ? (sh.id % 2 ? 'sp-pink' : 'sp-teal') : sh.g === 'net' ? (onTarget ? '' : 'sp-net') : sh.g === 'bubble' ? 'sp-puddle' : '';
   if (sprite) w.splats.push({ x: sh.x, y: sh.y, sprite, t: 0, life: sh.g === 'bubble' ? 6 : sh.g === 'net' ? 2.5 : 9, rot: (sh.id % 7) * 0.9, puddle: sh.g === 'bubble' });
+  // a mess on the pavement is littering in this city, if a ticket warden sees it (free roam: in a job they're busy)
+  if ((sh.g === 'sling' || sh.g === 'paint') && !w.run) offence(w, 'litter', sh.x, sh.y);
   w.fx.push({ t: 'shot-land', kind: sh.g, x: sh.x, y: sh.y });
 }
 /** a popper or confetti bursts: everything within reach reacts */
@@ -190,6 +195,7 @@ function burst(w: World, sh: Shot, tg: Target[], r: number) {
 export function hit(w: World, t: Target, g: GadgetId, pw: number, x: number, y: number): boolean {
   switch (t.kind) {
     case 'actor': return w.run ? w.run.onGadget(t.ref as Actor, g, pw, x, y) : false;
+    case 'gang': return gangHit(w, t.ref as Mob, g);
     case 'snatcher': {
       const m = t.ref as World['snatchers'][number]; if (m.out) return false;
       m.out = true; m.dizzy = 1.2;
