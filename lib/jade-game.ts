@@ -26,10 +26,10 @@ export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop
 export const NO_INPUT: Input = { mx: 0, my: 0, sneak: false, dash: false, hop: false, act: false };
 export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; locked: boolean; tint: number; mission?: boolean; seen?: number; broken?: boolean };
 export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string };
-export type Near = { kind: 'mission' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz'; label: string; x: number; y: number; id?: string; ride?: Ride };
+export type Near = { kind: 'mission' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear'; label: string; x: number; y: number; id?: string; ride?: Ride };
 export type Snatcher = { x: number; y: number; h: number; t: number; out: boolean; took: number; wing: number; good?: string; dizzy?: number };
 export type Act = { n: string; t: number; dur: number; then?: () => void };
-export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' } | { kind: 'map' } | { kind: 'biz'; id: BizId };
+export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' } | { kind: 'map' } | { kind: 'biz'; id: BizId } | { kind: 'gear' };
 
 export class Player {
   constructor(public who: Hero = 'dora') { }
@@ -151,7 +151,7 @@ export class World {
     this.phoneT = Math.max(0, this.phoneT - dt);
     this.raidStart();
     if (this.banner) { this.banner.t -= dt; if (this.banner.t <= 0) this.banner = null; }
-    this.gates.clear(); if (this.run) closedTiles(this.run.sets, this.gates);
+    this.gates.clear(); if (this.run) { closedTiles(this.run.sets, this.gates); teamGates(this.run, this.gates); }
     this.playerStep(inp, dt);
     this.p.grabT = Math.max(0, this.p.grabT - dt); this.p.cheerT = Math.max(0, this.p.cheerT - dt);
     if (this.two) this.p2Step(inp2 ?? NO_INPUT, dt); else mateStep(this, dt);
@@ -333,12 +333,14 @@ export class World {
     const p = this.p;
     if (r.broken) { this.say('It won’t start. Give it a push: lean into it on foot.', 'bad'); return; }
     if (r.locked) { this.ui = { kind: 'mini', mini: 'wires', level: 1, from: 'ride' }; this.pendingRide = r; this.fx.push({ t: 'mini' }); return; }
-    p.act = { n: 'climb-on', t: 0, dur: 0.32, then: () => { p.ride = r; r.parked = false; p.b.x = r.b.x; p.b.y = r.b.y; p.hide = false; this.fx.push({ t: 'enter', kind: r.kind }); this.run?.onEnter(r); } };
+    p.act = { n: 'climb-on', t: 0, dur: 0.32, then: () => { p.ride = r; r.parked = false; p.b.x = r.b.x; p.b.y = r.b.y; p.hide = false; this.enteredAt = this.time; this.fx.push({ t: 'enter', kind: r.kind }); this.run?.onEnter(r); } };
     p.face = 'side'; p.flip = r.b.x < p.b.x;
     // walk the hero onto the seat during the climb
     p.b.x = r.b.x; p.b.y = r.b.y;
   }
   pendingRide: Ride | null = null;
+  /** when you last got on a ride: a double-tapped action key doesn't throw you straight back off */
+  enteredAt = -9;
   miniDone(ok: boolean) {
     const ui = this.ui; this.ui = null;
     this.s.stats.minis++;
@@ -398,6 +400,7 @@ export class World {
       if (pl.kind === 'garage') cand({ kind: 'garage', label: 'Garage: upgrades and paint', x: pl.x, y: pl.y, id }, 80);
     }
     if (!this.run) for (const g of this.gigs()) cand(g, 70);
+    if (stallOpen(this.s)) { const [gx, gy] = stallPos(this); cand({ kind: 'gear', label: 'Tock’s toy stall: gadgets, ammo and upgrades', x: gx, y: gy + 40 }, 80); }
     if (!this.run) for (const b of BIZ) if (this.open.has(b.d)) { const [bx, by] = bizPos(b); const st = this.s.biz[b.id]; cand({ kind: 'biz', label: st.lvl ? `${b.name}: ${Math.floor(st.bank)} coins in the till` : `${b.name} (stake for sale)`, x: bx, y: by + 40, id: b.id }, 80); }
     const en = eventNear(this); if (en) cand(en, 80);
     if (this.festival) for (const f of this.c.festival) if (f.kind !== 'arch') cand({ kind: 'festival', label: f.kind === 'stage' ? 'Dance on the festival stage' : 'Let a sky lantern go', x: f.x, y: f.y, id: f.kind }, 80);
@@ -418,7 +421,7 @@ export class World {
       case 'buy-safe': this.ui = { kind: 'safe', id: n.id! }; this.fx.push({ t: 'open' }); break;
       case 'garage': this.ui = { kind: 'garage', id: n.id! }; this.fx.push({ t: 'open' }); break;
       case 'ride': this.enter(n.ride!); break;
-      case 'exit': this.exit(); break;
+      case 'exit': if (this.time - this.enteredAt > 0.45) this.exit(); break;
       case 'ladder-up': { const l = this.c.ladders.find(l => dist(l.x * T + T / 2, l.y * T + T / 2, n.x, n.y) < 2)!; p.act = { n: 'climb', t: 0, dur: 0.45, then: () => { p.roof = true; p.b.x = l.rx * T + T / 2; p.b.y = l.ry * T + T / 2; p.lastRoof = [p.b.x, p.b.y]; this.fx.push({ t: 'climb' }); } }; break; }
       case 'ladder-down': { const l = this.c.ladders.find(l => dist(l.rx * T + T / 2, l.ry * T + T / 2, n.x, n.y) < 2)!; p.act = { n: 'climb', t: 0, dur: 0.45, then: () => { p.roof = false; p.b.x = l.x * T + T / 2; p.b.y = l.y * T + T / 2; this.fx.push({ t: 'climb' }); } }; break; }
       case 'hide': p.act = { n: 'enter-door', t: 0, dur: 0.3, then: () => { p.hide = true; p.b.x = n.x; p.b.y = n.y; p.b.speed = 0; this.fx.push({ t: 'hide' }); } }; break;
@@ -427,6 +430,7 @@ export class World {
       case 'gig': startGig(this, n.id!); break;
       case 'leap': this.run?.leap(); break;
       case 'biz': this.ui = { kind: 'biz', id: n.id as BizId }; this.fx.push({ t: 'open' }); break;
+      case 'gear': this.ui = { kind: 'gear' }; this.fx.push({ t: 'open' }); break;
       case 'event': eventAct(this); break;
       case 'festival': if (n.id === 'stage') { p.act = { n: 'dance', t: 0, dur: 2.4 }; this.fx.push({ t: 'dance' }); } else { p.act = { n: 'lantern', t: 0, dur: 1.2, then: () => { this.fx.push({ t: 'sky-lantern', x: p.b.x, y: p.b.y }); p.act = { n: 'look-up', t: 0, dur: 1.6 }; } }; } p.face = 'down'; break;
       case 'eat': if (this.s.cash < 3) { this.say('You need 3 coins for noodles.', 'bad'); break; } this.s.cash -= 3; p.act = { n: 'eat', t: 0, dur: 2.6, then: () => this.say('Delicious! Chef Mo’s noodles hit the spot.', 'good') }; p.face = 'down'; this.fx.push({ t: 'eat' }); break;
@@ -625,7 +629,8 @@ import { medalOf, MEDAL_NAME } from './jade-medals.js';
 import { closedTiles } from './jade-setpiece.js';
 import { mateStep, switchHero, leash, seat, board, leaveSeat, newAI, type MateAI } from './jade-duo.js';
 import { tag, distractStep } from './jade-tag.js';
-import { gearStep, fire, startReload, switchSlot, shooterFor, makeCrates, giveGadget, GEAR_GIFT, GADGETS, type Shot, type Splat, type Crate } from './jade-gear.js';
+import { teamGates } from './jade-team.js';
+import { stallPos, stallOpen, gearStep, fire, startReload, switchSlot, shooterFor, makeCrates, giveGadget, GEAR_GIFT, GADGETS, type Shot, type Splat, type Crate } from './jade-gear.js';
 const P2_KINDS: Near['kind'][] = ['ride', 'exit', 'ladder-up', 'ladder-down', 'hide', 'unhide', 'leap', 'event'];
 import { BIZ, BIZ_OF, bizPos, accrue, closeNight, raidCheck, raidMission, raidWon, raidLost, raidId, buyBiz, upgradeBiz, collect, type BizId } from './jade-biz.js';
 import { text } from './jade-phone.js';

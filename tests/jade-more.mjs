@@ -38,7 +38,9 @@ function provoke(id, i) {
   const { w, run } = at(id, i); const st = run.cur; let shown = false;
   const p = w.p;
   if (st.t === 'stealth') { const a = run.actors[0]; p.b.x = a.b.x + Math.cos(a.b.h) * 70; p.b.y = a.b.y + Math.sin(a.b.h) * 70; }
-  if (st.t === 'float') { const [x, y] = leapSpot(0); p.roof = true; p.b.x = x; p.b.y = y; p.lastRoof = [x, y]; }
+  if (st.t === 'float') { const [x, y] = leapSpot(0); p.roof = true; p.b.x = x; p.b.y = y; p.lastRoof = [x, y];
+    // the partner on the bunting rope, so the float swings in (and can roll away while nobody leaps)
+    if (st.rope) { const [rx, ry] = run.spot(st.rope); const m = w.mate; m.seat = null; m.roof = false; m.b.x = rx; m.b.y = ry; m.ai = { ...m.ai, mode: 'hold', at: [rx, ry], story: true }; } }
   if (st.t === 'fares') { const f = run.fare; const r = w.addRide('tuktuk', f.x, f.y, 0); w.placePlayer(f.x, f.y); w.enter(r); idle(w, 0.5); r.b.x = f.x; r.b.y = f.y; }
   for (let k = 0; k < 300 * 60 && !w.failed && w.run === run && run.i === i; k++) {
     if (st.t === 'deliver' && st.fragile && !st.time && k % 30 === 0) run.onBump(400, 'car');
@@ -141,12 +143,16 @@ test('Madame Glint: three phases with checkpoints, decoys, falling signs, and th
   assert.ok(sg.warn >= 0.9, 'a readable warning'); w.placePlayer(sg.x, sg.y); idle(w, 2, () => sg.ph === 'wreck'); assert.ok(sg.hit && w.p.stunT > 0, 'the sign hits a player standing in its shadow');
   // phase 3: the float rolls when you reach the ladder; a leap in the window wins the drum, a miss tumbles
   ({ w, run } = at('m25', fl)); const f = run.float; assert.ok(f && !f.moving);
-  const [x0, y0] = leapSpot(0); w.p.roof = true; w.p.b.x = x0; w.p.b.y = y0; w.p.lastRoof = [x0, y0]; w.step(NO_INPUT, DT); assert.ok(f.moving, 'the float sets off');
+  const [x0, y0] = leapSpot(0); w.p.roof = true; w.p.b.x = x0; w.p.b.y = y0; w.p.lastRoof = [x0, y0];
+  // the two-hero phase: the float waits out of reach until the partner hauls the bunting rope
+  w.s.settings.assist = false; w.mate.ai = { ...w.mate.ai, mode: 'follow', story: false }; w.step(NO_INPUT, DT); assert.ok(!f.moving, 'no rope, no float');
+  const st = m.steps[fl]; const [rx, ry] = run.spot(st.rope); w.mate.seat = null; w.mate.roof = false; w.mate.b.x = rx; w.mate.b.y = ry; w.mate.ai = { ...w.mate.ai, mode: 'hold', at: [rx, ry], story: true };
+  idle(w, 1, () => f.moving); w.s.settings.assist = true; assert.ok(f.moving, 'the float sets off');
   assert.equal(inWindow(run), -1); assert.ok(run.leap(), 'leap too soon'); idle(w, 1); assert.ok(!f.done, 'a miss'); assert.equal(w.p.roof, true, 'back on the roof');
   idle(w, 20, () => inWindow(run) === 0); assert.equal(inWindow(run), 0); w.p.b.x = x0; w.p.b.y = y0;
   assert.ok(run.leap()); idle(w, 1); assert.ok(f.done, 'landed on the float'); assert.equal(run.cur.t, 'pickup'); assert.ok(run.loot, 'the Phoenix Drum drops');
   // and if it rolls out of the Strip, it is gone
-  ({ w, run } = at('m25', fl)); w.p.roof = true; w.p.b.x = x0; w.p.b.y = y0 + T; w.p.lastRoof = [x0, y0 + T]; idle(w, 120); assert.match(w.failed?.reason ?? '', /float/); assert.ok(run.float.x <= FLOAT_END + 5);
+  ({ w, run } = at('m25', fl)); w.p.roof = true; w.p.b.x = x0; w.p.b.y = y0 + T; w.p.lastRoof = [x0, y0 + T]; w.mate.seat = null; w.mate.roof = false; w.mate.b.x = rx; w.mate.b.y = ry; w.mate.ai = { ...w.mate.ai, mode: 'hold', at: [rx, ry], story: true }; idle(w, 120); assert.match(w.failed?.reason ?? '', /float/); assert.ok(run.float.x <= FLOAT_END + 5);
   w.retry(); assert.ok(w.run.float && !w.run.float.moving && !w.run.float.done, 'retry resets the float');
 });
 
@@ -239,7 +245,7 @@ test('every line of dialogue has a mood with its own painted portrait for the sp
   let lines = 0;
   for (const m of MISSIONS) for (const st of m.steps) if (st.t === 'talk') for (const [who, text, mood] of st.lines) {
     lines++; assert.ok(MOODS.includes(mood), `${m.id} "${text.slice(0, 30)}" has a mood (${mood})`);
-    const speakers = who === 'hero' ? ['dora', 'enzo'] : [who];
+    const speakers = who === 'hero' || who === 'mate' ? ['dora', 'enzo'] : [who];
     for (const sp of speakers) { const base = PEOPLE[sp]?.face ?? `face-${sp}`; assert.ok(FRAMES[base], `${base} painted`); if (mood !== 'calm') assert.ok(FRAMES[`${base}-${mood}`], `${base}-${mood} painted`); }
   }
   assert.ok(lines >= 90, `${lines} lines`);

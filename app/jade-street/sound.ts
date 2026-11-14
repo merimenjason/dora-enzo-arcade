@@ -268,9 +268,39 @@ export class JadeSound {
   skid() { if (!this.ok('skid', 0.3)) return; this.burst(this.t, 0.22, 3000, 1.5, 0.12); }
   lesson() { if (!this.ok('lesson', 0.5)) return; this.tone(mtof(86), this.t, 0.08, 'sine', 0.08, this.out!); }
 
+  // ── the gadgets: each toy has its own sound (a twang, a squelch, a fizz-pop, a spring, bubbles, a party burst)
+  gadget(kind = '') {
+    if (!this.ok('gadget', 0.06)) return; const t = this.t, o = this.out!;
+    switch (kind) {
+      case 'sling': this.tone(520, t, 0.12, 'triangle', 0.14, o, 0.45); this.burst(t, 0.05, 2400, 1.2, 0.08); break;
+      case 'paint': this.tone(300, t, 0.1, 'sine', 0.16, o, 1.8); this.burst(t + 0.02, 0.08, 900, 0.8, 0.12); break;
+      case 'popper': this.burst(t, 0.06, 3200, 1.4, 0.1); this.tone(900, t, 0.15, 'square', 0.04, o, 0.6); break;
+      case 'net': this.tone(180, t, 0.18, 'triangle', 0.16, o, 2.2); this.burst(t, 0.16, 700, 0.6, 0.14); break;
+      case 'bubble': for (let i = 0; i < 3; i++) this.tone(700 + i * 260, t + i * 0.04, 0.07, 'sine', 0.08, o, 1.6); break;
+      case 'confetti': this.burst(t, 0.3, 2600, 0.5, 0.25); this.tone(1046, t + 0.05, 0.2, 'triangle', 0.06, o); break;
+    }
+  }
+  splat(kind = '') { if (!this.ok('splat', 0.07)) return; const t = this.t; if (kind === 'bubble') this.tone(1200, t, 0.08, 'sine', 0.06, this.out!, 0.5); else this.burst(t, 0.1, kind === 'sling' ? 1500 : 600, 0.9, 0.14); }
+  pop(kind = '') { if (!this.ok('pop', 0.08)) return; const t = this.t; this.burst(t, kind === 'confetti' ? 0.5 : 0.3, 3600, 0.6, 0.3); for (let i = 0; i < 4; i++) this.tone(1600 + i * 300, t + 0.03 * i, 0.05, 'square', 0.03, this.out!); }
+  reload() { if (!this.ok('reload', 0.2)) return; const t = this.t; this.tone(420, t, 0.05, 'square', 0.06, this.out!); this.tone(620, t + 0.08, 0.05, 'square', 0.06, this.out!); }
+  swapHero() { if (!this.ok('swap', 0.2)) return; const t = this.t; this.tone(mtof(76), t, 0.1, 'triangle', 0.1, this.out!); this.tone(mtof(81), t + 0.08, 0.14, 'triangle', 0.1, this.out!); }
+  tagCue() { if (!this.ok('tag', 0.15)) return; const t = this.t; this.tone(mtof(79), t, 0.08, 'sine', 0.1, this.out!); this.tone(mtof(84), t + 0.06, 0.1, 'sine', 0.08, this.out!); }
+
   /** play the world's events */
   fx(list: Fx[]) {
     for (const f of list) switch (f.t) {
+      case 'fire': this.gadget(f.kind); break;
+      case 'shot-land': case 'stall-splat': case 'ped-hit': this.splat(f.kind); break;
+      case 'burst': this.pop(f.kind); break;
+      case 'reload': case 'gear-switch': case 'reloaded': this.reload(); break;
+      case 'switch': this.swapHero(); break;
+      case 'tag': case 'tag-hold': case 'tag-wait': case 'tag-call': case 'board': this.tagCue(); break;
+      case 'grab': case 'double-pounce': case 'handoff': case 'through': case 'mate-catchup': this.good(); break;
+      case 'pounce': case 'distract': this.whoosh(); break;
+      case 'warden-hit': case 'dizzy': case 'blind': this.bump(0.5); break;
+      case 'crate': case 'gadget-gift': this.chime(); break;
+      case 'slip': this.skid(); break;
+      case 'p2-join': case 'p2-leave': this.chime(); break;
       case 'bump': case 'block': this.bump(f.k ?? 0.4); break;
       case 'hit': this.bump(0.9); this.coins(); break;
       case 'dash': case 'boost': this.whoosh(); break;

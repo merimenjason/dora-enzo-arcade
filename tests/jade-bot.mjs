@@ -3,8 +3,8 @@
 // overshoots a turn, and plays the mini-games with a human's timing slop. It walks to the contact from the safe house,
 // talks, takes the rides the job needs, and on a failure presses Retry (from the checkpoint), as a player would.
 //   perfect - reaction 200 ms, no noise: the scripted solver that tests/jade.mjs uses to prove every job completable
-//   casual  - 200-300 ms, wobbly steering, sloppy timing, Assist on (Easy): must finish each job within its retries
-//             at least 90% of the time
+//   casual  - 200-300 ms, wobbly steering, sloppy timing, Assist on (Easy): must finish every job within its retries, on every
+//             seed; it uses the partner (tag-team key) and the gadgets where a person would
 //   normal  - a steadier player on Normal with Assist off, and the same player on Hard: first-try and finish rates
 //             are reported (Normal should fail a fair share of first tries but still finish)
 // `--quick` (npm test) runs fewer seeds; `--diff` runs only the Normal and Hard players. Exports `playMission` and `missionSave` for tests/jade.mjs.
@@ -21,6 +21,8 @@ import { GOODS, midPrice, prices } from '../.checks/jade-trade.js';
 import { LIGHTS, lightOf } from '../.checks/jade-traffic.js';
 import { ROADS } from '../.checks/jade-city.js';
 import { inWindow, LADDER } from '../.checks/jade-boss.js';
+import { tagOption, boostXY } from '../.checks/jade-tag.js';
+import { carried, giveGadget, GEAR_GIFT } from '../.checks/jade-gear.js';
 
 const QUICK = process.argv.includes('--quick');
 const MAIN = import.meta.url === `file://${process.argv[1]}`;
@@ -30,6 +32,8 @@ export function missionSave(id, o = {}) {
   const s = newSave(o.seed ?? 7);
   const i = MISSIONS.findIndex(m => m.id === id);
   s.done = MISSIONS.slice(0, i).map(m => m.id);
+  // the gadgets the story handed over by then (each job that gives one)
+  if (o.gear !== false) for (const d of s.done) for (const g of GEAR_GIFT[d] ?? []) giveGadget(s, g);
   s.started = true; s.cash = o.cash ?? 400;
   s.settings.assist = o.assist ?? true; s.settings.diff = o.diff ?? 'easy';
   // start at the safe house nearest the job's contact
@@ -75,6 +79,14 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
     if (!w.p.ride && !w.p.roof) { const tx = Math.floor((w.p.x + ix * 44) / T), ty = Math.floor((w.p.y + iy * 44) / T); if (w.c.solid[ty * W + tx] === S.LOW) inp.hop = true; }
   };
   const press = k => { inp[k] = true; };
+  // the tag-team key: pressed when F offers the move this player wants (the HUD shows it)
+  const tagIf = (...kinds) => { const o = tagOption(w); if (o && kinds.includes(o.kind)) { press('tag'); return true; } return false; };
+  // a gadget shot at a point: whoever fires (the passenger on a ride) needs one in hand
+  const shooter = () => w.p.ride ? (w.mate.seat === w.p.ride ? w.mate : null) : w.p;
+  const canFire = (g) => { const sh = shooter(); if (!sh || o.gadgets === false) return false; const c = carried(s, sh.who); return !!c && (!g || g.includes(c)) && s.gear.clip[c] + s.gear.ammo[c] > 0 && sh.fireCd <= 0 && sh.reloadT <= 0; };
+  const shoot = (x, y, g) => { if (!canFire(g)) return false; inp.fire = true; inp.ax = x + (R() - 0.5) * 30 * P.wob; inp.ay = y + (R() - 0.5) * 30 * P.wob; return true; };
+  // the gadget we'd rather hold for a job: switch hands with 1/2 when the other one fits better
+  const wantGadget = (gs) => { const sh = shooter(); if (!sh) return; const c = s.gear.carry[sh.who]; const i = c.findIndex(g => gs.includes(g)); if (i >= 0 && s.gear.slot[sh.who] !== i) inp.slot = i; };
   const getRide = (pred, near) => {
     // walk to the closest matching parked ride and get on
     if (w.p.ride && !pred(w.p.ride)) { if (w.near?.kind === 'exit') press('act'); return; }
@@ -147,6 +159,29 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
     const run = w.run, st = run.cur;
     if (!st) return;
     switch (st.t) {
+      case 'post': return;
+      case 'switch': press('swap'); return;
+      case 'hold': {
+        const [lx, ly] = run.spot(st.lever), [tx, ty] = run.spot(st.through);
+        const m2 = w.mate;
+        if (!(m2.ai.mode === 'hold' && m2.ai.holding)) { if (m2.ai.mode !== 'hold' && !tagIf('hold')) go(lx, ly, 0.6); else { inp.mx = 0; inp.my = 0; } return; }
+        go(tx, ty, 0.8); return;
+      }
+      case 'boost': {
+        if (p.ride) { offFoot(); return; }
+        const [gx, gy] = boostXY(st.at, false);
+        if (dist(gx, gy, p.x, p.y) > 70) { go(gx, gy, 0.8); return; }
+        if (!tagIf('boost-mate')) { inp.mx = 0; inp.my = 0; }
+        return;
+      }
+      case 'bag': {
+        const a = run.actors.find(x => x.kind === 'bagbird'); if (!a) return;
+        wantGadget(['sling', 'paint', 'net', 'popper']);
+        if (dist(a.b.x, a.b.y, p.x, p.y) < 420) shoot(a.b.x, a.b.y);
+        if ((a.extra ?? 0) > 0) { go(a.b.x, a.b.y); if (!p.ride && dist(a.b.x, a.b.y, p.x, p.y) < 80) press('dash'); if (p.ride && dist(a.b.x, a.b.y, p.x, p.y) < 160) tagIf('snatch'); }
+        else { const d = dist(a.b.x, a.b.y, p.x, p.y); if (d > 200) go(a.b.x, a.b.y, 0.7); else { inp.mx = 0; inp.my = 0; } }
+        return;
+      }
       case 'goto': {
         const [x, y] = run.spot(st.at);
         if (st.ride === 'foot' && p.ride) { if (dist(p.x, p.y, x, y) < 400 || w.near?.kind === 'exit') offFoot(); else go(x, y); return; }
@@ -157,26 +192,38 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
       case 'ride': {
         const r = run.ride;
         if (p.ride && p.ride !== r) { offFoot(); return; }
-        if (r && !p.ride) { if (w.near?.kind === 'ride' && (w.near.ride === r || (w.near.ride.kind === st.kind && !st.locked && !w.near.ride.locked))) press('act'); else go(r.b.x, r.b.y); }
+        if (r && !p.ride && !p.act) { if (w.near?.kind === 'ride' && (w.near.ride === r || (w.near.ride.kind === st.kind && !st.locked && !w.near.ride.locked))) press('act'); else go(r.b.x, r.b.y); }
         return;
       }
       case 'pickup': { const [x, y] = run.spot(st.at); go(x, y, 0.8); return; }
       case 'deliver': { const [x, y] = run.spot(st.to); go(x, y, st.fragile ? 0.62 : 1); if (st.fragile && p.ride && p.ride.b.speed > 200) { inp.mx *= 0.2; inp.my *= 0.2; } return; }
       case 'chase': {
         const a = run.actors[0]; if (!a) return;
+        // fell off (or hopped off by mistake) in a ride chase: back on the nearest ride of the kind
+        if (!p.ride && st.who !== 'runner' && !p.act) { const kind = st.who === 'boat' ? 'boat' : 'scooter'; getRide(r => r.kind === kind && !r.locked); return; }
         const lead = Math.min(80, dist(a.b.x, a.b.y, p.x, p.y) * 0.3);
         const tx = a.b.x + Math.cos(a.b.h) * lead, ty = a.b.y + Math.sin(a.b.h) * lead;
         const sees = los(w.c, p.x, p.y, tx, ty) && dist(tx, ty, p.x, p.y) < 400;
         if (sees) { const dx = tx - p.x, dy = ty - p.y, l = Math.hypot(dx, dy) || 1; const an = Math.atan2(dy, dx) + (R() - 0.5) * P.wob; inp.mx = Math.cos(an); inp.my = Math.sin(an); }
         else go(tx, ty);
-        if (!p.ride && dist(a.b.x, a.b.y, p.x, p.y) < 90) press('dash');
-        if (p.ride && dist(a.b.x, a.b.y, p.x, p.y) > 300 && R() < 0.3) press('dash');
+        const da = dist(a.b.x, a.b.y, p.x, p.y), last = a.hits >= st.bumps - 1;
+        if (st.finish === 'pounce' && !p.ride) { if (w.mate.ai.mode !== 'pounce' && dist(a.b.x, a.b.y, w.mate.x, w.mate.y) < 300 && !assist) tagIf('pounce'); }
+        if (last && (st.finish === 'snatch' || st.finish === 'net') && p.ride) {
+          // alongside for the grab, or the net from the back seat
+          if (tagIf('snatch')) return;
+          if (st.finish === 'net') { wantGadget(['net']); if (da < 380) shoot(a.b.x, a.b.y, ['net']); }
+          if (da < 120) { const sp = p.ride.b.speed, as = a.b.speed; if (sp > as + 30) { inp.mx *= 0.4; inp.my *= 0.4; } }
+          return;
+        }
+        if (!p.ride && da < 90) press('dash');
+        if (p.ride && da > 300 && R() < 0.3) press('dash');
         return;
       }
       case 'tail': {
         const a = run.actors[0]; if (!a) return;
         const d = dist(a.b.x, a.b.y, p.x, p.y);
         if (p.ride) { offFoot(); return; }
+        if (st.relay && a.wp >= st.relay.at && p.who === run.starter) { press('swap'); return; }
         inp.sneak = true;
         if (d > 300 && !(a.look > 0 && d < 260)) go(a.b.x, a.b.y, d > 460 ? 1 : 0.9);
         if (d > 460) inp.sneak = false;
@@ -189,11 +236,13 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
           const dx = swoop.b.x - p.x, dy = swoop.b.y - p.y, l = Math.hypot(dx, dy) || 1;
           if (l < 300 && los(w.c, p.x, p.y, swoop.b.x, swoop.b.y)) { inp.mx = dx / l; inp.my = dy / l; } else go(swoop.b.x, swoop.b.y);
           if (l < 80) press('dash');
+          if (l < 360 && l > 90) { wantGadget(st.flanks ? ['confetti', 'sling', 'popper', 'paint'] : ['sling', 'paint', 'popper']); shoot(swoop.b.x, swoop.b.y); }
         } else if (dist(lion.b.x, lion.b.y, p.x, p.y) > 120) go(lion.b.x, lion.b.y);
         return;
       }
       case 'race': {
-        const mk = run.marks[run.mark]; if (!mk) return;
+        let mk = run.marks[run.mark]; if (!mk) return;
+        if (st.relay !== undefined && run.mark >= st.relay && p.who === run.starter) mk = [w.mate.x, w.mate.y];
         if (st.ride === 'foot' && p.ride) { offFoot(); return; }
         if (st.ride && st.ride !== 'foot' && p.ride?.kind !== st.ride) { getRide(r => r.kind === st.ride); return; }
         if (st.roof && !p.roof) { const l = w.c.ladders.map(l => [l.x * T + 32, l.y * T + 32]).sort((a, b) => dist(...a, p.x, p.y) - dist(...b, p.x, p.y))[0]; if (w.near?.kind === 'ladder-up') press('act'); else go(l[0], l[1]); return; }
@@ -213,7 +262,9 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
       case 'stealth': {
         if (p.ride) { offFoot(); return; }
         const tgt = run.phase === 0 ? run.spot(st.goal) : run.spot(st.exit);
+        if (st.shutter && run.phase === 0 && !(w.mate.ai.mode === 'hold')) { if (tagIf('hold')) return; }
         inp.sneak = true;
+        if (st.shutter && run.phase === 0 && !(w.mate.ai.mode === 'hold' && w.mate.ai.holding) && dist(tgt[0], tgt[1], p.x, p.y) < 200) { inp.mx = 0; inp.my = 0; return; }
         go(tgt[0], tgt[1], 1);
         // wait when the next stretch is in a lookout's beam
         const nx = p.x + inp.mx * 60, ny = p.y + inp.my * 60;
@@ -224,7 +275,19 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
         if (close) { const ax = p.x - close.b.x, ay = p.y - close.b.y, l = Math.hypot(ax, ay) || 1; const hx = Math.cos(close.b.h), hy = Math.sin(close.b.h); const side = (ax * -hy + ay * hx) >= 0 ? 1 : -1; inp.mx = (-hy * side * 0.8 + ax / l * 0.6); inp.my = (hx * side * 0.8 + ay / l * 0.6); }
         return;
       }
-      case 'collect': { const o = run.target(); if (o) go(o[0], o[1]); return; }
+      case 'collect': {
+        const o = run.target(); if (!o) return;
+        // a window lookout: paint the glass or send the partner to distract it
+        const win = run.actors.find(a => a.kind === 'window');
+        if (win && !((win.extra2 ?? 0) > 0) && dist(win.b.x, win.b.y, p.x, p.y) < 560) {
+          wantGadget(['paint']);
+          if (!shoot(win.b.x, win.b.y, ['paint']) && !((win.stare ?? 0) > 0)) tagIf('distract');
+          if ((run.meter2?.v ?? 0) > 0.3 && !((win.stare ?? 0) > 0)) { inp.mx = 0; inp.my = 0; inp.sneak = true; return; }
+        }
+        go(o[0], o[1], st.high ? 0.75 : 1);
+        if (st.high) { if (p.ride && dist(o[0], o[1], p.x, p.y) < 150) tagIf('snatch'); if (dist(o[0], o[1], p.x, p.y) < 380) shoot(o[0], o[1]); }
+        return;
+      }
       case 'raid': {
         const o = run.target(); if (!o) return;
         go(o[0], o[1]);
@@ -233,6 +296,7 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
       }
       case 'float': {
         if (p.ride) { offFoot(); return; }
+        if (st.rope && w.mate.ai.mode !== 'hold' && tagIf('hold')) return;
         if (!p.roof) { const lx = LADDER[0] * T + 32, ly = LADDER[1] * T + 32; if (w.near?.kind === 'ladder-up' && dist(lx, ly, p.x, p.y) < 90) press('act'); else go(lx, ly); return; }
         if (w.near?.kind === 'leap' && inWindow(run) >= 0) { press('act'); return; }
         const o = run.target(); if (!o) return;
@@ -336,7 +400,7 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
     w.step(inp, DT); t += DT;
     if (o.trace && Math.floor(t / o.trace) !== Math.floor((t - DT) / o.trace)) { const r = w.run; const a = r?.actors[0]; console.log(`t${Math.round(t)} p(${Math.round(w.p.x / T)},${Math.round(w.p.y / T)}) ride=${w.p.ride?.kind ?? '-'} roof=${w.p.roof} step=${r?.i}:${r?.cur?.t} near=${w.near?.kind ?? '-'} inp=${inp.mx.toFixed(1)},${inp.my.toFixed(1)}${a ? ` a(${Math.round(a.b.x / T)},${Math.round(a.b.y / T)}) wp${a.wp}/${a.route.length} look${a.look.toFixed(1)}` : ''} meter=${r?.meter ? r.meter.name + ':' + r.meter.v.toFixed(2) : '-'} heat=${w.heat.toFixed(1)} ui=${w.ui?.kind ?? "-"} wd=${w.wardens.map(x => Math.round(Math.hypot(x.b.x - w.p.x, x.b.y - w.p.y)) + "@" + Math.round(x.b.x) + "," + Math.round(x.b.y) + (x.leave ? "L" : "")).join("|")} pp=${Math.round(w.p.x)},${Math.round(w.p.y)} fail=${w.failed ?? ""}${o.traceRide && r?.ride ? ` rr(${(r.ride.b.x / T).toFixed(1)},${(r.ride.b.y / T).toFixed(1)} ${r.ride.parked} ${r.ride.locked}) nr(${w.near?.ride ? (w.near.ride.b.x / T).toFixed(1) + ',' + (w.near.ride.b.y / T).toFixed(1) + ' ' + w.near.ride.kind + ' ' + w.near.ride.locked : '-'}) act=${w.p.act?.n ?? '-'}` : ''}`); }
     w.drain();
-    inp.act = false; inp.dash = false; inp.hop = false;
+    inp.act = false; inp.dash = false; inp.hop = false; inp.tag = false; inp.swap = false; inp.fire = false; inp.slot = undefined; inp.reload = false;
     if (s.done.includes(id)) return { won: true, time: Math.round(t), fails, why };
   }
   return { won: false, time: Math.round(t), fails, why, at: w.run ? `${w.run.i}:${w.run.cur?.t}:${w.run.label}` : (w.failed?.reason ?? 'no run') };
@@ -366,7 +430,7 @@ if (MAIN) {
   }
   const pc = (a, b) => `${Math.round(100 * a / Math.max(1, b))}%`;
   console.log(`Normal: finished ${pc(tot.nw, tot.n)}, first try ${pc(tot.nf, tot.n)}   Hard: finished ${pc(tot.hw, tot.n)}, first try ${pc(tot.hf, tot.n)}`);
-  assert.ok(worst >= 0.9, `the casual bot finishes every job at least 90% of the time on Assist (worst ${Math.round(worst * 100)}%)`);
+  assert.ok(worst >= 1, `the casual bot finishes every job every time on Assist (worst ${Math.round(worst * 100)}%)`);
   if (!QUICK && !only) {
     // the full run also holds Normal and Hard to their targets: every job finishable, Normal failing a fair share of
     // first tries without walling anyone, Hard clearly harder

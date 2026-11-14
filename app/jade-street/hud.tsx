@@ -29,7 +29,7 @@ export function TopHud({ play, onMap, onPause }: { play: Play; onMap: () => void
     <>
       <div className="jade-hud-left" data-testid="hud">
         <div className="jade-hero-plaque">
-          <span className="jade-face-ring"><Sprite name={`face-${s.hero}`} h={46} w={46} /></span>
+          <span className="jade-face-ring"><Sprite name={`face-${w.p.who}`} h={46} w={46} /></span>
           <div className="jade-hero-stats">
             <div className="jade-cash" data-testid="cash"><Icon name="ui-coin" size={20} /> {fmt(s.cash)}</div>
             <div className="jade-lanterns" aria-label={`Heat: ${L} of 5 lanterns`} data-heat={L}>
@@ -167,5 +167,5 @@ export function TouchControls({ play }: { play: Play }) {
 }
 
 export function KeyHelp() {
-  return <div className="jade-keys" aria-hidden>WASD move · Shift sneak · Space dash/boost · Q hop/honk · E action · M map · Esc pause</div>;
+  return <div className="jade-keys" aria-hidden>WASD move · Shift sneak · Space dash/boost · Q hop/honk · E action · Tab switch · F tag-team · click fire · 1 2 gadget · X reload · M map · Esc pause</div>;
 }

@@ -35,6 +35,8 @@ export function mateStep(w: World, dt: number) {
   const d = dist(m.x, m.y, p.x, p.y);
   // waiting partners come back to you once you are close again (unless a job posted them)
   if (ai.mode === 'stay' && !ai.story && d < 220) ai.mode = 'follow';
+  // one left waiting far away for a long while (after a switch, a job over) comes back to you
+  if (ai.mode === 'stay' && !ai.story && !w.two) { ai.t = d > OFFSCREEN ? ai.t + dt : 0; if (ai.t > 20) { ai.mode = 'follow'; ai.t = 0; } }
   let goal: [number, number] | null = null, speed = FOOT.run, sneak = p.sneak && !p.ride;
   switch (ai.mode) {
     case 'follow': {
@@ -56,7 +58,7 @@ export function mateStep(w: World, dt: number) {
       goal = ai.at; if (!goal) { ai.mode = 'follow'; return; }
       if (ai.mode === 'guard') { const g = w.run?.guardGoal(m); if (g) { goal = g; speed = FOOT.run * 1.05; } }
       const near = dist(m.x, m.y, goal[0], goal[1]);
-      const wantRoof = ai.mode === 'post' && w.run?.postRoof(goal) === true;
+      const wantRoof = ai.mode !== 'guard' && (w.c.flags[Math.floor(goal[1] / T) * W + Math.floor(goal[0] / T)] & F_ROOF) > 0;
       if (wantRoof !== m.roof) { const lg = ladderGoal(w, m, wantRoof); if (!lg) { m.roof = wantRoof; m.b.x = goal[0]; m.b.y = goal[1]; return; } if (dist(m.x, m.y, lg[0], lg[1]) < 40) { climb(w, m, wantRoof); return; } goal = lg; break; }
       if (near < (ai.mode === 'hold' ? 20 : 26)) {
         if (ai.mode === 'hold') { if (!ai.holding) w.fx.push({ t: 'hold', x: m.x, y: m.y }); ai.holding = true; m.anim = w.run?.holdAnim() ?? 'hold'; m.b.speed = 0; m.face = 'down'; return; }

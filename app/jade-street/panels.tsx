@@ -21,7 +21,7 @@ const dName = (d: District) => DISTRICT_NAME[d].replace(/^the /, 'The ');
 export const MARKET_NAME: Record<District, string> = { market: 'Night Market', temple: 'Temple Hill Bazaar', canal: 'Floating Market', docks: 'Harbour Market', arcade: 'Neon Market' };
 export const KEEPER: Record<District, string> = { market: 'Uncle Kee', temple: 'Auntie Pang', canal: 'Kiri', docks: 'Big Bo', arcade: 'Gizmo' };
 
-function Panel({ title, onClose, children, cls = '', testid }: { title: string; onClose: () => void; children: React.ReactNode; cls?: string; testid?: string }) {
+export function Panel({ title, onClose, children, cls = '', testid }: { title: string; onClose: () => void; children: React.ReactNode; cls?: string; testid?: string }) {
   return (
     <div className="jade-modal-back" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className={'jade-panel ' + cls} role="dialog" aria-label={title} data-testid={testid}>
@@ -227,6 +227,7 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
           <Btn kind="plain" testid="tab-story" onClick={() => setTab('story')}>Story</Btn>
           <Btn kind="plain" testid="tab-biz" onClick={() => setTab('businesses')}>Businesses</Btn>
           <Btn kind="plain" testid="tab-controls" onClick={() => setTab('controls')}>Controls</Btn>
+          {!touch && <Btn kind="plain" testid="two-players" onClick={() => { play.setTwo(!play.w.two); onClose(); }}>{play.w.two ? 'Player 2 leaves' : 'Player 2 joins (same keyboard or a gamepad)'}</Btn>}
           <Btn kind="plain" testid="tab-settings" onClick={() => setTab('settings')}>Settings</Btn>
           <Btn kind="plain" testid="tab-trophies" onClick={() => setTab('trophies')}>Trophies ({s.trophies.length}/{TROPHIES.length})</Btn>
           <Btn kind="plain" testid="tab-stats" onClick={() => setTab('stats')}>Stats</Btn>
@@ -250,7 +251,7 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
           <label><input type="checkbox" data-testid="set-shake" checked={s.settings.shake} onChange={e => set(x => { x.shake = e.target.checked; })} /> Screen shake</label>
           <label><input type="checkbox" data-testid="set-calm" checked={s.settings.calm} onChange={e => set(x => { x.calm = e.target.checked; })} /> Reduce shake: gentler shake, no flashes, short slow motion</label>
           <label>Touch controls <select data-testid="set-touch" value={s.settings.touch} onChange={e => set(x => { x.touch = e.target.value as 'auto' | 'on' | 'off'; })}><option value="auto">Automatic</option><option value="on">Always</option><option value="off">Never</option></select></label>
-          <p className="small">Keys: WASD or arrows move · Shift sneak · Space dash (boost on a ride) · Q hop (honk on a ride) · E action · M map · Esc pause.</p>
+          <p className="small">Keys: WASD or arrows move · Shift sneak · Space dash (boost on a ride) · Q hop (honk on a ride) · E action · Tab switch hero · F tag-team move · mouse aim, click fire · 1 and 2 gadget · X reload · M map · Esc pause.</p>
         </div>
       )}
       {tab === 'trophies' && (

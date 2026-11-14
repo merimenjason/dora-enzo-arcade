@@ -14,6 +14,8 @@ import { lanterns } from './jade-heat.js';
 import { Life } from './jade-life.js';
 import { Juice } from './jade-juice.js';
 import { setGround, setSorted, drawDecoy, realGlint } from './jade-setdraw.js';
+import { drawHero, gearGround, gearSorted, gearOver, wardenHitFrame, aimLine, setItemSprite } from './jade-duodraw.js';
+import { shooterFor } from './jade-gear.js';
 
 export const ART = '/art/jade-street/';
 const CH = 8; // tiles per chunk
@@ -158,6 +160,8 @@ export class Scene {
   map: HTMLCanvasElement | null = null; mapK = 8;
   dust: { x: number; y: number; t: number; vx: number; vy: number; c: string; s: number }[] = [];
   juice = new Juice(); lookX = 0; lookY = 0; zoomRide = 1;
+  /** the camera's focus eases between heroes on a switch and frames both with a second player; the mouse aim */
+  focusX = NaN; focusY = NaN; zoomTwo = 1; aim: { x: number; y: number; on: boolean } | null = null;
   minimap = { x: 0, y: 0, r: 0, on: true };
   life = new Life(spr, (x, px, py, r, col) => this.glow(x, px, py, r, col));
   constructor(public cv: HTMLCanvasElement, public c: City) {
@@ -301,11 +305,19 @@ export class Scene {
     this.lookY += (Math.sin(hd) * lead - this.lookY) * Math.min(1, dt * 2.5);
     const zr = ride ? (phone ? 0.86 - Math.min(0.14, sp / 2600) : 0.9 - Math.min(0.1, sp / 3400)) : 1;
     this.zoomRide += (zr - this.zoomRide) * Math.min(1, dt * 1.5);
-    const k = this.baseZoom() * this.zoomRide * this.juice.zoom();
+    // two players: frame both heroes (the leash keeps them close enough); one: follow yours, easing across on a switch
+    const m = w.mate, tx = w.two ? (p.x + m.x) / 2 : p.x, ty = w.two ? (p.y + m.y) / 2 : p.y;
+    if (!isFinite(this.focusX) || Math.hypot(tx - this.focusX, ty - this.focusY) > 2400) { this.focusX = tx; this.focusY = ty; }
+    this.focusX += (tx - this.focusX) * Math.min(1, dt * 7); this.focusY += (ty - this.focusY) * Math.min(1, dt * 7);
+    const base = this.baseZoom();
+    const zt = w.two ? Math.min(1, (this.w / base) / (Math.abs(p.x - m.x) + 520), (this.h / base) / (Math.abs(p.y - m.y) + 380)) : 1;
+    this.zoomTwo += (zt - this.zoomTwo) * Math.min(1, dt * 3);
+    const k = base * this.zoomRide * this.zoomTwo * this.juice.zoom();
     const [shx, shy] = this.juice.shakeXY();
     const cam = this.cam; cam.k = k; cam.w = this.w / k; cam.h = this.h / k;
-    cam.x = Math.max(cam.w / 2, Math.min(W * T - cam.w / 2, p.x + this.lookX)) + shx;
-    cam.y = Math.max(cam.h / 2, Math.min(H * T - cam.h / 2, p.y + this.lookY)) + shy;
+    const lk = w.two ? 0.3 : 1;
+    cam.x = Math.max(cam.w / 2, Math.min(W * T - cam.w / 2, this.focusX + this.lookX * lk)) + shx;
+    cam.y = Math.max(cam.h / 2, Math.min(H * T - cam.h / 2, this.focusY + this.lookY * lk)) + shy;
     const ox = cam.x - cam.w / 2, oy = cam.y - cam.h / 2;
     const s = this.dpr * k;
     x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#100c20'; x.fillRect(0, 0, this.cv.width, this.cv.height);
@@ -326,6 +338,8 @@ export class Scene {
     this.routeLine(x, w);
     this.markers(x, w, 'ground');
     setGround(this, x, w);
+    const vis0 = (px: number, py: number, mm = 160) => px > ox - mm && px < ox + cam.w + mm && py > oy - mm && py < oy + cam.h + mm * 1.5;
+    gearGround(this, x, w, vis0);
     // y-sorted things
     const list: [number, () => void][] = [];
     const vis = (px: number, py: number, m = 160) => px > ox - m && px < ox + cam.w + m && py > oy - m && py < oy + cam.h + m * 1.5;
@@ -333,7 +347,7 @@ export class Scene {
       const b = this.overBuckets.get(cx + cy * 1000); if (!b) continue;
       for (const i of b) { const pr = this.c.props[i]; if (pr.layer !== 'over' || !vis(pr.x, pr.y)) continue; list.push([pr.y + (pr.sprite.startsWith('stall') ? 20 : 0), () => this.prop(x, pr)]); }
     }
-    for (const r of w.rides) if (r !== ride && vis(r.b.x, r.b.y)) list.push([r.b.y, () => this.ride(x, w, r, false)]);
+    for (const r of w.rides) if (r !== ride && r !== m.ride && vis(r.b.x, r.b.y)) list.push([r.b.y, () => this.ride(x, w, r, false)]);
     for (const c of w.cars) if (vis(c.x, c.y)) list.push([c.y, () => { x.fillStyle = 'rgba(0,0,0,.3)'; this.shadow(x, c.x + 5, c.y + 7, c.len * 0.5, c.rad); spr(x, c.sprite, c.x, c.y, { anchor: 'center', rot: c.h + Math.PI / 2 + (c.wob > 0 ? Math.sin(this.t * 40) * 0.06 : 0) }); }]);
     for (const pd of w.peds) if (vis(pd.x, pd.y)) list.push([pd.y, () => this.ped(x, w, pd)]);
     for (const wd of w.wardens) if (vis(wd.b.x, wd.b.y)) list.push([wd.b.y, () => this.warden(x, wd)]);
@@ -344,10 +358,13 @@ export class Scene {
     for (const l of this.c.ladders) if (vis(l.x * T, l.y * T)) list.push([l.y * T + 10, () => spr(x, 'fire-ladder', l.x * T + T / 2, l.y * T + T - 4, { h: 96 })]);
     this.life.sorted(x, w, list, vis, this.t);
     setSorted(this, x, w, list, vis);
+    gearSorted(this, x, w, list, vis);
     if (!p.roof) list.push([p.y + 1, () => this.hero(x, w)]);
+    if (!m.roof && !m.seat && vis(m.x, m.y)) list.push([m.y + 0.5, () => drawHero(this, x, w, m, w.two)]);
     list.sort((a, b) => a[0] - b[0]);
     for (const [, f] of list) f();
-    if (p.roof) { this.roofDim(x, ox, oy, cam.w, cam.h); this.markers(x, w, 'roof'); this.hero(x, w); }
+    if (p.roof || m.roof) { if (p.roof) this.roofDim(x, ox, oy, cam.w, cam.h); this.markers(x, w, 'roof'); if (m.roof && !m.seat) drawHero(this, x, w, m, w.two); if (p.roof) this.hero(x, w); }
+    aimLine(this, x, w, this.aim, shooterFor(w, p));
     this.markers(x, w, 'over');
     // flying and overhead things
     for (const pr of this.c.props) if (pr.layer === 'sky' && vis(pr.x, pr.y, 200)) {
@@ -355,7 +372,8 @@ export class Scene {
       const fs = frameSize(pr.sprite); const lw = pr.w ?? fs[0];
       spr(x, pr.sprite, pr.x, pr.y, { w: lw, anchor: 'center', rot: pr.rot, alpha: 0.95 });
     }
-    for (const m of w.snatchers) this.flyer(x, m.x, m.y, m.h, m.wing);
+    for (const sn of w.snatchers) { this.flyer(x, sn.x, sn.y, sn.h + ((sn.dizzy ?? 0) > 0 ? this.t * 12 : 0), sn.wing); if ((sn.dizzy ?? 0) > 0) this.stars(x, sn.x, sn.y - 24); }
+    gearOver(this, x, w, vis);
     if (w.run) for (const a of w.run.actors) if (a.kind === 'swoop') this.flyer(x, a.b.x, a.b.y, a.b.h + (a.stun > 0 ? this.t * 12 : 0), a.t * 9);
     this.life.over(x, w, vis, dt, cam);
     this.life.rainWorld(x, w, dt, cam);
@@ -404,38 +422,7 @@ export class Scene {
     spr(x, name, r.b.x, r.b.y, { anchor: 'center', rot: r.b.h + Math.PI / 2 + bob, variant: paint ? 'paint:' + paint : '' });
     if (r.locked && !player) { const b = Math.sin(this.t * 4) * 3; spr(x, 'i-key', r.b.x, r.b.y - 30 + b, { w: 26, anchor: 'center' }); }
   }
-  hero(x: CanvasRenderingContext2D, w: World) {
-    const p = w.p, h = w.s.hero; const of = OUTFITS.findIndex(o => o.id === w.s.outfit[h]);
-    const variant = of > 0 ? `${h}:${of}` : '';
-    if (p.ride) {
-      const r = p.ride; this.ride(x, w, r, true);
-      const k = r.kind; const fwd = k === 'trishaw' ? -0.3 : k === 'boat' ? -0.32 : 0.02;
-      const rx = r.b.x + Math.cos(r.b.h) * VEHICLES[k].len * fwd, ry = r.b.y + Math.sin(r.b.h) * VEHICLES[k].len * fwd;
-      let f = '';
-      if (p.anim === 'ride-bump') f = `${h}-ride-bump`;
-      else if (k === 'scooter') f = w.run && w.banner?.text === 'Job done!' ? `${h}-ride-cheer` : `${h}-ride-scooter-${Math.sin(this.t * 3) > 0 ? 0 : 1}`;
-      else if (k === 'trishaw') f = `${h}-ride-pedal-${Math.floor(this.t * (2 + r.b.speed / 50)) % 2}`;
-      else if (k === 'boat') f = `${h}-ride-pole-${Math.floor(this.t * 1.5) % 2}`;
-      if (f) spr(x, f, rx, ry, { anchor: 'center', rot: r.b.h + Math.PI / 2, variant });
-      else { // tuk-tuk and van: the hero's ears peek over the seat
-        spr(x, `${h}-ride-scooter-0`, rx + Math.cos(r.b.h) * 6, ry + Math.sin(r.b.h) * 6, { anchor: 'center', rot: r.b.h + Math.PI / 2, w: 26, alpha: 0.0 });
-      }
-      if (p.carry) spr(x, itemSprite(p.carry), r.b.x, r.b.y, { w: 26, anchor: 'center', rot: r.b.h + Math.PI / 2 });
-      return;
-    }
-    const hop = p.anim === 'umbrella' ? Math.abs(Math.sin(p.animT * 7)) * 2 : p.anim === 'hop' ? Math.sin(Math.min(1, 1 - p.hopT / 0.42) * Math.PI) * 26 : p.anim === 'climb' ? Math.sin(p.act ? p.act.t * 12 : 0) * 6 + 10 : 0;
-    x.fillStyle = 'rgba(0,0,0,.35)'; this.shadow(x, p.b.x, p.b.y + 2, 16 - hop * 0.2, 7 - hop * 0.08);
-    if (p.anim === 'dash') this.puff(p.b.x - Math.cos(p.b.h) * 14, p.b.y + 4, '#d8d0e8');
-    const f = heroFrame(h, p.anim, p.face, p.act ? p.act.t : p.animT);
-    const flip = p.face === 'side' && p.flip;
-    // squash and stretch about the feet: a stretch on take-off, a squash on landing
-    const [qx, qy] = this.juice.squash(p.anim, 1 - p.hopT / 0.42), fy = p.b.y + 4 - hop;
-    if (qx !== 1 || qy !== 1) { x.save(); x.translate(p.b.x, fy); x.scale(qx, qy); x.translate(-p.b.x, -fy); }
-    spr(x, f, p.b.x, fy, { flip, variant, alpha: p.hide ? 0.55 : 1 }) || spr(x, `${h}-idle-down`, p.b.x, p.b.y + 4, { variant });
-    if (qx !== 1 || qy !== 1) x.restore();
-    if (p.carry && !p.anim.startsWith('carry')) spr(x, itemSprite(p.carry), p.b.x, p.b.y - 54 - hop, { w: 28 });
-    if (p.anim === 'umbrella' && p.face !== 'down') spr(x, 'umb-red', p.b.x, p.b.y - 46, { w: 46, anchor: 'center' });
-  }
+  hero(x: CanvasRenderingContext2D, w: World) { drawHero(this, x, w, w.p, true); }
   ped(x: CanvasRenderingContext2D, w: World, pd: World['peds'][number]) {
     const cx = Math.cos(pd.h), sy = Math.sin(pd.h);
     let f = `folk-${pd.sp}-`, flip = false;
@@ -447,11 +434,14 @@ export class Scene {
     const hop = pd.hop > 0 ? Math.sin((1 - pd.hop / 0.42) * Math.PI) * 18 : Math.abs(Math.sin(pd.walk * 9)) * (pd.wait > 0 ? 0 : 2);
     x.fillStyle = 'rgba(0,0,0,.3)'; this.shadow(x, pd.x, pd.y + 2, 12, 5);
     spr(x, f, pd.x, pd.y + 4 - hop, { flip });
+    if (pd.splat) spr(x, pd.splat, pd.x, pd.y - 30 - hop, { w: 26, anchor: 'center', alpha: Math.min(1, (pd.splatT ?? 0) * 2) });
     this.life.umbrella(x, w, pd, hop);
   }
   warden(x: CanvasRenderingContext2D, wd: World['wardens'][number]) {
     x.fillStyle = 'rgba(0,0,0,.3)'; this.shadow(x, wd.b.x + 4, wd.b.y + 6, 26, 12);
     const rot = wd.b.h + Math.PI / 2 + (wd.stun > 0 ? Math.sin(this.t * 30) * 0.4 : 0);
+    const hf = wardenHitFrame(wd);
+    if (hf) { spr(x, hf, wd.b.x, wd.b.y + 20, { w: 84 }); this.stars(x, wd.b.x, wd.b.y - 50); return; }
     spr(x, Math.floor(wd.pedal * (2 + wd.b.speed / 60)) % 2 ? 'warden-bike-a' : 'warden-bike-b', wd.b.x, wd.b.y, { anchor: 'center', rot });
     if (wd.stun > 0) this.stars(x, wd.b.x, wd.b.y - 20);
     // the bike's flashing lamp
@@ -680,4 +670,5 @@ import { MISSION, PEOPLE } from './jade-story.js';
 function nearList(w: World) {
   return available(w.s).map(m => { const pl = w.c.places[m.at]; return { kind: 'mission', x: pl?.x ?? 0, y: pl?.y ?? 0, id: m.id }; });
 }
+setItemSprite(itemSprite);
 function MISSION_FACE(id: string) { const m = MISSION[id]; return PEOPLE[m.giver]?.face ?? 'face-kee'; }
