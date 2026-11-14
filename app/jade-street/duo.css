@@ -25,8 +25,8 @@
 .jade-shell .jade-gear-reload b { display: block; height: 100%; background: var(--good); }
 .jade-shell .jade-gear-keys { font-size: 11px; font-weight: 800; color: var(--muted); margin-top: 4px; text-align: center; }
 .jade-shell .jade-panel.gear { width: min(760px, calc(100vw - 24px)); }
-.jade-shell .jade-gear-head { display: flex; gap: 12px; align-items: center; }
-.jade-shell .jade-gear-head p { margin: 0; font-weight: 800; }
+.jade-shell .jade-gear-head { display: flex; gap: 12px; align-items: flex-end; min-height: 130px; padding: 10px; border-radius: 14px; background: url(/art/jade-street/bg-gadget-shop.webp) center 40%/cover; }
+.jade-shell .jade-gear-head p { margin: 0; font-weight: 800; background: var(--panel); border-radius: 10px; padding: 6px 10px; }
 .jade-shell .jade-gear-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
 .jade-shell .jade-gear-item { display: flex; gap: 10px; align-items: center; background: var(--panel2); border-radius: 12px; padding: 6px 8px; border: 2px solid transparent; }
 .jade-shell .jade-gear-item.own { border-color: rgba(31,154,106,.6); }

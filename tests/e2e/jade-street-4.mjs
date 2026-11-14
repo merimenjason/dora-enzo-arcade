@@ -30,7 +30,7 @@ export async function fourth(h) {
   check(await W(() => window.__jade.world().s.hero) === d2.who, `${name}: the save follows the switch`);
   await press('duo-switch'); await wait(300); check((await duo()).who === who0, `${name}: clicking the partner's portrait switches back`);
 
-  // ── boost onto a roof, then haul the partner up (temple wall at tile 93,39)
+  // ── boost onto a roof, then haul the partner up (an Arcade Strip wall at tile 93,39)
   await W(() => { window.__jade.teleport(93, 39); const w = window.__jade.world(); w.p.b.x = 93 * 64 + 32; w.p.b.y = 39 * 64 + 32; w.mate.b.x = w.p.b.x - 40; w.mate.b.y = w.p.b.y + 20; });
   await wait(200);
   check(await until(() => window.__jade.duo().tag === 'boost', null, 3000), `${name}: F offers a boost at the wall`);

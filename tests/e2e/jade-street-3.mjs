@@ -2,7 +2,8 @@
 // desktop-only): the babble
 // voice and the typewriter (a press shows the whole line, the next press moves on), a painted mood portrait for every
 // line, each chase set piece fired through the hooks (its warning on screen, then live), a knock from the rubble with
-// its debris and shake, Madame Glint's three phases (decoys, falling signs, then the fire ladder, a rooftop flag and
+// its debris and shake, Madame Glint’s three phases (decoys, falling signs, then F to send the partner to the bunting
+// rope, a rooftop flag and
 // the leap onto her float with a real E press), the businesses (buy a stake, upgrade, collect at the
 // stall and at a safe house, the Businesses page in the pause menu, and a magpie raid defended by dashing into the
 // magpies), the Reduce shake setting, and the new hero animations (deal, mend, collect, shoo, leap, tumble, skid).
@@ -62,6 +63,10 @@ export async function third(h) {
   await W(() => { const J = window.__jade; J.enterStep(J.stepOf('chase', '2')); });
   check(await until(() => window.__jade.run().signs > 0 && window.__jade.run().phase === 2, null, 8000), `${name}: phase 2 drops neon signs`); await wait(400); await look('boss signs');
   await W(() => { const J = window.__jade; J.enterStep(J.stepOf('float')); const w = J.world(); if (w.p.ride) { w.p.ride.parked = true; w.p.ride = null; } w.p.roof = true; w.p.b.x = 103 * 64 + 32; w.p.b.y = 34 * 64 + 12; w.p.lastRoof = [w.p.b.x, w.p.b.y]; });
+  // the float only swings in once the partner hauls the bunting rope: F sends them
+  check(await until(() => window.__jade.duo().tag === 'hold', null, 3000), `${name}: F offers the bunting rope`);
+  await p.keyboard.press('f'); await wait(150);
+  check(await until(() => window.__jade.duo().holding, null, 15000), `${name}: the partner hauls the rope`);
   check(await until(() => window.__jade.run().float?.moving, null, 3000), `${name}: phase 3: the float rolls`); await look('boss float');
   check(await until(() => window.__jade.world().near?.kind === 'leap' && /onto/.test(window.__jade.world().near.label), null, 20000), `${name}: the flag says leap when the float is below ${await W(() => { const J = window.__jade, w = J.world(), f = w.run?.float; return JSON.stringify({ near: w.near, f: f && { x: Math.round(f.x / 64), m: f.moving, d: f.done }, p: [Math.round(w.p.x), Math.round(w.p.y), w.p.roof, w.p.ride?.kind], paused: J.play.paused, ui: w.ui?.kind, talk: !!w.talk, t: w.run?.cur?.t, failed: w.failed?.reason }); })}`);
   await act();

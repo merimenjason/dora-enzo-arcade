@@ -2,6 +2,22 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 15-11-2026
+
+### Added
+
+- **Jade Street**: both chinchillas together. The hero you are not playing follows you through the city, rides pillion or on the bench, hides with you and cheers; Tab or a click on their portrait switches heroes, and the one you leave keeps doing their part. F does a tag-team move (a boost onto a roof and hauling the other up, a double pounce, distracting a warden, a grab from the back seat, holding a lever or a rope), each with its own painted animation, and thirteen jobs are reworked to need both of you, with both heroes speaking in the dialogue.
+- **Jade Street**: festival gadgets. A slingshot, paint squirter, popper box, net launcher, bubble blower and confetti cannon, given in the story or bought at Tock's toy stall in the Night Market with ammo and tune-ups; each hero carries two. Aim with the mouse and click to fire (Assist helps the aim). Magpies get dizzy and drop their loot, carts wobble and nets tangle getaways, flocks scatter, lookouts are blinded by paint, wardens slip on soap; hitting wardens or townsfolk, or splattering a stall, brings heat. Red supply crates around the quarter refill the satchels.
+- **Jade Street**: a second player on the same keyboard or a gamepad, joined from the pause menu or with Start; the camera frames both and a leash keeps you on one screen.
+
+### Changed
+
+- **Jade Street**: the save moves to version 5; older saves keep everything and get the gadgets the story would have given them.
+
+### Fixed
+
+- **Jade Street**: the "push all the way to run" lesson reads differently on a keyboard and no longer lingers, and the ending, credits and their festival message play only the first time Glint is beaten (a replay of the last job no longer brings them back, and the message never shows during a job).
+
 ## 14-11-2026
 
 ### Added

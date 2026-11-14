@@ -1,6 +1,7 @@
 // Jade Street play-through for frame rate: a save with every district open, then minutes of play in each district,
 // half of it in the rain with a busker's crowd gathered, every business stall bought and fully upgraded, and the
-// third pass's effects firing (hit-stop, shake, painted debris, the heirloom slow-mo and zoom punch),
+// third pass's effects firing (hit-stop, shake, painted debris, the heirloom slow-mo and zoom punch), and the fourth's
+// (the partner following and riding behind, a gadget fired twice a second with its shots, splats, bursts and puddles),
 // at 1280×800 with real keys: running, dashing and hopping on foot, riding a scooter with boosts, a spell of five-lantern
 // heat (wardens, roadblocks and the blimp) and a jump to fresh streets every few seconds. Logs the frame rate per
 // district and fails when any district averages under 55 fps, or on a page error. Needs `npm run dev` (or BASE_URL)
@@ -27,6 +28,8 @@ await p.waitForFunction(() => !!window.__jade, null, { timeout: 30000 });
 await p.waitForTimeout(1500);
 // every stall owned at level 3, so the grandest stalls are drawn
 await p.evaluate(() => { const s = window.__jade.world().s; for (const id of Object.keys(s.biz)) s.biz[id] = { ...s.biz[id], lvl: 3, bank: 200 }; });
+// every gadget, with deep satchels, so shots, splats, bursts and puddles are drawn while the partner follows
+await p.evaluate(() => { window.__jade.give(); const s = window.__jade.world().s; for (const g of s.gear.own) { s.gear.ammo[g] = 999; s.gear.lvl[g] = 2; } });
 
 const DISTRICTS = ['market', 'temple', 'canal', 'docks', 'arcade'];
 const keys = ['w', 'a', 's', 'd'];
@@ -59,6 +62,8 @@ for (const d of DISTRICTS) {
     held = keys[(k * 3 + Math.floor(k / 4)) % 4]; await p.keyboard.down(held);
     await p.waitForTimeout(250);
     await p.keyboard.press(k % 3 === 0 ? ' ' : k % 3 === 1 ? 'q' : 'Shift');
+    // fire a gadget toward a point ahead (the passenger fires when riding), swapping gadgets now and then
+    await p.mouse.click(640 + ((k * 137) % 400) - 200, 400 + ((k * 71) % 300) - 150); if (k % 5 === 0) await p.keyboard.press(k % 10 ? '1' : '2');
     await p.waitForTimeout(250);
     if (SHOTS && (k === 8 || k === 20 || k === 33)) await p.screenshot({ path: `${SHOTS}/play-${d}-${k}.png` });
     k++;
