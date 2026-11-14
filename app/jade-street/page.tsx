@@ -101,7 +101,7 @@ export default function JadeStreetPage() {
     const s = p.w.s;
     if (story === 'intro') { s.story.intro = true; next = 'chapter'; }
     else if (story === 'chapter') s.story.ch = Math.max(s.story.ch, chapterOf(s));
-    else if (story === 'credits') { s.story.ending = true; p.toast('The Lantern Festival goes on: free roam the quarter in festival dress!', 'gold'); }
+    else if (story === 'credits') { s.story.ending = true; if (!p.w.run) p.toast('The Lantern Festival goes on: free roam the quarter in festival dress!', 'gold'); }
     persist(s); setStory(next);
     if (!next) { p.paused = false; sndRef.current?.play('street'); }
   };

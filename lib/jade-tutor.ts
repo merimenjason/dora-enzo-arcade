@@ -27,7 +27,7 @@ export const LESSONS: Lesson[] = [
   { id: 'map', text: 'Open the map to see the whole quarter, find markets and drop a pin.', keys: ['M'], touch: 'map', when: w => w.s.done.length >= 1 && !w.run, done: () => false },
   // the basics, in order
   { id: 'move', text: 'Move around the quarter.', keys: ['W', 'A', 'S', 'D'], touch: 'stick', when: w => onFoot(w), done: w => w.tutor.moved > 3 * 64 },
-  { id: 'run', text: 'Push all the way to run.', kbText: 'Keep a direction held to run; Shift walks quietly.', keys: ['W', 'A', 'S', 'D'], touch: 'stick', when: w => onFoot(w) && learned(w, 'move'), done: w => w.tutor.ran > 1 },
+  { id: 'run', text: 'Push all the way to run.', kbText: 'Keep a direction held to run; Shift walks quietly.', keys: ['W', 'A', 'S', 'D'], touch: 'stick', when: w => onFoot(w) && learned(w, 'move') && !w.p.sneak, done: w => w.tutor.ran > 1, max: 10 },
   { id: 'dash', text: 'Dash for a quick burst: it knocks thieves over and dodges magpies.', keys: ['Space'], touch: 'Dash', when: w => onFoot(w) && learned(w, 'run'), done: (_w, fx) => fx.includes('dash') },
   { id: 'hop', text: 'Hop over crates, benches and hedges.', keys: ['Q'], touch: 'Hop', when: w => onFoot(w) && learned(w, 'dash'), done: (_w, fx) => fx.includes('hop') },
 ];

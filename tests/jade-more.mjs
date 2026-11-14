@@ -260,3 +260,6 @@ test('the third batch of paintings: hero actions, Glint, set pieces, debris and 
 });
 
 console.log(`jade (third pass): ${n} tests ok`);
+
+// the fourth pass: both heroes, tag-team moves, gadgets, two players, save v5
+await import('./jade-duo.mjs');

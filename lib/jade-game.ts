@@ -157,6 +157,8 @@ export class World {
     if (this.two) this.p2Step(inp2 ?? NO_INPUT, dt); else mateStep(this, dt);
     leash(this); this.leashT = Math.max(0, this.leashT - dt);
     distractStep(this);
+    // the partner's pounce on the street magpie (a job's pounces are checked by the job)
+    if (this.mate.ai.mode === 'pounce' && this.mate.ai.tgt === -1) matePounceHit(this);
     if (inp.tag) tag(this);
     this.gearInput(this.p, inp);
     gearStep(this, dt);
@@ -480,7 +482,8 @@ export class World {
     this.cheer();
     for (const g of GEAR_GIFT[m.id] ?? []) if (giveGadget(this.s, g)) { this.fx.push({ t: 'gadget-gift', kind: g }); this.say(`New gadget: the ${GADGETS[g].name.toLowerCase()}! ${GADGETS[g].blurb}`, 'good'); }
     if (this.open.size > before) { const d = [...this.open][this.open.size - 1]; this.fx.push({ t: 'district', name: DISTRICT_NAME[d] }); this.banner = { text: `${DISTRICT_NAME[d][0].toUpperCase()}${DISTRICT_NAME[d].slice(1)} opens!`, sub: 'The fog lifts', t: 4 }; }
-    if (m.id === 'm25') this.fx.push({ t: 'finale' });
+    // the ending and credits play once, the first time Glint is beaten; a replay of the last job just ends
+    if (m.id === 'm25' && !this.s.story.ending) this.fx.push({ t: 'finale' });
   }
   /** the partner cheers (a job done, a catch) */
   cheer() { const m = this.mate; if (m.seat) m.cheerT = 1.2; else if (!m.act && !m.ride && !m.hide) m.act = { n: 'celebrate', t: 0, dur: 1.1 }; }
@@ -628,7 +631,7 @@ import { rainAt } from './jade-weather.js';
 import { medalOf, MEDAL_NAME } from './jade-medals.js';
 import { closedTiles } from './jade-setpiece.js';
 import { mateStep, switchHero, leash, seat, board, leaveSeat, newAI, type MateAI } from './jade-duo.js';
-import { tag, distractStep } from './jade-tag.js';
+import { tag, distractStep, matePounceHit } from './jade-tag.js';
 import { teamGates } from './jade-team.js';
 import { stallPos, stallOpen, gearStep, fire, startReload, switchSlot, shooterFor, makeCrates, giveGadget, GEAR_GIFT, GADGETS, type Shot, type Splat, type Crate } from './jade-gear.js';
 const P2_KINDS: Near['kind'][] = ['ride', 'exit', 'ladder-up', 'ladder-down', 'hide', 'unhide', 'leap', 'event'];
