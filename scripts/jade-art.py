@@ -211,6 +211,22 @@ fit('map-fog', [f'fog-{i}' for i in range(1, 7)], 3, 2, 420, green=True, lo=50)
 fit('ui2', ['ui-medal-bronze', 'ui-medal-silver', 'ui-medal-gold', 'ui-medal-none', 'ui-phone', 'ui-bubble', 'ui-radio', 'ui-book', 'ui-watch', 'ui-calm', 'ui-charm', 'ui-sign'], 4, 3, 200)
 fit('controls', ['c-key', 'c-space', 'c-arrows', 'c-shift', 'c-mouse', 'c-stick', 'c-phone', 'c-tap', 'c-hide', 'c-heat', 'c-boost', 'c-horn'], 4, 3, 160)
 
+# ── third batch (docs/jade-street-art/jobs3.py): new hero actions, Madame Glint on foot and her decoys, the chase set
+# pieces, impact debris, the six businesses at four levels, and four portrait moods for every speaking character
+for h in ('dora', 'enzo'):
+    grid(f'{h}-act5', [f'{h}-leap-0', f'{h}-leap-1', f'{h}-land', f'{h}-duck', f'{h}-shoo-0', f'{h}-shoo-1', f'{h}-collect', f'{h}-pocket', f'{h}-deal', f'{h}-mend', f'{h}-skid', f'{h}-tumble'], 4, 3, 58, ref=f'{h}-collect', fix=cream if h == 'dora' else None)
+grid('glint', ['glint-run-0', 'glint-run-1', 'glint-down-0', 'glint-down-1', 'glint-taunt', 'glint-leap', 'glint-wave', 'glint-dizzy', 'glint-give', 'decoy-run-0', 'decoy-run-1', 'decoy-pop'], 4, 3, 64, ref='glint-taunt', lo=95)
+each('set1', ['stall-smash-0', 'stall-smash-1', 'drum-roll-0', 'drum-roll-1', 'drum-rack', 'warn-bell', 'bridge-down', 'bridge-mid', 'bridge-up', 'crane-load', 'gate-open', 'gate-shut'], 4, 3,
+     {'stall-smash-0': 150, 'stall-smash-1': 150, 'drum-roll-0': 60, 'drum-roll-1': 60, 'drum-rack': 130, 'warn-bell': 50, 'bridge-down': 300, 'bridge-mid': 300, 'bridge-up': 300, 'crane-load': 120, 'gate-open': 140, 'gate-shut': 140})
+each('set2', ['neon-sign', 'neon-fall', 'neon-wreck', 'float', 'decoy-ride-0', 'decoy-ride-1', 'decoy-poof', 'bunting', 'ramp'], 3, 3,
+     {'neon-sign': 120, 'neon-fall': 120, 'neon-wreck': 140, 'float': 230, 'decoy-ride-0': 70, 'decoy-ride-1': 70, 'decoy-poof': 90, 'bunting': 150, 'ramp': 90}, dim='w', lo=95)
+fit('debris', ['db-orange', 'db-mango', 'db-melon', 'db-leaf', 'db-plank', 'db-shard', 'db-straw', 'db-feather-b', 'db-feather-w', 'db-spark', 'db-spark-b', 'db-paper', 'db-gold', 'db-lantern', 'db-dust', 'db-coin'], 4, 4, 64)
+for f, ids in (('biz1', ('noodle', 'tea', 'fan')), ('biz2', ('cake', 'jade', 'claw'))):
+    grid(f, [f'biz-{b}-{l}' for b in ids for l in range(4)], 4, 3, 112, ref=f'biz-{ids[0]}-1')
+for f, who in (('expr1', ('kee', 'pang', 'mo', 'heron')), ('expr2', ('kiri', 'bo', 'gizmo', 'ren')), ('expr3', ('glint', 'pip', 'bristle', 'lim'))):
+    fit(f, [f'face-{w}-{m}' for w in who for m in ('happy', 'worried', 'cross', 'smug')], 4, 4, 256, lo=95)
+fit('expr4', [f'face-{w}-{m}' for w in ('dora', 'enzo') for m in ('happy', 'worried', 'cross', 'smug')], 4, 2, 256)
+
 # ── seamless ground textures: crop each square, then blend it with its half-offset copy so the edges wrap
 TEX = {}
 def seamless(arr):
@@ -267,6 +283,8 @@ GROUPS = [('dora', lambda n: n.startswith('dora-')), ('enzo', lambda n: n.starts
           ('city2', lambda n: n in NEW_BLD), ('land', lambda n: n.startswith('lm2-')),
           ('city', lambda n: n.startswith(('shop-', 'roof-', 'flat-', 'bld-', 'lm-'))),
           ('rides', lambda n: n.startswith(('v-', 'car-', 'mag-cart', 'mag-boat', 'boss-', 'warden-bike'))),
+          ('faces', lambda n: n.startswith('face-') and n.count('-') >= 2 and n.split('-')[-1] in ('happy', 'worried', 'cross', 'smug')),
+          ('set', lambda n: n.startswith(('stall-smash', 'drum-', 'warn-bell', 'bridge-', 'crane-load', 'gate-', 'neon-', 'float', 'decoy-', 'bunting', 'ramp', 'db-', 'glint-', 'biz-'))),
           ('folk', lambda n: n.startswith(('folk-', 'mag-', 'warden-', 'blimp', 'block-', 'cone', 'face-'))),
           ('ui', lambda n: n.startswith(('ui-', 'c-', 'pin-', 'mi-', 'fog-', 'i-'))),
           ('props', lambda n: True)]
