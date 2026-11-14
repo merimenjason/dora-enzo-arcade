@@ -2,8 +2,8 @@
 // stuck in, parked rides you can reach); direct-control movement, collisions and getting on and off every ride; heat,
 // wardens, hiding and getting caught; trading maths and haggling; every story mission finished by the scripted solver
 // and every step's checkpoint restorable; side gigs; the mini-games; the save (repair, clamping and v1 migration);
-// trophies and the daily event; and every painted asset present and non-empty. Run after compiling the engine into
-// .checks/ (npm test does).
+// trophies and the daily event; and every painted asset present and non-empty; then tests/jade-more.mjs (the third
+// pass). Run after compiling the engine into .checks/ (npm test does).
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
@@ -300,7 +300,7 @@ test('the save: round trip, repair and clamping, v1 migration, garage, wardrobe 
 });
 
 test('trophies, the daily market event and the night clock', () => {
-  assert.equal(TROPHIES.length, 20);
+  assert.equal(TROPHIES.length, 23);
   const s = newSave(); s.done = ['m1', 'm2', 'm3', 'm4', 'm5']; s.cats = Array.from({ length: 10 }, (_, i) => i);
   const got = checkTrophies(s); assert.ok(got.includes('First Job') && got.includes('Jade Dragon') && got.includes('Lucky Paw'));
   assert.deepEqual(checkTrophies(s), [], 'awarded once');
@@ -454,7 +454,7 @@ test('difficulty: Easy, Normal and Hard numbers get steadily tougher', () => {
   assert.equal(loadSave(JSON.stringify({ ...newSave(1), settings: { ...newSave(1).settings, diff: 'hard' } })).settings.diff, 'hard');
 });
 
-test('save: the live v2 format migrates to v3 with medals, story, lessons and messages', () => {
+test('save: the live v2 format migrates with medals, story, lessons and messages', () => {
   const live = { v: 2, seed: 77, hero: 'enzo', cash: 640, night: 6, clock: 120, started: true, done: ['m1', 'm2', 'm3', 'm4', 'm5', 'm6'], cats: [2, 4], murals: [], rep: { market: 30, temple: 8, canal: 0, docks: 0, arcade: 0 },
     cargo: { jade: 1, mooncake: 0, tea: 2, bowl: 0, fan: 0, mango: 0 }, stash: {}, upgrades: { speed: 1, cargo: 0, grip: 0 }, paint: 'red', outfit: { dora: 'classic', enzo: 'classic' }, safes: ['safe-market'], trophies: [], tips: [], dailyDone: [],
     stats: { missions: 6, playTime: 900 }, settings: { diff: 'normal', assist: true, sound: true, music: true, touch: 'auto' } };
@@ -503,3 +503,5 @@ test('the city breaks the grid: landmarks, plazas, curving paths, tables, and no
 });
 
 console.log(`jade: ${n} tests ok`);
+// the third pass: fail conditions for every job, set pieces, Glint's phases, businesses, raids, v4 saves, moods
+await import('./jade-more.mjs');

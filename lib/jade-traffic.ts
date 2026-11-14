@@ -131,3 +131,17 @@ export function redRun(w: { time: number }, x0: number, y0: number, x1: number, 
   }
   return -1;
 }
+/** true when a rider at (x, y) heading h is within `look` of a crossing whose light is not green for that way (a
+ *  racer that plays fair waits at it, as the player must on Normal and Hard); never inside a crossing */
+export function redAhead(w: { time: number }, x: number, y: number, h: number, look: number): boolean {
+  const axis: 'h' | 'v' = Math.abs(Math.cos(h)) >= Math.abs(Math.sin(h)) ? 'h' : 'v';
+  const fx = Math.cos(h), fy = Math.sin(h);
+  for (let li = 0; li < LIGHTS.length; li++) {
+    const L = LIGHTS[li], bx = ROADS[L.v].at * T, by = ROADS[L.h].at * T;
+    if (x > bx && x < bx + 4 * T && y > by && y < by + 4 * T) return false;
+    const cx = bx + 2 * T - x, cy = by + 2 * T - y;
+    const along = cx * fx + cy * fy, side = Math.abs(-cx * fy + cy * fx);
+    if (side < 2 * T && along > 2 * T && along < 2 * T + look) return lightOf(w, li, axis) !== 'green';
+  }
+  return false;
+}

@@ -21,10 +21,10 @@ export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop
 export const NO_INPUT: Input = { mx: 0, my: 0, sneak: false, dash: false, hop: false, act: false };
 export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; locked: boolean; tint: number; mission?: boolean; seen?: number; broken?: boolean };
 export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string };
-export type Near = { kind: 'mission' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat'; label: string; x: number; y: number; id?: string; ride?: Ride };
+export type Near = { kind: 'mission' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz'; label: string; x: number; y: number; id?: string; ride?: Ride };
 export type Snatcher = { x: number; y: number; h: number; t: number; out: boolean; took: number; wing: number };
 export type Act = { n: string; t: number; dur: number; then?: () => void };
-export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' } | { kind: 'map' };
+export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' } | { kind: 'map' } | { kind: 'biz'; id: BizId };
 
 export class Player {
   b: Body = { x: 0, y: 0, h: Math.PI / 2, speed: 0, r: FOOT.r, len: 0, cls: 'foot' };
@@ -32,6 +32,8 @@ export class Player {
   dashT = 0; dashCd = 0; hopT = 0; hopCd = 0; boostT = 0; boostCd = 0;
   hide = false; sneak = false; act: Act | null = null; carry: string | null = null;
   anim = 'idle'; animT = 0; face: 'down' | 'up' | 'side' = 'down'; flip = false; bumpT = 0;
+  /** knocked by a set-piece hazard: no control for a moment; a skid on a sharp turn at speed */
+  stunT = 0; skidT = 0; skidCd = 0; stunKind = '';
   get x() { return this.ride ? this.ride.b.x : this.b.x; }
   get y() { return this.ride ? this.ride.b.y : this.b.y; }
   get air() { return this.hopT > 0; }
@@ -41,7 +43,7 @@ export class World {
   c: City; obs: Obstacle[][]; s: Save; R: () => number;
   p = new Player(); rides: Ride[] = []; cars: Car[] = []; peds: Ped[] = []; wardens: Warden[] = []; blocks: Roadblock[] = []; snatchers: Snatcher[] = [];
   heat = 0; seenT = 0; lastSeen: [number, number] = [0, 0]; blimp: { x: number; y: number; on: boolean } = { x: 0, y: 0, on: false };
-  run: Run | null = null; talk: { lines: [string, string][]; i: number; done?: () => void } | null = null;
+  run: Run | null = null; talk: { lines: [string, string, string?][]; i: number; done?: () => void } | null = null;
   ui: UiPanel = null; near: Near | null = null; fx: Fx[] = [];
   time = 0; tick = 0; nextId = 1; open: Set<District>; route: [number, number][] = []; routeT = 0;
   failed: { reason: string } | null = null; banner: { text: string; sub: string; t: number } | null = null;
@@ -56,6 +58,8 @@ export class World {
   rain = 0; rainForce: number | null = null;
   /** a replayed job pays a quarter and records a medal */
   replaying = false;
+  /** tiles a set piece has closed (the lowered drawbridge, the shut yard gate) and a magpie raid waiting to start */
+  gates = new Set<number>(); raidWait: { id: BizId; t: number } | null = null;
 
   constructor(save: Save, seed = save.seed) {
     this.c = getCityOnce(); this.obs = obstacleGrid(this.c); this.s = save; this.R = rng(seed * 7919 + save.night);
@@ -64,6 +68,8 @@ export class World {
     for (const g of GOODS) this.tripCost[g] = save.cargo[g] * GOOD[g].base;
     // parked rides: every kerb spot in an open district, some scooters need a jump-start
     const R = rng(seed + 11);
+    // the business stalls stand on the pavement like any stall
+    for (const b of BIZ) { const [bx, by] = bizPos(b); const tx = b.at[0], ty = b.at[1]; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) this.obs[(ty + dy) * W + tx + dx].push({ x: bx, y: by + 6, r: 30 }); }
     for (const pk of this.c.parking) this.addRide(pk.kind as VehicleKind, pk.x, pk.y, pk.rot, R() < 0.18 && pk.kind === 'scooter', Math.floor(R() * 5));
     const home = this.c.places[save.safe] ?? this.c.places['safe-market'];
     this.placePlayer(home.x, home.y + T * 0.6);
@@ -77,7 +83,7 @@ export class World {
     this.rides.push(r); return r;
   }
   say(msg: string, kind = '') { this.fx.push({ t: 'toast', msg, kind }); }
-  ctx(roof = false, air = false): Ctx { return { c: this.c, roof, air, obstacles: this.obs, blocked: (tx, ty) => !this.open.has(districtAt(tx, ty)) }; }
+  ctx(roof = false, air = false, gates = true): Ctx { return { c: this.c, roof, air, obstacles: this.obs, blocked: gates && this.gates.size ? (tx, ty) => !this.open.has(districtAt(tx, ty)) || this.gates.has(ty * W + tx) : (tx, ty) => !this.open.has(districtAt(tx, ty)) }; }
   fieldTo(cls: 'foot' | 'walk' | 'small' | 'big' | 'boat', x: number, y: number): Field {
     const tx = Math.floor(x / T), ty = Math.floor(y / T); const key = `${cls}:${tx}:${ty}:${[...this.open].join()}`;
     let f = this.fieldCache.get(key);
@@ -108,7 +114,9 @@ export class World {
     const f0 = this.fx.length;
     if (this.run) { this.run.time += dt; this.run.maxHeat = Math.max(this.run.maxHeat, this.heat); }
     this.phoneT = Math.max(0, this.phoneT - dt);
+    this.raidStart();
     if (this.banner) { this.banner.t -= dt; if (this.banner.t <= 0) this.banner = null; }
+    this.gates.clear(); if (this.run) closedTiles(this.run.sets, this.gates);
     this.playerStep(inp, dt);
     this.collectStep();
     trafficStep(this, dt); pedStep(this, dt);
@@ -130,10 +138,27 @@ export class World {
   drain(): Fx[] { const out = this.fx; this.fx = []; return out; }
 
   clock(dt: number) {
+    const before = this.s.clock;
     this.s.clock += dt * (this.assist ? 0.85 : 1); // one game minute a second; 12 h nights
+    accrue(this, Math.min(720, this.s.clock) - before);
+    const r = raidCheck(this, before, this.s.clock);
+    if (r) { this.raidWait = { id: r, t: 0 }; const b = BIZ_OF[r]; text(this, b.keeper, `Help! Magpies are raiding the ${b.name}! Get here quick and chase them off before they empty the till.`); }
     if (this.s.clock >= 720) this.newNight();
   }
+  /** a raid starts as soon as you are free to answer it (not in a job, a menu, a talk or the middle of an action) */
+  raidStart() {
+    const rw = this.raidWait; if (!rw || this.run || this.ui || this.talk || this.failed || this.p.act || this.p.hide) return;
+    this.raidWait = null;
+    const b = BIZ_OF[rw.id]; this.startMission(raidMission(this, rw.id), { key: 'raid:' + rw.id, reward: 40, d: b.d });
+  }
+  /** a set-piece hazard hits you: a bump scaled by `k`, `stun` seconds without control, speed cut to `keep` */
+  knock(x: number, y: number, k: number, kind: string, stun: number, keep: number) {
+    const p = this.p, b = p.ride ? p.ride.b : p.b;
+    b.speed *= keep; p.stunT = Math.max(p.stunT, stun); p.stunKind = kind; p.bumpT = Math.max(p.bumpT, 0.35); this.s.stats.bumps++;
+    this.fx.push({ t: 'impact', x, y, k, kind });
+  }
   newNight() {
+    closeNight(this.s);
     this.s.clock = 0; this.s.night++;
     this.s.tips = this.s.tips.filter(t => t.night >= this.s.night - 1);
     this.banner = { text: `Night ${this.s.night}`, sub: 'The markets set new prices', t: 3 };
@@ -152,11 +177,15 @@ export class World {
     }
     p.dashCd = Math.max(0, p.dashCd - dt); p.hopCd = Math.max(0, p.hopCd - dt); p.boostCd = Math.max(0, p.boostCd - dt); p.bumpT = Math.max(0, p.bumpT - dt);
     if (p.hide) { p.anim = 'hide'; if (Math.hypot(inp.mx, inp.my) > 0.5) this.unhide(); return; }
+    p.stunT = Math.max(0, p.stunT - dt); p.skidT = Math.max(0, p.skidT - dt); p.skidCd = Math.max(0, p.skidCd - dt);
+    if (p.stunT > 0) inp = { ...inp, mx: 0, my: 0, dash: false, hop: false };
     let mx = inp.mx, my = inp.my;
     if (p.ride) return this.rideStep(inp, dt);
     // on foot
     p.sneak = inp.sneak;
     if (inp.dash && p.dashCd <= 0 && !p.air) { p.dashT = FOOT.dashT; p.dashCd = FOOT.dashCd; this.fx.push({ t: 'dash', x: p.b.x, y: p.b.y }); if (Math.hypot(mx, my) < 0.2) { mx = Math.cos(p.b.h); my = Math.sin(p.b.h); } }
+    // on foot, a sharp about-turn at a run skids
+    if (Math.hypot(mx, my) > 0.5 && p.b.speed > 180 && p.skidCd <= 0 && Math.abs(angDiff(p.b.h, Math.atan2(my, mx))) > 2.3) { p.skidT = 0.22; p.skidCd = 0.6; this.fx.push({ t: 'skid', x: p.b.x, y: p.b.y + 8, k: 0.6 }); }
     if (inp.hop && p.hopCd <= 0 && !p.air) { p.hopT = FOOT.hopT; p.hopCd = FOOT.hopCd + FOOT.hopT; this.fx.push({ t: 'hop', x: p.b.x, y: p.b.y }); }
     const over = this.overloaded();
     let top = p.sneak ? FOOT.walk : FOOT.run;
@@ -170,17 +199,18 @@ export class World {
     if (res.bump > 160 && !p.air) { p.bumpT = 0.3; this.fx.push({ t: 'bump', x: p.b.x, y: p.b.y, k: 0.5 }); }
     const moved = Math.hypot(p.b.x - ox, p.b.y - oy); this.s.stats.walked += moved;
     // landing from a hop: on a roof you must land on a roof; in the street you can't land in a low prop
-    if (wasAir && !p.air) this.land();
+    if (wasAir && !p.air) { this.land(); this.fx.push({ t: 'land', x: p.b.x, y: p.b.y, k: 0.4 }); }
     if (p.roof && !p.air) { const tx = Math.floor(p.b.x / T), ty = Math.floor(p.b.y / T); if (this.c.flags[ty * W + tx] & F_ROOF) p.lastRoof = [p.b.x, p.b.y]; }
     // facing and animation
     if (p.b.speed > 8) this.faceFrom(p.b.h);
-    p.anim = p.air ? 'hop' : p.dashT > 0 ? 'dash' : p.bumpT > 0 ? 'bump' : this.pushing ? 'push' : p.b.speed > 8 ? (p.carry ? 'carry' : p.sneak ? 'sneak' : p.b.speed > FOOT.walk + 10 ? 'run' : this.rain > 0.3 ? 'umbrella' : 'walk') : (p.carry ? 'carry-idle' : this.phoneT > 0 ? 'phone' : 'idle');
+    p.anim = p.stunT > 0 ? (p.stunKind === 'neon' || p.stunKind === 'drum' ? 'duck' : 'tumble') : p.air ? 'hop' : p.skidT > 0 ? 'skid' : p.dashT > 0 ? 'dash' : p.bumpT > 0 ? 'bump' : this.pushing ? 'push' : p.b.speed > 8 ? (p.carry ? 'carry' : p.sneak ? 'sneak' : p.b.speed > FOOT.walk + 10 ? 'run' : this.rain > 0.3 ? 'umbrella' : 'walk') : (p.carry ? 'carry-idle' : this.phoneT > 0 ? 'phone' : 'idle');
     if (this.pushing) this.faceFrom(this.inputAng);
   }
   land() {
     const p = this.p; const tx = Math.floor(p.b.x / T), ty = Math.floor(p.b.y / T);
     const i = ty * W + tx;
     if (p.roof && !(this.c.flags[i] & F_ROOF)) {
+      if (this.run?.leap(true)) return;
       p.b.x = p.lastRoof[0]; p.b.y = p.lastRoof[1]; p.b.speed = 0; this.fx.push({ t: 'wobble', x: p.b.x, y: p.b.y }); this.say('Whoa! Back onto the roof.');
       return;
     }
@@ -203,6 +233,8 @@ export class World {
     if (inp.hop) this.honk();
     if (p.boostT > 0) { p.boostT -= dt; top *= 1.35; }
     let mx = inp.mx, my = inp.my;
+    // a hard turn at speed skids and throws up dust
+    if (Math.hypot(mx, my) > 0.5 && r.b.speed > 200 && p.skidCd <= 0 && r.kind !== 'boat' && Math.abs(angDiff(r.b.h, Math.atan2(my, mx))) > 1.2) { p.skidCd = 0.35; this.fx.push({ t: 'skid', x: r.b.x - Math.cos(r.b.h) * 20, y: r.b.y - Math.sin(r.b.h) * 20, k: Math.min(1, r.b.speed / 340) }); }
     if (p.boostT > 0 && Math.hypot(mx, my) < 0.2) { mx = Math.cos(r.b.h); my = Math.sin(r.b.h); }
     // aim help: when chasing, lean the stick toward a close target that is roughly ahead
     if (this.assist && this.run) { const a = this.run.aimAt(); if (a) { const d = dist(a[0], a[1], r.b.x, r.b.y); const ang = Math.atan2(a[1] - r.b.y, a[0] - r.b.x); const want = Math.atan2(my, mx); if (d < 170 && Math.hypot(mx, my) > 0.3 && Math.abs(angDiff(want, ang)) < 0.6) { mx = mx * 0.6 + Math.cos(ang) * 0.4; my = my * 0.6 + Math.sin(ang) * 0.4; } } }
@@ -290,7 +322,7 @@ export class World {
       if (!best) best = { kind: 'exit', label: p.ride.kind === 'boat' ? 'Step off the boat' : 'Get off', x, y };
       this.near = best; return;
     }
-    if (p.roof) { for (const l of this.c.ladders) cand({ kind: 'ladder-down', label: 'Climb down', x: l.rx * T + T / 2, y: l.ry * T + T / 2 }, 70); this.near = best; return; }
+    if (p.roof) { const lp = this.run?.nearAction(x, y); if (lp) { this.near = lp; return; } for (const l of this.c.ladders) cand({ kind: 'ladder-down', label: 'Climb down', x: l.rx * T + T / 2, y: l.ry * T + T / 2 }, 70); this.near = best; return; }
     if (!this.run) for (const m of available(this.s)) { const pl = this.c.places[m.at]; if (pl) cand({ kind: 'mission', label: `${PEOPLE[m.giver].name}: “${m.title}”`, x: pl.x, y: pl.y, id: m.id }, 80); }
     const rm = this.run?.nearAction(x, y); if (rm) cand(rm, 90);
     for (const [id, pl] of Object.entries(this.c.places)) {
@@ -300,6 +332,7 @@ export class World {
       if (pl.kind === 'garage') cand({ kind: 'garage', label: 'Garage: upgrades and paint', x: pl.x, y: pl.y, id }, 80);
     }
     if (!this.run) for (const g of this.gigs()) cand(g, 70);
+    if (!this.run) for (const b of BIZ) if (this.open.has(b.d)) { const [bx, by] = bizPos(b); const st = this.s.biz[b.id]; cand({ kind: 'biz', label: st.lvl ? `${b.name}: ${Math.floor(st.bank)} coins in the till` : `${b.name} (stake for sale)`, x: bx, y: by + 40, id: b.id }, 80); }
     const en = eventNear(this); if (en) cand(en, 80);
     if (this.festival) for (const f of this.c.festival) if (f.kind !== 'arch') cand({ kind: 'festival', label: f.kind === 'stage' ? 'Dance on the festival stage' : 'Let a sky lantern go', x: f.x, y: f.y, id: f.kind }, 80);
     for (const pr of this.tables()) cand({ kind: 'eat', label: 'Grab a bowl of noodles (3 coins)', x: pr.x, y: pr.y + 20 }, 56);
@@ -326,6 +359,8 @@ export class World {
       case 'unhide': this.unhide(); break;
       case 'mural': p.act = { n: 'paint', t: 0, dur: 1.4, then: () => { this.s.murals.push(n.id!); this.s.cash += 30; this.s.stats.murals++; const d = districtAt(Math.floor(n.x / T), Math.floor(n.y / T)); addRep(this.s, d, 3); this.fx.push({ t: 'mural', x: n.x, y: n.y }); this.say(`Mural restored (${this.s.murals.length} of ${this.c.murals.length}) · +30 coins, +3 rep`, 'good'); } }; p.face = 'up'; break;
       case 'gig': startGig(this, n.id!); break;
+      case 'leap': this.run?.leap(); break;
+      case 'biz': this.ui = { kind: 'biz', id: n.id as BizId }; this.fx.push({ t: 'open' }); break;
       case 'event': eventAct(this); break;
       case 'festival': if (n.id === 'stage') { p.act = { n: 'dance', t: 0, dur: 2.4 }; this.fx.push({ t: 'dance' }); } else { p.act = { n: 'lantern', t: 0, dur: 1.2, then: () => { this.fx.push({ t: 'sky-lantern', x: p.b.x, y: p.b.y }); p.act = { n: 'look-up', t: 0, dur: 1.6 }; } }; } p.face = 'down'; break;
       case 'eat': if (this.s.cash < 3) { this.say('You need 3 coins for noodles.', 'bad'); break; } this.s.cash -= 3; p.act = { n: 'eat', t: 0, dur: 2.6, then: () => this.say('Delicious! Chef Mo’s noodles hit the spot.', 'good') }; p.face = 'down'; this.fx.push({ t: 'eat' }); break;
@@ -357,6 +392,7 @@ export class World {
   }
   finishMission(m: Mission, gig?: Gig) {
     this.lastRun = this.run; this.run = null; this.route = [];
+    if (gig && gig.key.startsWith('raid:')) { const id = gig.key.slice(5) as BizId; raidWon(this.s, id); this.s.cash += gig.reward; addRep(this.s, gig.d, 2); this.fx.push({ t: 'mission-done', name: m.title, k: gig.reward }); this.banner = { text: 'Raid repelled!', sub: `The till is safe · +${gig.reward} coins`, t: 2.6 }; this.p.act = this.p.ride ? null : { n: 'celebrate', t: 0, dur: 1.1 }; return; }
     if (gig) { this.s.cash += gig.reward; this.s.stats.gigs++; addRep(this.s, gig.d, 2); this.s.best[gig.key] = Math.max(this.s.best[gig.key] ?? 0, 1); this.fx.push({ t: 'mission-done', name: m.title, k: gig.reward }); this.banner = { text: 'Gig done!', sub: `+${gig.reward} coins`, t: 2.4 }; return; }
     const run = this.lastRun; const res = { time: run?.time ?? 0, maxHeat: run?.maxHeat ?? 0, retries: run?.retries ?? 0 };
     const medal = medalOf(m, res), was = this.s.medals[m.id];
@@ -377,7 +413,8 @@ export class World {
   lastRun: Run | null = null; lastMedal: { id: string; medal: number; time: number; maxHeat: number; retries: number; best: boolean } | null = null;
   fail(reason: string) { if (!this.run) return; this.failed = { reason }; this.fx.push({ t: 'fail', msg: reason }); }
   retry() { this.failed = null; this.heat = 0; this.clearHeat(); if (this.run) this.run.retries++; this.run?.restore(); }
-  quitJob() { this.failed = null; if (this.run && this.banner?.text === this.run.m.title) this.banner = null; this.run?.cleanup(); this.run = null; this.route = []; this.p.carry = null; this.replaying = false; }
+  quitJob() { const rid = this.run ? raidId(this.run.m.id) : null; if (rid) { const k = raidLost(this.s, rid); this.say(`The magpies made off with ${k} coins from the ${BIZ_OF[rid].name}.`, 'bad'); }
+    this.failed = null; if (this.run && this.banner?.text === this.run.m.title) this.banner = null; this.run?.cleanup(); this.run = null; this.route = []; this.p.carry = null; this.replaying = false; }
   clearHeat() { this.heat = 0; this.wardens = []; this.blocks = []; this.blimp.on = false; }
   advanceTalk() {
     const t = this.talk; if (!t) return;
@@ -489,6 +526,10 @@ export class World {
     }
     this.fx.push({ t: 'stash' }); return null;
   }
+  /** businesses: buy a stake, upgrade, and empty the tills (one stall, or all of them at a safe house) */
+  buyBiz(id: BizId): string | null { const r = buyBiz(this.s, id, [...this.open]); if (!r) { if (!this.p.ride) this.p.act = { n: 'deal', t: 0, dur: 0.9 }; this.fx.push({ t: 'biz-buy', name: BIZ_OF[id].name }); } return r; }
+  upgradeBiz(id: BizId): string | null { const r = upgradeBiz(this.s, id); if (!r) { if (!this.p.ride) this.p.act = { n: 'mend', t: 0, dur: 1 }; this.fx.push({ t: 'biz-up', name: BIZ_OF[id].name, k: this.s.biz[id].lvl }); } return r; }
+  collectBiz(id?: BizId): number { const n = collect(this.s, id); if (n > 0) { if (!this.p.ride) this.p.act = { n: 'collect', t: 0, dur: 0.9 }; this.fx.push({ t: 'coins', x: this.p.x, y: this.p.y, k: n }); } return n; }
   swapJacket() { const had = this.heat >= 1; this.clearHeat(); this.p.act = { n: 'swap', t: 0, dur: 0.9 }; if (had) { this.s.stats.escapes++; this.run?.onHeatClear(); } this.fx.push({ t: 'swap' }); }
   sleep() { this.newNight(); this.clearHeat(); this.p.act = { n: 'sleep', t: 0, dur: 1.2 }; this.fx.push({ t: 'sleep' }); }
 
@@ -510,4 +551,7 @@ import { phoneStep, nightTip } from './jade-phone.js';
 import { tutorStep, newTutor, type TutorState } from './jade-tutor.js';
 import { rainAt } from './jade-weather.js';
 import { medalOf, MEDAL_NAME } from './jade-medals.js';
+import { closedTiles } from './jade-setpiece.js';
+import { BIZ, BIZ_OF, bizPos, accrue, closeNight, raidCheck, raidMission, raidWon, raidLost, raidId, buyBiz, upgradeBiz, collect, type BizId } from './jade-biz.js';
+import { text } from './jade-phone.js';
 void cargoValue; void H; void F_ALLEY; void moveStep; void shove;

@@ -2,7 +2,8 @@
 // 8×8-tile chunk canvases on demand (an LRU keeps ~40), so a frame draws a dozen chunk images plus only the moving
 // and tall things on screen, y-sorted: stalls, lamps, trees, rides, traffic, townsfolk, wardens, magpies and the hero.
 // Code draws only light and effects: lamp glows, the route line, torch beams, the blimp's spotlight, fog over locked
-// districts, dust and sparkles. Every picture is a Codex painting from the atlases in public/art/jade-street/.
+// districts, dust and sparkles; game feel (shake, hit-stop, debris, speed lines) is in lib/jade-juice.ts and the set
+// pieces, the finale and the business stalls are drawn by lib/jade-setdraw.ts. Every picture is a Codex painting from the atlases in public/art/jade-street/.
 import { FRAMES, ATLASES, ATLAS_SIZE, TEXTURES } from './jade-art.js';
 import { T, W, H, G, GROUND_NAMES, F_ROOF, districtAt, type City, type District } from './jade-city.js';
 import { VEHICLES } from './jade-move.js';
@@ -11,6 +12,8 @@ import type { Actor } from './jade-mission.js';
 import { OUTFITS, PAINTS } from './jade-save.js';
 import { lanterns } from './jade-heat.js';
 import { Life } from './jade-life.js';
+import { Juice } from './jade-juice.js';
+import { setGround, setSorted, drawDecoy, realGlint } from './jade-setdraw.js';
 
 export const ART = '/art/jade-street/';
 const CH = 8; // tiles per chunk
@@ -130,6 +133,16 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     case 'clap': return t % 0.5 < 0.25 ? `${h}-clap` : `${h}-wave`;
     case 'lantern': return `${h}-lantern`;
     case 'look-up': return `${h}-lookup`;
+    case 'leap': return `${h}-leap-${t < 0.22 ? 0 : 1}`;
+    case 'land': return `${h}-land`;
+    case 'duck': return `${h}-duck`;
+    case 'shoo': return `${h}-shoo-${cyc(2, 7)}`;
+    case 'collect': return t < 0.5 ? `${h}-collect` : `${h}-pocket`;
+    case 'pocket': return `${h}-pocket`;
+    case 'deal': return `${h}-deal`;
+    case 'mend': return `${h}-mend`;
+    case 'skid': return `${h}-skid`;
+    case 'tumble': return `${h}-tumble`;
     default: return `${h}-idle-${face}`;
   }
 }
@@ -144,7 +157,7 @@ export class Scene {
   overBuckets: Map<number, number[]> = new Map();
   map: HTMLCanvasElement | null = null; mapK = 8;
   dust: { x: number; y: number; t: number; vx: number; vy: number; c: string; s: number }[] = [];
-  shake = 0; lookX = 0; lookY = 0; zoomRide = 1;
+  juice = new Juice(); lookX = 0; lookY = 0; zoomRide = 1;
   minimap = { x: 0, y: 0, r: 0, on: true };
   life = new Life(spr, (x, px, py, r, col) => this.glow(x, px, py, r, col));
   constructor(public cv: HTMLCanvasElement, public c: City) {
@@ -278,6 +291,8 @@ export class Scene {
   draw(w: World, dt: number) {
     const x = this.x; this.frame++; this.t += dt;
     const p = w.p; const ride = p.ride;
+    this.juice.tick(dt);
+    if (ride) this.juice.trail(dt, p.boostT > 0, ride.b.x, ride.b.y, ride.b.h, 'v-' + ride.kind);
     // camera: lead in the direction of travel, pull out a little when riding fast
     const sp = ride ? ride.b.speed : p.b.speed, hd = ride ? ride.b.h : p.b.h;
     const phone = Math.min(this.w, this.h) < 520;
@@ -286,9 +301,8 @@ export class Scene {
     this.lookY += (Math.sin(hd) * lead - this.lookY) * Math.min(1, dt * 2.5);
     const zr = ride ? (phone ? 0.86 - Math.min(0.14, sp / 2600) : 0.9 - Math.min(0.1, sp / 3400)) : 1;
     this.zoomRide += (zr - this.zoomRide) * Math.min(1, dt * 1.5);
-    const k = this.baseZoom() * this.zoomRide;
-    this.shake = Math.max(0, this.shake - dt * 3);
-    const shx = this.shake > 0 ? (Math.sin(this.t * 70) * 6 * this.shake) : 0, shy = this.shake > 0 ? Math.cos(this.t * 63) * 5 * this.shake : 0;
+    const k = this.baseZoom() * this.zoomRide * this.juice.zoom();
+    const [shx, shy] = this.juice.shakeXY();
     const cam = this.cam; cam.k = k; cam.w = this.w / k; cam.h = this.h / k;
     cam.x = Math.max(cam.w / 2, Math.min(W * T - cam.w / 2, p.x + this.lookX)) + shx;
     cam.y = Math.max(cam.h / 2, Math.min(H * T - cam.h / 2, p.y + this.lookY)) + shy;
@@ -311,6 +325,7 @@ export class Scene {
     this.water(x, ox, oy, cam.w, cam.h);
     this.routeLine(x, w);
     this.markers(x, w, 'ground');
+    setGround(this, x, w);
     // y-sorted things
     const list: [number, () => void][] = [];
     const vis = (px: number, py: number, m = 160) => px > ox - m && px < ox + cam.w + m && py > oy - m && py < oy + cam.h + m * 1.5;
@@ -323,11 +338,12 @@ export class Scene {
     for (const pd of w.peds) if (vis(pd.x, pd.y)) list.push([pd.y, () => this.ped(x, w, pd)]);
     for (const wd of w.wardens) if (vis(wd.b.x, wd.b.y)) list.push([wd.b.y, () => this.warden(x, wd)]);
     for (const b of w.blocks) if (vis(b.x, b.y)) list.push([b.y, () => spr(x, b.sprite, b.x, b.y, { anchor: 'center', rot: b.h, w: 100, alpha: b.knocked > 0 ? Math.max(0, 1 - b.knocked) : 1 })]);
-    if (w.run) for (const a of w.run.actors) if (vis(a.b.x, a.b.y) && a.kind !== 'swoop') list.push([a.b.y, () => this.actor(x, w, a)]);
+    if (w.run) for (const a of w.run.actors) if (vis(a.b.x, a.b.y) && a.kind !== 'swoop' && !a.gone) list.push([a.b.y, () => this.actor(x, w, a)]);
     this.c.cats.forEach((ct, i) => { if (w.s.cats.includes(i) || !vis(ct.x, ct.y) || !w.open.has(districtAt(Math.floor(ct.x / T), Math.floor(ct.y / T)))) return; list.push([ct.y, () => this.cat(x, ct.x, ct.y, i)]); });
     for (const m of this.c.murals) if (vis(m.x, m.y)) list.push([m.y - 40, () => spr(x, w.s.murals.includes(m.id) ? 'mural-fresh' : 'mural-faded', m.x, m.y + 6, { w: 84 })]);
     for (const l of this.c.ladders) if (vis(l.x * T, l.y * T)) list.push([l.y * T + 10, () => spr(x, 'fire-ladder', l.x * T + T / 2, l.y * T + T - 4, { h: 96 })]);
     this.life.sorted(x, w, list, vis, this.t);
+    setSorted(this, x, w, list, vis);
     if (!p.roof) list.push([p.y + 1, () => this.hero(x, w)]);
     list.sort((a, b) => a[0] - b[0]);
     for (const [, f] of list) f();
@@ -347,6 +363,7 @@ export class Scene {
     if (w.blimp.on) this.blimp(x, w);
     this.fog(x, w, ox, oy, cam.w, cam.h);
     this.particles(x, dt);
+    this.juice.drawWorld(x, spr);
     // night tint by the clock and a soft vignette (screen space)
     x.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     const cl = w.s.clock;
@@ -356,6 +373,7 @@ export class Scene {
     g.addColorStop(0, 'rgba(10,6,30,0)'); g.addColorStop(1, 'rgba(10,6,30,.45)'); x.fillStyle = g; x.fillRect(0, 0, this.w, this.h);
     if (lanterns(w) >= 1) { const a = 0.08 + 0.05 * Math.sin(this.t * 6); x.fillStyle = `rgba(255,40,60,${a * lanterns(w) / 5})`; x.fillRect(0, 0, this.w, 6); x.fillRect(0, this.h - 6, this.w, 6); }
     this.life.rainScreen(x, w, this.w, this.h, this.t);
+    this.juice.drawScreen(x, this.w, this.h, ride ? sp : 0, hd, !!ride && p.boostT > 0, w.heat);
     if (this.minimap.on) this.drawMinimap(x, w);
   }
   /** a string of paper lanterns across the street: a sagging cable with upright painted lanterns hung along it */
@@ -410,7 +428,11 @@ export class Scene {
     if (p.anim === 'dash') this.puff(p.b.x - Math.cos(p.b.h) * 14, p.b.y + 4, '#d8d0e8');
     const f = heroFrame(h, p.anim, p.face, p.act ? p.act.t : p.animT);
     const flip = p.face === 'side' && p.flip;
-    spr(x, f, p.b.x, p.b.y + 4 - hop, { flip, variant, alpha: p.hide ? 0.55 : 1 }) || spr(x, `${h}-idle-down`, p.b.x, p.b.y + 4, { variant });
+    // squash and stretch about the feet: a stretch on take-off, a squash on landing
+    const [qx, qy] = this.juice.squash(p.anim, 1 - p.hopT / 0.42), fy = p.b.y + 4 - hop;
+    if (qx !== 1 || qy !== 1) { x.save(); x.translate(p.b.x, fy); x.scale(qx, qy); x.translate(-p.b.x, -fy); }
+    spr(x, f, p.b.x, fy, { flip, variant, alpha: p.hide ? 0.55 : 1 }) || spr(x, `${h}-idle-down`, p.b.x, p.b.y + 4, { variant });
+    if (qx !== 1 || qy !== 1) x.restore();
     if (p.carry && !p.anim.startsWith('carry')) spr(x, itemSprite(p.carry), p.b.x, p.b.y - 54 - hop, { w: 28 });
     if (p.anim === 'umbrella' && p.face !== 'down') spr(x, 'umb-red', p.b.x, p.b.y - 46, { w: 46, anchor: 'center' });
   }
@@ -443,11 +465,12 @@ export class Scene {
     x.fillStyle = 'rgba(0,0,0,.3)';
     switch (a.kind) {
       case 'cart': this.shadow(x, b.x + 4, b.y + 6, 36, 18); spr(x, `mag-cart-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 + (a.stun > 0 ? Math.sin(this.t * 30) * 0.3 : 0) }); if (a.stun > 0) this.stars(x, b.x, b.y - 30); break;
-      case 'boss': this.shadow(x, b.x + 4, b.y + 6, 30, 14); spr(x, `boss-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 + (a.stun > 0 ? Math.sin(this.t * 30) * 0.3 : 0) }); if (a.stun > 0) this.stars(x, b.x, b.y - 30); this.glow(x, b.x, b.y, 70, 'rgba(190,80,255,.35)'); break;
+      case 'decoy': drawDecoy(this, x, a); break;
+      case 'boss': realGlint(this, x, w, a); this.shadow(x, b.x + 4, b.y + 6, 30, 14); spr(x, `boss-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 + (a.stun > 0 ? Math.sin(this.t * 30) * 0.3 : 0) }); if (a.stun > 0) this.stars(x, b.x, b.y - 30); this.glow(x, b.x, b.y, 70, 'rgba(190,80,255,.35)'); break;
       case 'boat': spr(x, `mag-boat-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 + Math.sin(this.t * 3) * 0.04 }); if (a.stun > 0) this.stars(x, b.x, b.y - 30); this.glow(x, b.x, b.y, 60, 'rgba(255,250,220,.3)'); break;
       case 'rival-scooter': this.shadow(x, b.x + 4, b.y + 6, 30, 14); spr(x, `boss-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2, w: 32, variant: 'paint:120' }); break;
       case 'rival-boat': spr(x, `mag-boat-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 }); break;
-      case 'runner': case 'rival-runner': case 'pip': case 'lookout': {
+      case 'runner': case 'rival-runner': case 'pip': case 'lookout': case 'raider': {
         this.shadow(x, b.x, b.y + 2, 14, 6);
         const cx = Math.cos(b.h), sy = Math.sin(b.h); let f: string, flip = false;
         if (a.stun > 0) f = 'mag-dizzy';
@@ -458,7 +481,7 @@ export class Scene {
         if (a.kind === 'lookout') this.beam(x, b.x, b.y - 20, a.b.h, w.assist ? 170 : 215, w.assist ? 0.45 : 0.55);
         if (a.kind === 'pip' && a.look > 0) this.beam(x, b.x, b.y - 20, a.face, w.assist ? 165 : 210, 1.2);
         spr(x, f, b.x, b.y + 4, { flip });
-        if (a.kind === 'runner' && a.stun <= 0) spr(x, 'coins', b.x, b.y - 52, { w: 20 });
+        if ((a.kind === 'runner' || a.kind === 'raider') && a.stun <= 0) spr(x, 'coins', b.x, b.y - 52, { w: 20 });
         break;
       }
       case 'lion': this.shadow(x, b.x, b.y + 4, 44, 14); spr(x, `lion-${Math.floor(a.t * 3) % 2}`, b.x, b.y + 8, { flip: Math.cos(b.h) < 0 }); break;
@@ -629,13 +652,13 @@ export class Scene {
   }
   /** effects for world events */
   consume(w: World, fx: ReturnType<World['drain']>) {
+    this.juice.consume(fx, w.p.x, w.p.y);
     for (const f of fx) {
-      if (f.t === 'bump' && f.x !== undefined) { this.burst(f.x, f.y!, '#e8e0f0', 8); this.shake = Math.max(this.shake, (f.k ?? 0.4) * 0.6); }
-      else if (f.t === 'hit' && f.x !== undefined) { this.burst(f.x, f.y!, '#ffd060', 16); this.shake = 0.7; }
+      if (f.t === 'bump' && f.x !== undefined) this.burst(f.x, f.y!, '#e8e0f0', 8);
+      else if (f.t === 'hit' && f.x !== undefined) this.burst(f.x, f.y!, '#ffd060', 16);
       else if (f.t === 'spill' && f.x !== undefined) this.burst(f.x, f.y!, '#ff9a2a', 18);
       else if ((f.t === 'cat' || f.t === 'pickup' || f.t === 'gate' || f.t === 'mural') && f.x !== undefined) this.burst(f.x, f.y!, '#ffe68a', 14);
       else if (f.t === 'hop' && f.x !== undefined) this.puff(f.x, f.y! + 4, '#cfc8e0');
-      else if (f.t === 'caught') this.shake = 0.8;
       else if (f.t === 'sky-lantern' && f.x !== undefined) this.life.lantern(f.x, f.y!);
       else if (f.t === 'good-deed') this.burst(w.p.x, w.p.y - 30, '#ffe68a', 18);
       else if (f.t === 'push' && f.x !== undefined) this.puff(f.x, f.y! + 10, '#cfc8e0');
