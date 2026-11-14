@@ -28,6 +28,8 @@ kbd{font:700 .9em 'Barlow Condensed',system-ui,sans-serif;border:1px solid var(-
 .st-tag{position:absolute;left:0;top:0;pointer-events:none;white-space:nowrap}.st-tag>div{transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:.15em;font-weight:600;letter-spacing:.06em}
 .st-tag i{width:.8em;height:.8em;transform:rotate(45deg);background:var(--c,var(--hud));box-shadow:0 0 0 1px rgba(0,0,0,.5)}.st-tag .st-bar{width:7em}.st-tag .st-bar u{background:var(--danger)}
 .st-tag.foe{--c:var(--danger)}.st-tag.goal{--c:var(--gold)}.st-tag.calm{--c:var(--otter)}.st-tag.calm .st-bar u{background:var(--otter)}
+.st-wind{display:inline-flex;align-items:center;gap:.5em;margin-top:.35em;letter-spacing:.1em;font-weight:600}.st-wind svg{width:1.5em;height:1.5em;color:var(--hud);filter:drop-shadow(0 1px 1px rgba(0,0,0,.6))}
+.st-sides{display:flex;gap:1.2em;letter-spacing:.1em;font-weight:600}.st-sides span{opacity:.35}.st-sides span.on{opacity:1;color:var(--gold)}.st-sides span:last-child kbd{margin:0 0 0 .5em}
 /* touch controls */
 .st-touch{position:absolute;inset:auto 0 0 0;padding:0 max(.8em,env(safe-area-inset-right)) max(.8em,env(safe-area-inset-bottom)) max(.8em,env(safe-area-inset-left));display:none;justify-content:space-between;align-items:flex-end;pointer-events:none}
 .st-touch>div{display:grid;gap:.5em;pointer-events:auto}.st-touch .l{grid-template-columns:repeat(2,4.2em)}.st-touch .r{grid-template-columns:repeat(3,4.2em)}
@@ -36,6 +38,7 @@ kbd{font:700 .9em 'Barlow Condensed',system-ui,sans-serif;border:1px solid var(-
 @media (pointer:coarse){.st-touch{display:flex}.st-bc{bottom:calc(9.5em + env(safe-area-inset-bottom))}.st-keys{display:none}}
 /* overlays */
 .st-over{position:absolute;inset:0;display:grid;place-items:center;padding:1.5em;background:rgba(8,24,30,.55);overflow:auto;touch-action:pan-y}
+.st-over.st-low{place-items:end center;background:linear-gradient(rgba(8,24,30,0),rgba(8,24,30,.6) 55%)}
 .st-card{width:min(34em,100%);padding:1.4em 1.6em;display:flex;flex-direction:column;gap:.8em;text-shadow:none}
 .st-card h1{margin:0;font:400 2.3em/1 'Marcellus SC',Georgia,serif;letter-spacing:.03em}.st-card h2{margin:0;font:400 1.6em/1.1 'Marcellus SC',Georgia,serif;color:var(--gold)}
 .st-card p{margin:0;font:500 1em/1.45 'DM Sans',system-ui,sans-serif;color:var(--hud)}.st-card p.dim{color:var(--dim);font-size:.9em}
@@ -47,4 +50,4 @@ kbd{font:700 .9em 'Barlow Condensed',system-ui,sans-serif;border:1px solid var(-
 .st-choice:hover,.st-choice:focus-visible,.st-hero:hover,.st-hero:focus-visible{border-color:var(--gold);outline:none}.st-choice:disabled{opacity:.45;cursor:default}
 .st-map{width:min(34em,100%);aspect-ratio:1;display:block;border-radius:.3em;background:#1c8fa0}
 .st-loading{position:absolute;inset:0;display:grid;place-items:center;font-size:1.4em;letter-spacing:.08em}
-@media (max-width:640px){.st-shell{font-size:11px}.st-tl{width:12em}.st-tr{width:11em}.st-quest p,.st-keys{display:none}}
+@media (max-width:640px){.st-shell{font-size:11px}.st-tl{width:12em}.st-tr{width:11em}.st-quest p,.st-keys,.st-sides{display:none}}

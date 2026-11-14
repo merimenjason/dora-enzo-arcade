@@ -5,8 +5,8 @@
 // drawing in lib/straits-scene.ts, sound in ./sound.ts.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  type Game, type HeroId, type SaveData, type Choice, type DockAction, NO_INPUT, DT, SAVE_KEY, SPEED_NAMES, ISLANDS, DOCKS, KELONG, HERO, TALK, BOUND, SHORE_Z,
-  newGame, step, choose, dockAction, dockOptions, leaveDock, result, freshSave, parseSave, recordVoyage, forward,
+  type Game, type HeroId, type SaveData, type Choice, type DockAction, NO_INPUT, DT, SAVE_KEY, SPEED_NAMES, ISLANDS, DOCKS, KELONG, HERO, BOUND, SHORE_Z,
+  newGame, step, choose, talkOf, dockAction, dockOptions, leaveDock, result, freshSave, parseSave, recordVoyage, forward, sailFactor, pointOfSail,
 } from '@/lib/straits-game';
 import { StraitsScene } from '@/lib/straits-scene';
 import { StraitsSound } from './sound';
@@ -104,7 +104,7 @@ export default function Straits() {
         acc += dt;
         while (acc >= DT && g.phase === 'sail') {
           acc -= DT; const h = held.current, e = edge.current, gear0 = g.gear, ram0 = g.ramT, snd = soundRef.current;
-          step(g, { ...NO_INPUT, turn: (h.R ? 1 : 0) - (h.L ? 1 : 0), faster: e.faster, slower: e.slower, ram: e.ram, act: e.act, fire: !!h.fire, brace: !!h.brace });
+          step(g, { ...NO_INPUT, turn: (h.R ? 1 : 0) - (h.L ? 1 : 0), faster: e.faster, slower: e.slower, ram: e.ram, act: e.act, fire: !!h.fire, firePort: !!h.fireP, fireStar: !!h.fireS, brace: !!h.brace });
           e.faster = e.slower = e.ram = e.act = false;
           sc.handle(g.events);
           if (snd) { if (g.gear !== gear0) snd.gear(g.gear > gear0); if (g.ramT > ram0) snd.ram(); for (const ev of g.events) snd.fx(ev); }
@@ -141,18 +141,18 @@ export default function Straits() {
 
   // keys
   useEffect(() => {
-    const HOLD: Record<string, string> = { ArrowLeft: 'L', KeyA: 'L', ArrowRight: 'R', KeyD: 'R', Space: 'fire', KeyJ: 'fire', ShiftLeft: 'brace', ShiftRight: 'brace', KeyK: 'brace' };
+    const HOLD: Record<string, string> = { ArrowLeft: 'L', KeyA: 'L', ArrowRight: 'R', KeyD: 'R', Space: 'fire', KeyJ: 'fire', KeyQ: 'fireP', KeyE: 'fireS', ShiftLeft: 'brace', ShiftRight: 'brace', KeyK: 'brace' };
     const down = (ev: KeyboardEvent) => {
       const g = gameRef.current, c = ev.code;
       if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(c)) ev.preventDefault();
       if (HOLD[c]) held.current[HOLD[c]] = true;
       if (ev.repeat || !g || screen !== 'play') return;
-      if (g.phase === 'talk') { const i = ['Digit1', 'Digit2', 'Digit3'].indexOf(c); if (i >= 0) answer(TALK.choices[i].id); return; }
-      if (g.phase === 'dock') { const i = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(c); if (i >= 0) buy(DOCK_ROWS[i].id); else if (c === 'KeyE' || c === 'Enter' || c === 'Escape') cast(); return; }
+      if (g.phase === 'talk') { const i = ['Digit1', 'Digit2', 'Digit3'].indexOf(c); const c2 = talkOf(g)?.choices[i]; if (c2) answer(c2.id); return; }
+      if (g.phase === 'dock') { const i = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(c); if (i >= 0) buy(DOCK_ROWS[i].id); else if (c === 'KeyF' || c === 'Enter' || c === 'Escape') cast(); return; }
       if (c === 'KeyW' || c === 'ArrowUp') edge.current.faster = true;
       else if (c === 'KeyS' || c === 'ArrowDown') edge.current.slower = true;
       else if (c === 'KeyR' || c === 'KeyL') edge.current.ram = true;
-      else if (c === 'KeyE' || c === 'Enter') edge.current.act = true;
+      else if (c === 'KeyF' || c === 'Enter') edge.current.act = true;
       else if (c === 'KeyM') setShowMap(m => !m);
       else if (c === 'KeyN') { const on = !(P.current.sfx || P.current.music); setSound({ sfx: on, music: on }); }
       else if (c === 'Escape' || c === 'KeyP') { if (S.current.map) setShowMap(false); else setPaused(p => !p); }
@@ -180,7 +180,7 @@ export default function Straits() {
             </div>
             <div className="st-row"><button type="button" className="st-btn gold" id="st-play" onClick={() => start(hero)}>Set sail</button><a className="st-btn" href="/">Arcade</a></div>
             <div className="st-row"><button type="button" className="st-btn" aria-pressed={prefs.sfx} onClick={() => setSound({ ...prefs, sfx: !prefs.sfx })}>Sound: {prefs.sfx ? 'on' : 'off'}</button><button type="button" className="st-btn" aria-pressed={prefs.music} onClick={() => setSound({ ...prefs, music: !prefs.music })}>Music: {prefs.music ? 'on' : 'off'}</button></div>
-            <p className="dim st-keys">A / D steer · W / S sail up and down · Space fires peanuts off the side nearest a raft · Shift braces · R rams · E docks at a jetty · M map · N sound · Esc pause</p>
+            <p className="dim st-keys">A / D steer · W / S sail up and down · Space fires at the nearest raft, Q and E fire to port and starboard · Shift braces · R rams · F docks at a jetty · M map · N sound · Esc pause</p>
             {save.best && <p className="dim">Best voyage: {save.best} in {tm(save.bestTime ?? 0)} · {save.voyages} landed</p>}
           </div>
         </div>
@@ -189,6 +189,7 @@ export default function Straits() {
   }
 
   const [fx, fz] = forward(g.h), point = POINTS[Math.round(((Math.atan2(fx, -fz) + Math.PI * 2) % (Math.PI * 2)) / (Math.PI / 4)) % 8];
+  const talk = talkOf(g), sail = sailFactor(g.h, g.wind, g.gear);
   const opts = dockOptions(g), dock = DOCKS.find(d => d.id === g.dockId), near = DOCKS.find(d => d.id === g.nearDock), res = g.phase === 'won' ? result(g) : null;
   return (
     <main className="st-shell" data-ready="true">
@@ -198,7 +199,8 @@ export default function Straits() {
         <div className="st-stat"><b>{g.hero.toUpperCase()}</b><span>HULL {Math.max(0, Math.ceil(g.hull))} / {g.maxHull}</span><div className={`st-bar hull${g.hull < g.maxHull * 0.3 ? ' low' : ''}`}><u style={{ width: `${Math.max(0, g.hull / g.maxHull * 100)}%` }} /></div></div>
         <div className="st-stat"><b>HAY</b><span>{Math.round(g.hay)}% · {g.seeds} SEEDS</span><div className="st-bar"><u style={{ width: `${g.hay}%` }} /></div></div>
       </div>
-      <div className="st-tc"><b>{point}</b><p>SINGAPORE STRAIT · {g.stance === 'calm' ? 'OTTERS AT PEACE' : 'OTTER WATERS'}</p></div>
+      <div className="st-tc"><b>{point}</b><p>SINGAPORE STRAIT · {g.stance === 'calm' ? 'OTTERS AT PEACE' : 'OTTER WATERS'}</p>
+        <div className="st-wind" id="st-wind" title="The arrow shows which way the wind is blowing, seen from the helm"><svg viewBox="-12 -12 24 24" style={{ transform: `rotate(${(-(g.wind - g.h) * 180 / Math.PI).toFixed(1)}deg)` }}><path d="M0 -10L6 2H2V10H-2V2H-6Z" fill="currentColor" /></svg><span>WIND · {pointOfSail(g.h, g.wind)}{g.gear >= 2 ? ` · ${Math.round(sail * 100)}%` : ''}{g.windHeld ? ' · HELD' : ''}</span></div></div>
       <div className="st-tr">
         <div className="st-top-btns"><button type="button" className="st-btn" onClick={() => setShowMap(m => !m)}>Map</button><button type="button" className="st-btn" id="st-mute" aria-label="Sound and music" aria-pressed={prefs.sfx || prefs.music} onClick={() => { const on = !(prefs.sfx || prefs.music); setSound({ sfx: on, music: on }); }}>{prefs.sfx || prefs.music ? '♪ on' : '♪ off'}</button><button type="button" className="st-btn" onClick={() => setPaused(true)}>Pause</button></div>
         <div className="st-power st-panel"><div><span>OTTERS</span><span>{g.power}%</span></div><i><u style={{ width: `${g.power}%` }} /></i></div>
@@ -208,7 +210,8 @@ export default function Straits() {
       {g.phase === 'sail' && (
         <div className="st-bc">
           {toast && <div className="st-toast st-panel st-body">{toast}</div>}
-          {near && <div className="st-prompt st-panel st-body"><kbd>E</kbd>{near.id === 'ubin' ? 'Land the hay' : `Dock at ${near.name}`}{g.v >= 3 ? ' (slow down first)' : ''}</div>}
+          {near && <div className="st-prompt st-panel st-body"><kbd>F</kbd>{near.id === 'ubin' ? 'Land the hay' : `Dock at ${near.name}`}{g.v >= 3 ? ' (slow down first)' : ''}</div>}
+          <div className="st-sides"><span className={g.reloadP <= 0 ? 'on' : ''}><kbd>Q</kbd>PORT</span><span className={g.reloadS <= 0 ? 'on' : ''}>STARB<kbd>E</kbd></span></div>
           <div className="st-gears st-panel">{[1, 2, 3].map(i => <span key={i} className={g.gear === i ? 'on' : ''}>{SPEED_NAMES[i]}</span>)}</div>
         </div>
       )}
@@ -218,10 +221,10 @@ export default function Straits() {
           <div className="r"><button type="button" {...tap('act')}>DOCK</button><button type="button" {...tap('ram')}>RAM</button><button type="button" {...hold('brace')}>BRACE</button><span /><span /><button type="button" {...hold('fire')}>FIRE</button></div>
         </div>
       )}
-      {g.phase === 'talk' && (
-        <div className="st-over"><div className="st-card st-panel">
-          <h2>{TALK.who}</h2><p>{TALK.line}</p>
-          {TALK.choices.map((c, i) => <button key={c.id} type="button" id={`st-say-${c.id}`} className={`st-choice st-panel${c.id === 'fight' ? ' fight' : ''}`} onClick={() => answer(c.id)}><b>{i + 1} · {c.label}</b><span>{c.text}</span></button>)}
+      {g.phase === 'talk' && talk && (
+        <div className="st-over st-low"><div className="st-card st-panel">
+          <h2>{talk.who}</h2><p>{talk.line}</p>
+          {talk.choices.map((c, i) => <button key={c.id} type="button" id={`st-say-${c.id}`} disabled={!!c.no} className={`st-choice st-panel${c.id === 'fight' ? ' fight' : ''}`} onClick={() => answer(c.id)}><b>{i + 1} · {c.label}</b><span>{c.text}{c.no ? ` (${c.no})` : ''}</span></button>)}
         </div></div>
       )}
       {g.phase === 'dock' && dock && (
@@ -236,7 +239,7 @@ export default function Straits() {
       )}
       {paused && g.phase === 'sail' && !showMap && (
         <div className="st-over"><div className="st-card st-panel"><h2>Paused</h2>
-          <p className="dim">A / D steer · W / S sail up and down · Space fires peanuts off the side nearest a raft · Shift braces · R rams · E docks · M map · N sound</p>
+          <p className="dim">A / D steer · W / S sail up and down · Space fires at the nearest raft, Q and E fire to port and starboard · Shift braces · R rams · F docks · M map · N sound</p>
           <div className="st-row"><button type="button" className="st-btn" aria-pressed={prefs.sfx} onClick={() => setSound({ ...prefs, sfx: !prefs.sfx })}>Sound: {prefs.sfx ? 'on' : 'off'}</button><button type="button" className="st-btn" aria-pressed={prefs.music} onClick={() => setSound({ ...prefs, music: !prefs.music })}>Music: {prefs.music ? 'on' : 'off'}</button></div>
           <div className="st-row"><button type="button" className="st-btn gold" onClick={() => setPaused(false)}>Carry on</button><button type="button" className="st-btn" onClick={() => setScreen('title')}>Give up the voyage</button><a className="st-btn" href="/">Arcade</a></div>
         </div></div>

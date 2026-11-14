@@ -2,7 +2,7 @@
 // the mainland with its skyline, the kelong, otter rafts, Captain Bishan's war raft, the cat hunter, peanuts, clams
 // and floating crates. The page owns the HUD; `project` gives it screen positions for its markers.
 import * as T from 'three';
-import { type Game, type Foe, type Ev, type HeroId, ISLANDS, HOME, KELONG, DOCKS, SHORE_Z, forward } from './straits-game';
+import { type Game, type Foe, type Ev, type HeroId, ISLANDS, HOME, KELONG, DOCKS, ENCOUNTERS, SHORE_Z, VOLLEY_RANGE, forward, starboard } from './straits-game';
 import { makeChinchilla3d } from './chinchilla-3d';
 
 const PI = Math.PI;
@@ -42,6 +42,19 @@ function raftModel(boss: boolean): T.Group {
   if (boss) g.scale.setScalar(1.7);
   return g;
 }
+function macaque(): T.Group {
+  const g = new T.Group(), fur = std(0x8a7a66, { roughness: 1 }), face = std(0xe6c9b0, { roughness: 0.8 }), dk = std(0x1c1614, { roughness: 0.3 });
+  g.add(ball(1, fur, 0, 0.2, 0, 0.16, 0.2, 0.15), ball(0.11, fur, 0, 0.47, 0.03), ball(1, face, 0, 0.45, 0.1, 0.075, 0.08, 0.05), ball(1, face, 0, 0.2, 0.1, 0.1, 0.13, 0.08));
+  for (const s of [-1, 1]) g.add(ball(0.014, dk, s * 0.035, 0.48, 0.14), ball(0.03, fur, s * 0.11, 0.5, 0.02), ball(1, fur, s * 0.17, 0.22, 0.05, 0.04, 0.13, 0.05), ball(1, fur, s * 0.1, 0.05, 0.12, 0.05, 0.05, 0.1));
+  const tl = mesh(new T.TorusGeometry(0.16, 0.018, 6, 16, 2.6), fur, 0, 0.12, -0.2); tl.rotation.y = PI / 2; g.add(tl); return g;
+}
+function mynaModel(): T.Group {
+  const g = new T.Group(), dark = std(0x2a211c), yel = std(0xf2c230, { roughness: 0.5 });
+  g.add(ball(1, dark, 0, 0.13, 0, 0.05, 0.06, 0.085), ball(0.04, std(0x151210), 0, 0.185, 0.075), ball(1, std(0xf4f0e8), 0, 0.105, -0.02, 0.045, 0.03, 0.05));
+  const beak = mesh(new T.ConeGeometry(0.014, 0.05, 8), yel, 0, 0.18, 0.125); beak.rotation.x = PI / 2; g.add(beak);
+  for (const s of [-1, 1]) g.add(cyl(0.005, 0.005, 0.09, yel, s * 0.02, 0.045, 0.01, 6), ball(0.012, yel, s * 0.03, 0.192, 0.092));
+  return g;
+}
 function hunterModel(): T.Group {
   const g = new T.Group(), fur = std(0xc8782c), pale = std(0xf3e6d0);
   const hull = hullPart(0.62, 0.2, std(0xf2f0ea, { roughness: 0.4 }), -0.05), stripe = hullPart(0.64, 0.05, std(0xe07b2c), 0.15); hull.rotation.z = PI; stripe.rotation.z = PI; g.add(hull, stripe);
@@ -56,6 +69,7 @@ export class StraitsScene {
   private sea: T.Mesh; private seaTex: T.CanvasTexture; private seaX: Float32Array; private seaZ: Float32Array;
   private foes = new Map<number, T.Group>(); private shots: T.Mesh[] = []; private crates: T.Mesh[] = []; private rings: { m: T.Mesh; t: number }[] = [];
   private chief: T.Group; private beacon: T.Mesh; private v = new T.Vector3();
+  private pennant = new T.Group(); private aim = new T.Group(); private arcs: T.Mesh[] = [];
 
   constructor(private canvas: HTMLCanvasElement, hero: HeroId) {
     const r = this.renderer = new T.WebGLRenderer({ canvas, antialias: true });
@@ -88,6 +102,13 @@ export class StraitsScene {
     const u = DOCKS.find(d => d.id === 'ubin')!;
     this.beacon = mesh(new T.CylinderGeometry(0.5, 0.5, 30, 12, 1, true), new T.MeshBasicMaterial({ color: 0xf6c453, transparent: true, opacity: 0.35, depthWrite: false, fog: false, side: T.DoubleSide }), u.x, 15, u.z, false); sc.add(this.beacon);
 
+    // Auntie Kera on Sentosa's jetty and Tok Tiong on St John's
+    const ke = ENCOUNTERS.find(e => e.id === 'kera')!, ti = ENCOUNTERS.find(e => e.id === 'tiong')!;
+    const mk = macaque(); mk.scale.setScalar(1.3); mk.position.set(ke.x - 0.1, 0.37, ke.z + 0.9); mk.rotation.y = PI; sc.add(mk);
+    const my = mynaModel(); my.scale.setScalar(1.7); my.position.set(ti.x + 0.8, 0.37, ti.z); my.rotation.y = -PI / 2; sc.add(my);
+    // firing arcs on the water, port then starboard: shown when a foe is near, gold when one is inside
+    for (const side of [0, PI]) { const g = new T.CircleGeometry(VOLLEY_RANGE, 20, side - 0.2, 0.4); g.rotateX(-PI / 2); const m = mesh(g, new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.12, depthWrite: false }), 0, 0.16, 0, false); this.aim.add(m); this.arcs.push(m); }
+    sc.add(this.aim);
     const peanut = std(0xd9b77a), clam = std(0x9aa3a8), crate = std(0xc99a62);
     for (let i = 0; i < 40; i++) { const m = ball(0.09, peanut, 0, 0, 0, 1, 0.8, 1.5); m.visible = false; m.userData.peanut = peanut; m.userData.clam = clam; sc.add(m); this.shots.push(m); }
     for (let i = 0; i < 8; i++) { const m = box(0.5, 0.4, 0.5, crate); m.visible = false; sc.add(m); this.crates.push(m); }
@@ -111,6 +132,7 @@ export class StraitsScene {
     b.add(mesh(sg, std(0xffffff, { map: sailT, side: T.DoubleSide, roughness: 0.9 }), 0, 1.2, -0.37));
     const hay = tex(128, 128, g => { g.fillStyle = '#d2b55e'; g.fillRect(0, 0, 128, 128); for (let i = 0; i < 400; i++) { g.strokeStyle = ['#b8973f', '#e6cf82', '#a8873a'][i % 3]; g.beginPath(); const x = rnd() * 128, y = rnd() * 128; g.moveTo(x, y); g.lineTo(x + 10 + rnd() * 14, y + rnd() * 4 - 2); g.stroke(); } });
     b.add(box(0.42, 0.26, 0.3, std(0xffffff, { map: hay, roughness: 1 }), -0.08, 0.41, 0.28)); for (const x of [-0.2, 0.04]) b.add(box(0.02, 0.265, 0.305, std(0xb0352b), x, 0.41, 0.28));
+    const pg = new T.ConeGeometry(0.05, 0.26, 3); pg.rotateX(PI / 2); pg.translate(0, 0, 0.13); this.pennant.add(mesh(pg, std(0xd0312d, { side: T.DoubleSide }), 0, 0, 0, false)); this.pennant.position.set(0, 2.03, -0.35); b.add(this.pennant);
     b.scale.setScalar(0.52);
     const lead = makeChinchilla3d(hero, { layers: 14, sun }), mate = makeChinchilla3d(hero === 'dora' ? 'enzo' : 'dora', { layers: 14, sun });
     lead.scale.setScalar(1 / 0.52); lead.position.set(0, 0.282, -0.92); lead.rotation.y = PI; mate.scale.setScalar(1 / 0.52); mate.position.set(-0.06, 0.282, 0.86); mate.rotation.y = PI - 0.2;
@@ -171,6 +193,12 @@ export class StraitsScene {
     const b = this.boat; b.position.set(g.x, wave(g.x, g.z, t) * 0.6 - 0.02, g.z); b.rotation.order = 'YXZ'; b.rotation.y = g.h + PI;
     b.rotation.z = Math.sin(t * 0.9) * 0.03 + (g.ramT > 0 ? 0.06 : 0); b.rotation.x = Math.sin(t * 1.2 + 1) * 0.02 - Math.min(0.06, g.v * 0.008);
     for (const c of this.chins) { const s = 1 + Math.sin(t * 2.6 + c.userData.phase) * 0.018; c.getObjectByName('body')!.scale.set(s, s, 1); c.getObjectByName('tail')!.rotation.y = Math.sin(t * 1.3 + c.userData.phase) * 0.2; }
+    this.pennant.rotation.y = g.wind - (g.h + PI) + Math.sin(t * 7) * 0.12;
+    // firing arcs
+    const [ax, az] = starboard(g.h), [bx, bz] = forward(g.h); let near = false; const inArc = [false, false];
+    for (const f of g.foes) { const rx = f.x - g.x, rz = f.z - g.z, d = Math.hypot(rx, rz); if (d > 30) continue; near = true; const lat = rx * ax + rz * az, fwd = rx * bx + rz * bz; if (d < VOLLEY_RANGE + 1 && Math.atan2(Math.abs(fwd), Math.abs(lat)) < 0.26) inArc[lat < 0 ? 0 : 1] = true; }
+    this.aim.visible = near && g.phase === 'sail'; this.aim.position.set(g.x, 0, g.z); this.aim.rotation.y = g.h;
+    this.arcs.forEach((m, i) => { const mat = m.material as T.MeshBasicMaterial, ready = (i ? g.reloadS : g.reloadP) <= 0; mat.color.setHex(inArc[i] && ready ? 0xf6c453 : 0xffffff); mat.opacity = !ready ? 0.04 : inArc[i] ? 0.34 : 0.12; });
     // foes
     const live = new Set<number>(); let boss = false;
     for (const f of g.foes) { live.add(f.id); if (f.kind === 'bishan') boss = true; const m = this.foes.get(f.id) ?? this.foeModel(f); m.position.set(f.x, wave(f.x, f.z, t) * 0.8, f.z); m.rotation.y = f.h; m.rotation.z = Math.sin(t * 1.1 + f.id) * 0.05; }
@@ -183,7 +211,7 @@ export class StraitsScene {
     this.beacon.visible = g.phase !== 'won';
     // camera: behind the boat, turning a little late; in the conversation it swings to face the kelong
     const cam = this.camera; let d = g.h - this.camYaw; while (d > PI) d -= PI * 2; while (d < -PI) d += PI * 2; this.camYaw += d * Math.min(1, dt * 3.5);
-    if (g.phase === 'talk') { const kx = KELONG.x - g.x, kz = KELONG.z - g.z, l = Math.hypot(kx, kz) || 1; cam.position.set(g.x - kx / l * 2.6 + kz / l * 0.9, 1.25, g.z - kz / l * 2.6 - kx / l * 0.9); cam.lookAt(KELONG.x, 1.1, KELONG.z); }
+    if (g.phase === 'talk') { const e = ENCOUNTERS.find(k => k.id === g.talkId) ?? KELONG, kx = e.x - g.x, kz = e.z - g.z, l = Math.hypot(kx, kz) || 1; cam.position.set(g.x - kx / l * 2.6 + kz / l * 0.9, 1.25, g.z - kz / l * 2.6 - kx / l * 0.9); cam.lookAt(e.x, 0.9, e.z); }
     else { const [fx, fz] = forward(this.camYaw); cam.position.set(g.x - fx * 3.7, 2.35 + g.v * 0.03, g.z - fz * 3.7); cam.lookAt(g.x + fx * 6, 0.2, g.z + fz * 6); }
     this.sun.position.set(g.x + this.sunOff.x, this.sunOff.y, g.z + this.sunOff.z); this.sun.target.position.set(g.x, 0, g.z);
     this.renderer.render(this.scene, cam);

@@ -23,7 +23,9 @@ try {
     await page.waitForFunction(() => window.__straits().t > 2); await page.keyboard.up('KeyD');
     const s = await G(page, 'return { v: g.v, gear: g.gear, h: g.h, z: g.z }'); assert.equal(s.gear, 2); assert.ok(s.v > 1 && s.h < 0 && s.z > -71, 'under way and turning to starboard');
     // a volley
-    await page.keyboard.press('Space'); await page.waitForFunction(() => window.__straits().reload > 0);
+    await page.keyboard.press('KeyQ'); await page.waitForFunction(() => window.__straits().reloadP > 0); assert.equal(await G(page, 'return g.reloadS'), 0);
+    await page.keyboard.press('KeyE'); await page.waitForFunction(() => window.__straits().reloadS > 0);
+    assert.match(await page.locator('#st-wind').textContent(), /WIND · (RUNNING|REACHING|BEATING|IN IRONS)/);
     // sound: running after the first click, both tunes and every effect play without an error, and the toggles stick
     assert.equal(await page.evaluate(() => window.__straitsSound().ac?.state), 'running');
     await page.evaluate(() => { const s = window.__straitsSound(); for (const k of ['volley', 'clam', 'bump', 'loot', 'capsize', 'dock', 'talk', 'found', 'say', 'won', 'lost']) s.fx({ k, x: 0, z: 0, id: 'kusu', seeds: 3, text: '' }); s.fx({ k: 'hit', x: 0, z: 0, mine: true }); s.fx({ k: 'hit', x: 0, z: 0, mine: false }); s.fx({ k: 'sink', x: 0, z: 0, kind: 'bishan' }); s.gear(true); s.ram(); s.ui(false); s.update(1, true, false); });
@@ -37,11 +39,14 @@ try {
     await G(page, 'g.foes.length = 0; g.x = 20; g.z = -13; g.v = 0; g.gear = 0;'); await page.locator('#st-say-bargain').click();
     await page.waitForFunction(() => window.__straits().phase === 'sail'); assert.equal(await G(page, 'return g.hay'), 75); assert.equal(await G(page, 'return g.stance'), 'calm');
     // a jetty
-    await G(page, 'g.x = -14; g.z = -52; g.hull = 50; g.seeds = 20;'); await page.keyboard.press('KeyE');
+    await G(page, 'g.x = -14; g.z = -52; g.hull = 50; g.seeds = 20;'); await page.getByRole('heading', { name: 'Auntie Kera' }).waitFor(); await page.locator('#st-say-ally').click();
+    await page.waitForFunction(() => window.__straits().phase === 'sail'); assert.equal(await G(page, 'return g.volley'), 18); assert.equal(await G(page, 'return g.stance'), 'hostile'); await page.keyboard.press('KeyF');
     await page.getByRole('heading', { name: 'Sentosa' }).waitFor(); await page.getByRole('button', { name: /Patch the hull/ }).click();
     assert.equal(await G(page, 'return g.hull'), 130); await page.getByRole('button', { name: 'Cast off' }).click(); await page.waitForFunction(() => window.__straits().phase === 'sail');
-    // land the hay
-    await G(page, 'g.x = 55.5; g.z = 47.5;'); await page.keyboard.press('KeyE'); await page.getByRole('heading', { name: 'Hay landed on Pulau Ubin' }).waitFor();
+    // Tok Tiong's wind, then land the hay
+    await G(page, 'g.x = 17; g.z = 9;'); await page.getByRole('heading', { name: 'Tok Tiong' }).waitFor(); assert.ok(await page.locator('#st-say-cats').isDisabled()); await page.locator('#st-say-wind').click();
+    await page.waitForFunction(() => window.__straits().windHeld); assert.match(await page.locator('#st-wind').textContent(), /HELD/);
+    await G(page, 'g.x = 55.5; g.z = 47.5;'); await page.keyboard.press('KeyF'); await page.getByRole('heading', { name: 'Hay landed on Pulau Ubin' }).waitFor();
     assert.match(await page.locator('.st-card').textContent(), /SILVER · 75% of the bale/);
     assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem('straits-v1'))).best, 'silver');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'no sideways scroll');
