@@ -4,9 +4,11 @@
 // ten times a second, or at once when a panel, dialogue or failure opens). The world is never re-rendered by React.
 // Test hooks live on window.__jade.
 import { World, DT, NO_INPUT, type Input } from '@/lib/jade-game';
-import { Scene, loadArt } from '@/lib/jade-scene';
+import { Scene, loadArt, artLoaded } from '@/lib/jade-scene';
+import { spawn, EVENT_KINDS, type EventKind } from '@/lib/jade-events';
+import { nearestFree } from '@/lib/jade-nav';
 import { city, T, districtAt } from '@/lib/jade-city';
-import { dailyEvent, dayKey, openDistricts, type Save } from '@/lib/jade-save';
+import { dailyEvent, dayKey, openDistricts, chapterOf, type Save } from '@/lib/jade-save';
 import { MISSION, MISSIONS } from '@/lib/jade-story';
 import type { JadeSound } from './sound';
 
@@ -17,13 +19,15 @@ export class Play {
   pend = { dash: false, hop: false, act: false };
   fps = 60; frames = 0; fpsT = 0; fpsLog: number[] = [];
   toasts: Toast[] = []; tid = 1; ver = 0; notifyT = 0; lastKey = '';
-  saveT = 0; ro: ResizeObserver | null = null;
+  saveT = 0; ro: ResizeObserver | null = null; ambT = 0;
+  /** the page shows the ending a moment after the last job is done */
+  endingT = 0; onEnding: (() => void) | null = null;
   constructor(public cv: HTMLCanvasElement, public save: Save, public snd: JadeSound | null, public onChange: () => void, public persist: (s: Save) => void) {
     this.w = new World(save);
     this.w.event = dailyEvent(dayKey(new Date()));
     this.scene = new Scene(cv, city());
     this.scene.minimap.on = true;
-    void loadArt().then(() => { this.scene.chunks.clear(); this.scene.map = null; });
+    if (!artLoaded()) loadArt().then(() => { this.scene.chunks.clear(); this.scene.map = null; }).catch(() => undefined);
     this.resize();
     const host = cv.parentElement;
     if (host && typeof ResizeObserver !== 'undefined') { this.ro = new ResizeObserver(() => this.resize()); this.ro.observe(host); }
@@ -98,7 +102,7 @@ export class Play {
     }
     const fx = w.drain();
     if (fx.length) this.events(fx);
-    this.scene.draw(w, this.paused ? 0 : dt);
+    if (artLoaded()) this.scene.draw(w, this.paused ? 0 : dt);
     // HUD refresh: at once on a modal change, else ~10 Hz
     const key = `${!!w.talk}|${w.talk?.i}|${w.ui?.kind}|${!!w.failed}|${w.banner?.text}|${w.near?.label}|${w.run?.i}|${w.run?.label}|${!!w.p.ride}|${w.p.roof}|${w.p.hide}`;
     this.notifyT -= dt;
@@ -107,6 +111,9 @@ export class Play {
     // music follows the action
     const chase = w.heat >= 1 || (w.run && ['chase', 'race', 'escort'].includes(w.run.cur?.t ?? ''));
     this.snd?.play(chase ? 'chase' : 'street');
+    this.snd?.radio(w.p.ride?.kind ?? null);
+    this.ambT -= dt; if (this.ambT <= 0) { this.ambT = 1; this.snd?.ambient(districtAt(Math.floor(w.p.x / T), Math.floor(w.p.y / T)), w.rain); }
+    if (this.endingT > 0 && !this.paused) { this.endingT -= dt; if (this.endingT <= 0) this.onEnding?.(); }
     this.toasts = this.toasts.filter(t => (t.t -= dt) > 0);
   };
   events(fx: ReturnType<World['drain']>) {
@@ -117,6 +124,9 @@ export class Play {
       else if (f.t === 'trophy' && f.name) this.toast(`Trophy: ${f.name}`, 'gold');
       else if (f.t === 'caught') this.toast(f.msg ?? 'Caught! The wardens fined you and sent you to a safe house.', 'bad');
       else if (f.t === 'heat-up' && f.k) this.toast(f.k === 1 ? 'A warden spotted you! Break line of sight, hide, or swap jackets at a safe house.' : `${f.k} lanterns of heat!`, 'bad');
+      else if (f.t === 'finale') this.endingT = 3;
+      else if (f.t === 'learned') this.snd?.fx([{ t: 'lesson' }]);
+      if (f.t === 'mission-done' && this.w.lastMedal) { const m = this.w.lastMedal; this.snd?.fx([{ t: 'medal', k: m.medal }]); if (m.best && m.medal) this.toast(`New best medal: ${['', 'bronze', 'silver', 'gold'][m.medal]}!`, 'gold'); }
       if (f.t === 'mission-done' || f.t === 'district' || f.t === 'trophy') this.persist(this.w.s);
     }
   }
@@ -132,11 +142,29 @@ export class Play {
       teleport: (tx: number, ty: number) => { this.w.placePlayer(tx * T + T / 2, ty * T + T / 2); if (this.w.p.ride) { this.w.p.ride.b.x = this.w.p.b.x; this.w.p.ride.b.y = this.w.p.b.y; } },
       teleportTo: (place: string) => { const p = this.w.c.places[place]; if (p) this.w.placePlayer(p.x, p.y + T * 0.6); },
       /** mark every job before `id` done and stand next to its contact */
-      jumpTo: (id: string) => { const i = MISSIONS.findIndex(m => m.id === id); this.w.s.done = MISSIONS.slice(0, Math.max(0, i)).map(m => m.id); this.w.quitJob(); this.w.open = new Set(openDistricts(this.w.s)); this.w.fieldCache.clear(); const pl = this.w.c.places[MISSION[id].at]; this.w.placePlayer(pl.x, pl.y + T * 0.8); this.scene.map = null; },
+      jumpTo: (id: string) => { const i = MISSIONS.findIndex(m => m.id === id); this.w.s.done = MISSIONS.slice(0, Math.max(0, i)).map(m => m.id); this.w.s.story.intro = true; this.w.s.story.ch = chapterOf(this.w.s); this.w.quitJob(); this.w.open = new Set(openDistricts(this.w.s)); this.w.fieldCache.clear(); const pl = this.w.c.places[MISSION[id].at]; this.w.placePlayer(pl.x, pl.y + T * 0.8); this.scene.map = null; },
       step: (n = 60, inp?: Partial<Input>) => { for (let i = 0; i < n; i++) this.w.step({ ...NO_INPUT, ...inp }, DT); },
       heat: (n: number) => { this.w.heat = n; },
       cash: (n: number) => { this.w.s.cash = n; },
       district: (tx: number, ty: number) => districtAt(tx, ty),
+      /** street events, rain, the ending and the festival for the browser tests */
+      event: (k?: EventKind, here = false) => {
+        const w = this.w; w.street = null; w.crowd = null;
+        // try where you stand, then beside a parked van or a stall in an open district
+        const spots: [number, number][] = [[w.p.x, w.p.y], ...w.rides.filter(r => r.kind === 'van' && r.parked && !r.locked).map(r => [r.b.x, r.b.y + 5 * T] as [number, number]), ...w.c.props.filter(p => p.sprite.startsWith('stall')).map(p => [p.x, p.y + 6 * T] as [number, number])];
+        for (const [x, y] of here ? spots.slice(0, 1) : spots) {
+          if (!w.open.has(districtAt(Math.floor(x / T), Math.floor(y / T)))) continue;
+          if (!here) { const [fx, fy] = nearestFree(w.c, 'walk', x, y, w.open, 6); w.placePlayer(fx, fy); }
+          for (const kind of k ? [k] : EVENT_KINDS) { const e = spawn(w, kind); if (e) return e.kind; }
+        }
+        return null;
+      },
+      street: () => { const e = this.w.street; return e ? { kind: e.kind, phase: e.phase, x: e.x / T, y: e.y / T } : null; },
+      rain: (v: number | null) => { this.w.rainForce = v; },
+      ending: () => { this.endingT = 0.01; },
+      finishAll: () => { this.w.s.done = MISSIONS.map(m => m.id); this.w.open = new Set(openDistricts(this.w.s)); this.w.fieldCache.clear(); this.scene.map = null; },
+      medals: () => ({ ...this.w.s.medals }),
+      lights: () => this.w.time,
     };
   }
 }

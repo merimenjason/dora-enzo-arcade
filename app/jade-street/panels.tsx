@@ -1,7 +1,8 @@
 'use client';
-// Jade Street panels: the market stall (prices, cargo, tips and the haggle needle), the safe house (jacket swap,
-// sleep, stash, wardrobe, switching heroes, buying the house), the garage (upgrades and paint), the full map with
-// pins and a waypoint, and the pause menu with settings, trophies, stats, the daily event and a new-game confirm.
+// Jade Street panels: the market stall (the painted counter and its keeper, prices, cargo, tips and the haggle
+// needle), the safe house (jacket swap, sleep, stash, wardrobe, switching heroes, buying the house), the garage
+// (upgrades and paint), and the pause menu with the jobs book, story, controls, settings, trophies and stats.
+// The map is in ./map.tsx.
 import { useEffect, useRef, useState } from 'react';
 import { GOODS, GOOD, cargoCount, haggleZone, haggleResult, needle, bestRoute, type Good } from '@/lib/jade-trade';
 import { DISTRICTS, DISTRICT_NAME, T, W, H, type District } from '@/lib/jade-city';
@@ -12,8 +13,12 @@ import { lanterns } from '@/lib/jade-heat';
 import type { Play } from './controller';
 import { Sprite, Icon, Btn, fmt, GOOD_ICON, ART } from './ui';
 import type { JadeSound } from './sound';
+import { JobsBook, Controls } from './extras';
+import { learn } from '@/lib/jade-tutor';
 
 const dName = (d: District) => DISTRICT_NAME[d].replace(/^the /, 'The ');
+export const MARKET_NAME: Record<District, string> = { market: 'Night Market', temple: 'Temple Hill Bazaar', canal: 'Floating Market', docks: 'Harbour Market', arcade: 'Neon Market' };
+export const KEEPER: Record<District, string> = { market: 'Uncle Kee', temple: 'Auntie Pang', canal: 'Kiri', docks: 'Big Bo', arcade: 'Gizmo' };
 
 function Panel({ title, onClose, children, cls = '', testid }: { title: string; onClose: () => void; children: React.ReactNode; cls?: string; testid?: string }) {
   return (
@@ -35,6 +40,7 @@ export function Market({ play, d, snd, onClose }: { play: Play; d: District; snd
   const [, force] = useState(0);
   const pos = useRef(0); const bar = useRef<HTMLDivElement>(null);
   const zone = haggleZone(s.rep[d], w.assist);
+  useEffect(() => { learn(w, 'market'); }, [w]);
   useEffect(() => {
     if (!swing) return; let raf = 0; const t0 = performance.now();
     const f = (now: number) => { pos.current = needle((now - t0) / 1000, w.assist ? 0.75 : 1); if (bar.current) bar.current.style.left = `${pos.current * 100}%`; raf = requestAnimationFrame(f); };
@@ -49,15 +55,21 @@ export function Market({ play, d, snd, onClose }: { play: Play; d: District; snd
   const hint = w.assist ? bestRoute(s.seed, s.night, [...w.open], s.tips, w.event) : null;
   const ev = w.event;
   return (
-    <Panel title={`${dName(d)} market`} onClose={onClose} cls="market" testid="market">
-      <div className="jade-market-hero" style={{ backgroundImage: `url(${ART}bg-mg-haggle.webp)` }}>
-        <div className="jade-haggle">
-          {!haggle && !swing && <Btn kind="gold" testid="haggle" onClick={() => { setSwing(true); setMsg('Stop the needle in the green!'); }}>Haggle</Btn>}
-          {swing && <div className="jade-needle" onClick={stop} data-testid="haggle-bar"><div className="zone" style={{ left: `${(0.5 - zone) * 100}%`, width: `${zone * 200}%` }} /><div className="zone great" style={{ left: `${(0.5 - zone * 0.35) * 100}%`, width: `${zone * 70}%` }} /><div className="pin" ref={bar} /></div>}
-          {swing && <Btn kind="red" testid="haggle-stop" onClick={stop}>Stop!</Btn>}
-          {haggle && <span className={'jade-grade ' + haggle.grade} data-testid="haggle-grade">{haggle.grade === 'great' ? 'Great deal' : haggle.grade === 'good' ? 'Good deal' : haggle.grade === 'fair' ? 'Fair' : 'Sour'}</span>}
+    <Panel title={MARKET_NAME[d]} onClose={onClose} cls="market" testid="market">
+      <div className="jade-market-grid">
+        <div className="jade-stall-col">
+          <figure className="jade-stall" data-testid={`stall-${d}`}>
+            <img src={`${ART}bg-stall-${d}.webp`} alt={`${KEEPER[d]} behind the counter at the ${MARKET_NAME[d]}`} />
+            <figcaption><b>{KEEPER[d]}</b> · rep {Math.floor(s.rep[d])}</figcaption>
+          </figure>
+          <div className="jade-haggle">
+            {!haggle && !swing && <><Btn kind="gold" testid="haggle" onClick={() => { setSwing(true); setMsg('Stop the needle in the green!'); }}>Haggle</Btn><span className="jade-haggle-note">Stop the needle in the green for better prices this visit.</span></>}
+            {swing && <div className="jade-needle" onClick={stop} data-testid="haggle-bar"><div className="zone" style={{ left: `${(0.5 - zone) * 100}%`, width: `${zone * 200}%` }} /><div className="zone great" style={{ left: `${(0.5 - zone * 0.35) * 100}%`, width: `${zone * 70}%` }} /><div className="pin" ref={bar} /></div>}
+            {swing && <Btn kind="red" testid="haggle-stop" onClick={stop}>Stop!</Btn>}
+            {haggle && <span className={'jade-grade ' + haggle.grade} data-testid="haggle-grade">{haggle.grade === 'great' ? 'Great deal' : haggle.grade === 'good' ? 'Good deal' : haggle.grade === 'fair' ? 'Fair' : 'Sour'}</span>}
+          </div>
         </div>
-      </div>
+        <div className="jade-market-side">
       <div className="jade-market-info">
         <span><Icon name="ui-coin" size={18} /> {fmt(s.cash)}</span>
         <span>Carrying {have}/{cap}{w.p.ride ? ` in the ${VEHICLES[w.p.ride.kind].name.toLowerCase()}` : ' on foot'}</span>
@@ -90,6 +102,8 @@ export function Market({ play, d, snd, onClose }: { play: Play; d: District; snd
         {ev && <p><b>Daily event · {ev.name}:</b> {ev.desc} ({ev.task}{s.dailyDone.includes('day:' + ev.day) ? ', done!' : ''})</p>}
         {hint && hint.gain > 0.15 && <p className="hint"><b>Assist tip:</b> {GOOD[hint.good].name} are cheap at {dName(hint.from)} and pay at {dName(hint.to)}.</p>}
         <p className="small">Prices change every night. Magpies swoop at riders carrying valuable cargo: dash or boost to dodge.</p>
+      </div>
+        </div>
       </div>
     </Panel>
   );
@@ -195,67 +209,21 @@ export function Garage({ play, snd, onClose, onSave }: { play: Play; snd: JadeSo
   );
 }
 
-// ── full map
-export function MapView({ play, onClose }: { play: Play; onClose: () => void }) {
-  const cv = useRef<HTMLCanvasElement>(null); const w = play.w; const [, force] = useState(0);
-  const view = useRef({ s: 1, ox: 0, oy: 0 });
-  useEffect(() => {
-    const c = cv.current!; const x = c.getContext('2d')!;
-    let raf = 0;
-    const draw = (now: number) => {
-      raf = requestAnimationFrame(draw);
-      const r = c.getBoundingClientRect(); const dpr = Math.min(2, window.devicePixelRatio || 1);
-      if (c.width !== Math.round(r.width * dpr)) { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); }
-      const map = play.scene.buildMap();
-      const s = Math.min(c.width / map.width, c.height / map.height); const ox = (c.width - map.width * s) / 2, oy = (c.height - map.height * s) / 2;
-      view.current = { s: s * play.scene.mapK / T / dpr, ox: ox / dpr, oy: oy / dpr };
-      x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#0d1530'; x.fillRect(0, 0, c.width, c.height);
-      x.drawImage(map, ox, oy, map.width * s, map.height * s);
-      const k = s * play.scene.mapK / T; const P = (wx: number, wy: number): [number, number] => [ox + wx * k, oy + wy * k];
-      const fog: [District, number, number, number, number][] = [['temple', 0, 0, 46, 30], ['canal', 46, 0, 29, 62], ['arcade', 75, 0, 45, 62], ['docks', 46, 62, 74, 30]];
-      for (const [d, rx, ry, rw, rh] of fog) if (!w.open.has(d)) { const [a, b] = P(rx * T, ry * T); x.fillStyle = 'rgba(40,30,70,.85)'; x.fillRect(a, b, rw * T * k, rh * T * k); x.fillStyle = 'rgba(255,255,255,.75)'; x.font = `${Math.round(14 * dpr)}px system-ui`; x.textAlign = 'center'; const mw = rw * T * k * 0.92; x.fillText(dName(d), a + rw * T * k / 2, b + rh * T * k / 2, mw); x.fillText('in the fog', a + rw * T * k / 2, b + rh * T * k / 2 + 18 * dpr, mw); }
-      const t = now / 1000;
-      const pin = (wx: number, wy: number, col: string, r: number) => { const [a, b] = P(wx, wy); x.fillStyle = col; x.beginPath(); x.arc(a, b, r * dpr, 0, Math.PI * 2); x.fill(); x.lineWidth = 2 * dpr; x.strokeStyle = 'rgba(0,0,0,.7)'; x.stroke(); };
-      for (const pl of Object.values(w.c.places)) { if (!w.open.has(pl.d)) continue; if (pl.kind === 'market') pin(pl.x, pl.y, '#ffd25a', 5); else if (pl.kind === 'safe') pin(pl.x, pl.y, '#3ed6a4', 5); else if (pl.kind === 'garage') pin(pl.x, pl.y, '#8fb4ff', 5); }
-      for (const g of w.gigs()) pin(g.x, g.y, '#ff9ad5', 4);
-      if (!w.run) for (const m of available(w.s)) { const pl = w.c.places[m.at]; if (pl) pin(pl.x, pl.y, '#ffb020', 8 + Math.sin(t * 4) * 1.5); }
-      if (w.route.length > 1) { x.strokeStyle = 'rgba(255,230,120,.95)'; x.lineWidth = 3 * dpr; x.beginPath(); const [a0, b0] = P(w.p.x, w.p.y); x.moveTo(a0, b0); for (const [rx, ry] of w.route.slice(1)) { const [a, b] = P(rx, ry); x.lineTo(a, b); } x.stroke(); }
-      const o = w.objective(); if (o) pin(o[0], o[1], '#fff27a', 7);
-      const [px, py] = P(w.p.x, w.p.y); x.save(); x.translate(px, py); x.rotate((w.p.ride ? w.p.ride.b.h : w.p.b.h) + Math.PI / 2); x.scale(dpr * 1.4, dpr * 1.4); x.fillStyle = '#fff'; x.strokeStyle = '#c0392b'; x.lineWidth = 2; x.beginPath(); x.moveTo(0, -9); x.lineTo(7, 7); x.lineTo(0, 3); x.lineTo(-7, 7); x.closePath(); x.fill(); x.stroke(); x.restore();
-    };
-    raf = requestAnimationFrame(draw); return () => cancelAnimationFrame(raf);
-  }, [play, w]);
-  const click = (e: React.MouseEvent) => {
-    if (w.run) return;
-    const r = cv.current!.getBoundingClientRect(); const v = view.current;
-    const wx = (e.clientX - r.left - v.ox) / v.s, wy = (e.clientY - r.top - v.oy) / v.s;
-    if (wx < 0 || wy < 0 || wx > W * T || wy > H * T) return;
-    w.waypoint = [wx, wy]; w.routeT = 0; w.updateRoute(); force(n => n + 1); play.bump();
-  };
-  return (
-    <Panel title="Map" onClose={onClose} cls="map" testid="map">
-      <canvas ref={cv} className="jade-map-cv" onClick={click} data-testid="map-canvas" />
-      <div className="jade-map-legend">
-        <span><i style={{ background: '#ffb020' }} />Job</span><span><i style={{ background: '#ffd25a' }} />Market</span><span><i style={{ background: '#3ed6a4' }} />Safe house</span><span><i style={{ background: '#8fb4ff' }} />Garage</span><span><i style={{ background: '#ff9ad5' }} />Side gig</span>
-        {w.run ? <span>Your job’s route is shown.</span> : <span>Tap the map to drop a pin.{w.waypoint && <button type="button" className="jade-link" data-testid="clear-pin" onClick={() => { w.waypoint = null; w.route = []; force(n => n + 1); }}>Clear pin</button>}</span>}
-      </div>
-    </Panel>
-  );
-}
-
 // ── pause menu
-type Tab = 'menu' | 'settings' | 'trophies' | 'stats' | 'story';
-export function Pause({ play, onClose, onQuit, onNew, onSave, snd }: { play: Play; onClose: () => void; onQuit: () => void; onNew: () => void; onSave: () => void; snd: JadeSound | null }) {
+type Tab = 'menu' | 'settings' | 'trophies' | 'stats' | 'story' | 'jobs' | 'controls';
+export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, touch }: { play: Play; onClose: () => void; onQuit: () => void; onNew: () => void; onSave: () => void; snd: JadeSound | null; onReplay: (id: string) => void; touch: boolean }) {
   const [tab, setTab] = useState<Tab>('menu'); const [confirm, setConfirm] = useState(false); const [, force] = useState(0);
   const s = play.w.s;
   const set = (f: (x: Save['settings']) => void) => { f(s.settings); if (snd) { snd.sfxOn = s.settings.sound; snd.setMusic(s.settings.music); } onSave(); force(n => n + 1); play.bump(); };
   const st = s.stats;
   return (
-    <Panel title={tab === 'menu' ? 'Paused' : tab[0].toUpperCase() + tab.slice(1)} onClose={tab === 'menu' ? onClose : () => setTab('menu')} cls="pause" testid="pause">
+    <Panel title={tab === 'menu' ? 'Paused' : tab === 'jobs' ? 'Jobs book' : tab[0].toUpperCase() + tab.slice(1)} onClose={tab === 'menu' ? onClose : () => setTab('menu')} cls="pause" testid="pause">
       {tab === 'menu' && !confirm && (
         <div className="jade-menu">
           <Btn kind="jade" testid="resume" onClick={onClose}>Resume</Btn>
+          <Btn kind="plain" testid="tab-jobs" onClick={() => setTab('jobs')}>Jobs book</Btn>
           <Btn kind="plain" testid="tab-story" onClick={() => setTab('story')}>Story</Btn>
+          <Btn kind="plain" testid="tab-controls" onClick={() => setTab('controls')}>Controls</Btn>
           <Btn kind="plain" testid="tab-settings" onClick={() => setTab('settings')}>Settings</Btn>
           <Btn kind="plain" testid="tab-trophies" onClick={() => setTab('trophies')}>Trophies ({s.trophies.length}/{TROPHIES.length})</Btn>
           <Btn kind="plain" testid="tab-stats" onClick={() => setTab('stats')}>Stats</Btn>
@@ -273,7 +241,7 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd }: { play: Pla
       {tab === 'settings' && (
         <div className="jade-settings">
           <label><input type="checkbox" data-testid="set-assist" checked={s.settings.assist} onChange={e => set(x => { x.assist = e.target.checked; })} /> Assist: route line, aim help, gentler timers and lookouts</label>
-          <label>Difficulty <select data-testid="set-diff" value={s.settings.diff} onChange={e => set(x => { x.diff = e.target.value as 'easy' | 'normal'; })}><option value="easy">Easy</option><option value="normal">Normal</option></select></label>
+          <label>Difficulty <select data-testid="set-diff" value={s.settings.diff} onChange={e => set(x => { x.diff = e.target.value as 'easy' | 'normal' | 'hard'; })}><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>
           <label><input type="checkbox" data-testid="set-sound" checked={s.settings.sound} onChange={e => set(x => { x.sound = e.target.checked; })} /> Sound effects</label>
           <label><input type="checkbox" data-testid="set-music" checked={s.settings.music} onChange={e => set(x => { x.music = e.target.checked; })} /> Music</label>
           <label><input type="checkbox" checked={s.settings.shake} onChange={e => set(x => { x.shake = e.target.checked; })} /> Screen shake</label>
@@ -297,6 +265,8 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd }: { play: Pla
           <dt>Reputation</dt><dd>{DISTRICTS.map(d => `${dName(d)} ${Math.floor(s.rep[d])}`).join(' · ')}</dd>
         </dl>
       )}
+      {tab === 'jobs' && <JobsBook play={play} onReplay={onReplay} />}
+      {tab === 'controls' && <Controls touch={touch} />}
       {tab === 'story' && (
         <div className="jade-story" data-testid="story">
           <p>The Magpie Crew stole the quarter’s five lucky heirlooms the night before the Lantern Festival. Win them back, chapter by chapter, and the fog over each district lifts.</p>

@@ -1,0 +1,64 @@
+/* Jade Street story screens (story.tsx): full-screen Codex paintings with a slow pan, a lacquer caption box, page dots
+   and Skip. Captions sit on an opaque panel so the text always reads; the painting is never covered by more than the
+   caption at the bottom. Scoped under .jade-shell like the rest of the game. */
+.jade-shell .jade-sbook { position: absolute; inset: 0; z-index: 60; overflow: hidden; background: #0d0a1c; cursor: pointer; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+.jade-shell .jade-story-art { position: absolute; inset: 0; opacity: 0; transition: opacity .7s ease; pointer-events: none; }
+.jade-shell .jade-story-art.on { opacity: 1; }
+.jade-shell .jade-story-art img { width: 100%; height: 100%; object-fit: cover; display: block; transform-origin: 50% 40%; }
+.jade-shell .jade-story-art.on img { animation: jade-kenburns 16s ease-in-out infinite alternate; }
+.jade-shell .jade-story-art.dark img { filter: brightness(.38) saturate(.85); }
+@keyframes jade-kenburns { from { transform: scale(1.02) translate(0, 0); } to { transform: scale(1.1) translate(-1.5%, -1%); } }
+@media (prefers-reduced-motion: reduce) { .jade-shell .jade-story-art.on img, .jade-shell .jade-story-glow i { animation: none; } }
+
+.jade-shell .jade-story-glow { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.jade-shell .jade-story-glow i { position: absolute; bottom: -20px; border-radius: 50%; background: radial-gradient(circle, rgba(255,220,140,.95), rgba(255,140,60,.35) 55%, rgba(255,120,40,0) 72%); box-shadow: 0 0 14px 4px rgba(255,170,80,.35); animation: jade-rise 11s linear infinite; }
+@keyframes jade-rise { 0% { transform: translate(0, 0); opacity: 0; } 10% { opacity: .9; } 80% { opacity: .7; } 100% { transform: translate(18px, -110vh); opacity: 0; } }
+
+.jade-shell .jade-story-skip { position: absolute; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); z-index: 3; min-height: 40px; }
+
+.jade-shell .jade-story-cap { position: relative; z-index: 2; cursor: default; width: min(760px, calc(100% - 24px)); margin: 0 12px max(14px, env(safe-area-inset-bottom)); padding: 14px 18px 12px; background: var(--panel); border: 2px solid rgba(242,193,78,.7); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,.6), inset 0 0 0 4px rgba(31,154,106,.35); }
+.jade-shell .jade-story-cap h2 { color: var(--gold); font-size: 22px; margin-bottom: 6px; }
+.jade-shell .jade-story-cap p { margin: 0; color: var(--ink); font-size: 16px; line-height: 1.45; font-weight: 700; }
+.jade-shell .jade-story-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
+.jade-shell .jade-story-dots { display: flex; gap: 7px; }
+.jade-shell .jade-story-dots span { width: 10px; height: 10px; border-radius: 50%; background: rgba(253,243,220,.3); border: 1px solid rgba(242,193,78,.6); }
+.jade-shell .jade-story-dots span.on { background: var(--gold); box-shadow: 0 0 8px rgba(242,193,78,.8); }
+
+/* chapter card: centred lacquer plaque, auto-continues (the bar fills over 5 s) */
+.jade-shell .jade-chapter { justify-content: center; }
+.jade-shell .jade-chapter-cap { position: relative; z-index: 2; text-align: center; padding: 18px 30px 16px; margin: 0 16px; max-width: calc(100% - 32px); background: var(--panel); border: 2px solid rgba(242,193,78,.75); border-radius: 18px; box-shadow: 0 10px 40px rgba(0,0,0,.65), inset 0 0 0 4px rgba(216,68,58,.35); animation: jade-card-in .6s ease-out both; }
+.jade-shell .jade-chapter-n { font: 900 15px var(--body); letter-spacing: .18em; text-transform: uppercase; color: var(--good); }
+.jade-shell .jade-chapter-cap h2 { font-size: clamp(28px, 6vw, 46px); color: var(--gold); margin: 4px 0 6px; text-shadow: 0 2px 0 rgba(0,0,0,.6); }
+.jade-shell .jade-chapter-cap p { margin: 2px 0; color: var(--ink); font-weight: 800; font-size: 16px; }
+.jade-shell .jade-chapter-bar { height: 4px; margin-top: 12px; border-radius: 2px; background: rgba(253,243,220,.2); overflow: hidden; }
+.jade-shell .jade-chapter-bar span { display: block; height: 100%; background: var(--gold); animation: jade-fill 5.2s linear both; }
+@keyframes jade-fill { from { width: 0; } to { width: 100%; } }
+@keyframes jade-card-in { from { transform: scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* credits: the roll scrolls up through a window; Continue stays pinned at the bottom */
+.jade-shell .jade-credits { justify-content: center; cursor: default; }
+.jade-shell .jade-credits-roll { position: absolute; inset: 0 0 84px; z-index: 2; overflow: hidden; -webkit-mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent); }
+.jade-shell .jade-credits-inner { position: absolute; left: 50%; top: 100%; width: min(560px, calc(100% - 32px)); transform: translateX(-50%); text-align: center; padding: 18px 16px; background: rgba(13,10,28,.92); border-radius: 16px; animation: jade-roll 26s linear forwards; }
+.jade-shell .jade-credits-roll.end .jade-credits-inner { animation: none; top: 50%; transform: translate(-50%, -50%); max-height: 100%; overflow-y: auto; }
+@keyframes jade-roll { from { top: 100%; transform: translate(-50%, 0); } to { top: 50%; transform: translate(-50%, -50%); } }
+.jade-shell .jade-credits-inner h1 { font-family: var(--display); color: var(--gold); font-size: clamp(30px, 7vw, 48px); margin: 0 0 8px; }
+.jade-shell .jade-credits-inner p { margin: 3px 0; color: var(--ink); font-weight: 700; font-size: 15px; }
+.jade-shell .jade-credits-inner p b { color: #fff; }
+.jade-shell .jade-credits-inner p.role { margin-top: 14px; color: var(--good); font-weight: 900; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
+.jade-shell .jade-credits-inner p.last { margin-top: 18px; color: var(--gold); font-size: 17px; font-weight: 900; }
+.jade-shell .jade-credits-btns { position: absolute; left: 0; right: 0; bottom: max(16px, env(safe-area-inset-bottom)); z-index: 3; display: flex; justify-content: center; }
+
+/* phones: smaller captions; landscape phones keep the caption short so the painting shows */
+@media (max-width: 720px) {
+  .jade-shell .jade-story-cap { padding: 12px 14px 10px; }
+  .jade-shell .jade-story-cap h2 { font-size: 19px; }
+  .jade-shell .jade-story-cap p { font-size: 15px; line-height: 1.4; }
+}
+@media (max-height: 480px) {
+  .jade-shell .jade-story-cap { padding: 8px 14px; width: min(700px, calc(100% - 140px)); margin-bottom: 8px; }
+  .jade-shell .jade-story-cap h2 { font-size: 17px; margin-bottom: 2px; }
+  .jade-shell .jade-story-cap p { font-size: 14px; line-height: 1.35; }
+  .jade-shell .jade-story-foot { margin-top: 6px; }
+  .jade-shell .jade-chapter-cap { padding: 10px 22px; }
+  .jade-shell .jade-credits-roll { bottom: 70px; }
+}

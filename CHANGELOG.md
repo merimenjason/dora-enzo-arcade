@@ -6,6 +6,12 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Jade Street**: a story told in paintings. A storybook opens a new game, a painted card opens each chapter, and winning brings an ending, credits and free roam through the Lantern Festival (lantern arches, giant lanterns, a dance stage, sky lanterns to let go and fireworks). All of it can be skipped.
+- **Jade Street**: a living city. Traffic lights at twelve crossings that cars stop for; townsfolk who walk to doors, stalls, food-court seats and benches, cross on the zebras when it is safe, sit and eat, and open umbrellas in passing showers with ripples and wet reflections; street events in free roam (a magpie with a mango, a lost duckling, a broken-down van to push-start, a busker to tip); night sounds for each district; a radio with original stations on every ride (R or tap it); and texts from contacts on a phone in the corner (T).
+- **Jade Street**: the city breaks its grid with six landmarks (a food hall, an opera house, a bell tower, a clock tower, a cinema and a lighthouse), plazas with fountains, banyans and koi ponds, food-court tables, curving footpaths and 36 new building paintings; no two neighbouring buildings match.
+- **Jade Street**: medals and a jobs book. Every job has bronze, silver and gold for its par time, no extra lanterns and no retries, shown before you start; the jobs book in the pause menu lists all 25 by chapter and replays any finished job.
+- **Jade Street**: a Hard difficulty, lessons that teach each control with the right key or button the first time it matters, and a Controls page in the pause menu.
+
 - **Jade Street** (game 105, `/jade-street`): a night-time open-city caper. The Magpie Crew stole five lucky heirlooms the night before the Lantern Festival, and Dora or Enzo wins them back across a lantern-lit harbour quarter of five districts that open one chapter at a time: 25 story jobs (deliveries, tails, chases, races, a lion-dance escort, a container-yard sneak, taxi fares, a canal-boat chase) with checkpoints, five lanterns of heat with raccoon wardens, roadblocks and a blimp, six goods to trade between five night markets, scooters, trishaws, tuk-tuks, vans and canal boats, rooftops, safe houses, outfits, garage upgrades, side gigs, 50 lucky cats, murals, four mini-games and a daily market event. Keys, mouse and touch; Assist on by default.
 
 - **Little Red Dot: The Straits**: wind. The boat is quickest with the wind across it, slower close to it and almost stopped head on, where rowing is faster. It veers every twenty seconds or so; a pennant on the mast and a dial on screen show where it is blowing and what the sail is making of it.
@@ -13,8 +19,18 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Jade Street**: Normal is harder: wardens are faster and see further and take longer to lose, job timers are tighter, thieves and racers are quicker, lookouts sharper, crashing into cars brings more heat, and running a red light on a ride brings a warden. Easy and Assist play as before.
+- **Jade Street**: a painted loading screen that lights lanterns as the paintings arrive, draws nothing until every one has, and offers Try again if any fail.
+- **Jade Street**: the markets are painted stalls, each with its own keeper (Uncle Kee, Auntie Pang, Kiri, Captain Bristle and Gizmo), with the price list beside the stall on wide screens and under it on phones; the market title no longer reads "Night Market market".
+- **Jade Street**: the map is a painted paper map of the real streets, tinted by district, with painted fog, landmark icons, name plaques and pins for markets, safe houses, garages, gigs, jobs, lucky cats and murals; drag to pan, pinch, scroll or tap + and − to zoom, it fills the screen on phones, has a key, and a tapped pin offers Route here.
+- **Jade Street**: the camera is set for each screen size and still looks ahead when riding; on phones it pulls out further.
+
 - **Little Red Dot: The Straits**: port and starboard now fire and reload separately. Q fires to port and E to starboard, and Space still fires whichever side faces the nearest raft. A fan on the water shows each side's reach and turns gold when a raft is inside it. Docking moved from E to F.
 - **Little Red Dot: The Straits**: conversations sit at the bottom of the screen so you can see who is talking.
+
+### Fixed
+
+- **Jade Street**: the mini-game bar fits at every screen size; the wok's first chip was cut off on landscape phones.
 
 ## 13-11-2026
 

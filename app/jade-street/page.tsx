@@ -1,28 +1,38 @@
 'use client';
-// Jade Street: the page. Holds the save (localStorage 'jade-street-v2', migrating v1), the title screen with
-// continue / new game (confirmed in the page) and the hero pick, then the running game: the canvas (./controller.ts
-// and lib/jade-scene.ts), the HUD (./hud.tsx), the panels (./panels.tsx) and the mini-games (./minis.tsx).
+// Jade Street: the page. Holds the save (localStorage 'jade-street-v3', migrating v2 and v1), the painted loading
+// screen (nothing draws until every painting has decoded), the title screen with continue / new game (confirmed in
+// the page) and the hero pick, the storybook opening, chapter cards, the ending and credits (./story.tsx), then the
+// running game: the canvas (./controller.ts and lib/jade-scene.ts), the HUD (./hud.tsx), lesson hints, the phone and
+// the radio (./extras.tsx), the panels (./panels.tsx), the painted map (./map.tsx) and the mini-games (./minis.tsx).
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadSave, newSave, SAVE_KEY, OLD_KEYS, type Save, type Hero } from '@/lib/jade-save';
 import { Play } from './controller';
 import { JadeSound } from './sound';
 import { TopHud, Toasts, Prompt, Dialogue, FailCard, TouchControls, KeyHelp } from './hud';
-import { Market, SafeHouse, Garage, MapView, Pause } from './panels';
+import { Market, SafeHouse, Garage, Pause } from './panels';
+import { PaintedMap } from './map';
+import { Storybook, ChapterCard, Ending, Credits } from './story';
+import { Loader, Hint, PhoneHud, PhoneView, RadioHud, switchStation } from './extras';
+import { chapterOf } from '@/lib/jade-save';
+import { learn } from '@/lib/jade-tutor';
 import { MiniGame } from './minis';
 import { store, Sprite, ART } from './ui';
 import './jade.css';
 
-type Screen = 'title' | 'game';
+type Screen = 'loading' | 'title' | 'game';
+type Story = null | 'intro' | 'chapter' | 'ending' | 'credits';
 
 export default function JadeStreetPage() {
   const [save, setSave] = useState<Save>(() => newSave());
-  const [screen, setScreen] = useState<Screen>('title');
+  const [screen, setScreen] = useState<Screen>('loading');
+  const [story, setStory] = useState<Story>(null); const storyRef = useRef<Story>(null); storyRef.current = story;
+  const [phone, setPhone] = useState(false); const mapRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [pick, setPick] = useState(false);
   const [, setTick] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [mapOpen, setMapOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false); mapRef.current = mapOpen;
   const [coarse, setCoarse] = useState(false);
   const cvRef = useRef<HTMLCanvasElement>(null);
   const playRef = useRef<Play | null>(null);
@@ -56,20 +66,43 @@ export default function JadeStreetPage() {
       play.w.talk = { lines: [[h, 'The Magpie Crew stole all five lucky heirlooms, the night before the Lantern Festival!'], [h, 'Uncle Kee at the grocery will know what to do. Follow the gold line.']], i: 0 };
     }
     saveRef.current.started = true; persist(saveRef.current);
+    if (!saveRef.current.story.intro) { play.paused = true; setStory('intro'); }
+    play.onEnding = () => { play.paused = true; setPaused(false); setMapOpen(false); setStory('ending'); };
     play.onKey = (k: string) => {
       const w = play.w;
+      if (storyRef.current) return true;
+      if (k === 'Escape' && mapRef.current) { setMapOpen(false); play.paused = false; return true; }
+      if (k === 'r' && w.p.ride && !w.ui) { switchStation(play, sndRef.current); return true; }
+      if (k === 't' && !w.ui && !w.talk && !mapRef.current) { setPhone(v => { play.paused = !v; return !v; }); return true; }
       if (k === 'Escape' || k === 'p') {
         if (w.ui && w.ui.kind !== 'mini') { w.ui = null; play.bump(); return true; }
         if (w.ui) return false;
         setMapOpen(false); setPaused(p => { play.paused = !p; return !p; }); return true;
       }
-      if (k === 'm' && !w.ui && !w.talk) { setMapOpen(m => { play.paused = !m; return !m; }); return true; }
+      if (k === 'm' && !w.ui && !w.talk) { learn(w, 'map'); setMapOpen(m => { play.paused = !m; return !m; }); return true; }
       return false;
     };
-    (window as unknown as Record<string, unknown>).__jadeUi = { pause: () => { play.paused = true; setPaused(true); }, map: () => { play.paused = true; setMapOpen(true); } };
+    (window as unknown as Record<string, unknown>).__jadeUi = { pause: () => { play.paused = true; setPaused(true); }, map: () => { play.paused = true; setMapOpen(true); }, story: () => storyRef.current };
     return () => { play.destroy(); playRef.current = null; };
   }, [screen, persist]);
 
+  // a chapter card when a new chapter starts (after the opening storybook)
+  const pw = playRef.current?.w;
+  useEffect(() => {
+    const p = playRef.current; if (!p || story || screen !== 'game') return;
+    const s = p.w.s, ch = chapterOf(s);
+    if (s.story.intro && ch <= 5 && ch > s.story.ch && !p.w.run && !p.w.talk) { p.paused = true; setStory('chapter'); }
+  });
+  const storyDone = (next: Story = null) => {
+    const p = playRef.current; if (!p) return;
+    const s = p.w.s;
+    if (story === 'intro') { s.story.intro = true; next = 'chapter'; }
+    else if (story === 'chapter') s.story.ch = Math.max(s.story.ch, chapterOf(s));
+    else if (story === 'credits') { s.story.ending = true; p.toast('The Lantern Festival goes on: free roam the quarter in festival dress!', 'gold'); }
+    persist(s); setStory(next);
+    if (!next) { p.paused = false; sndRef.current?.play('street'); }
+  };
+  void pw;
   const begin = (s: Save) => { setSave(s); saveRef.current = s; setPaused(false); setMapOpen(false); setScreen('game'); };
   const newGame = (hero: Hero) => {
     const old = saveRef.current; const s = newSave(Math.floor(Math.random() * 1e9) + 1);
@@ -82,10 +115,13 @@ export default function JadeStreetPage() {
   const w = play?.w;
   const touch = save.settings.touch === 'on' || (save.settings.touch === 'auto' && coarse);
   const closeUi = () => { if (w) { w.ui = null; play!.bump(); } };
-  const resume = () => { if (play) play.paused = false; setPaused(false); setMapOpen(false); };
+  const resume = () => { if (play) play.paused = false; setPaused(false); setMapOpen(false); setPhone(false); };
+  const replay = (id: string) => { if (!w) return; const r = w.replay(id); if (r) play!.toast(r, 'bad'); else { resume(); play!.bump(); } };
+  const ready2 = useCallback(() => setScreen('title'), []);
 
   return (
     <main className="jade-shell" data-ready={ready ? 'true' : 'false'} data-screen={screen} data-touch={touch ? 'true' : 'false'}>
+      {screen === 'loading' && <Loader onReady={ready2} />}
       {screen === 'title' && (
         <section className="jade-title" style={{ backgroundImage: `url(${ART}bg-title.webp)` }}>
           <div className="jade-title-card">
@@ -126,6 +162,9 @@ export default function JadeStreetPage() {
               <TopHud play={play} onMap={() => { play.paused = true; setMapOpen(true); }} onPause={() => { play.paused = true; setPaused(true); }} />
               <Toasts play={play} />
               {!touch && <KeyHelp />}
+              <Hint play={play} touch={touch} />
+              <PhoneHud play={play} onOpen={() => { play.paused = true; setPhone(true); }} />
+              <RadioHud play={play} snd={sndRef.current} />
               <Prompt play={play} touch={touch} />
               {touch && !w.talk && !w.ui && !paused && !mapOpen && !w.failed && <TouchControls play={play} />}
               <Dialogue play={play} />
@@ -134,8 +173,13 @@ export default function JadeStreetPage() {
               {w.ui?.kind === 'safe' && <SafeHouse play={play} id={w.ui.id} snd={sndRef.current} onClose={closeUi} onSave={() => persist(w.s)} />}
               {w.ui?.kind === 'garage' && <Garage play={play} snd={sndRef.current} onClose={closeUi} onSave={() => persist(w.s)} />}
               {w.ui?.kind === 'mini' && <MiniGame key={`${w.ui.mini}-${w.s.stats.minis}`} kind={w.ui.mini} level={w.ui.level} assist={w.assist} seed={w.s.seed + w.s.stats.minis * 7 + w.tick} snd={sndRef.current} onDone={ok => { w.miniDone(ok); persist(w.s); play.bump(); }} />}
-              {mapOpen && <MapView play={play} onClose={resume} />}
-              {paused && <Pause play={play} snd={sndRef.current} onClose={resume} onQuit={toTitle} onSave={() => persist(w.s)} onNew={() => { setPaused(false); setScreen('title'); setPick(true); }} />}
+              {mapOpen && <PaintedMap play={play} onClose={resume} />}
+              {phone && <PhoneView play={play} onClose={resume} />}
+              {paused && <Pause play={play} snd={sndRef.current} touch={touch} onReplay={replay} onClose={resume} onQuit={toTitle} onSave={() => persist(w.s)} onNew={() => { setPaused(false); setScreen('title'); setPick(true); }} />}
+              {story === 'intro' && <Storybook onDone={() => storyDone()} />}
+              {story === 'chapter' && <ChapterCard ch={Math.min(5, chapterOf(w.s))} onDone={() => storyDone()} />}
+              {story === 'ending' && <Ending hero={w.s.hero} onDone={() => { sndRef.current?.fx([{ t: 'chapter' }]); setStory('credits'); }} />}
+              {story === 'credits' && <Credits onDone={() => storyDone()} />}
             </>
           )}
         </section>

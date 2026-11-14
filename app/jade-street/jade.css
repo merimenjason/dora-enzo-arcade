@@ -21,7 +21,9 @@
 /* painted buttons */
 .jade-shell .jade-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 2px 10px; font: 900 15px var(--body); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.7);
   border: solid transparent; border-width: 8px 20px; border-image: url(/art/jade-street/ui-plaque-jade.webp) 16 40 fill / 8px 20px stretch; background-clip: padding-box; transition: transform .08s, filter .15s; white-space: nowrap; }
-.jade-shell .jade-btn.red { border-image-source: url(/art/jade-street/ui-plaque-red.webp); }
+.jade-shell .jade-btn.red { border-image-source: url(/art/jade-street/ui-plaque-red.webp); background-color: #8e2a22; }
+.jade-shell .jade-btn:not(.plain):not(.red):not(.gold) { background-color: #0f5e40; }
+.jade-shell .jade-btn.gold { background-color: #7a5410; }
 .jade-shell .jade-btn.gold { border-image-source: url(/art/jade-street/ui-plaque-red.webp); filter: hue-rotate(38deg) saturate(1.3) brightness(1.1); color: #fff; }
 .jade-shell .jade-btn.plain { border: 2px solid rgba(242,193,78,.65); border-image: none; background: rgba(40, 30, 70, .9); border-radius: 12px; padding: 6px 16px; color: var(--ink); text-shadow: none; }
 .jade-shell .jade-btn:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
@@ -122,8 +124,15 @@
 .jade-shell .jade-msg { background: rgba(31,154,106,.25); border-left: 4px solid var(--good); padding: 5px 10px; border-radius: 8px; font-weight: 800; }
 
 /* market */
-.jade-shell .jade-market-hero { height: 150px; margin: -12px -16px 8px; background-size: cover; background-position: 50% 28%; position: relative; }
-.jade-shell .jade-haggle { position: absolute; left: 12px; right: 12px; bottom: 10px; display: flex; gap: 10px; align-items: center; justify-content: center; }
+.jade-shell .jade-panel.market { width: min(1180px, 100%); }
+.jade-shell .jade-market-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.jade-shell .jade-stall-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.jade-shell .jade-stall { margin: 0; position: relative; border-radius: 14px; overflow: hidden; border: 3px solid var(--gold); box-shadow: 0 6px 18px rgba(0,0,0,.5); aspect-ratio: 3 / 2; background: #1a1030; }
+.jade-shell .jade-stall img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; }
+.jade-shell .jade-stall figcaption { position: absolute; left: 8px; top: 8px; background: rgba(20,10,30,.86); color: #fff3d6; border: 2px solid var(--gold); border-radius: 10px; padding: 2px 10px; font-size: 14px; }
+.jade-shell .jade-haggle { display: flex; gap: 10px; align-items: center; justify-content: center; min-height: 44px; flex-wrap: wrap; }
+.jade-shell .jade-haggle-note { font-size: 13px; font-weight: 700; opacity: .9; flex: 1; min-width: 160px; }
+.jade-shell .jade-market-side { min-width: 0; }
 .jade-shell .jade-needle { position: relative; flex: 1; max-width: 420px; height: 26px; background: rgba(20,10,5,.85); border: 2px solid var(--gold); border-radius: 14px; overflow: hidden; cursor: pointer; }
 .jade-shell .jade-needle .zone { position: absolute; top: 0; bottom: 0; background: rgba(123,227,166,.55); }
 .jade-shell .jade-needle .zone.great { background: rgba(255,214,90,.85); }
@@ -168,12 +177,6 @@
 .jade-shell .jade-up .lv i.on { background: var(--gold); }
 
 /* map */
-.jade-shell .jade-panel.map { width: min(1100px, 100%); height: 100%; }
-.jade-shell .jade-panel.map .jade-panel-body { display: flex; flex-direction: column; flex: 1; padding: 6px; overflow: hidden; }
-.jade-shell .jade-map-cv { flex: 1; width: 100%; min-height: 0; cursor: crosshair; border-radius: 12px; }
-.jade-shell .jade-map-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; font-weight: 800; padding: 6px 4px 0; }
-.jade-shell .jade-map-legend span { display: inline-flex; align-items: center; gap: 4px; }
-.jade-shell .jade-map-legend i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(0,0,0,.6); }
 
 /* pause */
 .jade-shell .jade-panel.pause { width: min(620px, 100%); }
@@ -199,9 +202,9 @@
 .jade-shell .jade-mini-head b { font: 700 20px var(--display); color: #fff3cf; }
 .jade-shell .jade-mini-head span { font-weight: 800; font-size: 14px; }
 .jade-shell .jade-mini-cv { flex: 1; min-height: 0; width: 100%; display: block; touch-action: none; cursor: pointer; }
-.jade-shell .jade-mini-foot { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 8px 12px; background: var(--panel2); border-top: 2px solid var(--gold); }
+.jade-shell .jade-mini-foot { display: flex; gap: 10px; align-items: center; justify-content: safe center; flex-wrap: wrap; padding: 8px max(12px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); max-width: 100%; box-sizing: border-box; flex-shrink: 0; background: var(--panel2); border-top: 2px solid var(--gold); }
 .jade-shell .jade-mini-keys { font-size: 12px; color: var(--muted); font-weight: 800; }
-.jade-shell .jade-order { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-weight: 900; }
+.jade-shell .jade-order { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; font-weight: 900; min-width: 0; max-width: 100%; }
 .jade-shell .jade-order span { display: inline-flex; align-items: center; gap: 3px; background: rgba(40,30,70,.9); border-radius: 10px; padding: 2px 8px; }
 .jade-shell .jade-order span.got { background: rgba(31,154,106,.6); }
 .jade-shell .jade-order .strikes { color: var(--bad); }
@@ -232,7 +235,8 @@
   .jade-shell .jade-goods.trade th:nth-child(4), .jade-shell .jade-goods.trade td:nth-child(4) { display: none; }
   .jade-shell .jade-goods.trade small.have { display: inline; }
   .jade-shell .jade-goods td:first-child { font-size: 13px; }
-  .jade-shell .jade-market-hero { height: 110px; }
+  .jade-shell .jade-market-grid { grid-template-columns: 1fr; }
+  .jade-shell .jade-panel.market .jade-panel-body { padding: 10px; }
   .jade-shell .jade-talk-face { width: 72px; height: 72px; }
   .jade-shell .jade-talk p { font-size: 15px; }
   .jade-shell .jade-keys { display: none; }
@@ -246,10 +250,15 @@
   .jade-shell .jade-where { font-size: 12px; }
   .jade-shell .jade-talk-face { width: 64px; height: 64px; }
   .jade-shell .jade-talk p { font-size: 14px; }
-  .jade-shell .jade-market-hero { height: 80px; }
+  .jade-shell .jade-market-grid { grid-template-columns: minmax(0, .8fr) minmax(0, 1fr); gap: 8px; }
+  .jade-shell .jade-haggle-note { display: none; }
   .jade-shell .jade-tbtns { transform: scale(.82); transform-origin: right bottom; }
   .jade-shell .jade-mini-head { padding: 4px 10px; } .jade-shell .jade-mini-head span { display: none; }
-  .jade-shell .jade-mini-foot { padding: 4px 8px; } .jade-shell .jade-mini-keys { display: none; }
+  .jade-shell .jade-mini-foot { padding: 4px max(8px, env(safe-area-inset-right)) 4px max(8px, env(safe-area-inset-left)); gap: 6px; flex-wrap: nowrap; }
+  .jade-shell .jade-mini-keys { display: none; }
+  .jade-shell .jade-mini-foot .jade-order { flex-wrap: nowrap; gap: 4px; font-size: 13px; flex: 0 1 auto; }
+  .jade-shell .jade-mini-foot .jade-order span { padding: 1px 5px; white-space: nowrap; }
+  .jade-shell .jade-mini-foot .jade-btn { padding: 4px 10px; flex-shrink: 0; }
   .jade-shell .jade-title { align-items: center; }
   .jade-shell .jade-title-card { padding: 10px 14px; }
   .jade-shell .jade-title h1 { font-size: 34px; }

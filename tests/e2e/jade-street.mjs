@@ -59,7 +59,8 @@ async function viewport(name, w, h, touch) {
   const p = await ctx.newPage();
   const cdp = touch ? await ctx.newCDPSession(p) : null;
   p.on('pageerror', e => { errs.push(`${name}: ${e.message}`); console.log('  PAGE ERROR', e.message); });
-  p.on('console', m => { if (m.type() === 'error' && !/favicon/.test(m.text())) { errs.push(`${name} console: ${m.text()}`); console.log('  CONSOLE ERROR', m.text()); } });
+  let blocking = false; // the loading test blocks one painting on purpose
+  p.on('console', m => { if (m.type() === 'error' && !/favicon/.test(m.text()) && !(blocking && /ERR_FAILED/.test(m.text()))) { errs.push(`${name} console: ${m.text()}`); console.log('  CONSOLE ERROR', m.text()); } });
   const shot = async n => { if (SHOTS) await p.screenshot({ path: `${SHOTS}/${name}-${n}.png` }); };
   const look = async where => {
     check(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1 && document.body.scrollWidth <= innerWidth + 1), `${name} ${where}: no sideways scroll`);
@@ -101,9 +102,18 @@ async function viewport(name, w, h, touch) {
     if (!r) return false; w.placePlayer(r.b.x + 34, r.b.y); w.cars = []; w.findNear(); return w.near?.kind === 'ride';
   }, want);
 
-  await p.goto(base, { waitUntil: 'networkidle', timeout: 120000 });
+  // ── the painted loading screen: a failed painting offers Try again; nothing draws before every painting decodes
+  let block = true; blocking = true;
+  await p.route('**/art/jade-street/atlas-props.webp*', r => block ? r.abort() : r.continue());
+  await p.goto(base, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  check(await appear('jade-loading'), `${name}: the painted loading screen shows first`);
+  check(await p.waitForSelector('[data-testid="jade-loading-retry"]', { timeout: 30000 }).then(() => true, () => false), `${name}: a failed painting offers Try again`);
+  await look('loading error');
+  block = false; await press('jade-loading-retry');
+  check(await p.waitForSelector('main[data-screen="title"]', { timeout: 60000 }).then(() => true, () => false), `${name}: Try again loads the rest and opens the title`);
+  await p.unroute('**/art/jade-street/atlas-props.webp*'); blocking = false;
   await p.waitForSelector('main[data-ready="true"]', { timeout: 60000 });
-  await W(() => localStorage.removeItem('jade-street-v2')); await p.reload(); await p.waitForSelector('main[data-ready="true"]');
+  await W(() => { localStorage.removeItem('jade-street-v3'); localStorage.removeItem('jade-street-v2'); }); await p.reload(); await p.waitForSelector('main[data-screen="title"]', { timeout: 60000 });
 
   // ── the title: a new player, the hero pick
   check(await screen() === 'title', `${name}: opens on the title`);
@@ -113,6 +123,13 @@ async function viewport(name, w, h, touch) {
   await press('new'); check(await exists('pick-hero'), `${name}: New game asks who starts`); await look('hero pick');
   await press('pick-enzo');
   check(await screen() === 'game', `${name}: picking a hero starts the game`);
+  // ── the storybook opening: a page turn, then Skip; then the chapter card
+  check(await appear('jade-storybook'), `${name}: the storybook opens a new game`); await wait(400); await look('storybook');
+  await press('jade-story-next'); check((await p.locator('[data-testid="jade-storybook"]').getAttribute('data-page')) === '1', `${name}: Next turns the page`);
+  await press('jade-story-skip'); check(!(await exists('jade-storybook')), `${name}: Skip closes the storybook`);
+  check(await appear('jade-chapter-card'), `${name}: the chapter card follows`); await wait(300); await look('chapter card');
+  await press('jade-story-skip'); check(!(await exists('jade-chapter-card')) && !(await W(() => window.__jade.play.paused)), `${name}: Skip closes the chapter card and the city runs`);
+  check(await W(() => window.__jade.world().s.story.intro), `${name}: the opening is remembered`);
   await until(() => window.__jade?.world().s.hero === 'enzo');
   check((await W(() => window.__jade.world().s.hero)) === 'enzo', `${name}: Enzo is out tonight`);
   check(await W(() => window.__jade.world().s.settings.assist), `${name}: Assist is on by default`);
@@ -122,6 +139,8 @@ async function viewport(name, w, h, touch) {
   for (let i = 0; i < 4 && await exists('dialogue'); i++) { if (touch) await press('dialogue'); else { await p.keyboard.press(' '); await wait(150); } }
   check(!(await exists('dialogue')), `${name}: the dialogue advances and closes`);
   check(await exists(touch ? 'stick' : 'hud'), `${name}: ${touch ? 'the touch stick shows' : 'the HUD stays'}`);
+  check(await appear('jade-hint') && (await p.locator('[data-testid="jade-hint"]').getAttribute('data-lesson')) === 'move', `${name}: the first lesson teaches moving`); await look('lesson');
+  check(await W(() => window.__jade.play.scene.cam.k) >= (Math.min(w, h) < 520 ? 0.9 : 0.6), `${name}: the camera is close enough to see the hero (${(await W(() => window.__jade.play.scene.cam.k)).toFixed(2)})`);
   await W(() => window.__jade.teleport(20, 47));
   await wait(200);
 
@@ -129,7 +148,7 @@ async function viewport(name, w, h, touch) {
   const x0 = (await st()).x;
   if (touch) { const r = await loc('stick').boundingBox(); await drag(r.x + r.width * 0.3, r.y + r.height * 0.7, 70, 0, 600); }
   else { await p.keyboard.down('d'); await wait(600); await p.keyboard.up('d'); }
-  check((await st()).x > x0 + 1.5, `${name}: ${touch ? 'the stick' : 'D'} moves the hero (${x0.toFixed(1)} → ${(await st()).x.toFixed(1)})`);
+  check((await st()).x > x0 + 1.5, `${name}: ${touch ? 'the stick' : 'D'} moves the hero (${x0.toFixed(1)} → ${(await st()).x.toFixed(1)}) ${await diag()}`);
   const anims = new Set();
   const watch = async (ms) => { const t = Date.now(); while (Date.now() - t < ms) { anims.add(await W(() => window.__jade.world().p.anim)); await wait(20); } };
   if (touch) {
@@ -159,10 +178,15 @@ async function viewport(name, w, h, touch) {
   // ── pause and every tab
   await press('pause-btn'); check(await exists('pause'), `${name}: pause opens`); await look('pause');
   await press('tab-story'); await look('pause story'); await press('close');
+  await press('tab-controls'); check(await exists('jade-controls'), `${name}: the controls page`); await look('controls'); await press('close');
+  await press('tab-jobs'); check(await exists('jade-jobs') && (await p.locator('[data-testid^="jade-job-m"]').count()) === 5, `${name}: the jobs book lists the chapter's jobs`);
+  check((await p.locator('[data-testid="jade-job-m1"] .jade-goals em').count()) === 3, `${name}: each job shows its three medal goals before you start`);
+  await press('jade-jobs-ch2'); check(await exists('jade-job-m6'), `${name}: chapter tabs in the jobs book`); await look('jobs book'); await press('close');
   await press('tab-settings'); await look('settings');
   const set = () => W(() => window.__jade.world().s.settings);
   await press('set-assist'); check((await set()).assist === false, `${name}: Assist off`); await press('set-assist'); check((await set()).assist === true, `${name}: Assist back on`);
-  await loc('set-diff').selectOption('normal'); check((await set()).diff === 'normal', `${name}: Normal difficulty`); await loc('set-diff').selectOption('easy');
+  await loc('set-diff').selectOption('normal'); check((await set()).diff === 'normal', `${name}: Normal difficulty`);
+  await loc('set-diff').selectOption('hard'); check((await set()).diff === 'hard' && await W(() => window.__jade.world().diff.timer < 0.7), `${name}: Hard difficulty`); await loc('set-diff').selectOption('easy');
   await press('set-sound'); check((await set()).sound === false, `${name}: sound off`); await press('set-sound');
   await press('set-music'); check((await set()).music === false, `${name}: music off`); await press('set-music');
   await loc('set-touch').selectOption(touch ? 'off' : 'on'); await wait(150);
@@ -177,11 +201,32 @@ async function viewport(name, w, h, touch) {
   // ── the map (a pin only off the job: on a job the map shows the job's route)
   await press('map-btn'); check(await exists('map'), `${name}: the map opens`);
   check(await W(() => window.__jade.play.paused), `${name}: the map pauses the city`);
-  const mc = await loc('map-canvas').boundingBox();
-  const ms = Math.min(mc.width / 120, mc.height / 92); // the city is 120×92 tiles, letterboxed in the canvas
-  await tapAt(mc.x + (mc.width - 120 * ms) / 2 + 24 * ms, mc.y + (mc.height - 92 * ms) / 2 + 50 * ms); await wait(150);
-  check(await W(() => !!window.__jade.world().waypoint), `${name}: a tap on the map drops a pin`); await look('map');
-  await press('clear-pin'); check(await W(() => !window.__jade.world().waypoint), `${name}: Clear pin`);
+  await wait(400); await look('map');
+  const z0 = await loc('map').getAttribute('data-zoom');
+  await press('jade-map-zoom-in'); await wait(150); check((await loc('map').getAttribute('data-zoom')) !== z0, `${name}: zoom in on the map`);
+  await press('jade-map-zoom-out'); await wait(150);
+  const mb = await loc('map-canvas').boundingBox(); const cx0 = await loc('map').getAttribute('data-cx');
+  if (touch) await drag(mb.x + mb.width / 2, mb.y + mb.height / 2, -120, -60, 80);
+  else { await p.mouse.move(mb.x + mb.width / 2, mb.y + mb.height / 2); await p.mouse.down(); await p.mouse.move(mb.x + mb.width / 2 - 120, mb.y + mb.height / 2 - 60, { steps: 6 }); await p.mouse.up(); }
+  await wait(150); check((await loc('map').getAttribute('data-cx')) !== cx0, `${name}: drag pans the map`);
+  if (!touch) { const z1 = await loc('map').getAttribute('data-zoom'); await p.mouse.move(mb.x + mb.width / 2, mb.y + mb.height / 2); await p.mouse.wheel(0, -400); await wait(200); check((await loc('map').getAttribute('data-zoom')) !== z1, `${name}: the wheel zooms the map`); }
+  else {
+    const z1 = await loc('map').getAttribute('data-zoom'); const cx = mb.x + mb.width / 2, cy = mb.y + mb.height / 2;
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx - 30, y: cy, id: 1 }, { x: cx + 30, y: cy, id: 2 }] });
+    for (let i = 1; i <= 6; i++) { await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: cx - 30 - i * 15, y: cy, id: 1 }, { x: cx + 30 + i * 15, y: cy, id: 2 }] }); await wait(16); }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await wait(200);
+    check((await loc('map').getAttribute('data-zoom')) !== z1, `${name}: pinch zooms the map`);
+  }
+  for (let i = 0; i < 6; i++) await press('jade-map-zoom-out');
+  check((await p.locator('[data-testid="jade-map-pin"]').count()) >= 5, `${name}: pins on the map (${await p.locator('[data-testid="jade-map-pin"]').count()})`);
+  check(await exists('jade-map-legend') && await exists('jade-map-plaque'), `${name}: a legend and district plaques`);
+  await press('jade-map-me'); await wait(150);
+  const pin = p.locator('[data-testid="jade-map-pin"][data-kind="market"]').first();
+  if (touch) await pin.tap(); else await pin.click();
+  check(await appear('jade-map-popup'), `${name}: tapping a pin shows its name`); await look('map pin');
+  await press('jade-map-route'); check(await W(() => !!window.__jade.world().waypoint) && !(await exists('map')), `${name}: Route here sets the route and closes the map`);
+  await press('map-btn'); if (!(await p.locator('[data-testid="clear-pin"]').isVisible().catch(() => false))) await press('jade-map-legend-toggle');
+  await press('clear-pin'); check(await W(() => !window.__jade.world().waypoint), `${name}: Clear route`);
   await press('close'); check(!(await exists('map')) && !(await W(() => window.__jade.play.paused)), `${name}: closing the map resumes`);
   if (!touch) { await p.keyboard.press('m'); check(await exists('map'), `${name}: M opens the map`); await p.keyboard.press('m'); check(!(await exists('map')), `${name}: M closes it`); }
 
@@ -197,6 +242,10 @@ async function viewport(name, w, h, touch) {
   if (touch) await tapWithSecond('t-hop'); else await p.keyboard.press('q');
   await wait(100); check(await W(() => window.__jade.world().honks > 0), `${name}: honk`);
   await wait(300); await look('riding');
+  check(await appear('jade-radio'), `${name}: the radio shows on a ride`);
+  const st0 = await W(() => window.__jade.world().s.radio);
+  if (touch) await tapWithSecond('jade-radio'); else await p.keyboard.press('r');
+  check((await W(() => window.__jade.world().s.radio)) !== st0, `${name}: change the radio station`);
   if (touch) await touchAt('touchEnd', 0, 0); else await p.keyboard.up('w');
   const r1 = await st(); check(Math.hypot(r1.x - r0.x, r1.y - r0.y) > 2, `${name}: the scooter drives (${JSON.stringify([r0.x, r0.y, r1.x, r1.y])}) ${await diag()}`);
   await wait(900); await act(); await until(() => !window.__jade.world().p.ride, null, 3000);
@@ -246,6 +295,8 @@ async function viewport(name, w, h, touch) {
   await press('wok-toss'); check(await W(() => window.__jadeMini.g().tossT > 0), `${name}: Toss!`);
   if (!touch) { await wait(600); await p.keyboard.press(' '); check(await W(() => window.__jadeMini.g().tossT > 0), `${name}: Space tosses`); }
   await look('wok');
+  const fit = await W(() => [...document.querySelectorAll('.jade-mini-foot > *, .jade-mini-foot .jade-order > *')].map(e => e.getBoundingClientRect()).every(r => r.left >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1));
+  check(fit, `${name}: every wok chip and button fits in the bar`);
   await press('mini-quit'); check(await until(() => !document.querySelector('[data-testid="mini-wok"]'), null, 4000), `${name}: Give up leaves the mini-game`);
   await settle();
 
@@ -268,7 +319,14 @@ async function viewport(name, w, h, touch) {
   await press('buymax-mango'); check((await cargo('mango')) >= 1, `${name}: Max`);
   c0 = await cash(); await press('sell-tea'); check((await cargo('tea')) === 0 && (await cash()) > c0, `${name}: Sell`);
   await press('sellall-mango'); check((await cargo('mango')) === 0, `${name}: All`);
+  const stallOk = d => W(d => { const f = document.querySelector(`[data-testid="stall-${d}"]`); if (!f) return 'missing'; const im = f.querySelector('img'); const r = f.getBoundingClientRect(), hg = document.querySelector('.jade-haggle').getBoundingClientRect(); return im.complete && im.naturalWidth > 0 && r.width > 120 && r.left >= -1 && r.right <= innerWidth + 1 && hg.top >= r.bottom - 1 ? 'ok' : JSON.stringify([im.naturalWidth, r.width, r.left, r.right, hg.top, r.bottom]); }, d);
+  check((await stallOk('market')) === 'ok', `${name}: the stall painting is whole, with Haggle under it (${await stallOk('market')})`);
+  check((await p.locator('[data-testid="market"] h2').textContent()) === 'Night Market', `${name}: the market's own name`);
   await press('buy-fan'); await press('close'); check(!(await exists('market')), `${name}: close the market`);
+  for (const d of ['temple', 'canal', 'docks', 'arcade']) {
+    await W(d => { const w = window.__jade.world(); w.ui = { kind: 'market', d }; window.__jade.play.bump(); }, d); await appear('market'); await until(d => { const im = document.querySelector(`[data-testid="stall-${d}"] img`); return im && im.complete && im.naturalWidth > 0; }, d, 8000);
+    check((await stallOk(d)) === 'ok', `${name}: the ${d} stall and its keeper (${await stallOk(d)})`); await look(`market ${d}`); await press('close');
+  }
 
   // ── the safe house
   await W(() => window.__jade.teleportTo('safe-market')); await W(() => window.__jade.world().findNear()); await wait(150);
@@ -294,6 +352,30 @@ async function viewport(name, w, h, touch) {
   await press('paint-jade'); check((await W(() => window.__jade.world().s.paint)) === 'jade', `${name}: paint`);
   await press('close');
 
+  // ── street events, texts on the phone, rain
+  for (const k of ['magpie', 'duckling', 'van', 'busker']) {
+    await W(() => window.__jade.teleport(20, 60));
+    const got = await W(k => window.__jade.event(k), k);
+    check(got === k && (await W(() => window.__jade.street()?.kind)) === k, `${name}: street event ${k} (${got})`);
+    await wait(250); if (k === 'busker' || k === 'magpie') await look(`event ${k}`);
+  }
+  check(await appear('jade-phone') && await W(() => window.__jade.world().s.msgs.length > 0), `${name}: a text arrives on the phone`);
+  await press('jade-phone'); check(await appear('jade-phone-msgs'), `${name}: read the messages`); await look('messages');
+  check(await W(() => window.__jade.world().s.msgs.every(m => m.read)), `${name}: reading marks them read`); await press('close');
+  await W(() => { window.__jade.world().street = null; window.__jade.world().crowd = null; window.__jade.rain(1); }); await wait(500); await look('rain');
+  check(await W(() => window.__jade.world().rain === 1), `${name}: a rain shower`); await W(() => window.__jade.rain(null));
+
+  // ── replaying a finished job from the jobs book; the medal it earns
+  await W(() => { window.__jade.jumpTo('m2'); const w = window.__jade.world(); w.s.medals.m1 = { m: 0, t: 0, plays: 1 }; });
+  await press('pause-btn'); await press('tab-jobs'); await press('jade-jobs-ch1');
+  await press('jade-replay-m1'); check(await until(() => window.__jade.world().run?.m.id === 'm1' && window.__jade.world().replaying, null, 3000), `${name}: Replay starts a finished job`);
+  await W(() => { const w = window.__jade.world(); w.run.time = 5; w.run.maxHeat = 0; w.run.retries = 0; w.finishMission(w.run.m); });
+  await settle();
+  check(await W(() => window.__jade.world().s.medals.m1.m === 3 && window.__jade.world().s.medals.m1.plays === 2), `${name}: a gold medal for a quick clean replay`);
+  await press('pause-btn'); await press('tab-jobs'); await press('jade-jobs-ch1');
+  check((await p.locator('[data-testid="jade-job-m1"] [data-spr="ui-medal-gold"]').count()) === 1, `${name}: the jobs book shows the gold medal`); await look('jobs book medal');
+  await press('close'); await press('resume');
+
   // ── failing a job: Retry, then Quit job
   await W(() => window.__jade.jumpTo('m2')); await wait(200); await act();
   for (let i = 0; i < 8 && await exists('dialogue'); i++) { if (touch) await press('dialogue'); else { await p.keyboard.press(' '); await wait(120); } }
@@ -304,6 +386,16 @@ async function viewport(name, w, h, touch) {
   await settle(); await W(() => window.__jade.world().fail('Again.')); await wait(200);
   await press('quit-job'); check(!(await st()).run, `${name}: Quit job`);
 
+  // ── the ending (by hook), credits, then the festival in free roam
+  await W(() => { window.__jade.finishAll(); window.__jade.ending(); });
+  check(await appear('jade-ending'), `${name}: the ending plays after the last job`); await wait(400); await look('ending');
+  await press('jade-story-next'); await press('jade-story-skip');
+  check(await appear('jade-credits'), `${name}: the credits follow`); await wait(600); await look('credits');
+  await press('jade-credits-done');
+  check(!(await exists('jade-credits')) && await W(() => window.__jade.world().festival && window.__jade.world().s.story.ending), `${name}: festival free roam after the credits`);
+  await W(() => window.__jade.teleportTo('mk-market')); await wait(1500); await look('festival');
+  await W(() => { window.__jade.world().s.done = ['m1', 'm2']; window.__jade.world().open = new Set(['market', 'temple']); });
+
   // ── back to the title, Continue, and both answers to starting over
   await press('pause-btn'); await press('to-title'); check(await screen() === 'title', `${name}: Save and quit to title`);
   check(await exists('continue'), `${name}: Continue on the title`);
@@ -313,13 +405,15 @@ async function viewport(name, w, h, touch) {
   await settle(); await press('pause-btn'); await press('new-game'); check(await exists('confirm-new'), `${name}: New game from pause asks first`);
   await press('confirm-no'); await press('new-game'); await press('confirm-yes'); check(await exists('pick-hero'), `${name}: Yes, start over goes to the hero pick`);
   await press('pick-dora'); await until(() => window.__jade?.world().s.hero === 'dora');
+  if (await appear('jade-storybook')) await press('jade-story-skip');
   check((await W(() => window.__jade.world().s.done.length)) === 0 && (await W(() => window.__jade.world().s.night)) === 1, `${name}: a fresh game`);
   await ctx.close();
 }
 
-await viewport('desktop', 1280, 800, false);
-await viewport('phone', 390, 844, true);
-await viewport('phone-wide', 844, 390, true);
+const ONLY = process.env.ONLY; // one viewport by name, when set
+if (!ONLY || ONLY === 'desktop') await viewport('desktop', 1280, 800, false);
+if (!ONLY || ONLY === 'phone') await viewport('phone', 390, 844, true);
+if (!ONLY || ONLY === 'phone-wide') await viewport('phone-wide', 844, 390, true);
 await b.close();
 const bad = results.filter(r => !r[0]);
 console.log(`jade street e2e: ${results.length - bad.length}/${results.length} checks passed, ${errs.length} page errors`);

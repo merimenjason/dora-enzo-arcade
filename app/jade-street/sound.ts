@@ -2,7 +2,12 @@
 // a soft woodblock beat, a faster chase tune with a gong when the lanterns light or a chase starts, and short effects
 // for every action (scooter putter on getting on, a whistle for wardens, coins, the lucky-cat chime, a wobble for the
 // cake, clicks and sparks for the mini-games). Silent until the first input; effects are rate-limited.
+// On a ride the street tune gives way to the ride radio (stations in radio.ts; the chase tune still wins when the
+// lanterns are lit), and under everything runs a very quiet ambient bed for the district you are in (market chatter
+// and sizzle, temple wind chimes and bells, lapping canal water, gulls and horns at the docks, neon hum and blips on
+// the Strip) plus rain hiss and drips during showers.
 import type { Fx } from '@/lib/jade-game';
+import { stationList, stationOf, OFF, type Station } from './radio';
 
 const mtof = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 type Tune = 'street' | 'chase' | 'menu' | null;
@@ -17,6 +22,10 @@ export class JadeSound {
   ctx: AudioContext | null = null; out: GainNode | null = null; mus: GainNode | null = null; noise: AudioBuffer | null = null;
   sfxOn = true; musicOn = true;
   private tune: Tune = null; private timer: number | null = null; private next = 0; private n = 0; private last: Record<string, number> = {};
+  /** the ride the radio is in (null on foot), the station index, and what the scheduler is playing now */
+  private radioKind: string | null = null; private radioIx = 0; private playing = '';
+  private amb: GainNode | null = null; private beds: Record<string, GainNode> = {}; private rainG: GainNode | null = null;
+  private district = ''; private rain = 0;
 
   start() {
     if (this.ctx) { if (this.ctx.state === 'suspended') void this.ctx.resume(); return; }
@@ -29,15 +38,41 @@ export class JadeSound {
       const b = C.createBuffer(1, C.sampleRate, C.sampleRate), d = b.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
       this.noise = b;
-      this.timer = window.setInterval(() => this.schedule(), 60);
+      this.amb = C.createGain(); this.amb.gain.value = this.sfxOn ? 1 : 0; this.amb.connect(this.out);
+      this.timer = window.setInterval(() => { this.schedule(); this.ambientTick(); }, 60);
     } catch { this.ctx = null; }
   }
-  stop() { if (this.timer !== null) clearInterval(this.timer); this.timer = null; void this.ctx?.close(); this.ctx = null; }
+  stop() { if (this.timer !== null) clearInterval(this.timer); this.timer = null; void this.ctx?.close(); this.ctx = null; this.amb = null; this.rainG = null; this.beds = {}; this.playing = ''; }
   setMusic(on: boolean) { this.musicOn = on; if (this.mus && this.ctx) this.mus.gain.setTargetAtTime(on ? 0.075 : 0, this.ctx.currentTime, 0.2); }
   play(t: Tune) { if (t === this.tune) return; this.tune = t; this.n = 0; if (this.ctx) this.next = this.ctx.currentTime + 0.15; if (t === 'chase') this.gong(); }
 
+  // ── the ride radio
+  /** the station names for a ride kind ('boat' has its own), "Radio off" last */
+  stations(kind: string | null): string[] { return stationList(kind); }
+  stationName(kind: string | null, i: number): string { const l = stationList(kind); return l[((i % l.length) + l.length) % l.length]; }
+  /** tune the radio for the ride the hero is on (null on foot: the street tune comes back); safe to call every frame */
+  radio(kind: string | null) {
+    if (kind === this.radioKind) return;
+    this.radioKind = kind;
+  }
+  /** switch to station i (wrapping); returns its name */
+  station(i: number): string {
+    const l = stationList(this.radioKind); this.radioIx = ((i % l.length) + l.length) % l.length;
+    if (this.radioKind) this.tuneStatic();
+    return l[this.radioIx];
+  }
+  /** the station on air for the current ride, or null when on foot or switched off */
+  onAir(): string | null { if (!this.radioKind) return null; const n = this.stationName(this.radioKind, this.radioIx); return n === OFF ? null : n; }
+  private tuneStatic() { if (!this.ctx || !this.sfxOn) return; const t = this.t; this.burst(t, 0.25, 2600, 0.4, 0.12); this.tone(1400, t + 0.05, 0.12, 'sine', 0.05, this.out!, 0.5); }
+
   private schedule() {
     const C = this.ctx; if (!C || !this.tune || !this.mus) return;
+    const st = this.tune === 'street' && this.radioKind ? stationOf(this.onAir() ?? '') : null;
+    const off = this.tune === 'street' && this.radioKind && !this.onAir();
+    const key = off ? 'off' : st ? 'radio:' + st.name : this.tune;
+    if (key !== this.playing) { this.playing = key; this.n = 0; this.next = Math.max(this.next, C.currentTime + 0.15); }
+    if (off) { this.next = C.currentTime; return; }
+    if (st) { this.scheduleRadio(st); return; }
     const T = TUNES[this.tune], step = 60 / T.bpm / 2;
     while (this.next < C.currentTime + 0.3) {
       const i = this.n % T.lead.length, m = T.lead[i];
@@ -47,6 +82,115 @@ export class JadeSound {
       this.next += step; this.n++;
     }
   }
+  private scheduleRadio(S: Station) {
+    const C = this.ctx!, step = 60 / S.bpm / 2, dest = this.mus!;
+    while (this.next < C.currentTime + 0.3) {
+      const i = this.n % S.lead.length, b = i % 8, t = this.next + (S.swing && i % 2 ? step * S.swing : 0);
+      const m = S.lead[i];
+      if (m) {
+        let len = 1; while (len < 4 && !S.lead[(i + len) % S.lead.length]) len++;
+        this.voice(S.voice, mtof(m), t, step * len, dest, i ? S.lead[i - 1] : 0);
+      }
+      if (i % 2 === 0) { const bm = S.bass[(i / 2) % S.bass.length]; if (bm) this.tone(mtof(bm), t, step * 1.8, S.voice === 'chip' ? 'square' : 'triangle', S.voice === 'chip' ? 0.16 : 0.42, dest); }
+      if (b === 0 || (S.voice === 'chip' && b === 4)) {
+        const ch = S.chords[Math.floor(i / 8) % S.chords.length], d = S.voice === 'chip' ? step * 1.2 : step * 7.5;
+        for (const c of ch) this.tone(mtof(c), t, d, S.voice === 'chip' ? 'square' : 'sine', S.voice === 'chip' ? 0.035 : 0.075, dest);
+      }
+      if (S.kick[b] === 'x') this.tone(130, t, 0.16, 'sine', S.voice === 'keys' ? 0.4 : 0.55, dest, 0.35);
+      if (S.snare[b] === 'x') this.hit(t, S.voice === 'keys' ? 0.12 : 0.09, 1900, 0.7, S.voice === 'keys' ? 0.16 : 0.26, dest);
+      if (S.hat[b] === 'x') { if (S.voice === 'erhu' || S.kick === 'x.......') this.block(t, b === 0 ? 700 : 1000, 0.18); else this.hit(t, 0.03, 8000, 1, 0.08, dest); }
+      this.next += step; this.n++;
+    }
+  }
+  private voice(v: Station['voice'], f: number, t: number, d: number, dest: AudioNode, prev: number) {
+    const C = this.ctx!;
+    if (v === 'pluck') { this.pluck(f, t, Math.max(0.3, d * 1.4), dest); return; }
+    if (v === 'chip') { this.tone(f, t, Math.min(d, 0.22), 'square', 0.12, dest); return; }
+    if (v === 'keys') { this.tone(f, t, d * 1.3 + 0.3, 'sine', 0.36, dest); this.tone(f * 2.003, t, d * 0.6 + 0.1, 'triangle', 0.06, dest); return; }
+    // erhu: a bowed sawtooth, softened, sliding up from the last note, with a slow vibrato
+    const o = C.createOscillator(), g = C.createGain(), lp = C.createBiquadFilter(), vib = C.createOscillator(), vg = C.createGain();
+    o.type = 'sawtooth'; const from = prev ? mtof(prev) : f * 0.97;
+    o.frequency.setValueAtTime(from, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.08);
+    vib.frequency.value = 5.5; vg.gain.setValueAtTime(0, t); vg.gain.linearRampToValueAtTime(f * 0.012, t + d * 0.6); vib.connect(vg); vg.connect(o.frequency);
+    lp.type = 'lowpass'; lp.frequency.value = f * 3; lp.Q.value = 2;
+    const dd = d * 0.95 + 0.1;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.16, t + 0.09); g.gain.setValueAtTime(0.14, t + dd * 0.7); g.gain.exponentialRampToValueAtTime(0.001, t + dd);
+    o.connect(lp); lp.connect(g); g.connect(dest); o.start(t); vib.start(t); o.stop(t + dd + 0.05); vib.stop(t + dd + 0.05);
+  }
+  private hit(t: number, d: number, f: number, q: number, v: number, dest: AudioNode) {
+    const C = this.ctx!, s = C.createBufferSource(), bp = C.createBiquadFilter(), g = C.createGain();
+    s.buffer = this.noise; bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q;
+    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + d);
+    s.connect(bp); bp.connect(g); g.connect(dest); s.start(t, Math.random() * 0.5); s.stop(t + d + 0.02);
+  }
+
+  // ── ambient beds and rain
+  /** the district you are in and how hard it is raining (0..1); call about once a second, cheap when unchanged */
+  ambient(district: string, rain: number) { this.district = district; this.rain = Math.max(0, Math.min(1, rain)); this.ensureBeds(); this.fadeBeds(); }
+  private ensureBeds() {
+    const C = this.ctx; if (!C || !this.amb || !this.noise || this.rainG) return;
+    const loop = (type: BiquadFilterType, f: number, q: number) => {
+      const s = C.createBufferSource(); s.buffer = this.noise; s.loop = true; s.loopStart = 0; s.loopEnd = this.noise!.duration;
+      const fl = C.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; s.connect(fl); s.start(); return fl;
+    };
+    const bed = (name: string, ...srcs: AudioNode[]) => { const g = C.createGain(); g.gain.value = 0; for (const n of srcs) n.connect(g); g.connect(this.amb!); this.beds[name] = g; return g; };
+    const lfo = (rate: number, depth: number, param: AudioParam) => { const o = C.createOscillator(), g = C.createGain(); o.frequency.value = rate; g.gain.value = depth; o.connect(g); g.connect(param); o.start(); };
+    // market: a murmur of voices (a band of noise breathing in and out)
+    const mur = loop('bandpass', 520, 0.9), mg = C.createGain(); mg.gain.value = 0.05; mur.connect(mg); lfo(0.7, 0.02, mg.gain); lfo(0.23, 120, (mur as BiquadFilterNode).frequency);
+    bed('market', mg);
+    // temple: a soft wind
+    const wind = loop('lowpass', 380, 0.7), wg = C.createGain(); wg.gain.value = 0.045; wind.connect(wg); lfo(0.11, 0.03, wg.gain);
+    bed('temple', wg);
+    // canal: water lapping
+    const lap = loop('lowpass', 300, 1.2), lg = C.createGain(); lg.gain.value = 0.06; lap.connect(lg); lfo(0.35, 0.05, lg.gain);
+    bed('canal', lg);
+    // docks: the sea
+    const sea = loop('lowpass', 210, 0.8), sg = C.createGain(); sg.gain.value = 0.08; sea.connect(sg); lfo(0.09, 0.05, sg.gain);
+    bed('docks', sg);
+    // arcade: neon hum
+    const hum = C.createOscillator(), hum2 = C.createOscillator(), hg = C.createGain(); hum.type = 'sine'; hum.frequency.value = 120; hum2.type = 'sine'; hum2.frequency.value = 240.6;
+    hg.gain.value = 0.02; hum.connect(hg); hum2.connect(hg); hum.start(); hum2.start(); lfo(3.1, 0.006, hg.gain);
+    bed('arcade', hg);
+    // rain hiss
+    const hiss = loop('highpass', 1500, 0.5), rl = C.createBiquadFilter(); rl.type = 'lowpass'; rl.frequency.value = 7000; hiss.connect(rl);
+    this.rainG = C.createGain(); this.rainG.gain.value = 0; rl.connect(this.rainG); this.rainG.connect(this.amb);
+  }
+  private fadeBeds() {
+    const C = this.ctx; if (!C || !this.amb) return;
+    const now = C.currentTime;
+    this.amb.gain.setTargetAtTime(this.sfxOn ? 1 : 0, now, 0.3);
+    for (const [d, g] of Object.entries(this.beds)) g.gain.setTargetAtTime(d === this.district ? 1 : 0, now, 1.2);
+    this.rainG?.gain.setTargetAtTime(this.rain * 0.14, now, 1.5);
+  }
+  /** the odd sounds that make a district: chimes, bells, gulls, horns, sizzles, blips and rain drips */
+  private ambientTick() {
+    const C = this.ctx; if (!C || !this.amb || !this.sfxOn || !this.rainG) return;
+    const t = C.currentTime + 0.05, r = Math.random(), a = this.amb;
+    switch (this.district) {
+      case 'market':
+        if (r < 0.012) this.hit(t, 0.5, 5200, 0.5, 0.05, a);
+        else if (r < 0.03) this.tone(mtof(70 + Math.floor(Math.random() * 8)), t, 0.06, 'triangle', 0.018, a);
+        break;
+      case 'temple':
+        if (r < 0.02) { const n = [84, 86, 88, 91, 93, 96]; for (let i = 0; i < 1 + Math.floor(Math.random() * 3); i++) this.pluck(mtof(n[Math.floor(Math.random() * n.length)]), t + i * 0.13, 0.9, a, 0.05); }
+        else if (r < 0.023) { this.tone(220, t, 3, 'sine', 0.05, a, 0.995); this.tone(331, t, 2.2, 'sine', 0.02, a); }
+        break;
+      case 'canal':
+        if (r < 0.006) this.tone(95, t, 0.5, 'sawtooth', 0.012, a, 1.25);
+        else if (r < 0.02) this.tone(500 + Math.random() * 300, t, 0.06, 'sine', 0.02, a, 1.6);
+        break;
+      case 'docks':
+        if (r < 0.008) { this.tone(1250, t, 0.22, 'sine', 0.03, a, 0.72); this.tone(1200, t + 0.28, 0.25, 'sine', 0.025, a, 0.7); }
+        else if (r < 0.0095) { this.tone(87, t, 1.6, 'sawtooth', 0.025, a); this.tone(130, t, 1.6, 'sawtooth', 0.012, a); }
+        else if (r < 0.016) { this.tone(1700, t, 0.07, 'triangle', 0.02, a); this.tone(2500, t, 0.05, 'triangle', 0.012, a); }
+        break;
+      case 'arcade':
+        if (r < 0.025) this.tone(mtof(84 + Math.floor(Math.random() * 12)), t, 0.05, 'square', 0.012, a);
+        break;
+    }
+    if (this.rain > 0.15 && Math.random() < this.rain * 0.12) this.tone(1800 + Math.random() * 1600, t + Math.random() * 0.05, 0.05, 'sine', 0.02 * this.rain, a, 0.6);
+  }
+
   private pluck(f: number, t: number, d: number, dest: AudioNode, v = 0.42) {
     const C = this.ctx!, o = C.createOscillator(), o2 = C.createOscillator(), g = C.createGain(), lp = C.createBiquadFilter();
     o.type = 'triangle'; o.frequency.value = f; o2.type = 'sine'; o2.frequency.value = f * 2.005;
@@ -99,6 +243,21 @@ export class JadeSound {
   sizzle() { if (!this.ok('sizzle', 0.25)) return; this.burst(this.t, 0.35, 5000, 0.5, 0.18); }
   clank() { if (!this.ok('clank', 0.06)) return; const t = this.t; this.tone(1600, t, 0.07, 'triangle', 0.15, this.out!); this.tone(2400, t, 0.05, 'triangle', 0.08, this.out!); }
 
+  ping() { if (!this.ok('ping', 0.3)) return; const t = this.t; this.tone(mtof(88), t, 0.12, 'sine', 0.12, this.out!); this.tone(mtof(93), t + 0.1, 0.2, 'sine', 0.12, this.out!); }
+  sting() { if (!this.ok('sting', 1)) return; const t = this.t; [76, 79, 83].forEach((m, i) => this.pluck(mtof(m), t + i * 0.08, 0.4, this.out!, 0.28)); this.block(t, 1100, 0.2); }
+  deed() { if (!this.ok('deed', 0.5)) return; const t = this.t; [72, 76, 79, 84, 88].forEach((m, i) => this.pluck(mtof(m), t + i * 0.07, 0.5, this.out!, 0.28)); this.coins(); }
+  quack() { if (!this.ok('quack', 0.25)) return; const t = this.t; this.tone(620, t, 0.12, 'sawtooth', 0.05, this.out!, 0.7); this.burst(t, 0.1, 900, 4, 0.12); }
+  push() { if (!this.ok('push', 0.25)) return; const t = this.t; this.tone(160, t, 0.12, 'triangle', 0.1, this.out!, 0.8); this.tone(70, t + 0.05, 0.14, 'sine', 0.2, this.out!, 0.6); }
+  catchEngine(kind = '') { if (!this.ok('catch', 0.6)) return; const t = this.t; const f = kind === 'van' ? 50 : 80; for (let i = 0; i < 3; i++) this.tone(f, t + i * 0.16, 0.08, 'sawtooth', 0.06, this.out!, 0.8); this.tone(f, t + 0.5, 0.6, 'sawtooth', 0.09, this.out!, 1.8); }
+  smoke() { if (!this.ok('smoke', 0.4)) return; this.burst(this.t, 0.5, 700, 0.5, 0.12); }
+  busk() { if (!this.ok('busk', 1)) return; const t = this.t; [76, 79, 81, 83, 81, 79].forEach((m, i) => this.voice('erhu', mtof(m), t + i * 0.16, 0.18, this.out!, i ? [76, 79, 81, 83, 81][i - 1] : 0)); }
+  dance() { if (!this.ok('dance', 2)) return; const t = this.t; [67, 71, 74, 71, 76, 74, 79, 0].forEach((m, i) => { if (m) this.pluck(mtof(m), t + i * 0.15, 0.3, this.out!, 0.22); this.block(t + i * 0.15, i % 2 ? 1300 : 900, 0.15); }); }
+  skyLantern() { if (!this.ok('sky', 0.8)) return; const t = this.t; this.burst(t, 0.8, 900, 0.4, 0.1); [91, 96].forEach((m, i) => this.pluck(mtof(m), t + 0.3 + i * 0.2, 1.2, this.out!, 0.15)); }
+  slurp() { if (!this.ok('slurp', 0.6)) return; const t = this.t; this.burst(t, 0.3, 1200, 2, 0.1); this.tone(300, t, 0.3, 'sine', 0.06, this.out!, 2.2); }
+  firework() { if (!this.ok('firework', 0.15)) return; const t = this.t; this.tone(900, t, 0.5, 'sine', 0.04, this.out!, 2.2); this.burst(t + 0.5, 0.5, 600, 0.5, 0.3); this.tone(80, t + 0.5, 0.3, 'sine', 0.2, this.out!, 0.5); this.burst(t + 0.6, 0.6, 5000, 0.4, 0.06); }
+  medal(k = 1) { if (!this.ctx) return; const t = this.t; const n = [79, 84, 88, 91].slice(0, 1 + Math.max(1, Math.min(3, k))); n.forEach((m, i) => this.pluck(mtof(m), t + i * 0.12, 0.9, this.out!, 0.3)); if (k >= 3) this.tone(mtof(96), t + 0.5, 1.2, 'sine', 0.08, this.out!); }
+  lesson() { if (!this.ok('lesson', 0.5)) return; this.tone(mtof(86), this.t, 0.08, 'sine', 0.08, this.out!); }
+
   /** play the world's events */
   fx(list: Fx[]) {
     for (const f of list) switch (f.t) {
@@ -108,7 +267,22 @@ export class JadeSound {
       case 'hop': this.hop(); break;
       case 'honk': this.honk(); break;
       case 'car-honk': this.honk(); break;
-      case 'enter': case 'start-engine': this.engine(f.kind); break;
+      case 'enter': this.engine(f.kind); break;
+      case 'start-engine': this.catchEngine(f.kind); break;
+      case 'text': this.ping(); break;
+      case 'event': this.sting(); break;
+      case 'good-deed': this.deed(); break;
+      case 'quack': this.quack(); break;
+      case 'push': this.push(); break;
+      case 'smoke': this.smoke(); break;
+      case 'busk': this.busk(); break;
+      case 'dance': this.dance(); break;
+      case 'sky-lantern': this.skyLantern(); break;
+      case 'eat': this.slurp(); break;
+      case 'firework': this.firework(); break;
+      case 'medal': this.medal(f.k ?? 1); break;
+      case 'lesson': this.lesson(); break;
+      case 'chapter': this.gong(); break;
       case 'exit': case 'climb': this.thud(); break;
       case 'cat': this.chime(); break;
       case 'pickup': case 'deliver': case 'gate': case 'fare-in': case 'fare-out': case 'shoo': case 'dodge': this.good(); break;

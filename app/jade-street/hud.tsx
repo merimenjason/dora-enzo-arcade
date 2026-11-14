@@ -7,7 +7,8 @@ import { useEffect, useRef } from 'react';
 import { districtAt, DISTRICT_NAME, T } from '@/lib/jade-city';
 import { lanterns } from '@/lib/jade-heat';
 import { cargoCount } from '@/lib/jade-trade';
-import { PEOPLE } from '@/lib/jade-story';
+import { PEOPLE, MISSION } from '@/lib/jade-story';
+import { goals } from '@/lib/jade-medals';
 import type { Play } from './controller';
 import { Sprite, Icon, fmt, GOOD_ICON } from './ui';
 import { GOODS } from '@/lib/jade-trade';
@@ -72,6 +73,7 @@ export function Prompt({ play, touch }: { play: Play; touch: boolean }) {
   return (
     <button type="button" className={'jade-prompt' + (touch ? ' touch' : '')} data-testid="prompt" onClick={() => play.press('act')}>
       {!touch && <kbd>E</kbd>}<span>{n.label}</span>
+      {n.kind === 'mission' && n.id && MISSION[n.id] && <span className="jade-prompt-goals" data-testid="prompt-goals">{goals(MISSION[n.id]).map((g, i) => <em key={g} className={w.s.medals[n.id!] && w.s.medals[n.id!].m > i ? 'got' : ''}>{g}</em>)}</span>}
     </button>
   );
 }
