@@ -118,4 +118,5 @@ export const GENRE_OF: Record<string, GenreId[]> = {
  '/highburrow': ['strategy', 'cozy'],
  '/cloudpop': ['strategy', 'action'],
  '/straits': ['adventure', 'action'],
+ '/jade-street': ['adventure', 'action'],
 };
