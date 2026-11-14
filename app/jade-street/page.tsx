@@ -1,5 +1,5 @@
 'use client';
-// Jade Street: the page. Holds the save (localStorage 'jade-street-v6', migrating v5 back to v1), the painted loading
+// Jade Street: the page. Holds the save (localStorage 'jade-street-v7', migrating v6 back to v1), the painted loading
 // screen (nothing draws until every painting has decoded), the title screen with continue / new game (confirmed in
 // the page) and the hero pick, the storybook opening, chapter cards, the ending and credits (./story.tsx), then the
 // running game: the canvas (./controller.ts and lib/jade-scene.ts), the HUD (./hud.tsx), lesson hints, the phone and
@@ -19,6 +19,8 @@ import { chapterOf } from '@/lib/jade-save';
 import { learn } from '@/lib/jade-tutor';
 import { MiniGame } from './minis';
 import { TicketCard, MamaShop, KopiMini } from './sg';
+import { MrtPanel, RideView, TaxiPanel } from './isle';
+import './isle.css';
 import './sg.css';
 import { store, Sprite, ART } from './ui';
 import './jade.css';
@@ -96,14 +98,14 @@ export default function JadeStreetPage() {
   useEffect(() => {
     const p = playRef.current; if (!p || story || screen !== 'game') return;
     const s = p.w.s, ch = chapterOf(s);
-    if (s.story.intro && ch <= 5 && ch > s.story.ch && !p.w.run && !p.w.talk) { p.paused = true; setStory('chapter'); }
+    if (s.story.intro && ch <= 6 && ch > s.story.ch && !p.w.run && !p.w.talk) { p.paused = true; setStory('chapter'); }
   });
   const storyDone = (next: Story = null) => {
     const p = playRef.current; if (!p) return;
     const s = p.w.s;
     if (story === 'intro') { s.story.intro = true; next = 'chapter'; }
     else if (story === 'chapter') s.story.ch = Math.max(s.story.ch, chapterOf(s));
-    else if (story === 'credits') { s.story.ending = true; if (!p.w.run) p.toast('The Lantern Festival goes on: free roam the quarter in festival dress!', 'gold'); }
+    else if (story === 'credits') { if (p.endingKind === 'isle') { s.story.isle = true; if (!p.w.run) p.toast('Island Night goes on: the whole island is yours to roam!', 'gold'); } else { s.story.ending = true; if (!p.w.run) p.toast('The Lantern Festival goes on: free roam the quarter in festival dress!', 'gold'); } }
     persist(s); setStory(next);
     if (!next) { p.paused = false; sndRef.current?.play('street'); }
   };
@@ -131,10 +133,10 @@ export default function JadeStreetPage() {
         <section className="jade-title" style={{ backgroundImage: `url(${ART}bg-title.webp)` }}>
           <div className="jade-title-card">
             <h1>Jade Street</h1>
-            <p className="jade-tag">A night-time caper in Singapore’s Chinatown. Win back five lucky heirlooms from the Kaypoh Crows before the Lantern Festival, and mind the fines.</p>
+            <p className="jade-tag">A night-time caper in Singapore’s Chinatown and out across the island. Win back five lucky heirlooms from the Kaypoh Crows, then stop Director Kaw on the bay front, and mind the fines.</p>
             {!confirm && !pick && (
               <div className="jade-title-btns">
-                {save.started && <button type="button" className="jade-btn jade big" data-testid="continue" onClick={() => begin(saveRef.current)}>Continue · night {save.night}, {save.done.filter(id => id.startsWith('m')).length}/25 jobs</button>}
+                {save.started && <button type="button" className="jade-btn jade big" data-testid="continue" onClick={() => begin(saveRef.current)}>Continue · night {save.night}, {save.done.filter(id => id.startsWith('m')).length}/35 jobs</button>}
                 <button type="button" className={'jade-btn big ' + (save.started ? 'plain' : 'jade')} data-testid="new" onClick={() => save.started ? setConfirm(true) : setPick(true)}>New game</button>
               </div>
             )}
@@ -154,7 +156,7 @@ export default function JadeStreetPage() {
                 <button type="button" className="jade-link" onClick={() => setPick(false)}>Back</button>
               </div>
             )}
-            <p className="jade-how">{coarse ? 'Drag on the left to move. Buttons on the right: Action, Dash, Hop and Sneak.' : 'WASD or arrows to move · Shift sneak · Space dash · Q hop · E action · Tab switch hero · F tag-team · click to fire · M map · Esc pause'}</p>
+            <p className="jade-how">{coarse ? 'Drag on the left to move. Buttons on the right: Action, Dash, Hop and Sneak.' : 'WASD or arrows to move · Shift sneak · Space dash · Q hop · E action · Tab switch hero · F tag-team · click to fire · G hail a taxi · M map · Esc pause'}</p>
             <a className="jade-back" href="/">← Back to the arcade</a>
           </div>
         </section>
@@ -181,6 +183,9 @@ export default function JadeStreetPage() {
               {w.ui?.kind === 'gear' && <GearStall play={play} snd={sndRef.current} onClose={closeUi} onSave={() => persist(w.s)} />}
               {w.ui?.kind === 'biz' && <BizPanel play={play} id={w.ui.id} snd={sndRef.current} onClose={closeUi} onSave={() => persist(w.s)} />}
               {w.ui?.kind === 'mama' && <MamaShop play={play} snd={sndRef.current} onClose={closeUi} onSave={() => persist(w.s)} />}
+              {w.ui?.kind === 'mrt' && <MrtPanel play={play} from={w.ui.from} onClose={closeUi} />}
+              {w.ui?.kind === 'ride-view' && <RideView play={play} from={w.ui.from} to={w.ui.to} onDone={closeUi} />}
+              {w.ui?.kind === 'taxi' && <TaxiPanel play={play} onClose={closeUi} />}
               {!w.ui && !w.talk && <TicketCard play={play} />}
               {w.ui?.kind === 'mini' && w.ui.mini === 'kopi' && <KopiMini key={`kopi-${w.s.stats.minis}`} level={w.ui.level} assist={w.assist} seed={w.s.seed + w.s.stats.minis * 7 + w.tick} snd={sndRef.current} onDone={ok => { w.miniDone(ok); persist(w.s); play.bump(); }} />}
               {w.ui?.kind === 'mini' && w.ui.mini !== 'kopi' && <MiniGame key={`${w.ui.mini}-${w.s.stats.minis}`} kind={w.ui.mini} level={w.ui.level} assist={w.assist} seed={w.s.seed + w.s.stats.minis * 7 + w.tick} snd={sndRef.current} onDone={ok => { w.miniDone(ok); persist(w.s); play.bump(); }} />}
@@ -188,8 +193,8 @@ export default function JadeStreetPage() {
               {phone && <PhoneView play={play} onClose={resume} />}
               {paused && <Pause play={play} snd={sndRef.current} touch={touch} onReplay={replay} onClose={resume} onQuit={toTitle} onSave={() => persist(w.s)} onNew={() => { setPaused(false); setScreen('title'); setPick(true); }} />}
               {story === 'intro' && <Storybook onDone={() => storyDone()} />}
-              {story === 'chapter' && <ChapterCard ch={Math.min(5, chapterOf(w.s))} onDone={() => storyDone()} />}
-              {story === 'ending' && <Ending hero={w.s.hero} onDone={() => { sndRef.current?.fx([{ t: 'chapter' }]); setStory('credits'); }} />}
+              {story === 'chapter' && <ChapterCard ch={Math.min(6, chapterOf(w.s))} onDone={() => storyDone()} />}
+              {story === 'ending' && <Ending hero={w.s.hero} isle={play.endingKind === 'isle'} onDone={() => { sndRef.current?.fx([{ t: 'chapter' }]); setStory('credits'); }} />}
               {story === 'credits' && <Credits onDone={() => storyDone()} />}
             </>
           )}

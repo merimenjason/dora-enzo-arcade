@@ -20,19 +20,25 @@ import { heatStep, addHeat, caught, type Warden, type Roadblock } from './jade-h
 import { sgStep, sgNear, sgAct, sgGates, newSg, cheer, type SgState, type Bark } from './jade-sg.js';
 import { finesStep, payTicket, offence, FINE, type Patrol, type Ticket } from './jade-fines.js';
 import { gangsStep, gangNear, gangAct, newGangs, type GangState } from './jade-gangs.js';
+import { stationNear, mrtTo, cantRide } from './jade-mrt.js';
+import { hail, taxiStep, skipRide, type Taxi } from './jade-taxi.js';
 
 export const DT = 1 / 60;
 export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop: boolean; act: boolean;
   /** switch hero (Tab), tag-team move (F), fire at (ax, ay) (no aim: Assist or straight ahead), gadget slot (0/1, or
    * -1 for the other one), reload */
-  swap?: boolean; tag?: boolean; fire?: boolean; ax?: number; ay?: number; slot?: number; reload?: boolean };
+  swap?: boolean; tag?: boolean; fire?: boolean; ax?: number; ay?: number; slot?: number; reload?: boolean;
+  /** hail a taxi (G) */
+  hail?: boolean };
 export const NO_INPUT: Input = { mx: 0, my: 0, sneak: false, dash: false, hop: false, act: false };
 export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; locked: boolean; tint: number; mission?: boolean; seen?: number; broken?: boolean };
 export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string };
-export type Near = { kind: 'mission' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang'; label: string; x: number; y: number; id?: string; ride?: Ride };
+export type Near = { kind: 'mission' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi'; label: string; x: number; y: number; id?: string; ride?: Ride };
 export type Snatcher = { x: number; y: number; h: number; t: number; out: boolean; took: number; wing: number; good?: string; dizzy?: number };
 export type Act = { n: string; t: number; dur: number; then?: () => void };
-export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' | 'sg' } | { kind: 'map' } | { kind: 'biz'; id: BizId } | { kind: 'gear' } | { kind: 'mama' } | { kind: 'glossary' };
+export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' | 'sg' } | { kind: 'map' } | { kind: 'biz'; id: BizId } | { kind: 'gear' } | { kind: 'mama' } | { kind: 'glossary' }
+  /** the island: a station's ticket gates, the train ride view, the taxi's drop-off list */
+  | { kind: 'mrt'; from: string } | { kind: 'ride-view'; from: string; to: string } | { kind: 'taxi' };
 
 export class Player {
   constructor(public who: Hero = 'dora') { }
@@ -85,6 +91,10 @@ export class World {
    * (lib/jade-fines.ts), the rival gangs' street events (lib/jade-gangs.ts) */
   sg: SgState = newSg(); barks: Bark[] = []; patrols: Patrol[] = []; ticket: Ticket | null = null;
   fineCd = new Map<string, number>(); warned = new Set<string>(); lastTile = -1; lastTileRide = 0; gangs: GangState = newGangs();
+  /** the island: a hailed taxi (lib/jade-taxi.ts), the station the last train ride arrived at (lib/jade-mrt.ts) */
+  taxi: Taxi | null = null; lastMrt = '';
+  /** the page has something important on screen: passers-by hold their remarks (lib/jade-notice.ts) */
+  hush = false;
 
   constructor(save: Save, seed = save.seed) {
     this.c = getCityOnce(); this.obs = obstacleGrid(this.c); this.s = save; this.R = rng(seed * 7919 + save.night);
@@ -162,9 +172,12 @@ export class World {
     if (this.banner) { this.banner.t -= dt; if (this.banner.t <= 0) this.banner = null; }
     this.gates.clear(); if (this.run) { closedTiles(this.run.sets, this.gates); teamGates(this.run, this.gates); }
     sgGates(this, this.gates);
-    this.playerStep(inp, dt);
+    const cab = this.taxi?.st === 'ride';
+    if (!cab) this.playerStep(inp, dt);
     this.p.grabT = Math.max(0, this.p.grabT - dt); this.p.cheerT = Math.max(0, this.p.cheerT - dt);
-    if (this.two) this.p2Step(inp2 ?? NO_INPUT, dt); else mateStep(this, dt);
+    if (cab) { /* in the back of a taxi: both heroes ride along */ } else if (this.two) this.p2Step(inp2 ?? NO_INPUT, dt); else mateStep(this, dt);
+    if (inp.hail && !cab) hail(this);
+    taxiStep(this, dt);
     leash(this); this.leashT = Math.max(0, this.leashT - dt);
     distractStep(this);
     // the partner's pounce on the street crow (a job's pounces are checked by the job)
@@ -373,7 +386,7 @@ export class World {
     const tries: [number, number][] = [[r.b.x + Math.cos(side) * (r.b.r + 18), r.b.y + Math.sin(side) * (r.b.r + 18)], [r.b.x - Math.cos(side) * (r.b.r + 18), r.b.y - Math.sin(side) * (r.b.r + 18)]];
     let spot: [number, number] | null = null;
     for (const [x, y] of tries) { const b = { ...p.b, x, y }; if (!overlapping(this.ctx(), b)) { spot = [x, y]; break; } }
-    if (!spot) { const [x, y] = nearestFree(this.c, 'foot', r.b.x, r.b.y, this.open, r.kind === 'boat' ? 2 : 4); if (Math.hypot(x - r.b.x, y - r.b.y) > T * 2.6 || this.c.solid[Math.floor(y / T) * W + Math.floor(x / T)] !== S.OPEN) { this.say(r.kind === 'boat' ? 'Steer to the bank or a jetty to step off.' : 'No room to get off here.', 'bad'); return false; } spot = [x, y]; }
+    if (!spot) { const [x, y] = nearestFree(this.c, 'foot', r.b.x, r.b.y, this.open, r.kind === 'boat' ? 3 : 4); if (Math.hypot(x - r.b.x, y - r.b.y) > T * (r.kind === 'boat' ? 3.2 : 2.6) || this.c.solid[Math.floor(y / T) * W + Math.floor(x / T)] !== S.OPEN) { this.say(r.kind === 'boat' ? 'Steer to the bank or a jetty to step off.' : 'No room to get off here.', 'bad'); return false; } spot = [x, y]; }
     r.parked = true; r.b.speed = 0; p.ride = null;
     p.b.x = spot[0]; p.b.y = spot[1]; p.b.speed = 0; p.b.h = side;
     p.act = { n: 'climb-off', t: 0, dur: 0.3 };
@@ -398,6 +411,7 @@ export class World {
   findNear() {
     const p = this.p, x = p.x, y = p.y; let best: Near | null = null, bd = 1e9;
     const cand = (n: Near, r: number) => { const d = dist(n.x, n.y, x, y); if (d < r && d < bd) { bd = d; best = n; } };
+    if (this.taxi?.st === 'ride') { this.near = { kind: 'taxi', label: 'Skip to the drop-off', x, y }; return; }
     if (p.hide) { this.near = { kind: 'unhide', label: 'Come out', x, y }; return; }
     if (this.ticket) { this.near = { kind: 'fine', label: `Pay the ticket: ${FINE[this.ticket.kind].name.toLowerCase()}, ${this.ticket.amt} coins`, x, y }; return; }
     if (p.seat) { this.near = null; return; }
@@ -427,8 +441,16 @@ export class World {
     for (const pr of this.tables()) cand({ kind: 'eat', label: 'Grab a bowl of noodles (3 coins)', x: pr.x, y: pr.y + 20 }, 56);
     for (const l of this.c.ladders) cand({ kind: 'ladder-up', label: 'Climb the ladder', x: l.x * T + T / 2, y: l.y * T + T / 2 }, 60);
     for (const h of this.c.hides) cand({ kind: 'hide', label: 'Hide here', x: h.x, y: h.y }, 52);
+    // the island: a station's gates (a job's train step names its stop), a taxi waiting at the kerb
+    const stn = stationNear(this);
+    if (stn && (!this.run || this.run.cur?.t === 'train')) cand({ kind: 'station', label: this.run?.cur?.t === 'train' ? `${stn.name}: take the train to ${this.c.places[this.run.cur.to]?.name ?? 'the next stop'}` : `${stn.name}: ride the Jade Line (2 coins)`, x: stn.x, y: stn.y, id: stn.id }, 110);
+    if (this.taxi?.st === 'wait') cand({ kind: 'taxi', label: 'Get in the taxi', x: this.taxi.b.x, y: this.taxi.b.y }, 110);
     for (const m of this.c.murals) if (!this.s.murals.includes(m.id) && this.open.has(districtAt(Math.floor(m.x / T), Math.floor(m.y / T)))) cand({ kind: 'mural', label: 'Restore the faded mural', x: m.x, y: m.y + 30, id: m.id }, 60);
     for (const r of this.rides) if (r.parked && this.open.has(districtAt(Math.floor(r.b.x / T), Math.floor(r.b.y / T)))) cand({ kind: 'ride', label: `${r.locked ? 'Jump-start' : 'Ride'} the ${VEHICLES[r.kind].name.toLowerCase()}`, x: r.b.x, y: r.b.y, ride: r }, r.kind === 'boat' ? 96 : 70);
+    // the taxi you called wins once it is in reach
+    if (this.taxi?.st === 'wait' && dist(this.taxi.b.x, this.taxi.b.y, x, y) < 110) best = { kind: 'taxi', label: 'Get in the taxi', x: this.taxi.b.x, y: this.taxi.b.y };
+    // a job's train step: the station gates win over a scooter parked by the entrance
+    if (stn && this.run?.cur?.t === 'train' && (best as Near | null)?.kind === 'ride') best = { kind: 'station', label: `${stn.name}: take the train`, x: stn.x, y: stn.y, id: stn.id };
     this.near = best;
   }
   gigs(): Near[] { return this.run ? [] : gigBoards(this); }
@@ -455,6 +477,12 @@ export class World {
       case 'sg': sgAct(this, n.id!); break;
       case 'gang': gangAct(this, n.id!); break;
       case 'fine': payTicket(this); break;
+      case 'station': {
+        const st = this.run?.cur; if (st?.t === 'train') { if (n.id === st.to) { this.say('You are already here.', 'bad'); break; } mrtTo(this, st.to); break; }
+        const why = cantRide(this); if (why) { this.say(why, 'bad'); break; }
+        this.ui = { kind: 'mrt', from: n.id! }; this.fx.push({ t: 'open' }); p.act = { n: 'tap-card', t: 0, dur: 0.5 }; p.face = 'up'; break;
+      }
+      case 'taxi': if (this.taxi?.st === 'ride') skipRide(this); else { this.ui = { kind: 'taxi' }; this.fx.push({ t: 'open' }); } break;
       case 'festival': if (n.id === 'stage') { p.act = { n: 'dance', t: 0, dur: 2.4 }; this.fx.push({ t: 'dance' }); } else { p.act = { n: 'lantern', t: 0, dur: 1.2, then: () => { this.fx.push({ t: 'sky-lantern', x: p.b.x, y: p.b.y }); p.act = { n: 'look-up', t: 0, dur: 1.6 }; } }; } p.face = 'down'; break;
       case 'eat': if (this.s.cash < 3) { this.say('You need 3 coins for noodles.', 'bad'); break; } this.s.cash -= 3; p.act = { n: 'eat', t: 0, dur: 2.6, then: () => this.say('Delicious! Chef Mo’s noodles hit the spot.', 'good') }; p.face = 'down'; this.fx.push({ t: 'eat' }); break;
     }
@@ -502,9 +530,11 @@ export class World {
     if (this.p.ride) this.p.act = null;
     this.cheer();
     for (const g of GEAR_GIFT[m.id] ?? []) if (giveGadget(this.s, g)) { this.fx.push({ t: 'gadget-gift', kind: g }); this.say(`New gadget: the ${GADGETS[g].name.toLowerCase()}! ${GADGETS[g].blurb}`, 'good'); }
-    if (this.open.size > before) { const d = [...this.open][this.open.size - 1]; this.fx.push({ t: 'district', name: DISTRICT_NAME[d] }); this.banner = { text: `${DISTRICT_NAME[d][0].toUpperCase()}${DISTRICT_NAME[d].slice(1)} opens!`, sub: 'The fog lifts', t: 4 }; }
+    if (this.open.size > before) { const d = [...this.open][this.open.size - 1]; this.fx.push({ t: 'district', name: DISTRICT_NAME[d] }); this.banner = this.open.size - before > 1 ? { text: 'The island opens!', sub: 'Toa Payoh and Marina Bay: take the Jade Line from Chinatown station', t: 4.5 } : { text: `${DISTRICT_NAME[d][0].toUpperCase()}${DISTRICT_NAME[d].slice(1)} opens!`, sub: 'The fog lifts', t: 4 }; }
     // the ending and credits play once, the first time Glint is beaten; a replay of the last job just ends
     if (m.id === 'm25' && !this.s.story.ending) this.fx.push({ t: 'finale' });
+    // the island's ending plays once, the first time Director Kaw is stopped
+    if (m.id === 'm35' && !this.s.story.isle) this.fx.push({ t: 'finale', kind: 'isle' });
   }
   /** the partner cheers (a job done, a catch) */
   cheer() { const m = this.mate; if (m.seat) m.cheerT = 1.2; else if (!m.act && !m.ride && !m.hide) m.act = { n: 'celebrate', t: 0, dur: 1.1 }; }

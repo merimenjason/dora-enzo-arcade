@@ -190,6 +190,17 @@ export class JadeSound {
         else if (r < 0.0095) { this.tone(87, t, 1.6, 'sawtooth', 0.025, a); this.tone(130, t, 1.6, 'sawtooth', 0.012, a); }
         else if (r < 0.016) { this.tone(1700, t, 0.07, 'triangle', 0.02, a); this.tone(2500, t, 0.05, 'triangle', 0.012, a); }
         break;
+      case 'heartland':
+        // a far-off bus, a kopitiam cup on a saucer, a mynah's whistle
+        if (r < 0.006) this.tone(70, t, 1.2, 'sawtooth', 0.018, a, 1.1);
+        else if (r < 0.016) this.hit(t, 0.25, 4200, 0.4, 0.04, a);
+        else if (r < 0.026) { this.tone(1500, t, 0.08, 'sine', 0.025, a, 1.3); this.tone(1900, t + 0.1, 0.07, 'sine', 0.02, a, 0.8); }
+        break;
+      case 'bay':
+        // water lapping and a soft concert hum across the bay
+        if (r < 0.02) this.tone(140 + Math.random() * 40, t, 0.6, 'sine', 0.014, a, 0.9);
+        else if (r < 0.026) this.tone(mtof(60 + [0, 4, 7, 12][Math.floor(Math.random() * 4)]), t, 1.4, 'triangle', 0.012, a);
+        break;
       case 'arcade':
         if (r < 0.025) this.tone(mtof(84 + Math.floor(Math.random() * 12)), t, 0.05, 'square', 0.012, a);
         break;
@@ -307,6 +318,12 @@ export class JadeSound {
       case 'hop': this.hop(); break;
       case 'honk': this.honk(); break;
       case 'car-honk': this.honk(); break;
+      // the island: the train's door chime and rumble, a whistle for a taxi, its doors and its meter
+      case 'mrt': { const t = this.t, o = this.out!; this.tone(mtof(76), t, 0.3, 'sine', 0.1, o); this.tone(mtof(72), t + 0.32, 0.4, 'sine', 0.1, o); this.burst(t + 0.2, 1.4, 260, 0.6, 0.12); break; }
+      case 'hail': { const t = this.t, o = this.out!; this.tone(1800, t, 0.12, 'sine', 0.08, o, 1.15); this.tone(2100, t + 0.15, 0.2, 'sine', 0.07, o, 0.9); break; }
+      case 'taxi-stop': case 'taxi-in': this.honk(); break;
+      case 'taxi-out': this.coins(); break;
+      case 'train-go': this.whoosh(); break;
       case 'enter': this.engine(f.kind); break;
       case 'start-engine': this.catchEngine(f.kind); break;
       case 'text': this.ping(); break;

@@ -19,8 +19,8 @@ import { learn } from '@/lib/jade-tutor';
 import { BizPage, CollectAll } from './biz';
 
 const dName = (d: District) => DISTRICT_NAME[d].replace(/^the /, 'The ');
-export const MARKET_NAME: Record<District, string> = { market: 'Smith Street Market', temple: 'Temple Street Bazaar', canal: 'Boat Quay Market', docks: 'Tanjong Pagar Market', arcade: 'Clarke Quay Neon Market' };
-export const KEEPER: Record<District, string> = { market: 'Uncle Kee', temple: 'Auntie Pang', canal: 'Kiri', docks: 'Big Bo', arcade: 'Gizmo' };
+export const MARKET_NAME: Record<District, string> = { market: 'Smith Street Market', temple: 'Temple Street Bazaar', canal: 'Boat Quay Market', docks: 'Tanjong Pagar Market', arcade: 'Clarke Quay Neon Market', heartland: 'Toa Payoh Provision Shop', bay: 'Promenade Kiosk' };
+export const KEEPER: Record<District, string> = { market: 'Uncle Kee', temple: 'Auntie Pang', canal: 'Kiri', docks: 'Big Bo', arcade: 'Gizmo', heartland: 'Mr Kamal', bay: 'Ms Vanda' };
 
 export function Panel({ title, onClose, children, cls = '', testid }: { title: string; onClose: () => void; children: React.ReactNode; cls?: string; testid?: string }) {
   return (

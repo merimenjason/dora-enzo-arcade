@@ -5,6 +5,8 @@
 import { useEffect, useState } from 'react';
 import { loadArt } from '@/lib/jade-scene';
 import { lesson } from '@/lib/jade-tutor';
+import { TaxiApp } from './isle';
+import { TAXI_APP } from '@/lib/jade-taxi';
 import { unread, readAll } from '@/lib/jade-phone';
 import { MISSIONS, SIDE, CHAPTERS, PEOPLE } from '@/lib/jade-story';
 import { FinesList, Glossary } from './sg';
@@ -46,7 +48,8 @@ export function Loader({ onReady }: { onReady: () => void }) {
 const KeyCap = ({ k }: { k: string }) => <span className="jade-cap"><Sprite name={k.length > 1 ? 'c-space' : 'c-key'} h={30} w={k.length > 1 ? 70 : 30} /><b>{k}</b></span>;
 export function Hint({ play, touch }: { play: Play; touch: boolean }) {
   const w = play.w; const l = lesson(w.tutor.cur);
-  if (!l || w.talk || w.ui || w.failed) return null;
+  // the lesson hint steps aside while a banner or an important toast is up (lib/jade-notice.ts)
+  if (!l || w.talk || w.ui || w.failed || play.notices.busy || w.banner) return null;
   return (
     <div className="jade-hint" data-testid="jade-hint" data-lesson={l.id}>
       <span className="jade-hint-keys">
@@ -75,8 +78,8 @@ export function PhoneView({ play, onClose }: { play: Play; onClose: () => void }
   const w = play.w;
   useEffect(() => { readAll(w); play.bump(); }, [w, play]);
   const msgs = w.s.msgs.slice().reverse();
-  const [tab, setTab] = useState<'msgs' | 'fines' | 'lingo'>('msgs');
-  const TABS: [typeof tab, string][] = [['msgs', 'Messages'], ['fines', `Fines (${w.s.fines.n})`], ['lingo', 'Kopi lingo']];
+  const [tab, setTab] = useState<'msgs' | 'fines' | 'lingo' | 'taxi'>('msgs');
+  const TABS: [typeof tab, string][] = [['msgs', 'Messages'], ['fines', `Fines (${w.s.fines.n})`], ['lingo', 'Kopi lingo'], ['taxi', TAXI_APP]];
   return (
     <div className="jade-modal-back" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="jade-panel phone" role="dialog" aria-label="Phone" data-testid="jade-phone-msgs">
@@ -88,6 +91,7 @@ export function PhoneView({ play, onClose }: { play: Play; onClose: () => void }
             <div key={m.id} className="jade-text-msg"><Sprite name={PEOPLE[m.from]?.face ?? 'face-kee'} h={40} w={40} /><p><b>{PEOPLE[m.from]?.name ?? m.from}</b> <small>night {m.night}</small><br />{m.text}</p></div>
           ))}
           {tab === 'fines' && <FinesList play={play} />}
+          {tab === 'taxi' && <TaxiApp play={play} onClose={onClose} />}
           {tab === 'lingo' && <><p className="small">Order like a local. Uncle Teo calls the drinks this way at his kopi counter.</p><Glossary /></>}
         </div>
       </div>

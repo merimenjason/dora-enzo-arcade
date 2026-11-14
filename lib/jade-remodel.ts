@@ -5,7 +5,7 @@
 // the harbour, lays curving painted footpaths through the park and plazas, and plans the festival dressing (arches,
 // giant lanterns, the stage and the sky-lantern poles) that appears once the story is won. Every change only opens
 // ground or swaps a picture, so every road and place stays reachable (tests/jade.mjs proves it).
-import { T, W, H, S, G, districtAt, type City, type District, type Prop } from './jade-city.js';
+import { T, W, H, OW, S, G, districtAt, type City, type District, type Prop } from './jade-city.js';
 
 export type Path = { pts: [number, number][]; w: number; tex: string };
 export type FestivalSpot = { x: number; y: number; kind: 'stage' | 'lantern' | 'arch' | 'giant'; sprite: string; rot?: number; w?: number };
@@ -49,7 +49,7 @@ export function remodel(c: City) {
     c.solid[at(Math.floor(x / T), Math.floor(y / T))] = solid === 'low' ? S.LOW : solid === 'tall' ? S.TALL : c.solid[at(Math.floor(x / T), Math.floor(y / T))];
     const p: Prop = { x, y, sprite, r, solid, layer, w }; c.props.push(p); return p;
   };
-  const PG: Record<District, number> = { market: G.PLAZA, temple: G.TEMPLE, canal: G.COBBLE, docks: G.DOCK, arcade: G.NEON };
+  const PG: Record<District, number> = { market: G.PLAZA, temple: G.TEMPLE, canal: G.COBBLE, docks: G.DOCK, arcade: G.NEON, heartland: G.HDB, bay: G.GRANITE };
   let k = 0;
   for (const d of PLAZAS) {
     const g = take(d); if (!g) continue;
@@ -73,7 +73,7 @@ export function remodel(c: City) {
     for (let r = 2; r < 6 && n < 2; r++) for (let dy = -r; dy <= r && n < 2; dy++) for (let dx = -r; dx <= r && n < 2; dx++) {
       if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
       const x = ptx + dx, y = pty + dy;
-      if (x < 2 || y < 2 || x > W - 3 || y > H - 3) continue;
+      if (x < 2 || y < 2 || x > OW - 3 || y > H - 3) continue;
       const ok = [-1, 0, 1].every(o => c.solid[at(x + o, y)] === S.OPEN && c.ground[at(x + o, y)] !== G.ROAD && c.ground[at(x + o, y)] !== G.BRIDGE)
         && c.solid[at(x, y - 1)] === S.OPEN && c.solid[at(x, y + 1)] === S.OPEN
         && !Object.values(c.places).some(q => Math.abs(q.x / T - 0.5 - x) < 2 && Math.abs(q.y / T - 0.5 - y) < 2)
@@ -92,7 +92,7 @@ export function remodel(c: City) {
   c.paths.push({ pts: [[23 * T, 8 * T], [26 * T, 5 * T], [29 * T, 6.2 * T], [33 * T, 6 * T], [38 * T, 8 * T], [41 * T, 9.6 * T]], w: 56, tex: 'path' });
   // the festival, shown once the story is won
   const f = c.festival;
-  for (const r of c.roads) if (r.axis === 'h') for (let s = r.from + 9; s <= r.to - 9; s += 18) if (s < 63 || s > 71) f.push({ x: s * T + T / 2, y: (r.at + 2) * T, kind: 'arch', sprite: 'fest-arch', rot: 0, w: 4.2 * T });
+  for (const r of c.roads) if (r.axis === 'h' && r.from < OW) for (let s = r.from + 9; s <= Math.min(r.to, OW - 1) - 9; s += 18) if (s < 63 || s > 71) f.push({ x: s * T + T / 2, y: (r.at + 2) * T, kind: 'arch', sprite: 'fest-arch', rot: 0, w: 4.2 * T });
   const mk = c.places['mk-market'];
   f.push({ x: mk.x, y: mk.y + 3.2 * T, kind: 'stage', sprite: 'fest-stage', w: 150 });
   for (const id of ['mk-market', 'mk-temple', 'mk-canal', 'mk-docks', 'mk-arcade', 'safe-market', 'kee', 'heron', 'kiri', 'gizmo']) {

@@ -1,0 +1,15 @@
+/* Jade Street: the island's panels (station gates, ride view, taxi list, taxi app) */
+.jade-mrt-line, .jade-taxi-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.jade-mrt-line .jade-btn, .jade-taxi-list .jade-btn { display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left; }
+.jade-mrt-line small, .jade-taxi-list small { margin-left: auto; opacity: .75; font-size: .8em; }
+.jade-taxi-list { max-height: 50vh; overflow-y: auto; }
+.jade-ride-view { position: absolute; inset: 0; z-index: 60; background: #0b0820; cursor: pointer; overflow: hidden; }
+.jade-ride-view img { width: 100%; height: 100%; object-fit: cover; animation: jade-ride-sway 1.1s ease-in-out infinite alternate; }
+.jade-ride-streaks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.jade-ride-sign { position: absolute; left: 50%; bottom: 6%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: calc(100% - 32px);
+  background: rgba(12, 40, 34, .88); border: 2px solid #4fe0b0; border-radius: 12px; padding: 8px 16px; color: #e8fff6; font-weight: 700; }
+.jade-ride-sign small { width: 100%; text-align: center; font-weight: 400; opacity: .7; }
+@keyframes jade-ride-sway { from { transform: scale(1.04) translate(-0.4%, 0); } to { transform: scale(1.04) translate(0.4%, 0.3%); } }
+.jade-taxi-app { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 0; }
+.jade-taxi-app > div { flex: 1; min-width: 160px; }
+@media (prefers-reduced-motion: reduce) { .jade-ride-view img { animation: none; } }

@@ -2,7 +2,7 @@
 // crossing, U-turn at a road's end, slow for anything ahead, and stop at the line when the traffic lights at the
 // twelve main crossings are against them (green, amber, then red, the two roads taking turns). They are spawned in a
 // ring around the player and dropped far away, so only a couple of dozen exist at once. Townsfolk: lib/jade-folk.ts.
-import { T, ROADS, districtAt } from './jade-city.js';
+import { T, ROADS, XWAYS, OW, districtAt } from './jade-city.js';
 import { shove } from './jade-move.js';
 import { dist } from './jade-rng.js';
 import type { World } from './jade-game.js';
@@ -21,6 +21,15 @@ ROADS.forEach((r, i) => { if (r.axis !== 'h' || ![30, 46, 62].includes(r.at)) re
   if (r2.axis !== 'v' || ![26, 42, 60, 90].includes(r2.at) || r2.from > r.at || r2.to < r.at + 3) return;
   LIGHT_AT.set(`${i}:${j}`, LIGHTS.length); LIGHTS.push({ h: i, v: j, tx: r2.at, ty: r.at, off: (r2.at * 7 + r.at * 3) % 15 });
 }); });
+// the island's avenue crossings (Toa Payoh and the bay front), after Chinatown's so its lights keep their numbers
+ROADS.forEach((r, i) => { if (r.axis !== 'h' || XWAYS.includes(i)) return; ROADS.forEach((r2, j) => {
+  if (r2.axis !== 'v' || r2.at < OW || XWAYS.includes(j) || r2.from > r.at || r2.to < r.at + 3 || r.to < r2.at + 3) return;
+  LIGHT_AT.set(`${i}:${j}`, LIGHTS.length); LIGHTS.push({ h: i, v: j, tx: r2.at, ty: r.at, off: (r2.at * 7 + r.at * 3) % 15 });
+}); });
+/** cars on an expressway cruise faster */
+const XW = new Set(XWAYS);
+/** how far a road passes from (x, y), in world units */
+const roadDist = (r: typeof ROADS[number], x: number, y: number) => { const a = (r.at + 2) * T, lo = r.from * T, hi = (r.to + 1) * T; return r.axis === 'h' ? Math.hypot(Math.max(0, lo - x, x - hi), y - a) : Math.hypot(Math.max(0, lo - y, y - hi), x - a); };
 export const CYCLE = 15;
 export type LightColour = 'green' | 'amber' | 'red';
 /** what the light at crossing `li` shows to traffic on the horizontal ('h') or vertical ('v') road */
@@ -45,12 +54,15 @@ export function trafficStep(w: World, dt: number) {
   const px = w.p.x, py = w.p.y;
   // spawn in a ring off screen
   if (w.cars.length < MAX_CARS && w.tick % 9 === 0) {
-    const ri = Math.floor(w.R() * ROADS.length), r = ROADS[ri];
+    // a road that passes near you (the island has many more roads than you can see)
+    const near = ROADS.map((_, i) => i).filter(i => roadDist(ROADS[i], px, py) < 1500);
+    const ri = near.length ? near[Math.floor(w.R() * near.length)] : Math.floor(w.R() * ROADS.length), r = ROADS[ri];
     const d: 1 | -1 = w.R() < 0.5 ? 1 : -1;
     const lo = (r.from + 1) * T, hi = (r.to) * T;
     const s = lo + w.R() * (hi - lo);
     const c: Car = { id: w.nextId++, sprite: CAR_SPRITES[Math.floor(w.R() * CAR_SPRITES.length)], r: ri, d, s, x: 0, y: 0, h: 0, speed: 0, cruise: 120 + w.R() * 60, plan: null, planned: -1, stopT: 0, wob: 0, rad: 21, len: 70, go: -1 };
     if (c.sprite === 'car-bus') { c.len = 96; c.cruise = 105; } if (c.sprite === 'car-moto') { c.len = 44; c.rad = 14; c.cruise = 170; }
+    if (XW.has(ri)) c.cruise = 250 + (c.cruise - 105) * 0.8;
     carXY(c);
     const dd = dist(c.x, c.y, px, py);
     const tx = Math.floor(c.x / T), ty = Math.floor(c.y / T);
@@ -102,7 +114,8 @@ export function trafficStep(w: World, dt: number) {
     }
     if (c.plan && (c.d > 0 ? s0 < c.plan.at && c.s >= c.plan.at : s0 > c.plan.at && c.s <= c.plan.at)) {
       const old = r.axis === 'h' ? c.y : c.x;
-      c.r = c.plan.r; c.d = c.plan.d; c.s = old; c.plan = null; c.planned = -1;
+      const wasX = XW.has(c.r); c.r = c.plan.r; c.d = c.plan.d; c.s = old; c.plan = null; c.planned = -1;
+      if (XW.has(c.r) !== wasX) c.cruise += wasX ? -130 : 130;
     }
     // road's end: U-turn
     const rr = ROADS[c.r];

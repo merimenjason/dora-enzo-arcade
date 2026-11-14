@@ -1,29 +1,40 @@
-// Jade Street: the city. A 120×92 tile harbour quarter (64 world units a tile) built once, deterministically, from a
-// hand-laid plan: five districts, a grid of two-lane streets (traffic keeps left), back alleys, a canal with bridges,
+// Jade Street: the city. A 212×92 tile island (64 world units a tile) built once, deterministically. Chinatown, the
+// home turf, is the 120×92 west of it, built from a hand-laid plan exactly as before (lib/jade-island.ts adds the
+// Toa Payoh heartlands, the Marina Bay front, the expressways and the MRT line east of it afterwards). Chinatown's plan: five districts, a grid of two-lane streets (traffic keeps left), back alleys, a canal with bridges,
 // the temple park, the docks and piers, flat-roof terraces you can run across, and every named place the story uses.
 // Ground (what is painted), solid (what blocks you) and flags (alley, stairs, roof, bridge) are separate layers.
 // Pure data and queries: no drawing here (lib/jade-scene.ts paints it).
 import { rng } from './jade-rng.js';
 import { remodel, type Path, type FestivalSpot } from './jade-remodel.js';
 import { sgCity, type SgCity } from './jade-sgcity.js';
+import { island, type Isle } from './jade-island.js';
 
 export const T = 64;
-export const W = 120, H = 92;
+export const W = 212, H = 92;
+/** Chinatown's width: the original quarter, built first and never moved */
+export const OW = 120;
 export const WORLD_W = W * T, WORLD_H = H * T;
 
-export const G = { SEA: 0, CANAL: 1, ROAD: 2, WALK: 3, PLAZA: 4, GRASS: 5, DOCK: 6, PLANK: 7, TEMPLE: 8, NEON: 9, PATH: 10, COBBLE: 11, BRIDGE: 12, STAIRS: 13, BLD: 14 } as const;
+export const G = { SEA: 0, CANAL: 1, ROAD: 2, WALK: 3, PLAZA: 4, GRASS: 5, DOCK: 6, PLANK: 7, TEMPLE: 8, NEON: 9, PATH: 10, COBBLE: 11, BRIDGE: 12, STAIRS: 13, BLD: 14,
+  /** the island: expressway asphalt, heartland concrete, the playground mat, the bay promenade, the boardwalk and the bay */
+  XWAY: 15, HDB: 16, RUBBER: 17, GRANITE: 18, DECK: 19, BAY: 20 } as const;
 export type G = (typeof G)[keyof typeof G];
-export const GROUND_NAMES = ['sea', 'canal', 'road', 'walk', 'plaza', 'grass', 'dock', 'plank', 'temple', 'neon', 'path', 'cobble', 'bridge', 'stairs', 'bld'] as const;
+export const GROUND_NAMES = ['sea', 'canal', 'road', 'walk', 'plaza', 'grass', 'dock', 'plank', 'temple', 'neon', 'path', 'cobble', 'bridge', 'stairs', 'bld', 'xway', 'hdb', 'rubber', 'granite', 'deck', 'bay'] as const;
 /** solid: 0 open, 1 building, 2 water, 3 tall prop (stall, container), 4 low prop (hop over on foot) */
 export const S = { OPEN: 0, BUILDING: 1, WATER: 2, TALL: 3, LOW: 4 } as const;
 export type S = (typeof S)[keyof typeof S];
 /** flags */
 export const F_ALLEY = 1, F_STAIRS = 2, F_ROOF = 4, F_BRIDGE = 8, F_PARK = 16;
 
-export type District = 'market' | 'temple' | 'canal' | 'docks' | 'arcade';
-export const DISTRICTS: District[] = ['market', 'temple', 'canal', 'docks', 'arcade'];
-export const DISTRICT_NAME: Record<District, string> = { market: 'Smith Street', temple: 'Temple Street', canal: 'Boat Quay', docks: 'the Tanjong Pagar Docks', arcade: 'Clarke Quay' };
+export type District = 'market' | 'temple' | 'canal' | 'docks' | 'arcade' | 'heartland' | 'bay';
+/** Chinatown's five districts (the first plan), then the island's two */
+export const CT_DISTRICTS: District[] = ['market', 'temple', 'canal', 'docks', 'arcade'];
+export const DISTRICTS: District[] = [...CT_DISTRICTS, 'heartland', 'bay'];
+export const DISTRICT_NAME: Record<District, string> = { market: 'Smith Street', temple: 'Temple Street', canal: 'Boat Quay', docks: 'the Tanjong Pagar Docks', arcade: 'Clarke Quay', heartland: 'Toa Payoh', bay: 'Marina Bay' };
+/** the row where the heartlands end and the bay front begins (the Pan Island Expressway runs along it) */
+export const ISLE_SPLIT = 38;
 export function districtAt(tx: number, ty: number): District {
+  if (tx >= OW) return ty < ISLE_SPLIT ? 'heartland' : 'bay';
   if (tx < 46) return ty < 30 ? 'temple' : 'market';
   if (ty >= 62) return 'docks';
   return tx < 75 ? 'canal' : 'arcade';
@@ -42,45 +53,80 @@ export type City = {
   paths: Path[]; tables: Prop[]; festival: FestivalSpot[];
   /** the Singapore pass (lib/jade-sgcity.ts) */
   sg?: SgCity;
+  /** the island (lib/jade-island.ts): expressways, the MRT line and its stations, taxi stands, gang hideouts */
+  isle?: Isle;
 };
 
-// the street plan: horizontal and vertical roads, 4 tiles wide (kerb, lane, lane, kerb)
-export const ROADS: Road[] = [
+// the street plan: horizontal and vertical roads, 4 tiles wide (kerb, lane, lane, kerb). Chinatown's twelve come first
+// (CT_ROADS keeps their first extents: Chinatown is built from those); four of its east-west roads now run on over the
+// Central Expressway into the island, and the island adds its expressways and avenues
+export const CT_ROADS: Road[] = [
   { axis: 'h', at: 12, from: 0, to: 119 }, { axis: 'h', at: 30, from: 0, to: 119 }, { axis: 'h', at: 46, from: 0, to: 119 }, { axis: 'h', at: 62, from: 0, to: 119 },
   { axis: 'h', at: 22, from: 75, to: 119 },
   { axis: 'v', at: 10, from: 12, to: 81 }, { axis: 'v', at: 26, from: 12, to: 65 }, { axis: 'v', at: 42, from: 0, to: 81 }, { axis: 'v', at: 60, from: 0, to: 81 },
   { axis: 'v', at: 71, from: 0, to: 81 }, { axis: 'v', at: 90, from: 0, to: 81 }, { axis: 'v', at: 106, from: 12, to: 65 },
 ];
+/** the island's east edge for roads (the east coast is beyond) */
+export const ISLE_X1 = 207;
+export const ROADS: Road[] = [
+  ...CT_ROADS.map((r, i) => i === 0 || i === 2 || i === 3 || i === 4 ? { ...r, to: ISLE_X1 } : i === 1 ? { ...r, to: 125 } : { ...r }),
+  // 12-14: the Central Expressway (north to south), the Pan Island Expressway and the East Coast Parkway (over the bay mouth)
+  { axis: 'v', at: 122, from: 0, to: 81 }, { axis: 'h', at: 36, from: 122, to: ISLE_X1 }, { axis: 'h', at: 78, from: 122, to: ISLE_X1 },
+  // 15-17: the island's avenues, Toa Payoh above the Pan Island Expressway and the bay front below it
+  { axis: 'v', at: 140, from: 12, to: 65 }, { axis: 'v', at: 166, from: 0, to: 65 }, { axis: 'v', at: 196, from: 12, to: 65 },
+];
+const ALL_ROADS = ROADS;
+/** expressways: faster lanes, no townsfolk, no lights, gantries */
+export const XWAYS = [12, 13, 14];
 /** real public street names of Singapore's Chinatown and the river, one per road above (no brands) */
 export const STREET_NAME = ['Pagoda Street', 'Trengganu Street', 'Smith Street', 'Keong Saik Road', 'River Valley Road',
-  'Neil Road', 'Temple Street', 'South Bridge Road', 'New Bridge Road', 'Boat Quay', 'Merchant Road', 'Hill Street'];
+  'Neil Road', 'Temple Street', 'South Bridge Road', 'New Bridge Road', 'Boat Quay', 'Merchant Road', 'Hill Street',
+  'Central Expressway', 'Pan Island Expressway', 'East Coast Parkway', 'Shenton Way', 'Marina Way', 'Bayfront Avenue'];
+/** past Chinatown a road takes the island's name for it: [road, from tile x or y, name] (real public road names) */
+const ISLE_STREET: [number, number, string][] = [[0, 126, 'Lorong 1 Toa Payoh'], [4, 126, 'Toa Payoh Central'], [2, 126, 'Raffles Quay'], [3, 126, 'Marina Boulevard'],
+  [0, 120, 'Central Expressway slip road'], [1, 120, 'Central Expressway slip road'], [2, 120, 'Central Expressway slip road'], [3, 120, 'Central Expressway slip road'], [4, 120, 'Central Expressway slip road']];
+const ISLE_NORTH: Record<number, string> = { 15: 'Lorong 4 Toa Payoh', 16: 'Toa Payoh East', 17: 'Lorong 8 Toa Payoh' };
 /** the street a tile is on (null off the roads) */
 export function streetAt(tx: number, ty: number): string | null {
   for (let i = 0; i < ROADS.length; i++) {
     const r = ROADS[i];
-    if (r.axis === 'h' ? ty >= r.at && ty < r.at + 4 && tx >= r.from && tx <= r.to : tx >= r.at && tx < r.at + 4 && ty >= r.from && ty <= r.to) return STREET_NAME[i];
+    if (r.axis === 'h' ? ty >= r.at && ty < r.at + 4 && tx >= r.from && tx <= r.to : tx >= r.at && tx < r.at + 4 && ty >= r.from && ty <= r.to) {
+      if (i < 12 && tx >= OW) { let n = STREET_NAME[i]; for (const [k, from, name] of ISLE_STREET) if (k === i && tx >= from) { n = name; break; } return n; }
+      if (ISLE_NORTH[i] && ty < ISLE_SPLIT) return ISLE_NORTH[i];
+      return STREET_NAME[i];
+    }
   }
   return null;
+}
+/** is tile (tx,ty) on an expressway (lanes or verge) */
+export function xwayAt(tx: number, ty: number): boolean {
+  for (const i of XWAYS) { const r = ROADS[i]; if (r.axis === 'h' ? ty >= r.at && ty < r.at + 4 && tx >= r.from && tx <= r.to : tx >= r.at && tx < r.at + 4 && ty >= r.from && ty <= r.to) return true; }
+  return false;
 }
 const CANAL_X0 = 66, CANAL_X1 = 68, SEA_Y = 82;
 
 let CACHE: City | null = null;
-export function city(): City { if (!CACHE) { CACHE = build(); remodel(CACHE); dressBuildings(CACHE); sgCity(CACHE); } return CACHE; }
+export function city(): City { if (!CACHE) { CACHE = build(); remodel(CACHE); dressBuildings(CACHE); sgCity(CACHE); island(CACHE); } return CACHE; }
 
-const SIDEWALK: Record<District, G> = { market: G.WALK, temple: G.TEMPLE, canal: G.COBBLE, docks: G.DOCK, arcade: G.NEON };
+const SIDEWALK: Record<District, G> = { market: G.WALK, temple: G.TEMPLE, canal: G.COBBLE, docks: G.DOCK, arcade: G.NEON, heartland: G.HDB, bay: G.GRANITE };
 const FRONTS: Record<District, string[]> = {
   market: ['shop-1', 'shop-2', 'shop-3', 'shop-4', 'shop-5', 'shop-6', 'shop-7', 'shop-8', 'shop-9', 'shop-10', 'shop-11', 'shop-12'],
   temple: ['bld-hill', 'bld-pavilion', 'bld-incense', 'bld-callig', 'shop-2', 'shop-5', 'shop-9'],
   canal: ['bld-canal', 'bld-tea', 'bld-boathouse', 'bld-flowers', 'bld-wheel', 'shop-3', 'shop-7'],
   docks: ['bld-office', 'bld-fish', 'bld-rope', 'bld-chandler', 'shop-4'],
   arcade: ['bld-noodle', 'bld-karaoke', 'bld-hotel', 'bld-robot', 'bld-boba', 'shop-10', 'shop-12'],
+  heartland: ['shop-sg1', 'shop-sg2'], bay: ['shop-sg1', 'shop-sg2'],
 };
 const ROOFS: Record<District, string[]> = {
   market: ['roof-1', 'roof-2', 'roof-3', 'roof-4', 'roof-7', 'roof-8', 'roof-10', 'roof-11'], temple: ['roof-5', 'roof-6', 'roof-1', 'roof-9', 'roof-11'],
   canal: ['roof-2', 'roof-3', 'roof-6', 'roof-7', 'roof-9'], docks: ['roof-4', 'roof-3', 'roof-8', 'roof-10'], arcade: ['roof-4', 'roof-1', 'roof-5', 'roof-12', 'roof-8'],
+  heartland: ['roof-4'], bay: ['roof-4'],
 };
 
 function build(): City {
+  // Chinatown is built in its own frame (the first 120 columns) with its first road plan and its first random draws, so
+  // nothing in it moves; the island east of it is left to lib/jade-island.ts
+  const ROADS = CT_ROADS, DISTRICTS = CT_DISTRICTS;
   const N = W * H;
   const ground = new Uint8Array(N).fill(G.BLD), solid = new Uint8Array(N).fill(S.BUILDING), flags = new Uint8Array(N);
   const reserved = new Uint8Array(N); // cells taken by plans before the block filler runs
@@ -89,7 +135,8 @@ function build(): City {
   const ladders: City['ladders'] = [], hides: City['hides'] = [], parking: City['parking'] = [];
   const R = rng(20261114);
   const at = (x: number, y: number) => y * W + x;
-  const inb = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H;
+  const inb = (x: number, y: number) => x >= 0 && y >= 0 && x < OW && y < H;
+  for (let y = 0; y < H; y++) for (let x = OW; x < W; x++) reserved[at(x, y)] = 1;
   const set = (x: number, y: number, g: G, s: S = S.OPEN, f = 0) => { if (!inb(x, y)) return; const i = at(x, y); ground[i] = g; solid[i] = s; flags[i] = f; reserved[i] = 1; };
   const rect = (x0: number, y0: number, w: number, h: number, g: G, s: S = S.OPEN, f = 0) => { for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) set(x, y, g, s, f); };
   const prop = (x: number, y: number, sprite: string, r: number, solidKind: Prop['solid'], layer: Prop['layer'] = 'ground', extra: Partial<Prop> = {}) => (solidKind === 'low' && (solid[at(x, y)] = S.LOW), props.push({ x: x * T + T / 2, y: y * T + T / 2, sprite, r, solid: solidKind, layer, ...extra }));
@@ -100,7 +147,7 @@ function build(): City {
   const place = (name: string, x: number, y: number, kind: string, label?: string) => { places[name] = { x: x * T + T / 2, y: y * T + T / 2, d: districtAt(x, y), kind, name: label }; };
 
   // ── water: the harbour along the south and the canal running down to it
-  rect(0, SEA_Y, W, H - SEA_Y, G.SEA, S.WATER);
+  rect(0, SEA_Y, OW, H - SEA_Y, G.SEA, S.WATER);
   rect(CANAL_X0, 0, CANAL_X1 - CANAL_X0 + 1, SEA_Y, G.CANAL, S.WATER);
   rect(64, 0, 2, SEA_Y, G.COBBLE); rect(69, 0, 2, SEA_Y, G.COBBLE); // canal promenades
 
@@ -182,7 +229,7 @@ function build(): City {
   ladders.push({ x: 8, y: 81, rx: 6, ry: 80 }, { x: 8, y: 66, rx: 6, ry: 66 });
 
   // Docks: the apron, warehouses, container stacks, cranes, piers; the warehouse yard for the stealth job
-  for (let y = 66; y < SEA_Y; y++) for (let x = 46; x < W; x++) if (!reserved[at(x, y)]) set(x, y, G.DOCK);
+  for (let y = 66; y < SEA_Y; y++) for (let x = 46; x < OW; x++) if (!reserved[at(x, y)]) set(x, y, G.DOCK);
   bld(48, 68, 6, 6, 'lm-warehouse'); bld(78, 68, 6, 6, 'lm-warehouse'); bld(48, 76, 3, 3, 'bld-office'); place('bo', 50, 79, 'contact', 'Big Bo');
   bld(54, 76, 3, 3, 'lm-safe'); place('safe-docks', 55, 79, 'safe', 'Tide Shed safe house');
   rect(84, 76, 6, 5, G.DOCK); for (const [x, y, s] of [[84, 77, 'stall-fruit'], [87, 77, 'stall-tea']] as const) stall(x, y, s);
@@ -250,7 +297,7 @@ function build(): City {
     if (r2.to >= r.at + 5) decals.push({ x: (r2.at + 2) * T, y: (r.at + 4.5) * T, sprite: 'd-zebra', r: 0, solid: 'none', layer: 'ground', w: 2 * T, rot: 0 });
   }
   for (let i = 0; i < 260; i++) {
-    const x = Math.floor(R() * W), y = Math.floor(R() * H);
+    const x = Math.floor(R() * OW), y = Math.floor(R() * H);
     const g = ground[at(x, y)];
     if (solid[at(x, y)] !== S.OPEN) continue;
     if (g === G.ROAD && R() < 0.5) decals.push({ x: x * T + T / 2, y: y * T + T / 2, sprite: R() < 0.5 ? 'd-manhole' : 'd-puddle-' + (R() < 0.5 ? 'red' : 'gold'), r: 0, solid: 'none', layer: 'ground', w: T * 0.8 });
@@ -267,7 +314,7 @@ function build(): City {
   const murals: City['murals'] = [];
   const cats: City['cats'] = [];
   const quiet: [number, number][] = [];
-  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < OW - 1; x++) {
     const i = at(x, y);
     if (solid[i] !== S.OPEN || ground[i] === G.ROAD || flags[i] & F_BRIDGE) continue;
     if (solid[at(x, y - 1)] === S.BUILDING && !(flags[at(x, y - 1)] & F_ROOF)) quiet.push([x, y]);
@@ -298,7 +345,7 @@ function build(): City {
   for (const [x, y] of odd) cats.push({ x: x * T + T / 2, y: y * T + T / 2 });
   for (let d = 2; cats.length < 50 && d > 0; d--) for (const [x, y] of pick(50 - cats.length, d, (x, y) => solid[at(x, y)] === S.OPEN)) cats.push({ x: x * T + T / 2, y: y * T + T / 2 });
 
-  return { ground, solid, flags, buildings, props, roads: ROADS, decals, places, cats: cats.slice(0, 50), murals, ladders, hides, parking, paths: [], tables: [], festival: [] };
+  return { ground, solid, flags, buildings, props, roads: ALL_ROADS, decals, places, cats: cats.slice(0, 50), murals, ladders, hides, parking, paths: [], tables: [], festival: [] };
 
   function stall(x: number, y: number, s: string) {
     for (let k = 0; k < 2; k++) { const i = at(x + k, y); solid[i] = S.TALL; reserved[i] = 1; }

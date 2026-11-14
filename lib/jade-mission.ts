@@ -1,5 +1,6 @@
 // Jade Street: the job runner. Walks a story mission or side gig through its steps (talk, go, ride, pick up, deliver,
-// mini-game, chase, tail, escort, race, stealth, collect, heat, trade, fares), spawning the actors each step needs
+// mini-game, chase, tail, escort, race, stealth, collect, heat, trade, fares, the island's train ride and the race
+// against the train), spawning the actors each step needs
 // (the crow cart, Pip on foot, the lion dance, lookouts, rivals, fares), and keeping a checkpoint so a failure
 // restarts from the last one: you never lose more than a step or two. Assist widens timers, slows targets, eases
 // lookouts and lets bumps land from a little further away. Every job has a readable way to fail with its own meter or
@@ -24,13 +25,14 @@ import { seat, newAI, type MateMode } from './jade-duo.js';
 import type { GadgetId } from './jade-gear.js';
 import type { Hero } from './jade-save.js';
 import type { Player } from './jade-game.js';
+import { lineAt, stationNear } from './jade-mrt.js';
 
 export type Gig = { key: string; reward: number; d: District };
 export type Actor = { id: number; kind: string; b: Body; route: [number, number][]; wp: number; speed: number; t: number; stun: number; look: number; lookCd: number; face: number; gone: boolean; hits: number; extra?: number;
   /** painted blind (seconds), staring at a distraction (seconds, and at what), tangled in a net, the last single pounce */
   extra2?: number; stare?: number; stareX?: number; stareY?: number; stareAt?: string; netT?: number; pz?: { by: 'you' | 'mate'; t: number };
   /** a rival gang's look for a chase (an otter's sampan, a macaque) */
-  skin?: 'otter' | 'mac' };
+  skin?: 'otter' | 'mac' | 'liz' | 'kaw' };
 export type Meter = { name: string; v: number; bad?: boolean };
 type Snap = { i: number; x: number; y: number; h?: number; roof: boolean; ride: VehicleKind | null; carry: string | null; phase?: number;
   /** who you were playing and where the partner was (and what they had been told to do) */
@@ -162,8 +164,8 @@ export class Run {
       case 'escort': {
         const [x, y] = this.spot(st.from);
         const [sx, sy] = nearestFree(w.c, 'foot', x, y, w.open, 6);
-        this.actors.push(this.actor('lion', sx, sy, 'foot', this.path(st.route, 'foot'), 52));
-        this.envelopes = 5; this.meter = { name: 'Red envelopes', v: 1 }; this.meter2 = { name: 'Troupe waiting', v: 0 }; this.spawnT = 3;
+        this.actors.push(this.actor('lion', sx, sy, 'foot', this.path(st.route, 'foot'), 52)); if (st.skin) this.actors[0].skin = st.skin;
+        this.envelopes = 5; const pups = st.skin === 'otter'; this.meter = { name: pups ? 'Pups’ snacks' : 'Red envelopes', v: 1 }; this.meter2 = { name: pups ? 'Pups waiting' : 'Troupe waiting', v: 0 }; this.spawnT = 3;
         if (st.flanks) postMate(this, 'guard', [sx, sy]);
         break;
       }
@@ -195,6 +197,18 @@ export class Run {
       }
       case 'trade': this.base = w.s.stats.profit; this.meter = { name: 'Profit', v: 0 }; if (st.time) this.timer = st.time * k; if (this.m.tip) this.addTip(); break;
       case 'fares': this.count = 0; this.newFare(); break;
+      case 'train': w.lastMrt = ''; break;
+      case 'beat': {
+        // the train leaves `from` now and runs the line to `to`; its time is the road trip at a fair scooter pace,
+        // longer on Assist, plus the doors closing
+        const isle = w.c.isle!, a0 = isle.stations.find(x => x.id === st.from)!, a1 = isle.stations.find(x => x.id === st.to)!;
+        const [gx, gy] = this.spot(st.to); const f = w.fieldTo('small', gx, gy);
+        const tiles = Math.max(10, f.dist[Math.floor(w.p.y / T) * W + Math.floor(w.p.x / T)] ?? 60);
+        const time = (tiles * T / (this.assist ? 205 : 245) + 6) / (this.w.diff.chase || 1) / this.mercy();
+        const a = this.actor('train', a0.x, a0.y, 'fly', [], Math.abs(a1.s - a0.s) / time); a.extra = a0.s; a.extra2 = a1.s; a.stun = 4;
+        this.actors.push(a); this.meter = { name: 'Train', v: 0 }; w.fx.push({ t: 'train-go' });
+        break;
+      }
     }
   }
   /** a route's points, each moved to the nearest tile the mover can stand on */
@@ -315,6 +329,19 @@ export class Run {
       case 'heat': if (w.heat < 1) this.next(); break;
       case 'trade': { const made = w.s.stats.profit - this.base; this.meter = { name: `Profit ${Math.floor(made)}/${st.profit}`, v: clamp(made / st.profit, 0, 1) }; if (made >= st.profit) this.next(); break; }
       case 'fares': this.fares(st, dt); break;
+      case 'train': if (w.lastMrt === st.to) this.next(); break;
+      case 'beat': {
+        const a = this.actors[0]; if (!a) break;
+        if (a.stun > 0) { a.stun -= dt; if (a.stun <= 0) this.warn('Doors closing! The train is off!'); }
+        else { const dir = Math.sign(a.extra2! - a.extra!); a.extra = dir > 0 ? Math.min(a.extra2!, a.extra! + a.speed * dt) : Math.max(a.extra2!, a.extra! - a.speed * dt); }
+        const [x, y, h] = lineAt(w.c.isle!, a.extra!); a.b.x = x; a.b.y = y; a.b.h = h; a.t += dt; a.b.speed = a.stun > 0 ? 0 : a.speed;
+        const [gx, gy] = this.spot(st.to);
+        this.meter = { name: 'Train', v: clamp(1 - Math.abs(a.extra2! - a.extra!) / Math.max(1, Math.abs(a.extra2! - (w.c.isle!.stations.find(z => z.id === st.from)?.s ?? 0))), 0, 1), bad: true };
+        if (dist(px, py, gx, gy) < 120 && !p.roof) { w.fx.push({ t: 'win' }); a.gone = true; this.next(); return; }
+        if (a.extra === a.extra2) return this.fail('The train got there first! Cut through the junctions and keep your boost for the straights.');
+        if (this.meter.v > 0.75 && this.warned < 1) { this.warned = 1; this.warn('The train is nearly at Toa Payoh!'); }
+        break;
+      }
     }
   }
   fail(why: string) { this.w.fail(why); }
@@ -370,6 +397,16 @@ export class Run {
       a.pz = undefined; w.fx.push({ t: 'double-pounce', x: a.b.x, y: a.b.y });
     }
     const last = a.hits >= st.bumps - 1;
+    // a runner on foot with a net finish: no net (or no ammo)? Pouncing on it together works too
+    if (last && st.finish === 'net' && st.who === 'runner' && (how === 'you' || how === 'mate')) {
+      const other = how === 'you' ? 'mate' : 'you';
+      if (!(a.pz && a.pz.by === other && w.time - a.pz.t < pounceWindow(w))) {
+        a.pz = { by: how, t: w.time };
+        if (how === 'you' && this.assist && w.mate.ai.mode !== 'pounce' && !w.mate.seat && !w.two && dist(w.mate.x, w.mate.y, a.b.x, a.b.y) < 360) pounce(w, a.id);
+        return trip(`Net it (click), or pounce together: F sends ${n} in too.`);
+      }
+      a.pz = undefined; w.fx.push({ t: 'double-pounce', x: a.b.x, y: a.b.y }); how = 'net';
+    }
     if (last && st.finish === 'snatch' && how !== 'grab') return trip(`Get alongside and press F: ${n} grabs it off the cart!`);
     if (last && st.finish === 'net' && how !== 'net' && how !== 'grab') return trip(`Tangle the cart in the net, or get alongside so ${n} can grab it (F)!`);
     a.hits++; a.stun = 0.9; this.hits = a.hits; a.b.speed *= 0.4;
@@ -461,9 +498,9 @@ export class Run {
     // the troupe waits for you, but not for ever
     const tm = this.meter2!; const gone = dist(lion.b.x, lion.b.y, pb.x, pb.y) > 520;
     tm.v = clamp(tm.v + (gone ? dt / (this.assist ? 14 : 6.5) : -dt * 0.2), 0, 1); tm.bad = tm.v > 0.5;
-    if (tm.v > 0.5 && this.warned < 1) { this.warned = 1; this.warn('The lion-dance troupe is waiting for you! Get back to them!'); }
+    if (tm.v > 0.5 && this.warned < 1) { this.warned = 1; this.warn(this.actors[0]?.skin === 'otter' ? 'The otter pups are waiting for you! Get back to them!' : 'The lion-dance troupe is waiting for you! Get back to them!'); }
     if (tm.v < 0.2) this.warned = 0;
-    if (tm.v >= 1) return this.fail('You left the lion-dance troupe behind! Stay close to the lion.');
+    if (tm.v >= 1) return this.fail(this.actors[0]?.skin === 'otter' ? 'You left the otter pups behind! Stay close to them.' : 'You left the lion-dance troupe behind! Stay close to the lion.');
     if (lion.wp === lion.route.length - 1 && dist(lion.b.x, lion.b.y, lion.route[lion.wp][0], lion.route[lion.wp][1]) < 30 && this.actors.filter(a => a.kind === 'swoop' && !a.gone).length === 0) { releaseMate(this); this.next(); return; }
     this.spawnT -= dt;
     if (this.spawned < st.crows && this.spawnT <= 0) {
@@ -486,7 +523,7 @@ export class Run {
       const reach = 30 + pb.r + (this.assist ? 18 : 6);
       const hitting = w.p.ride ? pb.speed > 60 : (w.p.dashT > 0 || w.p.hopT > 0 || w.p.b.speed > 150);
       if (dist(m.b.x, m.b.y, pb.x, pb.y) < reach && hitting) { m.stun = 1.2; m.b.h += Math.PI; w.fx.push({ t: 'shoo', x: m.b.x, y: m.b.y }); continue; }
-      if (l < 34) { this.envelopes--; m.stun = 1.2; m.b.h += Math.PI; w.fx.push({ t: 'snatch', x: m.b.x, y: m.b.y }); this.meter = { name: 'Red envelopes', v: this.envelopes / 5, bad: this.envelopes <= 2 }; if (this.envelopes <= 0) return this.fail('The crows took every red envelope!'); }
+      if (l < 34) { this.envelopes--; m.stun = 1.2; m.b.h += Math.PI; w.fx.push({ t: 'snatch', x: m.b.x, y: m.b.y }); const pups = this.actors[0]?.skin === 'otter'; this.meter = { name: pups ? 'Pups’ snacks' : 'Red envelopes', v: this.envelopes / 5, bad: this.envelopes <= 2 }; if (this.envelopes <= 0) return this.fail(pups ? 'The crows scared off the pups and took every snack!' : 'The crows took every red envelope!'); }
     }
     this.actors = this.actors.filter(a => !a.gone);
     this.progress = `Crows ${this.spawned}/${st.crows}`;
@@ -540,7 +577,7 @@ export class Run {
     const pl = this.w.c.places['bo']; this.fare = { x: pl.x, y: pl.y + T, to: null, sp: 'dog' };
   }
   fareOk(tx: number, ty: number) {
-    const w = this.w; if (tx < 1 || ty < 1 || tx > 118 || ty > 90) return false;
+    const w = this.w; if (tx < 1 || ty < 1 || tx > W - 3 || ty > 90) return false;
     const i = ty * W + tx;
     if (w.c.solid[i] !== S.OPEN || !w.open.has(districtAt(tx, ty)) || w.c.ground[i] === 2) return false;
     // next to a road a big ride can reach
@@ -572,9 +609,13 @@ export class Run {
   }
 
   // ── hooks from the world
+  bumpT = -9;
   onBump(k: number, what: string) {
     const st = this.cur; if (!st || st.t !== 'deliver' || !st.fragile) return;
     if (k < 150 && what === 'wall') return;
+    // one knock counts once: scraping along the same wall (or a second jolt from the same crash) within a moment is free
+    if (this.w.time - this.bumpT < 0.8) return;
+    this.bumpT = this.w.time;
     this.hits++; this.meter = { name: 'Wobble', v: this.hits / st.fragile, bad: this.hits >= st.fragile - 2 };
     this.w.fx.push({ t: 'wobble', x: this.w.p.x, y: this.w.p.y });
     if (this.hits === st.fragile - 2) this.warn(st.item === 'cake' ? 'The cake is wobbling! Two more bumps and it topples!' : 'Careful! Two more bumps and it’s ruined!');
@@ -619,6 +660,8 @@ export class Run {
       case 'float': { if (!w.p.roof) return [LADDER[0] * T + T / 2, LADDER[1] * T + T / 2]; const f = this.float; if (!f) return null; const i = inWindow(this); if (i >= 0) return leapSpot(i); const spots = [0, 1, 2].map(leapSpot).filter(s => s[0] < f.x - 40); return spots[0] ?? leapSpot(2); }
       case 'raid': { const a = this.actors.filter(x => !x.gone && x.stun <= 0).sort((a, b) => dist(a.b.x, a.b.y, w.p.x, w.p.y) - dist(b.b.x, b.b.y, w.p.x, w.p.y))[0]; return a ? [a.b.x, a.b.y] : null; }
       case 'fares': return this.fare ? (this.fare.to ?? [this.fare.x, this.fare.y]) : null;
+      case 'train': { const isle = w.c.isle; if (!isle) return null; const here = stationNear(w); if (here && here.id !== st.to) return null; const s = isle.stations.filter(x => x.id !== st.to && w.open.has(x.d)).sort((a, b) => dist(a.x, a.y, w.p.x, w.p.y) - dist(b.x, b.y, w.p.x, w.p.y))[0]; return s ? [s.x, s.y] : null; }
+      case 'beat': return this.spot(st.to);
       default: return null;
     }
   }
