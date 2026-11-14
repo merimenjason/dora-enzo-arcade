@@ -9,10 +9,11 @@
 // upgrade and a paint), and the failure card (Retry and Quit job). On every screen it checks for sideways scroll and
 // for text that is too faint to read against its own backing. Fails on any failed check, page error or console
 // error. The third pass (voices, the typewriter, moods, set pieces, Glint's phases, businesses, raids, Reduce shake and
-// the new animations) is in ./jade-street-3.mjs and runs at 1280×800 only, since Jade Street is a desktop game. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves a screenshot of every screen.
+// the new animations) is in ./jade-street-3.mjs, and the fourth (both heroes, tag-team moves, gadgets, Tock's stall, two players) in ./jade-street-4.mjs; both run at 1280×800 only, since Jade Street is a desktop game. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves a screenshot of every screen.
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { third } from './jade-street-3.mjs';
+import { fourth } from './jade-street-4.mjs';
 const require = createRequire(import.meta.url);
 let chromium;
 try { ({ chromium } = require('playwright')); } catch { ({ chromium } = createRequire(process.cwd() + '/')('playwright')); }
@@ -398,6 +399,7 @@ async function viewport(name, w, h, touch) {
   await W(() => window.__jade.teleportTo('mk-market')); await wait(1500); await look('festival');
   // the third pass's features are checked at 1280×800 only: Jade Street is a desktop game (owner, 14-11-2026)
   if (!touch) await third({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
+  if (!touch) await fourth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
   await W(() => { window.__jade.world().s.done = ['m1', 'm2']; window.__jade.world().open = new Set(['market', 'temple']); });
 
   // ── back to the title, Continue, and both answers to starting over

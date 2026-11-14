@@ -44,7 +44,8 @@ export function DuoBar({ play }: { play: Play }) {
 /** F: the tag-team move on offer right now */
 export function TagPrompt({ play }: { play: Play }) {
   const w = play.w; if (w.talk || w.ui || w.failed) return null;
-  const o = tagOption(w); if (!o || o.kind === 'wait' || o.kind === 'call') return o ? <div className="jade-tag-hint" data-testid="tag-hint"><kbd>F</kbd><span>{o.label}</span></div> : null;
+  // waiting and calling over are always there (the Controls page lists them); only a real move gets the prompt
+  const o = tagOption(w); if (!o || o.kind === 'wait' || o.kind === 'call') return null;
   return (
     <button type="button" className="jade-tag-prompt" data-testid="tag-prompt" data-kind={o.kind} onClick={() => play.press('tag')}>
       <kbd>F</kbd><span>{o.label}</span>

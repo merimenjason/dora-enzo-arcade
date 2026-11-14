@@ -18,8 +18,9 @@ import type { JadeSound } from './sound';
 import type { Theme } from './music';
 import { BIZ_IDS, BIZ_OF, raidMission, type BizId } from '@/lib/jade-biz';
 import { applyTwo } from '@/lib/jade-duo';
+import { duoFrame } from '@/lib/jade-duodraw';
 import { tagOption } from '@/lib/jade-tag';
-import { giveGadget, buyGadget, buyAmmo, upgradeGadget, carry, carried, GADGET_IDS, type GadgetId } from '@/lib/jade-gear';
+import { stallPos, giveGadget, buyGadget, buyAmmo, upgradeGadget, carry, carried, GADGET_IDS, type GadgetId } from '@/lib/jade-gear';
 
 export type Toast = { id: number; msg: string; kind: string; t: number };
 export class Play {
@@ -291,6 +292,12 @@ export class Play {
       fakePad: (pad: { axes: number[]; buttons: boolean[] } | null) => { this.fakePad = pad; },
       aimAt: (tx: number, ty: number) => { const c = this.scene.cam; this.mouse.x = (tx * T - (c.x - c.w / 2)) * c.k; this.mouse.y = (ty * T - (c.y - c.h / 2)) * c.k; this.mouse.seen = performance.now(); },
       wardens: () => this.w.wardens.map(wd => ({ x: wd.b.x / T, y: wd.b.y / T, stun: wd.stun, hit: wd.hitKind ?? null })),
+      magpieNear: () => { const w = this.w, e = w.street; if (!e?.b) return false; e.b.x = w.mate.x + 140; e.b.y = w.mate.y; e.x = e.b.x; e.y = e.b.y; return true; },
+      toStall: () => { const [x, y] = stallPos(this.w); this.w.placePlayer(x, y + T * 0.8); this.bump(); },
+      gates: () => this.w.gates.size,
+      frame: (mate = false) => duoFrame(mate ? this.w.mate : this.w.p, this.w.time).f,
+      screenOf: (tx: number, ty: number) => { const c = this.scene.cam, r = this.cv.getBoundingClientRect(); return [r.left + (tx * T - (c.x - c.w / 2)) * c.k, r.top + (ty * T - (c.y - c.h / 2)) * c.k]; },
+      shooter: () => { const w = this.w, m = w.mate; return { act: m.act?.n ?? null, seat: !!m.seat, cd: m.fireCd, rl: m.reloadT, g: carried(w.s, m.who), clip: w.s.gear.clip }; },
       snatch: () => { const w = this.w; w.snatchers.push({ x: w.p.x + 300, y: w.p.y, h: Math.PI, t: 0, out: false, took: 0, wing: 0 }); return w.snatchers.length; },
     };
   }
