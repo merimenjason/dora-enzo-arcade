@@ -228,7 +228,7 @@ test('the story: 25 jobs in 5 chapters, each with a contact, dialogue and a chec
     assert.ok(PEOPLE[m.giver], `${m.id} giver`);
     assert.ok(m.steps.some(s => s.t === 'talk'), `${m.id} has dialogue`);
     assert.ok(m.steps.some(s => s.cp), `${m.id} has a checkpoint`);
-    for (const s of m.steps) if (s.t === 'talk') for (const [who] of s.lines) assert.ok(who === 'hero' || PEOPLE[who], `${m.id} speaker ${who}`);
+    for (const s of m.steps) if (s.t === 'talk') for (const [who] of s.lines) assert.ok(who === 'hero' || who === 'mate' || PEOPLE[who], `${m.id} speaker ${who}`);
   }
   const kinds = new Set(MISSIONS.flatMap(m => m.steps.map(s => s.t)));
   for (const k of ['chase', 'tail', 'escort', 'race', 'stealth', 'deliver', 'mini', 'trade', 'fares', 'heat', 'collect']) assert.ok(kinds.has(k), `a ${k} job`);
@@ -257,9 +257,11 @@ test('every story job is finished by the scripted solver', () => {
 
 test('every step restores from its checkpoint: fail anywhere, retry, and still finish', () => {
   for (const m of MISSIONS) m.steps.forEach((st, i) => {
-    if (st.t === 'talk') return;
+    if (st.t === 'talk' || (st.t === 'post' && !st.wait)) return; // a post without a wait passes on at once
     const r = playMission(m.id, 'perfect', 2, { failAt: i, maxT: 900 });
-    assert.ok(r.won && r.fails >= 1, `${m.id} step ${i} (${st.t}) after a forced failure: ${JSON.stringify(r)}`);
+    // a pick-up right after a chase the passenger can finish with a grab is skipped when the grab lands it in your paws
+    const grabbed = st.t === 'pickup' && m.steps[i - 1]?.t === 'chase' && ['snatch', 'net'].includes(m.steps[i - 1].finish);
+    assert.ok(r.won && (r.fails >= 1 || grabbed), `${m.id} step ${i} (${st.t}) after a forced failure: ${JSON.stringify(r)}`);
   });
 });
 

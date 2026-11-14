@@ -4,6 +4,9 @@
 // ten times a second, or at once when a panel, dialogue or failure opens). The world is never re-rendered by React.
 // Lines of dialogue type out with each speaker's babble voice (Space, E or a tap shows the whole line, then moves on).
 // Hit-stop and slow motion scale the time fed to the fixed step (lib/jade-juice.ts). Test hooks live on window.__jade.
+// The duo and the gadgets: Tab switches hero, F is the tag-team key, the mouse aims and the left button fires, 1 and 2
+// (or the wheel) pick a gadget, X reloads. A second player joins from the pause menu (or a gamepad's Start): they use
+// the arrow keys with / dash, . hop, , action, ; fire, ' gadget and Right Shift sneak, or a gamepad.
 import { World, DT, NO_INPUT, type Input } from '@/lib/jade-game';
 import { Scene, loadArt, artLoaded } from '@/lib/jade-scene';
 import { spawn, EVENT_KINDS, type EventKind } from '@/lib/jade-events';
@@ -14,12 +17,18 @@ import { MISSION, MISSIONS } from '@/lib/jade-story';
 import type { JadeSound } from './sound';
 import type { Theme } from './music';
 import { BIZ_IDS, BIZ_OF, raidMission, type BizId } from '@/lib/jade-biz';
+import { applyTwo } from '@/lib/jade-duo';
+import { tagOption } from '@/lib/jade-tag';
+import { giveGadget, buyGadget, buyAmmo, upgradeGadget, carry, carried, GADGET_IDS, type GadgetId } from '@/lib/jade-gear';
 
 export type Toast = { id: number; msg: string; kind: string; t: number };
 export class Play {
   w: World; scene: Scene; raf = 0; last = 0; acc = 0; paused = false; alive = true;
   keys = new Set<string>(); stick = { x: 0, y: 0, on: false }; touchSneak = false;
-  pend = { dash: false, hop: false, act: false };
+  pend = { dash: false, hop: false, act: false, swap: false, tag: false, fire: false, reload: false, slot: undefined as number | undefined };
+  /** the second player's presses, the mouse (screen position, held, seen recently) and a fake or real gamepad */
+  pend2 = { dash: false, hop: false, act: false, fire: false, slot: undefined as number | undefined, tag: false };
+  mouse = { x: 0, y: 0, down: false, seen: -9, held: 0 }; padPrev: boolean[] = []; fakePad: { axes: number[]; buttons: boolean[] } | null = null;
   fps = 60; frames = 0; fpsT = 0; fpsLog: number[] = [];
   toasts: Toast[] = []; tid = 1; ver = 0; notifyT = 0; lastKey = '';
   saveT = 0; ro: ResizeObserver | null = null; ambT = 0;
@@ -38,6 +47,7 @@ export class Play {
     if (host && typeof ResizeObserver !== 'undefined') { this.ro = new ResizeObserver(() => this.resize()); this.ro.observe(host); }
     window.addEventListener('keydown', this.kd); window.addEventListener('keyup', this.ku); window.addEventListener('blur', this.blur);
     document.addEventListener('visibilitychange', this.vis);
+    cv.addEventListener('pointermove', this.pm); cv.addEventListener('pointerdown', this.pd); window.addEventListener('pointerup', this.pu); cv.addEventListener('wheel', this.wh, { passive: false }); cv.addEventListener('contextmenu', this.cm);
     this.reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.raf = requestAnimationFrame(this.frame);
     this.hooks();
@@ -46,6 +56,7 @@ export class Play {
     this.alive = false; cancelAnimationFrame(this.raf); this.ro?.disconnect();
     window.removeEventListener('keydown', this.kd); window.removeEventListener('keyup', this.ku); window.removeEventListener('blur', this.blur);
     document.removeEventListener('visibilitychange', this.vis);
+    this.cv.removeEventListener('pointermove', this.pm); this.cv.removeEventListener('pointerdown', this.pd); window.removeEventListener('pointerup', this.pu); this.cv.removeEventListener('wheel', this.wh); this.cv.removeEventListener('contextmenu', this.cm);
     this.persist(this.w.s);
     const g = window as unknown as Record<string, unknown>; delete g.__jade;
   }
@@ -58,7 +69,18 @@ export class Play {
     const rad = small ? 46 : 64;
     this.scene.minimap.r = rad; this.scene.minimap.x = w - rad - (small ? 12 : 20); this.scene.minimap.y = rad + (small ? 64 : 76);
   }
-  blur = () => { this.keys.clear(); };
+  blur = () => { this.keys.clear(); this.mouse.down = false; };
+  // ── the mouse: aim where it points, the left button fires (held: keeps firing as the gadget allows)
+  pm = (e: PointerEvent) => { if (e.pointerType !== 'mouse') return; const r = this.cv.getBoundingClientRect(); this.mouse.x = e.clientX - r.left; this.mouse.y = e.clientY - r.top; this.mouse.seen = performance.now(); };
+  pd = (e: PointerEvent) => { if (e.pointerType !== 'mouse' || e.button !== 0) return; this.pm(e); if (this.w.talk) { this.advance(); return; } this.mouse.down = true; this.mouse.held = 0; this.pend.fire = true; };
+  pu = (e: PointerEvent) => { if (e.button === 0) this.mouse.down = false; };
+  wh = (e: WheelEvent) => { if (Math.abs(e.deltaY) < 4) return; e.preventDefault(); this.pend.slot = -1; };
+  cm = (e: Event) => { e.preventDefault(); };
+  /** the mouse in world coordinates (or none when it hasn't moved over the game lately) */
+  aimWorld(): [number, number] | null {
+    if (performance.now() - this.mouse.seen > 8000) return null;
+    const c = this.scene.cam; return [c.x - c.w / 2 + this.mouse.x / c.k, c.y - c.h / 2 + this.mouse.y / c.k];
+  }
   vis = () => { if (document.hidden) { this.persist(this.w.s); this.keys.clear(); } };
   /** keys the page handles itself (pause, map) return true */
   onKey: ((k: string) => boolean) | null = null;
@@ -67,23 +89,62 @@ export class Play {
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if (this.onKey && this.onKey(k)) { e.preventDefault(); return; }
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(k)) e.preventDefault();
+    if (k === 'Tab') e.preventDefault();
     if (e.repeat) return;
-    this.keys.add(k);
+    const two = this.w.two;
+    const code = e.code === 'ShiftRight' ? 'ShiftRight' : k;
+    this.keys.add(code);
     const w = this.w;
     if (w.talk && (k === ' ' || k === 'Enter' || k === 'e')) { this.advance(); return; }
     if (k === ' ') this.pend.dash = true;
     if (k === 'q' || k === 'c') this.pend.hop = true;
-    if (k === 'e' || k === 'Enter') this.pend.act = true;
+    if (k === 'e' || (k === 'Enter' && !two)) this.pend.act = true;
+    if (k === 'Tab') this.pend.swap = true;
+    if (k === 'f') this.pend.tag = true;
+    if (k === 'x') this.pend.reload = true;
+    if (k === '1' || k === '2') this.pend.slot = +k - 1;
+    // the second player's buttons on the right of the keyboard
+    if (two) { if (k === '/') this.pend2.dash = true; if (k === '.') this.pend2.hop = true; if (k === ',' || k === 'Enter') this.pend2.act = true; if (k === ';') this.pend2.fire = true; if (k === "'") this.pend2.slot = -1; if (k === 'l') this.pend2.tag = true; }
   };
-  ku = (e: KeyboardEvent) => { const k = e.key.length === 1 ? e.key.toLowerCase() : e.key; this.keys.delete(k); };
+  ku = (e: KeyboardEvent) => { const k = e.key.length === 1 ? e.key.toLowerCase() : e.key; this.keys.delete(e.code === 'ShiftRight' ? 'ShiftRight' : k); if (k === 'Shift') this.keys.delete('ShiftRight'); };
   input(): Input {
-    const k = this.keys; let mx = 0, my = 0;
-    if (k.has('a') || k.has('ArrowLeft')) mx -= 1; if (k.has('d') || k.has('ArrowRight')) mx += 1;
-    if (k.has('w') || k.has('ArrowUp')) my -= 1; if (k.has('s') || k.has('ArrowDown')) my += 1;
+    const k = this.keys, two = this.w.two; let mx = 0, my = 0;
+    // with a second player the arrow keys are theirs
+    if (k.has('a') || (!two && k.has('ArrowLeft'))) mx -= 1; if (k.has('d') || (!two && k.has('ArrowRight'))) mx += 1;
+    if (k.has('w') || (!two && k.has('ArrowUp'))) my -= 1; if (k.has('s') || (!two && k.has('ArrowDown'))) my += 1;
     const l = Math.hypot(mx, my); if (l > 0) { mx /= l; my /= l; }
     if (this.stick.on) { mx = this.stick.x; my = this.stick.y; }
-    return { mx, my, sneak: k.has('Shift') || this.touchSneak, dash: this.pend.dash, hop: this.pend.hop, act: this.pend.act };
+    const aim = this.aimWorld();
+    // holding the button keeps firing (the gadget's own cooldown paces it)
+    const fire = this.pend.fire || (this.mouse.down && this.mouse.held > 0.25);
+    return { mx, my, sneak: k.has('Shift') || (!two && k.has('ShiftRight')) || this.touchSneak, dash: this.pend.dash, hop: this.pend.hop, act: this.pend.act,
+      swap: this.pend.swap, tag: this.pend.tag, reload: this.pend.reload, slot: this.pend.slot, fire, ax: aim ? aim[0] : NaN, ay: aim ? aim[1] : NaN };
   }
+  /** the second player: arrow keys and the right-hand keys, or the first gamepad (stick, A dash, B hop, X action, RT or
+   * Y fire, LB/RB gadget, Start joins and leaves) */
+  input2(): Input {
+    const k = this.keys; let mx = 0, my = 0;
+    if (k.has('ArrowLeft')) mx -= 1; if (k.has('ArrowRight')) mx += 1; if (k.has('ArrowUp')) my -= 1; if (k.has('ArrowDown')) my += 1;
+    const l = Math.hypot(mx, my); if (l > 0) { mx /= l; my /= l; }
+    const pad = this.pad(); let sneak = k.has('ShiftRight');
+    if (pad) {
+      const ax = pad.axes[0] ?? 0, ay = pad.axes[1] ?? 0; if (Math.hypot(ax, ay) > 0.2) { mx = ax; my = ay; }
+      const b = pad.buttons, was = this.padPrev; const hit = (i: number) => !!b[i] && !was[i];
+      if (hit(0)) this.pend2.dash = true; if (hit(1)) this.pend2.hop = true; if (hit(2)) this.pend2.act = true; if (hit(7) || hit(3)) this.pend2.fire = true; if (hit(4) || hit(5)) this.pend2.slot = -1;
+      if (b[6]) sneak = true;
+      this.padPrev = b.slice();
+    }
+    return { mx, my, sneak, dash: this.pend2.dash, hop: this.pend2.hop, act: this.pend2.act, fire: this.pend2.fire, slot: this.pend2.slot, tag: this.pend2.tag, ax: NaN, ay: NaN };
+  }
+  pad(): { axes: number[]; buttons: boolean[] } | null {
+    if (this.fakePad) return this.fakePad;
+    const gp = typeof navigator !== 'undefined' && navigator.getGamepads ? [...navigator.getGamepads()].find(g => g && g.connected) : null;
+    return gp ? { axes: [...gp.axes], buttons: gp.buttons.map(b => b.pressed) } : null;
+  }
+  /** a gamepad's Start (or the pause menu) brings a second player in or out */
+  padJoin() { const p = this.pad(); if (!p) return; const st = !!p.buttons[9]; if (st && !this.startPrev) this.setTwo(!this.w.two); this.startPrev = st; }
+  startPrev = false;
+  setTwo(on: boolean) { applyTwo(this.w, on); this.toast(on ? `Player 2 joins as ${this.w.mate.who === 'dora' ? 'Dora' : 'Enzo'}! Arrows to move, / dash, . hop, , action, ; fire, ' gadget.` : 'Player 2 left. The partner follows you again.', 'good'); this.bump(); }
   /** the current line of dialogue: who, the words, the mood */
   line(): [string, string, string] | null { const t = this.w.talk; if (!t) return null; const l = t.lines[t.i]; return l ? [l[0], l[1], l[2] ?? 'calm'] : null; }
   /** Space, E or a tap: show the whole line if it is still typing, otherwise the next line */
@@ -105,7 +166,7 @@ export class Play {
     this.fill();
     if (now >= l[1].length) this.bump();
   }
-  press(b: 'dash' | 'hop' | 'act') { if (b === 'act' && this.w.talk) { this.advance(); return; } this.pend[b] = true; }
+  press(b: 'dash' | 'hop' | 'act' | 'swap' | 'tag' | 'reload' | 'fire') { if (b === 'act' && this.w.talk) { this.advance(); return; } this.pend[b] = true; }
   bump() { this.ver++; this.onChange(); }
 
   frame = (now: number) => {
@@ -117,13 +178,17 @@ export class Play {
     const w = this.w;
     const st = w.s.settings; this.scene.juice.opt = { shake: st.shake, calm: st.calm, reduced: this.reduced };
     this.typeStep(dt);
+    this.padJoin();
+    if (this.mouse.down) this.mouse.held += dt;
+    const aim = this.aimWorld(); this.scene.aim = aim && !w.talk && !w.ui && w.s.gear.own.length ? { x: aim[0], y: aim[1], on: true } : null;
     if (!this.paused) {
       this.acc += dt * this.scene.juice.rate();
       let n = 0;
       while (this.acc >= DT && n < 6) {
         const inp = this.input();
-        w.step(inp, DT);
-        this.pend.dash = this.pend.hop = this.pend.act = false;
+        w.step(inp, DT, w.two ? this.input2() : undefined);
+        this.pend.dash = this.pend.hop = this.pend.act = this.pend.swap = this.pend.tag = this.pend.fire = this.pend.reload = false; this.pend.slot = undefined;
+        this.pend2.dash = this.pend2.hop = this.pend2.act = this.pend2.fire = this.pend2.tag = false; this.pend2.slot = undefined;
         this.acc -= DT; n++;
       }
       if (n === 6) this.acc = 0;
@@ -132,7 +197,7 @@ export class Play {
     if (fx.length) this.events(fx);
     if (artLoaded()) this.scene.draw(w, this.paused ? 0 : dt);
     // HUD refresh: at once on a modal change, else ~10 Hz
-    const key = `${!!w.talk}|${w.talk?.i}|${w.ui?.kind}|${!!w.failed}|${w.banner?.text}|${w.near?.label}|${w.run?.i}|${w.run?.label}|${!!w.p.ride}|${w.p.roof}|${w.p.hide}`;
+    const key = `${!!w.talk}|${w.talk?.i}|${w.ui?.kind}|${!!w.failed}|${w.banner?.text}|${w.near?.label}|${w.run?.i}|${w.run?.label}|${!!w.p.ride}|${w.p.roof}|${w.p.hide}|${w.p.who}|${w.two}`;
     this.notifyT -= dt;
     if (key !== this.lastKey || this.notifyT <= 0) { this.lastKey = key; this.notifyT = 0.1; this.bump(); }
     this.saveT += dt; if (this.saveT > 5) { this.saveT = 0; this.persist(w.s); }
@@ -216,6 +281,17 @@ export class Play {
       typed: () => ({ typed: Math.floor(this.typed), len: this.line()?.[1].length ?? 0, mood: this.line()?.[2] ?? null, who: this.line()?.[0] ?? null }),
       juice: () => { const j = this.scene.juice; return { debris: j.debris.length, pops: j.pops.length, trauma: j.trauma, slow: j.slow, stop: j.stop, opt: { ...j.opt } }; },
       theme: () => this.theme(),
+      /** the fourth pass: both heroes, tag-team moves, gadgets and the second player */
+      duo: () => { const w = this.w, p = w.p, m = w.mate; return { who: p.who, mate: m.who, two: w.two, px: p.x / T, py: p.y / T, mx: m.x / T, my: m.y / T, mode: m.ai.mode, holding: m.ai.holding, seat: !!m.seat, mroof: m.roof, roof: p.roof, anim: p.anim, manim: m.anim, dist: Math.hypot(p.x - m.x, p.y - m.y) / T, tag: tagOption(w)?.kind ?? null, tagLabel: tagOption(w)?.label ?? null }; },
+      press: (what: 'swap' | 'tag' | 'fire' | 'reload' | 'dash' | 'hop' | 'act', n = 1) => { (this.pend as Record<string, unknown>)[what] = true; for (let i = 0; i < n; i++) { const inp = this.input(); this.w.step(inp, DT, this.w.two ? this.input2() : undefined); this.pend.dash = this.pend.hop = this.pend.act = this.pend.swap = this.pend.tag = this.pend.fire = this.pend.reload = false; this.pend.slot = undefined; } const fx = this.w.drain(); if (fx.length) this.events(fx); this.bump(); },
+      gear: () => { const s = this.w.s; return { own: s.gear.own.slice(), ammo: { ...s.gear.ammo }, clip: { ...s.gear.clip }, lvl: { ...s.gear.lvl }, carry: { dora: s.gear.carry.dora.slice(), enzo: s.gear.carry.enzo.slice() }, slot: { ...s.gear.slot }, hand: carried(s, this.w.p.who), shots: this.w.shots.length, splats: this.w.splats.length, crates: this.w.crates.length }; },
+      give: (ids?: GadgetId[]) => { for (const g of ids ?? GADGET_IDS) giveGadget(this.w.s, g); this.bump(); return this.w.s.gear.own.slice(); },
+      buy: (what: 'gadget' | 'ammo' | 'up' | 'carry', g: GadgetId) => { const s = this.w.s; const r = what === 'gadget' ? buyGadget(s, g) : what === 'ammo' ? buyAmmo(s, g) : what === 'up' ? upgradeGadget(s, g) : carry(s, this.w.p.who, g); this.bump(); return r; },
+      two: (on: boolean) => this.setTwo(on),
+      fakePad: (pad: { axes: number[]; buttons: boolean[] } | null) => { this.fakePad = pad; },
+      aimAt: (tx: number, ty: number) => { const c = this.scene.cam; this.mouse.x = (tx * T - (c.x - c.w / 2)) * c.k; this.mouse.y = (ty * T - (c.y - c.h / 2)) * c.k; this.mouse.seen = performance.now(); },
+      wardens: () => this.w.wardens.map(wd => ({ x: wd.b.x / T, y: wd.b.y / T, stun: wd.stun, hit: wd.hitKind ?? null })),
+      snatch: () => { const w = this.w; w.snatchers.push({ x: w.p.x + 300, y: w.p.y, h: Math.PI, t: 0, out: false, took: 0, wing: 0 }); return w.snatchers.length; },
     };
   }
 }

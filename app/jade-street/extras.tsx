@@ -52,7 +52,7 @@ export function Hint({ play, touch }: { play: Play; touch: boolean }) {
         {touch ? (l.touch ? <span className="jade-tbtn-mini">{l.touch === 'stick' ? <Sprite name="c-stick" h={34} w={34} /> : l.touch === 'map' ? <Sprite name="i-map" h={28} w={28} /> : l.touch}</span> : null)
           : l.keys.map(k => <KeyCap key={k} k={k} />)}
       </span>
-      <span>{l.text}</span>
+      <span>{touch ? l.text : l.kbText ?? l.text}</span>
     </div>
   );
 }
@@ -151,6 +151,11 @@ export function Controls({ touch }: { touch: boolean }) {
     ['Change radio station', ['R'], 'ui-radio', 'Tap the radio'],
     ['Map', ['M'], 'i-map', 'Map button, top right'],
     ['Phone messages', ['T'], 'ui-phone', 'Phone button'],
+    ['Switch hero (Dora or Enzo)', ['Tab'], 'face-dora', 'Tap the partner’s portrait'],
+    ['Tag-team move: boost, grab, pounce, hold, distract', ['F'], 'c-tap', 'Tap the green prompt'],
+    ['Aim and fire a gadget', ['Mouse', 'Click'], 'g-sling', 'Desktop only'],
+    ['Change gadget · reload', ['1', '2', 'X'], 'satchel', 'Tap a gadget slot'],
+    ['Player 2 (from the pause menu)', ['←↑↓→', '/', '.', ',', ';'], 'face-enzo', 'A gamepad works too'],
     ['Pause, jobs book, settings', ['Esc'], 'c-heat', 'Pause button'],
   ];
   return (

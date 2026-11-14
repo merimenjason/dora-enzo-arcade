@@ -35,7 +35,7 @@ type Snap = { i: number; x: number; y: number; h?: number; roof: boolean; ride: 
   who: Hero; mate: { x: number; y: number; roof: boolean; seat: boolean; mode: MateMode; at: [number, number] | null; story: boolean } };
 
 export class Run {
-  i = -1; cur!: Step; label = ''; timer: number | null = null; meter: Meter | null = null; meter2: Meter | null = null; progress = '';
+  i = -1; cur!: Step; timer: number | null = null; meter: Meter | null = null; meter2: Meter | null = null; progress = '';
   /** the warning on screen (a hazard coming, a meter running high) and how long it stays */
   warning: { text: string; t: number } | null = null;
   sets: SetState[] = []; signs: Sign[] = []; float: Float | null = null; private warned = 0;
@@ -49,6 +49,10 @@ export class Run {
   /** a little give after each retry (4% a time, at most 12%): rivals ease off and lookouts take longer to be sure */
   mercy() { return 1 - Math.min(0.12, 0.04 * this.retries); }
   ride: Ride | null = null; private fieldKey = ''; private f: Field | null = null;
+  /** the objective line; {mate} and {hero} read as the partner's and your hero's names */
+  private lab = '';
+  get label() { return this.lab.replace(/\{mate\}/g, nameOf(this.w.mate.who)).replace(/\{hero\}/g, nameOf(this.w.p.who)); }
+  set label(v: string) { this.lab = v; }
   /** the hero a switch step waits for, where you stood when the step began, the hero who started a relay */
   want = ''; here: [number, number] = [0, 0]; starter = '';
   constructor(public w: World, public m: Mission, public gig?: Gig) {}

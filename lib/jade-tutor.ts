@@ -6,8 +6,9 @@
 import { FOOT } from './jade-move.js';
 import { dist } from './jade-rng.js';
 import type { World } from './jade-game.js';
+import { tagOption } from './jade-tag.js';
 
-export type Lesson = { id: string; text: string; keys: string[]; touch: string; when: (w: World) => boolean; done: (w: World, fx: string[]) => boolean; max?: number };
+export type Lesson = { id: string; text: string; kbText?: string; keys: string[]; touch: string; when: (w: World) => boolean; done: (w: World, fx: string[]) => boolean; max?: number };
 const onFoot = (w: World) => !w.p.ride && !w.p.roof;
 const learned = (w: World, id: string) => w.s.learned.includes(id);
 export const LESSONS: Lesson[] = [
@@ -19,10 +20,14 @@ export const LESSONS: Lesson[] = [
   { id: 'market', text: 'A market stall: trade here. Buy cheap, sell where it pays, and haggle for a better price.', keys: ['E'], touch: 'Action', when: w => w.near?.kind === 'market' || w.run?.cur?.t === 'trade', done: () => false },
   { id: 'boost', text: 'Boost for a burst of speed.', keys: ['Space'], touch: 'Boost', when: w => !!w.p.ride && learned(w, 'ride'), done: (_w, fx) => fx.includes('boost') },
   { id: 'honk', text: 'Honk to clear townsfolk out of your way.', keys: ['Q'], touch: 'Honk', when: w => !!w.p.ride && learned(w, 'boost') && w.peds.some(p => dist(p.x, p.y, w.p.x, w.p.y) < 300), done: (_w, fx) => fx.includes('honk') },
+  // the duo and the gadgets: the tag-team key when a move is on offer, switching when a job asks, the first gadget
+  { id: 'tag', text: 'Your partner can help here: press F for a tag-team move (the green prompt says which).', keys: ['F'], touch: 'tag', when: w => { const o = tagOption(w); return !!o && o.kind !== 'wait' && o.kind !== 'call'; }, done: (_w, fx) => fx.includes('tag'), max: 20 },
+  { id: 'switch', text: 'Switch to the other hero: the camera follows, and your partner keeps doing their part.', keys: ['Tab'], touch: 'portrait', when: w => !!w.run && (w.run.cur?.t === 'switch' || (w.run.cur?.t === 'tail' && !!w.run.cur.relay) || (w.run.cur?.t === 'race' && w.run.cur.relay !== undefined)), done: (_w, fx) => fx.includes('switch'), max: 30 },
+  { id: 'fire', text: 'Aim with the mouse and click to fire your gadget. 1 and 2 swap gadgets, X reloads.', keys: ['Click'], touch: 'gadget', when: w => w.s.gear.own.length > 0 && !w.p.ride && !w.p.roof, done: (_w, fx) => fx.includes('fire'), max: 16 },
   { id: 'map', text: 'Open the map to see the whole quarter, find markets and drop a pin.', keys: ['M'], touch: 'map', when: w => w.s.done.length >= 1 && !w.run, done: () => false },
   // the basics, in order
   { id: 'move', text: 'Move around the quarter.', keys: ['W', 'A', 'S', 'D'], touch: 'stick', when: w => onFoot(w), done: w => w.tutor.moved > 3 * 64 },
-  { id: 'run', text: 'Push all the way to run.', keys: ['W', 'A', 'S', 'D'], touch: 'stick', when: w => onFoot(w) && learned(w, 'move'), done: w => w.tutor.ran > 1 },
+  { id: 'run', text: 'Push all the way to run.', kbText: 'Keep a direction held to run; Shift walks quietly.', keys: ['W', 'A', 'S', 'D'], touch: 'stick', when: w => onFoot(w) && learned(w, 'move'), done: w => w.tutor.ran > 1 },
   { id: 'dash', text: 'Dash for a quick burst: it knocks thieves over and dodges magpies.', keys: ['Space'], touch: 'Dash', when: w => onFoot(w) && learned(w, 'run'), done: (_w, fx) => fx.includes('dash') },
   { id: 'hop', text: 'Hop over crates, benches and hedges.', keys: ['Q'], touch: 'Hop', when: w => onFoot(w) && learned(w, 'dash'), done: (_w, fx) => fx.includes('hop') },
 ];

@@ -30,18 +30,25 @@ export const GADGETS: Record<GadgetId, GadgetDef> = {
 /** who gives which gadget in the story (free), and the stall's stock: everything, once Tock's stall opens after job 2 */
 export const GEAR_GIFT: Record<string, GadgetId[]> = { m3: ['sling', 'paint'], m8: ['popper'], m11: ['bubble'], m16: ['net'], m21: ['confetti'] };
 export const STALL_OPENS = 'm2';
+export const stallOpen = (s: Save) => s.done.includes(STALL_OPENS);
+/** Tock's toy stall: on the pavement at the Night Market's west end (a free walk tile near tile 24,57, beside the market square) */
+let STALL: [number, number] | null = null;
+export function stallPos(w: World): [number, number] { if (!STALL) STALL = nearestFree(w.c, 'walk', 24 * T + T / 2, 57 * T + T / 2, new Set(['market']), 4); return STALL; }
 export type GearState = { own: GadgetId[]; ammo: Record<GadgetId, number>; clip: Record<GadgetId, number>; lvl: Record<GadgetId, number>; carry: Record<Hero, GadgetId[]>; slot: Record<Hero, number> };
 const zero = (): Record<GadgetId, number> => ({ sling: 0, paint: 0, popper: 0, net: 0, bubble: 0, confetti: 0 });
 export const newGear = (): GearState => ({ own: [], ammo: zero(), clip: zero(), lvl: zero(), carry: { dora: [], enzo: [] }, slot: { dora: 0, enzo: 0 } });
 export const clipOf = (s: Save, g: GadgetId) => Math.round(GADGETS[g].clip * (1 + 0.5 * s.gear.lvl[g]));
 export const ammoCap = (s: Save, g: GadgetId) => clipOf(s, g) * 6;
 export const powerOf = (s: Save, g: GadgetId) => 1 + 0.25 * s.gear.lvl[g];
-/** a gadget joins the kit: loaded, a pack in the satchel, carried by whoever has a free hand (Dora first) */
+/** a gadget joins the kit: loaded, a pack in the satchel, and handed to the partner (the one who rides behind you and
+ * fires from the back seat), or to whoever has a free hand. With every hand full, the partner swaps it for the toy in
+ * their other hand (that one stays in the kit: Tock's stall hands it back out) */
 export function giveGadget(s: Save, g: GadgetId) {
   const G = s.gear; if (G.own.includes(g)) return false;
   G.own.push(g); G.clip[g] = clipOf(s, g); G.ammo[g] = Math.max(G.ammo[g], GADGETS[g].pack);
-  const pref: Hero[] = g === 'sling' || g === 'net' || g === 'bubble' ? ['dora', 'enzo'] : ['enzo', 'dora'];
-  for (const h of pref) if (G.carry[h].length < 2) { G.carry[h].push(g); return true; }
+  const mate: Hero = s.hero === 'dora' ? 'enzo' : 'dora';
+  for (const h of [mate, s.hero]) if (G.carry[h].length < 2) { G.carry[h].push(g); G.slot[h] = G.carry[h].length - 1; return true; }
+  G.carry[mate][1 - G.slot[mate]] = g; G.slot[mate] = 1 - G.slot[mate];
   return true;
 }
 export function carried(s: Save, h: Hero): GadgetId | null { const c = s.gear.carry[h]; return c[Math.min(c.length - 1, s.gear.slot[h])] ?? null; }
@@ -145,6 +152,8 @@ export function gearStep(w: World, dt: number) {
       if (def.kind === 'burst') burst(w, sh, tg, 150); else { stallHit(w, sh.x, sh.y, sh.g); land(w, sh); }
       sh.t = 1e9; continue;
     }
+    // a crate up on a balcony (a job's high items) is knocked down by any shot that reaches it
+    if (w.run?.shotAt(sh.x, sh.y)) { land(w, sh, true); sh.t = 1e9; continue; }
     for (const t of tg) {
       if (dist(t.x, t.y, sh.x, sh.y) > t.r + (sh.g === 'net' ? 18 : 8)) continue;
       if (def.kind === 'burst') { burst(w, sh, tg, 150); sh.t = 1e9; break; }

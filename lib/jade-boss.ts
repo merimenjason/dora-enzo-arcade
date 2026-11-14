@@ -91,7 +91,8 @@ export function floatStep(run: Run, dt: number) {
   const w = run.w, f = run.float; if (!f) return; const p = w.p;
   f.t += dt;
   const lx = LADDER[0] * T + T / 2, ly = LADDER[1] * T + T / 2;
-  if (!f.moving && !f.done && (p.roof || dist(p.x, p.y, lx, ly) < 9 * T)) { f.moving = true; w.fx.push({ t: 'float-go', x: f.x, y: f.y }); run.warn('Glint’s float is rolling! Leap from a flag as it passes beneath.'); }
+  // with a bunting rope in the job, the float only swings in under the flags once the partner hauls on it
+  if (!f.moving && !f.done && (p.roof || dist(p.x, p.y, lx, ly) < 9 * T) && roped(run)) { f.moving = true; w.fx.push({ t: 'float-go', x: f.x, y: f.y }); run.warn('Glint’s float is rolling! Leap from a flag as it passes beneath.'); }
   if (f.moving && !f.done) {
     f.x -= f.speed * dt;
     const k = (FLOAT_START - f.x) / (FLOAT_START - FLOAT_END);
@@ -102,11 +103,13 @@ export function floatStep(run: Run, dt: number) {
 }
 /** the flag whose leap window the float is in right now, or -1 */
 export function inWindow(run: Run): number {
-  const f = run.float; if (!f || !f.moving || f.done) return -1;
+  const f = run.float; if (!f || !f.moving || f.done || !roped(run)) return -1;
   const half = run.w.assist ? 96 : 72;
   for (let i = 0; i < LEAP_SPOTS.length; i++) { const [sx] = leapSpot(i); if (Math.abs(f.x - sx) < half) return i; }
   return -1;
 }
+/** no rope in this job, or the partner is hauling it */
+export function roped(run: Run) { const st = run.cur, m = run.w.mate; return !(st && st.t === 'float' && st.rope) || (m.ai.mode === 'hold' && m.ai.holding); }
 export function floatNear(run: Run, x: number, y: number): Near | null {
   if (!run.w.p.roof || !run.float || run.float.done) return null;
   for (let i = 0; i < LEAP_SPOTS.length; i++) { const [sx, sy] = leapSpot(i); if (dist(sx, sy, x, y) < 56) return { kind: 'leap', label: inWindow(run) === i ? 'Leap onto the float!' : 'Leap (wait for the float)', x: sx, y: sy, id: String(i) }; }

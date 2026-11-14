@@ -11,6 +11,7 @@ import { JadeSound } from './sound';
 import { TopHud, Toasts, Prompt, Dialogue, FailCard, TouchControls, KeyHelp } from './hud';
 import { Market, SafeHouse, Garage, Pause } from './panels';
 import { BizPanel } from './biz';
+import { DuoBar, TagPrompt, GearHud, GearStall } from './duo';
 import { PaintedMap } from './map';
 import { Storybook, ChapterCard, Ending, Credits } from './story';
 import { Loader, Hint, PhoneHud, PhoneView, RadioHud, switchStation } from './extras';
@@ -19,6 +20,7 @@ import { learn } from '@/lib/jade-tutor';
 import { MiniGame } from './minis';
 import { store, Sprite, ART } from './ui';
 import './jade.css';
+import './duo.css';
 
 type Screen = 'loading' | 'title' | 'game';
 type Story = null | 'intro' | 'chapter' | 'ending' | 'credits';
@@ -150,7 +152,7 @@ export default function JadeStreetPage() {
                 <button type="button" className="jade-link" onClick={() => setPick(false)}>Back</button>
               </div>
             )}
-            <p className="jade-how">{coarse ? 'Drag on the left to move. Buttons on the right: Action, Dash, Hop and Sneak.' : 'WASD or arrows to move · Shift sneak · Space dash · Q hop · E action · M map · Esc pause'}</p>
+            <p className="jade-how">{coarse ? 'Drag on the left to move. Buttons on the right: Action, Dash, Hop and Sneak.' : 'WASD or arrows to move · Shift sneak · Space dash · Q hop · E action · Tab switch hero · F tag-team · click to fire · M map · Esc pause'}</p>
             <a className="jade-back" href="/">← Back to the arcade</a>
           </div>
         </section>
@@ -167,12 +169,14 @@ export default function JadeStreetPage() {
               <PhoneHud play={play} onOpen={() => { play.paused = true; setPhone(true); }} />
               <RadioHud play={play} snd={sndRef.current} />
               <Prompt play={play} touch={touch} />
+              {!touch && !w.talk && !w.ui && <><DuoBar play={play} /><TagPrompt play={play} /><GearHud play={play} />{w.two && <div className="jade-p2" data-testid="p2-badge">Player 2: arrows · / dash · . hop · , action · ; fire</div>}</>}
               {touch && !w.talk && !w.ui && !paused && !mapOpen && !w.failed && <TouchControls play={play} />}
               <Dialogue play={play} />
               <FailCard play={play} />
               {w.ui?.kind === 'market' && <Market play={play} d={w.ui.d} snd={sndRef.current} onClose={closeUi} />}
               {w.ui?.kind === 'safe' && <SafeHouse play={play} id={w.ui.id} snd={sndRef.current} onClose={closeUi} onSave={() => persist(w.s)} />}
               {w.ui?.kind === 'garage' && <Garage play={play} snd={sndRef.current} onClose={closeUi} onSave={() => persist(w.s)} />}
+              {w.ui?.kind === 'gear' && <GearStall play={play} snd={sndRef.current} onClose={closeUi} onSave={() => persist(w.s)} />}
               {w.ui?.kind === 'biz' && <BizPanel play={play} id={w.ui.id} snd={sndRef.current} onClose={closeUi} onSave={() => persist(w.s)} />}
               {w.ui?.kind === 'mini' && <MiniGame key={`${w.ui.mini}-${w.s.stats.minis}`} kind={w.ui.mini} level={w.ui.level} assist={w.assist} seed={w.s.seed + w.s.stats.minis * 7 + w.tick} snd={sndRef.current} onDone={ok => { w.miniDone(ok); persist(w.s); play.bump(); }} />}
               {mapOpen && <PaintedMap play={play} onClose={resume} />}

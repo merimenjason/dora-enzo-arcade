@@ -1,0 +1,38 @@
+/* Jade Street: the duo bar, the tag-team prompt, the gadget hands and Tock's toy stall (desktop) */
+.jade-shell .jade-duo { position: absolute; left: 12px; bottom: 12px; display: flex; gap: 8px; align-items: flex-end; z-index: 3; }
+.jade-shell .jade-duo-face { display: flex; align-items: center; gap: 6px; background: var(--panel); border: 2px solid var(--gold); border-radius: 30px; padding: 3px 12px 3px 3px; color: var(--ink); font-weight: 900; font-size: 14px; }
+.jade-shell .jade-duo-face.on { box-shadow: 0 0 0 3px rgba(242,193,78,.25), 0 6px 18px rgba(0,0,0,.45); }
+.jade-shell .jade-duo-face.mate { border-color: var(--jade); cursor: pointer; font-size: 13px; text-align: left; }
+.jade-shell .jade-duo-face.mate:hover:not(:disabled) { background: var(--panel2); }
+.jade-shell .jade-duo-face.mate:disabled { cursor: default; opacity: .85; }
+.jade-shell .jade-duo-face.mate span { display: flex; flex-direction: column; line-height: 1.15; }
+.jade-shell .jade-duo-face.mate small { color: var(--muted); font-weight: 800; font-size: 12px; }
+.jade-shell .jade-duo-face .jade-spr { border-radius: 50%; }
+.jade-shell .jade-tag-prompt, .jade-shell .jade-tag-hint { position: absolute; left: 50%; bottom: 100px; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; background: var(--panel); border: 2px solid var(--jade); border-radius: 22px; padding: 6px 16px; font-weight: 900; font-size: 15px; color: var(--ink); box-shadow: 0 6px 20px rgba(0,0,0,.5); animation: jade-in .2s ease-out; white-space: nowrap; }
+.jade-shell .jade-tag-hint { border-color: rgba(31,154,106,.5); font-size: 13px; padding: 4px 12px; opacity: .85; pointer-events: none; }
+.jade-shell .jade-tag-prompt kbd, .jade-shell .jade-tag-hint kbd { background: var(--good); }
+.jade-shell .jade-gear { position: absolute; right: 12px; bottom: 12px; background: var(--panel); border: 2px solid var(--gold); border-radius: 16px; padding: 6px 10px 6px; color: var(--ink); min-width: 210px; z-index: 3; }
+.jade-shell .jade-gear.off { opacity: .6; }
+.jade-shell .jade-gear-who { font-size: 12px; font-weight: 900; color: var(--muted); margin-bottom: 4px; }
+.jade-shell .jade-gear-slots { display: flex; gap: 6px; }
+.jade-shell .jade-gear-slot { position: relative; display: flex; align-items: center; gap: 4px; background: var(--panel2); border: 2px solid rgba(242,193,78,.25); border-radius: 12px; padding: 4px 8px 4px 4px; color: var(--ink); min-width: 96px; cursor: pointer; }
+.jade-shell .jade-gear-slot.on { border-color: var(--gold); box-shadow: 0 0 10px rgba(242,193,78,.35); }
+.jade-shell .jade-gear-slot kbd { position: absolute; top: -8px; left: -6px; }
+.jade-shell .jade-gear-slot .ammo { font-weight: 900; font-size: 14px; }
+.jade-shell .jade-gear-slot .ammo small { color: var(--muted); font-size: 12px; }
+.jade-shell .jade-gear-slot .empty { color: var(--muted); font-size: 12px; padding: 12px 6px; }
+.jade-shell .jade-gear-reload { height: 5px; background: rgba(255,255,255,.12); border-radius: 3px; margin-top: 5px; overflow: hidden; }
+.jade-shell .jade-gear-reload b { display: block; height: 100%; background: var(--good); }
+.jade-shell .jade-gear-keys { font-size: 11px; font-weight: 800; color: var(--muted); margin-top: 4px; text-align: center; }
+.jade-shell .jade-panel.gear { width: min(760px, calc(100vw - 24px)); }
+.jade-shell .jade-gear-head { display: flex; gap: 12px; align-items: center; }
+.jade-shell .jade-gear-head p { margin: 0; font-weight: 800; }
+.jade-shell .jade-gear-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.jade-shell .jade-gear-item { display: flex; gap: 10px; align-items: center; background: var(--panel2); border-radius: 12px; padding: 6px 8px; border: 2px solid transparent; }
+.jade-shell .jade-gear-item.own { border-color: rgba(31,154,106,.6); }
+.jade-shell .jade-gear-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.jade-shell .jade-gear-info small { color: var(--muted); font-size: 12px; }
+.jade-shell .jade-gear-info .jade-gear-stat { color: var(--good); }
+.jade-shell .jade-gear-btns { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; max-width: 300px; }
+.jade-shell .jade-gear-btns .jade-btn { padding: 4px 10px; font-size: 13px; }
+.jade-shell .jade-p2 { position: absolute; right: 240px; bottom: 12px; background: var(--panel); border: 2px solid #7fb6ff; border-radius: 12px; padding: 4px 10px; font-size: 12px; font-weight: 800; color: var(--ink); pointer-events: none; }
