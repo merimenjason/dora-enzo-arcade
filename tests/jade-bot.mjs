@@ -5,8 +5,9 @@
 //   perfect - reaction 200 ms, no noise: the scripted solver that tests/jade.mjs uses to prove every job completable
 //   casual  - 200-300 ms, wobbly steering, sloppy timing, Assist on (Easy): must finish each job within its retries
 //             at least 90% of the time
-//   normal  - the same player on Normal with Assist off: reported only
-// `--quick` (npm test) runs fewer seeds. Exports `playMission` and `missionSave` for tests/jade.mjs.
+//   normal  - a steadier player on Normal with Assist off, and the same player on Hard: first-try and finish rates
+//             are reported (Normal should fail a fair share of first tries but still finish)
+// `--quick` (npm test) runs fewer seeds; `--diff` runs only the Normal and Hard players. Exports `playMission` and `missionSave` for tests/jade.mjs.
 import assert from 'node:assert/strict';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
 import { MISSIONS, MISSION } from '../.checks/jade-story.js';
@@ -39,8 +40,8 @@ const dist = (a, b, c, d) => Math.hypot(a - c, b - d);
 /** play one mission start to finish; returns { won, time, fails } */
 export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
   const P = { perfect: { lo: 0.2, hi: 0.2, wob: 0, slop: 0 }, casual: { lo: 0.2, hi: 0.3, wob: 0.28, slop: 1 }, normal: { lo: 0.2, hi: 0.3, wob: 0.22, slop: 0.8 } }[profile];
-  const assist = profile !== 'normal';
-  const s = missionSave(id, { seed: 3 + seed, assist, diff: assist ? 'easy' : 'normal' });
+  const assist = o.assist ?? profile !== 'normal';
+  const s = missionSave(id, { seed: 3 + seed, assist, diff: o.diff ?? (assist ? 'easy' : 'normal') });
   const w = new World(s, 100 + seed);
   w.quiet = true;
   const R = rng(seed * 991 + id.length * 31 + id.charCodeAt(1) * 7);
@@ -272,15 +273,22 @@ if (MAIN) {
   const ids = only ? [only] : MISSIONS.map(m => m.id);
   const seeds = QUICK ? 3 : 10;
   const rows = [];
-  let worst = 1;
+  let worst = 1; const tot = { nw: 0, nf: 0, hw: 0, hf: 0, n: 0 };
   for (const id of ids) {
-    let cw = 0, nw = 0, ct = 0, first = 0, nFirst = 0;
-    for (let k = 0; k < seeds; k++) { const r = playMission(id, 'casual', k); if (r.won) { cw++; ct += r.time; if (!r.fails) first++; } else if (process.argv.includes('-v')) console.log('  casual lost', id, k, r); }
+    let cw = 0, nw = 0, ct = 0, first = 0, nFirst = 0, hw = 0, hFirst = 0;
+    const DIFF_ONLY = process.argv.includes('--diff');
+    for (let k = 0; k < (DIFF_ONLY ? 0 : seeds); k++) { const r = playMission(id, 'casual', k); if (r.won) { cw++; ct += r.time; if (!r.fails) first++; } else if (process.argv.includes('-v')) console.log('  casual lost', id, k, r); }
     for (let k = 0; k < (QUICK ? 1 : 4); k++) { const r = playMission(id, 'normal', 50 + k, { assist: false, diff: 'normal' }); if (r.won) { nw++; if (!r.fails) nFirst++; } else if (process.argv.includes('-v')) console.log('  normal lost', id, k, r); }
-    const rate = cw / seeds; worst = Math.min(worst, rate);
-    rows.push(`${id.padEnd(4)} ${MISSION[id].title.padEnd(26)} casual ${String(Math.round(rate * 100)).padStart(3)}%  avg ${cw ? Math.round(ct / cw) : '-'}s  first try ${first}/${seeds}   Normal no-assist ${nw}/${QUICK ? 1 : 4} (first try ${nFirst})`);
+    const ns = QUICK ? 1 : 4;
+    for (let k = 0; k < ns; k++) { const r = playMission(id, 'normal', 80 + k, { assist: false, diff: 'hard' }); if (r.won) { hw++; if (!r.fails) hFirst++; } else if (process.argv.includes('-v')) console.log('  hard lost', id, k, r); }
+    const pr = DIFF_ONLY ? { won: false, time: 0 } : playMission(id, 'perfect', 1);
+    tot.nw += nw; tot.nf += nFirst; tot.hw += hw; tot.hf += hFirst; tot.n += ns;
+    const rate = DIFF_ONLY ? 1 : cw / seeds; worst = Math.min(worst, rate);
+    rows.push(`${id.padEnd(4)} ${MISSION[id].title.padEnd(26)} casual ${String(Math.round(rate * 100)).padStart(3)}%  avg ${cw ? Math.round(ct / cw) : '-'}s  first try ${first}/${seeds}   Normal ${nw}/${ns} (first ${nFirst})   Hard ${hw}/${ns} (first ${hFirst})   perfect ${pr.won ? Math.round(pr.time) + 's' : 'LOST'}`);
     console.log(rows[rows.length - 1]);
   }
+  const pc = (a, b) => `${Math.round(100 * a / Math.max(1, b))}%`;
+  console.log(`Normal: finished ${pc(tot.nw, tot.n)}, first try ${pc(tot.nf, tot.n)}   Hard: finished ${pc(tot.hw, tot.n)}, first try ${pc(tot.hf, tot.n)}`);
   assert.ok(worst >= 0.9, `the casual bot finishes every job at least 90% of the time on Assist (worst ${Math.round(worst * 100)}%)`);
   console.log('jade bots ok');
 }

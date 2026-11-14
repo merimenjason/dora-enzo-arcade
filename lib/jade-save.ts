@@ -1,16 +1,18 @@
 // Jade Street: the save (localStorage 'jade-street-v2'), its repair and migration, progression (districts opened by the
 // story, reputation tiers, safe houses, outfits, garage upgrades and paint), trophies and the stats screen.
-// Version 1 saves (the pre-release shape: `money`, `done` as a comma string, one shared rep number) migrate forward.
+// Version 1 saves (the pre-release shape: `money`, `done` as a comma string, one shared rep number) and version 2 saves
+// (the first release, 'jade-street-v2': no medals, story flags, lessons, messages or radio) migrate forward.
 import { DISTRICTS, type District } from './jade-city.js';
 import { emptyCargo, GOODS, type Cargo, type Tip } from './jade-trade.js';
 import { MISSIONS, CHAPTER_OPENS } from './jade-story.js';
 import { hashStr, rng } from './jade-rng.js';
+import { asDiff, type Diff } from './jade-diff.js';
 
-export const SAVE_KEY = 'jade-street-v2';
-export const OLD_KEYS = ['jade-street-v1'];
-export const SAVE_VERSION = 2;
+export const SAVE_KEY = 'jade-street-v3';
+export const OLD_KEYS = ['jade-street-v2', 'jade-street-v1'];
+export const SAVE_VERSION = 3;
 export type Hero = 'dora' | 'enzo';
-export type Settings = { sound: boolean; music: boolean; assist: boolean; diff: 'easy' | 'normal'; touch: 'auto' | 'on' | 'off'; shake: boolean };
+export type Settings = { sound: boolean; music: boolean; assist: boolean; diff: Diff; touch: 'auto' | 'on' | 'off'; shake: boolean };
 export type Stats = { walked: number; driven: number; boated: number; missions: number; gigs: number; trades: number; profit: number; caught: number; escapes: number; bumps: number; cats: number; murals: number; maxHeat: number; playTime: number; minis: number };
 export type Save = {
   v: number; seed: number; hero: Hero; started: boolean;
@@ -21,7 +23,21 @@ export type Save = {
   cats: number[]; murals: string[]; trophies: string[]; tips: Tip[];
   safe: string; best: Record<string, number>; daily: string; dailyDone: string[];
   stats: Stats; settings: Settings;
+  /** best result per story job: medal tier (0 finished, 1 bronze, 2 silver, 3 gold), best time, plays */
+  medals: Record<string, Medal>;
+  /** the storybook: the opening seen, the last chapter card shown, the ending seen */
+  story: { intro: boolean; ch: number; ending: boolean };
+  /** onboarding lessons already learned */
+  learned: string[];
+  /** texts on the phone */
+  msgs: Msg[];
+  /** the ride radio station (index into the ride's stations; -1 off) */
+  radio: number;
+  /** street events helped with */
+  helped: number;
 };
+export type Medal = { m: number; t: number; plays: number };
+export type Msg = { id: number; from: string; text: string; night: number; read: boolean };
 export const OUTFITS: { id: string; name: string; hero: Hero | 'both'; price: number; need: { d: District; rep: number } | null; hue: number }[] = [
   { id: 'classic', name: 'Street classic', hero: 'both', price: 0, need: null, hue: 0 },
   { id: 'midnight', name: 'Midnight blue', hero: 'both', price: 120, need: { d: 'market', rep: 20 }, hue: 1 },
@@ -51,6 +67,7 @@ export function newSave(seed = 1): Save {
     cats: [], murals: [], trophies: [], tips: [], safe: 'safe-market', best: {}, daily: '', dailyDone: [],
     stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0 },
     settings: { sound: true, music: true, assist: true, diff: 'easy', touch: 'auto', shake: true },
+    medals: {}, story: { intro: false, ch: 0, ending: false }, learned: [], msgs: [], radio: 0, helped: 0,
   };
 }
 
@@ -64,6 +81,7 @@ export function loadSave(raw: string | null): Save {
   try { o = raw ? JSON.parse(raw) : null; } catch { o = null; }
   if (!o || typeof o !== 'object') return newSave(1 + (hashStr(String(raw)) % 100000));
   if ((o.v ?? 1) === 1) o = migrate1(o);
+  if (o.v === 2) o = migrate2(o);
   const s = newSave(Math.floor(num(o.seed, 1, 1, 2 ** 31)));
   s.hero = o.hero === 'enzo' ? 'enzo' : 'dora';
   s.started = o.started === true;
@@ -91,9 +109,28 @@ export function loadSave(raw: string | null): Save {
   const st = (o.stats ?? {}) as Record<string, unknown>;
   for (const k of Object.keys(s.stats) as (keyof Stats)[]) s.stats[k] = num(st[k], 0, 0, 1e12);
   const se = (o.settings ?? {}) as Record<string, unknown>;
-  s.settings = { sound: se.sound !== false, music: se.music !== false, assist: se.assist !== false, diff: se.diff === 'normal' ? 'normal' : 'easy', touch: se.touch === 'on' || se.touch === 'off' ? se.touch : 'auto', shake: se.shake !== false };
+  s.settings = { sound: se.sound !== false, music: se.music !== false, assist: se.assist !== false, diff: asDiff(se.diff), touch: se.touch === 'on' || se.touch === 'off' ? se.touch : 'auto', shake: se.shake !== false };
+  const md = (o.medals ?? {}) as Record<string, unknown>;
+  for (const [k, v] of Object.entries(md)) if (ids.has(k) && v && typeof v === 'object') { const x = v as Record<string, unknown>; s.medals[k] = { m: Math.floor(num(x.m, 0, 0, 3)), t: num(x.t, 0, 0, 1e6), plays: Math.floor(num(x.plays, 1, 1, 1e6)) }; }
+  const sy = (o.story ?? {}) as Record<string, unknown>;
+  s.story = { intro: sy.intro === true, ch: Math.floor(num(sy.ch, 0, 0, 6)), ending: sy.ending === true };
+  s.learned = strs(o.learned);
+  s.msgs = Array.isArray(o.msgs) ? (o.msgs as Msg[]).filter(m => m && typeof m.text === 'string' && typeof m.from === 'string').slice(-30).map((m, i) => ({ id: Number.isInteger(m.id) ? m.id : i + 1, from: m.from, text: m.text, night: num(m.night, 1, 1, 1e5), read: m.read === true })) : [];
+  s.radio = Math.floor(num(o.radio, 0, -1, 9)); s.helped = Math.floor(num(o.helped, 0, 0, 1e6));
   return s;
 }
+/** version 2 (the first release): everything kept; a player who has started already saw the opening, has the
+ * chapter cards up to their chapter, knows the controls once they have finished a job, and finished jobs show as
+ * played without a medal (best times weren't kept) */
+function migrate2(o: Record<string, unknown>): Record<string, unknown> {
+  const done = Array.isArray(o.done) ? (o.done as unknown[]).filter((x): x is string => typeof x === 'string') : [];
+  const ch = Math.min(6, 1 + [1, 2, 3, 4, 5].filter(c => done.includes(`m${c * 5}`)).length);
+  const medals: Record<string, Medal> = {};
+  for (const id of done) medals[id] = { m: 0, t: 0, plays: 1 };
+  return { ...o, v: 3, medals, story: { intro: o.started === true, ch: o.started === true ? ch : 0, ending: done.includes('m25') }, learned: done.length ? [...LESSON_IDS] : [], msgs: [], radio: 0, helped: 0 };
+}
+/** the onboarding lessons (lib/jade-tutor.ts) */
+export const LESSON_IDS = ['move', 'run', 'dash', 'hop', 'ride', 'boost', 'honk', 'map', 'market', 'heat', 'hide', 'sneak'] as const;
 /** version 1 (pre-release): { v:1, money, done: "m1,m2", rep: number, hero, cats: number } */
 function migrate1(o: Record<string, unknown>): Record<string, unknown> {
   const done = typeof o.done === 'string' ? (o.done as string).split(',').filter(Boolean) : o.done;
