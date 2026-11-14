@@ -253,7 +253,7 @@ export const TROPHIES: { id: string; name: string; desc: string; test: (s: Save)
   { id: 'chefs', name: 'Kitchen Hand', desc: 'Play the mini-games 10 times.', test: s => s.stats.minis >= 10 },
   { id: 'stake', name: 'Stallholder', desc: 'Buy a stake in a business.', test: s => Object.values(s.biz).some(b => b.lvl > 0) },
   { id: 'magnate', name: 'Quarter Magnate', desc: 'Own all six businesses at their grandest.', test: s => BIZ.every(b => s.biz[b.id]?.lvl >= 3) },
-  { id: 'defender', name: 'Till Keeper', desc: 'Chase off three magpie raids.', test: s => Object.values(s.biz).reduce((a, b) => a + b.defended, 0) >= 3 },
+  { id: 'defender', name: 'Till Keeper', desc: 'Chase off three crow raids.', test: s => Object.values(s.biz).reduce((a, b) => a + b.defended, 0) >= 3 },
 ];
 /** award any trophies newly earned; returns their names */
 export function checkTrophies(s: Save): string[] {

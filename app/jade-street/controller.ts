@@ -292,7 +292,7 @@ export class Play {
       fakePad: (pad: { axes: number[]; buttons: boolean[] } | null) => { this.fakePad = pad; },
       aimAt: (tx: number, ty: number) => { const c = this.scene.cam; this.mouse.x = (tx * T - (c.x - c.w / 2)) * c.k; this.mouse.y = (ty * T - (c.y - c.h / 2)) * c.k; this.mouse.seen = performance.now(); },
       wardens: () => this.w.wardens.map(wd => ({ x: wd.b.x / T, y: wd.b.y / T, stun: wd.stun, hit: wd.hitKind ?? null })),
-      magpieNear: () => { const w = this.w, e = w.street; if (!e?.b) return false; e.b.x = w.mate.x + 140; e.b.y = w.mate.y; e.x = e.b.x; e.y = e.b.y; return true; },
+      crowNear: () => { const w = this.w, e = w.street; if (!e?.b) return false; e.b.x = w.mate.x + 140; e.b.y = w.mate.y; e.x = e.b.x; e.y = e.b.y; return true; },
       toStall: () => { const [x, y] = stallPos(this.w); this.w.placePlayer(x, y + T * 0.8); this.bump(); },
       gates: () => this.w.gates.size,
       frame: (mate = false) => duoFrame(mate ? this.w.mate : this.w.p, this.w.time).f,

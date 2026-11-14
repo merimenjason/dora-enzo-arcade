@@ -14,8 +14,8 @@ type Panel = { img: string; title: string; text: string; focus?: string };
 const OPENING: Panel[] = [
   { img: 'bg-story-1', title: 'The night before the Lantern Festival', focus: '50% 40%',
     text: 'The Night Market glows red and gold. Every stall is hung with lanterns, and the whole quarter is getting ready for tomorrow’s Lantern Festival.' },
-  { img: 'bg-story-2', title: 'The Magpie Crew strike', focus: '50% 35%',
-    text: `While the city sleeps, Madame Glint and her Magpie Crew swoop into the temple and snatch the quarter’s five lucky heirlooms: the ${HEIRLOOMS.map(h => h.name).join(', ').replace(/, ([^,]*)$/, ' and $1')}.` },
+  { img: 'bg-story-2', title: 'The Kaypoh Crows strike', focus: '50% 35%',
+    text: `While the city sleeps, Madame Glint and her Kaypoh Crows swoop into the temple and snatch the quarter’s five lucky heirlooms: the ${HEIRLOOMS.map(h => h.name).join(', ').replace(/, ([^,]*)$/, ' and $1')}.` },
   { img: 'bg-story-3', title: 'An empty altar', focus: '50% 40%',
     text: 'By morning the altar is bare. No heirlooms, no festival, no luck for the year ahead. The neighbours gather, worried and whispering.' },
   { img: 'bg-story-4', title: 'Dora and Enzo take the case', focus: '50% 45%',
@@ -27,7 +27,7 @@ const ENDING: Panel[] = [
   { img: 'bg-end-2', title: 'The Lantern Festival', focus: '50% 30%',
     text: 'At last the festival begins. Hundreds of sky lanterns drift up over the rooftops, carrying everyone’s wishes for the year ahead.' },
   { img: 'bg-end-3', title: 'Fireworks over Jade Street', focus: '50% 35%',
-    text: 'Fireworks burst gold, red and violet over the harbour. Even the Magpie Crew get a front-row seat, on their best behaviour.' },
+    text: 'Fireworks burst gold, red and violet over the harbour. Even the Kaypoh Crows get a front-row seat, on their best behaviour.' },
 ];
 
 /** keyboard and timing for a run of painted panels */

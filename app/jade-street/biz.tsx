@@ -46,7 +46,7 @@ export function BizPanel({ play, id, snd, onClose, onSave }: { play: Play; id: B
             {st.lvl > 0 && st.lvl < 3 && <Btn kind="jade" testid="biz-up" disabled={s.cash < up} onClick={() => done(w.upgradeBiz(id), `Upgraded! The ${b.name} looks grander and takes more.`)}>Upgrade to level {st.lvl + 1} for {fmt(up)} coins</Btn>}
             {st.lvl > 0 && <Btn kind="gold" testid="biz-collect" disabled={st.bank < 1} onClick={() => { const n = w.collectBiz(id); done(null, `You pocket ${n} coins.`); }}>Collect the takings</Btn>}
           </div>
-          <p className="small">The till holds about three nights of takings. Magpies sometimes raid a full till: you’ll get a text. Collect here or at any safe house.</p>
+          <p className="small">The till holds about three nights of takings. Crows sometimes raid a full till: you’ll get a text. Collect here or at any safe house.</p>
         </div>
       </div>
     </div>

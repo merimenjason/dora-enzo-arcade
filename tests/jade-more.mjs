@@ -1,7 +1,7 @@
 // Jade Street engine tests, third pass (run by tests/jade.mjs): every job's ways to fail, each shown on screen as a
 // timer or meter before it bites; the chase set pieces (triggers, telegraphs, hits, checkpoints); Madame Glint's three
 // phases (decoys, falling signs, the float and the leap); businesses (income maths, the till, history, buying,
-// upgrading, collecting) and magpie raids (won and lost); the v2 → v4 and v3 → v4 save migrations with a real v3 save;
+// upgrading, collecting) and crow raids (won and lost); the v2 → v4 and v3 → v4 save migrations with a real v3 save;
 // the new paintings; and a painted portrait for the mood of every line of dialogue.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -196,7 +196,7 @@ test('business balance: an after-story goal, not a shortcut: a fully grown empir
   assert.ok(spend > 15000, `owning everything costs ${spend}`); assert.ok(spend / nightly > 6 && spend / nightly < 20, `pays back in ${(spend / nightly).toFixed(1)} nights`);
   assert.ok(nightly < 3000, `a night's takings (${nightly}) stay below a good trading night`);
 });
-test('magpie raids: a text and a defend job; idle and they escape (losing part of the till), catch them and it is safe', () => {
+test('crow raids: a text and a defend job; idle and they escape (losing part of the till), catch them and it is safe', () => {
   const s = newSave(8); s.done = MISSIONS.map(m => m.id); s.rep.market = 40; s.cash = 5000; const w = new World(s, 8); w.quiet = true;
   buyBiz(s, 'noodle', [...w.open]); s.biz.noodle.bank = 200;
   let raids = 0; for (let night = 1; night <= 40; night++) { s.night = night; if (raidCheck(w, 230, 250) || raidCheck(w, 470, 490)) raids++; }
@@ -206,7 +206,7 @@ test('magpie raids: a text and a defend job; idle and they escape (losing part o
   let started = false; for (let night = 1; night < 60 && !started; night++) { s.night = night; s.clock = 239; w.raidWait = null; w.clock(2); if (w.raidWait) { w.step(NO_INPUT, DT); started = w.run?.m.id === 'raid-noodle'; } }
   assert.ok(started, 'a raid job starts'); assert.ok(s.msgs.some(m => /raiding/.test(m.text ?? m.msg ?? JSON.stringify(m))), 'with a text');
   // lose: stand still, they get away; quitting loses 40% of the till
-  const run = w.run; run.enter(1); idle(w, 30); assert.match(w.failed?.reason ?? '', /magpies/);
+  const run = w.run; run.enter(1); idle(w, 30); assert.match(w.failed?.reason ?? '', /crows/);
   const bank = s.biz.noodle.bank; w.quitJob(); assert.equal(s.biz.noodle.bank, bank - Math.floor(bank * 0.4)); assert.equal(s.biz.noodle.raids, 1);
   // win: dash into each one
   w.startMission(raidMission(w, 'noodle'), { key: 'raid:noodle', reward: 40, d: 'market' }); w.talk = null; const r2 = w.run; r2.enter(1);

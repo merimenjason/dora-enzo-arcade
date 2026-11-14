@@ -1,7 +1,7 @@
 // Jade Street: the jobs that need both heroes, and what gadgets do to the people in a job. New steps: `post` (send
 // the partner somewhere: to wait, to hold, to guard), `switch` (take over the other hero), `hold` (the partner holds
 // a lever while you go through the gate it opens), `boost` (lift the partner onto a roof), `bag` (knock a loot bag
-// out of a magpie's claws). Older steps learn new tricks: a chase can end with a double pounce, a passenger's grab
+// out of a crow's claws). Older steps learn new tricks: a chase can end with a double pounce, a passenger's grab
 // or a net; a tail and a rooftop race hand over to the partner; escorts come at you from both flanks; the container
 // yard's office shutter needs holding open; a window lookout can be painted over or distracted; Glint's float only
 // swings under the flags while the partner hauls the bunting rope. Every one of them can be done without gadgets.
@@ -70,7 +70,7 @@ export function teamGates(run: Run, gates: Set<number>) {
 /** the second player takes over in a switch step by becoming the lead */
 function switchLead(run: Run) { const w = run.w; const a = w.p; w.p = w.mate; w.mate = a; w.s.hero = w.p.who; w.fx.push({ t: 'switch', name: w.p.who }); }
 
-// ── the magpie with the loot bag: it circles, swoops low now and then; knock the bag loose
+// ── the crow with the loot bag: it circles, swoops low now and then; knock the bag loose
 function bagStep(run: Run, st: St<'bag'>, dt: number) {
   const w = run.w, a = run.actors.find(x => x.kind === 'bagbird'); if (!a) return;
   const p = w.p, pb = p.ride ? p.ride.b : p.b;
@@ -79,18 +79,18 @@ function bagStep(run: Run, st: St<'bag'>, dt: number) {
   if (a.stun > 0) { a.stun -= dt; a.b.x += Math.cos(a.b.h) * 60 * dt; return; }
   // circle over the spot; every few seconds swoop down low toward you for a moment
   if ((a.extra ?? 0) > 0) { a.extra = (a.extra ?? 0) - dt; if ((a.extra ?? 0) <= 0) a.look = w.assist ? 4.2 : 5.2; }
-  else if (a.look <= 0) { a.extra = w.assist ? 2.2 : 1.6; w.fx.push({ t: 'swoop', x: a.b.x, y: a.b.y }); run.warn('The magpie swoops low! Pounce or dash into it now!'); }
+  else if (a.look <= 0) { a.extra = w.assist ? 2.2 : 1.6; w.fx.push({ t: 'swoop', x: a.b.x, y: a.b.y }); run.warn('The crow swoops low! Pounce or dash into it now!'); }
   const low = (a.extra ?? 0) > 0;
   const ang = a.t * 0.9, R = 150;
   const gx = low ? pb.x : cx + Math.cos(ang) * R, gy = low ? pb.y - 10 : cy + Math.sin(ang) * R * 0.7;
   const dx = gx - a.b.x, dy = gy - a.b.y, l = Math.hypot(dx, dy) || 1, sp = low ? 170 : 150;
   a.b.h = Math.atan2(dy, dx); a.b.x += dx / l * Math.min(l, sp * dt); a.b.y += dy / l * Math.min(l, sp * dt);
-  // a low magpie can be caught: a dash, a hop, a ride at speed, or the partner's pounce
+  // a low crow can be caught: a dash, a hop, a ride at speed, or the partner's pounce
   const d = dist(a.b.x, a.b.y, pb.x, pb.y);
   const hitting = p.ride ? pb.speed > 90 : (p.dashT > 0 || p.hopT > 0);
   const mateHit = w.mate.ai.mode === 'pounce' && dist(a.b.x, a.b.y, w.mate.b.x, w.mate.b.y) < 40;
   if (low && ((d < 40 + (w.assist ? 16 : 0) && hitting) || mateHit)) dropBag(run, a);
-  if (run.timer !== null && run.timer < 10 && !run.warning) run.warn('The magpie is about to fly off with the bag!');
+  if (run.timer !== null && run.timer < 10 && !run.warning) run.warn('The crow is about to fly off with the bag!');
   run.label = low ? 'It’s low: pounce, dash or hop into it!' : st.label;
 }
 export function dropBag(run: Run, a: Actor) {

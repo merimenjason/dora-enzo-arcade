@@ -1,7 +1,7 @@
 // Jade Street drawing for the duo and the gadgets: both heroes (the one you play and the partner), the passenger on
 // the back seat, the tag-team and firing poses, shots in flight (a lobbed popper arcs), splats and soapy puddles,
 // supply crates, splattered awnings, netted carts, painted wardens, the job props the two of you work with (levers,
-// the canal lock, the yard shutter, the bunting pulley, boost crates, the window lookout, the loot-bag magpie), Tock's
+// the canal lock, the yard shutter, the bunting pulley, boost crates, the window lookout, the loot-bag crow), Tock's
 // stall, the aim line and the ring under the hero you control. All painted sprites; code adds only light and shadow.
 import { T } from './jade-city.js';
 import { VEHICLES } from './jade-move.js';
@@ -143,7 +143,7 @@ function windowLookout(sc: Scene, x: X, w: World, a: Actor) {
   if (!blind && !((a.stare ?? 0) > 0)) sc.beam(x, a.b.x, a.b.y + 30, a.b.h, 360, 0.62);
   if ((a.stare ?? 0) > 0) sc.stars(x, a.b.x, a.b.y - 40);
 }
-/** overhead: shots in flight (a popper arcs), the loot-bag magpie, nets over carts */
+/** overhead: shots in flight (a popper arcs), the loot-bag crow, nets over carts */
 export function gearOver(sc: Scene, x: X, w: World, vis: Vis) {
   for (const s of w.shots) if (vis(s.x, s.y)) {
     const def = GADGETS[s.g];

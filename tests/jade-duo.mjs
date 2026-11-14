@@ -1,7 +1,7 @@
 // Jade Street engine tests, fourth pass (run by tests/jade-more.mjs): both heroes in the world. The partner follows
 // over long random walks in every district and is never stuck or lost; switching heroes (on foot, on a shared ride,
 // with a posted partner); the passenger seat and hiding together; every tag-team move (boost, haul, pounce, distract,
-// grab, hold); the jobs that need both, with a forced failure for each; every gadget's effect (magpies dizzy and drop
+// grab, hold); the jobs that need both, with a forced failure for each; every gadget's effect (crows dizzy and drop
 // loot, wardens stunned with heat, townsfolk and stall awnings splattered, soap puddles, bursts that scatter a flock,
 // nets on a getaway cart); ammo, reloads, crates and Tock's stall; two players and the leash; save v5 migration from
 // v2, v3 and v4 with the gadgets the story gave; and the new paintings.
@@ -100,13 +100,13 @@ test('tag-team moves: boost onto a roof, haul the partner up, pounce together, d
   // haul
   assert.equal(tagOption(w)?.kind, 'haul'); steps(w, 1, { ...NO_INPUT, tag: true }); assert.equal(w.p.act?.n, 'haul'); steps(w, 70); assert.ok(w.mate.roof, 'hauled up');
   assert.ok(BOOSTS.length >= 6);
-  // pounce on the street magpie
+  // pounce on the street crow
   const w2 = world({ seed: 8 }); w2.placePlayer(20 * T + 32, 47 * T + 32); steps(w2, 20);
-  let e = null; for (let k = 0; k < 20 && !e; k++) { e = spawn(w2, 'magpie'); if (!e) w2.placePlayer(w2.p.x + T * 3, w2.p.y); }
-  assert.ok(e, 'a magpie event'); w2.street = e; e.b.x = w2.mate.x + 150; e.b.y = w2.mate.y;
+  let e = null; for (let k = 0; k < 20 && !e; k++) { e = spawn(w2, 'crow'); if (!e) w2.placePlayer(w2.p.x + T * 3, w2.p.y); }
+  assert.ok(e, 'a crow event'); w2.street = e; e.b.x = w2.mate.x + 150; e.b.y = w2.mate.y;
   assert.equal(tagOption(w2)?.kind, 'pounce'); steps(w2, 1, { ...NO_INPUT, tag: true }); assert.equal(w2.mate.ai.mode, 'pounce');
   let caught = false; for (let i = 0; i < 120 && !caught; i++) { w2.step(NO_INPUT, DT); caught = !!e.caught || w2.street !== e; }
-  assert.ok(caught, 'the partner pounces on the magpie');
+  assert.ok(caught, 'the partner pounces on the crow');
   // distract
   const w3 = world(); w3.s.settings.assist = false; w3.placePlayer(20 * T + 32, 47 * T + 32); addHeat(w3, 1.2, 'test'); steps(w3, 150);
   assert.ok(w3.wardens.length, 'a warden'); const wd = w3.wardens[0]; wd.b.x = w3.mate.x + 260; wd.b.y = w3.mate.y;
@@ -145,12 +145,12 @@ test('jobs stay finishable with no gadgets on Assist', () => {
   for (const m of MISSIONS) { const r = playMission(m.id, 'casual', 2, { gadgets: false }); assert.ok(r.won, `${m.id} with no gadgets: ${JSON.stringify(r)}`); }
 });
 
-test('gadgets: a hit magpie gets dizzy and drops its loot; each toy has its own effect on wardens, townsfolk and stalls', () => {
+test('gadgets: a hit crow gets dizzy and drops its loot; each toy has its own effect on wardens, townsfolk and stalls', () => {
   for (const g of GADGET_IDS) {
     const w = world(); w.placePlayer(20 * T + 32, 47 * T + 32); stocked(w); steps(w, 5);
     w.s.cargo.jade = 2; const m = { x: w.p.x + 150, y: w.p.y, h: Math.PI, t: 0, out: false, took: 1, wing: 0, good: 'jade' };
     assert.ok(hit(w, { kind: 'snatcher', x: m.x, y: m.y, r: 20, fair: true, ref: m }, g, 1, m.x, m.y), `${g} hits`);
-    assert.ok(m.out && m.dizzy > 0, `${g}: the magpie is dizzy`); assert.equal(w.s.cargo.jade, 3, `${g}: the loot drops back`);
+    assert.ok(m.out && m.dizzy > 0, `${g}: the crow is dizzy`); assert.equal(w.s.cargo.jade, 3, `${g}: the loot drops back`);
   }
   // wardens: stunned, with a hit pose, and more heat
   const stun = {};
