@@ -274,11 +274,11 @@ if (MAIN) {
   const rows = [];
   let worst = 1;
   for (const id of ids) {
-    let cw = 0, nw = 0, ct = 0;
-    for (let k = 0; k < seeds; k++) { const r = playMission(id, 'casual', k); if (r.won) { cw++; ct += r.time; } else if (process.argv.includes('-v')) console.log('  casual lost', id, k, r); }
-    for (let k = 0; k < (QUICK ? 1 : 4); k++) { const r = playMission(id, 'normal', 50 + k); if (r.won) nw++; else if (process.argv.includes('-v')) console.log('  normal lost', id, k, r); }
+    let cw = 0, nw = 0, ct = 0, first = 0, nFirst = 0;
+    for (let k = 0; k < seeds; k++) { const r = playMission(id, 'casual', k); if (r.won) { cw++; ct += r.time; if (!r.fails) first++; } else if (process.argv.includes('-v')) console.log('  casual lost', id, k, r); }
+    for (let k = 0; k < (QUICK ? 1 : 4); k++) { const r = playMission(id, 'normal', 50 + k, { assist: false, diff: 'normal' }); if (r.won) { nw++; if (!r.fails) nFirst++; } else if (process.argv.includes('-v')) console.log('  normal lost', id, k, r); }
     const rate = cw / seeds; worst = Math.min(worst, rate);
-    rows.push(`${id.padEnd(4)} ${MISSION[id].title.padEnd(26)} casual ${String(Math.round(rate * 100)).padStart(3)}%  avg ${cw ? Math.round(ct / cw) : '-'}s   normal ${nw}/${QUICK ? 1 : 4}`);
+    rows.push(`${id.padEnd(4)} ${MISSION[id].title.padEnd(26)} casual ${String(Math.round(rate * 100)).padStart(3)}%  avg ${cw ? Math.round(ct / cw) : '-'}s  first try ${first}/${seeds}   Normal no-assist ${nw}/${QUICK ? 1 : 4} (first try ${nFirst})`);
     console.log(rows[rows.length - 1]);
   }
   assert.ok(worst >= 0.9, `the casual bot finishes every job at least 90% of the time on Assist (worst ${Math.round(worst * 100)}%)`);

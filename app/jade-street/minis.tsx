@@ -61,6 +61,13 @@ export function MiniGame({ kind, level, assist, seed, snd, onDone }: { kind: str
     return () => { cancelAnimationFrame(raf); ro.disconnect(); };
   }, [kind, snd]);
 
+  // for the browser tests: the running mini-game, and where a point of the painted board sits on screen
+  useEffect(() => {
+    const hook = window as unknown as Record<string, unknown>;
+    hook.__jadeMini = { g: () => game.current, at: (ix: number, iy: number) => { const r = cv.current!.getBoundingClientRect(); const dpr = Math.min(2, window.devicePixelRatio || 1); const v = view.current; return [r.left + (ix * v.s + v.ox) / dpr, r.top + (iy * v.s + v.oy) / dpr]; } };
+    return () => { delete hook.__jadeMini; };
+  }, []);
+
   // input
   useEffect(() => {
     const g = game.current;
