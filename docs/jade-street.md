@@ -111,19 +111,20 @@ Codex paints every sprite, building, ride, person, prop, ground texture, mini-ga
 - `npm run test:e2e:jade`: 394 checks of every player action at 1280×800 (keys and mouse), 390×844 and 844×390 (real multi-touch through the DevTools protocol, so the stick stays held while another finger taps Dash or Honk), with sideways-scroll and contrast checks on every screen and a failure on any page or console error. `SHOTS=<dir>` saves the screens.
 - `npm run play:jade`: plays two minutes in each district at 1280×800 with keys, rides, five-lantern heat, rain half the time with a busker's crowd gathered, and constant jumps to fresh streets, and fails under 55 fps.
 
-### Results (14-11-2026)
+### Results (14-11-2026, second pass)
 
-Bots, ten seeds per job: the casual bot finished all 25 jobs every time (100%), first time without a retry in 242 of 250 runs; its slowest first-try jobs were Container Maze (6/10) and Neon Night Race (7/10). The Normal, Assist-off bot finished all 25 in 4 of 4 seeds, but needed a retry in every seed on Container Maze and Neon Night Race and in two of four on Hot Goods. Average job length 18 to 87 s for the bot.
+Bots: the casual bot on Assist and Easy finished every job at least 90% of the time over ten seeds (24 jobs at 100%, The Pearl Lantern at 90%), and 241 of 250 runs first time. With Assist off, over four seeds per job: Normal finished 100% of jobs and 89% first time; Hard finished 97% and 85% first time. The failed first tries are concentrated in a few jobs: on Normal, Container Maze (0 of 4 first time), Neon Night Race and Glint's Last Flight (1 of 4 each) and Wobbly Cargo (3 of 4); on Hard, also Hot Goods (1 of 4) and Wedding Cake Weather (3 of 4), and Neon Night Race finished only 2 of 4 runs and Glint's Last Flight 3 of 4. A harder set (timers × 0.52, red lights 0.8) was tried and dropped: it made the finale finishable in only 1 of 4 Normal runs.
 
-Frame rate on this Mac in headless Chromium at 1280×800, two minutes per district: Night Market 59.8 fps average (lowest half-second 56.0), Temple Hill 60.0 (56.0), Canal Quarter 60.0 (58.0), Docks 60.0 (58.0), Arcade Strip 59.9 (56.1). No page errors.
+Frame rate on this Mac in headless Chromium at 1280×800, two minutes per district, half of it in rain with a busker's crowd: Night Market 59.7 fps average (lowest half-second 48.0), Temple Hill 59.9 (56.1), Canal Quarter 60.0 (58.0), Docks 60.0 (58.0), Arcade Strip 59.8 (45.0). No page errors.
+
+Browser suite: 217 checks at 1280×800, 213 at 390×844 and 213 at 844×390, all passing.
 
 ## What is weakest
 
-- **It is easy.** The bots, even with Assist off on Normal, finish every job. A player who knows action games will find the wardens forgiving and the jobs short; the challenge is in the stealth and racing jobs and in trading well, not in surviving. Normal could be harder.
-- **The city reads as a grid.** The streets are laid out on blocks with alleys between; it is legible and every road is reachable, but it is less organic than the mock-ups.
-- **The painted buildings are seen from above at a slant**, and some neighbours repeat. The camera is higher and more top-down than the play mock-up, as asked, which shows more roof than shopfront.
-- **Traffic is simple.** Cars follow lanes and stop for what is ahead; there are no traffic lights or turns signalled, and pedestrians wander rather than go anywhere.
+- **Difficulty is lumpy, not smooth.** Normal is harder than before but most jobs still have no way to fail other than being caught, so the first-try failures (11% on Normal) cluster in a handful of stealth, race and chase jobs rather than being spread across the story. Pushing timers further made the finale near-impossible before it made the easy jobs harder.
+- **The bots run red lights.** Red-light heat on Normal and Hard is part of what makes the bots fail; a careful human who waits at lights avoids it, so humans may find Normal a little easier than the numbers suggest.
+- **The city is still built on a grid underneath.** Landmarks, plazas and curving paths break it up, but the roads themselves are straight.
+- **The painted buildings are seen from above at a slant**, which shows more roof than shopfront.
 - **Phones are untested on real hardware.** The touch suite runs in Chromium's phone emulation, and the frame-rate run is desktop only.
 - **The contrast check skips text over paintings or the canvas**, where no single backing colour exists; those labels rely on their dark plates and outlines.
-- **No pins during a job**: the map shows the job's route instead.
-- **Sound is synthesized**: three WebAudio tunes (menu, street, chase) and effects, no recorded audio or voices.
+- **Sound is synthesized**: WebAudio tunes, radio stations, ambience and effects; no recorded audio or voices.

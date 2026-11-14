@@ -343,7 +343,7 @@ test('every painted asset exists, every frame sits inside its atlas and none is 
   for (const n of need) assert.ok(FRAMES[n], `sprite ${n}`);
   // the painted screens: loading, the five stalls, the storybook, chapter cards, the ending, the map paper and frame
   const plain = ['loading', 'map-paper', ...['market', 'temple', 'canal', 'docks', 'arcade'].map(d => 'stall-' + d), ...[1, 2, 3, 4].map(i => 'story-' + i), ...[1, 2, 3, 4, 5].map(i => 'chapter-' + i), ...[1, 2, 3].map(i => 'end-' + i)];
-  for (const n of plain) { assert.ok(PLAIN['bg-' + n], `painting bg-${n}`); assert.ok(readFileSync(new URL(`bg-${n}.webp`, dir)).length > 20000, `bg-${n} is not empty`); }
+  for (const n of plain) { assert.ok(PLAIN['bg-' + n], `painting bg-${n}`); assert.ok(readFileSync(new URL(`bg-${n}.webp`, dir)).length > (n === 'map-paper' ? 8000 : 20000), `bg-${n} is not empty`); } // plain parchment packs small
   for (const n of ['ui-map-frame', 'ui-lantern-on', 'ui-lantern-off']) assert.ok(readFileSync(new URL(`${n}.webp`, dir)).length > 1000, n);
 });
 
