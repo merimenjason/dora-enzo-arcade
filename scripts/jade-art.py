@@ -222,6 +222,18 @@ for n, size in (('title', (1536, 1024)), ('mg-lock', (1280, 853)), ('mg-wire', (
     im = Image.open(p).convert('RGB').resize(size, Image.LANCZOS)
     im.save(OUT / f'bg-{n}.webp', 'WEBP', quality=80, method=6); PLAIN['bg-' + n] = size
 
+# the minimap frame: the painted ring with its jade centre cut away
+if 'ui-ring' in FRAMES:
+    import numpy as _np
+    r = _np.array(FRAMES['ui-ring']).copy(); hh, ww = r.shape[:2]
+    yy, xx = _np.mgrid[0:hh, 0:ww]; rad = _np.hypot(xx - ww / 2, yy - hh / 2)
+    r[rad < min(ww, hh) * 0.40, 3] = 0
+    FRAMES['ui-ring-hollow'] = Image.fromarray(r)
+
+# ── stand-alone UI pieces for CSS border-image (plaques and round buttons stretch with their painted ends intact)
+for n in ('ui-plaque-jade', 'ui-plaque-red', 'ui-btn-jade', 'ui-btn-red', 'ui-ring'):
+    if n in FRAMES: FRAMES[n].save(OUT / f'{n}.webp', 'WEBP', quality=88, method=6)
+
 # ── atlases
 GROUPS = [('dora', lambda n: n.startswith('dora-')), ('enzo', lambda n: n.startswith('enzo-')),
           ('city', lambda n: n.startswith(('shop-', 'roof-', 'flat-', 'bld-', 'lm-'))),

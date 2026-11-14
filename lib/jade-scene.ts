@@ -54,7 +54,7 @@ const DORA_TO = [0, 75, -100, 30, 140, 170], ENZO_TO = [0, 220, 40, 175, 270, 30
 /** the image and source rect for a frame, recoloured for outfits (hero jackets) and paint (rides) */
 function src(name: string, variant = ''): [HTMLImageElement | HTMLCanvasElement, number, number, number, number] | null {
   const f = FRAMES[name] as Frame | undefined; if (!f) return null;
-  const im = images[ATLASES[f[0]]]; if (!im) return null;
+  const im = images[ATLASES[f[0]]] as HTMLImageElement | undefined; if (!im || !im.complete || !im.naturalWidth) return null;
   if (!variant) return [im, f[1], f[2], f[3], f[4]];
   const key = name + '|' + variant;
   let c = recolored.get(key);
@@ -72,7 +72,7 @@ export function spr(x: CanvasRenderingContext2D, name: string, px: number, py: n
   const s = src(name, o.variant); if (!s) return false;
   const [im, sx, sy, sw, sh] = s;
   let w = sw / 2, h = sh / 2;
-  if (o.w) { h = h * o.w / w; w = o.w; } else if (o.h) { w = w * o.h / h; h = o.h; }
+  if (o.w && o.h) { w = o.w; h = o.h; } else if (o.w) { h = h * o.w / w; w = o.w; } else if (o.h) { w = w * o.h / h; h = o.h; }
   w *= o.sx ?? 1;
   const a = o.anchor ?? 'bottom';
   const rot = o.rot ?? 0;
@@ -143,7 +143,9 @@ export class Scene {
   private patterns: Record<string, CanvasPattern | null> = {};
   pattern(x: CanvasRenderingContext2D, n: string) {
     if (this.patterns[n] !== undefined) return this.patterns[n];
-    const im = images['tex-' + n]; this.patterns[n] = im && (im as HTMLImageElement).complete !== false ? x.createPattern(im, 'repeat') : null; return this.patterns[n];
+    const im = images['tex-' + n] as HTMLImageElement | undefined;
+    if (!im || !im.complete || !im.naturalWidth) return null; // not loaded yet: don't cache the miss
+    this.patterns[n] = x.createPattern(im, 'repeat'); return this.patterns[n];
   }
   chunk(cx: number, cy: number, s: number): HTMLCanvasElement {
     const key = cx + cy * 1000; const old = this.chunks.get(key);
@@ -170,6 +172,9 @@ export class Scene {
       const p = this.pattern(x, n);
       if (p) { p.setTransform(new DOMMatrix([0.5, 0, 0, 0.5, 0, 0])); x.fillStyle = p; } else x.fillStyle = '#2a2440';
       x.beginPath(); for (let i = 0; i < a.length; i += 2) x.rect(a[i] * T - 0.5, a[i + 1] * T - 0.5, T + 1, T + 1); x.fill();
+      // night: the painted ground sits a little darker so lamps, signs and people read on top of it
+      const dim = n === 'canal' || n === 'sea' ? 0.12 : n === 'walk' || n === 'plaza' || n === 'temple' ? 0.34 : 0.24;
+      x.fillStyle = `rgba(14,8,32,${dim})`; x.fill();
     }
     // kerbs: a lit edge and a soft shadow where the pavement meets the road; water edges get a stone lip
     x.lineWidth = 3;
@@ -212,16 +217,16 @@ export class Scene {
       spr(x, p.sprite, p.x, p.y + (p.solid === 'low' ? 26 : 30), { w: (p.sprite === 'lucky-circle' ? 120 : undefined), anchor: p.sprite === 'lucky-circle' ? 'center' : 'bottom' });
     }
     // buildings with a soft drop shadow
+    // buildings, each casting a soft shadow down and to the right (baked once into the chunk)
+    const k = x.getTransform().a;
+    if (!simple) { x.shadowColor = 'rgba(6,4,18,.6)'; x.shadowBlur = 16 * k; x.shadowOffsetX = 9 * k; x.shadowOffsetY = 13 * k; }
     for (const b of c.buildings) {
       if (b.x + b.w < tx0 - 1 || b.x > tx0 + nw + 1 || b.y + b.h < ty0 - 1 || b.y > ty0 + nh + 1) continue;
-      x.fillStyle = 'rgba(8,6,20,.45)'; x.fillRect(b.x * T + 10, b.y * T + 14, b.w * T, b.h * T);
-    }
-    for (const b of c.buildings) {
-      if (b.x + b.w < tx0 || b.x > tx0 + nw || b.y + b.h < ty0 || b.y > ty0 + nh) continue;
       const s2 = src(b.sprite);
       if (s2) x.drawImage(s2[0], s2[1], s2[2], s2[3], s2[4], b.x * T - 2, b.y * T - 4, b.w * T + 4, b.h * T + 6);
       else { x.fillStyle = '#5a3040'; x.fillRect(b.x * T, b.y * T, b.w * T, b.h * T); }
     }
+    x.shadowColor = 'rgba(0,0,0,0)'; x.shadowBlur = 0; x.shadowOffsetX = 0; x.shadowOffsetY = 0;
   }
 
   // ── the whole-city map (minimap and the full map screen use it)
@@ -291,7 +296,11 @@ export class Scene {
     if (p.roof) { this.roofDim(x, ox, oy, cam.w, cam.h); this.markers(x, w, 'roof'); this.hero(x, w); }
     this.markers(x, w, 'over');
     // flying and overhead things
-    for (const pr of this.c.props) if (pr.layer === 'sky' && vis(pr.x, pr.y, 200)) spr(x, pr.sprite, pr.x, pr.y, { w: pr.w, anchor: 'center', rot: pr.rot, alpha: 0.95 });
+    for (const pr of this.c.props) if (pr.layer === 'sky' && vis(pr.x, pr.y, 200)) {
+      if (pr.sprite.startsWith('lanterns')) { this.lanternString(x, pr.x, pr.y, pr.w ?? 4 * T, pr.rot ?? 0, pr.sprite.endsWith('gold')); continue; }
+      const fs = frameSize(pr.sprite); const lw = pr.w ?? fs[0];
+      spr(x, pr.sprite, pr.x, pr.y, { w: lw, anchor: 'center', rot: pr.rot, alpha: 0.95 });
+    }
     for (const m of w.snatchers) this.flyer(x, m.x, m.y, m.h, m.wing);
     if (w.run) for (const a of w.run.actors) if (a.kind === 'swoop') this.flyer(x, a.b.x, a.b.y, a.b.h + (a.stun > 0 ? this.t * 12 : 0), a.t * 9);
     this.lights(x, w, ox, oy, cam.w, cam.h);
@@ -307,6 +316,19 @@ export class Scene {
     g.addColorStop(0, 'rgba(10,6,30,0)'); g.addColorStop(1, 'rgba(10,6,30,.45)'); x.fillStyle = g; x.fillRect(0, 0, this.w, this.h);
     if (lanterns(w) >= 1) { const a = 0.08 + 0.05 * Math.sin(this.t * 6); x.fillStyle = `rgba(255,40,60,${a * lanterns(w) / 5})`; x.fillRect(0, 0, this.w, 6); x.fillRect(0, this.h - 6, this.w, 6); }
     if (this.minimap.on) this.drawMinimap(x, w);
+  }
+  /** a string of paper lanterns across the street: a sagging cable with upright painted lanterns hung along it */
+  lanternString(x: CanvasRenderingContext2D, cx: number, cy: number, len: number, rot: number, gold: boolean) {
+    const dx = Math.cos(rot) * len / 2, dy = Math.sin(rot) * len / 2;
+    const ax = cx - dx, ay = cy - dy, bx = cx + dx, by = cy + dy, sag = 26;
+    x.strokeStyle = 'rgba(40,20,20,.85)'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(ax, ay); x.quadraticCurveTo(cx + sag * 0.3, cy + sag, bx, by); x.stroke();
+    const n = Math.max(3, Math.round(len / 70));
+    for (let i = 1; i < n; i++) {
+      const t = i / n, u = 1 - t;
+      const px = u * u * ax + 2 * u * t * (cx + sag * 0.3) + t * t * bx, py = u * u * ay + 2 * u * t * (cy + sag) + t * t * by;
+      const sw = Math.sin(this.t * 1.6 + i + cx * 0.01) * 0.08;
+      spr(x, 'ui-lantern-on', px, py + 30, { h: 40, rot: sw, variant: gold ? 'paint:40' : '' });
+    }
   }
   shadow(x: CanvasRenderingContext2D, px: number, py: number, rx: number, ry: number) { x.beginPath(); x.ellipse(px, py, rx, ry, 0, 0, Math.PI * 2); x.fill(); }
 
@@ -443,7 +465,7 @@ export class Scene {
     void F_ROOF;
   }
   routeLine(x: CanvasRenderingContext2D, w: World) {
-    if (!w.assist || w.route.length < 2) return;
+    if (!(w.assist || (!w.run && w.waypoint)) || w.route.length < 2) return;
     x.save(); x.lineCap = 'round'; x.lineJoin = 'round';
     x.beginPath(); x.moveTo(w.p.x, w.p.y); for (let i = 1; i < w.route.length; i++) x.lineTo(w.route[i][0], w.route[i][1]);
     x.strokeStyle = 'rgba(255,214,90,.25)'; x.lineWidth = 18; x.stroke();
@@ -546,7 +568,7 @@ export class Scene {
     for (const [d, rx, ry, rw, rh] of [['temple', 0, 0, 46, 30], ['canal', 46, 0, 29, 62], ['arcade', 75, 0, 45, 62], ['docks', 46, 62, 74, 30]] as [District, number, number, number, number][]) {
       if (w.open.has(d)) continue; const [a, b] = toM(rx * T, ry * T); x.fillStyle = 'rgba(40,30,70,.82)'; x.fillRect(a, b, rw * T * k * sc, rh * T * k * sc);
     }
-    if (w.route.length > 1 && w.assist) { x.strokeStyle = 'rgba(255,220,100,.95)'; x.lineWidth = 3; x.beginPath(); const [a0, b0] = toM(w.p.x, w.p.y); x.moveTo(a0, b0); for (const [rx, ry] of w.route.slice(1)) { const [a, b] = toM(rx, ry); x.lineTo(a, b); } x.stroke(); }
+    if (w.route.length > 1 && (w.assist || (!w.run && w.waypoint))) { x.strokeStyle = 'rgba(255,220,100,.95)'; x.lineWidth = 3; x.beginPath(); const [a0, b0] = toM(w.p.x, w.p.y); x.moveTo(a0, b0); for (const [rx, ry] of w.route.slice(1)) { const [a, b] = toM(rx, ry); x.lineTo(a, b); } x.stroke(); }
     const dot = (wx: number, wy: number, col: string, r = 4) => { let [a, b] = toM(wx, wy); const d = Math.hypot(a - m.x, b - m.y); if (d > m.r - 6) { a = m.x + (a - m.x) / d * (m.r - 6); b = m.y + (b - m.y) / d * (m.r - 6); } x.fillStyle = col; x.beginPath(); x.arc(a, b, r, 0, Math.PI * 2); x.fill(); x.strokeStyle = 'rgba(0,0,0,.6)'; x.lineWidth = 1.5; x.stroke(); };
     for (const [, pl] of Object.entries(this.c.places)) if (w.open.has(pl.d)) { if (pl.kind === 'market') dot(pl.x, pl.y, '#ffd25a', 3); else if (pl.kind === 'safe') dot(pl.x, pl.y, '#3ed6a4', 3); }
     if (!w.run) for (const n of nearList(w)) if (n.kind === 'mission') dot(n.x, n.y, '#ffb020', 5);
@@ -556,7 +578,7 @@ export class Scene {
     // the player arrow
     x.save(); x.translate(m.x, m.y); x.rotate((w.p.ride ? w.p.ride.b.h : w.p.b.h) + Math.PI / 2);
     x.fillStyle = '#fff'; x.strokeStyle = '#c0392b'; x.lineWidth = 2; x.beginPath(); x.moveTo(0, -8); x.lineTo(6, 6); x.lineTo(0, 3); x.lineTo(-6, 6); x.closePath(); x.fill(); x.stroke(); x.restore();
-    spr(x, 'ui-ring', m.x, m.y, { w: m.r * 2 + 26, anchor: 'center' });
+    spr(x, 'ui-ring-hollow', m.x, m.y, { w: m.r * 2.46, anchor: 'center' });
   }
   /** effects for world events */
   consume(w: World, fx: ReturnType<World['drain']>) {
