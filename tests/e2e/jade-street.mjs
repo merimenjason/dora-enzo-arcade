@@ -9,11 +9,12 @@
 // upgrade and a paint), and the failure card (Retry and Quit job). On every screen it checks for sideways scroll and
 // for text that is too faint to read against its own backing. Fails on any failed check, page error or console
 // error. The third pass (voices, the typewriter, moods, set pieces, Glint's phases, businesses, raids, Reduce shake and
-// the new animations) is in ./jade-street-3.mjs, and the fourth (both heroes, tag-team moves, gadgets, Tock's stall, two players) in ./jade-street-4.mjs; both run at 1280×800 only, since Jade Street is a desktop game. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves a screenshot of every screen.
+// the new animations) is in ./jade-street-3.mjs, the fourth (both heroes, tag-team moves, gadgets, Tock's stall, two players) in ./jade-street-4.mjs, and the fifth (Singapore: the hawker centre, chope, fines, kopi, the gangs, festivals, side jobs, accessibility, player 1's gamepad) in ./jade-street-5.mjs; all three run at 1280×800 only, since Jade Street is a desktop game. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves a screenshot of every screen.
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { third } from './jade-street-3.mjs';
 import { fourth } from './jade-street-4.mjs';
+import { fifth } from './jade-street-5.mjs';
 const require = createRequire(import.meta.url);
 let chromium;
 try { ({ chromium } = require('playwright')); } catch { ({ chromium } = createRequire(process.cwd() + '/')('playwright')); }
@@ -116,7 +117,7 @@ async function viewport(name, w, h, touch) {
   check(await p.waitForSelector('main[data-screen="title"]', { timeout: 60000 }).then(() => true, () => false), `${name}: Try again loads the rest and opens the title`);
   await p.unroute('**/art/jade-street/atlas-props.webp*'); blocking = false;
   await p.waitForSelector('main[data-ready="true"]', { timeout: 60000 });
-  await W(() => { localStorage.removeItem('jade-street-v3'); localStorage.removeItem('jade-street-v2'); }); await p.reload(); await p.waitForSelector('main[data-screen="title"]', { timeout: 60000 });
+  await W(() => { for (const k of ['jade-street-v6', 'jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2']) localStorage.removeItem(k); }); await p.reload(); await p.waitForSelector('main[data-screen="title"]', { timeout: 60000 });
 
   // ── the title: a new player, the hero pick
   check(await screen() === 'title', `${name}: opens on the title`);
@@ -133,6 +134,8 @@ async function viewport(name, w, h, touch) {
   check(await appear('jade-chapter-card'), `${name}: the chapter card follows`); await wait(300); await look('chapter card');
   await press('jade-story-skip'); check(!(await exists('jade-chapter-card')) && !(await W(() => window.__jade.play.paused)), `${name}: Skip closes the chapter card and the city runs`);
   check(await W(() => window.__jade.world().s.story.intro), `${name}: the opening is remembered`);
+  // PASS=5 runs only the fifth pass's checks after the opening (a quick loop while working on it)
+  if (process.env.PASS === '5') { await fifth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   await until(() => window.__jade?.world().s.hero === 'enzo');
   check((await W(() => window.__jade.world().s.hero)) === 'enzo', `${name}: Enzo is out tonight`);
   check(await W(() => window.__jade.world().s.settings.assist), `${name}: Assist is on by default`);
@@ -400,6 +403,7 @@ async function viewport(name, w, h, touch) {
   // the third pass's features are checked at 1280×800 only: Jade Street is a desktop game (owner, 14-11-2026)
   if (!touch) await third({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
   if (!touch) await fourth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
+  if (!touch) await fifth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
   await W(() => { window.__jade.world().s.done = ['m1', 'm2']; window.__jade.world().open = new Set(['market', 'temple']); });
 
   // ── back to the title, Continue, and both answers to starting over

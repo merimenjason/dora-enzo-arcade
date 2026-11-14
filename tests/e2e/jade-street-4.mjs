@@ -30,7 +30,7 @@ export async function fourth(h) {
   check(await W(() => window.__jade.world().s.hero) === d2.who, `${name}: the save follows the switch`);
   await press('duo-switch'); await wait(300); check((await duo()).who === who0, `${name}: clicking the partner's portrait switches back`);
 
-  // ── boost onto a roof, then haul the partner up (an Clarke Quay wall at tile 93,39)
+  // ── boost onto a roof, then haul the partner up (a Clarke Quay wall at tile 93,39)
   await W(() => { window.__jade.teleport(93, 39); const w = window.__jade.world(); w.p.b.x = 93 * 64 + 32; w.p.b.y = 39 * 64 + 32; w.mate.b.x = w.p.b.x - 40; w.mate.b.y = w.p.b.y + 20; });
   await wait(200);
   check(await until(() => window.__jade.duo().tag === 'boost', null, 3000), `${name}: F offers a boost at the wall`);
@@ -50,8 +50,14 @@ export async function fourth(h) {
 
   // ── distract a warden
   await W(() => { window.__jade.teleportTo('safe-market'); window.__jade.heat(1.4); }); await wait(2500);
-  await W(() => { const w = window.__jade.world(); const wd = w.wardens[0]; if (wd) { wd.b.x = w.mate.x + 260; wd.b.y = w.mate.y; } });
-  check(await until(() => window.__jade.duo().tag === 'distract', null, 4000), `${name}: F offers a distraction with a warden near`);
+  // (a warden may take a moment to ride in, so keep putting the first one beside the partner until F offers it)
+  let offered = false;
+  for (let tr = 0; tr < 8 && !offered; tr++) {
+    await W(() => { const w = window.__jade.world(); if (w.heat < 1) window.__jade.heat(1.4); w.ticket = null; const wd = w.wardens[0]; if (wd) { wd.b.x = w.mate.x + 260; wd.b.y = w.mate.y; } });
+    offered = await until(() => window.__jade.duo().tag === 'distract', null, 600);
+  }
+  const whyD = offered ? '' : await W(() => { const w = window.__jade.world(); return ` (${JSON.stringify({ tag: window.__jade.duo().tag, wardens: w.wardens.length, heat: w.heat, ui: w.ui ?? null, ride: !!w.p.ride })})`; });
+  check(offered, `${name}: F offers a distraction with a warden near${whyD}`);
   await key('f', 200); check(await until(() => window.__jade.world().wardens.some(w => (w.stare ?? 0) > 0), null, 5000), `${name}: the warden stops to stare at the partner`);
   await look('distract');
   await W(() => { const w = window.__jade.world(); w.heat = 0; w.wardens = []; });
@@ -79,7 +85,7 @@ export async function fourth(h) {
   await key('1'); check(await W(() => window.__jade.world().s.gear.slot[window.__jade.world().p.who]) === 0, `${name}: 1 picks the first`);
   await p.mouse.wheel(0, 120); await wait(150); check(await W(() => window.__jade.world().s.gear.slot[window.__jade.world().p.who]) === 1, `${name}: the wheel swaps gadgets`);
   await key('1'); await W(() => { window.__jade.world().s.gear.clip.sling = 1; });
-  await key('x', 60); check(await W(() => window.__jade.world().p.reloadT > 0), `${name}: X reloads`); check(await exists('gear-reload'), `${name}: the reload bar fills`);
+  await key('x', 60); check(await W(() => window.__jade.world().p.reloadT > 0), `${name}: X reloads`); check(await exists('gear-reload') || await until(() => !!document.querySelector('[data-testid="gear-reload"]'), null, 1500), `${name}: the reload bar fills`);
   const an = await W(() => window.__jade.frame()); check(an.includes('reload'), `${name}: the reload pose (${an})`);
   await wait(1200);
   await press('gear-slot-1'); await wait(150); check(await W(() => window.__jade.world().s.gear.slot[window.__jade.world().p.who]) === 1, `${name}: clicking a gadget slot picks it`);
@@ -163,16 +169,16 @@ export async function fourth(h) {
   check(await W(() => window.__jade.world().mate.b.x - window.__jade.world().p.b.x) < 1100, `${name}: the leash holds`);
   await look('two players');
   await press('pause-btn'); await press('two-players'); await wait(200); check(!(await W(() => window.__jade.world().two)), `${name}: Player 2 leaves`);
-  // a fake gamepad: Start joins, the stick moves, A dashes, Start leaves
+  // a fake gamepad: Back joins, the stick moves, A dashes, Back leaves (Start pauses)
   const pad = (axes, buttons) => W(([a, b]) => window.__jade.fakePad({ axes: a, buttons: b }), [axes, buttons]);
   const B = (i) => Array.from({ length: 16 }, (_, k) => k === i);
-  await pad([0, 0], B(9)); await wait(150); await pad([0, 0], B(-1)); await wait(100);
-  check(await W(() => window.__jade.world().two), `${name}: a gamepad's Start joins`);
+  await pad([0, 0], B(8)); await wait(150); await pad([0, 0], B(-1)); await wait(100);
+  check(await W(() => window.__jade.world().two), `${name}: a gamepad's Back joins`);
   const g0 = await duo(); await pad([0, 1], B(-1)); await wait(900); const g1 = await duo();
   check(g1.my - g0.my > 1, `${name}: the gamepad stick moves player 2 (${(g1.my - g0.my).toFixed(1)} tiles)`);
   await pad([0, 0], B(0)); await wait(80); check(await W(() => window.__jade.world().mate.dashT > 0 || window.__jade.world().mate.anim === 'dash'), `${name}: A dashes`); await pad([0, 0], B(-1)); await wait(100);
-  await pad([0, 0], B(9)); await wait(150); await pad([0, 0], B(-1)); await wait(100);
-  check(!(await W(() => window.__jade.world().two)), `${name}: Start again leaves`);
+  await pad([0, 0], B(8)); await wait(150); await pad([0, 0], B(-1)); await wait(100);
+  check(!(await W(() => window.__jade.world().two)), `${name}: Back again leaves`);
   await W(() => window.__jade.fakePad(null));
   // the old pass's keys: the run hint never sits there once you've run, and the festival toast never shows mid-job
   check(!(await W(() => document.querySelector('[data-lesson="run"]'))), `${name}: no run hint hanging about`);

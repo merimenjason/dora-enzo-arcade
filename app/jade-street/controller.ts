@@ -14,6 +14,7 @@ import { spawn, EVENT_KINDS, type EventKind } from '@/lib/jade-events';
 import { nearestFree } from '@/lib/jade-nav';
 import { city, T, districtAt } from '@/lib/jade-city';
 import { translate, PAD } from '@/lib/jade-keys';
+import { startGang, type GangKind } from '@/lib/jade-gangs';
 import { dailyEvent, dayKey, openDistricts, chapterOf, type Save } from '@/lib/jade-save';
 import { MISSION, MISSIONS } from '@/lib/jade-story';
 import type { JadeSound } from './sound';
@@ -319,6 +320,13 @@ export class Play {
       jumpTo: (id: string) => { const i = MISSIONS.findIndex(m => m.id === id); this.w.s.done = MISSIONS.slice(0, Math.max(0, i)).map(m => m.id); this.w.s.story.intro = true; this.w.s.story.ch = chapterOf(this.w.s); this.w.quitJob(); this.w.open = new Set(openDistricts(this.w.s)); this.w.fieldCache.clear(); const pl = this.w.c.places[MISSION[id].at]; this.w.placePlayer(pl.x, pl.y + T * 0.8); this.scene.map = null; },
       step: (n = 60, inp?: Partial<Input>) => { for (let i = 0; i < n; i++) this.w.step({ ...NO_INPUT, ...inp }, DT); },
       heat: (n: number) => { this.w.heat = n; },
+      /** the Singapore streets: start a gang's street event here, a festival tonight, a storm flash; a ticket warden
+       * strolling beside you */
+      gang: (k: GangKind) => { this.w.gangs.ev = null; return !!startGang(this.w, k); },
+      fest: (f: 'getai' | 'lion' | 'lantern' | null, clock?: number) => { const sg = this.w.sg; sg.fest = f; sg.kids = f === 'lantern' ? [0, 1, 2, 3].map(i => ({ x: 0, y: 0, i })) : []; sg.once.clear(); if (clock !== undefined) this.w.s.clock = clock; },
+      warden: (dx = 120, dy = 0) => { const w = this.w; w.patrols = [{ id: w.nextId++, b: { x: w.p.x + dx, y: w.p.y + dy, h: Math.PI, speed: 0, r: 13, len: 0, cls: 'walk' }, goal: [w.p.x + dx, w.p.y + dy], pace: 0, write: 0, spot: 0 }]; w.fineCd.clear(); },
+      /** start any job now (a story job or a Hawker Tales side job), next to its contact */
+      job: (id: string) => { const m = MISSION[id]; if (!m) return null; this.w.quitJob(); this.w.talk = null; this.w.ui = null; const pl = this.w.c.places[m.at]; if (pl) this.w.placePlayer(pl.x, pl.y + T * 0.6); this.w.startMission(m); this.w.talk = null; return this.w.run?.cur?.t ?? null; },
       cash: (n: number) => { this.w.s.cash = n; },
       district: (tx: number, ty: number) => districtAt(tx, ty),
       /** street events, rain, the ending and the festival for the browser tests */

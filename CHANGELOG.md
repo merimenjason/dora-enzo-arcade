@@ -6,16 +6,26 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Jade Street**: Singapore. The quarter is now Singapore's Chinatown with its real street names: a hawker centre with five stalls to buy and tables to chope with a tissue packet (beat the aunties in the dinner rush), Uncle Teo's kopi counter where you make drinks in kopi lingo (with a glossary on the phone), shady five-foot ways that hide you from wardens, an HDB void deck with a chess uncle and a mama shop, a wet market, bumboats, Mr Ong the karang guni man, road-toll gantries and a sprinkle of Singlish from the townsfolk.
+- **Jade Street**: the fine city. Ticket wardens fine jaywalking, littering, gum, feeding pigeons and speeding, and cameras catch red lights and durians on transport; pay with E or run and the wardens give chase. Repeat offences cost more, Easy gives warnings first, and the phone lists every fine.
+- **Jade Street**: two rival gangs, the Riverside Romp otters and the Bukit Bunch macaques, with their own turf, bosses and street events; bubbles make otters play, bananas and sticky rice make macaques sit and munch.
+- **Jade Street**: thunderstorms, and a festival each night: a getai, a lion dance that closes Smith Street, or a lantern walk to join.
+- **Jade Street**: seven Hawker Tales side jobs, among them a durian run that leaves a smell trail, the kueh recipe, a getai rescue and the stolen wok.
+- **Jade Street**: gamepad play for player 1 (including the menus and mini-games), remappable keys, a larger-text option and colour-blind-safe shape markers.
 - **Jade Street**: both chinchillas together. The hero you are not playing follows you through the city, rides pillion or on the bench, hides with you and cheers; Tab or a click on their portrait switches heroes, and the one you leave keeps doing their part. F does a tag-team move (a boost onto a roof and hauling the other up, a double pounce, distracting a warden, a grab from the back seat, holding a lever or a rope), each with its own painted animation, and thirteen jobs are reworked to need both of you, with both heroes speaking in the dialogue.
 - **Jade Street**: festival gadgets. A slingshot, paint squirter, popper box, net launcher, bubble blower and confetti cannon, given in the story or bought at Tock's toy stall in the Night Market with ammo and tune-ups; each hero carries two. Aim with the mouse and click to fire (Assist helps the aim). Magpies get dizzy and drop their loot, carts wobble and nets tangle getaways, flocks scatter, lookouts are blinded by paint, wardens slip on soap; hitting wardens or townsfolk, or splattering a stall, brings heat. Red supply crates around the quarter refill the satchels.
 - **Jade Street**: a second player on the same keyboard or a gamepad, joined from the pause menu or with Start; the camera frames both and a leash keeps you on one screen.
 
 ### Changed
 
+- **Jade Street**: the magpies are now house crows, the Kaypoh Crows, and Madame Glint still leads them.
+- **Jade Street**: Container Maze's lookouts pause at each end of their beat and are slower to spot you.
+- **Jade Street**: a second player now joins with Back on a gamepad (Start pauses); the save moves to version 6 and keeps everything.
 - **Jade Street**: the save moves to version 5; older saves keep everything and get the gadgets the story would have given them.
 
 ### Fixed
 
+- **Jade Street**: The Silver Koi's counter now reads "Bumps 0/2 · then net it", matching what the job asks; cars no longer appear on a crossing's approach and run the red.
 - **Jade Street**: the "push all the way to run" lesson reads differently on a keyboard and no longer lingers, and the ending, credits and their festival message play only the first time Glint is beaten (a replay of the last job no longer brings them back, and the message never shows during a job).
 
 ## 14-11-2026

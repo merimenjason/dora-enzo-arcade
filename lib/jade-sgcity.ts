@@ -89,8 +89,14 @@ export function sgCity(c: City) {
   // ── road-toll gantries over the main roads (one lane pair each way, the whole road width)
   const gantries: Gantry[] = [];
   for (const [axis, tx, ty] of [['h', 50, 30], ['v', 42, 55], ['h', 96, 62], ['v', 90, 38], ['h', 20, 46], ['v', 10, 20]] as ['h' | 'v', number, number][]) {
-    gantries.push({ axis, tx, ty, x: axis === 'h' ? px(tx) : (tx + 2) * T, y: axis === 'h' ? (ty + 2) * T : px(ty) });
-    c.props.push({ x: axis === 'h' ? px(tx) : (tx + 2) * T, y: axis === 'h' ? (ty + 2) * T : px(ty), sprite: 'gantry', r: 0, solid: 'none', layer: 'sky', w: 4.4 * T, rot: axis === 'h' ? Math.PI / 2 : 0 });
+    // span the asphalt actually laid there (the road band's outer rows are kerb and pavement)
+    let lo = 1e9, hi = -1;
+    for (let k = -3; k <= 7; k++) { const x = axis === 'h' ? tx : tx + k, y = axis === 'h' ? ty + k : ty; if (c.ground[at(x, y)] === G.ROAD) { lo = Math.min(lo, k); hi = Math.max(hi, k); } }
+    if (hi < 0) { lo = 0; hi = 3; }
+    const mid = ((axis === 'h' ? ty : tx) + (lo + hi + 1) / 2) * T, span = (hi - lo + 1) * T + 36;
+    const gx = axis === 'h' ? px(tx) : mid, gy = axis === 'h' ? mid : px(ty);
+    gantries.push({ axis, tx, ty, x: gx, y: gy });
+    c.props.push({ x: gx, y: gy, sprite: 'gantry', r: 0, solid: 'none', layer: 'sky', w: span, rot: axis === 'h' ? Math.PI / 2 : 0 });
   }
 
   // ── pigeons, bins, gum, junk and the karang guni round
