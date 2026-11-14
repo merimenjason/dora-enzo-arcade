@@ -166,6 +166,14 @@ Codex paints every sprite, building, ride, person, prop, ground texture, mini-ga
 - The fourth pass's browser checks (`tests/e2e/jade-street-4.mjs`, 1280×800 only) press every new action with a real key or click: both portraits, Tab and the portrait click, boost and haul, the pounce, the distraction, each gadget fired with the mouse (with its pose), held fire, 1, 2, the wheel, X and a slot click, a magpie and a warden hit, the passenger's grab and back-seat fire, the lock lever, Tock's stall (ammo, tune, give), the Controls page, and a second player from the pause menu on the keyboard and from a fake gamepad (Start joins and leaves).
 - `npm run play:jade`: plays two minutes in each district at 1280×800 with keys, rides, five-lantern heat, rain half the time with a busker's crowd gathered, and constant jumps to fresh streets, and fails under 55 fps.
 
+### Results (15-11-2026, fourth pass: both heroes and gadgets)
+
+Bots (now using the partner and gadgets: tag-team moves, switching, firing at magpies, carts and lookouts): the casual bot on Assist and Easy finished all 25 jobs in all ten seeds (100%), and it also finishes every job with gadgets switched off. With Assist off over eight seeds a job, Normal finished 100% and 88% first time, Hard 100% and 77% first time; no job averages more than 1.5 tries.
+
+Frame rate on this Mac in headless Chromium at 1280×800, two minutes per district, with the partner following and riding behind and a gadget fired twice a second on top of the third pass's load: 60.0 fps average in all five districts; the lowest half-second was 56.0 in the Night Market.
+
+Browser suite at 1280×800: 396 checks passed (the fourth pass adds 78), no page or console errors, every screen within the contrast check.
+
 ### Results (14-11-2026, third pass)
 
 Bots: the casual bot on Assist and Easy finished all 25 jobs in all ten seeds (100% each; 247 of 250 first time). With Assist off, over eight seeds a job, Normal finished 100% and 90% first time, with first-try failures in ten jobs (The Hundred Steps, Wedding Cake Weather, Dumpling Disguise, Wobbly Cargo, The Pearl Lantern, Container Maze, Hot Goods, The Silver Koi, Neon Night Race and Glint's Last Flight; the lowest is 5 of 8 first time) and no job above 1.5 tries on average. Hard finished 100% and 75% first time, with first-try failures in sixteen jobs; the hardest are Container Maze (1 of 8 first time, 3.6 tries on average) and Hot Goods (1 of 8, 2.5 tries). The Pearl Lantern, which failed the casual bot once in ten on the second pass, was a real bug (the thief's loot could land on the quay out of reach of the boat) and is fixed.
@@ -175,6 +183,11 @@ Frame rate on this Mac in headless Chromium at 1280×800, two minutes per distri
 Browser suite: 868 checks passed (292 at 1280×800, 288 each at 390×844 and 844×390) with no page errors, before the owner ruled Jade Street desktop-only; the third pass's checks now run at 1280×800 only, while the older phone passes still run as they were.
 
 ## What is weakest
+
+- **The partner is guided, not clever.** They follow on the flow fields and catch up out of sight when stuck or far off screen; they never pick a fight, fire a gadget or choose a tag-team move on their own. That is on purpose (direct control and predictability first), but it means the partner only helps when you press F.
+- **Two players share one screen and one keyboard well, two gamepads not at all.** Player 2 has the right side of the keyboard or one gamepad; player 1 always uses the keyboard and mouse. The gamepad was tested with a fake pad in the browser suite, not a real controller.
+- **Thirteen team jobs, not twenty-five.** The other twelve still play as before with the partner tagging along (and cheering), which is fine for deliveries and races but is a missed chance in a few.
+- **Gadgets make some jobs easier.** A net on a getaway or paint on a lookout is quicker than doing it the old way; the medals' par times were not retuned for gadgets, so golds are a little easier than on the third pass.
 
 - **Normal's failures are not spread across most jobs.** First tries fail in ten of the 25 jobs on Normal; the other fifteen (deliveries with generous timers, the tutorial jobs, side trips) are hard to fail for a steady player. Tightening them further made the easy jobs unfair for the casual bot before it made them interesting.
 - **Hard leans on two jobs.** Container Maze and Hot Goods account for most of Hard's retries; Container Maze averages 3.6 tries, a little over the three we aimed for, even with the retry easing.
