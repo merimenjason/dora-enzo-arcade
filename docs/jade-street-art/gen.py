@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""gen.py [ids...] (jobs.py, jobs2.py, then jobs3.py and jobs4.py) — paints Jade Street sheets with Codex image generation, up to 6 at once.
+"""gen.py [ids...] (jobs.py, jobs2.py, then jobs3.py, jobs4.py, jobs5.py and jobs5b.py) — paints Jade Street sheets with Codex image generation, up to 6 at once.
 Each job in jobs.py: id -> (size, refs, prompt). Skips ids whose png already exists."""
 import subprocess, sys, concurrent.futures as cf
 from pathlib import Path
@@ -9,9 +9,14 @@ from jobs import JOBS
 from jobs2 import J as JOBS2
 from jobs3 import J as JOBS3
 from jobs4 import J as JOBS4
+from jobs5 import J as JOBS5
+import jobs5b
 JOBS.update(JOBS2)
 JOBS.update(JOBS3)
 JOBS.update(JOBS4)
+JOBS.update(JOBS5)
+jobs5b.add_repaints(JOBS)
+JOBS.update(jobs5b.J)
 def run(i):
     size, refs, prompt = JOBS[i]
     if (D / f'{i}.png').exists(): return f'{i} exists'

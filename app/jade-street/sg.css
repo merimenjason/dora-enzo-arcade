@@ -1,5 +1,5 @@
 /* Jade Street: the Singapore panels (the warden's ticket, the fines list, the mama shop, the kopi counter, the lingo) */
-.jade-shell .jade-ticket { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%) rotate(-1.5deg); z-index: 5; display: flex; gap: 12px; align-items: center; max-width: min(520px, calc(100% - 32px)); background: #fff8e6; color: #2b2033; border: 3px solid #c8323a; border-top-width: 10px; border-radius: 8px; padding: 10px 16px; box-shadow: 0 10px 30px rgba(0,0,0,.5); animation: jade-in .3s ease-out; pointer-events: none; }
+.jade-shell .jade-ticket { position: absolute; left: 16px; top: 128px; transform: rotate(-1.5deg); z-index: 5; display: flex; gap: 12px; align-items: center; max-width: min(520px, calc(100% - 32px)); background: #fff8e6; color: #2b2033; border: 3px solid #c8323a; border-top-width: 10px; border-radius: 8px; padding: 10px 16px; box-shadow: 0 10px 30px rgba(0,0,0,.5); animation: jade-in .3s ease-out; pointer-events: none; }
 .jade-shell .jade-ticket > div { display: flex; flex-direction: column; gap: 2px; text-align: left; }
 .jade-shell .jade-ticket b { font: 700 16px var(--display); color: #c8323a; letter-spacing: .04em; }
 .jade-shell .jade-ticket .amt { font: 700 26px var(--display); }

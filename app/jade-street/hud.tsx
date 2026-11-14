@@ -6,7 +6,7 @@
 // this layer; the city is on the canvas underneath.
 import { useEffect, useRef } from 'react';
 import { FRAMES } from '@/lib/jade-art';
-import { districtAt, DISTRICT_NAME, T } from '@/lib/jade-city';
+import { districtAt, DISTRICT_NAME, T, streetAt } from '@/lib/jade-city';
 import { lanterns } from '@/lib/jade-heat';
 import { cargoCount } from '@/lib/jade-trade';
 import { PEOPLE, MISSION } from '@/lib/jade-story';
@@ -39,7 +39,7 @@ export function TopHud({ play, onMap, onPause }: { play: Play; onMap: () => void
             </div>
           </div>
         </div>
-        <div className="jade-where">Night {s.night} · {clockText(s.clock)} · {DISTRICT_NAME[districtAt(tx, ty)].replace(/^the /, '')}</div>
+        <div className="jade-where">Night {s.night} · {clockText(s.clock)} · {streetAt(tx, ty) ?? DISTRICT_NAME[districtAt(tx, ty)].replace(/^the /, '')}</div>
         {cargo > 0 && <div className="jade-cargo" data-testid="cargo">{GOODS.filter(g => s.cargo[g] > 0).map(g => <span key={g}><Icon name={GOOD_ICON[g]} size={18} />{s.cargo[g]}</span>)}<b className={cargo > cap ? 'over' : ''}>{cargo}/{cap}</b></div>}
       </div>
       <div className="jade-hud-right">
