@@ -34,7 +34,7 @@ function train(x: X, w: World, s: number, dir: number) {
   const isle = w.c.isle!; const car = 118;
   for (let k = 2; k >= 0; k--) {
     const [cx, cy, h] = lineAt(isle, s - dir * k * car);
-    if (s - dir * k * car < isle.lineLen[3] - 40) continue;
+    if (s - dir * k * car < isle.visFrom) continue;
     spr(x, k === 0 ? 'mrt-front' : 'mrt-mid', cx, cy, { anchor: 'center', rot: h + (dir > 0 ? Math.PI / 2 : -Math.PI / 2), w: 56 });
   }
 }
@@ -64,7 +64,7 @@ export function isleOver(sc: Scene, x: X, w: World, vis: Vis) {
   }
   // the train you race in a job
   const a = w.run?.actors.find(q => q.kind === 'train');
-  if (a && a.extra !== undefined && a.extra > isle.lineLen[3] - 40 && vis(a.b.x, a.b.y, 400)) { train(x, w, a.extra, Math.sign((a.extra2 ?? 0) - a.extra) || 1); sc.glow(x, a.b.x, a.b.y, 90, 'rgba(255,220,120,.35)'); }
+  if (a && a.extra !== undefined && a.extra > isle.visFrom && vis(a.b.x, a.b.y, 400)) { train(x, w, a.extra, Math.sign((a.extra2 ?? 0) - a.extra) || 1); sc.glow(x, a.b.x, a.b.y, 90, 'rgba(255,220,120,.35)'); }
 }
 /** a job actor in an island look: a lizard or Director Kaw on foot, the lizards' shopping trolley, the otter pups */
 export function isleActor(sc: Scene, x: X, a: Actor): boolean {

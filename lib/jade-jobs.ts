@@ -34,7 +34,7 @@ export const INTEL: Record<Intel, { what: string; gain: string }> = {
   cam: { what: 'camera wiring', gain: 'the cameras will be off' },
   safe: { what: 'safe', gain: 'one number fewer to crack' },
 };
-const GANG: Record<string, string> = { mac: 'macaques', otter: 'otters', crow: 'crows', liz: 'lizards' };
+const GANG: Record<string, string> = { mac: 'macaques', otter: 'otters', crow: 'crows', liz: 'lizards', myna: 'mynahs' };
 /** per-step scratch state (reset on entering each step) */
 export type JobState = {
   ph: number; mode: '' | 'quiet' | 'loud'; entered: boolean; div: boolean; alarm: boolean; entry: [number, number] | null; warnedLock: boolean;
@@ -49,7 +49,7 @@ const isJob = (st: Step): st is St<JobStepKind> => (JOB_STEPS as readonly string
 const k = (run: Run) => (run.assist ? 1.4 : 1) * run.w.diff.timer;
 
 // ── shared: guards that walk a beat, stop at its ends to sweep their torch, and see in a cone
-function guards(run: Run, routes: Spot[][], skin?: 'liz') {
+function guards(run: Run, routes: Spot[][], skin?: 'liz' | 'myna') {
   for (const r of routes) { const pts = r.map(s => run.spot(s)); const a = run.actor('guard', pts[0][0], pts[0][1], 'fly', pts, 46); a.lookCd = 4 + run.actors.length % 3; a.skin = skin; run.actors.push(a); }
 }
 function guardWalk(run: Run, a: Actor, dt: number, look: boolean) {
@@ -359,9 +359,9 @@ function defendStep(run: Run, st: St<'defend'>, dt: number) {
       js.queue--;
       const sneaky = js.wave >= 2 && (js.spawned % 3 === 2 || (!run.assist && js.wave >= 3 && js.spawned % 3 === 1));
       const ang = sneaky ? Math.atan2(ty - pb.y, tx - pb.x) + (k ? 0.5 : -0.5) : base + k * 2.09 + (k ? 0.3 : 0), R = sneaky ? 520 : 600;
-      const cls = st.gang === 'crow' && !sneaky ? 'fly' : 'foot';
+      const cls = (st.gang === 'crow' || st.gang === 'myna') && !sneaky ? 'fly' : 'foot';
       const [sx, sy] = cls === 'fly' ? [tx + Math.cos(ang) * R, ty + Math.sin(ang) * R] : nearestFree(w.c, 'walk', tx + Math.cos(ang) * R, ty + Math.sin(ang) * R, w.open, 8);
-      const sp = { mac: 128, otter: 112, crow: 118 }[st.gang] * (run.assist ? 0.82 : 1) * w.diff.rival * run.mercy() * (sneaky ? 0.72 : 1);
+      const sp = { mac: 128, otter: 112, crow: 118, myna: 120 }[st.gang] * (run.assist ? 0.82 : 1) * w.diff.rival * run.mercy() * (sneaky ? 0.72 : 1);
       const a = run.actor('pest', sx, sy, cls, [cls === 'fly' ? [tx, ty] : nearestFree(w.c, 'walk', tx, ty, w.open, 3)], sp);
       a.skin = st.gang === 'crow' ? undefined : st.gang; a.extra = 0; a.stareX = sx; a.stareY = sy; a.sneaky = sneaky; run.actors.push(a); js.spawned++;
       if (!sneaky && js.spawned % 2) w.fx.push({ t: st.gang === 'crow' ? 'caw' : 'job-gang' });
@@ -540,7 +540,7 @@ function trapStep(run: Run, st: St<'trap'>, dt: number) {
   if (js.queue > 0 && js.spawnT <= 0) {
     js.queue--; js.spawnT = run.assist ? 3 : 2.3;
     const cls = st.gang === 'crow' ? 'fly' : 'foot'; const path = run.path(st.path, cls);
-    const sp = { liz: 62, otter: 74, mac: 80, crow: 70 }[st.gang] * (run.assist ? 0.85 : 1) * w.diff.rival * run.mercy();
+    const sp = { liz: 62, otter: 74, mac: 80, crow: 70, myna: 74 }[st.gang] * (run.assist ? 0.85 : 1) * w.diff.rival * run.mercy();
     const a = run.actor('lured', path[0][0], path[0][1], cls, path, sp); a.skin = st.gang === 'crow' ? undefined : st.gang; a.extra = 0; run.actors.push(a);
     w.fx.push({ t: st.gang === 'crow' ? 'caw' : 'job-gang' });
   }

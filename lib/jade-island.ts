@@ -7,18 +7,20 @@
 // seam, the East Coast Parkway crosses the bay mouth on a bridge, and Chinatown's east-west roads run on into the
 // island. The MRT line (the Jade Line) runs underground from Chinatown to Raffles Place and Bayfront, then climbs onto
 // a viaduct to Toa Payoh. Real public place and road names; every company-like name is a parody. Pure data.
-import { T, W, H, OW, G, S, F_BRIDGE, F_PARK, ROADS, XWAYS, ISLE_X1, districtAt, type City, type District, type Prop } from './jade-city.js';
+import { T, W, OW, CT_H, G, S, F_BRIDGE, F_PARK, ROADS, XWAYS, ISLE_X1, districtAt, type City, type District, type Prop } from './jade-city.js';
 import { rng } from './jade-rng.js';
 
 export type Station = { id: string; name: string; x: number; y: number; d: District; s: number };
 export type Isle = {
   /** the elevated viaduct you can see (world units), and the whole line through every station (abstract, for trains) */
   rail: [number, number][]; line: [number, number][]; lineLen: number[];
+  /** how far along the line the track comes up out of the ground (trains past it are seen on the viaduct) */
+  visFrom: number;
   stations: Station[];
   /** where taxis wait for a fare */
   taxiStands: [number, number][];
   /** each gang's hideout */
-  hideouts: Record<'otter' | 'mac' | 'liz' | 'crow', [number, number]>;
+  hideouts: Record<'otter' | 'mac' | 'liz' | 'crow', [number, number]> & { myna?: [number, number] };
   /** the floating stage's walkable deck (tile rect) */
   stage: [number, number, number, number];
 };
@@ -35,7 +37,7 @@ export const ISLE_NAMES = {
 export function island(c: City) {
   const at = (x: number, y: number) => y * W + x;
   const R = rng(20261116);
-  const setT = (x: number, y: number, g: number, s: number = S.OPEN, f = 0) => { if (x < OW || y < 0 || x >= W || y >= H) return; const i = at(x, y); c.ground[i] = g; c.solid[i] = s; c.flags[i] = f; };
+  const setT = (x: number, y: number, g: number, s: number = S.OPEN, f = 0) => { if (x < OW || y < 0 || x >= W || y >= CT_H) return; const i = at(x, y); c.ground[i] = g; c.solid[i] = s; c.flags[i] = f; };
   const rect = (x0: number, y0: number, w: number, h: number, g: number, s: number = S.OPEN, f = 0) => { for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) setT(x, y, g, s, f); };
   const water = (x: number, y: number) => { const g = c.ground[at(x, y)]; return g === G.SEA || g === G.BAY || g === G.CANAL; };
   const bld = (x: number, y: number, w: number, h: number, sprite: string) => {
@@ -51,10 +53,11 @@ export function island(c: City) {
   const place = (name: string, x: number, y: number, kind: string, label?: string) => { c.places[name] = { x: px(x), y: px(y), d: districtAt(x, y), kind, name: label }; };
 
   // ── the ground: heartland concrete above the Pan Island Expressway, the bay front's granite below it
-  for (let y = 0; y < H; y++) for (let x = OW; x < W; x++) setT(x, y, y < 38 ? G.HDB : G.GRANITE);
+  for (let y = 0; y < CT_H; y++) for (let x = OW; x < W; x++) setT(x, y, y < 38 ? G.HDB : G.GRANITE);
   // the east coast and the harbour run on along the south; the bay opens into it under the East Coast Parkway
-  rect(ISLE_X1 + 1, 0, W - ISLE_X1 - 1, H, G.SEA, S.WATER);
-  rect(OW, 82, W - OW, H - 82, G.SEA, S.WATER);
+  // (lib/jade-east.ts builds Little India and Kampong Glam over the sea east of the Rochor River afterwards)
+  rect(ISLE_X1 + 1, 0, W - ISLE_X1 - 1, CT_H, G.SEA, S.WATER);
+  rect(OW, 82, W - OW, CT_H - 82, G.SEA, S.WATER);
   rect(146, 68, 48, 14, G.BAY, S.WATER);
   // the grass verges of the Central Expressway, a park strip along the heartlands' north edge
   rect(OW, 0, 2, 82, G.GRASS, S.OPEN, F_PARK); rect(126, 0, 2, 82, G.GRASS, S.OPEN, F_PARK);
@@ -68,8 +71,9 @@ export function island(c: City) {
   rect(197, 84, 7, 3, G.DOCK); rect(204, 82, 2, 3, G.PLANK);
 
   // ── roads: the kerbs, then the lanes over them so crossings join up; over water they are bridges
-  const isle = (r: typeof ROADS[number]) => r.axis === 'h' ? r.to >= OW : r.at >= OW;
-  const span = (r: typeof ROADS[number]) => r.axis === 'h' ? [Math.max(r.from, OW), r.to] : [r.from, r.to];
+  // the island's own roads end at the Rochor River (lib/jade-east.ts lays the rest)
+  const isle = (r: typeof ROADS[number]) => r.axis === 'h' ? r.to >= OW && r.at < CT_H : r.at >= OW && r.at <= ISLE_X1;
+  const span = (r: typeof ROADS[number]) => r.axis === 'h' ? [Math.max(r.from, OW), Math.min(r.to, ISLE_X1)] : [r.from, r.to];
   const xw = new Set(XWAYS.map(i => ROADS[i]));
   for (const r of ROADS) if (isle(r)) { const [a, b] = span(r); for (let s = a; s <= b; s++) for (let k = 0; k < 4; k++) {
     const x = r.axis === 'h' ? s : r.at + k, y = r.axis === 'h' ? r.at + k : s;
@@ -101,7 +105,7 @@ export function island(c: City) {
     c.decals.push({ x: r.axis === 'h' ? x * T + T / 2 : x * T, y: r.axis === 'h' ? y * T : y * T + T / 2, sprite: 'd-dash', r: 0, solid: 'none', layer: 'ground', w: T * 0.8, rot: r.axis === 'h' ? 0 : Math.PI / 2 });
   } }
   for (const r of ROADS) for (const r2 of ROADS) {
-    if (r.axis !== 'h' || r2.axis !== 'v' || r2.at < OW || xw.has(r) || xw.has(r2) || r2.at + 3 < r.from || r2.at > r.to || r.at + 3 < r2.from || r.at > r2.to) continue;
+    if (r.axis !== 'h' || r2.axis !== 'v' || r2.at < OW || r2.at > ISLE_X1 || xw.has(r) || xw.has(r2) || r2.at + 3 < r.from || r2.at > r.to || r.at + 3 < r2.from || r.at > r2.to) continue;
     if (r.from <= r2.at - 2) c.decals.push({ x: (r2.at - 0.5) * T, y: (r.at + 2) * T, sprite: 'd-zebra', r: 0, solid: 'none', layer: 'ground', w: 2 * T, rot: Math.PI / 2 });
     if (r.to >= r2.at + 5) c.decals.push({ x: (r2.at + 4.5) * T, y: (r.at + 2) * T, sprite: 'd-zebra', r: 0, solid: 'none', layer: 'ground', w: 2 * T, rot: Math.PI / 2 });
     if (r2.from <= r.at - 2) c.decals.push({ x: (r2.at + 2) * T, y: (r.at - 0.5) * T, sprite: 'd-zebra', r: 0, solid: 'none', layer: 'ground', w: 2 * T, rot: 0 });
@@ -231,6 +235,6 @@ export function island(c: City) {
     for (const pk of c.parking) if (pk.kind === 'boat' && pk.x >= OW * T) c.sg.jetties.push([pk.x, pk.y]);
   }
 
-  c.isle = { rail: [portal, bend, tp], line, lineLen, stations, taxiStands: [[px(146), px(33)], [px(150), px(60)], [px(198), px(63)], [px(cx), px(cy)]],
+  c.isle = { rail: [portal, bend, tp], line, lineLen, visFrom: lineLen[3] - 40, stations, taxiStands: [[px(146), px(33)], [px(150), px(60)], [px(198), px(63)], [px(cx), px(cy)]],
     hideouts: { otter: [px(200), px(85)], mac: [px(134), px(3)], liz: [px(130), px(32)], crow: [px(136), px(60)] }, stage: [150, 69, 157, 74] };
 }

@@ -43,7 +43,7 @@ test('a seed replays the world exactly', () => {
 });
 
 test('the city: five districts, the plan, and the counts the docs quote', () => {
-  assert.equal(W, 212); assert.equal(H, 92); assert.equal(OW, 120);
+  assert.equal(W, 280); assert.equal(H, 128); assert.equal(OW, 120);
   for (const d of DISTRICTS) assert.ok(c.places && Object.values(c.places).some(p => p.d === d), `${d} has places`);
   assert.equal(c.cats.length, 50, '50 lucky cats');
   assert.ok(c.murals.length >= 12, 'murals to restore');
@@ -219,10 +219,11 @@ test('crows snatch cargo from a slow rider and miss one who dashes', () => {
   assert.equal(w.s.cargo.jade, 2, 'dodged');
 });
 
-test('the story: 35 jobs in 6 chapters (five of five, the island’s ten), each with a contact, dialogue and a checkpoint, heirlooms at each Chinatown finale', () => {
-  assert.equal(MISSIONS.length, 35);
+test('the story: 45 jobs in 7 chapters (five of five, the island’s ten, Island Lights’ ten), each with a contact, dialogue and a checkpoint, heirlooms at each Chinatown finale', () => {
+  assert.equal(MISSIONS.length, 45);
   for (let ch = 1; ch <= 5; ch++) assert.equal(MISSIONS.filter(m => m.ch === ch).length, 5);
   assert.equal(MISSIONS.filter(m => m.ch === 6).length, 10);
+  assert.equal(MISSIONS.filter(m => m.ch === 7).length, 10);
   assert.equal(HEIRLOOMS.length, 5);
   for (const m of MISSIONS) {
     assert.ok(c.places[m.at], `${m.id} is given at a real place`);
@@ -304,7 +305,7 @@ test('the save: round trip, repair and clamping, v1 migration, garage, wardrobe 
 });
 
 test('trophies, the daily market event and the night clock', () => {
-  assert.equal(TROPHIES.length, 30);
+  assert.equal(TROPHIES.length, 35);
   const s = newSave(); s.done = ['m1', 'm2', 'm3', 'm4', 'm5']; s.cats = Array.from({ length: 10 }, (_, i) => i);
   const got = checkTrophies(s); assert.ok(got.includes('First Job') && got.includes('Jade Dragon') && got.includes('Lucky Paw'));
   assert.deepEqual(checkTrophies(s), [], 'awarded once');

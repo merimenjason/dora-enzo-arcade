@@ -5,7 +5,7 @@
 // The rules live in lib/jade-sg.ts, lib/jade-fines.ts and lib/jade-gangs.ts.
 import { mindBubble } from './jade-jobdraw.js';
 import { newMind } from './jade-aware.js';
-import { T, W } from './jade-city.js';
+import { T, W, H } from './jade-city.js';
 import { spr } from './jade-scene.js';
 import { mobSprite } from './jade-gangs.js';
 import type { World } from './jade-game.js';
@@ -21,7 +21,7 @@ export function sgGround(sc: Scene, x: X, w: World, ox: number, oy: number, cw: 
   const sg = w.sg;
   // the covered walkways: a soft band of shade along the shopfronts
   x.fillStyle = 'rgba(10,6,24,.32)';
-  const tx0 = Math.max(0, Math.floor(ox / T)), tx1 = Math.min(W - 1, Math.floor((ox + cw) / T)), ty0 = Math.max(0, Math.floor(oy / T)), ty1 = Math.min(91, Math.floor((oy + ch) / T));
+  const tx0 = Math.max(0, Math.floor(ox / T)), tx1 = Math.min(W - 1, Math.floor((ox + cw) / T)), ty0 = Math.max(0, Math.floor(oy / T)), ty1 = Math.min(H - 1, Math.floor((oy + ch) / T));
   for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) if (c.fivefoot[ty * W + tx]) x.fillRect(tx * T, ty * T, T, T * 0.72);
   const vis = (px: number, py: number) => px > ox - 80 && px < ox + cw + 80 && py > oy - 80 && py < oy + ch + 120;
   for (const i of sg.gum) { const [gx, gy] = c.gum[i]; if (vis(gx, gy)) { spr(x, 'gum', gx, gy + 8, { w: 26 }); sc.glow(x, gx, gy, 26, 'rgba(255,240,160,.25)'); } }

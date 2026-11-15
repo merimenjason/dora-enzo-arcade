@@ -10,7 +10,7 @@
 // slips on a soap bubble and is too lazy to dodge, but paint just makes it blink and it flops down to sunbathe (lepak)
 // when it is far from you. Each gang has a hideout on the island (c.isle.hideouts). Never menacing: caught, they just
 // look sheepish. No DOM; seeded.
-import { T, W, S, districtAt, type District } from './jade-city.js';
+import { T, W, H, S, districtAt, type District } from './jade-city.js';
 import { drive, type Body } from './jade-move.js';
 import { downhill, nearestFree } from './jade-nav.js';
 import { dist } from './jade-rng.js';
@@ -37,7 +37,7 @@ function waterEdge(w: World, x: number, y: number): [number, number] {
   let best: [number, number] = [x, y], bd = 1e9;
   const tx0 = Math.floor(x / T), ty0 = Math.floor(y / T);
   for (let ty = ty0 - 14; ty <= ty0 + 14; ty++) for (let tx = tx0 - 14; tx <= tx0 + 14; tx++) {
-    if (tx < 1 || ty < 1 || tx >= W - 1 || ty >= 91) continue;
+    if (tx < 1 || ty < 1 || tx >= W - 1 || ty >= H - 1) continue;
     if (w.c.solid[ty * W + tx] !== S.WATER) continue;
     const open = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => pedTile(w.c, tx + dx, ty + dy));
     if (!open) continue;

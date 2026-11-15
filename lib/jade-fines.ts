@@ -7,7 +7,7 @@
 // offence of each kind on Easy is a warning, and on Easy a warden lets you off with a warning during a job. Some
 // wardens ride little scooters along the roads (more of them on the island): they see further, pull riders over for
 // speeding, red lights and riding along the five-foot way, and chase a rider who drives off with a ticket.
-import { T, W, G, OW, districtAt } from './jade-city.js';
+import { T, W, H, G, OW, districtAt } from './jade-city.js';
 import { drive, type Body } from './jade-move.js';
 import { los, downhill, nearestFree } from './jade-nav.js';
 import { dist, clamp, angDiff } from './jade-rng.js';
@@ -45,13 +45,13 @@ export type Ticket = { kind: Offence; amt: number; t: number; pid: number; x: nu
 let ZEBRA: Uint8Array | null = null;
 function zebras(w: World): Uint8Array {
   if (ZEBRA) return ZEBRA;
-  const z = new Uint8Array(W * 92);
+  const z = new Uint8Array(W * H);
   for (const d of w.c.decals) {
     if (d.sprite !== 'd-zebra') continue;
     const cx = d.x / T, cy = d.y / T, vert = Math.abs(Math.sin(d.rot ?? 0)) > 0.5;
     for (let ty = Math.floor(cy) - 3; ty <= Math.floor(cy) + 3; ty++) for (let tx = Math.floor(cx) - 3; tx <= Math.floor(cx) + 3; tx++) {
       const ax = Math.abs(tx + 0.5 - cx), ay = Math.abs(ty + 0.5 - cy);
-      if (vert ? ax <= 1.1 && ay <= 2.6 : ay <= 1.1 && ax <= 2.6) if (tx >= 0 && ty >= 0 && tx < W && ty < 92) z[ty * W + tx] = 1;
+      if (vert ? ax <= 1.1 && ay <= 2.6 : ay <= 1.1 && ax <= 2.6) if (tx >= 0 && ty >= 0 && tx < W && ty < H) z[ty * W + tx] = 1;
     }
   }
   // the crossing boxes themselves (the middle of the junction) are part of the crossing
@@ -77,6 +77,9 @@ export function offence(w: World, kind: Offence, x: number, y: number, camera = 
   if (!camera && !pt) return;
   w.fineCd.set(kind, w.time + (kind === 'jaywalk' ? 8 : 5));
   const before = w.s.fines.by[kind] ?? 0, easy = w.s.settings.diff === 'easy';
+  // a job step run under the wardens' noses (Bazaar Night): a ticket or a warning costs time on the clock
+  const st = w.run?.cur;
+  if (st?.t === 'deliver' && st.fines && w.run) { w.run.timer = Math.max(1, (w.run.timer ?? 0) - st.fines); w.fx.push({ t: 'fine-time', k: st.fines }); w.say(`Spotted! ${FINE[kind].name}: that costs ${st.fines} seconds.`, 'bad'); }
   // a careful player's first slip of each kind on Easy, and anything during a job on Easy, is a warning
   if (easy && (w.run || !w.warned.has(kind))) {
     w.warned.add(kind);
@@ -110,8 +113,9 @@ export function payTicket(w: World) {
 export function finesStep(w: World, dt: number) {
   const p = w.p, px = p.x, py = p.y;
   // keep about three ticket wardens strolling within a street or two of you (none on the rooftops, none in the fog)
-  const want = w.s.done.length ? 3 : 0;
-  if (w.patrols.length < want && w.tick % 45 === 0) {
+  const strict = w.run?.cur?.t === 'deliver' && !!w.run.cur.fines;
+  const want = strict ? 6 : w.s.done.length ? 3 : 0;
+  if (w.patrols.length < want && w.tick % (strict ? 15 : 45) === 0) {
     const a = w.R() * Math.PI * 2, d = 700 + w.R() * 400;
     const [sx, sy] = nearestFree(w.c, 'walk', px + Math.cos(a) * d, py + Math.sin(a) * d, w.open, 5);
     const tx = Math.floor(sx / T), ty = Math.floor(sy / T);
@@ -119,7 +123,7 @@ export function finesStep(w: World, dt: number) {
   }
   // a scooter warden on the roads nearby (one in Chinatown, two on the island's longer roads)
   const isle = Math.floor(px / T) >= OW, rides = w.patrols.filter(pt => pt.ride).length;
-  if (w.s.done.length >= 3 && !w.run && rides < (isle ? 2 : 1) && w.tick % 45 === 20) {
+  if (w.s.done.length >= 3 && (!w.run || strict) && rides < (isle ? 2 : 1) && w.tick % 45 === 20) {
     const a = w.R() * Math.PI * 2, d = 800 + w.R() * 400;
     const [sx, sy] = nearestFree(w.c, 'small', px + Math.cos(a) * d, py + Math.sin(a) * d, w.open, 6);
     const tx = Math.floor(sx / T), ty = Math.floor(sy / T);
@@ -132,7 +136,7 @@ export function finesStep(w: World, dt: number) {
     let goal = pt.goal;
     if (tk) goal = [px, py];
     else if (pt.ride && (!goal || dist(pt.b.x, pt.b.y, goal[0], goal[1]) < 60)) {
-      for (let k = 0; k < 16; k++) { const a = w.R() * Math.PI * 2, d = (8 + w.R() * 12) * T; const tx = Math.floor((pt.b.x + Math.cos(a) * d) / T), ty = Math.floor((pt.b.y + Math.sin(a) * d) / T); if (tx > 0 && ty > 0 && tx < W && ty < 92 && w.c.ground[ty * W + tx] === G.ROAD && w.open.has(districtAt(tx, ty))) { goal = [tx * T + T / 2, ty * T + T / 2]; break; } }
+      for (let k = 0; k < 16; k++) { const a = w.R() * Math.PI * 2, d = (8 + w.R() * 12) * T; const tx = Math.floor((pt.b.x + Math.cos(a) * d) / T), ty = Math.floor((pt.b.y + Math.sin(a) * d) / T); if (tx > 0 && ty > 0 && tx < W && ty < H && w.c.ground[ty * W + tx] === G.ROAD && w.open.has(districtAt(tx, ty))) { goal = [tx * T + T / 2, ty * T + T / 2]; break; } }
       pt.goal = goal;
     }
     else if (!goal || dist(pt.b.x, pt.b.y, goal[0], goal[1]) < 40) {
@@ -181,7 +185,7 @@ export function finesStep(w: World, dt: number) {
     if (silver && sp > 230) offence(w, 'speeding', px, py, true);
     else if (sp > 345) offence(w, 'speeding', px, py);
     // wheels along the five-foot way, in sight of a warden (free roam: a job's rush takes the shortcut unfined)
-    if (w.c.sg?.fivefoot[i] && sp > 40 && !w.run) offence(w, 'pavement', px, py);
+    if (w.c.sg?.fivefoot[i] && sp > 40 && (!w.run || strict)) offence(w, 'pavement', px, py);
   }
   w.lastTileRide = p.ride ? 1 : 0;
 }

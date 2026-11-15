@@ -22,10 +22,12 @@ export type Step =
   | { t: 'ride'; kind: VehicleKind; label: string; near?: Spot; locked?: boolean; cp?: boolean }
   | { t: 'pickup'; at: Spot; item: string; label: string; cp?: boolean }
   /** `stink`: the cargo leaves a smell trail, and a warden who walks into it starts to wonder (heat, never a chase) */
-  | { t: 'deliver'; to: Spot; time: number; label: string; item: string; fragile?: number; stink?: boolean; cp?: boolean }
+  | { t: 'deliver'; to: Spot; time: number; label: string; item: string; fragile?: number; stink?: boolean; cp?: boolean;
+    /** the ninth pass: the wardens are out in force; every ticket or warning while this step runs costs this many seconds */
+    fines?: number }
   | { t: 'mini'; kind: MiniKind; level: number; label: string; cp?: boolean }
   /** `finish`: the last bump must be a double pounce (both heroes within a moment), the passenger's grab, or a net */
-  | { t: 'chase'; who: 'cart' | 'boat' | 'boss' | 'runner'; from: Spot; route: Spot[]; bumps: number; loot: string; label: string; speed: number; sets?: SetDef[]; phase?: 1 | 2; finish?: 'pounce' | 'snatch' | 'net'; skin?: 'otter' | 'mac' | 'liz' | 'kaw'; cp?: boolean }
+  | { t: 'chase'; who: 'cart' | 'boat' | 'boss' | 'runner'; from: Spot; route: Spot[]; bumps: number; loot: string; label: string; speed: number; sets?: SetDef[]; phase?: 1 | 2; finish?: 'pounce' | 'snatch' | 'net'; skin?: 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine'; cp?: boolean }
   /** `rope`: the float only swings in under the flags while the partner hauls the bunting rope there */
   | { t: 'float'; label: string; rope?: Spot; cp?: boolean }
   | { t: 'raid'; at: Spot; n: number; label: string; cp?: boolean }
@@ -46,6 +48,8 @@ export type Step =
   | { t: 'fares'; n: number; label: string; cp?: boolean }
   /** ride the Jade Line to station `to` (E at a station entrance) */
   | { t: 'train'; to: string; label: string; cp?: boolean }
+  /** ride the cable car or the ferry to stop `to` (E at the station or the pier) */
+  | { t: 'cable'; to: string; label: string; cp?: boolean }
   /** race the train: it leaves station `from` as the step starts; reach station `to` before it pulls in */
   | { t: 'beat'; from: string; to: string; label: string; cp?: boolean }
   /** the partner is sent somewhere (to wait, hold or guard); `wait` holds the job until they are there */
@@ -69,7 +73,7 @@ export type Step =
   | { t: 'heist'; front: Spot; back: Spot; safe: Spot; drop: Spot; guards: Spot[][]; cams: [number, number, number][]; time: number; loot: string; level: number; label: string; cp?: boolean }
   /** hold out: `waves` waves of a gang (`per` in the first, one more each wave after) raid `at` for `time` seconds;
    * knock them back before they grab; `what` names the thing you guard (the Stall, the Stage, the Float) */
-  | { t: 'defend'; at: Spot; time: number; waves: number; per: number; gang: 'mac' | 'otter' | 'crow'; what: string; label: string; cp?: boolean }
+  | { t: 'defend'; at: Spot; time: number; waves: number; per: number; gang: 'mac' | 'otter' | 'crow' | 'myna'; what: string; label: string; cp?: boolean }
   /** blend in: put on the disguise at `rack` (the partner waits there), then walk with the crowd along `route` to `goal`
    * past the lookouts ([x, y, facing in degrees]); running, hopping, bumping folk or walking alone where they look
    * raises Suspicion */
@@ -79,9 +83,9 @@ export type Step =
   | { t: 'detective'; witnesses: Witness[]; spots: { at: Spot; tags: string[]; what: string }[]; item: string; time: number; label: string; cp?: boolean }
   /** set a trap: lay nets at `need` of the trap spots (E), put the bait down at `bait`, keep back by `wait`, and spring
    * a net (F) while one of the gang walking `path` is on it; catch `catch` of the `n` */
-  | { t: 'trap'; spots: Spot[]; need: number; bait: Spot; wait: Spot; path: Spot[]; gang: 'mac' | 'otter' | 'liz' | 'crow'; n: number; catch: number; label: string; cp?: boolean }
+  | { t: 'trap'; spots: Spot[]; need: number; bait: Spot; wait: Spot; path: Spot[]; gang: 'mac' | 'otter' | 'liz' | 'crow' | 'myna'; n: number; catch: number; label: string; cp?: boolean }
   /** swap: slip a decoy into each crate (E: a moment crouched at it) while the guards look the other way */
-  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz'; label: string; cp?: boolean };
+  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna'; label: string; cp?: boolean };
 /** what a photo while casing tells you: the back way in, the guards' beats, where the cameras are wired, the safe's make */
 export type Intel = 'door' | 'rota' | 'cam' | 'safe';
 /** a witness: `ask` are the three questions on offer, `right` the one that gets the clue (its `tag` must be among the
@@ -115,6 +119,15 @@ export const PEOPLE: Record<string, { name: string; face: string; who: string }>
   vanda: { name: 'Ms Vanda', face: 'face-vanda', who: 'Island Night producer (a hornbill)' },
   lepak: { name: 'Lord Lepak', face: 'face-lepak', who: 'Longkang Lizards boss (a water monitor)' },
   kaw: { name: 'Director Kaw', face: 'face-kaw', who: 'Kaypoh Crows Pte Ltd (a house crow)' },
+  // the ninth pass: Little India, Kampong Glam and Sentosa
+  raju: { name: 'Mr Raju', face: 'face-raju', who: 'Little India spice merchant (a mongoose)' },
+  malar: { name: 'Auntie Malar', face: 'face-malar', who: 'garland-stall auntie (a spotted dove)' },
+  kancil: { name: 'Abang Kancil', face: 'face-kancil', who: 'Arab Street textile trader (a mousedeer)' },
+  wangi: { name: 'Puan Wangi', face: 'face-wangi', who: 'Kampong Glam perfumer (a binturong)' },
+  duyung: { name: 'Kapten Duyung', face: 'face-duyung', who: 'Sentosa ferry captain (a dugong)' },
+  helang: { name: 'Sergeant Helang', face: 'face-helang', who: 'Fort Siloso ranger (a sea eagle)' },
+  bising: { name: 'Boss Bising', face: 'face-bising', who: 'Kecoh Mynahs boss (a mynah)' },
+  nine: { name: 'Crow Number Nine', face: 'face-nine', who: 'Director Kaw’s old assistant (a house crow)' },
   glint: { name: 'Madame Glint', face: 'face-glint', who: 'Kaypoh Crows boss' },
   pip: { name: 'Pip', face: 'face-pip', who: 'Kaypoh Crows rookie' },
   dora: { name: 'Dora', face: 'face-dora', who: 'you' },
@@ -129,9 +142,11 @@ export const HEIRLOOMS = [
 ] as const;
 /** which district each chapter's finale opens (chapter 1 is played in Smith Street) */
 export const CHAPTER_OPENS: District[] = ['temple', 'canal', 'docks', 'arcade'];
-export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Clarke Quay', 'The Island'];
+export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Clarke Quay', 'The Island', 'Island Lights'];
 /** the last job of each chapter (its finale) */
-export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35'];
+export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45'];
+/** the story job that opens Sentosa (half way through chapter seven) */
+export const RESORT_OPENS = 'm40';
 
 // road crossings by name: X(v, h) is the lane tile where vertical road v meets horizontal road h
 const V = { a: 10, b: 26, c: 42, d: 60, e: 71, f: 90, g: 106 } as const;
@@ -463,6 +478,108 @@ export const MISSIONS: Mission[] = [
       { t: 'pickup', at: 'loot', item: 'statuette', label: 'Catch the Golden Chinchilla' },
       { t: 'talk', lines: [['kaw', 'I… may need to restructure.', 'worried'], ['glint', 'Cousin. Come home. The festival needs someone to hold the lanterns.', 'smug'], ['vanda', 'And the Golden Chinchilla for Island Night goes to… the heroes of the island!', 'happy'], ['hero', 'Best island ever.', 'happy'], ['mate', 'Best team ever. Again.', 'happy']] },
     ] },
+  // ── chapter seven: Island Lights. Kaw has gone home to hold Glint's lanterns, but his old assistant, Crow Number
+  // Nine, keeps the company's spare keys and has hired Boss Bising's Kecoh Mynahs, who can copy anybody's voice. In
+  // Little India they muddle Deepavali, in Kampong Glam the Hari Raya bazaar, and the big caper is the island's
+  // fireworks on Sentosa
+  { id: 'm36', ch: 7, title: 'Garlands for Deepavali', giver: 'kamal', at: 'kamal', reward: 380, rep: 15, blurb: 'The Jade Line runs on to Little India. Someone in Auntie Malar’s own voice cancelled the temple’s garlands: find where they went and get them to the temple in time.',
+    steps: [
+      { t: 'talk', lines: [['kamal', 'Good news! The Jade Line runs on now: Bugis, Little India, even Beach station on Sentosa when it opens.', 'happy'], ['kamal', 'Bad news: Auntie Malar at the flower market phoned. Or someone with her voice did.', 'worried'], ['mate', 'Someone copying voices? That’s new.', 'worried'], ['hero', 'Little India station, then. Two coins.', 'smug']] },
+      { t: 'train', to: 'stn-littleindia', label: 'Take the Jade Line to Little India (E at the station gates)', cp: true },
+      { t: 'goto', at: 'malar', label: 'Find Auntie Malar at the flower market on Buffalo Road', ride: 'foot' },
+      { t: 'talk', lines: [['malar', 'Vanakkam, my dears! Somebody called the temple in MY voice and said no garlands this year. Then my jasmine strings vanished!', 'worried'], ['malar', 'Deepavali is in two nights. The whole street will be lit. The garlands must be there.', 'worried'], ['hero', 'Somebody round here saw something. We ask, then we search where the clues point.', 'calm']] },
+      { t: 'detective', item: 'garland', time: 150, witnesses: [
+        { at: [236, 10], sp: 'rabbit', name: 'auntie by the Emporium doors', ask: ['Did you hear anybody shouting?', 'Do you sell sweets?', 'Is the Emporium open?'], right: 0, clue: 'Shouting in Auntie Malar’s voice! From up high, on a ledge. Funny voice, very squeaky.', tag: 'high', junk: ['', 'Murukku, jalebi, laddu. Deepavali, so everybody wants!', 'Always open! Twenty-four hours! Even I don’t sleep!'] },
+        { at: [252, 9], sp: 'sunbear', name: 'uncle with the flower cart', ask: ['Which way did they go?', 'What did they smell of?', 'Can I buy a flower?'], right: 1, clue: 'Sweets! Ghee and sugar. Whoever took the jasmine was eating jalebi.', tag: 'sweet', junk: ['Every way. Little India has many ways.', '', 'Later, later. Too busy tonight.'] },
+        { at: [241, 32], sp: 'duck', name: 'cleaner on Serangoon Road', ask: ['Did anyone drop something?', 'Is the light-up working?', 'How long have you worked here?'], right: 0, clue: 'Black feathers with white patches, stuck on something blue. Mynah feathers, I tell you.', tag: 'blue', junk: ['', 'Not yet! The switch box is playing up.', 'Thirty years. I sweep, the street shines.'] },
+      ], spots: [
+        { at: [241, 9], tags: ['sweet', 'high'], what: 'flower planters by the sari shop' },
+        { at: [260, 9], tags: ['blue', 'high'], what: 'blue recycling bins behind the villa' },
+        { at: [233, 32], tags: ['sweet', 'blue', 'high'], what: 'blue cooler box under the shophouse awning' },
+        { at: [250, 33], tags: ['blue'], what: 'bicycle rack by the rain trees' },
+        { at: [222, 10], tags: ['sweet'], what: 'newspaper stack by the temple gate' },
+      ], label: 'Ask round Serangoon Road (E), then search where every clue points', cp: true },
+      { t: 'talk', lines: [['hero', 'Jasmine and marigold, every string. And a mynah feather on the lid.', 'smug'], ['mate', 'The temple wants them before the lamps are lit. Run, don’t squash them!', 'cross']] },
+      { t: 'deliver', to: 'temple-li', item: 'garland', time: 60, fragile: 4, label: 'Carry the garlands to the temple on Race Course Road (gently: bumps crush them)', cp: true },
+      { t: 'talk', lines: [['malar', 'You found them! The temple steps look like a festival already. Thank you, thank you.', 'happy'], ['raju', 'Mynahs. Javan mynahs, the Kecoh lot. They copy everything: phones, whistles, Auntie’s voice.', 'cross'], ['raju', 'And they don’t steal for themselves. Somebody is paying them in jalebi.', 'worried']] },
+    ] },
+  { id: 'm37', ch: 7, title: 'The Spice Switch', giver: 'raju', at: 'raju', reward: 400, rep: 15, blurb: 'The mynahs carried Mr Raju’s Deepavali spices off to the yard behind the Emporium. Swap them for sacks of sawdust while the mynah lookouts aren’t watching.',
+    steps: [
+      { t: 'talk', lines: [['raju', 'Cardamom, cumin, turmeric, my best garam masala. Twelve sacks, gone to the yard behind the Emporium.', 'cross'], ['raju', 'The mynahs guard them for someone. They look around, they chatter, they look away. Silly birds, but sharp eyes.', 'calm'], ['mate', 'Sawdust sacks for spice sacks. Like Uncle Teo’s kopi. They won’t know till they cook.', 'smug']] },
+      { t: 'goto', at: [228, 10], label: 'Go round to the yard behind the All-Hours Emporium', ride: 'foot', cp: true },
+      { t: 'swap', crates: [[230, 9], [234, 10], [238, 9], [241, 10]], guards: [[[229, 7], [242, 7]], [[242, 11], [229, 11]]], time: 90, decoy: 'decoy', skin: 'myna', label: 'Slip a sawdust sack into each pile (E) while the mynahs look away', cp: true },
+      { t: 'goto', at: 'raju', label: 'Bring the spices back to Mr Raju', ride: 'foot' },
+      { t: 'talk', lines: [['raju', 'Smell that! Now my shop smells like Deepavali again.', 'happy'], ['raju', 'Under the sacks: a ticket stub for Sentosa’s fireworks night, and a note. “Payment in jalebi. Signed, No. 9.”', 'worried'], ['hero', 'Crow Number Nine. Kaw’s old assistant.', 'cross']] },
+    ] },
+  { id: 'm38', ch: 7, title: 'Light-Up Night', giver: 'malar', at: 'malar', reward: 420, rep: 16, blurb: 'Fix the Deepavali light-up over Serangoon Road, then guard Auntie Malar’s sweets stall from a mynah raid while the street lights up.',
+    steps: [
+      { t: 'talk', lines: [['malar', 'Tonight the light-up goes on over Serangoon Road. But the switch box is all tangled. Somebody pulled the wires!', 'worried'], ['mate', 'Wires are my favourite. Then we stand guard: the mynahs will want the sweets.', 'smug'], ['malar', 'Murukku, laddu, jalebi for the whole street. Open house!', 'happy']] },
+      { t: 'goto', at: [243, 33], label: 'To the light-up arch on Serangoon Road', ride: 'foot', cp: true },
+      { t: 'mini', kind: 'wires', level: 2, label: 'Rewire the light-up’s switch box' },
+      { t: 'talk', lines: [['hero', 'Lights on! Look at that arch.', 'happy'], ['mate', 'And here come the mynahs. Wave after wave. Knock them back before they grab a box!', 'cross']] },
+      { t: 'defend', at: 'serangoon', time: 70, waves: 3, per: 2, gang: 'myna', what: 'Stall', label: 'Guard Auntie Malar’s sweets stall: knock the mynahs back before they grab ({mate} helps on their own)', cp: true },
+      { t: 'talk', lines: [['malar', 'Happy Deepavali, my dears! Take a box of murukku. Take two!', 'happy'], ['bising', 'KECOH! Ah, never mind. Next time, chinchillas. Next time!', 'cross'], ['raju', 'That big loud one is Boss Bising. He has a roost somewhere across the river, in Kampong Glam.', 'calm']] },
+    ] },
+  { id: 'm39', ch: 7, title: 'Bolts of Arab Street', giver: 'kancil', at: 'kancil', reward: 420, rep: 16, blurb: 'Nine’s crows rent a back room off Haji Lane and keep Abang Kancil’s best songket there. Walk in with the shoppers, then follow the mynah courier home.',
+    steps: [
+      { t: 'talk', lines: [['kancil', 'Assalamualaikum, friends. My songket for the Hari Raya bazaar, woven gold, three bolts. A crow “bought” them with a cheque that bounced.', 'worried'], ['kancil', 'They keep them off Haji Lane, and lookouts on the corner watch for chinchillas.', 'calm'], ['mate', 'Then we don’t look like chinchillas. Porter’s coat from the stall, or we make a fuss and slip past.', 'smug']] },
+      { t: 'blend', rack: [229, 45], route: [[233, 45], [238, 45], [242, 45], [242, 52], [240, 55]], goal: [238, 56], lookouts: [[236, 42, 270], [243, 50, 180], [243, 54, 120]], crowd: 9, folk: 'town', label: 'Walk with the shoppers along Arab Street into Haji Lane (keep to a walk)', cp: true },
+      { t: 'talk', lines: [['hero', 'The songket! And a mynah stuffing a note in its beak. It’s leaving.', 'cross'], ['mate', 'Let it lead us home. I’ll wait past the mosque: switch to me there.', 'smug']] },
+      { t: 'tail', from: [242, 56], route: [[243, 60], [250, 60], [262, 60], [268, 62], [269, 70]], relay: { at: 3, spot: [262, 59] }, calm: 0.8, label: 'Follow the courier out of sight; switch to {mate} past the mosque (Tab)', cp: true },
+      { t: 'talk', lines: [['hero', 'Their roost. A whole rain tree full of mynahs, by the sea.', 'smug'], ['kancil', 'And my songket back home. Terima kasih! The bazaar will be beautiful.', 'happy']] },
+    ] },
+  { id: 'm40', ch: 7, title: 'Haji Lane Hush', giver: 'wangi', at: 'wangi', reward: 440, rep: 16, blurb: 'The mynahs copy every sound in Haji Lane and the shops can’t hear themselves think. Catch the noisiest: nets on their path, or run them down.',
+    steps: [
+      { t: 'talk', lines: [['wangi', 'Selamat malam. I make perfume, and perfume needs calm. Every night the mynahs land on Haji Lane and copy everything. Phones, bells, scooters, me!', 'cross'], ['wangi', 'Catch the three noisiest and Boss Bising will listen. He always does when his best singers are missing.', 'smug'], ['mate', 'Nets and jalebi for bait. Or we just chase them.', 'smug']] },
+      { t: 'trap', spots: [[231, 55], [234, 56], [237, 55], [240, 56]], need: 3, bait: [242, 56], wait: [236, 61], path: [[228, 56], [231, 55], [234, 56], [237, 55], [240, 56], [242, 56]], gang: 'myna', n: 3, catch: 2, label: 'Lay three nets along Haji Lane (E)', cp: true },
+      { t: 'talk', lines: [['bising', 'My singers! In nets! Okay, okay, chinchillas. Let them go and Bising tells you something.', 'worried'], ['bising', 'Crow Number Nine pays us in jalebi to copy voices. His big night is on Sentosa: the fireworks. Bridge is open now, cable car too.', 'calm'], ['wangi', 'Sentosa, then. Go, before he copies the whole sky.', 'happy']] },
+    ] },
+  { id: 'm41', ch: 7, title: 'Bazaar Night', giver: 'kancil', at: 'kancil', reward: 460, rep: 16, blurb: 'Hang the ketupat lanterns the mynahs scattered round Kampong Glam, then carry Puan Wangi’s attar crate to the Hari Raya bazaar. The wardens are out in force: every ticket costs time.',
+    steps: [
+      { t: 'talk', lines: [['kancil', 'The bazaar opens tonight on Bussorah Street! But the mynahs scattered our ketupat lanterns all over the place.', 'worried'], ['wangi', 'And my attar crate must be at the bazaar stall before the first customers. Gently, it is glass.', 'calm'], ['mate', 'Wardens everywhere tonight. Zebras, walk lights, no speeding. A ticket would cost us minutes.', 'smug']] },
+      { t: 'collect', items: [[222, 44], [243, 57], [250, 59], [262, 71]], item: 'ketupat', time: 90, label: 'Gather the four ketupat lanterns round Kampong Glam', cp: true },
+      { t: 'pickup', at: 'wangi', item: 'perfume', label: 'Pick up Puan Wangi’s attar crate' },
+      { t: 'deliver', to: 'bussorah', item: 'perfume', time: 55, fragile: 4, fines: 8, label: 'Carry the attar to the bazaar on Bussorah Street: no tickets (each costs 8 s), no bumps', cp: true },
+      { t: 'talk', lines: [['kancil', 'Selamat Hari Raya! Come, eat. Ketupat, rendang, kuih lapis, all for you.', 'happy'], ['wangi', 'Not one drop spilled. And not one ticket! You are very law-abiding thieves.', 'happy'], ['hero', 'We’re not thieves. We just take things back.', 'smug']] },
+    ] },
+  { id: 'm42', ch: 7, title: 'Up the Cable Car', giver: 'helang', at: 'cable-harbour', reward: 460, rep: 16, blurb: 'Ride the cable car over the harbour to Sentosa and catch the mynah who snatched Sergeant Helang’s fireworks schedule.',
+    steps: [
+      { t: 'talk', lines: [['helang', 'Sergeant Helang, Fort Siloso ranger. Salute! A mynah took the fireworks schedule out of my claws and flew to Sentosa!', 'cross'], ['helang', 'The cable car is fastest. Over the harbour, right to the island.', 'calm'], ['mate', 'A cable car! I call the window.', 'happy']] },
+      { t: 'cable', to: 'cable-sentosa', label: 'Ride the cable car to Sentosa (E at the HarbourFront cable car)', cp: true },
+      { t: 'talk', lines: [['hero', 'There! On the railing, with the schedule!', 'cross'], ['bising', 'Not mine! That one’s a freelancer. Catch him, catch him!', 'worried']] },
+      { t: 'chase', who: 'runner', skin: 'myna', from: [70, 99], route: [[80, 99], [89, 99], [89, 110], [80, 117], [64, 117], [58, 110], [58, 99]], bumps: 2, loot: 'loot-bag', speed: 195, finish: 'net', label: 'Catch the mynah: bump it twice, then net it (click)', cp: true },
+      { t: 'pickup', at: 'loot', item: 'loot-bag', label: 'Grab the fireworks schedule' },
+      { t: 'talk', lines: [['helang', 'Excellent capture! The schedule says… the show’s firing box is stored at the theme park. Nine will want it.', 'worried'], ['mate', 'Then we get it first.', 'smug']] },
+    ] },
+  { id: 'm43', ch: 7, title: 'Galaxy Studios After Dark', giver: 'helang', at: 'park', reward: 480, rep: 17, blurb: 'Nine’s crows have the fireworks firing box locked in the ride-control office behind the Coral Dome. Case it, then take it: quiet or loud.',
+    steps: [
+      { t: 'talk', lines: [['helang', 'Galaxy Studios is shut for the night. Nine’s crows are in the ride-control office behind the Coral Dome.', 'worried'], ['mate', 'Look first, then go in. Doors, beats, cameras, the safe.', 'smug']] },
+      { t: 'goto', at: [102, 111], label: 'Go round behind the Coral Dome', ride: 'foot', cp: true },
+      { t: 'case', spots: [{ at: [111, 104], kind: 'door' }, { at: [103, 108], kind: 'rota' }, { at: [104, 105], kind: 'cam' }, { at: [107, 107], kind: 'safe' }], need: 3, guards: [[[103, 105], [110, 105]], [[110, 110], [103, 110]]], label: 'Photograph three things (E): the back door, the guard rota, the camera, the safe' },
+      { t: 'talk', lines: [['mate', 'Quiet or loud? Either way the firing box comes out.', 'smug']] },
+      { t: 'heist', front: [103, 111], back: [111, 104], safe: [107, 107], drop: 'park', guards: [[[103, 105], [110, 105]], [[110, 110], [103, 110]]], cams: [[104, 106, 0], [110, 108, 180]], time: 65, loot: 'firebox', level: 2, label: 'Crack the ride-control safe', cp: true },
+      { t: 'talk', lines: [['helang', 'The firing box! Without it nobody sets off anything.', 'happy'], ['nine', 'Fine. Keep the box. Nine has a backup plan, and a boat.', 'smug'], ['duyung', 'A boat? In MY harbour? Come to the ferry pier, quick!', 'cross']] },
+    ] },
+  { id: 'm44', ch: 7, title: 'Ferry Fiasco', giver: 'duyung', at: 'duyung', reward: 480, rep: 17, blurb: 'The mynahs cut the harbour buoys loose and Nine’s raft is collecting them. Steer the bumboat round every buoy before the raft does.',
+    steps: [
+      { t: 'talk', lines: [['duyung', 'Kapten Duyung, ferry captain, fifty years on these waters. Somebody cut my buoys loose!', 'cross'], ['duyung', 'Nine’s raft is collecting them to mark out his own fireworks barge. Get to each buoy first!', 'worried'], ['mate', 'Bumboat’s by the pier. I’ll steer the spotlight.', 'smug']] },
+      { t: 'ride', kind: 'boat', near: [125, 108], label: 'Jump in the bumboat by the ferry pier', cp: true },
+      { t: 'race', ride: 'boat', rival: 'boat', time: 80, marks: [[132, 112], [142, 118], [132, 126], [114, 126], [96, 125], [124, 121]], label: 'Steer round every buoy before Nine’s raft', cp: true },
+      { t: 'goto', at: 'duyung', label: 'Back to Kapten Duyung at the pier', ride: 'foot', r: 140 },
+      { t: 'talk', lines: [['duyung', 'Every buoy home. The ferry runs to Marina Bay again: three coins, best view in Singapore.', 'happy'], ['bising', 'Psst. Chinchillas. Nine stopped paying in jalebi. He’s at the fort, with the spare fireworks. Bising helps you now.', 'calm']] },
+    ] },
+  { id: 'm45', ch: 7, title: 'Siloso Showdown', giver: 'bising', at: 'beach', reward: 1000, rep: 25, blurb: 'Crow Number Nine is holed up in Fort Siloso with the spare fireworks. Get past his mynah lookouts, chase him down the beach and win the island’s lights back.',
+    steps: [
+      { t: 'talk', lines: [['bising', 'Nine is in the old fort. The mynah lookouts still work for him, they don’t know yet. Bising is too loud to sneak.', 'worried'], ['helang', 'The fort gate has a lever. One holds it, one goes in.', 'calm'], ['mate', 'Send me to the lever (F). You sneak.', 'smug']] },
+      { t: 'goto', at: [52, 110], label: 'Go to the edge of Siloso Point', ride: 'foot', cp: true },
+      { t: 'stealth', lookouts: [[[47, 107], [47, 111]], [[36, 109], [44, 109]], [[45, 105], [45, 108]]], goal: 'fort', exit: [52, 110], shutter: [44, 111], calm: 0.75, pause: 1.5, label: 'Send {mate} to the gate lever (F), reach the fort unseen, then get out', cp: true },
+      { t: 'talk', lines: [['nine', 'You again! Nine Lives Fireworks Pte Ltd will not be stopped! Kaw never let me run anything!', 'cross'], ['hero', 'He’s running for the beach!', 'cross'], ['mate', 'Pounce together: F sends me in, then dash!', 'cross']] },
+      { t: 'chase', who: 'runner', skin: 'nine', from: [46, 110], route: [[52, 117], [64, 118], [78, 118], [90, 121], [104, 120], [86, 117]], bumps: 2, loot: '', speed: 205, finish: 'pounce', label: 'Pounce on Crow Number Nine together: F sends {mate} in, then dash', cp: true },
+      { t: 'talk', lines: [['nine', 'Fine! Then nobody gets fireworks! Fly, little mynah, fly!', 'cross'], ['bising', 'That mynah is mine! Hey! Come back! Kecoh!', 'cross']] },
+      { t: 'bag', at: 'here', loot: 'firebox', time: 60, label: 'Knock the spare firing box out of the mynah’s claws (shoot it, or dash when it swoops low)', cp: true },
+      { t: 'pickup', at: 'loot', item: 'firebox', label: 'Catch the firing box' },
+      { t: 'talk', lines: [['nine', 'I just wanted… one night that was mine.', 'worried'], ['kaw', 'Nine. Come home. You can run the lantern stall. Your own stall.', 'calm'], ['helang', 'And the island’s lights go up on Siloso Beach. Fire!', 'happy'], ['hero', 'Best fireworks ever.', 'happy'], ['mate', 'Best island ever. All of it.', 'happy']] },
+    ] },
 ];
 // ── Hawker Tales: the Singapore side jobs. They sit outside the five chapters (ch 0), open once their story job is
 // done, and pay like a story job; the townsfolk they help are in PEOPLE.
@@ -557,6 +674,37 @@ export const SIDE: Mission[] = [
       { t: 'talk', lines: [['kiri', 'Every night, the otters come up my jetty and take my catch. Cheeky!', 'cross'], ['mate', 'Nets on the jetty, a basket of prawns at the end, and we wait out of sight.', 'smug'], ['hero', 'And spring each net when one of them is on it. Gently!', 'calm']] },
       { t: 'trap', spots: [[64, 27], [64, 24], [64, 21], [64, 19]], need: 4, bait: [64, 17], wait: [60, 18], path: [[64, 30], [64, 26], [64, 22], [64, 18]], gang: 'otter', n: 4, catch: 3, label: 'Lay four nets on the jetty (E)', cp: true },
       { t: 'talk', lines: [['sleek', 'Hehe. Tangled! Okay okay, we buy our prawns now.', 'worried'], ['kiri', 'You’d better! Thank you, fluffies.', 'happy']] },
+    ] },
+  // the ninth pass's Hawker Tales, in Little India, Kampong Glam and on Sentosa
+  { id: 'k11', side: 'm37', ch: 0, title: 'Teh Tarik Time', giver: 'raju', at: 'raju', reward: 170, rep: 12, blurb: 'Mr Raju’s cousin runs the teh tarik at the Tekka hawker centre and he’s run off his feet. Pull the orders, then run the tray over.',
+    steps: [
+      { t: 'talk', lines: [['raju', 'My cousin’s teh tarik stall: queue down to Race Course Road. Can you help pull the orders? Teh, teh-c, teh-o, kosong, siew dai…', 'worried'], ['mate', 'Same lingo as Uncle Teo’s kopi. We know this!', 'smug']] },
+      { t: 'mini', kind: 'kopi', level: 2, label: 'Make the teh orders', cp: true },
+      { t: 'deliver', to: 'hawker-li', item: 'kopi-tray', time: 45, fragile: 4, label: 'Run the tray to the hawker centre tables (no spills)' },
+      { t: 'talk', lines: [['raju', 'Pulled so high, not a drop spilled! My cousin says you can have teh tarik free forever. Or one week.', 'happy']] },
+    ] },
+  { id: 'k12', side: 'm40', ch: 0, title: 'The Missing Attar', giver: 'wangi', at: 'wangi', reward: 180, rep: 12, blurb: 'One bottle of Puan Wangi’s rose attar went missing on Haji Lane. Ask the neighbours and find where it was hidden, by its scent and its clues.',
+    steps: [
+      { t: 'talk', lines: [['wangi', 'My rose attar, the oldest bottle, my grandmother’s recipe. A mynah, I think. It always copies my shop bell first.', 'worried'], ['hero', 'Ask around, then search. No guessing.', 'calm']] },
+      { t: 'detective', item: 'perfume', time: 140, witnesses: [
+        { at: [222, 56], sp: 'tapir', name: 'auntie at the café tables', ask: ['Did you smell roses?', 'Is the food good here?', 'Are you waiting for someone?'], right: 0, clue: 'Roses, yes! Then something sweet, like the kuih stall. It went that way, past the bins.', tag: 'sweet', junk: ['', 'Very good. Try the lamb, very tender.', 'My son. He is always late.'] },
+        { at: [243, 59], sp: 'civet', name: 'student on Haji Lane', ask: ['What are you drawing?', 'Did you see where the bird landed?', 'Do you like the murals?'], right: 1, clue: 'On top of something. It hopped up high and pushed something under.', tag: 'high', junk: ['The murals. Every night, a new one.', '', 'Of course! That’s why I draw here.'] },
+        { at: [234, 70], sp: 'mousedeer', name: 'office worker by Bugis station', ask: ['Did the bird drop anything?', 'Which exit is this?', 'Is it always this busy?'], right: 0, clue: 'A scrap of newspaper. It was carrying the bottle wrapped in paper.', tag: 'paper', junk: ['', 'Exit B. Or C. I always get lost.', 'Bazaar season. Very busy, very happy.'] },
+      ], spots: [
+        { at: [222, 61], tags: ['sweet', 'high'], what: 'flower planters by the restaurant row' },
+        { at: [243, 61], tags: ['sweet', 'high', 'paper'], what: 'newspaper bundle on the awning ledge' },
+        { at: [229, 71], tags: ['paper'], what: 'newspaper stack by Bugis station' },
+        { at: [250, 61], tags: ['high', 'paper'], what: 'recycling bins by the mosque gate' },
+      ], label: 'Ask the neighbours (E), then search where every clue points', cp: true },
+      { t: 'goto', at: 'wangi', label: 'Bring the attar back to Puan Wangi', ride: 'foot' },
+      { t: 'talk', lines: [['wangi', 'Smell that. Roses, sandalwood, and my grandmother. Terima kasih, little ones.', 'happy']] },
+    ] },
+  { id: 'k13', side: 'm44', ch: 0, title: 'Siloso Fun Run', giver: 'duyung', at: 'duyung', reward: 190, rep: 12, blurb: 'Kapten Duyung’s grandnephew, a cheeky crow cadet, says nobody beats him along Siloso Beach. Prove him wrong.',
+    steps: [
+      { t: 'talk', lines: [['duyung', 'My grandnephew is a crow cadet. Don’t ask. He says nobody beats him along the beach.', 'smug'], ['mate', 'Sand slows everybody. Even crows.', 'smug']] },
+      { t: 'goto', at: [52, 119], label: 'To the start line at the west end of the beach', ride: 'foot', cp: true },
+      { t: 'race', ride: 'foot', rival: 'runner', marks: [[62, 121], [74, 122], [86, 120], [98, 122], [110, 120], [116, 117]], label: 'Beat the crow cadet along Siloso Beach' },
+      { t: 'talk', lines: [['duyung', 'Ha! He’s sulking in the lagoon. Good for him. Ice kacang on me.', 'happy']] },
     ] },
 ];
 export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id, m])) as Record<string, Mission>;

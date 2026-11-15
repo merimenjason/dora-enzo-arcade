@@ -38,7 +38,7 @@ const act = w => { w.findNear(); w.step({ ...NO_INPUT, act: true }, DT); };
 test('seven new step kinds, each in at least two jobs, and every job keeps its giver and story', () => {
   assert.deepEqual([...JOB_STEPS], ['case', 'heist', 'defend', 'blend', 'detective', 'trap', 'swap']);
   for (const k of JOB_STEPS) assert.ok(ALL.filter(m => m.steps.some(s => s.t === k)).length >= 2, `${k} in two jobs`);
-  assert.equal(SIDE.length, 10); assert.deepEqual(SIDE.slice(7).map(m => m.id), ['k8', 'k9', 'k10']);
+  assert.equal(SIDE.length, 13); assert.deepEqual(SIDE.slice(7, 10).map(m => m.id), ['k8', 'k9', 'k10']);
   for (const [id, k] of [['k8', 'heist'], ['k9', 'swap'], ['k10', 'trap']]) assert.ok(MISSION[id].steps.some(s => s.t === k), `${id} shows off a ${k}`);
   assert.equal(MISSION.m17.giver, 'bo'); assert.equal(MISSION.m26.giver, 'glint'); assert.equal(MISSION.k4.giver, 'hoon');
 });
@@ -48,7 +48,7 @@ test('variety: chases are the climax of at most a third of the jobs, and every c
   const main = m => m.steps.filter(s => !TRIVIAL.has(s.t));
   const chaseEnd = ALL.filter(m => { const ms = main(m); const last = ms[ms.length - 1]; return last && (last.t === 'chase' || last.t === 'bag'); });
   assert.ok(chaseEnd.length * 3 <= ALL.length, `${chaseEnd.length} of ${ALL.length} end in a chase`);
-  for (let ch = 0; ch <= 6; ch++) {
+  for (let ch = 0; ch <= 7; ch++) {
     const kinds = new Set(ALL.filter(m => m.ch === ch).flatMap(m => main(m).map(s => s.t)));
     assert.ok(kinds.size >= 4, `chapter ${ch}: ${[...kinds]}`);
   }
