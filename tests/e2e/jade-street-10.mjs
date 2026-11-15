@@ -79,9 +79,9 @@ export async function tenth(h) {
   await W(() => { const J = window.__jade; for (const id of ['noodle', 'cake', 'tea']) J.setBiz(id, { bank: 80 }); J.world().s.clock = 10; });
   await press('jade-phone'); await press('phone-empire'); await press('emp-round');
   check(await W(() => window.__jade.empire().round?.kind === 'collect'), `${name}: Send partner round the tills`); await press('close'); await free();
-  const c0 = await W(() => window.__jade.world().s.cash);
+  const c0 = await W(() => window.__jade.world().s.stats.bizCoins); // (not cash: a warden's fine could land meanwhile)
   await W(() => { const J = window.__jade; for (let i = 0; i < 300 && J.world().emp.round; i++) J.step(60); J.step(90); });
-  check(await W(c0 => window.__jade.world().s.cash >= c0 + 240, c0), `${name}: the partner hands over the takings (${await W(c0 => JSON.stringify({ d: window.__jade.world().s.cash - c0, e: window.__jade.empire() }), c0)})`);
+  check(await W(c0 => window.__jade.world().s.stats.bizCoins >= c0 + 240, c0), `${name}: the partner hands over the takings (${await W(c0 => window.__jade.world().s.stats.bizCoins - c0, c0)} coins)`);
 
   // ── a damaged property repaired
   await W(() => window.__jade.setBiz('tea', { dmg: 1 })); await toBiz('tea'); await E(); check(await appear('biz-dmg'), `${name}: the panel says it was smashed up`); await look('empire: damaged');
