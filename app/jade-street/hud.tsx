@@ -53,8 +53,8 @@ export function TopHud({ play, onMap, onPause }: { play: Play; onMap: () => void
           <div className="jade-job-row">
             {run.timer !== null && <span className={'jade-timer' + (run.timer < 10 ? ' low' : '')} data-testid="timer">{Math.ceil(run.timer)}s</span>}
             {run.progress && <span className="jade-progress">{run.progress}</span>}
-            {run.meter && <span className={'jade-meter' + (run.meter.bad ? ' bad' : '')} data-testid="meter"><i>{run.meter.name}</i><b style={{ width: `${Math.round(run.meter.v * 100)}%` }} /></span>}
-            {run.meter2 && <span className={'jade-meter' + (run.meter2.bad ? ' bad' : '')} data-testid="meter2"><i>{run.meter2.name}</i><b style={{ width: `${Math.round(run.meter2.v * 100)}%` }} /></span>}
+            {run.meter && <span className={'jade-meter' + (run.meter.bad ? ' bad' : '')} data-testid="meter"><i>{run.meter.name}</i><b style={{ width: `${Math.round(run.meter.v * 110)}px` }} /></span>}
+            {run.meter2 && <span className={'jade-meter' + (run.meter2.bad ? ' bad' : '')} data-testid="meter2"><i>{run.meter2.name}</i><b style={{ width: `${Math.round(run.meter2.v * 110)}px` }} /></span>}
           </div>
           {run.warning && <div className="jade-warn" role="alert" data-testid="warning">{run.warning.text}</div>}
         </div>

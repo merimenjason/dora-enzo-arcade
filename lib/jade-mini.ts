@@ -149,12 +149,48 @@ export class DumplingGame {
     } }
   }
 }
-export type AnyMini = LockGame | WireGame | WokGame | DumplingGame | KopiGame;
+// ── the safe: turn the dial to each number in turn, the right way round (right, then left, then right), and set it
+// while the tumbler lamp glows; a wrong set costs three seconds. Level 1 has two numbers, level 2 three, level 3 four
+// (a heist's cased safe takes one off before it gets here); Assist widens the window and slows the dial. The dial
+// starts slow when you press a key and speeds up as you hold it, so tapping nudges it onto a number.
+export class SafeGame {
+  /** the dial, 0 to 1 round; which way it is turning (-1 left, 1 right, 0 still) and which way it last turned */
+  dial = 0; turn = 0; last = 0; i = 0; nums: number[] = []; dirs: number[] = []; time: number; ev: MiniEv[] = []; done = false; failed = false; misses = 0;
+  private tick = 0; private lit = false;
+  constructor(public o: MiniOpts) {
+    const R = rng(o.seed); const n = Math.max(2, Math.min(4, o.level + 1));
+    let at = 0;
+    for (let i = 0; i < n; i++) { at = (at + 0.25 + R() * 0.5) % 1; this.nums.push(Math.round(at * 40) / 40); this.dirs.push(i % 2 ? -1 : 1); }
+    this.time = (o.assist ? 70 : 50) + (n - 2) * 8;
+  }
+  get win() { return this.o.assist ? 0.075 : 0.05; }
+  get rate() { return this.o.assist ? 0.24 : 0.3; }
+  /** how far the dial is from this number, round the shorter way (0 to 0.5) */
+  off(i = this.i) { const d = Math.abs(this.dial - this.nums[i]) % 1; return Math.min(d, 1 - d); }
+  glowing() { return !this.done && this.i < this.nums.length && this.off() < this.win / 2 && this.last === this.dirs[this.i]; }
+  /** seconds the dial has been turning this way: it starts slow (a tap is a fine nudge) and speeds up as you hold */
+  held = 0;
+  hold(dir: number) { if (this.done) return; const d = Math.sign(dir); if (d !== this.turn) this.held = 0; this.turn = d; }
+  speed() { return this.rate * Math.min(1, 0.25 + this.held / 0.8); }
+  set() {
+    if (this.done || this.failed) return;
+    if (this.glowing()) { this.ev.push({ t: 'set', i: this.i }); this.i++; if (this.i >= this.nums.length) { this.done = true; this.turn = 0; this.ev.push({ t: 'open' }); } }
+    else { this.misses++; this.time -= 3; this.ev.push({ t: 'drop', i: this.i }); }
+  }
+  step(dt: number) {
+    if (this.done || this.failed) return;
+    this.time -= dt; if (this.time <= 0) { this.failed = true; this.ev.push({ t: 'fail' }); return; }
+    if (this.turn) { this.held += dt; this.dial = ((this.dial + this.turn * this.speed() * dt) % 1 + 1) % 1; this.last = this.turn; const k = Math.floor(this.dial * 40); if (k !== this.tick) { this.tick = k; this.ev.push({ t: 'tick' }); } }
+    const g = this.glowing(); if (g && !this.lit) this.ev.push({ t: 'click' }); this.lit = g;
+  }
+}
+export type AnyMini = LockGame | WireGame | WokGame | DumplingGame | KopiGame | SafeGame;
 export function makeMini(kind: string, o: MiniOpts): AnyMini {
   if (kind === 'lock') return new LockGame(o);
   if (kind === 'wires') return new WireGame(o);
   if (kind === 'wok') return new WokGame(o);
   if (kind === 'kopi') return new KopiGame(o);
+  if (kind === 'safe') return new SafeGame(o);
   return new DumplingGame(o);
 }
 

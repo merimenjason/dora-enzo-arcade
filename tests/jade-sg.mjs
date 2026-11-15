@@ -160,14 +160,15 @@ test('the kopi counter: orders in kopi lingo, a wrong cup costs a try, all order
   for (const term of ['Kopi', 'Teh', 'O', 'C', 'Kosong', 'Siew dai', 'Peng', 'Chope']) assert.ok(LINGO.some(l => l.term === term), term);
 });
 
-test('Hawker Tales: seven side jobs, each offered after its story job, outside the chapters', () => {
-  assert.equal(SIDE.length, 7); assert.equal(MISSIONS.length, 35);
+test('Hawker Tales: ten side jobs, each offered after its story job, outside the chapters', () => {
+  assert.equal(SIDE.length, 10); assert.equal(MISSIONS.length, 35);
   for (const m of SIDE) { assert.ok(MISSION[m.id] === m); assert.ok(MISSIONS.some(x => x.id === m.side), `${m.id} opens after a story job`); assert.equal(m.ch, 0); }
   const s = newSave(2); s.done = ['m1', 'm2', 'm3']; assert.deepEqual(sideJobs(s).map(m => m.id), ['k1']);
   assert.ok(offered(s).some(m => m.id === 'k1') && offered(s).some(m => m.side === undefined));
   for (const k of ['k2', 'k3', 'k5', 'k7']) assert.ok(SIDE.find(m => m.id === k), k);
   assert.ok(SIDE.some(m => m.steps.some(st => st.t === 'deliver' && st.stink)), 'the durian run has its smell trail');
-  assert.ok(SIDE.some(m => m.steps.some(st => st.t === 'chase' && st.skin === 'mac')) && SIDE.some(m => m.steps.some(st => st.t === 'chase' && st.skin === 'otter')), 'the gangs star in side jobs');
+  // the gangs star in side jobs: the macaques raid Auntie Hoon's stall, the otters walk into Kiri's nets and run prawns upriver
+  assert.ok(SIDE.some(m => m.steps.some(st => st.t === 'defend' && st.gang === 'mac')) && SIDE.some(m => m.steps.some(st => (st.t === 'chase' && st.skin === 'otter') || (st.t === 'trap' && st.gang === 'otter'))), 'the gangs star in side jobs');
 });
 
 test('Hawker Tales: the casual bot finishes each, and a forced failure restarts from the checkpoint', () => {

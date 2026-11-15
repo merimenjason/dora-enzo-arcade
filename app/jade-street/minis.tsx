@@ -1,22 +1,25 @@
 'use client';
 // Jade Street mini-games on a canvas over their painted backdrops: lock picking, jump-starting a scooter, the wok and
-// dumpling folding. The rules are in lib/jade-mini.ts; this file draws them and maps mouse, touch and keys onto the
+// dumpling folding, and the heist's safe dial. The rules are in lib/jade-mini.ts; this file draws them and maps mouse, touch and keys onto the
 // same few actions (pick a pin and hold / release, pick a wire then a socket, slide and toss, press on the beat).
 import { useEffect, useRef, useState } from 'react';
-import { makeMini, LockGame, WireGame, WokGame, DumplingGame, WIRE_COLS, FOODS, type AnyMini } from '@/lib/jade-mini';
+import { makeMini, LockGame, WireGame, WokGame, DumplingGame, SafeGame, WIRE_COLS, FOODS, type AnyMini } from '@/lib/jade-mini';
 import { spr, loadArt } from '@/lib/jade-scene';
 import type { JadeSound } from './sound';
 import { ART, Sprite } from './ui';
 
-const BG: Record<string, string> = { lock: 'bg-mg-lock', wires: 'bg-mg-wire', wok: 'bg-mg-wok', dumpling: 'bg-mg-board' };
+const BG: Record<string, string> = { lock: 'bg-mg-lock', wires: 'bg-mg-wire', wok: 'bg-mg-wok', dumpling: 'bg-mg-board', safe: 'bg-mg-safe' };
 // the part of each backdrop that must stay on screen (image pixels, 1280×853)
-const FOCUS: Record<string, [number, number, number, number]> = { lock: [300, 170, 1000, 720], wires: [300, 200, 1000, 700], wok: [150, 120, 1130, 853], dumpling: [180, 60, 1100, 760] };
+const FOCUS: Record<string, [number, number, number, number]> = { lock: [300, 170, 1000, 720], wires: [300, 200, 1000, 700], wok: [150, 120, 1130, 853], dumpling: [180, 60, 1100, 760], safe: [260, 60, 1020, 760] };
 const TITLE: Record<string, [string, string, string]> = {
   lock: ['Pick the lock', 'Hold a pin to lift it. Let go while it glows gold.', 'Tap and hold a pin · or ← → and hold Space'],
   wires: ['Jump-start it', 'Join each wire to the socket of the same colour, then turn the key.', 'Tap a wire, then its socket · or keys 1-4 then 1-4 (or ↑ ↓ to choose, ← pick, → plug), Enter for the key'],
   wok: ['Work the wok', 'Catch what the order needs. Skip the chillies. Toss before it scorches.', 'Slide to move the wok · or ← →, Space to toss'],
   dumpling: ['Fold dumplings', 'Drop the filling in the middle, then pinch three pleats on the gold marks.', 'Tap anywhere · or Space'],
+  safe: ['Crack the safe', 'Turn the dial the way the arrow points. When the lamp glows, set the number.', 'Hold ← or → to turn · Space to set'],
 };
+// the safe painting: the dial's recess, the lamp socket above it
+const DIAL: [number, number, number] = [637, 400, 186], LAMP: [number, number] = [637, 146];
 const SX = [455, 595, 735, 872];
 const WY = [277, 385, 495, 605];
 const pinTop = (h: number) => 520 - h * 200;
@@ -84,8 +87,12 @@ export function MiniGame({ kind, level, assist, seed, snd, onDone }: { kind: str
       }
       else if (g instanceof WokGame) { if (k === ' ' || k === 'ArrowUp' || k === 'w') g.toss(); }
       else if (g instanceof DumplingGame) { if (!e.repeat && (k === ' ' || k === 'Enter')) g.press(); }
+      else if (g instanceof SafeGame) { if (k === 'ArrowLeft' || k === 'a') g.hold(-1); if (k === 'ArrowRight' || k === 'd') g.hold(1); if (!e.repeat && (k === ' ' || k === 'Enter')) g.set(); }
     };
-    const ku = (e: KeyboardEvent) => { if (g instanceof LockGame && (e.key === ' ' || e.key === 'Enter')) g.hold(false); };
+    const ku = (e: KeyboardEvent) => {
+      if (g instanceof LockGame && (e.key === ' ' || e.key === 'Enter')) g.hold(false);
+      if (g instanceof SafeGame && ['ArrowLeft', 'ArrowRight', 'a', 'd'].includes(e.key)) g.hold(0);
+    };
     let held: number | null = null;
     const tick = () => { if (g instanceof WokGame) { const k = keys; if (k.has('ArrowLeft') || k.has('a')) g.nudge(-1, 1 / 60); if (k.has('ArrowRight') || k.has('d')) g.nudge(1, 1 / 60); } held = requestAnimationFrame(tick); };
     const keys = new Set<string>();
@@ -108,17 +115,19 @@ export function MiniGame({ kind, level, assist, seed, snd, onDone }: { kind: str
       if (li >= 0) g.pick(li); else if (ri >= 0) g.connect(ri);
     } else if (g instanceof WokGame) { g.moveTo((ix - 200) / 880); if (iy < 520) g.toss(); }
     else if (g instanceof DumplingGame) g.press();
+    else if (g instanceof SafeGame) { if (Math.hypot(ix - LAMP[0], iy - LAMP[1]) < 70 || Math.hypot(ix - DIAL[0], iy - DIAL[1]) < 60) g.set(); else g.hold(ix < DIAL[0] ? -1 : 1); }
   };
   const move = (e: React.PointerEvent) => { const [ix, iy] = toImg(e); pointer.current.x = ix; pointer.current.y = iy; const g = game.current; if (g instanceof WokGame && (pointer.current.down || e.pointerType === 'mouse')) g.moveTo((ix - 200) / 880); };
   const up = (e: React.PointerEvent) => {
     const [ix, iy] = toImg(e); pointer.current.down = false; const g = game.current;
     if (g instanceof LockGame) g.hold(false);
+    else if (g instanceof SafeGame) g.hold(0);
     else if (g instanceof WireGame && g.picked !== null) { const ri = WY.findIndex(y => Math.abs(iy - y) < 52 && Math.abs(ix - 882) < 110); if (ri >= 0) g.connect(ri); }
   };
 
   const g = game.current;
   const [title, how, keysTxt] = TITLE[kind];
-  const time = 'time' in g && (g instanceof LockGame || g instanceof WireGame) ? Math.ceil(g.time) : null;
+  const time = 'time' in g && (g instanceof LockGame || g instanceof WireGame || g instanceof SafeGame) ? Math.ceil(g.time) : null;
   return (
     <div className="jade-mini" data-testid={`mini-${kind}`} data-done={end === null ? undefined : String(end)}>
       <div className="jade-mini-head">
@@ -130,6 +139,12 @@ export function MiniGame({ kind, level, assist, seed, snd, onDone }: { kind: str
         {g instanceof WokGame && <div className="jade-order" data-testid="wok-order">{FOODS.filter(f => (g.need[f] ?? 0) > 0).map(f => <span key={f} className={(g.got[f] ?? 0) >= (g.need[f] ?? 0) ? 'got' : ''}><Sprite name={FOOD_SPR[f]} h={28} w={28} />{FOOD_NAME[f]} {g.got[f] ?? 0}/{g.need[f]}</span>)}<span className="strikes">Oops {g.strikes}/3</span></div>}
         {g instanceof DumplingGame && <div className="jade-order">Dumpling {Math.min(g.n, g.i + 1)}/{g.n} · {g.phase === 'fill' ? 'drop the filling' : g.phase === 'pleat' ? `pleat ${g.pleats + 1}/3` : 'into the steamer'}</div>}
         {g instanceof LockGame && <div className="jade-order">Pins set {g.pins.filter(p => p.set).length}/{g.pins.length}</div>}
+        {g instanceof SafeGame && <div className="jade-order" data-testid="safe-order">Number {Math.min(g.nums.length, g.i + 1)}/{g.nums.length} · turn {g.dirs[Math.min(g.i, g.dirs.length - 1)] > 0 ? 'right ›' : '‹ left'}{g.misses ? ` · slips ${g.misses}` : ''}</div>}
+        {g instanceof SafeGame && <>
+          <button type="button" className="jade-btn jade" data-testid="safe-left" onPointerDown={e => { e.preventDefault(); g.hold(-1); }} onPointerUp={() => g.hold(0)} onPointerLeave={() => g.hold(0)}>‹ Turn</button>
+          <button type="button" className="jade-btn jade" data-testid="safe-right" onPointerDown={e => { e.preventDefault(); g.hold(1); }} onPointerUp={() => g.hold(0)} onPointerLeave={() => g.hold(0)}>Turn ›</button>
+          <button type="button" className="jade-btn gold" data-testid="safe-set" onClick={() => g.set()}>Set it</button>
+        </>}
         {g instanceof WireGame && <div className="jade-order">{g.wired ? 'All wired: turn the key!' : `Wires joined ${g.links.filter(l => l !== null).length}/4`}</div>}
         <span className="jade-mini-keys">{keysTxt}</span>
         {g instanceof WokGame && <button type="button" className="jade-btn red" data-testid="wok-toss" onPointerDown={e => { e.preventDefault(); g.toss(); }}>Toss!</button>}
@@ -137,7 +152,7 @@ export function MiniGame({ kind, level, assist, seed, snd, onDone }: { kind: str
         {g instanceof DumplingGame && <button type="button" className="jade-btn jade" data-testid="fold" onPointerDown={e => { e.preventDefault(); g.press(); }}>Pinch!</button>}
         <button type="button" className="jade-btn plain" data-testid="mini-quit" onClick={() => { g.failed = true; g.ev.push({ t: 'fail' }); }}>Give up</button>
       </div>
-      {end !== null && <div className={'jade-mini-end ' + (end ? 'ok' : 'bad')}>{end ? (kind === 'lock' ? 'Click! It’s open.' : kind === 'wires' ? 'Vroom! It starts.' : kind === 'wok' ? 'Order up!' : 'Into the steamer!') : 'Oh no!'}</div>}
+      {end !== null && <div className={'jade-mini-end ' + (end ? 'ok' : 'bad')}>{end ? (kind === 'lock' ? 'Click! It’s open.' : kind === 'wires' ? 'Vroom! It starts.' : kind === 'wok' ? 'Order up!' : kind === 'safe' ? 'Clunk! The door swings open.' : 'Into the steamer!') : 'Oh no!'}</div>}
     </div>
   );
 }
@@ -192,6 +207,28 @@ function draw(x: CanvasRenderingContext2D, c: HTMLCanvasElement, g: AnyMini, bg:
     if (g.tossT > 0) for (let k = 0; k < Math.min(5, g.inWok); k++) spr(x, FOOD_SPR[(['noodles', 'prawn', 'bokchoy', 'egg'] as const)[k % 4]], wx - 50 + k * 25, wy - 60 - lift * 2 - k * 10, { h: 44, anchor: 'center', rot: t * 6 + k });
     // scorch meter
     x.fillStyle = 'rgba(0,0,0,.55)'; x.fillRect(wx - 90, wy + 82, 180, 14); x.fillStyle = g.burn > 0.7 ? '#ff5a3a' : g.burn > 0.4 ? '#ffb23a' : '#7ad06a'; x.fillRect(wx - 90, wy + 82, 180 * g.burn, 14);
+  } else if (g instanceof SafeGame) {
+    const [dx, dy, dr] = DIAL;
+    // the dial turns in its recess; the notch at the top reads it; the lamp glows on a number turned the right way
+    x.save(); x.fillStyle = 'rgba(0,0,0,.35)'; x.beginPath(); x.arc(dx + 6, dy + 10, dr * 0.92, 0, Math.PI * 2); x.fill(); x.restore();
+    spr(x, 'mg-dial', dx, dy, { h: dr * 1.8, anchor: 'center', rot: g.dial * Math.PI * 2 });
+    spr(x, 'mg-notch', dx, dy - dr * 0.98, { h: 40, anchor: 'center' });
+    const lit = g.glowing() || g.done;
+    spr(x, lit ? 'mg-lamp-on' : 'mg-lamp-off', LAMP[0], LAMP[1], { h: lit ? 92 : 70, anchor: 'center' });
+    if (lit) glow(LAMP[0], LAMP[1], 120, `rgba(255,220,110,${0.5 + 0.2 * Math.sin(t * 10)})`);
+    // which way to turn: a gold arc arrow round the dial
+    if (!g.done && g.i < g.dirs.length) {
+      const d = g.dirs[g.i], r = dr + 34, a0 = -Math.PI / 2 - 0.9, a1 = -Math.PI / 2 + 0.9;
+      x.strokeStyle = 'rgba(255,214,90,.9)'; x.lineWidth = 10; x.lineCap = 'round'; x.beginPath(); x.arc(dx, dy, r, a0, a1); x.stroke();
+      const ea = d > 0 ? a1 : a0, ex = dx + Math.cos(ea) * r, ey = dy + Math.sin(ea) * r, tang = ea + (d > 0 ? Math.PI / 2 : -Math.PI / 2);
+      x.fillStyle = 'rgba(255,214,90,.95)'; x.beginPath(); x.moveTo(ex + Math.cos(tang) * 26, ey + Math.sin(tang) * 26); x.lineTo(ex + Math.cos(tang + 2.4) * 22, ey + Math.sin(tang + 2.4) * 22); x.lineTo(ex + Math.cos(tang - 2.4) * 22, ey + Math.sin(tang - 2.4) * 22); x.closePath(); x.fill();
+    }
+    // the tumblers: one light per number, green once set
+    const n = g.nums.length;
+    for (let i = 0; i < n; i++) { const tx = dx - (n - 1) * 34 + i * 68, ty = dy + dr + 70; if (i < g.i || g.done) { spr(x, 'mg-tumbler', tx, ty, { h: 44, anchor: 'center' }); glow(tx, ty, 40, 'rgba(120,255,150,.4)'); } else { x.fillStyle = 'rgba(0,0,0,.55)'; x.beginPath(); x.arc(tx, ty, 18, 0, Math.PI * 2); x.fill(); x.strokeStyle = 'rgba(255,214,90,.6)'; x.lineWidth = 3; x.stroke(); } }
+    if (g.done) { spr(x, 'mg-handle', 920, 390, { h: 150, anchor: 'center' }); spr(x, 'mg-sparkle', dx, dy, { h: 160, anchor: 'center', alpha: 0.9 }); }
+    spr(x, 'mg-scope', dx - dr - 70, dy + 40, { h: 90, anchor: 'center', rot: -0.3 + (g.turn ? Math.sin(t * 20) * 0.04 : 0) });
+    x.fillStyle = 'rgba(0,0,0,.5)'; x.fillRect(340, 34, 600, 14); x.fillStyle = g.time < 10 ? '#ff6a5a' : '#ffd25a'; x.fillRect(340, 34, 600 * Math.max(0, g.time) / ((g.o.assist ? 70 : 50) + (n - 2) * 8), 14);
   } else if (g instanceof DumplingGame) {
     const cx = 640, cy = 430;
     if (g.phase === 'fill') {

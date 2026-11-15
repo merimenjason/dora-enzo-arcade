@@ -19,6 +19,7 @@ import { sgGround, sgSorted, sgOver, sgFlash } from './jade-sgdraw.js';
 import { drawHero, gearGround, gearSorted, gearOver, wardenHitFrame, aimLine, setItemSprite } from './jade-duodraw.js';
 import { shooterFor } from './jade-gear.js';
 import { isleSorted, isleOver, isleActor, isleGround } from './jade-isledraw.js';
+import { jobActor, jobGround } from './jade-jobdraw.js';
 import { castFrame, castPose, type CastMember } from './jade-cast.js';
 
 export const ART = '/art/jade-street/';
@@ -482,6 +483,7 @@ export class Scene {
   actor(x: CanvasRenderingContext2D, w: World, a: Actor) {
     const b = a.b; const fl = Math.floor(a.t * 6) % 2;
     x.fillStyle = 'rgba(0,0,0,.3)';
+    if (jobActor(this, x, w, a)) return;
     if (isleActor(this, x, a)) return;
     switch (a.kind) {
       case 'cart': this.shadow(x, b.x + 4, b.y + 6, 36, 18); spr(x, `crow-cart-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 + (a.stun > 0 ? Math.sin(this.t * 30) * 0.3 : 0) }); if (a.stun > 0) this.stars(x, b.x, b.y - 30); break;
@@ -589,7 +591,7 @@ export class Scene {
         }
       }
       if (run) {
-        for (const it of run.items) if (!it.got) { this.glow(x, it.x, it.y, 46, 'rgba(255,200,80,.4)'); spr(x, itemSprite(it.sprite), it.x, it.y + 10, { w: it.sprite === 'lookout' ? 60 : 30 }); if (cb) this.cb(x, 'item', it.x + 26, it.y - 30); }
+        if (!jobGround(this, x, w, run)) for (const it of run.items) if (!it.got) { this.glow(x, it.x, it.y, 46, 'rgba(255,200,80,.4)'); spr(x, itemSprite(it.sprite), it.x, it.y + 10, { w: it.sprite === 'lookout' ? 60 : 30 }); if (cb) this.cb(x, 'item', it.x + 26, it.y - 30); }
         if (run.loot) { this.glow(x, run.loot.x, run.loot.y, 54, 'rgba(120,255,200,.45)'); spr(x, run.loot.sprite, run.loot.x, run.loot.y + 8 + b * 0.4, { w: 40 }); if (cb) this.cb(x, 'loot', run.loot.x + 30, run.loot.y - 34, 14); }
         if (run.cur.t === 'pickup' && run.cur.at !== 'loot') { const [px, py] = run.spot(run.cur.at); spr(x, itemSprite(run.cur.item), px, py + 10, { w: 34 }); }
         if (run.fare) { const f = run.fare; if (!f.to) spr(x, `folk-${f.sp}-hop`, f.x, f.y + 4, {}); }
@@ -720,7 +722,7 @@ export class Scene {
 }
 
 export function itemSprite(item: string) {
-  return ({ crate: 'crates', cake: 'cake', pots: 'pots', parcel: 'rice', coins: 'coins', manifest: 'i-map', lookout: 'crates', token: 'claw', durian: 'durian-crate', recipe: 'ticket', bag: 'handbag', prawns: 'fish-basket', lantern: 'kid-lantern' } as Record<string, string>)[item] ?? item;
+  return ({ crate: 'crates', cake: 'cake', pots: 'pots', parcel: 'rice', coins: 'coins', manifest: 'i-map', lookout: 'crates', token: 'claw', durian: 'durian-crate', recipe: 'ticket', bag: 'handbag', prawns: 'fish-basket', lantern: 'kid-lantern', abacus: 'statuette', decoy: 'job-decoy' } as Record<string, string>)[item] ?? item;
 }
 function contactFace(name: string) {
   return ({ 'Uncle Kee': 'kee', 'Chef Mo': 'mo', 'Auntie Pang': 'pang', 'Brother Heron': 'heron', 'Master Ren': 'ren', Kiri: 'kiri', 'Mr Lim': 'lim', 'Big Bo': 'bo', Gizmo: 'gizmo' } as Record<string, string>)[name] ?? 'kee';

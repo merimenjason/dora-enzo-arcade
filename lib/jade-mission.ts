@@ -26,6 +26,8 @@ import type { GadgetId } from './jade-gear.js';
 import type { Hero } from './jade-save.js';
 import type { Player } from './jade-game.js';
 import { lineAt, stationNear } from './jade-mrt.js';
+import { jobEnter, jobStep, jobNear, jobAct, jobMini, jobTag, jobGuardGoal, jobTarget, jobAim, jobGadget, walkOnly, heistPick, askPick, askClose, type JobState } from './jade-jobs.js';
+import type { Intel } from './jade-story.js';
 
 export type Gig = { key: string; reward: number; d: District };
 export type Actor = { id: number; kind: string; b: Body; route: [number, number][]; wp: number; speed: number; t: number; stun: number; look: number; lookCd: number; face: number; gone: boolean; hits: number; extra?: number;
@@ -34,7 +36,7 @@ export type Actor = { id: number; kind: string; b: Body; route: [number, number]
   /** a rival gang's look for a chase (an otter's sampan, a macaque) */
   skin?: 'otter' | 'mac' | 'liz' | 'kaw' };
 export type Meter = { name: string; v: number; bad?: boolean };
-type Snap = { i: number; x: number; y: number; h?: number; roof: boolean; ride: VehicleKind | null; carry: string | null; phase?: number;
+type Snap = { i: number; x: number; y: number; h?: number; roof: boolean; ride: VehicleKind | null; carry: string | null; phase?: number; intel?: Intel[];
   /** who you were playing and where the partner was (and what they had been told to do) */
   who: Hero; mate: { x: number; y: number; roof: boolean; seat: boolean; mode: MateMode; at: [number, number] | null; story: boolean } };
 
@@ -59,6 +61,9 @@ export class Run {
   set label(v: string) { this.lab = v; }
   /** the hero a switch step waits for, where you stood when the step began, the hero who started a relay */
   want = ''; here: [number, number] = [0, 0]; starter = '';
+  /** the seventh pass's job steps (lib/jade-jobs.ts): what casing found out (kept from step to step), the step's own
+   * state, the clue notebook, the Assist hint ring, and whether its meter's warning has been given */
+  intel: Intel[] = []; js: JobState | null = null; notes: string[] = []; hint: { x: number; y: number; r: number } | null = null; jsWarned = false;
   constructor(public w: World, public m: Mission, public gig?: Gig) {}
 
   get assist() { return this.w.assist; }
@@ -76,7 +81,7 @@ export class Run {
   addTip() { const t = this.m.tip!; const s = this.w.s; if (!s.tips.some(x => x.night === s.night && x.market === t.market && x.good === t.good)) s.tips.push({ night: s.night, market: t.market, good: t.good, mult: t.mult, from: PEOPLE[this.m.giver].name, text: this.m.blurb }); }
   snapshot(i: number): Snap {
     const p = this.w.p, m = this.w.mate;
-    return { i, x: p.x, y: p.y, h: p.ride ? p.ride.b.h : p.b.h, roof: p.roof, ride: p.ride?.kind ?? null, carry: p.carry, who: p.who,
+    return { i, x: p.x, y: p.y, h: p.ride ? p.ride.b.h : p.b.h, roof: p.roof, ride: p.ride?.kind ?? null, carry: p.carry, who: p.who, intel: this.intel.slice(),
       mate: { x: m.x, y: m.y, roof: m.roof, seat: !!m.seat && m.seat === p.ride, mode: m.ai.mode === 'pounce' || m.ai.mode === 'distract' ? 'follow' : m.ai.mode, at: m.ai.at, story: m.ai.story } };
   }
   restore() {
@@ -101,7 +106,8 @@ export class Run {
     m.ai = { ...newAI(), mode: s.mate.mode, at: s.mate.at, story: s.mate.story };
     if (s.mate.seat && p.ride) seat(w, m, p.ride);
     else { m.roof = s.mate.roof; if (m.roof) { m.b.x = s.mate.x; m.b.y = s.mate.y; m.lastRoof = [s.mate.x, s.mate.y]; } else { const [x, y] = nearestFree(w.c, 'walk', s.mate.x, s.mate.y, w.open, 4); m.b.x = x; m.b.y = y; } m.b.speed = 0; }
-    w.fx.push({ t: 'checkpoint' });
+    w.fx.push({ t: 'checkpoint' }); w.p.disguise = false;
+    if (s.intel) this.intel = s.intel.slice();
     this.enter(s.i);
     // a checkpoint taken part-way through a step (the shipping list in hand) picks up from there
     if (s.phase) { this.phase = s.phase; p.carry = s.carry; }
@@ -109,6 +115,7 @@ export class Run {
   }
   cleanup(all = true) {
     this.actors = []; this.items = []; this.marks = []; this.loot = null; this.fare = null; this.timer = null; this.meter = null; this.meter2 = null; this.progress = '';
+    this.js = null; this.notes = []; this.hint = null; this.w.p.disguise = false;
     this.sets = []; this.signs = []; this.float = null; this.warning = null;
     if (all) { releaseMate(this); this.w.p.carry = null; if (this.m.tip) this.w.s.tips = this.w.s.tips.filter(t => !(t.market === this.m.tip!.market && t.good === this.m.tip!.good)); }
   }
@@ -116,6 +123,7 @@ export class Run {
   enter(i: number) {
     const w = this.w;
     this.actors = []; this.items = []; this.marks = []; this.timer = null; this.meter = null; this.meter2 = null; this.progress = ''; this.phase = 0;
+    this.js = null; this.notes = []; this.hint = null;
     this.sets = []; this.signs = []; this.warned = 0; if (!(this.m.steps[i]?.t === 'pickup')) this.float = null; this.count = 0; this.lost = 0; this.hits = 0; this.spawned = 0; this.spawnT = 0;
     if (i >= this.m.steps.length) { this.cleanup(); w.finishMission(this.m, this.gig); return; }
     this.i = i; this.cur = this.m.steps[i]; const st = this.cur; this.here = [w.p.x, w.p.y];
@@ -123,6 +131,7 @@ export class Run {
     this.label = 'label' in st ? st.label : '';
     const k = (this.assist ? 1.4 : 1) * this.w.diff.timer;
     if (teamEnter(this, st)) return;
+    if (jobEnter(this, st)) return;
     switch (st.t) {
       case 'talk': {
         const hero = w.p.who, mate = w.mate.who;
@@ -253,6 +262,7 @@ export class Run {
     const px = p.x, py = p.y, pb = p.ride ? p.ride.b : p.b;
     watchStep(this, dt);
     if (teamStep(this, st, dt)) return;
+    if (jobStep(this, st, dt)) return;
     switch (st.t) {
       case 'goto': {
         const [x, y] = this.spot(st.at);
@@ -626,26 +636,34 @@ export class Run {
   onEnter(_r: Ride) { }
   onHeatClear() { }
   onMini(ok: boolean) {
+    if (jobMini(this, ok)) return;
     const st = this.cur; if (!st || st.t !== 'mini') return;
     if (ok) this.next();
     else { this.w.say('Not quite! Have another go.', 'bad'); this.w.ui = { kind: 'mini', mini: st.kind, level: st.level, from: 'mission' }; }
   }
   // ── the duo and the gadgets (lib/jade-team.ts)
-  tagOption(): TagOpt | null { return teamTag(this); }
-  guardGoal(m: Player) { return guardGoal(this, m); }
+  tagOption(): TagOpt | null { return jobTag(this) ?? teamTag(this); }
+  guardGoal(m: Player) { return jobGuardGoal(this, m) ?? guardGoal(this, m); }
   postRoof(goal: [number, number]) { return (this.w.c.flags[Math.floor(goal[1] / T) * W + Math.floor(goal[0] / T)] & F_ROOF) > 0; }
   holdAnim() { const st = this.cur; return st?.t === 'float' ? 'haul' : 'hold'; }
   noSwitch(): string | null { return null; }
   onSwitch() { }
-  onGadget(a: Actor, g: GadgetId, pw: number, x: number, y: number) { return onGadget(this, a, g, pw, x, y); }
+  onGadget(a: Actor, g: GadgetId, pw: number, x: number, y: number) { return jobGadget(this, a, g, pw, x, y) || onGadget(this, a, g, pw, x, y); }
   onBurst(g: GadgetId, x: number, y: number, r: number) { onBurst(this, g, x, y, r); }
-  nearAction(x: number, y: number): Near | null { return this.cur?.t === 'float' ? floatNear(this, x, y) : null; }
+  nearAction(x: number, y: number): Near | null { return this.cur?.t === 'float' ? floatNear(this, x, y) : jobNear(this, x, y); }
+  /** E on one of the job steps' things (a photo, a witness, a crate) */
+  jobAct(id: string) { jobAct(this, id); }
+  walkOnly() { return walkOnly(this); }
+  heistPick(mode: 'quiet' | 'loud') { heistPick(this, mode); }
+  askPick(q: number) { askPick(this, q); }
+  askClose() { askClose(this); }
   /** a hop off the roof edge near a flag, or the Action button on a flag, during the float phase */
   leap(fromHop = false) { return this.cur?.t === 'float' && tryLeap(this, fromHop); }
   wantsRide() { return false; }
   /** what the route arrow points at */
   target(): [number, number] | null {
     const st = this.cur; if (!st) return null; const w = this.w;
+    const jt = jobTarget(this); if (jt !== undefined) return jt;
     switch (st.t) {
       case 'goto': return this.spot(st.at);
       case 'ride': return this.ride && this.ride.parked ? [this.ride.b.x, this.ride.b.y] : null;
@@ -670,6 +688,7 @@ export class Run {
     const st = this.cur; if (!st) return null;
     if (st.t === 'chase' && this.actors[0]) return [this.actors[0].b.x, this.actors[0].b.y];
     if (st.t === 'raid') return this.target();
+    if (st.t === 'defend') return jobAim(this);
     if (st.t === 'escort') { const m = this.actors.filter(a => a.kind === 'swoop' && a.stun <= 0).sort((a, b) => dist(a.b.x, a.b.y, this.w.p.x, this.w.p.y) - dist(b.b.x, b.b.y, this.w.p.x, this.w.p.y))[0]; return m ? [m.b.x, m.b.y] : null; }
     return null;
   }
@@ -684,6 +703,9 @@ function timeUp(st: Step): string {
   if (st.t === 'collect') return 'Out of time! Grab them in the order the gold line suggests.';
   if (st.t === 'race') return 'Out of time! Cut the corners and use your boost.';
   if (st.t === 'fares') return 'The fare got fed up and walked! Drive them home quicker.';
+  if (st.t === 'detective') return 'Out of time! Ask the right question, then search only the spot that fits every clue.';
+  if (st.t === 'swap') return 'Out of time! The crates are being loaded. Swap faster while the guards look away.';
+  if (st.t === 'heist') return 'Out of time! The crows got back on their feet. Head straight for the safe.';
   return 'Out of time!';
 }
 

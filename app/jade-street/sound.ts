@@ -297,6 +297,36 @@ export class JadeSound {
   swapHero() { if (!this.ok('swap', 0.2)) return; const t = this.t; this.tone(mtof(76), t, 0.1, 'triangle', 0.1, this.out!); this.tone(mtof(81), t + 0.08, 0.14, 'triangle', 0.1, this.out!); }
   tagCue() { if (!this.ok('tag', 0.15)) return; const t = this.t; this.tone(mtof(79), t, 0.08, 'sine', 0.1, this.out!); this.tone(mtof(84), t + 0.06, 0.1, 'sine', 0.08, this.out!); }
 
+  /** the job steps (lib/jade-jobs.ts): a camera shutter and flash whine, a creaking door, the safe's clunk, nets
+   * laid and sprung, a crate lid, the coat going on, a page in the notebook, the found thing, a raid wave's drums */
+  job(t: string) {
+    if (!this.ok('job-' + t, 0.08)) return; const n = this.t, o = this.out!;
+    switch (t) {
+      case 'job-aim': this.tone(1500, n, 0.04, 'square', 0.04, o); break;
+      case 'job-photo': this.burst(n, 0.05, 6000, 2, 0.22); this.tone(2400, n + 0.03, 0.25, 'sine', 0.05, o, 1.8); this.tone(600, n + 0.06, 0.06, 'square', 0.08, o); break;
+      case 'job-door': this.tone(240, n, 0.4, 'sawtooth', 0.04, o, 1.4); this.thud(); break;
+      case 'job-pick': this.tagCue(); break;
+      case 'job-diversion': this.burst(n, 0.6, 2400, 0.4, 0.35); [72, 76, 79, 84].forEach((m, i) => this.tone(mtof(m), n + 0.1 + i * 0.05, 0.12, 'triangle', 0.08, o)); break;
+      case 'job-alarm': for (let i = 0; i < 4; i++) this.tone(i % 2 ? 660 : 990, n + i * 0.16, 0.14, 'square', 0.06, o); break;
+      case 'job-safe': this.tone(90, n, 0.3, 'sine', 0.3, o, 0.6); this.clank(); [79, 83, 86, 91].forEach((m, i) => this.pluck(mtof(m), n + 0.25 + i * 0.07, 0.5, o, 0.3)); break;
+      case 'job-wave': for (let i = 0; i < 3; i++) this.tone(110, n + i * 0.14, 0.12, 'sine', 0.3, o, 0.6); break;
+      case 'job-grab': this.tone(500, n, 0.15, 'sawtooth', 0.06, o, 0.5); this.burst(n, 0.12, 1800, 1, 0.15); break;
+      case 'job-gang': this.tone(900, n, 0.08, 'square', 0.04, o, 1.3); this.tone(1100, n + 0.09, 0.08, 'square', 0.04, o, 0.8); break;
+      case 'job-mend': this.tone(mtof(72), n, 0.1, 'triangle', 0.1, o); this.tone(mtof(79), n + 0.1, 0.16, 'triangle', 0.1, o); break;
+      case 'job-disguise': this.burst(n, 0.25, 1200, 0.6, 0.15); this.tone(mtof(67), n + 0.1, 0.2, 'triangle', 0.1, o); this.tone(mtof(74), n + 0.25, 0.25, 'triangle', 0.1, o); break;
+      case 'job-paper': this.burst(n, 0.18, 3000, 0.4, 0.14); break;
+      case 'job-clue': this.burst(n, 0.08, 4000, 1, 0.08); [84, 88].forEach((m, i) => this.pluck(mtof(m), n + 0.05 + i * 0.08, 0.4, o, 0.3)); break;
+      case 'job-wrong': this.tone(330, n, 0.18, 'triangle', 0.08, o, 0.8); break;
+      case 'job-found': this.fanfare(); break;
+      case 'job-nothing': this.burst(n, 0.2, 900, 0.6, 0.15); this.tone(260, n + 0.1, 0.16, 'triangle', 0.07, o, 0.8); break;
+      case 'job-trap-set': this.tone(200, n, 0.2, 'triangle', 0.12, o, 1.6); this.burst(n + 0.05, 0.15, 800, 0.5, 0.1); break;
+      case 'job-bait': this.tone(mtof(81), n, 0.12, 'sine', 0.1, o); break;
+      case 'job-spring': this.tone(120, n, 0.18, 'square', 0.1, o, 3.5); this.burst(n, 0.12, 1500, 1, 0.2); break;
+      case 'job-caught': this.good(); this.tone(180, n, 0.2, 'triangle', 0.12, o, 0.6); break;
+      case 'job-escape': this.whoosh(); this.tone(700, n, 0.2, 'sine', 0.05, o, 1.6); break;
+      case 'job-swap': this.tone(380, n, 0.06, 'square', 0.06, o); this.tone(300, n + 0.12, 0.08, 'triangle', 0.1, o); break;
+    }
+  }
   /** play the world's events */
   fx(list: Fx[]) {
     for (const f of list) switch (f.t) {
@@ -372,6 +402,7 @@ export class JadeSound {
       case 'float-go': this.gong(); break;
       case 'coins': case 'biz-buy': case 'biz-up': this.coins(); this.good(); break;
       case 'skid': this.skid(); break;
+      default: if (f.t.startsWith('job-')) this.job(f.t);
     }
   }
   /** mini-game events */
@@ -382,6 +413,7 @@ export class JadeSound {
       case 'drop': case 'spring': case 'buzz': case 'oops': case 'splat': case 'squish': this.bad(); break;
       case 'spark': this.spark(); break;
       case 'ready': this.good(); break;
+      case 'click': this.ding(); break;
       case 'vroom': this.engine(); break;
       case 'toss': this.whoosh(); this.sizzle(); break;
       case 'scorch': this.sizzle(); this.bad(); break;
