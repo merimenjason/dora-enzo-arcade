@@ -539,6 +539,14 @@ The sixth pass's art is in `docs/jade-street-art/jobs6.py`: thirteen sheets (two
 - The tenth pass's browser checks (`tests/e2e/jade-street-10.mjs`, 1280×800, `PASS=10` runs them alone) click every new action: the for-sale prompt, E, Buy and both Upgrades; the map's property pins, key, popup and Route here; the phone's Empire tab with its rank, ledger and Route me; the rank-up card; a raid's HUD clock, red map pin, the phone opening on the raid, Route me, arriving, and Quit this job losing the night; Send my partner; Send partner round the tills; Repair; Hire Pak Duri; a big till counted; an empire job's Take it; the pause menu's Empire tab; the Controls rows; the v11 save; and every new pose (deal, mend, repair, shake, send, bag, count).
 - `npm run play:jade`: plays two minutes in each district at 1280×800 with keys, rides, five-lantern heat, rain half the time with a busker's crowd gathered, and constant jumps to fresh streets, then a minute of a casing job with 43 guards hearing dashes and hops, turning, walking over and searching (`GUARDS_ONLY=1` times just that), and fails under 55 fps.
 
+### Results (16-11-2026, tenth pass: the Chinatown empire)
+
+Bots over all 58 story and side jobs plus the empire (`empireCases`): the casual bot on Assist and Easy finished every job in all ten seeds, every empire job (supplier deal, health inspector, price war, taxi fare, bumboat and kayak tours, karaoke night) and every raid kind on every property tried (grab, defend, trap and chase). With Assist off, Normal finished 100% and 92% first time, Hard 100% and 87%. Over four seeds each, Normal won every empire job and raid; Hard won all but the price war (3 of 4) and the grab raid at the claw machine (1 of 4).
+
+Frame rate on this Mac in headless Chromium at 1280×800, one minute per district under the play-through's load, with the properties, for-sale boards, jaga and raid glow drawn: 59.8 to 60.0 average in every district (lowest half-second 50.3 in the temple district) and 60.0 for the guards minute. An A/B with the empire drawing switched off showed no difference.
+
+Browser suite at 1280×800: the tenth pass's 145 checks pass with 0 page or console errors. The engine suites all pass, with the tenth pass's 13 tests.
+
 ### Results (16-11-2026, ninth pass: Little India, Kampong Glam, Sentosa and chapter seven)
 
 - `npm run test:jade`: 31 + 14 + 13 + 19 + 14 + 14 + 19 + 15 ninth-pass + 9 playtest-fix tests pass with every frame painted (1711 frames, 24 textures, none missing).
@@ -598,6 +606,12 @@ Frame rate on this Mac in headless Chromium at 1280×800, two minutes per distri
 Browser suite: 868 checks passed (292 at 1280×800, 288 each at 390×844 and 844×390) with no page errors, before the owner ruled Jade Street desktop-only; the third pass's checks now run at 1280×800 only, while the older phone passes still run as they were.
 
 ## What is weakest
+
+- **The Hard grab raid is stiff.** The bot wins it 1 time in 4 on Hard without Assist (every time on Assist, Easy and Normal); a human who sees the alert late will mostly lose that night's takings, which is the designed cost, not a loss of the property.
+- **Empire jobs are generated, not authored.** The supplier deal, inspector, price war, fares, tours and karaoke night build their routes from the property's spot (litter rings, downhill tail routes), so a few play out in plain streets and the same job at two properties feels alike.
+- **The new people only stand during their jobs.** Ah Huat the supplier, Inspector Siew, Towkay Hoot the rival and Pak Duri the jaga were painted for this pass, but outside their jobs (and Duri's patrol) they are not in the street.
+- **The partner's round can be slow.** Sending the partner round the tills walks every owned property in turn, so with many properties the coins can take up to about four minutes of play to arrive.
+- **One browser flake was never explained.** One e2e run failed one check (144 of 145) before the round check was changed to count the coins handed over; three later runs were 145 of 145.
 
 - **Frame rate was measured on a busy machine.** `play:jade` fails its 55 fps floor on some runs because of other work on the Mac (market 54.3 to 59.1 and guards 36.8 to 60.0 across runs of the same code); the ninth pass has not been timed on a quiet machine.
 - **The new districts are big and fairly empty off the main streets.** Little India, Kampong Glam and Sentosa have their landmarks, markets, safe houses, festivals and townsfolk, but the back lanes have fewer props than Chinatown's.
