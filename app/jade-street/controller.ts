@@ -45,6 +45,8 @@ export class Play {
   typed = 0; typeKey = ''; typeEl: HTMLElement | null = null; reduced = false;
   constructor(public cv: HTMLCanvasElement, public save: Save, public snd: JadeSound | null, public onChange: () => void, public persist: (s: Save) => void) {
     this.w = new World(save);
+    // the browser tests turn off the night's raids so one never lands in the middle of another feature's checks
+    if ((globalThis as { __jadeNoRaids?: boolean }).__jadeNoRaids) this.w.emp.off = true;
     this.w.event = dailyEvent(dayKey(new Date()));
     this.scene = new Scene(cv, city());
     this.scene.minimap.on = true;

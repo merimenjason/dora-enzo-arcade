@@ -40,7 +40,7 @@ export type Raid = { id: BizId; gang: Gang; kind: RaidKind; t: number; total: nu
 /** the partner's errand: a round of the tills (collect) or a raid to see off (defend); `queue` the properties still to
  * visit, `got` the coins in their bag, `t` seconds out */
 export type Round = { kind: 'collect' | 'defend'; queue: BizId[]; got: number; t: number; at: BizId | null; done: number; won?: boolean };
-export type EmpState = { raid: Raid | null; round: Round | null; jaga: Actor | null; hinted: boolean; lastRank: number };
+export type EmpState = { raid: Raid | null; round: Round | null; jaga: Actor | null; hinted: boolean; lastRank: number; /** no raids at the raid hours (the browser tests of other features) */ off?: boolean };
 export const newEmp = (): EmpState => ({ raid: null, round: null, jaga: null, hinted: false, lastRank: -1 });
 
 /** the numbers (Assist in brackets): seconds to reach a raid 110 (150), raid odds at each of the two raid hours 0.4 (0.3) */
@@ -63,7 +63,7 @@ export const RAID_WHAT: Record<RaidKind, string> = { defend: 'Hold the shop', tr
 // ── raids
 /** the raid hours: maybe a raid on a property with coins in the till (one at a time, never mid-job) */
 export function empireClock(w: World, before: number, after: number) {
-  const s = w.s; if (w.emp.raid || w.run) return;
+  const s = w.s; if (w.emp.raid || w.run || w.emp.off) return;
   const marks = EMP.hours.filter(m => before < m && after >= m); if (!marks.length) return;
   const R = rng(hashStr(`jade-raid:${s.seed}:${s.night}:${marks[0]}`));
   const mine = owned(s).filter(b => w.open.has(b.d) && !s.biz[b.id].dmg && s.biz[b.id].bank >= EMP.minTill);
@@ -79,7 +79,7 @@ export function startRaidAlert(w: World, id: BizId, R = rng(hashStr(`jade-raidk:
   const kind = kinds[(st.raids + Math.floor(R() * kinds.length)) % kinds.length];
   const total = w.assist ? EMP.windowAssist : EMP.window;
   w.emp.raid = { id, gang, kind, t: total, total, sent: false };
-  text(w, b.keeper, `Help! The ${GANG_NAME[gang]} are raiding the ${b.name}! Come quick (you have about ${Math.round(total / 60 * 2) / 2} minutes), or send ${w.mate.who === 'dora' ? 'Dora' : 'Enzo'} from the phone.`);
+  text(w, b.keeper, `Help! The ${GANG_NAME[gang]} are raiding the ${b.name}! Come quick (you have about ${Math.round(total / 60 * 2) / 2} minutes), or send ${w.mate.who === 'dora' ? 'Dora' : 'Enzo'} from the phone.`, { kind: 'help' });
   w.say(`Raid on the ${b.name}! Get there in time, or send your partner (phone → Empire).`, 'bad');
   w.fx.push({ t: 'raid-alert', name: b.name, x: bizPos(b)[0], y: bizPos(b)[1] });
 }

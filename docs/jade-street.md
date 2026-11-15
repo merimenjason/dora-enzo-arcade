@@ -611,7 +611,7 @@ Browser suite: 868 checks passed (292 at 1280×800, 288 each at 390×844 and 844
 - **Empire jobs are generated, not authored.** The supplier deal, inspector, price war, fares, tours and karaoke night build their routes from the property's spot (litter rings, downhill tail routes), so a few play out in plain streets and the same job at two properties feels alike.
 - **The new people only stand during their jobs.** Ah Huat the supplier, Inspector Siew, Towkay Hoot the rival and Pak Duri the jaga were painted for this pass, but outside their jobs (and Duri's patrol) they are not in the street.
 - **The partner's round can be slow.** Sending the partner round the tills walks every owned property in turn, so with many properties the coins can take up to about four minutes of play to arrive.
-- **One browser flake was never explained.** One e2e run failed one check (144 of 145) before the round check was changed to count the coins handed over; three later runs were 145 of 145.
+- **A smashed shop's till.** A damaged property's till cap once fell to one coin, so damage quietly emptied the till as well (the cause of an e2e check that failed one run in three). The till now never shrinks on its own; the fix landed after the full bot run, which it cannot make harder.
 
 - **Frame rate was measured on a busy machine.** `play:jade` fails its 55 fps floor on some runs because of other work on the Mac (market 54.3 to 59.1 and guards 36.8 to 60.0 across runs of the same code); the ninth pass has not been timed on a quiet machine.
 - **The new districts are big and fairly empty off the main streets.** Little India, Kampong Glam and Sentosa have their landmarks, markets, safe houses, festivals and townsfolk, but the back lanes have fewer props than Chinatown's.

@@ -65,6 +65,8 @@ const CONTRAST = () => {
 async function viewport(name, w, h, touch) {
   console.log(`${name} ${w}×${h}${touch ? ' (touch)' : ''}`);
   const ctx = await b.newContext({ viewport: { width: w, height: h }, hasTouch: touch, isMobile: touch, deviceScaleFactor: 1 });
+  // no raids at the raid hours: one landing on a hawker stall mid-check would start its job (the tenth pass raises them by hook)
+  await ctx.addInitScript(() => { window.__jadeNoRaids = true; });
   const p = await ctx.newPage();
   const cdp = touch ? await ctx.newCDPSession(p) : null;
   p.on('pageerror', e => { errs.push(`${name}: ${e.message}`); console.log('  PAGE ERROR', e.message); });
