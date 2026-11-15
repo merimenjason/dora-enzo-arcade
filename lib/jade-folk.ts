@@ -10,9 +10,17 @@ import { lightOf, LIGHT_AT } from './jade-traffic.js';
 
 export const FOLK = ['rabbit', 'dog', 'squirrel', 'cat', 'duck', 'hedgehog', 'goose', 'sunbear', 'rooster'];
 /** the Singapore townsfolk, who say a word or two of Singlish (lib/jade-sg.ts) */
-export const SG_FOLK = ['goose', 'sunbear', 'rooster', 'tapir', 'mousedeer', 'civet'];
+export const SG_FOLK = ['goose', 'sunbear', 'rooster', 'tapir', 'mousedeer', 'civet', 'deer', 'loris', 'turtle'];
 /** the island's townsfolk: mostly its own three (a tapir auntie, a mousedeer office worker, a civet student), with a few from town */
 export const ISLE_FOLK = ['tapir', 'mousedeer', 'civet', 'tapir', 'mousedeer', 'civet', 'rabbit', 'cat', 'sunbear', 'goose'];
+/** the ninth pass's districts have their own townsfolk too: a spotted-deer auntie in a sari in Little India, a slow
+ *  loris uncle in a baju Melayu and songkok in Kampong Glam, a sea-turtle tourist in a flowery shirt on Sentosa */
+export const EAST_FOLK: Record<'india' | 'glam' | 'resort', string[]> = {
+  india: ['deer', 'deer', 'deer', 'loris', 'tapir', 'mousedeer', 'sunbear', 'rabbit'],
+  glam: ['loris', 'loris', 'loris', 'deer', 'civet', 'mousedeer', 'goose', 'cat'],
+  resort: ['turtle', 'turtle', 'turtle', 'turtle', 'deer', 'civet', 'tapir', 'duck'],
+};
+const folkAt = (tx: number, ty: number) => { const d = districtAt(tx, ty); return d === 'india' || d === 'glam' || d === 'resort' ? EAST_FOLK[d] : tx >= OW ? ISLE_FOLK : FOLK; };
 export type Ped = {
   id: number; sp: string; x: number; y: number; h: number; tx: number; ty: number; hop: number; hx: number; hy: number; scare: number; wait: number; walk: number;
   dest: number; sit: number; roadT: number; watch: boolean;
@@ -121,7 +129,7 @@ export function pedStep(w: World, dt: number) {
     const a = w.R() * Math.PI * 2, d = 600 + w.R() * 550;
     const tx = Math.floor((px + Math.cos(a) * d) / T), ty = Math.floor((py + Math.sin(a) * d) / T);
     if (pedTile(w.c, tx, ty) && zebraAt(tx, ty) < 0 && w.open.has(districtAt(tx, ty))) {
-      const pd: Ped = { id: w.nextId++, sp: (tx >= OW ? ISLE_FOLK : FOLK)[Math.floor(w.R() * (tx >= OW ? ISLE_FOLK : FOLK).length)], x: tx * T + T / 2, y: ty * T + T / 2, h: 0, tx, ty, hop: 0, hx: 0, hy: 0, scare: 0, wait: 0, walk: w.R() * 9, dest: -1, sit: 0, roadT: 0, watch: false };
+      const pd: Ped = { id: w.nextId++, sp: folkAt(tx, ty)[Math.floor(w.R() * folkAt(tx, ty).length)], x: tx * T + T / 2, y: ty * T + T / 2, h: 0, tx, ty, hop: 0, hx: 0, hy: 0, scare: 0, wait: 0, walk: w.R() * 9, dest: -1, sit: 0, roadT: 0, watch: false };
       choose(w, pd); w.peds.push(pd);
     }
   }

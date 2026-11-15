@@ -195,7 +195,7 @@ export class Run {
           const cls = st.rival === 'boat' ? 'boat' : st.rival === 'runner' ? 'foot' : 'small';
           const [x, y] = nearestFree(w.c, cls, w.p.x + 30, w.p.y + 30, w.open, cls === 'boat' && w.p.ride?.kind !== 'boat' ? 12 : 4);
           const sp = st.rival === 'runner' ? 204 : st.rival === 'scooter' ? 292 : 220;
-          this.actors.push(this.actor('rival-' + st.rival, x, y, cls, this.marks, sp * (this.assist ? 0.86 : 1) * this.w.diff.rival * this.mercy()));
+          this.actors.push(this.actor('rival-' + st.rival, x, y, cls, this.marks, sp * (st.pace ?? 1) * (this.assist ? 0.86 : 1) * this.w.diff.rival * this.mercy()));
         }
         this.progress = `Gates 0/${this.marks.length}`; this.starter = w.p.who;
         break;

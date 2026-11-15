@@ -14,7 +14,7 @@ type Vis = (px: number, py: number, m?: number) => boolean;
 /** on the ground: the kolams on Deepavali nights */
 export function eastGround(sc: Scene, x: X, w: World, vis: Vis) {
   const E = w.c.east; if (!E || !w.open.has('india') || w.east.fest !== 'deepavali') return;
-  E.kolams.forEach(([kx, ky], i) => { if (vis(kx, ky)) spr(x, i % 2 ? 'kolam-b' : 'kolam-a', kx, ky, { w: 70, anchor: 'center', alpha: 0.95 }); });
+  E.kolams.forEach(([kx, ky], i) => { if (vis(kx, ky)) spr(x, 'kolam', kx, ky, { w: 64 + (i % 3) * 8, anchor: 'center', rot: i * 0.7, alpha: 0.95 }); });
   void sc;
 }
 export function eastSorted(sc: Scene, x: X, w: World, list: List, vis: Vis) {
