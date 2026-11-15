@@ -437,7 +437,7 @@ async function viewport(name, w, h, touch) {
   await press('new'); check(await exists('confirm-new'), `${name}: New game asks first`); await look('confirm new');
   await press('confirm-no'); check(await exists('continue'), `${name}: Keep my game`);
   // (the night the save holds: the long run above may have seen a dawn or two since the sleep)
-  const savedNight = await W(() => JSON.parse(localStorage.getItem('jade-street-v10') || '{}').night);
+  const savedNight = await W(() => JSON.parse(localStorage.getItem('jade-street-v11') || '{}').night);
   await press('continue'); check(await screen() === 'game' && savedNight >= night + 1 && (await W(() => window.__jade.world().s.night)) === savedNight, `${name}: Continue picks up the saved game`);
   await settle(); await press('pause-btn'); await press('new-game'); check(await exists('confirm-new'), `${name}: New game from pause asks first`);
   await press('confirm-no'); await press('new-game'); await press('confirm-yes'); check(await exists('pick-hero'), `${name}: Yes, start over goes to the hero pick`);

@@ -57,18 +57,19 @@ export async function fifth(h) {
   const junk = await W(() => { const w = window.__jade.world(); const i = w.sg.junk[0]; const [x, y] = w.c.sg.junk[i]; return { i, x, y }; });
   await at(junk.x, junk.y); check((await near())?.id === 'junk:' + junk.i, `${name}: a bundle of old newspapers`);
   await E(); await wait(900); check((await sg()).bag.junk === 1, `${name}: E picks up the newspapers`);
-  await W(() => { const w = window.__jade.world(); const o = w.sg.ong.b; w.placePlayer(o.x + 40, o.y); w.findNear(); });
+  // beside Mr Ong, on whichever side a parked scooter is not nearer (he walks, and a kerb spot is a couple of tiles off his path)
+  await W(() => { const w = window.__jade.world(); const o = w.sg.ong.b; for (const [dx, dy] of [[40, 0], [-40, 0], [0, -36], [0, 36]]) { w.placePlayer(o.x + dx, o.y + dy); w.findNear(); if (w.near?.id === 'ong') break; } });
   { const n = await near(); check(n?.id === 'ong', `${name}: Mr Ong will buy them`); if (n?.id !== 'ong') console.log('ONG', JSON.stringify(n), await W(() => { const w = window.__jade.world(); return JSON.stringify({ ong: [Math.round(w.sg.ong.b.x), Math.round(w.sg.ong.b.y)], p: [Math.round(w.p.x), Math.round(w.p.y)], run: !!w.run, talk: !!w.talk, ui: w.ui?.kind, ride: !!w.p.ride, act: w.p.act?.n, junk: w.s.bag?.junk, fest: !!w.festival, tut: w.tutor.cur, wp: w.waypoint, hide: w.p.hide, roof: w.p.roof }); })); }
   const c0 = (await sg()).cash; await E(); await wait(1100);
   check((await sg()).bag.junk === 0 && (await sg()).cash === c0 + 3, `${name}: E sells the newspapers (3 coins)`);
   await look('karang guni');
 
   // ── gum, the bin, the pigeons (on Easy the first slip of each kind is a warning)
-  const gum = await W(() => { const w = window.__jade.world(); w.patrols.length = 0; w.ticket = null; w.fineCd.set('gum', w.time + 999); w.open = new Set(['market', 'temple', 'canal', 'docks', 'arcade']); if (!w.sg.gum.length) w.sg.gum.push(0); const i = w.sg.gum[0]; const [x, y] = w.c.sg.gum[i]; return { i, x, y }; });
+  const gum = await W(() => { const w = window.__jade.world(); w.patrols.length = 0; w.ticket = null; w.fineCd.set('gum', w.time + 999); w.open = new Set(['market', 'temple', 'canal', 'docks', 'arcade']); const clear = ([x, y]) => !w.rides.some(r => r.parked && Math.hypot(r.b.x - x, r.b.y - y) < 130); /* (away from a parked scooter's prompt) */ let i = w.sg.gum.find(k => clear(w.c.sg.gum[k])); if (i === undefined) { i = w.c.sg.gum.findIndex(clear); if (i < 0) i = 0; w.sg.gum.push(i); } const [x, y] = w.c.sg.gum[i]; return { i, x, y }; });
   await at(gum.x, gum.y); check((await near())?.id === 'gum:' + gum.i, `${name}: a stick of gum on the pavement`);
   await E(); await wait(800); check((await sg()).bag.gum === 1, `${name}: E picks up the gum`);
   // (old newspapers lying by the bin would be picked up first: they are cleared off here)
-  const bin = await W(() => { const w = window.__jade.world(), b = w.c.sg.bins[0]; w.sg.junk = w.sg.junk.filter(i => Math.hypot(w.c.sg.junk[i][0] - b[0], w.c.sg.junk[i][1] - b[1]) > 140); return b; }); await at(bin[0], bin[1]);
+  const bin = await W(() => { const w = window.__jade.world(), b = w.c.sg.bins.find(([x, y]) => !w.rides.some(r => r.parked && Math.hypot(r.b.x - x, r.b.y - y) < 130)) ?? w.c.sg.bins[0]; w.sg.junk = w.sg.junk.filter(i => Math.hypot(w.c.sg.junk[i][0] - b[0], w.c.sg.junk[i][1] - b[1]) > 140); return b; }); await at(bin[0], bin[1]);
   { const nb = await near(); check(nb?.id === 'bin', `${name}: a litter bin (${nb?.kind}:${nb?.id})`); } await E(); await wait(900);
   check((await sg()).bag.gum === 0, `${name}: E spits the gum in the bin`);
   await W(() => { window.__jade.world().fineCd.delete('gum'); });
