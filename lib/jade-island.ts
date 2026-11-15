@@ -20,7 +20,7 @@ export type Isle = {
   /** where taxis wait for a fare */
   taxiStands: [number, number][];
   /** each gang's hideout */
-  hideouts: Record<'otter' | 'mac' | 'liz' | 'crow', [number, number]> & { myna?: [number, number] };
+  hideouts: Record<'otter' | 'mac' | 'liz' | 'crow', [number, number]> & { myna?: [number, number]; bat?: [number, number] };
   /** the floating stage's walkable deck (tile rect) */
   stage: [number, number, number, number];
 };

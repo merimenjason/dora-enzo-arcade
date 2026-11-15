@@ -92,11 +92,13 @@ export function jobActor(sc: Scene, x: X, w: World, a: Actor): boolean {
       const m = a.mind;
       if (!dazed && !painted && !((a.stare ?? 0) > 0)) mindBeam(sc, x, m, b.x, b.y - 20, b.h, sightRange(w.run!), w.assist ? 0.45 : 0.55);
       let f: string;
-      if (a.skin === 'myna') {
-        // a Kecoh Mynah lookout: head cocked to look, beak open to call the others
-        const lp = m?.pose === 'call' ? 'myna-sing' : m?.pose === 'search' || m?.pose === 'look' || m?.st === 'sus' ? 'myna-peer' : '';
-        f = (a.stare ?? 0) > 0 ? 'myna-taunt' : lp && b.speed < 5 ? lp : b.speed < 5 ? 'myna-walk-down-0' : side ? `myna-run-${fl}` : `myna-walk-${sy > 0 ? 'down' : 'up'}-${fl}`;
-        spr(x, f, b.x, b.y + 4, { flip: side && cx < 0, w: 44 }); if (painted) spr(x, 'sp-teal', b.x, b.y - 28, { w: 22 });
+      if (a.skin === 'myna' || a.skin === 'bat') {
+        // a Kecoh Mynah or Atas Bat lookout: head cocked to look, beak (or snout) open to call the others; a bat on
+        // watch hangs from its perch when it stands still
+        const k = a.skin;
+        const lp = m?.pose === 'call' ? `${k}-sing` : m?.pose === 'search' || m?.pose === 'look' || m?.st === 'sus' ? `${k}-peer` : '';
+        f = (a.stare ?? 0) > 0 ? `${k}-taunt` : lp && b.speed < 5 ? lp : b.speed < 5 ? (k === 'bat' ? 'bat-perch' : 'myna-walk-down-0') : side ? `${k}-run-${fl}` : `${k}-walk-${sy > 0 ? 'down' : 'up'}-${fl}`;
+        spr(x, f, b.x, b.y + 4, { flip: side && cx < 0, w: k === 'bat' ? 48 : 44 }); if (painted) spr(x, 'sp-teal', b.x, b.y - 28, { w: 22 });
         if (!painted) mindBubble(sc, x, m, b.x, b.y - 66); return true;
       }
       if (a.skin === 'liz') {
@@ -129,19 +131,19 @@ export function jobActor(sc: Scene, x: X, w: World, a: Actor): boolean {
       x.fillStyle = 'rgba(0,0,0,.3)'; sc.shadow(x, b.x, b.y + 2, 15, 6);
       const sk = a.skin ?? 'crow', netted = a.kind === 'lured' && a.extra === 1, fleeing = a.extra === 2;
       let f: string, flip = side && cx < 0;
-      if (netted) { f = sk === 'liz' ? 'liz-netted' : sk === 'otter' ? 'otter-netted' : sk === 'mac' ? 'mac-netted' : sk === 'myna' ? 'myna-netted' : 'crow-netted'; flip = false; }
-      else if (a.kind === 'lured' && a.look > 0) f = sk === 'mac' ? 'mac-munch' : sk === 'myna' ? 'myna-munch' : sk === 'liz' ? 'liz-taunt' : sk === 'otter' ? 'otter-taunt' : 'crow-taunt';
+      if (netted) { f = sk === 'liz' ? 'liz-netted' : sk === 'otter' ? 'otter-netted' : sk === 'mac' ? 'mac-netted' : sk === 'myna' ? 'myna-netted' : sk === 'bat' ? 'bat-netted' : 'crow-netted'; flip = false; }
+      else if (a.kind === 'lured' && a.look > 0) f = sk === 'mac' ? 'mac-munch' : sk === 'myna' ? 'myna-munch' : sk === 'bat' ? 'bat-munch' : sk === 'liz' ? 'liz-taunt' : sk === 'otter' ? 'otter-taunt' : 'crow-taunt';
       else if (a.kind === 'lured' && a.extra === 3) f = sk === 'liz' ? 'liz-netted' : `${sk}-caught`;
       else if (a.kind === 'lured' && b.speed < 5 && (a.mind?.st === 'sus' || a.mind?.st === 'look')) f = sk === 'liz' ? 'liz-look' : `${sk}-peer`;
       else if (a.kind === 'pest' && a.stun > 0 && a.extra !== 2) f = sk === 'liz' ? 'liz-dizzy' : `${sk}-dizzy`;
       else if (a.kind === 'pest' && a.extra === 4) f = sk === 'liz' ? 'liz-taunt' : `${sk}-grab`;
       else if (a.kind === 'pest' && a.sneaky && !fleeing) f = sk === 'crow' ? `crow-sneak-${fl}` : sk === 'liz' ? `liz-walk-down-${fl}` : `${sk}-sneak-${fl}`;
-      else if (fleeing && a.kind === 'pest') f = sk === 'crow' || sk === 'myna' ? `${sk}-fly-${fl}` : sk === 'mac' ? 'mac-startled' : `${sk}-run-${fl}`;
-      else if ((sk === 'crow' || sk === 'myna') && a.b.cls === 'fly') f = `${sk}-fly-${fl}`;
+      else if (fleeing && a.kind === 'pest') f = sk === 'crow' || sk === 'myna' || sk === 'bat' ? `${sk}-fly-${fl}` : sk === 'mac' ? 'mac-startled' : `${sk}-run-${fl}`;
+      else if ((sk === 'crow' || sk === 'myna' || sk === 'bat') && a.b.cls === 'fly') f = `${sk}-fly-${fl}`;
       else if (side || fleeing) f = `${sk === 'crow' ? 'crow' : sk}-run-${fl}`;
       else f = `${sk === 'crow' ? 'crow' : sk}-walk-${sy > 0 ? 'down' : 'up'}-${fl}`;
-      if (f.startsWith('crow-fly') || f.startsWith('myna-fly')) spr(x, f, b.x, b.y - 10, { anchor: 'center', rot: b.h + Math.PI / 2 });
-      else spr(x, f, b.x, b.y + 4, { flip, w: sk === 'liz' ? 56 : undefined });
+      if (f.startsWith('crow-fly') || f.startsWith('myna-fly') || f.startsWith('bat-fly')) spr(x, f, b.x, b.y - 10, { anchor: 'center', rot: b.h + Math.PI / 2, w: sk === 'bat' ? 58 : undefined });
+      else spr(x, f, b.x, b.y + 4, { flip, w: sk === 'liz' ? 56 : sk === 'bat' ? 48 : undefined });
       if (a.kind === 'pest' && a.extra === 1) spr(x, 'handbag', b.x, b.y - 46, { w: 20 });
       if (a.kind === 'pest' && a.extra !== 2 && a.stun > 0) sc.stars(x, b.x, b.y - 44);
       // knocked back: a puff of feathers (crows) or dust as it goes

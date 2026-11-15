@@ -93,7 +93,7 @@ export const dayRecord = (w: World) => { const cs = w.s.contracts; return w.even
 export function startContract(w: World, which: string): string | null {
   if (w.run) return 'Finish the job you are on first';
   const l = findListed(w, which); if (!l) return 'That contract is gone';
-  const m = contractMission(l.c, w.assist);
+  const m = contractMission(l.c, w.assist, w.s.settings.diff === 'hard');
   if (w.p.ride && l.c.mods.includes('foot')) w.exit();
   w.startMission(m, { key: `con:${which}:${l.c.ref.seed}`, reward: l.tag === 'day' && dayPaid(w) ? Math.round(l.c.pay / 4) : l.c.pay, d: l.c.d });
   return null;

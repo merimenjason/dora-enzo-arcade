@@ -11,7 +11,9 @@ import type { Good } from './jade-trade.js';
 export type PropKind = 'stall' | 'food' | 'shophouse' | 'karaoke' | 'bumboat' | 'taxi' | 'bar' | 'shop' | 'kayak';
 /** a business or property: `at` its pavement tile, `price` the stake, `up` the two upgrades, `income` a night's takings
  * at levels 0 to 3, `rain` how a shower changes trade, `need` the district reputation the keepers want */
-export type PropDef = { id: string; name: string; keeper: string; d: District; at: [number, number]; good: Good | null; price: number; up: [number, number]; income: [number, number, number, number]; rain: number; need: number; kind?: PropKind };
+export type PropDef = { id: string; name: string; keeper: string; d: District; at: [number, number]; good: Good | null; price: number; up: [number, number]; income: [number, number, number, number]; rain: number; need: number; kind?: PropKind;
+  /** the painted stand it shares (the twelfth pass's properties reuse the tenth's paintings of the same trade) */
+  art?: string };
 
 /** one rule for every property's numbers (the tenth pass rebalanced the first eleven to it too): upgrades cost 0.8 and
  * 1.3 of the stake, and a night's takings are 0.3, 0.5 and 0.74 of it at each level, so each step pays for itself in
@@ -21,8 +23,8 @@ export const INCOME_K: [number, number, number] = [0.3, 0.5, 0.74];
 const r10 = (x: number) => Math.round(x / 10) * 10;
 export const upOf = (price: number): [number, number] => [r10(price * UP_K[0]), r10(price * UP_K[1])];
 export const incomeOf = (price: number): [number, number, number, number] => [0, Math.round(price * INCOME_K[0]), Math.round(price * INCOME_K[1]), Math.round(price * INCOME_K[2])];
-const P = (id: string, name: string, keeper: string, d: District, at: [number, number], price: number, rain: number, need: number, kind: PropKind): PropDef =>
-  ({ id, name, keeper, d, at, good: null, price, up: upOf(price), income: incomeOf(price), rain, need, kind });
+const P = (id: string, name: string, keeper: string, d: District, at: [number, number], price: number, rain: number, need: number, kind: PropKind, art?: string): PropDef =>
+  ({ id, name, keeper, d, at, good: null, price, up: upOf(price), income: incomeOf(price), rain, need, kind, ...(art ? { art } : {}) });
 
 export const PROPS: PropDef[] = [
   P('shophouse', 'Pagoda Street Shophouse', 'kee', 'market', [22, 50], 1050, 1, 18, 'shophouse'),
@@ -40,9 +42,16 @@ export const PROPS: PropDef[] = [
   P('textile', 'Arab Street Textile House', 'kancil', 'glam', [243, 53], 2100, 1, 15, 'shop'),
   P('beachbar', 'Siloso Beach Bar', 'duyung', 'resort', [93, 118], 2700, 0.75, 15, 'bar'),
   P('kayak', 'Siloso Kayak Hire', 'helang', 'resort', [111, 111], 2250, 0.7, 15, 'kayak'),
+  // the twelfth pass: two on Orchard Road, two in Katong, two in Changi Village (raided by the Atas Bats)
+  P('emerald', 'Emerald Hill Café', 'tiara', 'orchard', [277, 21], 1600, 1.1, 12, 'food', 'cafe'),
+  P('lounge', 'Orchard Road Rooftop Lounge', 'tiara', 'orchard', [317, 32], 3200, 0.8, 15, 'bar', 'rooftop'),
+  P('laksahouse', 'Katong Laksa House', 'rosie', 'katong', [296, 55], 1500, 1.15, 10, 'food', 'prata'),
+  P('joochiat', 'Joo Chiat Shophouse', 'rosie', 'katong', [323, 56], 2000, 1, 12, 'shophouse', 'spice'),
+  P('nasilemak', 'Changi Village Nasi Lemak', 'ubin', 'changi', [328, 55], 1400, 1.15, 12, 'food', 'kopitiam'),
+  P('sunset', 'Changi Village Sunset Bar', 'ubin', 'changi', [335, 69], 2800, 0.75, 15, 'bar', 'beachbar'),
 ];
 /** the first eleven, kept as they were placed, with the kind of trade each is */
 export const STALL_KIND: Record<string, PropKind> = { noodle: 'food', cake: 'food', tea: 'food', fan: 'shop', jade: 'shop', claw: 'shop', ckt: 'food', chicken: 'food', satay: 'food', laksa: 'food', kopi: 'food' };
 /** the rival gang that raids each district's properties (lib/jade-gangs.ts and the Longkang Lizards of the island) */
-export const RAID_GANG: Record<District, 'crow' | 'mac' | 'otter' | 'liz' | 'myna'> = { market: 'mac', temple: 'mac', canal: 'otter', docks: 'otter', arcade: 'crow', heartland: 'liz', bay: 'liz', india: 'myna', glam: 'myna', resort: 'myna' };
-export const GANG_NAME: Record<string, string> = { crow: 'Kaypoh Crows', mac: 'Bukit Bunch macaques', otter: 'Riverside Romp otters', liz: 'Longkang Lizards', myna: 'Kecoh Mynahs' };
+export const RAID_GANG: Record<District, 'crow' | 'mac' | 'otter' | 'liz' | 'myna' | 'bat'> = { market: 'mac', temple: 'mac', canal: 'otter', docks: 'otter', arcade: 'crow', heartland: 'liz', bay: 'liz', india: 'myna', glam: 'myna', resort: 'myna', orchard: 'bat', katong: 'bat', changi: 'bat' };
+export const GANG_NAME: Record<string, string> = { crow: 'Kaypoh Crows', mac: 'Bukit Bunch macaques', otter: 'Riverside Romp otters', liz: 'Longkang Lizards', myna: 'Kecoh Mynahs', bat: 'Atas Bats' };

@@ -122,6 +122,8 @@ export function ferryLand(w: World) {
 /** the one-time hints and the phone text when Sentosa opens */
 export const CABLE_HINT = 'Sentosa is open! Ride the cable car from HarbourFront at the docks (E at the station, 4 coins), walk the boardwalk, or take the MRT to Beach station.';
 export const EAST_TEXT = 'The MRT runs on over the Rochor River: Bugis for Kampong Glam, and Little India. Walk over the bridges on Syed Alwi Road or Arab Street, or take a taxi.';
+export const FAR_TEXT = 'The MRT runs on over the Geylang River: Katong Park for Joo Chiat and East Coast Park, and Orchard for the Christmas light-up. Walk over the bridges, or take a taxi.';
+export const CHANGI_TEXT = 'Changi is open! The MRT runs to Changi Airport station: Jewel, the Rain Vortex, the airport and Changi Village. Hire a bike at East Coast Park and ride along the coast.';
 export const RESORT_TEXT = 'Sentosa is open! The cable car leaves from HarbourFront at the docks (4 coins), the boardwalk runs beside the Sentosa Gateway, the MRT stops at Beach station, and the ferry crosses from Marina Bay (3 coins).';
 export function routeToStop(w: World, id: string): boolean {
   const s = linkById(w, id); if (!s || !openStop(w, s.stop)) return false;

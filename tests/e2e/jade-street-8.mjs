@@ -31,7 +31,7 @@ export async function eighth(h) {
   await loc('set-partner').selectOption('tag'); check(await set() === 'tag', `${name}: Partner: only when I press F`);
   await loc('set-partner').selectOption('off'); check(await set() === 'off', `${name}: Partner: off`); await look('settings: partner');
   await loc('set-partner').selectOption('auto'); check(await set() === 'auto', `${name}: Partner: helps on their own again`);
-  check(await W(() => JSON.parse(localStorage.getItem('jade-street-v12') ?? localStorage.getItem('jade-street-v11') ?? '{}').settings?.partner === 'auto'), `${name}: the setting is saved`);
+  check(await W(() => JSON.parse(localStorage.getItem('jade-street-v13') ?? localStorage.getItem('jade-street-v12') ?? '{}').settings?.partner === 'auto'), `${name}: the setting is saved`);
   await press('close'); if (await exists('resume')) await press('resume'); await W(() => { window.__jade.play.paused = false; }); await settle();
 
   // ── the MRT made easy to find: the hint and Mr Kamal's text when the island opens, the route to Chinatown

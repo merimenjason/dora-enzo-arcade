@@ -5,14 +5,15 @@
 import { T, W, H, S, passable, type City, type MoveClass } from './jade-city.js';
 import { angDiff, clamp } from './jade-rng.js';
 
-export type VehicleKind = 'scooter' | 'trishaw' | 'tuktuk' | 'van' | 'boat';
-export const VEHICLE_KINDS: VehicleKind[] = ['scooter', 'trishaw', 'tuktuk', 'van', 'boat'];
+export type VehicleKind = 'scooter' | 'trishaw' | 'tuktuk' | 'van' | 'boat' | 'bike';
+export const VEHICLE_KINDS: VehicleKind[] = ['scooter', 'trishaw', 'tuktuk', 'van', 'boat', 'bike'];
 export type VStats = { name: string; speed: number; accel: number; turn: number; r: number; len: number; cargo: number; cls: MoveClass; seats: number; blurb: string };
 export const VEHICLES: Record<VehicleKind, VStats> = {
   scooter: { name: 'Scooter', speed: 340, accel: 900, turn: 12, r: 15, len: 46, cargo: 8, cls: 'small', seats: 1, blurb: 'Quick and nimble. Fits down alleys. Small basket.' },
   trishaw: { name: 'Trishaw', speed: 250, accel: 600, turn: 10, r: 19, len: 58, cargo: 16, cls: 'big', seats: 2, blurb: 'Slow and steady, with a seat for a fare and room for goods.' },
   tuktuk: { name: 'Tuk-tuk', speed: 310, accel: 750, turn: 10, r: 21, len: 60, cargo: 20, cls: 'big', seats: 2, blurb: 'Zippy three-wheeler with a passenger bench.' },
   van: { name: 'Delivery van', speed: 285, accel: 620, turn: 8.5, r: 24, len: 80, cargo: 40, cls: 'big', seats: 2, blurb: 'Big hold for trading runs. Too wide for alleys.' },
+  bike: { name: 'Hired bike', speed: 290, accel: 820, turn: 12, r: 13, len: 42, cargo: 4, cls: 'small', seats: 1, blurb: 'A hired bike from the East Coast Park racks: quick on the cycling track, quiet everywhere.' },
   boat: { name: 'Bumboat', speed: 250, accel: 520, turn: 7, r: 21, len: 78, cargo: 30, cls: 'boat', seats: 2, blurb: 'A painted river bumboat: glides along the Singapore River and the harbour.' },
 };
 export const FOOT = { walk: 145, run: 235, dash: 560, dashT: 0.22, dashCd: 0.75, hopT: 0.42, hopCd: 0.35, r: 12, cargo: 4 };

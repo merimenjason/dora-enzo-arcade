@@ -92,7 +92,7 @@ export async function eleventh(h) {
   await press('close'); await press('tab-controls'); check(/Contracts/.test(await loc('jade-controls').innerText()), `${name}: the Controls page has contracts`);
   await press('close'); if (await exists('resume')) await press('resume');
   await W(() => window.__jade.play.persist(window.__jade.world().s));
-  check(await until(() => !!localStorage.getItem('jade-street-v12') && JSON.parse(localStorage.getItem('jade-street-v12')).v === 12, null, 6000), `${name}: saved as v12`);
+  check(await until(() => !!localStorage.getItem('jade-street-v13') && JSON.parse(localStorage.getItem('jade-street-v13')).v >= 12, null, 6000), `${name}: saved (v12 or later)`);
   check(await W(() => window.__seen11.has('celebrate')), `${name}: the celebrate pose played`);
   await W(() => { const w = window.__jade.world(); w.quitJob(); w.ui = null; w.talk = null; window.__jade.play.paused = false; });
   await settle();

@@ -5,7 +5,7 @@
 // lib/jade-traffic.ts; heat and wardens: lib/jade-heat.ts. Both heroes are always out: `p` is the one you control,
 // `mate` the partner (lib/jade-duo.ts: AI, switching, the second player); tag-team moves: lib/jade-tag.ts; the
 // cartoon gadgets: lib/jade-gear.ts.
-import { city as getCityOnce, T, W, H, S, F_ROOF, F_ALLEY, districtAt, DISTRICT_NAME, type City, type District } from './jade-city.js';
+import { city as getCityOnce, T, W, H, S, G, F_ROOF, F_ALLEY, districtAt, DISTRICT_NAME, type City, type District } from './jade-city.js';
 import { VEHICLES, FOOT, drive, step as moveStep, obstacleGrid, shove, overlapping, type Body, type Ctx, type VehicleKind, type Obstacle } from './jade-move.js';
 import { nearestFree, field, pathFrom, type Field } from './jade-nav.js';
 import { castOf, castKey, CHAT, type CastMember } from './jade-cast.js';
@@ -24,7 +24,8 @@ import { gangsStep, gangNear, gangAct, newGangs, type GangState } from './jade-g
 import { stationNear, mrtTo, cantRide, routeToStation, stationById, MRT_TEXT } from './jade-mrt.js';
 import { hail, taxiStep, skipRide, type Taxi } from './jade-taxi.js';
 import { eastStep, eastNear, eastAct, newEast, type EastState } from './jade-eastfest.js';
-import { linkNear, linkGo, ferryStep, ferryLand, FARES, EAST_TEXT, RESORT_TEXT, type FerryRide } from './jade-cable.js';
+import { farStep, farNear, farAct, newFar, type FarState } from './jade-farfest.js';
+import { linkNear, linkGo, ferryStep, ferryLand, FARES, EAST_TEXT, RESORT_TEXT, FAR_TEXT, CHANGI_TEXT, type FerryRide } from './jade-cable.js';
 
 export const DT = 1 / 60;
 export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop: boolean; act: boolean;
@@ -36,7 +37,7 @@ export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop
 export const NO_INPUT: Input = { mx: 0, my: 0, sneak: false, dash: false, hop: false, act: false };
 export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; locked: boolean; tint: number; mission?: boolean; seen?: number; broken?: boolean };
 export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string };
-export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry' | 'east' | 'empire' | 'contract'; label: string; x: number; y: number; id?: string; ride?: Ride };
+export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry' | 'east' | 'empire' | 'contract' | 'far'; label: string; x: number; y: number; id?: string; ride?: Ride };
 export type Snatcher = { x: number; y: number; h: number; t: number; out: boolean; took: number; wing: number; good?: string; dizzy?: number };
 export type Act = { n: string; t: number; dur: number; then?: () => void };
 export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' | 'sg' } | { kind: 'map' } | { kind: 'biz'; id: BizId } | { kind: 'gear' } | { kind: 'mama' } | { kind: 'glossary' }
@@ -105,7 +106,9 @@ export class World {
   /** the island: a hailed taxi (lib/jade-taxi.ts), the station the last train ride arrived at (lib/jade-mrt.ts) */
   taxi: Taxi | null = null; lastMrt = '';
   /** the ninth pass: the ferry crossing you are on, and the last cable car or ferry stop you stepped off at */
-  ferry: FerryRide | null = null; lastLink = ''; east: EastState = newEast();
+  ferry: FerryRide | null = null; lastLink = ''; east: EastState = newEast(); far: FarState = newFar();
+  /** today's date from the device ('yyyy-mm-dd', set by the page) for the festivals; null in the Node tests */
+  today: string | null = null;
   /** the partner thinking for themselves (lib/jade-pal.ts) */
   pal: PalState = newPal();
   /** the tenth pass: the empire's raid under way, the partner's errand, the jaga in a stand (lib/jade-empire.ts) */
@@ -228,7 +231,7 @@ export class World {
     this.collectStep();
     trafficStep(this, dt); pedStep(this, dt);
     heatStep(this, dt);
-    finesStep(this, dt); sgStep(this, dt); gangsStep(this, dt); eastStep(this); empireStep(this, dt);
+    finesStep(this, dt); sgStep(this, dt); gangsStep(this, dt); eastStep(this); farStep(this); empireStep(this, dt);
     if (this.run) this.run.step(dt, inp);
     this.snatchStep(dt);
     eventsStep(this, dt);
@@ -368,6 +371,8 @@ export class World {
     const p = this.p, r = p.ride!; const v = VEHICLES[r.kind];
     const up = this.s.upgrades;
     let top = v.speed * (1 + up.speed * 0.07) * (this.overloaded() ? 0.75 : 1);
+    // a hired bike flies along East Coast Park's cycling track
+    if (r.kind === 'bike' && this.c.ground[Math.floor(r.b.y / T) * W + Math.floor(r.b.x / T)] === G.CYCLE) top *= 1.18;
     const turn = v.turn * (1 + up.grip * 0.1);
     if (inp.dash && p.boostCd <= 0) { p.boostT = 0.7; p.boostCd = 2.4; this.fx.push({ t: 'boost', x: r.b.x, y: r.b.y }); }
     if (inp.hop) this.honk();
@@ -415,7 +420,7 @@ export class World {
     if (this.run?.m.mods?.includes('foot')) { this.say('No rides on this contract: on foot all the way!', 'bad'); return; }
     if (r.locked) { this.ui = { kind: 'mini', mini: 'wires', level: 1, from: 'ride' }; this.pendingRide = r; this.fx.push({ t: 'mini' }); return; }
     if (p.carry === 'durian' && (r.kind === 'tuktuk' || r.kind === 'trishaw' || r.kind === 'boat')) offence(this, 'durian', r.b.x, r.b.y, true);
-    p.act = { n: 'climb-on', t: 0, dur: 0.32, then: () => { p.ride = r; r.parked = false; p.b.x = r.b.x; p.b.y = r.b.y; p.hide = false; this.enteredAt = this.time; this.fx.push({ t: 'enter', kind: r.kind }); this.run?.onEnter(r); } };
+    p.act = { n: 'climb-on', t: 0, dur: 0.32, then: () => { p.ride = r; r.parked = false; p.b.x = r.b.x; p.b.y = r.b.y; p.hide = false; this.enteredAt = this.time; this.fx.push({ t: 'enter', kind: r.kind }); if (r.kind === 'bike') this.s.stats.bikes++; this.run?.onEnter(r); } };
     p.face = 'side'; p.flip = r.b.x < p.b.x;
     // walk the hero onto the seat during the climb
     p.b.x = r.b.x; p.b.y = r.b.y;
@@ -481,6 +486,8 @@ export class World {
     if (p.roof) { const lp = this.run?.nearAction(x, y); if (lp) { this.near = lp; return; } for (const l of this.c.ladders) cand({ kind: 'ladder-down', label: 'Climb down', x: l.rx * T + T / 2, y: l.ry * T + T / 2 }, 70); this.near = best; return; }
     // a giver with no job for you now: walk up and have a word
     if (!this.run) for (const cm of this.cast) if (!cm.job && CHAT[cm.id]) cand({ kind: 'giver', label: `Talk to ${PEOPLE[cm.id].name}`, x: cm.x, y: cm.y, id: cm.id }, 64);
+    // an empire person waiting outside your property: E takes their job
+    if (!this.run) for (const cm of this.cast) if (cm.job?.startsWith('emp:')) { const [, jid, bid] = cm.job.split(':'); cand({ kind: 'empire', label: `${PEOPLE[cm.id].name}: ${EMPIRE_JOB[jid]?.title ?? 'a job'} at the ${BIZ_OF[bid]?.name ?? 'shop'}`, x: cm.x, y: cm.y, id: `job:${jid}:${bid}` }, 72); }
     // a job offered at a station's gates is taken from its giver standing there, so E at the gates still rides the train
     if (!this.run) for (const m of offered(this.s)) { const pl = this.c.places[m.at]; if (!pl) continue; const g = m.at.startsWith('stn-') ? this.cast.find(c => c.id === m.giver) : null; cand({ kind: 'mission', label: `${PEOPLE[m.giver].name}: “${m.title}”`, x: g ? g.x : pl.x, y: g ? g.y : pl.y, id: m.id }, g ? 60 : 80); }
     const rm = this.run?.nearAction(x, y); if (rm) cand(rm, 90);
@@ -496,7 +503,7 @@ export class World {
     if (!this.run) empireNear(this, cand);
     if (!this.run) contractNear(this, cand);
     const en = eventNear(this); if (en) cand(en, 80);
-    if (!this.run) { sgNear(this, cand); gangNear(this, cand); eastNear(this, cand); }
+    if (!this.run) { sgNear(this, cand); gangNear(this, cand); eastNear(this, cand); farNear(this, cand); }
     if (this.festival) for (const f of this.c.festival) if (f.kind !== 'arch') cand({ kind: 'festival', label: f.kind === 'stage' ? 'Dance on the festival stage' : 'Let a sky lantern go', x: f.x, y: f.y, id: f.kind }, 80);
     for (const pr of this.tables()) cand({ kind: 'eat', label: 'Grab a bowl of noodles (3 coins)', x: pr.x, y: pr.y + 20 }, 56);
     for (const l of this.c.ladders) cand({ kind: 'ladder-up', label: 'Climb the ladder', x: l.x * T + T / 2, y: l.y * T + T / 2 }, 60);
@@ -557,6 +564,7 @@ export class World {
       case 'sg': sgAct(this, n.id!); break;
       case 'gang': gangAct(this, n.id!); break;
       case 'east': eastAct(this, n.id!); break;
+      case 'far': farAct(this, n.id!); break;
       case 'empire': empireAct(this, n.id!); break;
       case 'contract': contractAct(this, n.id!); break;
       case 'fine': payTicket(this); break;
@@ -615,10 +623,12 @@ export class World {
     else if (this.replaying) this.s.cash += Math.round(m.reward / 4);
     this.replaying = false;
     if (m.tip) this.s.tips = this.s.tips.filter(t => !(t.market === m.tip!.market && t.good === m.tip!.good));
-    const before = this.open.size, hadIsle = this.open.has('heartland'), hadEast = this.open.has('india'), hadResort = this.open.has('resort'); this.open = new Set(openDistricts(this.s));
+    const before = this.open.size, hadIsle = this.open.has('heartland'), hadEast = this.open.has('india'), hadResort = this.open.has('resort'), hadFar = this.open.has('katong'), hadChangi = this.open.has('changi'); this.open = new Set(openDistricts(this.s));
     if (!hadIsle && this.open.has('heartland')) text(this, 'kamal', MRT_TEXT);
     if (!hadEast && this.open.has('india')) text(this, 'kamal', EAST_TEXT);
     if (!hadResort && this.open.has('resort')) text(this, 'helang', RESORT_TEXT);
+    if (!hadFar && this.open.has('katong')) text(this, 'kamal', FAR_TEXT);
+    if (!hadChangi && this.open.has('changi')) text(this, 'tiara', CHANGI_TEXT);
     this.fieldCache.clear();
     this.fx.push({ t: 'mission-done', name: m.title, k: m.reward });
     this.banner = { text: 'Job done!', sub: `${m.title} · ${MEDAL_NAME[medal]}${medal ? ' medal' : ''}`, t: 3 };
@@ -626,13 +636,15 @@ export class World {
     if (this.p.ride) this.p.act = null;
     this.cheer();
     for (const g of GEAR_GIFT[m.id] ?? []) if (giveGadget(this.s, g)) { this.fx.push({ t: 'gadget-gift', kind: g }); this.say(`New gadget: the ${GADGETS[g].name.toLowerCase()}! ${GADGETS[g].blurb}`, 'good'); }
-    if (this.open.size > before) { const d = [...this.open][this.open.size - 1]; this.fx.push({ t: 'district', name: DISTRICT_NAME[d] }); this.banner = this.open.size - before > 1 ? (this.open.has('india') && !hadEast ? { text: 'Over the Rochor River!', sub: 'Little India and Kampong Glam: take the MRT to Bugis or Little India', t: 4.5 } : { text: 'The island opens!', sub: 'Toa Payoh and Marina Bay: take the MRT from Chinatown station', t: 4.5 }) : { text: `${DISTRICT_NAME[d][0].toUpperCase()}${DISTRICT_NAME[d].slice(1)} opens!`, sub: 'The fog lifts', t: 4 }; }
+    if (this.open.size > before) { const d = [...this.open][this.open.size - 1]; this.fx.push({ t: 'district', name: DISTRICT_NAME[d] }); this.banner = this.open.size - before > 1 ? (this.open.has('katong') && !hadFar ? { text: 'Over the Geylang River!', sub: 'Katong and Orchard Road: take the MRT to Katong Park or Orchard', t: 4.5 } : this.open.has('india') && !hadEast ? { text: 'Over the Rochor River!', sub: 'Little India and Kampong Glam: take the MRT to Bugis or Little India', t: 4.5 } : { text: 'The island opens!', sub: 'Toa Payoh and Marina Bay: take the MRT from Chinatown station', t: 4.5 }) : { text: `${DISTRICT_NAME[d][0].toUpperCase()}${DISTRICT_NAME[d].slice(1)} opens!`, sub: 'The fog lifts', t: 4 }; }
     // the ending and credits play once, the first time Glint is beaten; a replay of the last job just ends
     if (m.id === 'm25' && !this.s.story.ending) this.fx.push({ t: 'finale' });
     // the island's ending plays once, the first time Director Kaw is stopped
     if (m.id === 'm35' && !this.s.story.isle) this.fx.push({ t: 'finale', kind: 'isle' });
     // and chapter seven's, the first time Crow Number Nine is stopped
     if (m.id === 'm45' && !this.s.story.lights) this.fx.push({ t: 'finale', kind: 'lights' });
+    // and chapter eight's, the first time Datin Ciku is stopped at the Rain Vortex
+    if (m.id === 'm55' && !this.s.story.coast) this.fx.push({ t: 'finale', kind: 'coast' });
   }
   /** the partner cheers (a job done, a catch) */
   cheer() { const m = this.mate; if (m.seat) m.cheerT = 1.2; else if (!m.act && !m.ride && !m.hide) m.act = { n: 'celebrate', t: 0, dur: 1.1 }; }
@@ -801,6 +813,7 @@ import { teamGates } from './jade-team.js';
 import { stallPos, stallOpen, gearStep, fire, startReload, switchSlot, shooterFor, makeCrates, giveGadget, GEAR_GIFT, GADGETS, type Shot, type Splat, type Crate } from './jade-gear.js';
 const P2_KINDS: Near['kind'][] = ['ride', 'exit', 'ladder-up', 'ladder-down', 'hide', 'unhide', 'leap', 'event'];
 import { BIZ, BIZ_OF, bizPos, accrue, closeNight, raidId, raidMission, buyBiz, upgradeBiz, collect, type BizId } from './jade-biz.js';
+import { EMPIRE_JOB } from './jade-empjobs.js';
 import { empireStep, empireClock, empireNight, empireNear, empireAct, empireTarget, empireJobDone, raidJobWon, missRaid, bizLabel, newEmp, type EmpState } from './jade-empire.js';
 import { text } from './jade-phone.js';
 import { contractNear, contractAct, contractDone, contractNight, contractTarget } from './jade-contracts.js';

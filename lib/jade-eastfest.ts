@@ -6,19 +6,22 @@
 // respectful: these are the neighbours' festivals and the heroes are guests. No DOM; deterministic.
 import { T, districtAt } from './jade-city.js';
 import { addRep } from './jade-save.js';
+import { isDeepavali, isBazaar } from './jade-calendar.js';
 import type { World, Near } from './jade-game.js';
 
-export type EastFest = 'deepavali' | 'bazaar';
-/** tonight's festival: the two take turns, so a player sees both within two nights */
+export type EastFest = 'deepavali' | 'bazaar' | 'none';
+/** tonight's festival with no date to go by (the Node tests): the two take turns, so both are seen within two nights */
 export const eastFest = (night: number): EastFest => (night % 2 === 0 ? 'deepavali' : 'bazaar');
-export type EastState = { night: number; fest: EastFest; lit: Set<number>; once: Set<string> };
-export const newEast = (): EastState => ({ night: -1, fest: 'deepavali', lit: new Set(), once: new Set() });
+/** tonight's festival by the device calendar (lib/jade-calendar.ts); out of season, neither */
+export const festOn = (today: string | null, night: number): EastFest => !today ? eastFest(night) : isDeepavali(today) ? 'deepavali' : isBazaar(today) ? 'bazaar' : 'none';
+export type EastState = { night: number; day: string | null; fest: EastFest; lit: Set<number>; once: Set<string> };
+export const newEast = (): EastState => ({ night: -1, day: null, fest: 'deepavali', lit: new Set(), once: new Set() });
 export const KUIH = 3;
 
 const open = (w: World, x: number, y: number) => w.open.has(districtAt(Math.floor(x / T), Math.floor(y / T)));
 export function eastStep(w: World) {
   const e = w.east; if (!w.c.east) return;
-  if (e.night !== w.s.night) { e.night = w.s.night; e.fest = eastFest(w.s.night); e.lit.clear(); e.once.clear(); }
+  if (e.night !== w.s.night || e.day !== w.today) { e.night = w.s.night; e.day = w.today; e.fest = festOn(w.today, w.s.night); e.lit.clear(); e.once.clear(); }
 }
 /** the smell-the-shop spots: Mr Raju's spices and Puan Wangi's perfume */
 const SNIFF: [string, string][] = [['spices', 'Smell the spices'], ['wangi', 'Smell the attar']];

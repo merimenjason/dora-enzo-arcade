@@ -6,6 +6,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Jade Street**: over the Geylang River. After the Island Lights the city grows east into Orchard Road (its malls, the Christmas light-up, Emerald Hill), Katong and Joo Chiat (Peranakan shophouses, 328 Katong Laksa, East Coast Park's cycling track, the lagoon hawker centre and the beach) and Changi (the airport, Changi Village, and Jewel with the Rain Vortex), each with its own streets, buildings, townsfolk, market, safe house, MRT station and two properties to buy.
+- **Jade Street**: chapter eight, *Christmas Star*: ten new jobs (a laksa run, a detective case over a kamcheng jar, a bike race, a hawker-centre defence, rewiring the Orchard Road lights, a crate swap behind Lucky Plaza, the Emerald Hill heist, a stakeout at Changi Village, lost luggage on the apron and the finale at the Rain Vortex), three new Hawker Tales, a new ending and five trophies.
+- **Jade Street**: a new gang, the Atas Bats, fruit bats who snatch shopping bags, swoop over everything and hang upside down to rest, with their boss Datin Ciku. Six new people to meet: Nyonya Rosie, Uncle Bala, Ms Tiara, Captain Faiz, Pak Ubin and Datin Ciku.
+- **Jade Street**: hire a bike at East Coast Park (quicker on the cycling track), slurp a laksa, hang a bauble on an Orchard Road Christmas tree, fly a kite on the beach, wave at the planes coming in to Changi, and help a traveller with her suitcase, each with its own animation.
 - **Jade Street**: the Chinatown empire. Fifteen new properties join the eleven stalls across all ten districts (a Pagoda Street shophouse, a zi char kitchen, a bumboat service, a karaoke lounge, a Toa Payoh kopitiam, a taxi company, a provision shop, a rooftop bar, an ice kacang cart, a prata shop, a spice shophouse, a Haji Lane café, a textile house, a beach bar and a kayak hire), each with three upgrades and its own painting at every level. Takings fill each till nightly; collect them in person, at a safe house, or send your partner round the tills. Rival gangs raid now and then: a text, a red map pin and a clock to get there and hold the shop, net them on the way in or run down the one with the till (or send your partner). A missed raid costs the night's takings or leaves the place damaged until you repair it, never lost. Hire Pak Duri the jaga to keep watch. Six empire jobs (supplier deal, health inspector, price war, taxi rush, river tour, karaoke night) boost a property's takings for a few nights. Four ranks, Street Stall, Kopi Boss, Shophouse Tycoon and Island Taipan, each with a perk, and seven new trophies. The new Empire tab on the phone and in the pause menu shows the rank, the ledger, any raid and every property with Route me.
 - **Jade Street**: procedural contracts. Once the Phoenix Drum is home, the phone's new Contracts tab always has three jobs made fresh from the game's own job steps (deliveries, recoveries, stings, undercover swaps, heists, stands, lion-dance escorts, street races, detective cases, disguises, safecracking and clean-ups), given in person by the cast in their own Singlish voices against the gang whose turf it is, with stars, pay that climbs with your empire, and modifiers: a graveyard shift, a storm, a tight clock, no rides, your partner busy, or FINE CITY wardens. Route me leads to the giver, a plaque names the next contract between jobs, and finishing one deals a new one.
 - **Jade Street**: the contract of the day, the same for every player each day, with your best time kept.
@@ -13,11 +17,17 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Jade Street**: real names everywhere: the MRT, Grab, Marina Bay Sands, the Float @ Marina Bay, the Esplanade, the Singapore Flyer, Supertree Grove, Mustafa Centre, Universal Studios Singapore, SkyHelix Sentosa, S.E.A. Aquarium and Shangri-La Rasa Sentosa (the people and the gangs stay invented).
+- **Jade Street**: Deepavali, the Hari Raya bazaar and the Orchard Road light-up now follow your device's calendar instead of taking turns night by night.
+- **Jade Street**: Ah Huat, Inspector Siew and Towkay Hoot now wait outside your property while they have a job for you (press E to take it), and Pak Duri stands guard where you hired him. The back lanes of Little India and Kampong Glam have benches and clutter, and the ferry is repainted.
+- **Jade Street**: Hard contracts are a notch harder than Normal ones, and the Hard grab raid lets one more crow get away before the night is lost. Saves move to v13 and keep everything.
 - **Jade Street**: every business now follows one price rule, so the first eleven stalls earn about twice what they did (a Noodle Cart takes 150 a night at level 1, up from 70) and upgrade for a little less; the Businesses page in the pause menu is now the Empire tab. Saves move to v11 and keep everything.
 - **Jade Street**: Little India, Kampong Glam and Sentosa are fully painted, and their paintings now arrive one at a time in the background after the game starts, so the first minutes in Chinatown stay smooth while they load.
 
 ### Fixed
 
+- **Jade Street**: smoother frame rate in every district (cached glows, batched water and rain, one screen tint, ground drawn pixel for pixel).
+- **Jade Street**: a tail or chase no longer calls the crow or courier you follow "Pip".
 - **Jade Street**: a lion dance, a tailed runner or another job actor pinned against a prop short of a waypoint no longer stands there for ever.
 
 ## 15-11-2026

@@ -105,14 +105,14 @@ export default function JadeStreetPage() {
   useEffect(() => {
     const p = playRef.current; if (!p || story || screen !== 'game') return;
     const s = p.w.s, ch = chapterOf(s);
-    if (s.story.intro && ch <= 7 && ch > s.story.ch && !p.w.run && !p.w.talk) { p.paused = true; setStory('chapter'); }
+    if (s.story.intro && ch <= 8 && ch > s.story.ch && !p.w.run && !p.w.talk) { p.paused = true; setStory('chapter'); }
   });
   const storyDone = (next: Story = null) => {
     const p = playRef.current; if (!p) return;
     const s = p.w.s;
     if (story === 'intro') { s.story.intro = true; next = 'chapter'; }
     else if (story === 'chapter') s.story.ch = Math.max(s.story.ch, chapterOf(s));
-    else if (story === 'credits') { if (p.endingKind === 'lights') { s.story.lights = true; if (!p.w.run) p.toast('Island Lights: Little India, Kampong Glam and Sentosa are yours to roam!', 'gold'); } else if (p.endingKind === 'isle') { s.story.isle = true; if (!p.w.run) p.toast('Island Night goes on: the whole island is yours to roam!', 'gold'); } else { s.story.ending = true; if (!p.w.run) p.toast('The Lantern Festival goes on: free roam the quarter in festival dress!', 'gold'); } }
+    else if (story === 'credits') { if (p.endingKind === 'coast') { s.story.coast = true; if (!p.w.run) p.toast('Christmas Star: Orchard Road, Katong and Changi are yours to roam!', 'gold'); } else if (p.endingKind === 'lights') { s.story.lights = true; if (!p.w.run) p.toast('Island Lights: Little India, Kampong Glam and Sentosa are yours to roam!', 'gold'); } else if (p.endingKind === 'isle') { s.story.isle = true; if (!p.w.run) p.toast('Island Night goes on: the whole island is yours to roam!', 'gold'); } else { s.story.ending = true; if (!p.w.run) p.toast('The Lantern Festival goes on: free roam the quarter in festival dress!', 'gold'); } }
     persist(s); setStory(next);
     if (!next) { p.paused = false; sndRef.current?.play('street'); }
   };
@@ -203,8 +203,8 @@ export default function JadeStreetPage() {
               {phone && <PhoneView play={play} onClose={resume} />}
               {paused && <Pause play={play} snd={sndRef.current} touch={touch} onReplay={replay} onClose={resume} onQuit={toTitle} onSave={() => persist(w.s)} onNew={() => { setPaused(false); setScreen('title'); setPick(true); }} />}
               {story === 'intro' && <Storybook onDone={() => storyDone()} />}
-              {story === 'chapter' && <ChapterCard ch={Math.min(7, chapterOf(w.s))} onDone={() => storyDone()} />}
-              {story === 'ending' && <Ending hero={w.s.hero} isle={play.endingKind === 'isle'} lights={play.endingKind === 'lights'} onDone={() => { sndRef.current?.fx([{ t: 'chapter' }]); setStory('credits'); }} />}
+              {story === 'chapter' && <ChapterCard ch={Math.min(8, chapterOf(w.s))} onDone={() => storyDone()} />}
+              {story === 'ending' && <Ending hero={w.s.hero} isle={play.endingKind === 'isle'} lights={play.endingKind === 'lights'} coast={play.endingKind === 'coast'} onDone={() => { sndRef.current?.fx([{ t: 'chapter' }]); setStory('credits'); }} />}
               {story === 'credits' && <Credits onDone={() => storyDone()} />}
             </>
           )}

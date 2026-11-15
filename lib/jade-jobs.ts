@@ -34,7 +34,7 @@ export const INTEL: Record<Intel, { what: string; gain: string }> = {
   cam: { what: 'camera wiring', gain: 'the cameras will be off' },
   safe: { what: 'safe', gain: 'one number fewer to crack' },
 };
-const GANG: Record<string, string> = { mac: 'macaques', otter: 'otters', crow: 'crows', liz: 'lizards', myna: 'mynahs' };
+const GANG: Record<string, string> = { mac: 'macaques', otter: 'otters', crow: 'crows', liz: 'lizards', myna: 'mynahs', bat: 'bats' };
 /** per-step scratch state (reset on entering each step) */
 export type JobState = {
   ph: number; mode: '' | 'quiet' | 'loud'; entered: boolean; div: boolean; alarm: boolean; entry: [number, number] | null; warnedLock: boolean;
@@ -359,9 +359,9 @@ function defendStep(run: Run, st: St<'defend'>, dt: number) {
       js.queue--;
       const sneaky = js.wave >= 2 && (js.spawned % 3 === 2 || (!run.assist && js.wave >= 3 && js.spawned % 3 === 1));
       const ang = sneaky ? Math.atan2(ty - pb.y, tx - pb.x) + (k ? 0.5 : -0.5) : base + k * 2.09 + (k ? 0.3 : 0), R = sneaky ? 520 : 600;
-      const cls = (st.gang === 'crow' || st.gang === 'myna') && !sneaky ? 'fly' : 'foot';
+      const cls = (st.gang === 'crow' || st.gang === 'myna' || st.gang === 'bat') && !sneaky ? 'fly' : 'foot';
       const [sx, sy] = cls === 'fly' ? [tx + Math.cos(ang) * R, ty + Math.sin(ang) * R] : nearestFree(w.c, 'walk', tx + Math.cos(ang) * R, ty + Math.sin(ang) * R, w.open, 8);
-      const sp = { mac: 128, otter: 112, crow: 118, myna: 120 }[st.gang] * (run.assist ? 0.82 : 1) * w.diff.rival * run.mercy() * (sneaky ? 0.72 : 1);
+      const sp = { mac: 128, otter: 112, crow: 118, myna: 120, bat: 122 }[st.gang] * (run.assist ? 0.82 : 1) * w.diff.rival * run.mercy() * (sneaky ? 0.72 : 1);
       const a = run.actor('pest', sx, sy, cls, [cls === 'fly' ? [tx, ty] : nearestFree(w.c, 'walk', tx, ty, w.open, 3)], sp);
       a.skin = st.gang === 'crow' ? undefined : st.gang; a.extra = 0; a.stareX = sx; a.stareY = sy; a.sneaky = sneaky; run.actors.push(a); js.spawned++;
       if (!sneaky && js.spawned % 2) w.fx.push({ t: st.gang === 'crow' ? 'caw' : 'job-gang' });
@@ -540,7 +540,7 @@ function trapStep(run: Run, st: St<'trap'>, dt: number) {
   if (js.queue > 0 && js.spawnT <= 0) {
     js.queue--; js.spawnT = run.assist ? 3 : 2.3;
     const cls = st.gang === 'crow' ? 'fly' : 'foot'; const path = run.path(st.path, cls);
-    const sp = { liz: 62, otter: 74, mac: 80, crow: 70, myna: 74 }[st.gang] * (run.assist ? 0.85 : 1) * w.diff.rival * run.mercy();
+    const sp = { liz: 62, otter: 74, mac: 80, crow: 70, myna: 74, bat: 76 }[st.gang] * (run.assist ? 0.85 : 1) * w.diff.rival * run.mercy();
     const a = run.actor('lured', path[0][0], path[0][1], cls, path, sp); a.skin = st.gang === 'crow' ? undefined : st.gang; a.extra = 0; run.actors.push(a);
     w.fx.push({ t: st.gang === 'crow' ? 'caw' : 'job-gang' });
   }
@@ -551,7 +551,7 @@ function trapStep(run: Run, st: St<'trap'>, dt: number) {
     // the chase: caught by a dash (sitting there with its paws up), or bolting along its path once it has seen you
     if (a.extra === 3) { a.b.speed = 0; a.netT = (a.netT ?? 0) + dt; if (a.netT > 2.2) a.gone = true; continue; }
     if (chase && dist(a.b.x, a.b.y, p.x, p.y) < reach && bowl) {
-      a.extra = 3; a.netT = 0; js.caught++; if (st.gang === 'myna') w.s.stats.mynahs++; w.fx.push({ t: 'job-caught', x: a.b.x, y: a.b.y }); w.say(`Caught one! ${js.caught} of ${st.catch}`, 'good'); continue;
+      a.extra = 3; a.netT = 0; js.caught++; if (st.gang === 'myna') w.s.stats.mynahs++; if (st.gang === 'bat') w.s.stats.bats++; w.fx.push({ t: 'job-caught', x: a.b.x, y: a.b.y }); w.say(`Caught one! ${js.caught} of ${st.catch}`, 'good'); continue;
     }
     if (chase && a.mind?.st === 'alert') { if (run.walk(a, dt, a.speed * 1.55, false)) escape(run, a, 'outran you'); continue; }
     if (a.extra === 2) { a.stun -= dt; a.b.x += Math.cos(a.b.h) * 240 * dt; a.b.y += Math.sin(a.b.h) * 240 * dt; a.b.speed = 240; if (a.stun <= 0) a.gone = true; continue; }
@@ -613,7 +613,7 @@ export function spring(run: Run) {
   const it = run.items[best]; w.fx.push({ t: 'job-spring', x: it.x, y: it.y });
   if (!w.p.ride && !w.p.act) { w.p.act = { n: 'spring', t: 0, dur: 0.5 }; w.p.face = 'side'; w.p.flip = it.x < w.p.x; }
   const got = on(best);
-  for (const a of got) { a.extra = 1; a.netT = 1e9; js.caught++; if (a.skin === 'myna') w.s.stats.mynahs++; w.fx.push({ t: 'job-caught', x: a.b.x, y: a.b.y }); }
+  for (const a of got) { a.extra = 1; a.netT = 1e9; js.caught++; if (a.skin === 'myna') w.s.stats.mynahs++; if (a.skin === 'bat') w.s.stats.bats++; w.fx.push({ t: 'job-caught', x: a.b.x, y: a.b.y }); }
   if (!got.length) run.warn('Too early! That net is spent.'); else w.say(got.length > 1 ? `Two in one net! ${js.caught} caught` : `Caught one! ${js.caught} of ${st.catch}`, 'good');
 }
 
@@ -844,7 +844,7 @@ export function jobGadget(run: Run, a: Actor, g: GadgetId, pw: number, x: number
       return true;
     case 'lured':
       if (a.extra !== 0 || !run.js) return false;
-      if (g === 'net') { a.extra = 1; a.netT = 1e9; run.js.caught++; if (a.skin === 'myna') w.s.stats.mynahs++; w.fx.push({ t: 'job-caught', x: a.b.x, y: a.b.y }); return true; }
+      if (g === 'net') { a.extra = 1; a.netT = 1e9; run.js.caught++; if (a.skin === 'myna') w.s.stats.mynahs++; if (a.skin === 'bat') w.s.stats.bats++; w.fx.push({ t: 'job-caught', x: a.b.x, y: a.b.y }); return true; }
       escape(run, a, 'shot at'); run.warn('That scared one off! Spring the nets instead.'); return true;
   }
   return false;

@@ -10,6 +10,8 @@ import { offered } from './jade-save.js';
 import { stallOpen, stallPos } from './jade-gear.js';
 import { dist } from './jade-rng.js';
 import { listContracts, contractsOpen } from './jade-contracts.js';
+import { owned, bizPos } from './jade-biz.js';
+import { jobsAt } from './jade-empire.js';
 import type { World } from './jade-game.js';
 import type { Obstacle } from './jade-move.js';
 
@@ -53,10 +55,24 @@ export function castOf(w: World): CastMember[] {
     const v = member(w, m.giver, pl.x + (gate ? 90 : by ? 52 : 0), pl.y + (gate ? 60 : by ? -6 : 0), false, m.id);
     if (!out.some(c => c.id === v.id && !c.home)) out.push(v);
   }
+  // the empire's people (the twelfth pass): Ah Huat, Inspector Siew and Towkay Hoot wait on the pavement outside a
+  // property of yours with their job on offer tonight (E there starts it), and Pak Duri stands guard outside each
+  // property he watches
+  if (!w.run) for (const b of owned(w.s)) {
+    if (!w.open.has(b.d)) continue;
+    const [bx, by] = bizPos(b);
+    for (const j of jobsAt(w, b.id)) {
+      if (!EMP_FOLK.has(j.giver) || out.some(c => c.id === j.giver)) continue;
+      out.push(member(w, j.giver, bx - 44 + out.length % 3 * 8, by + 64, false, `emp:${j.id}:${b.id}`));
+    }
+    if (w.s.biz[b.id]?.jaga && !out.some(c => c.id === 'duri' && dist(c.x, c.y, bx, by) < 200)) out.push(member(w, 'duri', bx + 52, by + 60, false, null));
+  }
   return out;
 }
+/** the empire's people who stand outside a property with a job for you */
+const EMP_FOLK = new Set(['huat', 'siew', 'hoot']);
 /** a key that changes whenever castOf could: what is offered, whether a job runs, which districts are open */
-export const castKey = (w: World) => `${w.run ? 'run' : offered(w.s).map(m => m.id).join() + ':' + (contractsOpen(w.s) ? listContracts(w).map(l => l.c.giver).join() : '')}|${[...w.open].join()}|${stallOpen(w.s)}`;
+export const castKey = (w: World) => `${w.run ? 'run' : offered(w.s).map(m => m.id).join() + ':' + (contractsOpen(w.s) ? listContracts(w).map(l => l.c.giver).join() : '') + ':' + owned(w.s).map(b => `${b.id}${w.s.biz[b.id].jaga ? 'j' : ''}${jobsAt(w, b.id).map(j => j.id).join('.')}`).join()}|${[...w.open].join()}|${stallOpen(w.s)}`;
 
 /** what a giver is doing this moment */
 export function castPose(w: World, c: CastMember): CastPose {
@@ -120,4 +136,10 @@ export const CHAT: Record<string, string> = {
   siew: 'Clean counter, clean floor, clean bins. I can tell from the door, you know.',
   hoot: 'Hoo-hoo. Half price, always half price. How I do it? Trade secret.',
   duri: 'Nobody touches the till on my watch, boss. I am small, but I am very pointy.',
+  rosie: 'Laksa with a spoon only, ah. Chopsticks for laksa is for tourists.',
+  bala: 'Bike for hire! Two wheels, one bell, the whole coast to ride.',
+  tiara: 'Lights, music, crowd control. Christmas on Orchard Road is a full-time job.',
+  faiz: 'Good evening. Clear skies tonight, light winds from the east. Perfect for flying.',
+  ubin: 'Twelve people, then we go. Pulau Ubin waits for nobody, but the boat waits for twelve.',
+  ciku: 'Darling, is that a real pearl? No? Then I am not interested.',
 };

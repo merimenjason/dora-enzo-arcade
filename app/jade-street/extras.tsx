@@ -188,6 +188,7 @@ export function Controls({ touch }: { touch: boolean }) {
     ['Hail a taxi at the kerb, then get in', ['G', 'E'], 'pin-taxi', 'The taxi app on the phone'],
     ['Ride the cable car or the ferry to Sentosa: walk up to the station or the pier', ['E'], 'i-cable', 'Action button'],
     ['Festivals and the beach: light a lamp, buy a kuih, shoo a mynah, a deck chair, a sandcastle', ['E'], 'i-festival', 'Action button'],
+    ['Over the Geylang River: hire a bike at East Coast Park, slurp a laksa, hang a bauble, fly a kite, wave at a plane', ['E'], 'i-bike', 'Action button'],
     ['Your empire: buy, upgrade and repair properties, hire a jaga, take an empire job (walk up to one)', ['E'], 'i-empire', 'Action button'],
     ['The Empire tab: rank, ledger, raids, send your partner round the tills', ['T'], 'i-ledger', 'Phone button'],
     ['Contracts (after chapter six): the Contracts tab, Route me, then talk to the giver', ['T', 'E'], 'pin-job', 'Phone button'],

@@ -94,7 +94,7 @@ export function contractCase(k, o = {}) {
   const s = contractSave(1000 + k, o.variant);
   const tier = tierOf(s), ref = { seed: 7919 * k + 13, tier, stars: o.stars ?? starsFor(k % 3, tier), open: openDistricts(s) };
   const c = contractOf(ref);
-  return { s, c, opts: { save: s, setup: w => { const pl = w.c.places[c.at]; w.placePlayer(pl.x, pl.y + T); w.startMission(contractMission(c, w.assist), { key: 'con:test:' + ref.seed, reward: c.pay, d: c.d }); }, done: () => s.contracts.done > 0, maxT: 900 } };
+  return { s, c, opts: { save: s, setup: w => { const pl = w.c.places[c.at]; w.placePlayer(pl.x, pl.y + T); w.startMission(contractMission(c, w.assist, w.s.settings.diff === 'hard'), { key: 'con:test:' + ref.seed, reward: c.pay, d: c.d }); }, done: () => s.contracts.done > 0, maxT: 900 } };
 }
 export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
   // lapse: the chance per decision of a human slip (a glance at the map, a fumbled turn) lasting 0.5-1.1 s;

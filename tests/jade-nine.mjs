@@ -39,8 +39,8 @@ function inJob(id, t, o = {}) {
 }
 
 test('the map grows east and south; Chinatown, Toa Payoh and Marina Bay keep every tile', () => {
-  assert.equal(W, 280); assert.equal(H, 128); assert.equal(CT_H, 92);
-  assert.deepEqual(DISTRICTS.slice(-3), ['india', 'glam', 'resort']);
+  assert.equal(W, 376); assert.equal(H, 128); assert.equal(CT_H, 92);
+  assert.deepEqual(DISTRICTS.slice(7, 10), ['india', 'glam', 'resort']);
   assert.equal(DISTRICT_NAME.india, 'Little India'); assert.equal(DISTRICT_NAME.glam, 'Kampong Glam'); assert.equal(DISTRICT_NAME.resort, 'Sentosa');
   assert.equal(districtAt(240, 10), 'india'); assert.equal(districtAt(240, 60), 'glam'); assert.equal(districtAt(70, 110), 'resort');
   for (let y = 0; y < CT_H; y += 5) for (let x = 0; x < EAST_X0 - 4; x += 5) assert.ok(!['india', 'glam', 'resort'].includes(districtAt(x, y)), `${x},${y} keeps its district`);
@@ -80,7 +80,7 @@ test('the districts open with the story: over the river after Island Night, Sent
 
 test('the MRT runs on: Beach station on Sentosa, Bugis and Little India; trains overhead on the new viaduct', () => {
   const w = world(); const isle = w.c.isle;
-  assert.deepEqual(isle.stations.map(s => s.id), ['stn-beach', 'stn-chinatown', 'stn-raffles', 'stn-bayfront', 'stn-bugis', 'stn-littleindia', 'stn-toapayoh']);
+  assert.deepEqual(isle.stations.slice(3).map(s => s.id), ['stn-beach', 'stn-chinatown', 'stn-raffles', 'stn-bayfront', 'stn-bugis', 'stn-littleindia', 'stn-toapayoh']);
   at(w, 'stn-chinatown'); const cash = w.s.cash; w.heat = 0;
   assert.ok(mrtTo(w, 'stn-littleindia')); assert.equal(w.s.cash, cash - 2);
   const li = w.c.places['stn-littleindia']; assert.ok(dist(w.p.x, w.p.y, li.x, li.y) < 160, 'arrive at Little India');
@@ -206,7 +206,7 @@ test('the Island Lights ending plays once, after Crow Number Nine is stopped; th
   w.finishMission(MISSION.m45); assert.ok(w.fx.some(f => f.t === 'finale' && f.kind === 'lights'));
   w.s.story.lights = true; w.fx = []; w.replaying = true; w.finishMission(MISSION.m45); assert.ok(!w.fx.some(f => f.t === 'finale'));
   const s = newSave(); s.done = allDone; assert.ok(checkTrophies(s).includes('Island Lights'));
-  assert.equal(TROPHIES.length, 45);
+  assert.equal(TROPHIES.length, 50);
   s.stats.mynahs = 10; s.stats.cable = 3; const got = checkTrophies(s); assert.ok(got.includes('Quiet Please') && got.includes('Sky Ride'));
 });
 

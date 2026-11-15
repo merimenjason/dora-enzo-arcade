@@ -28,6 +28,10 @@ export const LEAN: Record<District, Record<Good, number>> = {
   india: { jade: 1.16, mooncake: 0.96, tea: 0.74, bowl: 0.92, fan: 1.06, mango: 0.86 },
   glam: { jade: 0.94, mooncake: 1.12, tea: 1.18, bowl: 1.24, fan: 0.76, mango: 0.92 },
   resort: { jade: 1.34, mooncake: 1.06, tea: 1.0, bowl: 1.08, fan: 0.9, mango: 1.38 },
+  // the twelfth pass: Orchard Road pays for jade and fans, Katong sells mooncakes and bowls cheap, Changi wants tea
+  orchard: { jade: 1.4, mooncake: 1.16, tea: 1.1, bowl: 1.0, fan: 1.32, mango: 1.2 },
+  katong: { jade: 1.02, mooncake: 0.7, tea: 0.96, bowl: 0.72, fan: 1.12, mango: 1.1 },
+  changi: { jade: 0.88, mooncake: 1.22, tea: 1.36, bowl: 1.14, fan: 0.82, mango: 0.78 },
 };
 export type Tip = { night: number; market: District; good: Good; mult: number; from: string; text: string };
 export type Cargo = Record<Good, number>;
@@ -99,4 +103,4 @@ export function bestRoute(seed: number, night: number, open: District[], tips: T
 }
 
 /** each market's name, the same on its E prompt and its panel */
-export const MARKET_NAME: Record<District, string> = { market: 'Smith Street Market', temple: 'Temple Street Bazaar', canal: 'Boat Quay Market', docks: 'Tanjong Pagar Market', arcade: 'Clarke Quay Neon Market', heartland: 'Toa Payoh Provision Shop', bay: 'Promenade Kiosk', india: 'Tekka Market', glam: 'Arab Street Market', resort: 'Siloso Beach Kiosk' };
+export const MARKET_NAME: Record<District, string> = { market: 'Smith Street Market', temple: 'Temple Street Bazaar', canal: 'Boat Quay Market', docks: 'Tanjong Pagar Market', arcade: 'Clarke Quay Neon Market', heartland: 'Toa Payoh Provision Shop', bay: 'Promenade Kiosk', india: 'Tekka Market', glam: 'Arab Street Market', resort: 'Siloso Beach Kiosk', orchard: 'Orchard Road Christmas Market', katong: 'Joo Chiat Market', changi: 'Changi Village Market' };

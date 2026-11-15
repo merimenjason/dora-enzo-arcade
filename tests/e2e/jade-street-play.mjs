@@ -23,8 +23,8 @@ const errs = [];
 p.on('pageerror', e => errs.push(e.message));
 await p.goto(base, { waitUntil: 'networkidle', timeout: 120000 });
 await p.waitForSelector('main[data-ready="true"]', { timeout: 60000 });
-// every job done but the last, so all ten districts (Chinatown's five, the island's two and the ninth pass's three) are open
-await p.evaluate(() => localStorage.setItem('jade-street-v2', JSON.stringify({ v: 2, seed: 77, started: true, hero: 'dora', cash: 3000, done: Array.from({ length: 44 }, (_, i) => 'm' + (i + 1)), settings: { music: false } })));
+// every job done but the last, so all thirteen districts (Chinatown's five, the island's two and the ninth pass's three, the twelfth's three) are open
+await p.evaluate(() => localStorage.setItem('jade-street-v2', JSON.stringify({ v: 2, seed: 77, started: true, hero: 'dora', cash: 3000, done: Array.from({ length: 54 }, (_, i) => 'm' + (i + 1)), settings: { music: false } })));
 await p.reload(); await p.waitForSelector('[data-testid="continue"]', { timeout: 120000 });
 await p.click('[data-testid="continue"]');
 await p.waitForFunction(() => !!window.__jade, null, { timeout: 30000 });
@@ -35,7 +35,7 @@ await p.evaluate(() => { const s = window.__jade.world().s; for (const id of Obj
 await p.evaluate(() => { window.__jade.give(); const s = window.__jade.world().s; for (const g of s.gear.own) { s.gear.ammo[g] = 999; s.gear.lvl[g] = 2; } });
 
 // GUARDS_ONLY=1 skips the districts and times only the eighth pass's crowd of guards
-const DISTRICTS = process.env.GUARDS_ONLY ? [] : ['market', 'temple', 'canal', 'docks', 'arcade', 'heartland', 'bay', 'india', 'glam', 'resort'];
+const DISTRICTS = process.env.GUARDS_ONLY ? [] : ['market', 'temple', 'canal', 'docks', 'arcade', 'heartland', 'bay', 'india', 'glam', 'resort', 'orchard', 'katong', 'changi'];
 const keys = ['w', 'a', 's', 'd'];
 const rows = [];
 for (const d of DISTRICTS) {

@@ -23,8 +23,8 @@ const PIN_SPRITE: Record<PinKind, string> = {
   job: 'pin-job', market: 'pin-market', safe: 'pin-safe', garage: 'pin-garage', gig: 'pin-gig', cat: 'pin-cat', mural: 'pin-mural', pin: 'pin-star', spot: 'pin-star', stn: 'pin-train', cable: 'pin-cable', ferry: 'pin-ferry', prop: 'pin-prop', own: 'pin-prop-own', raid: 'pin-raid',
 };
 const LEGEND: [PinKind, string][] = [['job', 'Job'], ['prop', 'Property for sale'], ['own', 'Your property'], ['raid', 'A raid! Get there fast'], ['market', 'Market'], ['safe', 'Safe house'], ['garage', 'Garage'], ['gig', 'Side gig'], ['cat', 'Lucky cat found'], ['mural', 'Mural painted'], ['stn', 'MRT station (click to route)'], ['cable', 'Cable car (click to route)'], ['ferry', 'Ferry pier (click to route)'], ['pin', 'Your pin']];
-const TINT: Record<District, [number, number, number]> = { market: [255, 128, 70], temple: [90, 200, 120], canal: [60, 200, 215], arcade: [225, 90, 220], docks: [80, 125, 255], india: [255, 110, 170], glam: [150, 120, 255], resort: [70, 215, 245], heartland: [240, 200, 70], bay: [70, 225, 175] };
-const CENTRE: Record<District, [number, number]> = { market: [22, 58], temple: [23, 16], canal: [58, 31], arcade: [97, 34], docks: [84, 76], heartland: [168, 20], bay: [170, 56], india: [242, 22], glam: [242, 62], resort: [76, 110] };
+const TINT: Record<District, [number, number, number]> = { market: [255, 128, 70], temple: [90, 200, 120], canal: [60, 200, 215], arcade: [225, 90, 220], docks: [80, 125, 255], india: [255, 110, 170], glam: [150, 120, 255], resort: [70, 215, 245], heartland: [240, 200, 70], bay: [70, 225, 175], orchard: [255, 215, 120], katong: [255, 150, 200], changi: [120, 210, 255] };
+const CENTRE: Record<District, [number, number]> = { market: [22, 58], temple: [23, 16], canal: [58, 31], arcade: [97, 34], docks: [84, 76], heartland: [168, 20], bay: [170, 56], india: [242, 22], glam: [242, 62], resort: [76, 110], orchard: [300, 18], katong: [300, 60], changi: [350, 40] };
 const dName = (d: District) => DISTRICT_NAME[d].replace(/^the /, 'The ');
 const MW = W * T, MH = H * T;
 
@@ -73,6 +73,8 @@ function landmarks(play: Play): [string, number, number][] {
   const hall = c.buildings.find(b => b.sprite === 'lm2-hall'); if (hall) out.push(['mi-hall', (hall.x + hall.w / 2) * T, (hall.y + hall.h / 2) * T]);
   // over the Rochor River and on Sentosa: the temple's gopuram, the mosque's golden dome, the fort and the coaster
   at('mi-gopuram', 'temple-li', 0, -3 * T); at('mi-mosque', 'mosque', 0, -4 * T); at('mi-fort', 'fort', 0, -3 * T); at('mi-coaster', 'park', 2 * T, -3 * T);
+  // over the Geylang River: the malls of Orchard Road, Katong's Peranakan terraces, East Coast beach, Changi Airport and Jewel
+  at('mi-mall', 'ion', 0, -3 * T); at('mi-terrace', 'joochiat', 0, -3 * T); at('mi-beach', 'ecp', 0, 0); at('mi-airport', 'terminal', 0, -3 * T); at('mi-jewel', 'jewel', 0, -6 * T);
   return out;
 }
 

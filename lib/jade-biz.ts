@@ -49,7 +49,7 @@ export type BizState = { lvl: number; bank: number; tonight: number; hist: numbe
 export const newBiz = (): BizState => ({ lvl: 0, bank: 0, tonight: 0, hist: [], raids: 0, defended: 0, dmg: 0, jaga: false, boost: 0, boostK: 1, missed: 0 });
 export const bizPos = (b: BizDef): [number, number] => [b.at[0] * T + T / 2, b.at[1] * T + T / 2];
 export const owned = (s: Save) => BIZ.filter(b => (s.biz[b.id]?.lvl ?? 0) > 0);
-export const bizSprite = (id: BizId, lvl: number) => `biz-${id}-${clamp(lvl, 0, 3)}`;
+export const bizSprite = (id: BizId, lvl: number) => `biz-${(BIZ_OF[id] as { art?: string }).art ?? id}-${clamp(lvl, 0, 3)}`;
 
 /** tonight's local event: a busker crowd lifts one district, another is quiet, the festival lifts every stall */
 export type NightEvent = { kind: 'crowd' | 'quiet' | 'calm'; d: District | null; text: string };
@@ -176,7 +176,9 @@ export function raidStep(run: Run, st: Extract<Step, { t: 'raid' }>, dt: number)
     if (dist(a.b.x, a.b.y, pb.x, pb.y) < reach && hitting) { a.stun = 0.8; a.hits = 1; run.count++; if (!p.ride && !p.act) p.act = { n: 'shoo', t: 0, dur: 0.45 }; w.fx.push({ t: 'shoo', x: a.b.x, y: a.b.y }); w.fx.push({ t: 'hit', x: a.b.x, y: a.b.y, k: 1, kind: 'feather' }); continue; }
     if ((end && a.t > 1) || dist(a.b.x, a.b.y, x, y) > 10 * T) { a.gone = true; run.lost++; w.fx.push({ t: 'snatch', x: a.b.x, y: a.b.y }); w.say('A crow got away with some coins!', 'bad'); }
   }
-  const allow = w.assist ? 2 : 1;
+  // the fourth crow on Hard comes with one more allowed away (catch two of four, as Normal is two of three): the
+  // crows are still quicker on Hard and run four ways, so it stays the stiffest raid
+  const allow = (w.assist ? 2 : 1) + (st.n > 3 ? 1 : 0);
   run.progress = `Caught ${run.count}/${st.n}`;
   run.meter = { name: `Got away ${run.lost}/${allow + 1}`, v: run.lost / (allow + 1), bad: run.lost >= allow };
   if (run.lost > allow) return run.fail('Too many crows got away with the till! Dash into them sooner.');
@@ -201,7 +203,9 @@ export const paidFor = (id: BizId, lvl: number) => { const b = BIZ_OF[id]; retur
 export const empireValue = (s: Save) => BIZ.reduce((a, b) => a + paidFor(b.id, s.biz[b.id]?.lvl ?? 0), 0);
 /** everything bought and upgraded: the whole empire's cost */
 export const EMPIRE_COST = BIZ.reduce((a, b) => a + paidFor(b.id, 3), 0);
-export const DISTRICTS_WITH_PROPS = [...new Set(BIZ.map(b => b.d))];
+/** the districts the Taipan needs a property in: the ten of the tenth pass (the coast's, added later, are a bonus, so
+ *  a Taipan from an older save keeps the title) */
+export const DISTRICTS_WITH_PROPS = [...new Set(BIZ.map(b => b.d))].filter(d => d !== 'orchard' && d !== 'katong' && d !== 'changi');
 export function rankOf(s: Save): number {
   const v = empireValue(s); let r = 0;
   for (const k of RANKS) if (v >= k.need && k.n > 0) r = k.n;
