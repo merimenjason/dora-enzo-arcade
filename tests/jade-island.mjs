@@ -127,8 +127,8 @@ test('chapter six: ten jobs, offered in order after the festival, both heroes ta
     assert.ok(m.steps.some(s => s.cp), `${m.id} checkpoint`); assert.ok(PAR[m.id] > 0, `${m.id} par`); assert.ok(PEOPLE[m.giver], m.giver);
   }
   const kinds = new Set(six.flatMap(m => m.steps.map(s => s.t)));
-  for (const k of ['train', 'beat', 'chase', 'tail', 'escort', 'stealth', 'collect', 'fares', 'bag', 'mini']) assert.ok(kinds.has(k), `a ${k} step`);
-  const skins = new Set(six.flatMap(m => m.steps.map(s => s.skin).filter(Boolean)));
+  for (const k of ['train', 'beat', 'chase', 'tail', 'escort', 'stealth', 'collect', 'fares', 'bag', 'mini', 'detective', 'trap', 'swap', 'blend']) assert.ok(kinds.has(k), `a ${k} step`);
+  const skins = new Set(six.flatMap(m => m.steps.map(s => s.skin ?? s.gang).filter(Boolean)));
   for (const k of ['mac', 'liz', 'kaw', 'otter']) assert.ok(skins.has(k), `${k} in a job`);
   assert.ok(MISSION.m30.steps.some(s => s.t === 'chase' && s.route.some(([x, y]) => y === 80 || x === 124)), 'the expressway chase rides the expressways');
   const s = newSave(); s.done = allDone.slice(0, 25); assert.equal(chapterOf(s), 6); assert.deepEqual(available(s).map(m => m.id), ['m26', 'm27']);
@@ -155,14 +155,14 @@ test('the notice queue: two at a time, bad news first, repeats refresh, stale ch
   startGang(w, 'macaques'); assert.equal(w.barks.length, before, 'passers-by hold their remarks while something important shows');
 });
 
-test('save v7: a v6 save migrates (island counts at zero, island ending unseen); v7 round trips', () => {
-  assert.equal(SAVE_VERSION, 7); assert.equal(SAVE_KEY, 'jade-street-v7'); assert.equal(OLD_KEYS[0], 'jade-street-v6');
+test('save: a v6 save migrates through v7 to v8 (island counts at zero, island ending unseen); v8 round trips', () => {
+  assert.equal(SAVE_VERSION, 8); assert.equal(SAVE_KEY, 'jade-street-v8'); assert.equal(OLD_KEYS[0], 'jade-street-v7');
   const v6 = JSON.parse(JSON.stringify({ ...newSave(9), v: 6 })); delete v6.stats.mrt; delete v6.stats.taxi; delete v6.story.isle; v6.done = allDone.slice(0, 25); v6.cash = 777; delete v6.rep.heartland; delete v6.rep.bay;
   const s = loadSave(JSON.stringify(v6));
-  assert.equal(s.v, 7); assert.equal(s.cash, 777); assert.equal(s.stats.mrt, 0); assert.equal(s.stats.taxi, 0); assert.equal(s.story.isle, false); assert.equal(s.rep.heartland, 0);
+  assert.equal(s.v, SAVE_VERSION); assert.equal(s.cash, 777); assert.equal(s.stats.mrt, 0); assert.equal(s.stats.photos, 0); assert.equal(s.stats.taxi, 0); assert.equal(s.story.isle, false); assert.equal(s.rep.heartland, 0);
   assert.equal(chapterOf(s), 6); assert.ok(openDistricts(s).includes('heartland'));
   s.stats.mrt = 3; s.done.push('m26'); s.story.isle = true; s.rep.bay = 12;
-  assert.deepEqual(loadSave(JSON.stringify(s)), s, 'v7 round trip');
+  assert.deepEqual(loadSave(JSON.stringify(s)), s, 'v8 round trip');
   // the island's safe houses are bought with island reputation
   s.rep.heartland = 20; s.cash = 900; assert.equal(buySafe(s, 'safe-heartland'), null); assert.ok(safeOpen(s, 'safe-heartland'));
 });
@@ -235,3 +235,4 @@ test('the job givers stand in the world: painted, solid, waving with a job, talk
 });
 
 console.log(`jade (sixth pass): ${n} tests ok`);
+await import('./jade-jobs.mjs');

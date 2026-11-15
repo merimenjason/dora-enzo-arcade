@@ -31,13 +31,17 @@ function at(id, i, o = {}) {
 const idle = (w, sec, until = () => false) => { for (let k = 0; k < sec * 60 && !w.failed && !until(); k++) { w.step(NO_INPUT, DT); if (w.talk) w.talk = null; } };
 
 // ── item 1: every job has a fair, readable way to fail
-const FAILABLE = new Set(['chase', 'tail', 'escort', 'stealth', 'race', 'heat', 'float', 'raid', 'collect', 'trade', 'fares']);
+const FAILABLE = new Set(['chase', 'tail', 'escort', 'stealth', 'race', 'heat', 'float', 'raid', 'collect', 'trade', 'fares', 'case', 'heist', 'defend', 'blend', 'detective', 'trap', 'swap']);
 const failable = st => FAILABLE.has(st.t) || ((st.t === 'deliver' || st.t === 'goto') && (st.time || st.fragile));
 /** provoke a failure at step i by doing nothing useful; returns the reason and whether a timer or meter showed first */
 function provoke(id, i) {
   const { w, run } = at(id, i); const st = run.cur; let shown = false;
   const p = w.p;
-  if (st.t === 'stealth') { const a = run.actors[0]; p.b.x = a.b.x + Math.cos(a.b.h) * 70; p.b.y = a.b.y + Math.sin(a.b.h) * 70; }
+  if (st.t === 'stealth' || st.t === 'case') { const a = run.actors[0]; p.b.x = a.b.x + Math.cos(a.b.h) * 70; p.b.y = a.b.y + Math.sin(a.b.h) * 70; }
+  // the job steps: commit to a loud heist at the front door; a disguise on beside a lookout; nets and bait down
+  if (st.t === 'heist') { idle(w, 0.2); run.heistPick('loud'); const [fx, fy] = run.spot(st.front); w.placePlayer(fx, fy); }
+  if (st.t === 'blend') { idle(w, 0.2); run.js.ph = 1; p.disguise = true; const a = run.actors.find(x => x.kind === 'watcher'); w.placePlayer(a.b.x + Math.cos(a.b.h) * 60, a.b.y + Math.sin(a.b.h) * 60); }
+  if (st.t === 'trap') { for (let k = 0; k < st.need; k++) run.js.set.push(k); run.js.ph = 2; run.js.queue = st.n; run.js.spawnT = 0.5; const [x, y] = run.spot(st.path[1]); w.placePlayer(x + 40, y + 40); }
   if (st.t === 'float') { const [x, y] = leapSpot(0); p.roof = true; p.b.x = x; p.b.y = y; p.lastRoof = [x, y];
     // the partner on the bunting rope, so the float swings in (and can roll away while nobody leaps)
     if (st.rope) { const [rx, ry] = run.spot(st.rope); const m = w.mate; m.seat = null; m.roof = false; m.b.x = rx; m.b.y = ry; m.ai = { ...m.ai, mode: 'hold', at: [rx, ry], story: true }; } }
@@ -59,7 +63,7 @@ test('every job has at least one way to fail that shows a timer or meter first, 
     for (const [, i] of steps) { const r = provoke(m.id, i); if (r.why) { assert.ok(r.shown, `${m.id} step ${i} (${r.t}) showed a timer or meter before failing`); assert.ok(r.why.length > 10); ok++; kinds.add(r.t); } }
     assert.ok(ok >= 1, `${m.id}: a failure can be provoked`);
   }
-  for (const k of ['chase', 'tail', 'escort', 'stealth', 'race', 'heat', 'float', 'collect', 'trade', 'deliver']) assert.ok(kinds.has(k), `a ${k} step can be failed`);
+  for (const k of ['chase', 'tail', 'escort', 'stealth', 'race', 'heat', 'float', 'collect', 'trade', 'deliver', 'case', 'heist', 'defend', 'blend', 'detective', 'trap', 'swap']) assert.ok(kinds.has(k), `a ${k} step can be failed`);
 });
 test('the fragile cargo wobble meter warns two bumps early and fails at the limit; mangoes bruise', () => {
   for (const id of ['m1', 'm9', 'm14']) {
@@ -218,7 +222,7 @@ test('crow raids: a text and a defend job; idle and they escape (losing part of 
 
 // ── saves
 test('save: real v2 and v3 saves migrate with every bit of progress, and businesses start empty', () => {
-  assert.equal(SAVE_VERSION, 7); assert.equal(SAVE_KEY, 'jade-street-v7'); assert.ok(OLD_KEYS.includes('jade-street-v3') && OLD_KEYS.includes('jade-street-v2'));
+  assert.equal(SAVE_VERSION, 8); assert.equal(SAVE_KEY, 'jade-street-v8'); assert.ok(OLD_KEYS.includes('jade-street-v3') && OLD_KEYS.includes('jade-street-v2'));
   const v3 = JSON.parse(readFileSync(new URL('./fixtures/jade-save-v3.json', import.meta.url), 'utf8'));
   assert.equal(v3.v, 3);
   const s = loadSave(JSON.stringify(v3));

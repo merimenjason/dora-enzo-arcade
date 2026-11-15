@@ -310,6 +310,19 @@ for h in ('dora', 'enzo'):
     fx = cream if h == 'dora' else None
     grid(f'{h}-act9', [f'{h}-{a}' for a in ('hail-down', 'hail-side', 'tap-card', 'pole-0', 'pole-1', 'seat', 'phone', 'slide', 'point', 'dance-0', 'dance-1', 'panting')], 4, 3, 58, ref=f'{h}-tap-card', fix=fx)
 fit('isle-ui', ['i-taxiapp', 'i-mrt', 'pin-train', 'pin-taxi', 'pin-liz', 'mi-resort', 'mi-hdb', 'mi-wheel'], 4, 2, 128)
+# ── the job steps (jobs8): the heroes' casing, searching, trapping, swapping and safe-cracking poses, the spy disguise
+# with its own walk, the crows' security guards and office interns, the heist and trap props, icons, the heist cards
+for h in ('dora', 'enzo'):
+    fx = cream if h == 'dora' else None
+    grid(f'{h}-act10', [f'{h}-{a}' for a in ('photo', 'photo-flash', 'notes', 'search-0', 'search-1', 'set-trap', 'spring', 'swap-0', 'swap-1', 'safe', 'triumph', 'whistle')], 4, 3, 58, ref=f'{h}-notes', fix=fx)
+    grid(f'{h}-disguise', [f'{h}-dis-{a}' for a in ('down-0', 'down-1', 'up-0', 'up-1', 'side-0', 'side-1', 'paper', 'on')], 4, 2, 60, ref=f'{h}-dis-down-0', fix=fx)
+grid('guards', ['guard-down-0', 'guard-down-1', 'guard-up-0', 'guard-up-1', 'guard-side-0', 'guard-side-1', 'guard-alarm', 'guard-dazed', 'mac-netted', 'intern-down', 'intern-side-0', 'intern-side-1'], 4, 3, 56)
+each('heist-props', ['job-cam', 'job-cam-paint', 'job-safe', 'job-safe-open', 'job-door', 'job-rota', 'job-crate', 'job-crate-fake', 'job-net', 'job-net-sprung', 'job-bait', 'job-rack', 'job-bell', 'job-pile', 'job-decoy', 'job-mess'], 4, 4,
+     {'job-cam': 40, 'job-cam-paint': 40, 'job-safe': 56, 'job-safe-open': 56, 'job-door': 70, 'job-rota': 56, 'job-crate': 54, 'job-crate-fake': 54, 'job-net': 60, 'job-net-sprung': 52, 'job-bait': 34, 'job-rack': 54, 'job-bell': 30, 'job-pile': 64, 'job-decoy': 26, 'job-mess': 50}, lo=90)
+fit('ui8', ['i-camera', 'i-clue', 'i-net', 'i-swap', 'i-defend', 'i-disguise', 'i-dial', 'i-ask'], 4, 2, 128)
+fit('cards8', ['card-quiet', 'card-loud'], 2, 1, 520)
+each('mg-parts2', ['mg-dial', 'mg-notch', 'mg-lamp-off', 'mg-lamp-on', 'mg-tumbler', 'mg-scope', 'mg-handle', 'mg-sparkle'], 4, 2,
+     {'mg-dial': 300, 'mg-notch': 36, 'mg-lamp-off': 56, 'mg-lamp-on': 76, 'mg-tumbler': 40, 'mg-scope': 90, 'mg-handle': 140, 'mg-sparkle': 90})
 # ── the job givers standing in the world (jobs7): six frames each, facing the street; each row scaled from its own idle
 CAST_H = {'kee': 52, 'mo': 60, 'pang': 56, 'heron': 70, 'ren': 58, 'kiri': 58, 'lim': 54, 'bo': 72, 'bristle': 62, 'gizmo': 58, 'glint': 64,
           'pip': 50, 'hoon': 58, 'teo': 66, 'beng': 60, 'ong': 56, 'lily': 70, 'goh': 56, 'sleek': 58, 'kow': 62, 'kamal': 58, 'vanda': 66,
@@ -351,7 +364,7 @@ for f, names in (('ground', ['road', 'walk', 'plaza', 'grass', 'canal', 'plank']
 # ── full paintings
 PLAIN = {}
 BIG = ['loading'] + [f'stall-{d}' for d in ('market', 'temple', 'canal', 'docks', 'arcade')] + [f'story-{i}' for i in range(1, 5)] + [f'chapter-{i}' for i in range(1, 6)] + [f'end-{i}' for i in range(1, 4)] + ['gadget-shop', 'chapter-6', 'end-4', 'mrt-ride', 'stall-heartland', 'stall-bay']
-for n, size in (('title', (1536, 1024)), ('mg-lock', (1280, 853)), ('mg-wire', (1280, 853)), ('mg-wok', (1280, 853)), ('mg-board', (1280, 853)), ('mg-haggle', (1280, 853)), ('mg-kopi', (1280, 853)), ('map-paper', (1024, 683))) + tuple((b, (1280, 853)) for b in BIG):
+for n, size in (('title', (1536, 1024)), ('mg-lock', (1280, 853)), ('mg-wire', (1280, 853)), ('mg-wok', (1280, 853)), ('mg-board', (1280, 853)), ('mg-haggle', (1280, 853)), ('mg-kopi', (1280, 853)), ('mg-safe', (1280, 853)), ('map-paper', (1024, 683))) + tuple((b, (1280, 853)) for b in BIG):
     p = SRC / f'{n}-crow.png' if (SRC / f'{n}-crow.png').exists() else SRC / f'{n}.png'
     if not p.exists(): MISSING.append(n); continue
     im = Image.open(p).convert('RGB').resize(size, Image.LANCZOS)
@@ -383,6 +396,7 @@ GROUPS = [('dora', lambda n: n.startswith('dora-')), ('enzo', lambda n: n.starts
           ('city', lambda n: n.startswith(('shop-', 'roof-', 'flat-', 'bld-', 'lm-'))),
           ('rides', lambda n: n.startswith(('v-', 'car-', 'crow-cart', 'crow-boat', 'boss-', 'warden-bike'))),
           ('gear', lambda n: n.startswith(('g-', 'crate-', 'shot-', 'net-open', 'satchel', 'sp-', 'crow-netted', 'cart-netted', 'warden-slip', 'warden-paint', 'warden-dazed', 'crow-drop', 'awning-splat', 'glint-netted', 'lever-', 'sluice-', 'shutter-', 'pulley', 'boost-spot', 'window-', 'loot-bag', 'gadget-stall'))),
+          ('jobs', lambda n: n.startswith(('guard-', 'intern-', 'job-', 'card-', 'mac-netted'))),
           ('faces', lambda n: n.startswith('face-') and n.count('-') >= 2 and n.split('-')[-1] in ('happy', 'worried', 'cross', 'smug')),
           ('set', lambda n: n.startswith(('stall-smash', 'drum-', 'warn-bell', 'bridge-', 'crane-load', 'gate-', 'neon-', 'float', 'decoy-', 'bunting', 'ramp', 'db-', 'glint-', 'biz-'))),
           ('folk', lambda n: n.startswith(('folk-', 'crow-', 'warden-', 'blimp', 'block-', 'cone', 'face-'))),

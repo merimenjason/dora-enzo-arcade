@@ -1,0 +1,27 @@
+/* Jade Street: the job steps' panels (heist approach cards, a witness's questions) and the clue notebook */
+.jade-shell .jade-panel.heist { width: min(640px, calc(100vw - 32px)); }
+.jade-shell .jade-heist-cards { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.jade-shell .jade-heist-card { flex: 1 1 240px; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px; border-radius: 14px; border: 2px solid var(--gold); background: rgba(0,0,0,.28); color: var(--ink); cursor: pointer; text-align: center; font: inherit; }
+.jade-shell .jade-heist-card:hover, .jade-shell .jade-heist-card:focus-visible { transform: translateY(-2px); box-shadow: 0 0 0 3px rgba(255,214,90,.6); outline: none; }
+.jade-shell .jade-heist-card.quiet { border-color: #5fb3c8; }
+.jade-shell .jade-heist-card.loud { border-color: #e8603a; }
+.jade-shell .jade-heist-card b { font: 700 18px var(--display); color: var(--gold); }
+.jade-shell .jade-heist-card span { font-size: 13px; line-height: 1.35; }
+.jade-shell .jade-heist-card small { font-size: 12px; opacity: .85; font-style: italic; }
+.jade-shell kbd { display: inline-block; min-width: 18px; padding: 0 4px; border-radius: 5px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.3); font: 700 11px var(--display); }
+.jade-shell .jade-intel { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 10px; font-size: 12px; }
+.jade-shell .jade-intel span { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.3); opacity: .45; }
+.jade-shell .jade-intel span.got { opacity: 1; box-shadow: inset 0 0 0 1px var(--gold); }
+.jade-shell .jade-ask { display: flex; gap: 14px; align-items: flex-start; }
+.jade-shell .jade-ask-q { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.jade-shell .jade-ask-q .jade-btn { text-align: left; justify-content: flex-start; }
+.jade-shell .jade-ask-a { flex: 1; }
+.jade-shell .jade-ask-a p.good { color: #b8f5c0; font-weight: 700; font-size: 16px; }
+.jade-shell .jade-ask-a p.bad { color: #ffd2c4; font-size: 15px; }
+.jade-shell .jade-notes { position: absolute; top: 132px; left: 50%; transform: translateX(-50%); width: min(460px, calc(100vw - 480px)); min-width: 260px; display: flex; flex-direction: column; gap: 2px; background: rgba(30,24,16,.88); border: 2px dashed var(--gold); border-radius: 12px; padding: 6px 12px; font-size: 13px; color: #f6ecd0; pointer-events: none; z-index: 2; }
+.jade-shell .jade-notes b { display: inline-flex; align-items: center; gap: 6px; color: var(--gold); font: 700 12px var(--display); text-transform: uppercase; }
+.jade-shell .jade-notes .jade-intel { margin-top: 0; }
+@media (max-width: 760px) { .jade-shell .jade-notes { top: 250px; left: 10px; right: 10px; transform: none; width: auto; min-width: 0; } }
+.jade-shell .jade-job .jade-meter i { white-space: nowrap; }
+.jade-shell .jade-job .jade-meter { padding-right: 116px; }
+.jade-shell .jade-job .jade-meter b { position: absolute; left: auto; right: 110px; top: 50%; margin-top: -4.5px; transform: translateX(100%); }

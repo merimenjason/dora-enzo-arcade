@@ -304,7 +304,7 @@ test('the save: round trip, repair and clamping, v1 migration, garage, wardrobe 
 });
 
 test('trophies, the daily market event and the night clock', () => {
-  assert.equal(TROPHIES.length, 26);
+  assert.equal(TROPHIES.length, 30);
   const s = newSave(); s.done = ['m1', 'm2', 'm3', 'm4', 'm5']; s.cats = Array.from({ length: 10 }, (_, i) => i);
   const got = checkTrophies(s); assert.ok(got.includes('First Job') && got.includes('Jade Dragon') && got.includes('Lucky Paw'));
   assert.deepEqual(checkTrophies(s), [], 'awarded once');

@@ -23,6 +23,7 @@ import { ROADS } from '../.checks/jade-city.js';
 import { inWindow, LADDER } from '../.checks/jade-boss.js';
 import { tagOption, boostXY } from '../.checks/jade-tag.js';
 import { carried, giveGadget, GEAR_GIFT } from '../.checks/jade-gear.js';
+import { hiddenSpot, sightRange } from '../.checks/jade-jobs.js';
 
 const QUICK = process.argv.includes('--quick');
 const MAIN = import.meta.url === `file://${process.argv[1]}`;
@@ -145,6 +146,122 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
       // look ahead by the time it takes to get there, as a person judging an amber would
       const col = lightOf({ time: w.time + Math.max(0, along - 2 * T) / Math.max(120, r.b.speed) }, li, axis);
       if (col !== 'green') { inp.mx = 0; inp.my = 0; return; }
+    }
+  }
+  // ── the job steps (lib/jade-jobs.ts)
+  const angTo = (a, x, y) => Math.abs(((Math.atan2(y - a.b.y, x - a.b.x) - a.b.h) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI);
+  const blindA = a => (a.extra2 ?? 0) > 0 || (a.stare ?? 0) > 0;
+  /** would a guard or a camera see a point (with a margin a careful player leaves)? */
+  const watched = (x, y, margin = 1) => w.run.actors.some(a => {
+    if (blindA(a)) return false;
+    if (a.kind === 'guard') return dist(a.b.x, a.b.y, x, y) < sightRange(w.run) * margin + 30 && angTo(a, x, y) < (assist ? 0.45 : 0.55) + 0.35 * margin && los(w.c, a.b.x, a.b.y, x, y);
+    if (a.kind === 'cam') return dist(a.b.x, a.b.y, x, y) < (assist ? 200 : 240) * margin + 20 && angTo(a, x, y) < 1.0 && los(w.c, a.b.x, a.b.y, x, y);
+    return false;
+  });
+  /** sneak towards a point, holding back while the next stretch is watched, backing out of a guard's way */
+  function sneakTo(x, y) {
+    const p = w.p; inp.sneak = true; go(x, y, 1);
+    const nx = p.x + inp.mx * 60, ny = p.y + inp.my * 60;
+    if (watched(nx, ny) && !watched(p.x, p.y, 0.8)) { inp.mx = 0; inp.my = 0; }
+    const close = w.run.actors.find(a => a.kind === 'guard' && !blindA(a) && dist(a.b.x, a.b.y, p.x, p.y) < 170 && angTo(a, p.x, p.y) < 0.8);
+    if (close) { const ax = p.x - close.b.x, ay = p.y - close.b.y, l = Math.hypot(ax, ay) || 1; const hx = Math.cos(close.b.h), hy = Math.sin(close.b.h); const sd = (ax * -hy + ay * hx) >= 0 ? 1 : -1; inp.mx = (-hy * sd * 0.8 + ax / l * 0.6); inp.my = (hx * sd * 0.8 + ay / l * 0.6); }
+  }
+  const nearJob = pre => w.near?.kind === 'job' && w.near.id.startsWith(pre);
+  const job = { asked: {}, order: null };
+  function decideJob(st) {
+    const p = w.p, run = w.run, js = run.js; if (!js) return;
+    if (p.ride && !(st.t === 'heist' && js.ph === 3 && js.mode === 'loud') && st.t !== 'defend') { offFoot(); return; }
+    switch (st.t) {
+      case 'case': {
+        if (p.act) return;
+        if (nearJob('photo') && !watched(p.x, p.y, 0.9)) { press('act'); return; }
+        const tg = run.target(); if (!tg) return;
+        // a guard about to turn this way: the partner draws it off
+        if (watched(p.x, p.y, 1.1) && R() < 0.5) tagIf('distract');
+        sneakTo(tg[0], tg[1]); return;
+      }
+      case 'heist': {
+        const tg = run.target();
+        if (js.mode === 'loud') {
+          if (js.ph === 3) { if (!p.ride) { getRide(r => r.kind === 'scooter' && !r.locked); return; } if (tg) go(tg[0], tg[1]); return; }
+          if (tg) go(tg[0], tg[1]); if (!p.ride && tg && dist(tg[0], tg[1], p.x, p.y) > 200 && R() < 0.2) press('dash');
+          return;
+        }
+        if (p.act || !tg) return;
+        // quiet: paint a camera that looks our way, have the partner distract a guard, sneak
+        const cam = run.actors.find(a => a.kind === 'cam' && !blindA(a) && dist(a.b.x, a.b.y, p.x, p.y) < 330);
+        if (cam) { wantGadget(['paint']); shoot(cam.b.x, cam.b.y, ['paint']); }
+        if (watched(p.x, p.y, 1.1) && R() < 0.5) tagIf('distract');
+        sneakTo(tg[0], tg[1]); return;
+      }
+      case 'defend': {
+        if (nearJob('mend') && !p.act) { press('act'); return; }
+        const tg = run.target(); if (!tg) return;
+        const [sx, sy] = run.spot(st.at);
+        const a = run.actors.filter(x => x.kind === 'pest' && x.extra !== 2).sort((u, v) => dist(u.b.x, u.b.y, sx, sy) - dist(v.b.x, v.b.y, sx, sy))[0];
+        if (!a) { if (dist(sx, sy, p.x, p.y) > 70) go(sx, sy, 0.8); return; }
+        go(a.b.x, a.b.y);
+        const d = dist(a.b.x, a.b.y, p.x, p.y);
+        if (d < 110) press('dash');
+        else if (d < 380) shoot(a.b.x, a.b.y);
+        return;
+      }
+      case 'blend': {
+        if (p.act) return;
+        if (js.ph === 0) { if (nearJob('disguise')) { press('act'); return; } go(run.items[0].x, run.items[0].y); return; }
+        if ((run.meter?.v ?? 0) > (P.slop ? 0.5 : 0.4) && nearJob('paper')) { press('act'); return; }
+        const [gx, gy] = run.spot(st.goal);
+        // keep to a walk, beside the nearest stroller heading our way
+        inp.sneak = true;
+        const c = run.actors.filter(a => a.kind === 'crowd').sort((u, v) => dist(u.b.x, u.b.y, p.x, p.y) - dist(v.b.x, v.b.y, p.x, p.y))[0];
+        if (c && dist(c.b.x, c.b.y, p.x, p.y) > 110 && (run.meter2?.bad)) go(c.b.x, c.b.y); else go(gx, gy);
+        // don't walk into people
+        for (const q of run.actors) if (q.kind === 'crowd' && dist(q.b.x, q.b.y, p.x + inp.mx * 30, p.y + inp.my * 30) < 26) { const ax = p.x - q.b.x, ay = p.y - q.b.y, l = Math.hypot(ax, ay) || 1; inp.mx += ax / l * 0.8; inp.my += ay / l * 0.8; }
+        return;
+      }
+      case 'detective': {
+        if (p.act) return;
+        if (js.clues.length < st.witnesses.length) {
+          if (nearJob('ask')) { press('act'); return; }
+          const a = run.actors.filter(x => x.kind === 'witness' && !js.clues.includes(x.extra)).sort((u, v) => dist(u.b.x, u.b.y, p.x, p.y) - dist(v.b.x, v.b.y, p.x, p.y))[0];
+          if (a) go(a.b.x, a.b.y);
+          return;
+        }
+        // every clue in: reason it out (a hurried player sometimes tries a near miss first)
+        if (!job.order) {
+          const h = hiddenSpot(st), tags = st.witnesses.map(x => x.tag);
+          const near = st.spots.map((sp, i) => [i, tags.filter(t => sp.tags.includes(t)).length]).filter(([i, n]) => i !== h && n === tags.length - 1).map(([i]) => i);
+          job.order = (near.length && R() < 0.12 * P.slop) ? [near[0], h] : [h];
+        }
+        const j = job.order.find(i => !js.searched.includes(i)) ?? hiddenSpot(st);
+        if (w.near?.kind === 'job' && w.near.id === `search:${j}`) { press('act'); return; }
+        go(run.items[j].x, run.items[j].y, 0.8); return;
+      }
+      case 'trap': {
+        if (p.act) return;
+        if (js.ph === 0) { if (nearJob('set')) { press('act'); return; } const tg = run.target(); if (tg) go(tg[0], tg[1]); return; }
+        if (js.ph === 1) { if (nearJob('bait')) { press('act'); return; } const [bx, by] = run.spot(st.bait); go(bx, by); return; }
+        const [wx, wy] = run.spot(st.wait);
+        if (dist(wx, wy, p.x, p.y) > 40) go(wx, wy);
+        const Rr = assist ? 70 : 52;
+        const on = js.set.some(i => !js.sprung.includes(i) && run.actors.some(a => a.kind === 'lured' && a.extra === 0 && dist(a.b.x, a.b.y, run.items[i].x, run.items[i].y) < Rr * (0.8 - 0.25 * P.slop * R())));
+        if (on) tagIf('spring');
+        return;
+      }
+      case 'swap': {
+        if (p.act) return;
+        const tg = run.target(); if (!tg) return;
+        const d = dist(tg[0], tg[1], p.x, p.y);
+        if (nearJob('swap')) {
+          // only when nobody will look this way for the next second and a half
+          const risky = run.actors.some(a => a.kind === 'guard' && !blindA(a) && dist(a.b.x, a.b.y, p.x, p.y) < sightRange(run) + 60 && (angTo(a, p.x, p.y) < 1.2 || a.lookCd < 1.8 || (a.extra ?? 0) > 0) && los(w.c, a.b.x, a.b.y, p.x, p.y));
+          if (!risky) { press('act'); return; }
+          if (R() < 0.4) tagIf('distract');
+          inp.mx = 0; inp.my = 0; return;
+        }
+        if (d < 200 && watched(p.x, p.y, 0.9) && R() < 0.3) tagIf('distract');
+        sneakTo(tg[0], tg[1]); return;
+      }
     }
   }
   function decide() {
@@ -332,6 +449,7 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
         if (!p.ride && dist(pl.x, pl.y, p.x, p.y) > 900) { getRide(r => r.kind === 'scooter'); return; }
         go(pl.x, pl.y); return;
       }
+      case 'case': case 'heist': case 'defend': case 'blend': case 'detective': case 'trap': case 'swap': return decideJob(st);
       case 'trade': return trade(st);
       case 'fares': {
         const f = run.fare; if (!f) return;
@@ -383,6 +501,15 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
         const o = mini.order, c = mini.cup; const wrong = ['base', 'milk', 'sugar', 'temp'].filter(k => o[k] !== c[k]);
         if (wrong.length && !(wrong.length === 1 && R() < 0.05 * P.slop)) mini.set(wrong[0], o[wrong[0]]); else mini.serve();
       }
+    } else if (ui.mini === 'safe') {
+      // turn the right way; near the number, tap (the dial starts slow); set when the lamp glows
+      if (mini.i < mini.nums.length) {
+        const d = mini.dirs[mini.i], ahead = ((mini.nums[mini.i] - mini.dial) * d % 1 + 1) % 1;
+        if (mini.glowing() && R() < 0.75 - 0.2 * P.slop) { mini.hold(0); mini.set(); }
+        else if (mini.glowing()) mini.hold(0);
+        else if (ahead > 0.1 || mini.last !== d) mini.hold(d);
+        else mini.hold(mini.turn ? 0 : d);
+      }
     } else if (ui.mini === 'wok') {
       const want = mini.items.filter(i => (mini.need[i.f] ?? 0) > (mini.got[i.f] ?? 0) && i.vy > 0 && i.y < 0.8).sort((a, b) => b.y - a.y)[0];
       if (want) mini.moveTo(want.x + err * 0.06);
@@ -404,6 +531,17 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
     if (w.ui) {
       if (w.ui.kind === 'mini') { t += playMini(); continue; }
       if (w.ui.kind === 'safe') { w.swapJacket(); w.ui = null; continue; }
+      // the heist: the bots take turns, quiet on even seeds, loud on odd ones (o.heist forces one)
+      if (w.ui.kind === 'heist') { t += 0.6; w.run.heistPick(o.heist ?? (seed % 2 ? 'loud' : 'quiet')); continue; }
+      // a witness: the right question most of the time (a person reads them), another one now and then
+      if (w.ui.kind === 'ask') {
+        const ui = w.ui, wi = w.run.cur.witnesses[ui.i]; t += 0.8;
+        if (ui.said) { w.run.askClose(); continue; }
+        const tried = job.asked[ui.i] ?? (job.asked[ui.i] = []);
+        const wrong = [0, 1, 2].filter(q => q !== wi.right && !tried.includes(q));
+        const q = !tried.length && wrong.length && R() < 0.25 * P.slop ? wrong[0] : wi.right;
+        tried.push(q); w.run.askPick(q); continue;
+      }
       w.ui = null; continue;
     }
     think -= DT;

@@ -1,10 +1,10 @@
-// Jade Street: the save (localStorage 'jade-street-v7'), its repair and migration, progression (districts opened by the
+// Jade Street: the save (localStorage 'jade-street-v8'), its repair and migration, progression (districts opened by the
 // story, reputation tiers, safe houses, outfits, garage upgrades and paint), trophies and the stats screen.
 // Version 1 saves (the pre-release shape: `money`, `done` as a comma string, one shared rep number) and version 2 saves
 // (the first release, 'jade-street-v2': no medals, story flags, lessons, messages or radio) and version 3 saves (the
 // second release: no businesses, no Reduce shake), version 4 saves (the third release: no gadgets), version 5 saves
-// (no Singapore streets) and version 6 saves (no island: no MRT or taxi counts, no island ending) migrate forward,
-// keeping every bit of progress.
+// (no Singapore streets), version 6 saves (no island: no MRT or taxi counts, no island ending) and version 7 saves (no
+// job-step counts: photos, heists, traps and the rest) migrate forward, keeping every bit of progress, medals included.
 import { DISTRICTS, type District } from './jade-city.js';
 import { emptyCargo, GOODS, type Cargo, type Tip } from './jade-trade.js';
 import { MISSIONS, SIDE, MISSION, CHAPTER_OPENS, FINALE } from './jade-story.js';
@@ -13,16 +13,19 @@ import { asDiff, type Diff } from './jade-diff.js';
 import { BIZ, newBiz, type BizState } from './jade-biz.js';
 import { newGear, giveGadget, clipOf, ammoCap, GEAR_GIFT, GADGET_IDS, type GearState, type GadgetId } from './jade-gear.js';
 
-export const SAVE_KEY = 'jade-street-v7';
-export const OLD_KEYS = ['jade-street-v6', 'jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2', 'jade-street-v1'];
-export const SAVE_VERSION = 7;
+export const SAVE_KEY = 'jade-street-v8';
+export const OLD_KEYS = ['jade-street-v7', 'jade-street-v6', 'jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2', 'jade-street-v1'];
+export const SAVE_VERSION = 8;
 export type Hero = 'dora' | 'enzo';
 /** `keys`: remapped keyboard actions (action -> KeyboardEvent.code); `bigText`: larger HUD text; `cbMarks`: colour-blind-safe
  * markers (shapes and patterns, not only colour) */
 export type Settings = { sound: boolean; music: boolean; assist: boolean; diff: Diff; touch: 'auto' | 'on' | 'off'; shake: boolean; calm: boolean; keys: Record<string, string>; bigText: boolean; cbMarks: boolean };
 export type Stats = { walked: number; driven: number; boated: number; missions: number; gigs: number; trades: number; profit: number; caught: number; escapes: number; bumps: number; cats: number; murals: number; maxHeat: number; playTime: number; minis: number; bizCoins: number; shots: number; tags: number; switches: number; tolls: number; junk: number; kopi: number; chope: number;
   /** the island: Jade Line rides, taxi rides */
-  mrt: number; taxi: number };
+  mrt: number; taxi: number;
+  /** the job steps: photos taken casing, heists (and quiet ones), stands held, disguises worn, clues found, traps
+   * sprung full, crates swapped */
+  photos: number; heists: number; quiet: number; defends: number; disguises: number; clues: number; traps: number; swaps: number };
 export type Save = {
   v: number; seed: number; hero: Hero; started: boolean;
   cash: number; night: number; clock: number; cargo: Cargo; stash: Cargo;
@@ -90,7 +93,7 @@ export function newSave(seed = 1): Save {
     upgrades: { speed: 0, grip: 0, cargo: 0 }, paint: 'red',
     outfits: { dora: ['classic'], enzo: ['classic'] }, outfit: { dora: 'classic', enzo: 'classic' },
     cats: [], murals: [], trophies: [], tips: [], safe: 'safe-market', best: {}, daily: '', dailyDone: [],
-    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0, tolls: 0, junk: 0, kopi: 0, chope: 0, mrt: 0, taxi: 0 },
+    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0, tolls: 0, junk: 0, kopi: 0, chope: 0, mrt: 0, taxi: 0, photos: 0, heists: 0, quiet: 0, defends: 0, disguises: 0, clues: 0, traps: 0, swaps: 0 },
     settings: { sound: true, music: true, assist: true, diff: 'easy', touch: 'auto', shake: true, calm: false, keys: {}, bigText: false, cbMarks: false },
     medals: {}, story: { intro: false, ch: 0, ending: false, isle: false }, learned: [], msgs: [], radio: 0, helped: 0,
     biz: Object.fromEntries(BIZ.map(b => [b.id, newBiz()])), bizLog: [], gear: newGear(), bag: newBag(), fines: newFines(), lingo: [],
@@ -112,6 +115,7 @@ export function loadSave(raw: string | null): Save {
   if (o.v === 4) o = migrate4(o);
   if (o.v === 5) o = migrate5(o);
   if (o.v === 6) o = migrate6(o);
+  if (o.v === 7) o = migrate7(o);
   const s = newSave(Math.floor(num(o.seed, 1, 1, 2 ** 31)));
   s.hero = o.hero === 'enzo' ? 'enzo' : 'dora';
   s.started = o.started === true;
@@ -207,6 +211,12 @@ function migrate6(o: Record<string, unknown>): Record<string, unknown> {
   const st = (o.stats ?? {}) as Record<string, unknown>; const sy = (o.story ?? {}) as Record<string, unknown>;
   return { ...o, v: 7, stats: { ...st, mrt: 0, taxi: 0 }, story: { ...sy, isle: false } };
 }
+/** version 7 (the sixth release): everything kept, medals too (a reworked job keeps the medals it had); the job-step
+ * counts are new and start at zero */
+function migrate7(o: Record<string, unknown>): Record<string, unknown> {
+  const st = (o.stats ?? {}) as Record<string, unknown>;
+  return { ...o, v: 8, stats: { ...st, photos: 0, heists: 0, quiet: 0, defends: 0, disguises: 0, clues: 0, traps: 0, swaps: 0 } };
+}
 function keysOf(v: unknown): Record<string, string> {
   const out: Record<string, string> = {}; const used = new Set<string>();
   if (v && typeof v === 'object') for (const [k, c] of Object.entries(v as Record<string, unknown>)) if (/^[a-z0-9]{1,12}$/.test(k) && typeof c === 'string' && /^[A-Za-z0-9]{1,20}$/.test(c) && !used.has(c)) { out[k] = c; used.add(c); }
@@ -290,6 +300,10 @@ export const TROPHIES: { id: string; name: string; desc: string; test: (s: Save)
   { id: 'island', name: 'Island Night', desc: 'Stop Director Kaw and win the Golden Chinchilla.', test: s => s.done.includes('m35') },
   { id: 'commuter', name: 'Commuter', desc: 'Ride the Jade Line five times.', test: s => s.stats.mrt >= 5 },
   { id: 'tumpang', name: 'Tumpang', desc: 'Take three taxi rides.', test: s => s.stats.taxi >= 3 },
+  { id: 'ghost', name: 'Ghost', desc: 'Pull off a heist the quiet way.', test: s => s.stats.quiet >= 1 },
+  { id: 'sleuth', name: 'Sleuth', desc: 'Find eight clues by asking the right questions.', test: s => s.stats.clues >= 8 },
+  { id: 'netted', name: 'Net Result', desc: 'Spring three traps that catch the whole gang.', test: s => s.stats.traps >= 3 },
+  { id: 'holdout', name: 'Hold the Fort', desc: 'See off every wave in three stands.', test: s => s.stats.defends >= 3 },
   { id: 'cats-10', name: 'Lucky Paw', desc: 'Find 10 lucky cats.', test: s => s.cats.length >= 10 },
   { id: 'cats-25', name: 'Luckier Paw', desc: 'Find 25 lucky cats.', test: s => s.cats.length >= 25 },
   { id: 'cats-50', name: 'Luckiest Paw', desc: 'Find all 50 lucky cats.', test: s => s.cats.length >= 50 },

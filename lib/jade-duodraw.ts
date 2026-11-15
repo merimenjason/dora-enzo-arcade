@@ -37,6 +37,24 @@ export function duoFrame(p: Player, t: number): { f: string; flip: boolean } {
     case 'snatch': return { f: `${h}-snatch`, flip };
     case 'reload': return { f: `${h}-reload`, flip: false };
     case 'fire': return { f: `${h}-fire-sling-down`, flip: false };
+    // the job steps (lib/jade-jobs.ts): casing, the clue notebook, searching, nets, the crate swap, the safe, the disguise
+    case 'photo': return { f: t > (p.act?.dur ?? 0.75) * 0.6 ? `${h}-photo-flash` : `${h}-photo`, flip };
+    case 'notes': return { f: `${h}-notes`, flip: false };
+    case 'search': return { f: `${h}-search-${t > 0.75 ? 1 : 0}`, flip: false };
+    case 'set-trap': return { f: `${h}-set-trap`, flip: false };
+    case 'spring': return { f: `${h}-spring`, flip };
+    case 'crate-swap': return { f: `${h}-swap-${t > (p.act?.dur ?? 1.5) * 0.65 ? 1 : 0}`, flip };
+    case 'safe': return { f: `${h}-safe`, flip };
+    case 'triumph': return { f: `${h}-triumph`, flip: false };
+    case 'whistle': return { f: `${h}-whistle`, flip: false };
+    case 'paper': return { f: `${h}-dis-paper`, flip: false };
+    case 'disguise-on': return { f: `${h}-dis-on`, flip: false };
+  }
+  // in the spy disguise: its own walk (a stroll in the trench coat), and standing still in it
+  if (p.disguise && !p.ride) {
+    const moving = anim === 'walk' || anim === 'run' || anim === 'sneak' || anim === 'dash' || anim === 'hop';
+    const fc = p.face, k = moving ? cyc(2, anim === 'walk' || anim === 'sneak' ? 4 : 7) : 0;
+    return { f: `${h}-dis-${fc}-${k}`, flip };
   }
   // the Singapore carries have their own poses (a kopi tray, a durian crate held at arm's length, a festival lantern)
   const held = p.carry ? SG_CARRY[p.carry] : undefined;

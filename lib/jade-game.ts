@@ -34,12 +34,14 @@ export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop
 export const NO_INPUT: Input = { mx: 0, my: 0, sneak: false, dash: false, hop: false, act: false };
 export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; locked: boolean; tint: number; mission?: boolean; seen?: number; broken?: boolean };
 export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string };
-export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle'; label: string; x: number; y: number; id?: string; ride?: Ride };
+export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job'; label: string; x: number; y: number; id?: string; ride?: Ride };
 export type Snatcher = { x: number; y: number; h: number; t: number; out: boolean; took: number; wing: number; good?: string; dizzy?: number };
 export type Act = { n: string; t: number; dur: number; then?: () => void };
 export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' | 'sg' } | { kind: 'map' } | { kind: 'biz'; id: BizId } | { kind: 'gear' } | { kind: 'mama' } | { kind: 'glossary' }
   /** the island: a station's ticket gates, the train ride view, the taxi's drop-off list */
-  | { kind: 'mrt'; from: string } | { kind: 'ride-view'; from: string; to: string } | { kind: 'taxi' };
+  | { kind: 'mrt'; from: string } | { kind: 'ride-view'; from: string; to: string } | { kind: 'taxi' }
+  /** the job steps: a heist's quiet-or-loud choice, a witness's three questions (and what they said back) */
+  | { kind: 'heist' } | { kind: 'ask'; i: number; said?: string; ok?: boolean };
 
 export class Player {
   constructor(public who: Hero = 'dora') { }
@@ -51,6 +53,8 @@ export class Player {
   ride: Ride | null = null; roof = false; lastRoof: [number, number] = [0, 0];
   dashT = 0; dashCd = 0; hopT = 0; hopCd = 0; boostT = 0; boostCd = 0;
   hide = false; sneak = false; act: Act | null = null; carry: string | null = null;
+  /** in the spy disguise (a blend step): drawn in the trench coat and walks with its own frames */
+  disguise = false;
   anim = 'idle'; animT = 0; face: 'down' | 'up' | 'side' = 'down'; flip = false; bumpT = 0;
   /** knocked by a set-piece hazard: no control for a moment; a skid on a sharp turn at speed */
   stunT = 0; skidT = 0; skidCd = 0; stunKind = '';
@@ -299,7 +303,7 @@ export class World {
     if (Math.hypot(mx, my) > 0.5 && p.b.speed > 180 && p.skidCd <= 0 && Math.abs(angDiff(p.b.h, Math.atan2(my, mx))) > 2.3) { p.skidT = 0.22; p.skidCd = 0.6; this.fx.push({ t: 'skid', x: p.b.x, y: p.b.y + 8, k: 0.6 }); }
     if (inp.hop && p.hopCd <= 0 && !p.air) { p.hopT = FOOT.hopT; p.hopCd = FOOT.hopCd + FOOT.hopT; this.fx.push({ t: 'hop', x: p.b.x, y: p.b.y }); }
     const over = this.overloaded();
-    let top = p.sneak ? FOOT.walk : FOOT.run;
+    let top = p.sneak || (p === this.p && this.run?.walkOnly()) ? FOOT.walk : FOOT.run;
     if (over) top = FOOT.walk * 0.75;
     if (p.dashT > 0) { p.dashT -= dt; top = FOOT.dash; if (Math.hypot(mx, my) < 0.2) { mx = Math.cos(p.b.h); my = Math.sin(p.b.h); } }
     const wasAir = p.air;
@@ -514,6 +518,7 @@ export class World {
         const why = cantRide(this); if (why) { this.say(why, 'bad'); break; }
         this.ui = { kind: 'mrt', from: n.id! }; this.fx.push({ t: 'open' }); p.act = { n: 'tap-card', t: 0, dur: 0.5 }; p.face = 'up'; break;
       }
+      case 'job': this.run?.jobAct(n.id!); break;
       case 'taxi': if (this.taxi?.st === 'ride') skipRide(this); else { this.ui = { kind: 'taxi' }; this.fx.push({ t: 'open' }); } break;
       case 'isle':
         if (n.id === 'slide') { p.act = { n: 'slide', t: 0, dur: 1.3, then: () => { p.b.y += 40; this.fx.push({ t: 'good-deed' }); } }; p.face = 'down'; this.fx.push({ t: 'hop' }); }

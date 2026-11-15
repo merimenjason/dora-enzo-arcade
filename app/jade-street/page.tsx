@@ -1,5 +1,5 @@
 'use client';
-// Jade Street: the page. Holds the save (localStorage 'jade-street-v7', migrating v6 back to v1), the painted loading
+// Jade Street: the page. Holds the save (localStorage 'jade-street-v8', migrating v7 back to v1), the painted loading
 // screen (nothing draws until every painting has decoded), the title screen with continue / new game (confirmed in
 // the page) and the hero pick, the storybook opening, chapter cards, the ending and credits (./story.tsx), then the
 // running game: the canvas (./controller.ts and lib/jade-scene.ts), the HUD (./hud.tsx), lesson hints, the phone and
@@ -21,6 +21,8 @@ import { jobCounts } from '@/lib/jade-story';
 import { MiniGame } from './minis';
 import { TicketCard, MamaShop, KopiMini } from './sg';
 import { MrtPanel, RideView, TaxiPanel } from './isle';
+import { HeistPanel, AskPanel, JobNotes } from './jobs';
+import './jobs.css';
 import './isle.css';
 import './sg.css';
 import { store, Sprite, ART } from './ui';
@@ -167,6 +169,7 @@ export default function JadeStreetPage() {
           <div className="jade-stage"><canvas ref={cvRef} className="jade-cv" data-testid="world" /></div>
           {play && w && (
             <>
+              <JobNotes play={play} />
               <TopHud play={play} onMap={() => { play.paused = true; setMapOpen(true); }} onPause={() => { play.paused = true; setPaused(true); }} />
               <Toasts play={play} />
               {!touch && <KeyHelp />}
@@ -187,6 +190,8 @@ export default function JadeStreetPage() {
               {w.ui?.kind === 'mrt' && <MrtPanel play={play} from={w.ui.from} onClose={closeUi} />}
               {w.ui?.kind === 'ride-view' && <RideView play={play} from={w.ui.from} to={w.ui.to} onDone={closeUi} />}
               {w.ui?.kind === 'taxi' && <TaxiPanel play={play} onClose={closeUi} />}
+              {w.ui?.kind === 'heist' && <HeistPanel play={play} />}
+              {w.ui?.kind === 'ask' && <AskPanel play={play} />}
               {!w.ui && !w.talk && <TicketCard play={play} />}
               {w.ui?.kind === 'mini' && w.ui.mini === 'kopi' && <KopiMini key={`kopi-${w.s.stats.minis}`} level={w.ui.level} assist={w.assist} seed={w.s.seed + w.s.stats.minis * 7 + w.tick} snd={sndRef.current} onDone={ok => { w.miniDone(ok); persist(w.s); play.bump(); }} />}
               {w.ui?.kind === 'mini' && w.ui.mini !== 'kopi' && <MiniGame key={`${w.ui.mini}-${w.s.stats.minis}`} kind={w.ui.mini} level={w.ui.level} assist={w.assist} seed={w.s.seed + w.s.stats.minis * 7 + w.tick} snd={sndRef.current} onDone={ok => { w.miniDone(ok); persist(w.s); play.bump(); }} />}

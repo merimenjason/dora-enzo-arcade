@@ -168,6 +168,21 @@ export class Juice {
         case 'skid': this.spray('dust', x, y, Math.round(2 + (f.k ?? 0.5) * 3)); break;
         case 'boost': this.spray('spark', x, y, 4, 0.6); break;
         case 'shoo': this.pop(x, y - 40, 'Shoo!', '#ffd060'); break;
+        // the job steps: the camera flash, the safe swinging open, nets, the crowd's double take, a found clue
+        case 'job-photo': this.flashOf(0.28, '255,255,240'); this.spray('spark', x, y - 30, 4, 0.5); this.pop(x, y - 64, 'Snap!', '#e8fbff'); break;
+        case 'job-safe': this.slowmo(false); this.spray('coins', x, y, 12, 1.1); this.pop(x, y - 60, 'Cracked it!', '#ffe68a', true); break;
+        case 'job-diversion': this.impact(0.5); this.spray('paper', x, y, 16, 1.4); this.pop(x, y - 70, 'Confetti!', '#ffb0e0', true); break;
+        case 'job-alarm': this.flashOf(0.3); this.impact(0.3); this.pop(x, y - 60, 'Alarm!', '#ff8a7a', true); break;
+        case 'job-spring': this.spray('dust', x, y, 6, 0.9); break;
+        case 'job-caught': this.impact(0.5); this.spray('feather', x, y, 6, 0.8); this.pop(x, y - 50, 'Netted!', '#bff5c0'); break;
+        case 'job-escape': this.spray('dust', x, y, 4, 0.6); this.pop(x, y - 50, 'Got away!', '#ffb08a'); break;
+        case 'job-swap': this.spray('spark', x, y, 3, 0.4); this.pop(x, y - 50, 'Swapped', '#e8fbff'); break;
+        case 'job-grab': this.spray('paper', x, y, 5, 0.8); this.pop(x, y - 50, 'Grabbed!', '#ff9a7a'); break;
+        case 'job-found': this.slowmo(false); this.spray('heirloom', x, y, 12, 1.1); this.pop(x, y - 60, 'Found it!', '#ffe68a', true); break;
+        case 'job-nothing': this.spray('paper', x, y, 4, 0.6); break;
+        case 'job-trap-set': this.spray('dust', x, y, 3, 0.5); break;
+        case 'job-disguise': if (f.kind === 'on') { this.spray('spark', x, y - 20, 6, 0.7); this.pop(x, y - 64, 'Incognito', '#e8d8ff'); } break;
+        case 'job-mend': this.spray('spark', x, y, 4, 0.5); break;
         case 'poof': this.spray(f.kind ?? 'feather', x, y, 10, 0.9); this.spray('paper', x, y, 3, 0.7); break;
         case 'snatch': this.spray('coins', x, y, 5, 0.8); break;
         case 'boss-down': this.impact(1); this.slowmo(true); this.spray('paper', x, y, 14, 1.4); this.spray('feather', x, y, 10, 1.2); break;
