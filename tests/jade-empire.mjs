@@ -99,6 +99,7 @@ test('a missed raid costs that night’s takings, or leaves the place damaged un
   let dmg = 0; s.biz.tea.lvl = 2; for (let k = 0; k < 30; k++) { s.biz.tea.dmg = 0; s.biz.tea.bank = 400; missRaid(w, 'tea'); if (s.biz.tea.dmg) dmg++; }
   assert.ok(dmg > 4 && dmg < 26, `damaged ${dmg} times in 30`);
   s.biz.tea.dmg = 1; assert.equal(bizRate(s, 'tea', ALL).rate, 0, 'a damaged place takes nothing');
+  s.biz.tea.bank = 300; idle(w, 20); assert.equal(Math.floor(s.biz.tea.bank), 300, 'a smashed shop keeps the coins already in its till');
   const cash = s.cash; assert.equal(repairBiz(w, 'tea'), null); assert.equal(s.cash, cash - repairCost('tea')); assert.equal(s.biz.tea.dmg, 0); assert.equal(w.p.act?.n, 'repair');
   assert.ok(bizRate(s, 'tea', ALL).rate > 0); assert.equal(s.stats.repairs, 1);
 });
