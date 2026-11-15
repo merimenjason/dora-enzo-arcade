@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""gen.py [ids...] (jobs.py, jobs2.py, then jobs3.py, jobs4.py, jobs5.py, jobs5b.py, jobs6.py, jobs7.py, jobs8.py, jobs9.py and jobs10.py) — paints Jade Street sheets with Codex image generation, up to 6 at once.
+"""gen.py [ids...] (jobs.py, jobs2.py, then jobs3.py, jobs4.py, jobs5.py, jobs5b.py, jobs6.py, jobs7.py, jobs8.py, jobs9.py, jobs10.py and jobs-empire*.py) — paints Jade Street sheets with Codex image generation, up to 6 at once.
 Each job in jobs.py: id -> (size, refs, prompt). Skips ids whose png already exists."""
 import subprocess, sys, concurrent.futures as cf
 from pathlib import Path
@@ -27,6 +27,11 @@ JOBS.update(JOBS7)
 JOBS.update(JOBS8)
 JOBS.update(JOBS9)
 JOBS.update(JOBS10)
+# the tenth pass's empire sheets (jobs-empire*.py: hyphenated names, so loaded by path)
+import importlib.util
+for _f in sorted(D.glob('jobs-empire*.py')):
+    _sp = importlib.util.spec_from_file_location(_f.stem.replace('-', '_'), _f); _m = importlib.util.module_from_spec(_sp); _sp.loader.exec_module(_m)
+    JOBS.update(_m.J)
 def run(i):
     size, refs, prompt = JOBS[i]
     if (D / f'{i}.png').exists(): return f'{i} exists'

@@ -24,6 +24,7 @@ import { inWindow, LADDER } from '../.checks/jade-boss.js';
 import { tagOption, boostXY } from '../.checks/jade-tag.js';
 import { carried, giveGadget, GEAR_GIFT } from '../.checks/jade-gear.js';
 import { hiddenSpot, sightRange, BRANCHES } from '../.checks/jade-jobs.js';
+import { BIZ_OF } from '../.checks/jade-biz.js';
 
 const QUICK = process.argv.includes('--quick');
 const MAIN = import.meta.url === `file://${process.argv[1]}`;
@@ -56,16 +57,19 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
   // notice: the chance of reading a telegraphed hazard in time to steer round it
   const P = { perfect: { lo: 0.2, hi: 0.2, wob: 0, slop: 0, lapse: 0, notice: 1 }, casual: { lo: 0.2, hi: 0.3, wob: 0.28, slop: 1, lapse: 0, notice: 0.85 }, normal: { lo: 0.22, hi: 0.34, wob: 0.24, slop: 0.8, lapse: o.lapse ?? 0.05, notice: 0.7 } }[profile];
   const assist = o.assist ?? profile !== 'normal';
-  const s = missionSave(id, { seed: 3 + seed, assist, diff: o.diff ?? (assist ? 'easy' : 'normal') });
+  // the tenth pass: an empire raid or empire job is not a story job: `o.save` gives its save, `o.setup(w)` sets it up
+  // (a raid alert, or the job started at its property) and `o.done(w)` says when it is over
+  const s = o.save ?? missionSave(id, { seed: 3 + seed, assist, diff: o.diff ?? (assist ? 'easy' : 'normal') });
+  if (o.save) { s.settings.assist = assist; s.settings.diff = o.diff ?? (assist ? 'easy' : 'normal'); }
   const w = new World(s, 100 + seed);
   w.quiet = true;
   const R = rng(seed * 991 + id.length * 31 + id.charCodeAt(1) * 7);
-  const m = MISSION[id];
+  const m = MISSION[id] ?? { at: '' };
   const why = []; let lapse = 0, inp = { ...NO_INPUT }, think = 0, fails = 0, t = 0, mini = null, miniT = 0, stuck = 0, lastPos = [0, 0], unstick = 0, uDir = [0, 0];
   const maxT = o.maxT ?? 900;
   let started = false, forced = false;
   const wantMission = () => { const a = offered(s); return a.some(x => x.id === id); };
-  assert.ok(wantMission(), `${id} is offered at the start`);
+  if (o.setup) o.setup(w); else assert.ok(wantMission(), `${id} is offered at the start`);
 
   // steering toward a world point with the right flow field
   const steer = (x, y, cls) => {
@@ -310,6 +314,9 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
     const p = w.p;
     if (!w.run) {
       if (started) return;
+      // an empire raid: hurry to the property (the raid starts on arrival)
+      if (w.emp.raid) { const b = w.emp.raid, pl = w.c; void pl; const [bx, by] = [BIZ_OF[b.id].at[0] * T + T / 2, BIZ_OF[b.id].at[1] * T + T / 2]; go(bx, by + T); return; }
+      if (o.setup) return;
       // walk to the contact and press the action button
       const pl = w.c.places[m.at];
       if (w.near?.kind === 'mission' && w.near.id === id) { press('act'); return; }
@@ -613,7 +620,8 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
     if (o.trace && Math.floor(t / o.trace) !== Math.floor((t - DT) / o.trace)) { const r = w.run; const a = r?.actors[0]; console.log(`t${Math.round(t)} p(${Math.round(w.p.x / T)},${Math.round(w.p.y / T)}) ride=${w.p.ride?.kind ?? '-'} roof=${w.p.roof} step=${r?.i}:${r?.cur?.t} near=${w.near?.kind ?? '-'} inp=${inp.mx.toFixed(1)},${inp.my.toFixed(1)}${a ? ` a(${Math.round(a.b.x / T)},${Math.round(a.b.y / T)}) wp${a.wp}/${a.route.length} look${a.look.toFixed(1)}` : ''} meter=${r?.meter ? r.meter.name + ':' + r.meter.v.toFixed(2) : '-'} heat=${w.heat.toFixed(1)} ui=${w.ui?.kind ?? "-"} wd=${w.wardens.map(x => Math.round(Math.hypot(x.b.x - w.p.x, x.b.y - w.p.y)) + "@" + Math.round(x.b.x) + "," + Math.round(x.b.y) + (x.leave ? "L" : "")).join("|")} pp=${Math.round(w.p.x)},${Math.round(w.p.y)} fail=${w.failed ?? ""}${o.traceRide && r?.ride ? ` rr(${(r.ride.b.x / T).toFixed(1)},${(r.ride.b.y / T).toFixed(1)} ${r.ride.parked} ${r.ride.locked}) nr(${w.near?.ride ? (w.near.ride.b.x / T).toFixed(1) + ',' + (w.near.ride.b.y / T).toFixed(1) + ' ' + w.near.ride.kind + ' ' + w.near.ride.locked : '-'}) act=${w.p.act?.n ?? '-'}` : ''}`); }
     w.drain();
     inp.act = false; inp.dash = false; inp.hop = false; inp.tag = false; inp.swap = false; inp.fire = false; inp.slot = undefined; inp.reload = false;
-    if (s.done.includes(id)) return { won: true, time: Math.round(t), fails, why };
+    if (o.done ? o.done(w) : s.done.includes(id)) return { won: true, time: Math.round(t), fails, why };
+    if (o.lost?.(w)) break;
   }
   return { won: false, time: Math.round(t), fails, why, at: w.run ? `${w.run.i}:${w.run.cur?.t}:${w.run.label}` : (w.failed?.reason ?? 'no run') };
 }

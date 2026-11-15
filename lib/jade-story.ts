@@ -7,6 +7,7 @@
 import type { District } from './jade-city.js';
 import type { VehicleKind } from './jade-move.js';
 import type { Good } from './jade-trade.js';
+import { EMPIRE_JOBS } from './jade-empjobs.js';
 
 export type Spot = string | [number, number];
 /** a portrait expression per line: 'calm' is the character's usual portrait, the others are painted moods */
@@ -128,6 +129,11 @@ export const PEOPLE: Record<string, { name: string; face: string; who: string }>
   helang: { name: 'Sergeant Helang', face: 'face-helang', who: 'Fort Siloso ranger (a sea eagle)' },
   bising: { name: 'Boss Bising', face: 'face-bising', who: 'Kecoh Mynahs boss (a mynah)' },
   nine: { name: 'Crow Number Nine', face: 'face-nine', who: 'Director Kaw’s old assistant (a house crow)' },
+  // the tenth pass: the empire's supplier, the health inspector, the rival towkay and the jaga you can hire
+  huat: { name: 'Ah Huat', face: 'face-huat', who: 'wholesale supplier (a wild boar)' },
+  siew: { name: 'Inspector Siew', face: 'face-siew', who: 'health inspector (a milky stork)' },
+  hoot: { name: 'Towkay Hoot', face: 'face-hoot', who: 'rival towkay (a buffy fish owl)' },
+  duri: { name: 'Pak Duri', face: 'face-duri', who: 'night watchman, a jaga (a porcupine)' },
   glint: { name: 'Madame Glint', face: 'face-glint', who: 'Kaypoh Crows boss' },
   pip: { name: 'Pip', face: 'face-pip', who: 'Kaypoh Crows rookie' },
   dora: { name: 'Dora', face: 'face-dora', who: 'you' },
@@ -713,11 +719,14 @@ export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id,
 
 /** every count of jobs shown to the player, derived from MISSIONS and SIDE (never written in by hand): story jobs and
  *  Hawker Tales done and in all, the medal marks (three a story job) earned and possible, and gold medals */
-export function jobCounts(s: { done: string[]; medals: Record<string, { m: number } | undefined> }) {
+export function jobCounts(s: { done: string[]; medals: Record<string, { m: number } | undefined>; empire?: { jobs: Record<string, number> } }) {
+  const empire = EMPIRE_JOBS.filter(j => (s.empire?.jobs[j.id] ?? 0) > 0).length;
   const story = MISSIONS.filter(m => s.done.includes(m.id)).length, tales = SIDE.filter(m => s.done.includes(m.id)).length;
   return {
     story, storyAll: MISSIONS.length, tales, talesAll: SIDE.length, done: story + tales, all: MISSIONS.length + SIDE.length,
     marks: MISSIONS.reduce((a, m) => a + (s.medals[m.id]?.m ?? 0), 0), marksAll: MISSIONS.length * 3,
     gold: MISSIONS.filter(m => s.medals[m.id]?.m === 3).length,
+    /** the tenth pass: kinds of empire job finished at least once, and how many kinds there are */
+    empire, empireAll: EMPIRE_JOBS.length,
   };
 }

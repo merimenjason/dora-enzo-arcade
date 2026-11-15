@@ -36,7 +36,7 @@ export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop
 export const NO_INPUT: Input = { mx: 0, my: 0, sneak: false, dash: false, hop: false, act: false };
 export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; locked: boolean; tint: number; mission?: boolean; seen?: number; broken?: boolean };
 export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string };
-export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry' | 'east'; label: string; x: number; y: number; id?: string; ride?: Ride };
+export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry' | 'east' | 'empire'; label: string; x: number; y: number; id?: string; ride?: Ride };
 export type Snatcher = { x: number; y: number; h: number; t: number; out: boolean; took: number; wing: number; good?: string; dizzy?: number };
 export type Act = { n: string; t: number; dur: number; then?: () => void };
 export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' | 'sg' } | { kind: 'map' } | { kind: 'biz'; id: BizId } | { kind: 'gear' } | { kind: 'mama' } | { kind: 'glossary' }
@@ -106,6 +106,8 @@ export class World {
   ferry: FerryRide | null = null; lastLink = ''; east: EastState = newEast();
   /** the partner thinking for themselves (lib/jade-pal.ts) */
   pal: PalState = newPal();
+  /** the tenth pass: the empire's raid under way, the partner's errand, the jaga in a stand (lib/jade-empire.ts) */
+  emp: EmpState = newEmp();
   /** the page has something important on screen: passers-by hold their remarks (lib/jade-notice.ts) */
   hush = false;
   /** the job givers standing in the world (lib/jade-cast.ts), solid like lamp posts; castK says when to refresh */
@@ -224,7 +226,7 @@ export class World {
     this.collectStep();
     trafficStep(this, dt); pedStep(this, dt);
     heatStep(this, dt);
-    finesStep(this, dt); sgStep(this, dt); gangsStep(this, dt); eastStep(this);
+    finesStep(this, dt); sgStep(this, dt); gangsStep(this, dt); eastStep(this); empireStep(this, dt);
     if (this.run) this.run.step(dt, inp);
     this.snatchStep(dt);
     eventsStep(this, dt);
@@ -275,8 +277,7 @@ export class World {
     this.s.clock += dt * (this.assist ? 0.85 : 1) * (this.run ? 0.5 : 1);
     if (this.run && this.s.clock >= 719.5) this.s.clock = 719.5;
     accrue(this, Math.min(720, this.s.clock) - before);
-    const r = raidCheck(this, before, this.s.clock);
-    if (r) { this.raidWait = { id: r, t: 0 }; const b = BIZ_OF[r]; text(this, b.keeper, `Help! Crows are raiding the ${b.name}! Get here quick and chase them off before they empty the till.`, { kind: 'help' }); }
+    empireClock(this, before, this.s.clock);
     if (this.s.clock >= 720) this.newNight();
   }
   /** a raid starts as soon as you are free to answer it (not in a job, a menu, a talk or the middle of an action) */
@@ -297,7 +298,7 @@ export class World {
     this.s.tips = this.s.tips.filter(t => t.night >= this.s.night - 1);
     this.banner = { text: `Night ${this.s.night}`, sub: 'The markets set new prices', t: 3 };
     this.fx.push({ t: 'night' });
-    nightTip(this);
+    nightTip(this); empireNight(this);
   }
 
   // ── the player
@@ -487,7 +488,8 @@ export class World {
     }
     if (!this.run) for (const g of this.gigs()) cand(g, 70);
     if (stallOpen(this.s)) { const [gx, gy] = stallPos(this); cand({ kind: 'gear', label: 'Tock’s toy stall: gadgets, ammo and upgrades', x: gx, y: gy + 40 }, 80); }
-    if (!this.run) for (const b of BIZ) if (this.open.has(b.d)) { const [bx, by] = bizPos(b); const st = this.s.biz[b.id]; cand({ kind: 'biz', label: st.lvl ? `${b.name}: ${Math.floor(st.bank)} coins in the till` : `${b.name} (stake for sale)`, x: bx, y: by + 40, id: b.id }, 80); }
+    if (!this.run) for (const b of BIZ) if (this.open.has(b.d)) { const [bx, by] = bizPos(b); cand({ kind: 'biz', label: bizLabel(this, b), x: bx, y: by + 40, id: b.id }, 80); }
+    if (!this.run) empireNear(this, cand);
     const en = eventNear(this); if (en) cand(en, 80);
     if (!this.run) { sgNear(this, cand); gangNear(this, cand); eastNear(this, cand); }
     if (this.festival) for (const f of this.c.festival) if (f.kind !== 'arch') cand({ kind: 'festival', label: f.kind === 'stage' ? 'Dance on the festival stage' : 'Let a sky lantern go', x: f.x, y: f.y, id: f.kind }, 80);
@@ -547,6 +549,7 @@ export class World {
       case 'sg': sgAct(this, n.id!); break;
       case 'gang': gangAct(this, n.id!); break;
       case 'east': eastAct(this, n.id!); break;
+      case 'empire': empireAct(this, n.id!); break;
       case 'fine': payTicket(this); break;
       case 'station': {
         const st = this.run?.cur; if (st?.t === 'train') { if (n.id === st.to) { this.say('You are already here.', 'bad'); break; } mrtTo(this, st.to); break; }
@@ -591,7 +594,8 @@ export class World {
   }
   finishMission(m: Mission, gig?: Gig) {
     this.lastRun = this.run; this.run = null; this.route = []; this.s.jobOpen = undefined;
-    if (gig && gig.key.startsWith('raid:')) { const id = gig.key.slice(5) as BizId; raidWon(this.s, id); this.s.cash += gig.reward; addRep(this.s, gig.d, 2); this.fx.push({ t: 'mission-done', name: m.title, k: gig.reward }); this.banner = { text: 'Raid repelled!', sub: `The till is safe · +${gig.reward} coins`, t: 2.6 }; this.p.act = this.p.ride ? null : { n: 'celebrate', t: 0, dur: 1.1 }; return; }
+    if (gig && gig.key.startsWith('emp:')) { empireJobDone(this, gig.key); this.s.cash += gig.reward; addRep(this.s, gig.d, 2); this.fx.push({ t: 'mission-done', name: m.title, k: gig.reward }); this.banner = { text: 'Empire job done!', sub: `${m.title} · +${gig.reward} coins · the shop takes more for a few nights`, t: 2.8 }; this.p.act = this.p.ride ? null : { n: 'celebrate', t: 0, dur: 1.1 }; return; }
+    if (gig && gig.key.startsWith('raid:')) { const id = gig.key.slice(5) as BizId; raidJobWon(this, id); this.s.cash += gig.reward; addRep(this.s, gig.d, 2); this.fx.push({ t: 'mission-done', name: m.title, k: gig.reward }); this.banner = { text: 'Raid repelled!', sub: `The till is safe · +${gig.reward} coins`, t: 2.6 }; this.p.act = this.p.ride ? null : { n: 'celebrate', t: 0, dur: 1.1 }; return; }
     if (gig) { this.s.cash += gig.reward; this.s.stats.gigs++; addRep(this.s, gig.d, 2); this.s.best[gig.key] = Math.max(this.s.best[gig.key] ?? 0, 1); this.fx.push({ t: 'mission-done', name: m.title, k: gig.reward }); this.banner = { text: 'Gig done!', sub: `+${gig.reward} coins`, t: 2.4 }; return; }
     const run = this.lastRun; const res = { time: run?.time ?? 0, maxHeat: run?.maxHeat ?? 0, retries: run?.retries ?? 0 };
     const medal = medalOf(m, res), was = this.s.medals[m.id];
@@ -625,7 +629,7 @@ export class World {
   lastRun: Run | null = null; lastMedal: { id: string; medal: number; time: number; maxHeat: number; retries: number; best: boolean } | null = null;
   fail(reason: string) { if (!this.run) return; this.failed = { reason }; this.fx.push({ t: 'fail', msg: reason }); }
   retry() { this.failed = null; this.heat = 0; this.clearHeat(); if (this.run) this.run.retries++; this.run?.restore(); }
-  quitJob() { this.s.jobOpen = undefined; const rid = this.run ? raidId(this.run.m.id) : null; if (rid) { const k = raidLost(this.s, rid); this.say(`The crows made off with ${k} coins from the ${BIZ_OF[rid].name}.`, 'bad'); }
+  quitJob() { this.s.jobOpen = undefined; const rid = this.run ? raidId(this.run.m.id) : null; if (rid) this.say(missRaid(this, rid), 'bad');
     this.failed = null; if (this.run && this.banner?.text === this.run.m.title) this.banner = null; this.run?.cleanup(); this.run = null; this.route = []; this.p.carry = null; this.replaying = false; }
   clearHeat() { this.heat = 0; this.wardens = []; this.blocks = []; this.blimp.on = false; }
   advanceTalk() {
@@ -646,6 +650,7 @@ export class World {
     if (this.run) return this.run.target();
     if (this.waypoint && dist(this.waypoint[0], this.waypoint[1], this.p.x, this.p.y) < 110) { this.waypoint = null; this.fx.push({ t: 'arrive' }); }
     if (this.waypoint) return this.waypoint;
+    const er = empireTarget(this); if (er) return er;
     // with Assist on, point at the next job's giver in story order (even when they are close: the line ends at them),
     // and only then at a street event
     if (this.assist && !this.p.roof) { const g = this.nextGiver(); if (g) return g; }
@@ -779,6 +784,7 @@ import { tag, distractStep, matePounceHit } from './jade-tag.js';
 import { teamGates } from './jade-team.js';
 import { stallPos, stallOpen, gearStep, fire, startReload, switchSlot, shooterFor, makeCrates, giveGadget, GEAR_GIFT, GADGETS, type Shot, type Splat, type Crate } from './jade-gear.js';
 const P2_KINDS: Near['kind'][] = ['ride', 'exit', 'ladder-up', 'ladder-down', 'hide', 'unhide', 'leap', 'event'];
-import { BIZ, BIZ_OF, bizPos, accrue, closeNight, raidCheck, raidMission, raidWon, raidLost, raidId, buyBiz, upgradeBiz, collect, type BizId } from './jade-biz.js';
+import { BIZ, BIZ_OF, bizPos, accrue, closeNight, raidId, raidMission, buyBiz, upgradeBiz, collect, type BizId } from './jade-biz.js';
+import { empireStep, empireClock, empireNight, empireNear, empireAct, empireTarget, empireJobDone, raidJobWon, missRaid, bizLabel, newEmp, type EmpState } from './jade-empire.js';
 import { text } from './jade-phone.js';
 void cargoValue; void H; void F_ALLEY; void moveStep; void shove;
