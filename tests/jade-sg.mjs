@@ -45,8 +45,8 @@ test('the Singapore places are on open ground, in the right districts, with real
   assert.equal(BIZ.filter(b => ['ckt', 'chicken', 'satay', 'laksa', 'kopi'].includes(b.id)).length, 5, 'five hawker stalls are businesses');
 });
 
-test('no brands, trademarks or company names anywhere in the text', () => {
-  const BAN = /\b(Tiger|Ya Kun|Old Chang Kee|Grab (?:car|taxi|ride|food)|GrabFood|SBS|SMRT|Singapore Airlines|Marina Bay Sands|Jewel|Merlion|Starbucks|McDonald|Coca|Pepsi)\b/;
+test('real names, not parodies (owner, 16-11): none of the old parody names is left in the text', () => {
+  const BAN = /\b(Jade Line|Tumpang!|Triple Sails|Float-About|Durian Domes|Bay Spinner|Super Grove|All-Hours Emporium|Galaxy Studios|Palawan Sands|Sky Spinner|Coral Dome|Lion City Taxi)/;
   for (const f of ['lib/jade-story.ts', 'lib/jade-sg.ts', 'lib/jade-fines.ts', 'lib/jade-gangs.ts', 'lib/jade-city.ts', 'lib/jade-sgcity.ts', 'lib/jade-biz.ts', 'lib/jade-move.ts', 'app/jade-street/sg.tsx', 'app/jade-street/layout.tsx']) {
     const m = readFileSync(f, 'utf8').match(BAN); assert.ok(!m, `${f} mentions ${m?.[0]}`);
   }

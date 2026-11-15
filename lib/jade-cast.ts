@@ -48,7 +48,7 @@ export function castOf(w: World): CastMember[] {
     if (home && m.at === m.giver) continue;
     const pl = w.c.places[m.at]; if (!pl) continue;
     const by = out.some(c => dist(c.x, c.y, pl.x, pl.y) < 30);
-    // at a station the giver waits beside the gates, not on them (E at the gates rides the Jade Line)
+    // at a station the giver waits beside the gates, not on them (E at the gates rides the MRT)
     const gate = m.at.startsWith('stn-');
     const v = member(w, m.giver, pl.x + (gate ? 90 : by ? 52 : 0), pl.y + (gate ? 60 : by ? -6 : 0), false, m.id);
     if (!out.some(c => c.id === v.id && !c.home)) out.push(v);

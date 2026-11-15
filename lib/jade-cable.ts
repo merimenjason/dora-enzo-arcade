@@ -1,6 +1,6 @@
 // Jade Street: the two new ways over the water to Sentosa. The cable car hangs from a line over the harbour between
 // the HarbourFront station on the docks and the Sentosa station on Siloso Road: its cabins go round all night (you can
-// see them overhead), and E at either station rides it, with a painted ride view like the Jade Line's. The island ferry
+// see them overhead), and E at either station rides it, with a painted ride view like the MRT's. The island ferry
 // runs from the Sentosa pier east round the harbour and in under the East Coast Parkway to the Marina Bay boardwalk:
 // you ride it all the way (the camera follows the boat; E skips to the pier). A durian aboard either is a fine, and
 // the wardens lose you over the water. A job's cable step names its stop. No DOM; deterministic.
@@ -120,9 +120,9 @@ export function ferryLand(w: World) {
   w.say(`${to.name}. Mind the gap!`, 'good');
 }
 /** the one-time hints and the phone text when Sentosa opens */
-export const CABLE_HINT = 'Sentosa is open! Ride the cable car from HarbourFront at the docks (E at the station, 4 coins), walk the boardwalk, or take the Jade Line to Beach station.';
-export const EAST_TEXT = 'The Jade Line runs on over the Rochor River: Bugis for Kampong Glam, and Little India. Walk over the bridges on Syed Alwi Road or Arab Street, or take a taxi.';
-export const RESORT_TEXT = 'Sentosa is open! The cable car leaves from HarbourFront at the docks (4 coins), the boardwalk runs beside the Sentosa Gateway, the Jade Line stops at Beach station, and the ferry crosses from Marina Bay (3 coins).';
+export const CABLE_HINT = 'Sentosa is open! Ride the cable car from HarbourFront at the docks (E at the station, 4 coins), walk the boardwalk, or take the MRT to Beach station.';
+export const EAST_TEXT = 'The MRT runs on over the Rochor River: Bugis for Kampong Glam, and Little India. Walk over the bridges on Syed Alwi Road or Arab Street, or take a taxi.';
+export const RESORT_TEXT = 'Sentosa is open! The cable car leaves from HarbourFront at the docks (4 coins), the boardwalk runs beside the Sentosa Gateway, the MRT stops at Beach station, and the ferry crosses from Marina Bay (3 coins).';
 export function routeToStop(w: World, id: string): boolean {
   const s = linkById(w, id); if (!s || !openStop(w, s.stop)) return false;
   w.waypoint = [s.stop.x, s.stop.y]; w.routeT = 0; w.updateRoute(); return true;

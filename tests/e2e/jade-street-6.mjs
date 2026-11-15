@@ -1,9 +1,9 @@
 // Jade Street in the browser, the sixth pass (called from tests/e2e/jade-street.mjs at 1280×800; the game is
-// desktop-only): the island. The chapter-six card, Toa Payoh and Marina Bay on screen, the Jade Line (E at the gates,
+// desktop-only): the island. The chapter-six card, Toa Payoh and Marina Bay on screen, the MRT (E at the gates,
 // tap the card, pick a stop by click, the ride view with both heroes, a key skips it, a durian on the train is fined),
 // a taxi hailed with G (it pulls up, you point, E gets in, a drop-off by click, E skips the ride) and one booked
-// through the Tumpang! app on the phone, the slide at the playground, scooter wardens on the roads, the Longkang
-// Lizards, the notice queue, a train-race job on the island, the island's ending and dancing on the Float-About Stage.
+// through the Grab app on the phone, the slide at the playground, scooter wardens on the roads, the Longkang
+// Lizards, the notice queue, a train-race job on the island, the island's ending and dancing on the Float @ Marina Bay.
 // Every new action is pressed with a real key or click; each screen is photographed.
 export async function sixth(h) {
   const { p, W, press, exists, appear, look, check, until, wait, settle, name } = h;
@@ -20,14 +20,14 @@ export async function sixth(h) {
   await press('jade-story-skip'); await settle();
 
   // ── the island's districts on screen
-  for (const [pl, what] of [['safe-heartland', 'Toa Payoh'], ['playground', 'the dragon playground'], ['raffles', 'Raffles Place'], ['promenade', 'the bay promenade'], ['stage', 'the Float-About Stage']]) {
+  for (const [pl, what] of [['safe-heartland', 'Toa Payoh'], ['playground', 'the dragon playground'], ['raffles', 'Raffles Place'], ['promenade', 'the bay promenade'], ['stage', 'the Float @ Marina Bay']]) {
     await W(pl => window.__jade.teleportTo(pl), pl); await wait(900);
     check(await W(() => window.__jade.world().c.isle && window.__jade.world().p.x > 120 * 64), `${name}: ${what} is on the island`); await look(what);
   }
 
   // (Madame Glint offers the first island job at the station: take it as read, so the gates answer E)
   await W(() => { const w = window.__jade.world(); if (!w.s.done.includes('m26')) w.s.done.push('m26'); });
-  // ── the Jade Line: E at Chinatown station's gates, tap the card, pick Toa Payoh by click, ride with both heroes
+  // ── the MRT: E at Chinatown station's gates, tap the card, pick Toa Payoh by click, ride with both heroes
   await W(() => window.__jade.teleportTo('stn-chinatown')); await wait(400);
   const n0 = await near(); check(n0?.kind === 'station', `${name}: the station gates offer "${n0?.label}"`);
   await E(); check(await appear('mrt'), `${name}: E opens the station's gates`); await look('station gates');
@@ -59,10 +59,10 @@ export async function sixth(h) {
   for (let k = 0; k < 3 && (await st()).taxiSt === 'ride'; k++) { await W(() => { window.__jade.world().talk = null; }); await key('e', 400); }
   const t1 = await st();
   check(t1.taxi === t0.taxi + 1 && t1.cash < t0.cash && !t1.taxiSt?.match(/ride/), `${name}: E skips to the drop-off and pays`);
-  // the Tumpang! app on the phone books one
+  // the Grab app on the phone books one
   await W(() => { const w = window.__jade.world(); w.taxi = null; w.p.act = null; }); await wait(200);
   await key('t', 300); check(await appear('jade-phone-msgs'), `${name}: T opens the phone`);
-  await press('phone-taxi'); check(await exists('taxi-app'), `${name}: the Tumpang! app`); await look('taxi app');
+  await press('phone-taxi'); check(await exists('taxi-app'), `${name}: the Grab app`); await look('taxi app');
   await press('taxi-book'); check(await W(() => window.__jade.world().taxi?.st === 'come'), `${name}: the app books a taxi`);
   await W(() => { const w = window.__jade.world(); w.taxi = null; window.__jade.play.paused = false; }); await settle();
 
@@ -85,7 +85,7 @@ export async function sixth(h) {
   check(toasts.length <= 2 && toasts.some(t => /Fined/.test(t)), `${name}: two toasts at a time, bad news first (${toasts.join(' / ')})`);
   check(!(await exists('jade-hint')), `${name}: the lesson hint steps aside`); await look('notice queue'); await wait(3600);
 
-  // ── an island job: Next Stop, Toa Payoh (ride the Jade Line as a job step)
+  // ── an island job: Next Stop, Toa Payoh (ride the MRT as a job step)
   check((await W(() => window.__jade.start('m26'))) === 'm26', `${name}: the first island job starts`);
   check((await W(() => window.__jade.enterStep(window.__jade.stepOf('train')))) === 'train', `${name}: on to the job's train step`);
   await W(() => { const w = window.__jade.world(); w.talk = null; window.__jade.teleportTo('stn-chinatown'); }); await wait(300);
@@ -94,14 +94,14 @@ export async function sixth(h) {
   check(await W(() => window.__jade.world().run?.cur?.t !== 'train'), `${name}: the job moves on at Toa Payoh`); await look('job at toa payoh');
   await W(() => { window.__jade.world().quitJob(); }); await settle();
 
-  // ── the island's ending, then a dance on the Float-About Stage
+  // ── the island's ending, then a dance on the Float @ Marina Bay
   await W(() => { const J = window.__jade, w = J.world(); w.s.done = w.s.done.filter(id => id !== 'm35'); w.s.story.isle = false; w.finishMission(J.mission('m35')); w.talk = null; J.play.bump(); });
   check(await p.waitForSelector('[data-testid="jade-ending"]', { timeout: 9000 }).then(() => true, () => false), `${name}: the island's ending plays`);
   check(/Island Night|island/i.test(await p.locator('[data-testid="jade-ending"]').innerText()), `${name}: it is the island's ending`); await look('island ending');
   await press('jade-story-skip'); if (await appear('jade-credits')) await press('jade-credits-done');
   check(await W(() => window.__jade.world().s.story.isle), `${name}: the island's ending is remembered`); await settle();
   await W(() => window.__jade.teleportTo('stage')); await wait(400);
-  const n4 = await near(); check(n4?.label === 'Dance on the Float-About Stage', `${name}: the stage offers "${n4?.label}"`);
+  const n4 = await near(); check(n4?.label === 'Dance on the Float @ Marina Bay', `${name}: the stage offers "${n4?.label}"`);
   await E(); await wait(500); check(await W(() => window.__jade.world().p.act?.n === 'isle-dance'), `${name}: E dances with your partner`); await look('island dance'); await wait(2600);
 
   // ── the job givers in person: walk up to one in each district and talk (they stand facing the street, solid)

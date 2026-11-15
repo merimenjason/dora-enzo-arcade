@@ -1,7 +1,7 @@
 'use client';
-// Jade Street: the island's panels. The station's ticket gates (pick a stop on the Jade Line), the ride view while you
+// Jade Street: the island's panels. The station's ticket gates (pick a stop on the MRT), the ride view while you
 // travel (the painted carriage with the city's lights streaking past the window; any key skips it), the taxi's
-// drop-off list, and the Tumpang! taxi app on the phone. The rules live in lib/jade-mrt.ts and lib/jade-taxi.ts.
+// drop-off list, and the Grab taxi app on the phone. The rules live in lib/jade-mrt.ts and lib/jade-taxi.ts.
 import { useEffect, useRef } from 'react';
 import type { Play } from './controller';
 import { Panel } from './panels';
@@ -16,7 +16,7 @@ export function MrtPanel({ play, from, onClose }: { play: Play; from: string; on
   if (!st) return null;
   const go = (id: string) => { w.ui = null; if (!mrtTo(w, id)) play.bump(); else play.bump(); };
   return (
-    <Panel title={`${st.name} · the Jade Line`} onClose={onClose} cls="mrt" testid="mrt">
+    <Panel title={`${st.name} · the MRT`} onClose={onClose} cls="mrt" testid="mrt">
       <p className="small">Tap your card, pick a stop. {FARE} coins a ride, and your partner rides along. No durians on the train!</p>
       <div className="jade-mrt-line">
         {w.c.isle!.stations.map(s => {
@@ -89,13 +89,13 @@ export function TaxiPanel({ play, onClose }: { play: Play; onClose: () => void }
 }
 
 /** the taxi app on the phone: book a taxi to where you stand */
-/** the phone's Jade Line tab: every station, where it is, and a button that draws the gold route line to it */
+/** the phone's MRT tab: every station, where it is, and a button that draws the gold route line to it */
 export function JadeLineTab({ play, onClose }: { play: Play; onClose: () => void }) {
   const w = play.w; const sts = w.c.isle?.stations ?? [];
   const near = sts.filter(s => w.open.has(s.d)).sort((a, b) => Math.hypot(a.x - w.p.x, a.y - w.p.y) - Math.hypot(b.x - w.p.x, b.y - w.p.y))[0];
   return (
     <div className="jade-line-tab" data-testid="mrt-tab">
-      <p className="small"><Sprite name="i-mrt" h={28} w={28} /> The Jade Line runs Beach (Sentosa), Chinatown, Raffles Place, Bayfront, Bugis, Little India and Toa Payoh. Walk up to a station’s gates and press E: {FARE} coins a ride.{near ? ` Nearest: ${near.name}.` : ''}</p>
+      <p className="small"><Sprite name="i-mrt" h={28} w={28} /> The MRT runs Beach (Sentosa), Chinatown, Raffles Place, Bayfront, Bugis, Little India and Toa Payoh. Walk up to a station’s gates and press E: {FARE} coins a ride.{near ? ` Nearest: ${near.name}.` : ''}</p>
       <ul className="jade-line-list">{sts.map(s => {
         const open = w.open.has(s.d);
         return (

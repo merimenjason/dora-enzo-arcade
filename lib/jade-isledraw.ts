@@ -1,4 +1,4 @@
-// Jade Street: drawing the island. The Jade Line's viaduct (Codex track and pillar paintings laid along the line) and
+// Jade Street: drawing the island. The MRT's viaduct (Codex track and pillar paintings laid along the line) and
 // its trains overhead, the train you race in a job, a hailed taxi, and the station and taxi-stand markers. Every
 // object is a painting; code only lays them out and adds light. The rules live in lib/jade-mrt.ts and lib/jade-taxi.ts.
 import { T } from './jade-city.js';
@@ -15,7 +15,7 @@ type Vis = (px: number, py: number, m?: number) => boolean;
 /** the taxi on its way, waiting or driving you */
 const BARE = new WeakMap<object, { x: number; y: number; d: string }[]>();
 export function isleSorted(sc: Scene, x: X, w: World, list: List, vis: Vis) {
-  // every open station entrance has its painted Jade Line lamp beside the gates, readable from across the street
+  // every open station entrance has its painted MRT lamp beside the gates, readable from across the street
   // (a station that already has its lamp in the city's props keeps that one)
   let bare = BARE.get(w.c); if (!bare) BARE.set(w.c, bare = (w.c.isle?.stations ?? []).filter(st => !w.c.props.some(p => p.sprite === 'stn-pillar' && Math.hypot(p.x - st.x, p.y - st.y) < 200)));
   for (const st of bare) if (w.open.has(st.d as never) && vis(st.x + 52, st.y, 120)) list.push([st.y + 4, () => {
@@ -57,7 +57,7 @@ export function isleOver(sc: Scene, x: X, w: World, vis: Vis) {
     train(x, w, t.s, t.dir);
     sc.glow(x, t.x, t.y, 70, 'rgba(160,255,220,.25)');
   }
-  // above each open station, the Jade Line's painted pin bobs like a job pin, so a station reads from a distance
+  // above each open station, the MRT's painted pin bobs like a job pin, so a station reads from a distance
   for (const st of isle.stations) if (w.open.has(st.d) && vis(st.x, st.y, 260)) {
     const b = Math.sin(sc.t * 2.4 + st.s) * 5; sc.glow(x, st.x, st.y - 110 + b, 46, 'rgba(90,255,190,.35)');
     spr(x, 'pin-train', st.x, st.y - 92 + b, { w: 46, anchor: 'bottom' });

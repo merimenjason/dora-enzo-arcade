@@ -286,7 +286,7 @@ test('cheap: sixty guards thinking, hearing and walking cost well under a frame'
   console.log(`  60 guards: ${per.toFixed(2)} ms a frame (whole world step)`);
 });
 
-test('the Jade Line is easy to find: a phone text and a hint when the island opens, the route to Chinatown station, the gate prompt', () => {
+test('the MRT is easy to find: a phone text and a hint when the island opens, the route to Chinatown station, the gate prompt', () => {
   const s = missionSave('m25', { assist: true, diff: 'easy' }); s.learned = [...s.learned, 'move', 'run', 'dash', 'hop', 'map', 'market', 'ride', 'boost', 'honk', 'fire', 'tag'];
   const w = new World(s, 4); w.quiet = true; w.s.story.intro = true; assert.ok(!w.open.has('heartland'), 'the island is shut before the last Chinatown job');
   const n0 = w.s.msgs.length; w.startMission(MISSION.m25); w.talk = null; w.finishMission(MISSION.m25); w.run = null; w.talk = null; w.ui = null;
@@ -294,7 +294,7 @@ test('the Jade Line is easy to find: a phone text and a hint when the island ope
   const t = w.s.msgs.slice(n0).find(m => m.from === 'kamal'); assert.ok(t && /Chinatown station/.test(t.text) && /press E/.test(t.text), 'Mr Kamal texts how to ride');
   // the hint shows (once), and while it does the gold route leads to Chinatown station
   w.fx = []; for (let k = 0; k < 30; k++) { w.step(NO_INPUT, DT); if (w.talk) w.talk = null; w.ui = null; }
-  assert.equal(w.tutor.cur, 'mrt', 'the Jade Line hint'); assert.equal(lesson('mrt').text, MRT_HINT); assert.match(MRT_HINT, /Chinatown station is in Boat Quay.*press E to ride \(2 coins\)/);
+  assert.equal(w.tutor.cur, 'mrt', 'the MRT hint'); assert.equal(lesson('mrt').text, MRT_HINT); assert.match(MRT_HINT, /Chinatown station is in Boat Quay.*press E to ride \(2 coins\)/);
   const stn = stationById(w, 'stn-chinatown'); assert.deepEqual(w.waypoint, [stn.x, stn.y], 'routed to the station'); assert.ok(w.route.length > 1);
   // it gives up after 20 s and takes its route line with it, and does not come back
   for (let k = 0; k < 21 * 60; k++) { w.step(NO_INPUT, DT); if (w.talk) w.talk = null; w.ui = null; }
@@ -303,7 +303,7 @@ test('the Jade Line is easy to find: a phone text and a hint when the island ope
   // riding ends it early: a fresh save, walk to the gates, the prompt, E, a stop
   const w2 = new World({ ...s, learned: s.learned.filter(x => x !== 'mrt') }, 4); w2.quiet = true; w2.s.story.intro = true;
   for (let k = 0; k < 10; k++) w2.step(NO_INPUT, DT); assert.equal(w2.tutor.cur, 'mrt');
-  w2.placePlayer(stn.x, stn.y + 30); w2.findNear(); assert.equal(w2.near?.kind, 'station'); assert.match(w2.near.label, /^Ride the Jade Line/);
+  w2.placePlayer(stn.x, stn.y + 30); w2.findNear(); assert.equal(w2.near?.kind, 'station'); assert.match(w2.near.label, /^Ride the MRT/);
   assert.ok(routeToStation(w2, 'stn-toapayoh')); assert.ok(!routeToStation(w2, 'nowhere'));
   // the job offered at Chinatown station (Next Stop, Toa Payoh) is taken from Madame Glint beside the gates, not on them
   const w3 = new World(missionSave('m26', {}), 4); w3.quiet = true; for (let k = 0; k < 8; k++) w3.step(NO_INPUT, DT);

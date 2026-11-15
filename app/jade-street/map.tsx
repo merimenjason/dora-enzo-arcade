@@ -22,7 +22,7 @@ type View = { cx: number; cy: number; z: number };
 const PIN_SPRITE: Record<PinKind, string> = {
   job: 'pin-job', market: 'pin-market', safe: 'pin-safe', garage: 'pin-garage', gig: 'pin-gig', cat: 'pin-cat', mural: 'pin-mural', pin: 'pin-star', spot: 'pin-star', stn: 'pin-train', cable: 'pin-cable', ferry: 'pin-ferry', prop: 'pin-prop', own: 'pin-prop-own', raid: 'pin-raid',
 };
-const LEGEND: [PinKind, string][] = [['job', 'Job'], ['prop', 'Property for sale'], ['own', 'Your property'], ['raid', 'A raid! Get there fast'], ['market', 'Market'], ['safe', 'Safe house'], ['garage', 'Garage'], ['gig', 'Side gig'], ['cat', 'Lucky cat found'], ['mural', 'Mural painted'], ['stn', 'Jade Line station (click to route)'], ['cable', 'Cable car (click to route)'], ['ferry', 'Ferry pier (click to route)'], ['pin', 'Your pin']];
+const LEGEND: [PinKind, string][] = [['job', 'Job'], ['prop', 'Property for sale'], ['own', 'Your property'], ['raid', 'A raid! Get there fast'], ['market', 'Market'], ['safe', 'Safe house'], ['garage', 'Garage'], ['gig', 'Side gig'], ['cat', 'Lucky cat found'], ['mural', 'Mural painted'], ['stn', 'MRT station (click to route)'], ['cable', 'Cable car (click to route)'], ['ferry', 'Ferry pier (click to route)'], ['pin', 'Your pin']];
 const TINT: Record<District, [number, number, number]> = { market: [255, 128, 70], temple: [90, 200, 120], canal: [60, 200, 215], arcade: [225, 90, 220], docks: [80, 125, 255], india: [255, 110, 170], glam: [150, 120, 255], resort: [70, 215, 245], heartland: [240, 200, 70], bay: [70, 225, 175] };
 const CENTRE: Record<District, [number, number]> = { market: [22, 58], temple: [23, 16], canal: [58, 31], arcade: [97, 34], docks: [84, 76], heartland: [168, 20], bay: [170, 56], india: [242, 22], glam: [242, 62], resort: [76, 110] };
 const dName = (d: District) => DISTRICT_NAME[d].replace(/^the /, 'The ');
@@ -85,7 +85,7 @@ function pinsOf(play: Play): Pin[] {
     else if (pl.kind === 'safe') add({ kind: 'safe', name: pl.name ?? 'Safe house', sub: safeOpen(w.s, id) ? 'Yours: sleep, swap and stash here' : 'For sale', x: pl.x, y: pl.y, key: id });
     else if (pl.kind === 'garage') add({ kind: 'garage', name: pl.name ?? 'Garage', sub: 'Upgrades and paint', x: pl.x, y: pl.y, key: id });
   }
-  for (const st of w.c.isle?.stations ?? []) add({ kind: 'stn', name: st.name, sub: 'Jade Line: E at the gates, 2 coins a ride', x: st.x, y: st.y, key: st.id });
+  for (const st of w.c.isle?.stations ?? []) add({ kind: 'stn', name: st.name, sub: 'MRT: E at the gates, 2 coins a ride', x: st.x, y: st.y, key: st.id });
   for (const l of linksOf(w)) for (const s of l.stops) add({ kind: l.id, name: s.name, sub: l.id === 'cable' ? `Cable car: E at the station, ${FARES.cable} coins` : `Ferry: E at the pier, ${FARES.ferry} coins`, x: s.x, y: s.y, key: s.id });
   for (const g of w.gigs()) add({ kind: 'gig', name: g.label, x: g.x, y: g.y, key: 'gig-' + (g.id ?? g.label) });
   if (w.run) { const o = w.objective(); if (o) out.push({ kind: 'job', name: w.run.label || 'Current job', sub: 'Your job’s next stop', x: o[0], y: o[1], key: 'job-now' }); }
@@ -232,7 +232,7 @@ export function PaintedMap({ play, onClose }: { play: Play; onClose: () => void 
     const [sx, sy] = local(e);
     const tgt = (e.target as HTMLElement).closest('[data-testid="jade-map-pin"]') as HTMLElement | null;
     const hit = tgt ? pins.find(p => p.key === tgt.dataset.key) : null;
-    // a Jade Line station routes you there straight away (off a job)
+    // a MRT station routes you there straight away (off a job)
     if (hit) { if ((hit.kind === 'stn' || hit.kind === 'cable' || hit.kind === 'ferry') && !w.run) route(hit); else setSel(hit); return; }
     const [wx, wy] = toWorld(sx, sy);
     if (wx < 0 || wy < 0 || wx > MW || wy > MH) { setSel(null); return; }

@@ -203,6 +203,17 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
   }
 }
 
+const GLOWS = new Map<string, HTMLCanvasElement>();
+/** a 64 px radial gradient from `col` at the centre to clear at the rim (cached per colour, and per inner stop) */
+export function glowSprite(col: string, mid?: [number, string]): HTMLCanvasElement {
+  const key = mid ? col + '|' + mid[0] + mid[1] : col; let c = GLOWS.get(key);
+  if (!c) {
+    c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d')!;
+    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, col); if (mid) gr.addColorStop(mid[0], mid[1]); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64); GLOWS.set(key, c);
+  }
+  return c;
+}
 export type Cam = { x: number; y: number; k: number; w: number; h: number };
 type Chunk = { c: HTMLCanvasElement; s: number; used: number };
 
@@ -210,6 +221,8 @@ export class Scene {
   x: CanvasRenderingContext2D; w = 0; h = 0; dpr = 1;
   cam: Cam = { x: 0, y: 0, k: 1, w: 0, h: 0 };
   chunks = new Map<number, Chunk>(); frame = 0; t = 0;
+  /** the last frame's world scale and how long it has held (see the chunks in draw) */
+  lastS = 0; zoomStill = 0;
   overBuckets: Map<number, number[]> = new Map();
   map: HTMLCanvasElement | null = null; mapK = 8;
   /** the minimap's copy of the map in strips under 1,024 px wide: the island-wide map canvas is too wide to draw from cheaply every frame */
@@ -219,6 +232,8 @@ export class Scene {
   /** the camera's focus eases between heroes on a switch and frames both with a second player; the mouse aim */
   focusX = NaN; focusY = NaN; zoomTwo = 1; aim: { x: number; y: number; on: boolean } | null = null;
   minimap = { x: 0, y: 0, r: 0, on: true };
+  /** the minimap's dial, painted off screen (see drawMinimap) */
+  mm: HTMLCanvasElement | null = null; mmMask: HTMLCanvasElement | null = null; mmAt: [number, number] = [NaN, NaN];
   life = new Life(spr, (x, px, py, r, col) => this.glow(x, px, py, r, col));
   constructor(public cv: HTMLCanvasElement, public c: City) {
     this.x = cv.getContext('2d', { alpha: false })!;
@@ -387,18 +402,24 @@ export class Scene {
     cam.x = Math.max(cam.w / 2, Math.min(W * T - cam.w / 2, this.focusX + this.lookX * lk)) + shx;
     cam.y = Math.max(cam.h / 2, Math.min(H * T - cam.h / 2, this.focusY + this.lookY * lk)) + shy;
     const ox = cam.x - cam.w / 2, oy = cam.y - cam.h / 2;
-    const s = this.dpr * k;
+    // the scale is snapped to 1/512 (a chunk is 512 units, so it spans whole pixels) and the camera to whole pixels, so
+    // a ground chunk painted at this scale is copied to the screen pixel for pixel: a scaled copy of every chunk was
+    // the costliest thing in a frame
+    const s = Math.round(this.dpr * k * 512) / 512;
+    if (Math.abs(s - this.lastS) > 0.0005) { this.lastS = s; this.zoomStill = 0; } else this.zoomStill += dt;
     x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#100c20'; x.fillRect(0, 0, this.cv.width, this.cv.height);
-    x.setTransform(s, 0, 0, s, -ox * s, -oy * s);
+    x.setTransform(s, 0, 0, s, Math.round(-ox * s), Math.round(-oy * s));
     x.imageSmoothingEnabled = true;
-    // chunks (at most a couple of new ones a frame; the rest wait a frame)
-    const cs = Math.min(1.6, Math.max(0.5, Math.round(s * 4) / 4));
-    let made = 0;
+    // chunks (at most a couple of new ones a frame; the rest wait a frame). A chunk painted at another scale is drawn
+    // scaled until the zoom has been still for a moment, then repainted at this one, one a frame
+    const cs = Math.min(1.6, Math.max(0.5, s));
+    let made = 0, exact = 0;
     const cx0 = Math.floor(ox / (CH * T)), cy0 = Math.floor(oy / (CH * T)), cx1 = Math.floor((ox + cam.w) / (CH * T)), cy1 = Math.floor((oy + cam.h) / (CH * T));
     for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
       if (cx < 0 || cy < 0 || cx * CH >= W || cy * CH >= H) continue;
       const key = cx + cy * 1000, have = this.chunks.get(key);
       if (!have || Math.abs(have.s - cs) >= 0.2) { if (made >= 3 && have) { x.drawImage(have.c, cx * CH * T, cy * CH * T, CH * T, CH * T); have.used = this.frame; continue; } made++; }
+      else if (have.s !== cs && this.zoomStill > 0.35 && exact < 1 && made < 2) { exact++; made++; this.chunks.delete(key); }
       const c = this.chunk(cx, cy, cs);
       x.drawImage(c, cx * CH * T, cy * CH * T, CH * T, CH * T);
     }
@@ -467,18 +488,38 @@ export class Scene {
     this.juice.drawWorld(x, spr);
     // night tint by the clock and a soft vignette (screen space)
     x.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    const cl = w.s.clock;
-    if (cl < 90) { x.fillStyle = `rgba(120,60,140,${0.16 * (1 - cl / 90)})`; x.fillRect(0, 0, this.w, this.h); }
-    if (cl > 630) { x.fillStyle = `rgba(255,140,120,${0.14 * (cl - 630) / 90})`; x.fillRect(0, 0, this.w, this.h); }
-    // a contract's graveyard shift: the small hours, darker and bluer
-    if (w.dark) { x.fillStyle = 'rgba(14,18,60,.3)'; x.fillRect(0, 0, this.w, this.h); }
-    const g = x.createRadialGradient(this.w / 2, this.h / 2, Math.min(this.w, this.h) * 0.45, this.w / 2, this.h / 2, Math.max(this.w, this.h) * 0.75);
-    g.addColorStop(0, 'rgba(10,6,30,0)'); g.addColorStop(1, 'rgba(10,6,30,.45)'); x.fillStyle = g; x.fillRect(0, 0, this.w, this.h);
+    // every flat screen tint (dusk, dawn, a graveyard shift, the rain's wet sheen and its dimming) folded into one
+    // colour and baked with the vignette into one half-size canvas, repainted only when the tint changes: each was a
+    // full-screen fill of its own, and the vignette a full-screen gradient, every frame
+    const cl = w.s.clock, tints: [number, number, number, number][] = [];
+    if (cl < 90) tints.push([120, 60, 140, 0.16 * (1 - cl / 90)]);
+    if (cl > 630) tints.push([255, 140, 120, 0.14 * (cl - 630) / 90]);
+    if (w.dark) tints.push([14, 18, 60, 0.3]);
+    if (w.rain >= 0.02) tints.push([30, 50, 110, 0.14 * w.rain], [20, 30, 70, 0.12 * w.rain]);
+    x.drawImage(this.vignette(tints), 0, 0, this.w, this.h);
     sgFlash(x, w, this.cv.width, this.cv.height);
     if (lanterns(w) >= 1) { const a = 0.08 + 0.05 * Math.sin(this.t * 6); x.fillStyle = `rgba(255,40,60,${a * lanterns(w) / 5})`; x.fillRect(0, 0, this.w, 6); x.fillRect(0, this.h - 6, this.w, 6); }
     this.life.rainScreen(x, w, this.w, this.h, this.t);
     this.juice.drawScreen(x, this.w, this.h, ride ? sp : 0, hd, !!ride && p.boostT > 0, w.heat);
     if (this.minimap.on) this.drawMinimap(x, w);
+  }
+  private vig: HTMLCanvasElement | null = null; private vigKey = '';
+  /** the vignette with the screen tints under it: tints are [r, g, b, alpha] fills in the order they were painted */
+  vignette(tints: [number, number, number, number][] = []): HTMLCanvasElement {
+    const vw = Math.max(1, Math.round(this.w * this.dpr)), vh = Math.max(1, Math.round(this.h * this.dpr));
+    // fold the fills: each one maps the screen D to c·a + (1 − a)·D, so together they are P + Q·D, one fill of alpha
+    // 1 − Q and colour P / (1 − Q)
+    let pr = 0, pg = 0, pb = 0, q = 1;
+    for (const [r, g, b, a0] of tints) { const a = Math.max(0, Math.min(1, a0)); pr = r * a + (1 - a) * pr; pg = g * a + (1 - a) * pg; pb = b * a + (1 - a) * pb; q *= 1 - a; }
+    const A = Math.round((1 - q) * 200) / 200, col = A > 0 ? [pr, pg, pb].map(v => Math.round(v / (1 - q))).join(',') : '';
+    const key = `${vw}x${vh}|${col}|${A}`;
+    if (this.vig && this.vigKey === key) return this.vig;
+    const c = this.vig && this.vig.width === vw && this.vig.height === vh ? this.vig : document.createElement('canvas'); c.width = vw; c.height = vh; const g = c.getContext('2d')!;
+    g.clearRect(0, 0, vw, vh);
+    if (A > 0) { g.fillStyle = `rgba(${col},${A})`; g.fillRect(0, 0, vw, vh); }
+    const gr = g.createRadialGradient(vw / 2, vh / 2, Math.min(vw, vh) * 0.45, vw / 2, vh / 2, Math.max(vw, vh) * 0.75);
+    gr.addColorStop(0, 'rgba(10,6,30,0)'); gr.addColorStop(1, 'rgba(10,6,30,.45)'); g.fillStyle = gr; g.fillRect(0, 0, vw, vh);
+    this.vig = c; this.vigKey = key; return c;
   }
   /** a string of paper lanterns across the street: a sagging cable with upright painted lanterns hung along it */
   lanternString(x: CanvasRenderingContext2D, cx: number, cy: number, len: number, rot: number, gold: boolean) {
@@ -592,8 +633,12 @@ export class Scene {
     x.save(); const g = x.createRadialGradient(px, py, 10, px, py, r); g.addColorStop(0, `rgba(${col},.38)`); g.addColorStop(1, `rgba(${col},0)`);
     x.fillStyle = g; x.beginPath(); x.moveTo(px, py); x.arc(px, py, r, h - half, h + half); x.closePath(); x.fill(); x.restore();
   }
+  /** a soft additive glow. Painted once per colour into a small gradient canvas and stamped with drawImage (a radial
+   *  gradient filled every call, with a save and restore round it, was a fifth of the frame on the bigger map) */
   glow(x: CanvasRenderingContext2D, px: number, py: number, r: number, col: string) {
-    x.save(); x.globalCompositeOperation = 'lighter'; const g = x.createRadialGradient(px, py, 0, px, py, r); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(px - r, py - r, r * 2, r * 2); x.restore();
+    const prev = x.globalCompositeOperation; x.globalCompositeOperation = 'lighter';
+    x.drawImage(glowSprite(col), px - r, py - r, r * 2, r * 2);
+    x.globalCompositeOperation = prev;
   }
   sparkle(x: CanvasRenderingContext2D, px: number, py: number) { x.save(); x.fillStyle = 'rgba(255,250,210,.9)'; x.translate(px, py); x.rotate(this.t * 2); x.fillRect(-1, -6, 2, 12); x.fillRect(-6, -1, 12, 2); x.restore(); }
   stars(x: CanvasRenderingContext2D, px: number, py: number) { for (let i = 0; i < 3; i++) { const a = this.t * 5 + i * 2.1; this.sparkle(x, px + Math.cos(a) * 16, py + Math.sin(a) * 6); } }
@@ -608,12 +653,18 @@ export class Scene {
   water(x: CanvasRenderingContext2D, ox: number, oy: number, cw: number, ch: number) {
     // a slow shimmer of lantern light on the canal and the harbour
     const tx0 = Math.max(0, Math.floor(ox / T)), tx1 = Math.min(W - 1, Math.floor((ox + cw) / T)), ty0 = Math.max(0, Math.floor(oy / T)), ty1 = Math.min(H - 1, Math.floor((oy + ch) / T));
+    // in four brightness steps, one path a colour each (two fills per water tile was hundreds of draws over the sea)
     x.save(); x.globalCompositeOperation = 'lighter';
-    for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
-      const g = this.c.ground[ty * W + tx]; if (g !== G.CANAL && g !== G.SEA && g !== G.BAY) continue;
-      const a = 0.05 + 0.05 * Math.sin(this.t * 1.7 + tx * 0.9 + ty * 1.3);
-      x.fillStyle = `rgba(120,200,255,${a})`; x.fillRect(tx * T + 8 + Math.sin(this.t + ty) * 8, ty * T + 20, 30, 3);
-      x.fillStyle = `rgba(255,160,120,${a * 0.8})`; x.fillRect(tx * T + 30 + Math.cos(this.t * 1.3 + tx) * 8, ty * T + 44, 22, 2);
+    for (let q = 0; q < 4; q++) {
+      const blue = new Path2D(), warm = new Path2D(); let any = false;
+      for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
+        const g = this.c.ground[ty * W + tx]; if (g !== G.CANAL && g !== G.SEA && g !== G.BAY) continue;
+        const v = 0.5 + 0.5 * Math.sin(this.t * 1.7 + tx * 0.9 + ty * 1.3); if (Math.min(3, Math.floor(v * 4)) !== q) continue;
+        blue.rect(tx * T + 8 + Math.sin(this.t + ty) * 8, ty * T + 20, 30, 3); warm.rect(tx * T + 30 + Math.cos(this.t * 1.3 + tx) * 8, ty * T + 44, 22, 2); any = true;
+      }
+      if (!any) continue;
+      const al = 0.1 * (q + 0.5) / 4; // the old shimmer's 0.05 + 0.05 sin, in four steps
+      x.fillStyle = `rgba(120,200,255,${al.toFixed(3)})`; x.fill(blue); x.fillStyle = `rgba(255,160,120,${(al * 0.8).toFixed(3)})`; x.fill(warm);
     }
     x.restore();
   }
@@ -703,9 +754,9 @@ export class Scene {
         const p = this.c.props[i];
         if (p.sprite === 'lamp') this.life.reflect(x, w, p.x, p.y - 10, 'rgba(255,190,110,1)');
         else if (p.sprite.startsWith('stall')) this.life.reflect(x, w, p.x, p.y + 20, 'rgba(255,150,90,1)');
-        if (p.sprite === 'lamp') { const g = x.createRadialGradient(p.x, p.y - 40, 0, p.x, p.y - 20, 120); g.addColorStop(0, 'rgba(255,190,110,.32)'); g.addColorStop(1, 'rgba(255,190,110,0)'); x.fillStyle = g; x.fillRect(p.x - 120, p.y - 140, 240, 240); }
-        else if (p.sprite.startsWith('lanterns')) { for (const k of [-1, 0, 1]) { const ly = p.y + k * 80; const g = x.createRadialGradient(p.x, ly, 0, p.x, ly, 70); g.addColorStop(0, p.sprite.endsWith('gold') ? 'rgba(255,210,90,.22)' : 'rgba(255,80,60,.22)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(p.x - 70, ly - 70, 140, 140); } }
-        else if (p.sprite.startsWith('stall')) { const g = x.createRadialGradient(p.x, p.y + 10, 0, p.x, p.y + 10, 110); g.addColorStop(0, 'rgba(255,170,90,.2)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(p.x - 110, p.y - 100, 220, 220); }
+        if (p.sprite === 'lamp') x.drawImage(glowSprite('rgba(255,190,110,.32)'), p.x - 120, p.y - 150, 240, 240);
+        else if (p.sprite.startsWith('lanterns')) { const g = glowSprite(p.sprite.endsWith('gold') ? 'rgba(255,210,90,.22)' : 'rgba(255,80,60,.22)'); for (const k of [-1, 0, 1]) x.drawImage(g, p.x - 70, p.y + k * 80 - 70, 140, 140); }
+        else if (p.sprite.startsWith('stall')) x.drawImage(glowSprite('rgba(255,170,90,.2)'), p.x - 110, p.y - 100, 220, 220);
       }
     }
     // the hero's ride has a headlight
@@ -746,24 +797,40 @@ export class Scene {
       for (let x0 = 0; x0 < map.width; x0 += 840) { const c = document.createElement('canvas'); c.width = Math.min(848, map.width - x0); c.height = map.height; c.getContext('2d')!.drawImage(map, -x0, 0); this.mapStrips.push({ c, x0 }); }
     }
     const zoom = 0.9; // map px per minimap px
-    x.save(); x.beginPath(); x.arc(m.x, m.y, m.r, 0, Math.PI * 2); x.clip();
-    x.fillStyle = '#0d1530'; x.fillRect(m.x - m.r, m.y - m.r, m.r * 2, m.r * 2);
     const px = w.p.x * k, py = w.p.y * k;
     const sc = 1.6 / zoom;
-    { const sx = px - m.r / sc, sy = py - m.r / sc, sw = m.r * 2 / sc, sh = m.r * 2 / sc;
-      for (const st of this.mapStrips) { const a0 = Math.max(sx, st.x0), a1 = Math.min(sx + sw, st.x0 + st.c.width); if (a1 <= a0) continue;
-        x.drawImage(st.c, a0 - st.x0, sy, a1 - a0, sh, m.x - m.r + (a0 - sx) * sc, m.y - m.r, (a1 - a0) * sc, m.r * 2); } }
     const toM = (wx: number, wy: number): [number, number] => [m.x + (wx * k - px) * sc, m.y + (wy * k - py) * sc];
-    // fog
-    for (const [d, rx, ry, rw, rh] of [['temple', 0, 0, 46, 30], ['canal', 46, 0, 29, 62], ['arcade', 75, 0, 45, 62], ['docks', 46, 62, 74, 30]] as [District, number, number, number, number][]) {
-      if (w.open.has(d)) continue; const [a, b] = toM(rx * T, ry * T); x.fillStyle = 'rgba(40,30,70,.82)'; x.fillRect(a, b, rw * T * k * sc, rh * T * k * sc);
+    // the dial's map, fog and route line are painted into a small canvas of their own and cut round with a painted
+    // mask (a clip path on the screen canvas, every frame, cost a few frames a second); it is repainted every other
+    // frame, or at once when the view has slid more than a couple of pixels
+    const dpr = this.dpr, D = Math.max(2, Math.ceil(m.r * 2 * dpr));
+    if (!this.mm || this.mm.width !== D) {
+      this.mm = document.createElement('canvas'); this.mm.width = this.mm.height = D; this.mmAt = [NaN, NaN];
+      this.mmMask = document.createElement('canvas'); this.mmMask.width = this.mmMask.height = D;
+      const mg = this.mmMask.getContext('2d')!; mg.fillStyle = '#fff'; mg.beginPath(); mg.arc(D / 2, D / 2, D / 2, 0, Math.PI * 2); mg.fill();
     }
-    if (w.route.length > 1 && (w.assist || (!w.run && w.waypoint))) { x.strokeStyle = 'rgba(255,220,100,.95)'; x.lineWidth = 3; x.beginPath(); const [a0, b0] = toM(w.p.x, w.p.y); x.moveTo(a0, b0); // only the part of the route inside the dial (a long route across the island is thousands of units of line)
-      for (let i = 1; i < w.route.length; i++) { const [a, b] = toM(w.route[i][0], w.route[i][1]); x.lineTo(a, b); if (Math.hypot(a - m.x, b - m.y) > m.r * 1.6) break; } x.stroke(); }
+    const moved = Math.hypot(px * sc - this.mmAt[0], py * sc - this.mmAt[1]);
+    if (!(moved < 2.5) || this.frame % 2 === 0) {
+      this.mmAt = [px * sc, py * sc];
+      const g = this.mm.getContext('2d')!;
+      g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.fillStyle = '#0d1530'; g.fillRect(0, 0, D, D);
+      g.setTransform(dpr, 0, 0, dpr, -(m.x - m.r) * dpr, -(m.y - m.r) * dpr);
+      const sx = px - m.r / sc, sy = py - m.r / sc, sw = m.r * 2 / sc, sh = m.r * 2 / sc;
+      for (const st of this.mapStrips) { const a0 = Math.max(sx, st.x0), a1 = Math.min(sx + sw, st.x0 + st.c.width); if (a1 <= a0) continue;
+        g.drawImage(st.c, a0 - st.x0, sy, a1 - a0, sh, m.x - m.r + (a0 - sx) * sc, m.y - m.r, (a1 - a0) * sc, m.r * 2); }
+      // fog
+      for (const [d, rx, ry, rw, rh] of [['temple', 0, 0, 46, 30], ['canal', 46, 0, 29, 62], ['arcade', 75, 0, 45, 62], ['docks', 46, 62, 74, 30]] as [District, number, number, number, number][]) {
+        if (w.open.has(d)) continue; const [a, b] = toM(rx * T, ry * T); g.fillStyle = 'rgba(40,30,70,.82)'; g.fillRect(a, b, rw * T * k * sc, rh * T * k * sc);
+      }
+      if (w.route.length > 1 && (w.assist || (!w.run && w.waypoint))) { g.strokeStyle = 'rgba(255,220,100,.95)'; g.lineWidth = 3; g.beginPath(); const [a0, b0] = toM(w.p.x, w.p.y); g.moveTo(a0, b0); // only the part of the route inside the dial (a long route across the island is thousands of units of line)
+        for (let i = 1; i < w.route.length; i++) { const [a, b] = toM(w.route[i][0], w.route[i][1]); g.lineTo(a, b); if (Math.hypot(a - m.x, b - m.y) > m.r * 1.6) break; } g.stroke(); }
+      g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'destination-in'; g.drawImage(this.mmMask!, 0, 0); g.globalCompositeOperation = 'source-over';
+    }
+    x.save(); x.drawImage(this.mm, m.x - m.r, m.y - m.r, m.r * 2, m.r * 2);
     const dot = (wx: number, wy: number, col: string, r = 4) => { let [a, b] = toM(wx, wy); const d = Math.hypot(a - m.x, b - m.y); if (d > m.r - 6) { a = m.x + (a - m.x) / d * (m.r - 6); b = m.y + (b - m.y) / d * (m.r - 6); } x.fillStyle = col; x.beginPath(); x.arc(a, b, r, 0, Math.PI * 2); x.fill(); x.strokeStyle = 'rgba(0,0,0,.6)'; x.lineWidth = 1.5; x.stroke(); };
     for (const [, pl] of Object.entries(this.c.places)) if (w.open.has(pl.d)) { if (pl.kind === 'market') dot(pl.x, pl.y, '#ffd25a', 3); else if (pl.kind === 'safe') dot(pl.x, pl.y, '#3ed6a4', 3); }
     if (!w.run) for (const n of nearList(w)) if (n.kind === 'mission') dot(n.x, n.y, '#ffb020', 5);
-    // the Jade Line's stations: their painted pin (pinned to the rim when off the edge)
+    // the MRT's stations: their painted pin (pinned to the rim when off the edge)
     for (const st of w.c.isle?.stations ?? []) if (w.open.has(st.d)) { let [a, b] = toM(st.x, st.y); const d = Math.hypot(a - m.x, b - m.y); if (d > m.r - 10) { a = m.x + (a - m.x) / d * (m.r - 10); b = m.y + (b - m.y) / d * (m.r - 10); } spr(x, 'pin-train', a, b + 7, { w: 16 }); }
     // the cable car stations and ferry piers, once both ends are open
     for (const l of w.c.east ? [w.c.east.cable, w.c.east.ferry] : []) if (l.stops.every(st => w.open.has(districtAt(Math.floor(st.x / T), Math.floor(st.y / T))))) for (const st of l.stops) { let [a, b] = toM(st.x, st.y); const d = Math.hypot(a - m.x, b - m.y); if (d > m.r - 10) { a = m.x + (a - m.x) / d * (m.r - 10); b = m.y + (b - m.y) / d * (m.r - 10); } spr(x, l.id === 'cable' ? 'pin-cable' : 'pin-ferry', a, b + 7, { w: 16 }); }

@@ -49,7 +49,7 @@ const isJob = (st: Step): st is St<JobStepKind> => (JOB_STEPS as readonly string
 const k = (run: Run) => (run.assist ? 1.4 : 1) * run.w.diff.timer;
 
 // ── shared: guards that walk a beat, stop at its ends to sweep their torch, and see in a cone
-function guards(run: Run, routes: Spot[][], skin?: 'liz' | 'myna') {
+function guards(run: Run, routes: Spot[][], skin?: 'liz' | 'myna' | 'bat') {
   for (const r of routes) { const pts = r.map(s => run.spot(s)); const a = run.actor('guard', pts[0][0], pts[0][1], 'fly', pts, 46); a.lookCd = 4 + run.actors.length % 3; a.skin = skin; run.actors.push(a); }
 }
 function guardWalk(run: Run, a: Actor, dt: number, look: boolean) {

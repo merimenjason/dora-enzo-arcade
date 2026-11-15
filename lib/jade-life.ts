@@ -96,9 +96,13 @@ export class Life {
     for (const d of this.drops) d.t += dt;
     this.drops = this.drops.filter(d => d.t < 0.6);
     x.save(); x.lineWidth = 1.5;
-    for (const d of this.drops) { const a = (1 - d.t / 0.6) * 0.5 * r; x.strokeStyle = `rgba(200,220,255,${a})`; x.beginPath(); x.ellipse(d.x, d.y, 3 + d.t * 22, 1.5 + d.t * 9, 0, 0, Math.PI * 2); x.stroke(); }
-    // a wet sheen: the ground goes darker and bluer
-    x.fillStyle = `rgba(30,50,110,${0.14 * r})`; x.fillRect(cam.x - cam.w / 2, cam.y - cam.h / 2, cam.w, cam.h);
+    // the ripples in five fading steps, one path each (a stroke per ripple was hundreds of draws a frame)
+    for (let k = 0; k < 5; k++) {
+      x.strokeStyle = `rgba(200,220,255,${((1 - (k + 0.5) / 5) * 0.5 * r).toFixed(3)})`; x.beginPath();
+      for (const d of this.drops) { if (Math.min(4, Math.floor(d.t / 0.6 * 5)) !== k) continue; const rx = 3 + d.t * 22, ry = 1.5 + d.t * 9; x.moveTo(d.x + rx, d.y); x.ellipse(d.x, d.y, rx, ry, 0, 0, Math.PI * 2); }
+      x.stroke();
+    }
+    // (the wet sheen, the ground going darker and bluer, is one of the screen tints the scene folds together)
     x.restore();
   }
   /** wet reflections: each lamp and stall glow smears down the street */
@@ -115,7 +119,7 @@ export class Life {
       const sx = ((i * 137.5 + t * 90) % (sw + 80)) - 40, sy = ((i * 89.3 + t * (700 + (i % 5) * 60)) % (sh + 60)) - 30;
       x.moveTo(sx, sy); x.lineTo(sx - 6, sy + 22);
     }
-    x.stroke(); x.fillStyle = `rgba(20,30,70,${0.12 * r})`; x.fillRect(0, 0, sw, sh); x.restore();
+    x.stroke(); x.restore(); // (its dimming is one of the scene's folded screen tints)
   }
   /** a townsperson's frame, sitting and with an umbrella in the rain */
   pedOver(x: CanvasRenderingContext2D, w: World, pd: Ped, t: number): string | null {

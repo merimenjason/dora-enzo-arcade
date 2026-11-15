@@ -1,6 +1,6 @@
 // Jade Street engine tests, sixth pass (run by tests/jade-sg.mjs): the island. Chinatown is untouched and the island
 // grows east of it (Toa Payoh's heartlands and the Marina Bay front, joined by expressways with gantries and lights);
-// the Jade Line's timetable, fares, ride view and durian fine; hailed taxis and their fares; island traffic; scooter
+// the MRT's timetable, fares, ride view and durian fine; hailed taxis and their fares; island traffic; scooter
 // wardens and the five-foot-way offence; the Longkang Lizards; chapter six's ten jobs (offered in order, both heroes
 // talking, a checkpoint each, the solver finishing every one, the island's ending); the notice queue; save v7
 // migration from v6; the brand scan over the new text; and the new paintings.
@@ -61,7 +61,7 @@ test('expressways: flagged lanes, gantries and crash barriers; island avenues ge
   assert.ok(openDistricts({ ...newSave(), done: allDone.slice(0, 25) }).includes('bay'), 'the island opens after chapter five');
 });
 
-test('the Jade Line: a fixed timetable, the trains on the viaduct, fares, the ride view, a durian fine, no rides mid-job', () => {
+test('the MRT: a fixed timetable, the trains on the viaduct, fares, the ride view, a durian fine, no rides mid-job', () => {
   const w = world(); const isle = w.c.isle;
   assert.equal(isle.stations.length, 7); assert.deepEqual(isle.stations.map(s => s.d), ['resort', 'canal', 'bay', 'bay', 'glam', 'india', 'heartland']);
   let seen = false, under = false;
@@ -81,7 +81,7 @@ test('the Jade Line: a fixed timetable, the trains on the viaduct, fares, the ri
 
 test('taxis: hail one (G or the app), get in, pick a drop-off, ride there, pay by distance', () => {
   const w = world({ safe: 'safe-heartland' }); w.heat = 0;
-  assert.equal(TAXI_APP, 'Tumpang!');
+  assert.equal(TAXI_APP, 'Grab');
   assert.ok(hail(w)); assert.equal(w.taxi.st, 'come');
   for (let i = 0; i < 60 * 30 && w.taxi.st !== 'wait'; i++) w.step(NO_INPUT, DT);
   assert.equal(w.taxi.st, 'wait', 'the taxi pulls up'); w.findNear(); assert.equal(w.near?.kind, 'taxi');
@@ -167,8 +167,8 @@ test('save: a v6 save migrates through v7 and v8 to v9 (island counts at zero, i
   s.rep.heartland = 20; s.cash = 900; assert.equal(buySafe(s, 'safe-heartland'), null); assert.ok(safeOpen(s, 'safe-heartland'));
 });
 
-test('no brands, trademarks or company names in the island text', () => {
-  const BAN = /\b(Tiger|Ya Kun|Old Chang Kee|Grab (?:car|taxi|ride|food|app)|GrabFood|GrabCar|SBS|SMRT|ComfortDelGro|Comfort Taxi|Gojek|Singapore Airlines|Marina Bay Sands|Sands|Jewel|Merlion|Gardens by the Bay|Singapore Flyer|Esplanade|Starbucks|McDonald|Coca|Pepsi|NTUC|FairPrice|Changi)\b/;
+test('real names in the island text, not parodies (owner, 16-11)', () => {
+  const BAN = /\b(Jade Line|Tumpang!|Triple Sails|Float-About|Durian Domes|Bay Spinner|Super Grove|All-Hours Emporium|Galaxy Studios|Palawan Sands|Sky Spinner|Coral Dome|Lion City Taxi)/;
   for (const f of ['lib/jade-island.ts', 'lib/jade-mrt.ts', 'lib/jade-taxi.ts', 'lib/jade-story.ts', 'lib/jade-gangs.ts', 'lib/jade-city.ts', 'lib/jade-fines.ts', 'lib/jade-notice.ts', 'app/jade-street/isle.tsx', 'app/jade-street/story.tsx', 'app/jade-street/panels.tsx']) {
     const m = readFileSync(f, 'utf8').match(BAN); assert.ok(!m, `${f} mentions ${m?.[0]}`);
   }

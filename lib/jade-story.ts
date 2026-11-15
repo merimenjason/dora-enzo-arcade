@@ -16,6 +16,9 @@ export const MOODS: Mood[] = ['calm', 'happy', 'worried', 'cross', 'smug'];
 export type Line = [string, string, Mood?];
 /** the chase set pieces: a stall the cart smashes, drums rolling off the temple steps, the canal drawbridge, the dock
  * crane's swinging container and the yard gate (lib/jade-setpiece.ts); `wp` is the route leg that triggers it */
+/** a chase or tail target's painted body other than Pip's: a gang member (otter, macaque, lizard, mynah, bat) or a boss
+ * (Director Kaw, Crow Number Nine, Datin Ciku) */
+export type Skin = 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine' | 'bat' | 'ciku';
 export type SetDef = { k: 'stall' | 'drums' | 'bridge' | 'crane' | 'gate'; at: [number, number]; wp: number };
 export type Step =
   | { t: 'talk'; lines: Line[]; cp?: boolean }
@@ -28,12 +31,12 @@ export type Step =
     fines?: number }
   | { t: 'mini'; kind: MiniKind; level: number; label: string; cp?: boolean }
   /** `finish`: the last bump must be a double pounce (both heroes within a moment), the passenger's grab, or a net */
-  | { t: 'chase'; who: 'cart' | 'boat' | 'boss' | 'runner'; from: Spot; route: Spot[]; bumps: number; loot: string; label: string; speed: number; sets?: SetDef[]; phase?: 1 | 2; finish?: 'pounce' | 'snatch' | 'net'; skin?: 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine'; cp?: boolean }
+  | { t: 'chase'; who: 'cart' | 'boat' | 'boss' | 'runner'; from: Spot; route: Spot[]; bumps: number; loot: string; label: string; speed: number; sets?: SetDef[]; phase?: 1 | 2; finish?: 'pounce' | 'snatch' | 'net'; skin?: Skin; cp?: boolean; /** who you chase, as the messages name them (Pip when unset) */ name?: string }
   /** `rope`: the float only swings in under the flags while the partner hauls the bunting rope there */
   | { t: 'float'; label: string; rope?: Spot; cp?: boolean }
   | { t: 'raid'; at: Spot; n: number; label: string; cp?: boolean }
   /** `relay`: from waypoint `at` on, the hero who started is easy for Pip to spot; the partner waits at `spot` */
-  | { t: 'tail'; from: Spot; route: Spot[]; label: string; relay?: { at: number; spot: Spot }; cp?: boolean; /** under 1: the one you tail notices you more slowly */ calm?: number; /** a rival gang's runner (contracts) */ skin?: 'otter' | 'mac' | 'liz' | 'myna' }
+  | { t: 'tail'; from: Spot; route: Spot[]; label: string; relay?: { at: number; spot: Spot }; cp?: boolean; /** under 1: the one you tail notices you more slowly */ calm?: number; /** a rival gang's runner (contracts) */ skin?: Skin; /** who you tail, as the messages name them ("the crow"); Pip when unset */ name?: string }
   /** `flanks`: crows come in pairs from both sides and the partner guards the far flank */
   | { t: 'escort'; from: Spot; route: Spot[]; label: string; crows: number; flanks?: boolean; skin?: 'otter'; cp?: boolean }
   /** `relay`: the marks from this one on count only for the partner waiting there (a hand-off) */
@@ -47,7 +50,7 @@ export type Step =
   | { t: 'heat'; level: number; label: string; cp?: boolean }
   | { t: 'trade'; profit: number; label: string; time?: number; cp?: boolean }
   | { t: 'fares'; n: number; label: string; cp?: boolean }
-  /** ride the Jade Line to station `to` (E at a station entrance) */
+  /** ride the MRT to station `to` (E at a station entrance) */
   | { t: 'train'; to: string; label: string; cp?: boolean }
   /** ride the cable car or the ferry to stop `to` (E at the station or the pier) */
   | { t: 'cable'; to: string; label: string; cp?: boolean }
@@ -62,7 +65,7 @@ export type Step =
   /** give the partner a boost onto the roof at boost spot `at` (lib/jade-tag.ts BOOSTS) */
   | { t: 'boost'; at: number; label: string; cp?: boolean }
   /** a crow circles with a loot bag: knock it loose with a gadget, or pounce when it swoops low */
-  | { t: 'bag'; at: Spot; loot?: string; time?: number; label: string; skin?: 'myna'; cp?: boolean }
+  | { t: 'bag'; at: Spot; loot?: string; time?: number; label: string; skin?: 'myna' | 'bat'; cp?: boolean }
   // ── the seventh pass's job steps (lib/jade-jobs.ts)
   /** case the joint: photograph spots (E) from where you have a clear view of them, without the guards seeing you; each
    * photo is intel the next step uses (lib/jade-jobs.ts INTEL); `need` photos end the step (all of them by default) */
@@ -86,7 +89,7 @@ export type Step =
    * a net (F) while one of the gang walking `path` is on it; catch `catch` of the `n` */
   | { t: 'trap'; spots: Spot[]; need: number; bait: Spot; wait: Spot; path: Spot[]; gang: 'mac' | 'otter' | 'liz' | 'crow' | 'myna'; n: number; catch: number; label: string; cp?: boolean }
   /** swap: slip a decoy into each crate (E: a moment crouched at it) while the guards look the other way */
-  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna'; label: string; cp?: boolean };
+  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat'; label: string; cp?: boolean };
 /** what a photo while casing tells you: the back way in, the guards' beats, where the cameras are wired, the safe's make */
 export type Intel = 'door' | 'rota' | 'cam' | 'safe';
 /** a witness: `ask` are the three questions on offer, `right` the one that gets the clue (its `tag` must be among the
@@ -383,11 +386,11 @@ export const MISSIONS: Mission[] = [
       { t: 'pickup', at: 'loot', item: 'h-drum', label: 'Take back the Phoenix Drum' },
       { t: 'talk', lines: [['glint', 'Fine, FINE. Shiny things are just so… shiny.', 'worried'], ['pip', 'Boss, maybe we could join the festival instead?', 'worried'], ['glint', '…With a nice seat near the lanterns?', 'smug'], ['kee', 'All five heirlooms home! Light the lanterns, the festival begins!', 'happy'], ['hero', 'Best night ever.', 'happy'], ['mate', 'Best team ever.', 'happy']] },
     ] },  // ── Chapter 6: the Island (Toa Payoh and Marina Bay). Director Kaw, Madame Glint's cousin, franchises the Kaypoh
-  // Crows across the island and hires its gangs for one big caper: the Golden Chinchilla at the Float-About Stage
-  { id: 'm26', ch: 6, title: 'Next Stop, Toa Payoh', giver: 'glint', at: 'stn-chinatown', reward: 260, rep: 14, blurb: 'Ride the Jade Line to Toa Payoh, ask around the interchange and work out where a crow hid Mr Kamal’s station keys.',
+  // Crows across the island and hires its gangs for one big caper: the Golden Chinchilla at the Float @ Marina Bay
+  { id: 'm26', ch: 6, title: 'Next Stop, Toa Payoh', giver: 'glint', at: 'stn-chinatown', reward: 260, rep: 14, blurb: 'Ride the MRT to Toa Payoh, ask around the interchange and work out where a crow hid Mr Kamal’s station keys.',
     steps: [
-      { t: 'talk', lines: [['glint', 'Darlings! Bad news. My cousin, Director Kaw, has turned the Crew into a company. Kaypoh Crows Pte Ltd.', 'worried'], ['pip', 'He has a briefcase. And a slogan. Franchising mischief island-wide!', 'worried'], ['hero', 'Then we go island-wide too.', 'smug'], ['mate', 'The Jade Line runs from right here. Two coins a ride. And no durians on the train!', 'smug']] },
-      { t: 'train', to: 'stn-toapayoh', label: 'Take the Jade Line to Toa Payoh (E at the station entrance)', cp: true },
+      { t: 'talk', lines: [['glint', 'Darlings! Bad news. My cousin, Director Kaw, has turned the Crew into a company. Kaypoh Crows Pte Ltd.', 'worried'], ['pip', 'He has a briefcase. And a slogan. Franchising mischief island-wide!', 'worried'], ['hero', 'Then we go island-wide too.', 'smug'], ['mate', 'The MRT runs from right here. Two coins a ride. And no durians on the train!', 'smug']] },
+      { t: 'train', to: 'stn-toapayoh', label: 'Take the MRT to Toa Payoh (E at the station entrance)', cp: true },
       { t: 'talk', lines: [['kamal', 'Welcome to Toa Payoh! I’m Mr Kamal, station master. Also: robbed. A crow in a little tie snatched my station keys and hid them somewhere round here!', 'worried'], ['mate', 'Somebody saw something. Ask the right question and they’ll remember.', 'smug'], ['hero', 'Then we search the one place that fits every clue. No guessing.', 'calm']] },
       { t: 'detective', item: 'loot-bag', time: 150, witnesses: [
         { at: [148, 32], sp: 'rabbit', name: 'auntie with the trolley', ask: ['Did you see which way he went?', 'Was he carrying anything?', 'Was he in a hurry?'], right: 0, clue: 'He hopped under the covered walkway, out of the rain.', tag: 'roof', junk: ['', 'A briefcase? A bag? Aiyoh, so many crows these days.', 'Everybody in Toa Payoh is in a hurry. Couldn’t say.'] },
@@ -416,11 +419,11 @@ export const MISSIONS: Mission[] = [
   { id: 'm28', ch: 6, title: 'Longkang Lizards', giver: 'lepak', at: 'lepak', reward: 300, rep: 14, blurb: 'Tail Kaw’s courier to the wet market, then swap the goods in his crates for decoys under his guards’ noses.',
     steps: [
       { t: 'talk', lines: [['lepak', 'Mmm. I am Lord Lepak. Lepak means I don’t move much. Why are you disturbing my sunbathing?', 'calm'], ['hero', 'Your lizards are keeping things for Director Kaw.', 'smug'], ['lepak', 'Are they? Hmm. I was sleeping. Follow his courier and see.', 'calm'], ['mate', 'The courier will know your face. I’ll wait by the wet market: switch to me there.', 'smug']] },
-      { t: 'tail', from: [136, 24], route: [[143, 24], [150, 24], [157, 24], [163, 24], [164, 30]], relay: { at: 3, spot: [155, 21] }, calm: 0.75, label: 'Follow the courier out of sight; switch to {mate} at the corner (Tab)', cp: true },
+      { t: 'tail', name: 'the courier', from: [136, 24], route: [[143, 24], [150, 24], [157, 24], [163, 24], [164, 30]], relay: { at: 3, spot: [155, 21] }, calm: 0.75, label: 'Follow the courier out of sight; switch to {mate} at the corner (Tab)', cp: true },
       { t: 'talk', lines: [['hero', 'He’s packing crates behind the wet market, and two of your lizards are guarding them.', 'cross'], ['lepak', 'Ah. Kaw pays them in kueh. Very lazy guards, my lizards: they look round now and then, that’s all.', 'calm'], ['mate', 'Here: decoy boxes. Swap them in while they look the other way. F and I’ll keep one busy.', 'smug']] },
       { t: 'swap', crates: [[157, 22], [161, 22], [165, 21], [158, 25]], guards: [[[155, 23], [166, 23]], [[167, 20], [167, 26]]], time: 90, decoy: 'decoy', skin: 'liz', label: 'Slip a decoy into each crate (E) while the lizards look away', cp: true },
       { t: 'goto', at: 'lepak', label: 'Show Lord Lepak what was in the crates', ride: 'foot' },
-      { t: 'talk', lines: [['lepak', 'Stage passes for Island Night at the Float-About Stage. And a drawing of the Golden Chinchilla.', 'worried'], ['lepak', 'Kaw paid us in kueh. Very nice kueh. But the Longkang Lizards don’t steal awards. Too much effort.', 'happy'], ['mate', 'And Kaw’s crows are driving off with boxes of nothing. So Island Night is the big caper.', 'cross']] },
+      { t: 'talk', lines: [['lepak', 'Stage passes for Island Night at the Float @ Marina Bay. And a drawing of the Golden Chinchilla.', 'worried'], ['lepak', 'Kaw paid us in kueh. Very nice kueh. But the Longkang Lizards don’t steal awards. Too much effort.', 'happy'], ['mate', 'And Kaw’s crows are driving off with boxes of nothing. So Island Night is the big caper.', 'cross']] },
     ] },
   { id: 'm29', ch: 6, title: 'Tumpang Rush', giver: 'kamal', at: 'kamal', reward: 260, rep: 12, blurb: 'The interchange buses are stuck behind a crow roadblock. Give the stranded heartlanders a lift home.',
     steps: [
@@ -462,15 +465,15 @@ export const MISSIONS: Mission[] = [
       { t: 'beat', from: 'stn-bayfront', to: 'stn-toapayoh', label: 'Beat the train to Toa Payoh station: it’s on the viaduct overhead' },
       { t: 'goto', at: 'stn-toapayoh', ride: 'foot', r: 160, label: 'Hop off at the station steps' },
       { t: 'talk', lines: [['hero', 'Doors opening… there he is!', 'cross'], ['mate', 'Pounce together when he steps off!', 'smug']] },
-      { t: 'chase', who: 'runner', from: [147, 33], route: [[144, 33], [143, 24], [158, 24], [165, 30], [151, 34]], bumps: 2, loot: 'loot-bag', speed: 205, finish: 'pounce', label: 'Pounce on the runner together: F sends {mate} in, then dash', cp: true },
+      { t: 'chase', who: 'runner', name: 'the runner', from: [147, 33], route: [[144, 33], [143, 24], [158, 24], [165, 30], [151, 34]], bumps: 2, loot: 'loot-bag', speed: 205, finish: 'pounce', label: 'Pounce on the runner together: F sends {mate} in, then dash', cp: true },
       { t: 'pickup', at: 'loot', item: 'loot-bag', label: 'Grab the stage pass' },
       { t: 'talk', lines: [['kamal', 'Fastest arrival I’ve ever seen. And nobody fined!', 'happy'], ['vanda', 'Without the pass he can’t get backstage. He’ll try something loud instead.', 'worried']] },
     ] },
-  { id: 'm34', ch: 6, title: 'Showtime Setup', giver: 'vanda', at: 'vanda', reward: 360, rep: 15, blurb: 'Gather the concert lights the crows hid round the bay and wire up the Float-About Stage.',
+  { id: 'm34', ch: 6, title: 'Showtime Setup', giver: 'vanda', at: 'vanda', reward: 360, rep: 15, blurb: 'Gather the concert lights the crows hid round the bay and wire up the Float @ Marina Bay.',
     steps: [
       { t: 'talk', lines: [['vanda', 'Island Night starts soon and the crows hid my last lights around the bay!', 'worried'], ['mate', 'A crow lookout in the mall window. Paint the glass or let me pull faces at it.', 'smug'], ['hero', 'Five crates of lights, one stage. Let’s light it up.', 'smug']] },
       { t: 'collect', items: [[148, 64], [164, 64], [183, 62], [191, 66], [145, 76]], item: 'light-crate', time: 110, watch: [190, 61], label: 'Collect the five crates of lights; paint the window lookout or send {mate} to distract it (F)', cp: true },
-      { t: 'goto', at: 'stage', label: 'Over the walkway to the Float-About Stage', ride: 'foot', r: 110 },
+      { t: 'goto', at: 'stage', label: 'Over the walkway to the Float @ Marina Bay', ride: 'foot', r: 110 },
       { t: 'mini', kind: 'wires', level: 2, label: 'Wire up the stage lights' },
       { t: 'talk', lines: [['vanda', 'Lights! Sound! Fluffballs! We’re ready.', 'happy'], ['lepak', 'I will watch from my deck chair. Very supportive.', 'calm'], ['kow', 'Bukit Bunch in the front row!', 'happy']] },
     ] },
@@ -482,7 +485,7 @@ export const MISSIONS: Mission[] = [
       { t: 'talk', lines: [['kaw', 'Nets! How unprofessional. I’ll take the promenade!', 'cross'], ['mate', 'He’s heading for the promenade. Bring the boat in by the resort!', 'cross']] },
       { t: 'goto', at: [193, 70], label: 'Pull up at the boardwalk by the resort', ride: 'boat', r: 130 },
       { t: 'goto', at: [195, 68], label: 'Jump ashore', ride: 'foot', r: 140 },
-      { t: 'chase', who: 'runner', skin: 'kaw', from: [190, 66], route: [[180, 66], [170, 66], [160, 64], [150, 66], [146, 62], [165, 63]], bumps: 2, loot: '', speed: 210, finish: 'pounce', label: 'Pounce on Director Kaw together: F sends {mate} in, then dash', cp: true },
+      { t: 'chase', who: 'runner', name: 'Director Kaw', skin: 'kaw', from: [190, 66], route: [[180, 66], [170, 66], [160, 64], [150, 66], [146, 62], [165, 63]], bumps: 2, loot: '', speed: 210, finish: 'pounce', label: 'Pounce on Director Kaw together: F sends {mate} in, then dash', cp: true },
       { t: 'talk', lines: [['kaw', 'Fine! Then nobody gets it! Fly, Crow Number Nine!', 'cross']] },
       { t: 'bag', at: 'here', loot: 'statuette', time: 60, label: 'Knock the Golden Chinchilla out of the crow’s claws (shoot it, or dash when it swoops low)', cp: true },
       { t: 'pickup', at: 'loot', item: 'statuette', label: 'Catch the Golden Chinchilla' },
@@ -492,14 +495,14 @@ export const MISSIONS: Mission[] = [
   // Nine, keeps the company's spare keys and has hired Boss Bising's Kecoh Mynahs, who can copy anybody's voice. In
   // Little India they muddle Deepavali, in Kampong Glam the Hari Raya bazaar, and the big caper is the island's
   // fireworks on Sentosa
-  { id: 'm36', ch: 7, title: 'Garlands for Deepavali', giver: 'kamal', at: 'kamal', reward: 380, rep: 15, blurb: 'The Jade Line runs on to Little India. Someone in Auntie Malar’s own voice cancelled the temple’s garlands: find where they went and get them to the temple in time.',
+  { id: 'm36', ch: 7, title: 'Garlands for Deepavali', giver: 'kamal', at: 'kamal', reward: 380, rep: 15, blurb: 'The MRT runs on to Little India. Someone in Auntie Malar’s own voice cancelled the temple’s garlands: find where they went and get them to the temple in time.',
     steps: [
-      { t: 'talk', lines: [['kamal', 'Good news! The Jade Line runs on now: Bugis, Little India, even Beach station on Sentosa when it opens.', 'happy'], ['kamal', 'Bad news: Auntie Malar at the flower market phoned. Or someone with her voice did.', 'worried'], ['mate', 'Someone copying voices? That’s new.', 'worried'], ['hero', 'Little India station, then. Two coins.', 'smug']] },
-      { t: 'train', to: 'stn-littleindia', label: 'Take the Jade Line to Little India (E at the station gates)', cp: true },
+      { t: 'talk', lines: [['kamal', 'Good news! The MRT runs on now: Bugis, Little India, even Beach station on Sentosa when it opens.', 'happy'], ['kamal', 'Bad news: Auntie Malar at the flower market phoned. Or someone with her voice did.', 'worried'], ['mate', 'Someone copying voices? That’s new.', 'worried'], ['hero', 'Little India station, then. Two coins.', 'smug']] },
+      { t: 'train', to: 'stn-littleindia', label: 'Take the MRT to Little India (E at the station gates)', cp: true },
       { t: 'goto', at: 'malar', label: 'Find Auntie Malar at the flower market on Buffalo Road', ride: 'foot' },
       { t: 'talk', lines: [['malar', 'Vanakkam, my dears! Somebody called the temple in MY voice and said no garlands this year. Then my jasmine strings vanished!', 'worried'], ['malar', 'Deepavali is in two nights. The whole street will be lit. The garlands must be there.', 'worried'], ['hero', 'Somebody round here saw something. We ask, then we search where the clues point.', 'calm']] },
       { t: 'detective', item: 'garland', time: 150, witnesses: [
-        { at: [236, 10], sp: 'rabbit', name: 'auntie by the Emporium doors', ask: ['Did you hear anybody shouting?', 'Did you see who it was?', 'Did they go into the Emporium?'], right: 0, clue: 'Shouting in Auntie Malar’s voice! From up high, on a ledge. Funny voice, very squeaky.', tag: 'high', junk: ['', 'Too many people tonight. Everybody looks like somebody.', 'Maybe? Everybody goes into the Emporium. Twenty-four hours!'] },
+        { at: [236, 10], sp: 'rabbit', name: 'auntie by Mustafa Centre’s doors', ask: ['Did you hear anybody shouting?', 'Did you see who it was?', 'Did they go into Mustafa?'], right: 0, clue: 'Shouting in Auntie Malar’s voice! From up high, on a ledge. Funny voice, very squeaky.', tag: 'high', junk: ['', 'Too many people tonight. Everybody looks like somebody.', 'Maybe? Everybody goes into the Emporium. Twenty-four hours!'] },
         { at: [252, 9], sp: 'sunbear', name: 'uncle with the flower cart', ask: ['Which way did they go?', 'What did they smell of?', 'How many of them were there?'], right: 1, clue: 'Sweets! Ghee and sugar. Whoever took the jasmine was eating jalebi.', tag: 'sweet', junk: ['Every way. Little India has many ways.', '', 'One? Five? They move so fast, I lost count.'] },
         { at: [241, 32], sp: 'duck', name: 'cleaner on Serangoon Road', ask: ['Did anyone drop something?', 'Did they touch the light-up?', 'What were they wearing?'], right: 0, clue: 'Black feathers with white patches, stuck on something blue. Mynah feathers, I tell you.', tag: 'blue', junk: ['', 'The switch box is playing up, but who did it, I don’t know.', 'Scarves? Hats? In thirty years I never look at clothes.'] },
       ], spots: [
@@ -513,10 +516,10 @@ export const MISSIONS: Mission[] = [
       { t: 'deliver', to: 'temple-li', item: 'garland', time: 60, fragile: 4, label: 'Carry the garlands to the temple on Race Course Road (gently: bumps crush them)', cp: true },
       { t: 'talk', lines: [['malar', 'You found them! The temple steps look like a festival already. Thank you, thank you.', 'happy'], ['raju', 'Mynahs. Javan mynahs, the Kecoh lot. They copy everything: phones, whistles, Auntie’s voice.', 'cross'], ['raju', 'And they don’t steal for themselves. Somebody is paying them in jalebi.', 'worried']] },
     ] },
-  { id: 'm37', ch: 7, title: 'The Spice Switch', giver: 'raju', at: 'raju', reward: 400, rep: 15, blurb: 'The mynahs carried Mr Raju’s Deepavali spices off to the yard behind the Emporium. Swap them for sacks of sawdust while the mynah lookouts aren’t watching.',
+  { id: 'm37', ch: 7, title: 'The Spice Switch', giver: 'raju', at: 'raju', reward: 400, rep: 15, blurb: 'The mynahs carried Mr Raju’s Deepavali spices off to the yard behind Mustafa Centre. Swap them for sacks of sawdust while the mynah lookouts aren’t watching.',
     steps: [
-      { t: 'talk', lines: [['raju', 'Cardamom, cumin, turmeric, my best garam masala. Twelve sacks, gone to the yard behind the Emporium.', 'cross'], ['raju', 'The mynahs guard them for someone. They look around, they chatter, they look away. Silly birds, but sharp eyes.', 'calm'], ['mate', 'Sawdust sacks for spice sacks. Like Uncle Teo’s kopi. They won’t know till they cook.', 'smug']] },
-      { t: 'goto', at: [228, 10], label: 'Go round to the yard behind the All-Hours Emporium', ride: 'foot', cp: true },
+      { t: 'talk', lines: [['raju', 'Cardamom, cumin, turmeric, my best garam masala. Twelve sacks, gone to the yard behind Mustafa Centre.', 'cross'], ['raju', 'The mynahs guard them for someone. They look around, they chatter, they look away. Silly birds, but sharp eyes.', 'calm'], ['mate', 'Sawdust sacks for spice sacks. Like Uncle Teo’s kopi. They won’t know till they cook.', 'smug']] },
+      { t: 'goto', at: [228, 10], label: 'Go round to the yard behind Mustafa Centre', ride: 'foot', cp: true },
       { t: 'swap', crates: [[230, 9], [234, 10], [238, 9], [241, 10]], guards: [[[229, 7], [242, 7]], [[242, 11], [229, 11]]], time: 90, decoy: 'decoy', skin: 'myna', label: 'Slip a sawdust sack into each pile (E) while the mynahs look away', cp: true },
       { t: 'goto', at: 'raju', label: 'Bring the spices back to Mr Raju', ride: 'foot' },
       { t: 'talk', lines: [['raju', 'Smell that! Now my shop smells like Deepavali again.', 'happy'], ['raju', 'Under the sacks: a ticket stub for Sentosa’s fireworks night, and a note. “Payment in jalebi. Signed, No. 9.”', 'worried'], ['hero', 'Crow Number Nine. Kaw’s old assistant.', 'cross']] },
@@ -535,7 +538,7 @@ export const MISSIONS: Mission[] = [
       { t: 'talk', lines: [['kancil', 'Assalamualaikum, friends. My songket for the Hari Raya bazaar, woven gold, three bolts. A crow “bought” them with a cheque that bounced.', 'worried'], ['kancil', 'They keep them off Haji Lane, and lookouts on the corner watch for chinchillas.', 'calm'], ['mate', 'Then we don’t look like chinchillas. Porter’s coat from the stall, or we make a fuss and slip past.', 'smug']] },
       { t: 'blend', rack: [229, 45], route: [[233, 45], [238, 45], [242, 45], [242, 52], [240, 55]], goal: [238, 56], lookouts: [[236, 42, 270], [243, 50, 180], [243, 54, 120]], crowd: 9, folk: 'town', label: 'Walk with the shoppers along Arab Street into Haji Lane (keep to a walk)', cp: true },
       { t: 'talk', lines: [['hero', 'The songket! And a mynah stuffing a note in its beak. It’s leaving.', 'cross'], ['mate', 'Let it lead us home. I’ll wait past the mosque: switch to me there.', 'smug']] },
-      { t: 'tail', from: [242, 56], route: [[243, 60], [250, 60], [262, 60], [268, 62], [269, 70]], relay: { at: 3, spot: [262, 59] }, calm: 0.8, label: 'Follow the courier out of sight; switch to {mate} past the mosque (Tab)', cp: true },
+      { t: 'tail', name: 'the courier', from: [242, 56], route: [[243, 60], [250, 60], [262, 60], [268, 62], [269, 70]], relay: { at: 3, spot: [262, 59] }, calm: 0.8, label: 'Follow the courier out of sight; switch to {mate} past the mosque (Tab)', cp: true },
       { t: 'talk', lines: [['hero', 'Their roost. A whole rain tree full of mynahs, by the sea.', 'smug'], ['kancil', 'And my songket back home. Terima kasih! The bazaar will be beautiful.', 'happy']] },
     ] },
   { id: 'm40', ch: 7, title: 'Haji Lane Hush', giver: 'wangi', at: 'wangi', reward: 440, rep: 16, blurb: 'The mynahs copy every sound in Haji Lane and the shops can’t hear themselves think. Catch the noisiest: nets on their path, or run them down.',
@@ -561,10 +564,10 @@ export const MISSIONS: Mission[] = [
       { t: 'pickup', at: 'loot', item: 'loot-bag', label: 'Grab the fireworks schedule' },
       { t: 'talk', lines: [['helang', 'Excellent capture! The schedule says… the show’s firing box is stored at the theme park. Nine will want it.', 'worried'], ['mate', 'Then we get it first.', 'smug']] },
     ] },
-  { id: 'm43', ch: 7, title: 'Galaxy Studios After Dark', giver: 'helang', at: 'park', reward: 480, rep: 17, blurb: 'Nine’s crows have the fireworks firing box locked in the ride-control office behind the Coral Dome. Case it, then take it: quiet or loud.',
+  { id: 'm43', ch: 7, title: 'Universal Studios Singapore After Dark', giver: 'helang', at: 'park', reward: 480, rep: 17, blurb: 'Nine’s crows have the fireworks firing box locked in the ride-control office behind S.E.A. Aquarium. Case it, then take it: quiet or loud.',
     steps: [
-      { t: 'talk', lines: [['helang', 'Galaxy Studios is shut for the night. Nine’s crows are in the ride-control office behind the Coral Dome.', 'worried'], ['mate', 'Look first, then go in. Doors, beats, cameras, the safe.', 'smug']] },
-      { t: 'goto', at: [102, 111], label: 'Go round behind the Coral Dome', ride: 'foot', cp: true },
+      { t: 'talk', lines: [['helang', 'Universal Studios Singapore is shut for the night. Nine’s crows are in the ride-control office behind S.E.A. Aquarium.', 'worried'], ['mate', 'Look first, then go in. Doors, beats, cameras, the safe.', 'smug']] },
+      { t: 'goto', at: [102, 111], label: 'Go round behind S.E.A. Aquarium', ride: 'foot', cp: true },
       { t: 'case', spots: [{ at: [111, 104], kind: 'door' }, { at: [103, 108], kind: 'rota' }, { at: [104, 105], kind: 'cam' }, { at: [107, 107], kind: 'safe' }], need: 3, guards: [[[103, 105], [110, 105]], [[110, 110], [103, 110]]], label: 'Photograph three things (E): the back door, the guard rota, the camera, the safe' },
       { t: 'talk', lines: [['mate', 'Quiet or loud? Either way the firing box comes out.', 'smug']] },
       { t: 'heist', front: [103, 111], back: [111, 104], safe: [107, 107], drop: 'park', guards: [[[103, 105], [110, 105]], [[110, 110], [103, 110]]], cams: [[104, 106, 0], [110, 108, 180]], time: 65, loot: 'firebox', level: 2, label: 'Crack the ride-control safe', cp: true },
@@ -584,7 +587,7 @@ export const MISSIONS: Mission[] = [
       { t: 'goto', at: [52, 110], label: 'Go to the edge of Siloso Point', ride: 'foot', cp: true },
       { t: 'stealth', lookouts: [[[47, 107], [47, 111]], [[36, 109], [44, 109]], [[45, 105], [45, 108]]], goal: 'fort', exit: [52, 110], shutter: [44, 111], calm: 0.5, pause: 1.5, label: 'Send {mate} to the gate lever (F), reach the fort unseen, then get out', cp: true },
       { t: 'talk', lines: [['nine', 'You again! Nine Lives Fireworks Pte Ltd will not be stopped! Kaw never let me run anything!', 'cross'], ['hero', 'He’s running for the beach!', 'cross'], ['mate', 'Pounce together: F sends me in, then dash!', 'cross']] },
-      { t: 'chase', who: 'runner', skin: 'nine', from: [46, 110], route: [[52, 117], [64, 118], [78, 118], [90, 121], [104, 120], [86, 117]], bumps: 2, loot: '', speed: 205, finish: 'pounce', label: 'Pounce on Crow Number Nine together: F sends {mate} in, then dash', cp: true },
+      { t: 'chase', who: 'runner', name: 'Crow Number Nine', skin: 'nine', from: [46, 110], route: [[52, 117], [64, 118], [78, 118], [90, 121], [104, 120], [86, 117]], bumps: 2, loot: '', speed: 205, finish: 'pounce', label: 'Pounce on Crow Number Nine together: F sends {mate} in, then dash', cp: true },
       { t: 'talk', lines: [['nine', 'Fine! Then nobody gets fireworks! Fly, little mynah, fly!', 'cross'], ['bising', 'That mynah is mine! Hey! Come back! Kecoh!', 'cross']] },
       { t: 'bag', at: 'here', loot: 'firebox', skin: 'myna', time: 60, label: 'Knock the spare firing box out of the mynah’s claws (shoot it, or dash when it swoops low)', cp: true },
       { t: 'pickup', at: 'loot', item: 'firebox', label: 'Catch the firing box' },

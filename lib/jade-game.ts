@@ -240,7 +240,7 @@ export class World {
     const fxs = this.fx.slice(f0).map(f => f.t);
     if (fxs.includes('text')) this.phoneT = 1.6;
     tutorStep(this, dt, fxs);
-    // the Jade Line hint: while it shows, the gold route line leads to Chinatown station (unless you set your own pin)
+    // the MRT hint: while it shows, the gold route line leads to Chinatown station (unless you set your own pin)
     if (this.tutor.cur === 'mrt' && !this.waypoint && !this.mrtGuide) this.mrtGuide = routeToStation(this, 'stn-chinatown');
     if (this.tutor.cur !== 'mrt' && this.mrtGuide) {
       this.mrtGuide = false; const s = stationById(this, 'stn-chinatown');
@@ -503,7 +503,7 @@ export class World {
     for (const h of this.c.hides) cand({ kind: 'hide', label: 'Hide here', x: h.x, y: h.y }, 52);
     // the island: a station's gates (a job's train step names its stop), a taxi waiting at the kerb
     const stn = stationNear(this);
-    if (stn && (!this.run || this.run.cur?.t === 'train')) cand({ kind: 'station', label: this.run?.cur?.t === 'train' ? `${stn.name}: take the train to ${this.c.places[this.run.cur.to]?.name ?? 'the next stop'}` : `Ride the Jade Line (${stn.name}, 2 coins)`, x: stn.x, y: stn.y, id: stn.id }, 110);
+    if (stn && (!this.run || this.run.cur?.t === 'train')) cand({ kind: 'station', label: this.run?.cur?.t === 'train' ? `${stn.name}: take the train to ${this.c.places[this.run.cur.to]?.name ?? 'the next stop'}` : `Ride the MRT (${stn.name}, 2 coins)`, x: stn.x, y: stn.y, id: stn.id }, 110);
     if (this.taxi?.st === 'wait') cand({ kind: 'taxi', label: 'Get in the taxi', x: this.taxi.b.x, y: this.taxi.b.y }, 110);
     // the cable car station and the ferry pier (a job's cable step names its stop)
     const lk = linkNear(this);
@@ -511,11 +511,11 @@ export class World {
       const fare = FARES[lk.link.id], what = lk.link.id === 'cable' ? 'the cable car' : 'the ferry';
       cand({ kind: lk.link.id, label: `Ride ${what} to ${lk.to.name} (${fare} coins)`, x: lk.from.x, y: lk.from.y, id: lk.from.id }, 110);
     }
-    // the island's playgrounds have a slide; after Island Night the Float-About Stage is a dance floor
+    // the island's playgrounds have a slide; after Island Night the Float @ Marina Bay is a dance floor
     if (!this.run && this.c.isle) {
       for (const pr of this.c.props) if (pr.sprite === 'playground' && this.open.has(districtAt(Math.floor(pr.x / T), Math.floor(pr.y / T)))) cand({ kind: 'isle', label: 'Go down the slide', x: pr.x, y: pr.y + 40, id: 'slide' }, 90);
       const [sx0, sy0, sx1, sy1] = this.c.isle.stage;
-      if (this.s.story.isle && this.open.has('bay')) cand({ kind: 'isle', label: 'Dance on the Float-About Stage', x: (sx0 + sx1) / 2 * T, y: (sy0 + sy1) / 2 * T, id: 'dance' }, 150);
+      if (this.s.story.isle && this.open.has('bay')) cand({ kind: 'isle', label: 'Dance on the Float @ Marina Bay', x: (sx0 + sx1) / 2 * T, y: (sy0 + sy1) / 2 * T, id: 'dance' }, 150);
     }
     for (const m of this.c.murals) if (!this.s.murals.includes(m.id) && this.open.has(districtAt(Math.floor(m.x / T), Math.floor(m.y / T)))) cand({ kind: 'mural', label: 'Restore the faded mural', x: m.x, y: m.y + 30, id: m.id }, 60);
     for (const r of this.rides) if (r.parked && this.open.has(districtAt(Math.floor(r.b.x / T), Math.floor(r.b.y / T)))) cand({ kind: 'ride', label: `${r.locked ? 'Jump-start' : 'Ride'} the ${VEHICLES[r.kind].name.toLowerCase()}`, x: r.b.x, y: r.b.y, ride: r }, r.kind === 'boat' ? 96 : 70);
@@ -626,7 +626,7 @@ export class World {
     if (this.p.ride) this.p.act = null;
     this.cheer();
     for (const g of GEAR_GIFT[m.id] ?? []) if (giveGadget(this.s, g)) { this.fx.push({ t: 'gadget-gift', kind: g }); this.say(`New gadget: the ${GADGETS[g].name.toLowerCase()}! ${GADGETS[g].blurb}`, 'good'); }
-    if (this.open.size > before) { const d = [...this.open][this.open.size - 1]; this.fx.push({ t: 'district', name: DISTRICT_NAME[d] }); this.banner = this.open.size - before > 1 ? (this.open.has('india') && !hadEast ? { text: 'Over the Rochor River!', sub: 'Little India and Kampong Glam: take the Jade Line to Bugis or Little India', t: 4.5 } : { text: 'The island opens!', sub: 'Toa Payoh and Marina Bay: take the Jade Line from Chinatown station', t: 4.5 }) : { text: `${DISTRICT_NAME[d][0].toUpperCase()}${DISTRICT_NAME[d].slice(1)} opens!`, sub: 'The fog lifts', t: 4 }; }
+    if (this.open.size > before) { const d = [...this.open][this.open.size - 1]; this.fx.push({ t: 'district', name: DISTRICT_NAME[d] }); this.banner = this.open.size - before > 1 ? (this.open.has('india') && !hadEast ? { text: 'Over the Rochor River!', sub: 'Little India and Kampong Glam: take the MRT to Bugis or Little India', t: 4.5 } : { text: 'The island opens!', sub: 'Toa Payoh and Marina Bay: take the MRT from Chinatown station', t: 4.5 }) : { text: `${DISTRICT_NAME[d][0].toUpperCase()}${DISTRICT_NAME[d].slice(1)} opens!`, sub: 'The fog lifts', t: 4 }; }
     // the ending and credits play once, the first time Glint is beaten; a replay of the last job just ends
     if (m.id === 'm25' && !this.s.story.ending) this.fx.push({ t: 'finale' });
     // the island's ending plays once, the first time Director Kaw is stopped

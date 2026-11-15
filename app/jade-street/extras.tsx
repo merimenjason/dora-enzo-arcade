@@ -91,7 +91,7 @@ export function PhoneView({ play, onClose }: { play: Play; onClose: () => void }
   useEffect(() => { readAll(w); play.bump(); }, [w, play]);
   const msgs = w.s.msgs.slice().reverse();
   const [tab, setTab] = useState<'msgs' | 'fines' | 'lingo' | 'taxi' | 'mrt' | 'empire' | 'con'>(w.emp.raid ? 'empire' : 'msgs');
-  const TABS: [typeof tab, string][] = [['msgs', 'Messages'], ['con', !contractsOpen(w.s) ? 'Contracts' : w.s.contracts.contest ? 'Contracts (retake!)' : 'Contracts (3)'], ['fines', `Fines (${w.s.fines.n})`], ['empire', w.emp.raid ? 'Empire (raid!)' : 'Empire'], ['lingo', 'Kopi lingo'], ...(w.c.isle ? [['mrt', 'Jade Line'] as [typeof tab, string]] : []), ['taxi', TAXI_APP]];
+  const TABS: [typeof tab, string][] = [['msgs', 'Messages'], ['con', !contractsOpen(w.s) ? 'Contracts' : w.s.contracts.contest ? 'Contracts (retake!)' : 'Contracts (3)'], ['fines', `Fines (${w.s.fines.n})`], ['empire', w.emp.raid ? 'Empire (raid!)' : 'Empire'], ['lingo', 'Kopi lingo'], ...(w.c.isle ? [['mrt', 'MRT'] as [typeof tab, string]] : []), ['taxi', TAXI_APP]];
   return (
     <div className="jade-modal-back" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="jade-panel phone" role="dialog" aria-label="Phone" data-testid="jade-phone-msgs">
@@ -183,8 +183,8 @@ export function Controls({ touch }: { touch: boolean }) {
     ['Action: talk, ride, trade, hide', ['E'], 'c-tap', 'Action button'],
     ['Change radio station', ['R'], 'ui-radio', 'Tap the radio'],
     ['Map', ['M'], 'i-map', 'Map button, top right'],
-    ['Phone messages, the Jade Line tab, the taxi app', ['T'], 'ui-phone', 'Phone button'],
-    ['Ride the Jade Line: walk up to a station’s gates (the green train pin)', ['E'], 'i-mrt', 'Action button'],
+    ['Phone messages, the MRT tab, the taxi app', ['T'], 'ui-phone', 'Phone button'],
+    ['Ride the MRT: walk up to a station’s gates (the green train pin)', ['E'], 'i-mrt', 'Action button'],
     ['Hail a taxi at the kerb, then get in', ['G', 'E'], 'pin-taxi', 'The taxi app on the phone'],
     ['Ride the cable car or the ferry to Sentosa: walk up to the station or the pier', ['E'], 'i-cable', 'Action button'],
     ['Festivals and the beach: light a lamp, buy a kuih, shoo a mynah, a deck chair, a sandcastle', ['E'], 'i-festival', 'Action button'],
