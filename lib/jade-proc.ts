@@ -63,8 +63,9 @@ export function makeCtx(open: District[]): GenCtx {
 // ── the cast, the gangs and their voices
 /** who gives contracts: everyone with a contact place of their own (Mr Ong rides his round, so not him) */
 export const GIVERS = ['kee', 'mo', 'pang', 'heron', 'ren', 'kiri', 'lim', 'gizmo', 'bo', 'hoon', 'beng', 'teo', 'goh', 'lily', 'kamal', 'vanda', 'raju', 'malar', 'kancil', 'wangi', 'helang', 'duyung', 'lepak', 'bising'];
-/** a giver whose face is painted (the phone card and the plaque show it); one still waiting for art gives no contracts */
-const painted = (g: string) => !!FRAMES[PEOPLE[g]?.face ?? ''];
+/** a giver whose face and body are painted (the phone card shows the face, the street the body); one still waiting for
+ * art gives no contracts. A gang boss only needs the face, for a taunt */
+const painted = (g: string, body = GIVERS.includes(g)) => !!FRAMES[PEOPLE[g]?.face ?? ''] && (!body || !!FRAMES[`npc-${g}-idle-0`]);
 /** the two gang bosses who hire you against somebody else's gang */
 const BOSS_GANG: Record<string, Gang> = { lepak: 'liz', bising: 'myna' };
 type Voice = { hi: string[]; ok: string[]; oops: string[] };
@@ -84,7 +85,7 @@ export const VOICE: Record<string, Voice> = {
   teo: { hi: ['Kopi or job? Today, job.', 'Sit, sit. Kopi-O kosong later. Job first.'], ok: ['Good. Very good. Like kopi, strong.', 'Shiok. This one I remember.'], oops: ['Like teh with no sugar. Try again.', 'Cannot read minds, but I can read that. Again.'] },
   goh: { hi: ['Chess is war, and so is this.', 'Three moves ahead. Here is move one.'], ok: ['Checkmate. Well played, young ones.', 'Good move. Very good move.'], oops: ['You moved too fast. Think, then move.', 'A pawn lost is not the game lost.'] },
   lily: { hi: ['Darlings! I need a little drama.', 'Front row seats, darlings, and a favour.'], ok: ['Encore! You were fabulous.', 'Standing ovation, darlings!'], oops: ['Off-key, darlings. From the top!', 'The show must go on. Again!'] },
-  kamal: { hi: ['Mind the gap, and mind this job.', 'Next stop: trouble. Please alight.'], ok: ['Right on schedule. The Jade Line thanks you.', 'Arrived on time. Impressive.'], oops: ['Service delayed. Please try again.', 'This train is not in service. Go again.'] },
+  kamal: { hi: ['Mind the gap, and mind this job.', 'Next stop: trouble. Please alight.'], ok: ['Right on schedule. Like the MRT, cannot be late.', 'Arrived on time. Impressive.'], oops: ['Service delayed. Please try again.', 'This train is not in service. Go again.'] },
   vanda: { hi: ['Darlings, the show is in danger!', 'I have a production problem.'], ok: ['That’s a wrap! Bravo.', 'Five stars, sold out, all thanks to you.'], oops: ['Cut! Reset positions.', 'Take two, everybody.'] },
   raju: { hi: ['Smell that? That is the smell of a job.', 'Cardamom, cumin, and a problem.'], ok: ['Wonderful! My nose says thank you too.', 'Spicy work. Very spicy.'], oops: ['Too much chilli in that plan. Again.', 'No, no, no. Slowly, then quickly.'] },
   malar: { hi: ['My dear, my dear, come here.', 'Jasmine for luck, and a job for you.'], ok: ['Marigolds for you both. Well done, my dears.', 'You make an auntie very happy.'], oops: ['Never mind, my dear. Again, slowly.', 'Even flowers wilt. Water them and try again.'] },
@@ -95,12 +96,15 @@ export const VOICE: Record<string, Voice> = {
   lepak: { hi: ['Lepak means relax. But not today.', 'Don’t tell the lizards I asked you, ah.'], ok: ['Nice. Now I can lie down again.', 'Steady. Very steady.'], oops: ['Aiyah. Relax first, then go again.', 'Even a monitor lizard trips sometimes.'] },
   bising: { hi: ['KECOH! Sorry. Shh. I have a job.', 'Mynahs only have one volume, so listen fast!'], ok: ['KECOH! I mean, thank you!', 'Loudest thanks on the island!'], oops: ['Aiyoh! Too quiet, too slow!', 'Again! LOUDER! I mean, faster!'] },
 };
+/** a gang's name from the shared table (lib/jade-props.ts GANG_NAME), without the species on the end, so a rename there
+ * flows through every contract */
+const gangName = (g: Gang, one: string) => (GANG_NAME[g] ?? g).replace(new RegExp(` ${one}s$`), '');
 export const GANG: Record<Gang, { name: string; one: string; boss: string; skin?: 'otter' | 'mac' | 'liz' | 'myna'; taunt: string[]; brag: string[] }> = {
-  crow: { name: 'Kaypoh Crows', one: 'crow', boss: 'pip', taunt: ['Finders keepers, fluffballs!', 'Kaypoh means we know everything. Even this!'], brag: ['Caw! Shiny is mine!', 'Kaypoh Crows Pte Ltd, at your disservice!'] },
-  mac: { name: 'Bukit Bunch', one: 'macaque', boss: 'kow', skin: 'mac', taunt: ['Bananas belong to everyone. Mostly me!', 'Hoo hoo! Catch me if you can!'], brag: ['The Bunch takes what the Bunch likes!', 'Bananas first, questions never!'] },
-  otter: { name: 'Riverside Romp', one: 'otter', boss: 'sleek', skin: 'otter', taunt: ['Borrowing only! Hehe!', 'The river is our playground!'], brag: ['Splash and dash!', 'Otters don’t steal. We just… find early.'] },
-  liz: { name: 'Longkang Lizards', one: 'lizard', boss: 'lepak', skin: 'liz', taunt: ['Lepak lah, it’s only a small thing.', 'Down the drain it goes!'], brag: ['Slow and steady, then fast and gone.', 'The longkang never gives back.'] },
-  myna: { name: 'Kecoh Mynahs', one: 'mynah', boss: 'bising', skin: 'myna', taunt: ['KECOH! Mine now!', 'Loud and proud and gone!'], brag: ['We sing, we swipe, we fly!', 'KECOH KECOH KECOH!'] },
+  crow: { name: gangName('crow', 'crow'), one: 'crow', boss: 'pip', taunt: ['Finders keepers, fluffballs!', 'Kaypoh means we know everything. Even this!'], brag: ['Caw! Shiny is mine!', 'Kaypoh Crows Pte Ltd, at your disservice!'] },
+  mac: { name: gangName('mac', 'macaque'), one: 'macaque', boss: 'kow', skin: 'mac', taunt: ['Bananas belong to everyone. Mostly me!', 'Hoo hoo! Catch me if you can!'], brag: ['The Bunch takes what the Bunch likes!', 'Bananas first, questions never!'] },
+  otter: { name: gangName('otter', 'otter'), one: 'otter', boss: 'sleek', skin: 'otter', taunt: ['Borrowing only! Hehe!', 'The river is our playground!'], brag: ['Splash and dash!', 'Otters don’t steal. We just… find early.'] },
+  liz: { name: gangName('liz', 'lizard'), one: 'lizard', boss: 'lepak', skin: 'liz', taunt: ['Lepak lah, it’s only a small thing.', 'Down the drain it goes!'], brag: ['Slow and steady, then fast and gone.', 'The longkang never gives back.'] },
+  myna: { name: gangName('myna', 'mynah'), one: 'mynah', boss: 'bising', skin: 'myna', taunt: ['KECOH! Mine now!', 'Loud and proud and gone!'], brag: ['We sing, we swipe, we fly!', 'KECOH KECOH KECOH!'] },
 };
 /** the things a job is about, each with a painted sprite (lib/jade-scene.ts itemSprite) and how it is spoken of */
 export const ITEMS: { id: string; name: string; fragile?: boolean; stink?: boolean; food?: boolean }[] = [
