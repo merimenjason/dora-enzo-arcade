@@ -64,6 +64,8 @@ export async function third(h) {
   check(await until(() => window.__jade.run().signs > 0 && window.__jade.run().phase === 2, null, 8000), `${name}: phase 2 drops neon signs`); await wait(400); await look('boss signs');
   await W(() => { const J = window.__jade; J.enterStep(J.stepOf('float')); const w = J.world(); if (w.p.ride) { w.p.ride.parked = true; w.p.ride = null; } w.p.roof = true; w.p.b.x = 103 * 64 + 32; w.p.b.y = 34 * 64 + 12; w.p.lastRoof = [w.p.b.x, w.p.b.y]; });
   // the float only swings in once the partner hauls the bunting rope: F sends them
+  // (the partner may still be catching up after the boss chase: bring them alongside if the offer hasn't come)
+  if (!(await until(() => window.__jade.duo().tag === 'hold', null, 3000))) await W(() => { const w = window.__jade.world(); w.mate.b.x = w.p.b.x + 40; w.mate.b.y = w.p.b.y; w.mate.roof = w.p.roof; });
   check(await until(() => window.__jade.duo().tag === 'hold', null, 3000), `${name}: F offers the bunting rope`);
   await p.keyboard.press('f'); await wait(150);
   check(await until(() => window.__jade.duo().holding, null, 15000), `${name}: the partner hauls the rope`);
