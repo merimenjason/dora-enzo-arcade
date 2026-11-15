@@ -581,7 +581,7 @@ The sixth pass's art is in `docs/jade-street-art/jobs6.py`: thirteen sheets (two
 
 ### Results (16-11-2026, eleventh pass: procedural contracts)
 
-Full `npm run bot:jade` after the last tuning change: every story job, Hawker Tale, empire job and raid kind as before (casual 100% on all; Normal finished 100%, first try 92%; Hard finished 100%, first try 86%), and 600 generated contracts: casual 300/300 (294 first try, every kind 100%), Normal 149/150 (135 first try, 90%), Hard 147/150 (136 first try). `tests/jade-proc.mjs` 13/13 (1,200-seed validity, no fallbacks). The eleventh browser suite (`PASS=11`): 133/133 checks, 0 page errors. Frame rate in headless Chromium at 1280×800 during a contract with the storm and the graveyard shift: 59.8 fps average (56 lowest sample), 60 in a plain contract and in free roam with offers.
+Full `npm run bot:jade` after the last tuning change: every story job, Hawker Tale, empire job and raid kind as before (casual 100% on all; Normal finished 100%, first try 93%; Hard finished 100%, first try 86%), and 600 generated contracts: casual 300/300 (294 first try, every kind 100%), Normal 150/150 (138 first try, 92%), Hard 149/150 (136 first try, 91%). Measured after the rebase onto main (with the ninth pass's paintings, so all 24 givers give contracts). `tests/jade-proc.mjs` 13/13 (1,200-seed validity, no fallbacks). The eleventh browser suite (`PASS=11`): 133/133 checks, 0 page errors. Frame rate in headless Chromium at 1280×800 during a contract with the storm and the graveyard shift: 59.8 fps average (56 lowest sample), 60 in a plain contract and in free roam with offers.
 
 ### Results (16-11-2026, tenth pass: the Chinatown empire)
 
@@ -652,9 +652,9 @@ Browser suite: 868 checks passed (292 at 1280×800, 288 each at 390×844 and 844
 ## What is weakest
 
 - **Contracts are compositions, not new mechanics.** Every contract is built from the step kinds the story already uses, on the story's heist and disguise venues, so a player who has done the story has seen every piece; the variety is in the mix, the place, the giver, the gang and the modifiers.
-- **Hard contracts are not harder than Normal ones on first tries** (136 against 135 of 150 for the bots): Hard's tuning lives in the story's step numbers, and the contract-only sharpening (×0.9 time, faster chases, an extra crow) applies to both.
+- **Hard contracts are barely harder than Normal ones on first tries** (136 against 138 of 150 for the bots): Hard's tuning lives in the story's step numbers, and the contract-only sharpening (×0.9 time, faster chases, an extra crow) applies to both.
 - **Races are the contracts most often failed first time**, and only the timer kinds get a Tight clock; stings and the detective are rarer than the others because their places are harder to fit.
-- **Seven givers wait for art in this branch.** A giver needs a painted face and body to give contracts; on the pass-10 base Mr Raju, Auntie Malar, Abang Kancil, Puan Wangi, Sergeant Helang, Duyung and Bising have neither, so they join once pass 9's paintings are in.
+- **A giver needs paintings to give contracts.** The generator skips anyone without a painted face and body (`npc-<id>-idle-0`); every one of the 24 givers has both today, so this only matters for people added later.
 - **The contract of the day uses the device's date**, so players in different time zones roll over at their own midnight, and nothing stops a player changing the clock.
 - **The graveyard shift is a tint.** It darkens the screen and shortens guards' sight; the lamps and windows are not relit for it.
 
