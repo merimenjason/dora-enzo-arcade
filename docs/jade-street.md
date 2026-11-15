@@ -579,6 +579,10 @@ The sixth pass's art is in `docs/jade-street-art/jobs6.py`: thirteen sheets (two
 - The eleventh pass's browser checks (`tests/e2e/jade-street-11.mjs`, 1280×800, `PASS=11` runs them alone) click every new action: the locked tab, the Contracts tab's cards (stars, chips, pay), Route me and its route label, the next-contract plaque, E at the giver and the opening lines, the job plaque, winning (the banner, a fresh offer, the celebrate pose), a contract with every modifier (the storm and the dark, a scooter refused, the partner waiting), a fail with Retry and Quit job, the contract of the day's best time on its card, a contest (the tab's retake label, the contest line, the retake card, Route me, winning it back), the jobs book's count, the Controls row and the v12 save.
 - `npm run play:jade`: plays two minutes in each district at 1280×800 with keys, rides, five-lantern heat, rain half the time with a busker's crowd gathered, and constant jumps to fresh streets, then a minute of a casing job with 43 guards hearing dashes and hops, turning, walking over and searching (`GUARDS_ONLY=1` times just that), and fails under 55 fps.
 
+### Results (16-11-2026, eleventh pass: procedural contracts)
+
+Full `npm run bot:jade` after the last tuning change: every story job, Hawker Tale, empire job and raid kind as before (casual 100% on all; Normal finished 100%, first try 92%; Hard finished 100%, first try 86%), and 600 generated contracts: casual 300/300 (294 first try, every kind 100%), Normal 149/150 (135 first try, 90%), Hard 147/150 (136 first try). `tests/jade-proc.mjs` 13/13 (1,200-seed validity, no fallbacks). The eleventh browser suite (`PASS=11`): 133/133 checks, 0 page errors. Frame rate in headless Chromium at 1280×800 during a contract with the storm and the graveyard shift: 59.8 fps average (56 lowest sample), 60 in a plain contract and in free roam with offers.
+
 ### Results (16-11-2026, tenth pass: the Chinatown empire)
 
 Bots over all 58 story and side jobs plus the empire (`empireCases`): the casual bot on Assist and Easy finished every job in all ten seeds, every empire job (supplier deal, health inspector, price war, taxi fare, bumboat and kayak tours, karaoke night) and every raid kind on every property tried (grab, defend, trap and chase). With Assist off, Normal finished 100% and 92% first time, Hard 100% and 87%. Over four seeds each, Normal won every empire job and raid; Hard won all but the price war (3 of 4) and the grab raid at the claw machine (1 of 4).
@@ -646,6 +650,13 @@ Frame rate on this Mac in headless Chromium at 1280×800, two minutes per distri
 Browser suite: 868 checks passed (292 at 1280×800, 288 each at 390×844 and 844×390) with no page errors, before the owner ruled Jade Street desktop-only; the third pass's checks now run at 1280×800 only, while the older phone passes still run as they were.
 
 ## What is weakest
+
+- **Contracts are compositions, not new mechanics.** Every contract is built from the step kinds the story already uses, on the story's heist and disguise venues, so a player who has done the story has seen every piece; the variety is in the mix, the place, the giver, the gang and the modifiers.
+- **Hard contracts are not harder than Normal ones on first tries** (136 against 135 of 150 for the bots): Hard's tuning lives in the story's step numbers, and the contract-only sharpening (×0.9 time, faster chases, an extra crow) applies to both.
+- **Races are the contracts most often failed first time**, and only the timer kinds get a Tight clock; stings and the detective are rarer than the others because their places are harder to fit.
+- **Seven givers wait for art in this branch.** A giver needs a painted face and body to give contracts; on the pass-10 base Mr Raju, Auntie Malar, Abang Kancil, Puan Wangi, Sergeant Helang, Duyung and Bising have neither, so they join once pass 9's paintings are in.
+- **The contract of the day uses the device's date**, so players in different time zones roll over at their own midnight, and nothing stops a player changing the clock.
+- **The graveyard shift is a tint.** It darkens the screen and shortens guards' sight; the lamps and windows are not relit for it.
 
 - **The Hard grab raid is stiff.** The bot wins it 1 time in 4 on Hard without Assist (every time on Assist, Easy and Normal); a human who sees the alert late will mostly lose that night's takings, which is the designed cost, not a loss of the property.
 - **Empire jobs are generated, not authored.** The supplier deal, inspector, price war, fares, tours and karaoke night build their routes from the property's spot (litter rings, downhill tail routes), so a few play out in plain streets and the same job at two properties feels alike.
