@@ -37,7 +37,7 @@ test('the Singapore places are on open ground, in the right districts, with real
   }
   for (const t of sg.tables) assert.equal(tile(w, Math.floor(t.x / T), Math.floor(t.y / T)), S.OPEN, 'hawker tables on the floor');
   assert.ok(sg.fivefoot.reduce((a, b) => a + b, 0) > 150, 'plenty of five-foot way');
-  assert.equal(sg.gantries.filter(g => g.tx < 120).length, 6, 'six gantries in Chinatown');
+  assert.equal(sg.gantries.filter(g => g.tx < 120 && g.ty < 82).length, 6, 'six gantries in Chinatown (the seventh is on the Sentosa Gateway)');
   for (const g of sg.gantries) assert.equal(c.ground[(g.ty + (g.axis === 'v' ? 0 : 1)) * W + g.tx + (g.axis === 'v' ? 1 : 0)], G.ROAD, 'a gantry stands over a road');
   assert.equal(DISTRICT_NAME.market, 'Smith Street'); assert.equal(DISTRICT_NAME.canal, 'Boat Quay');
   assert.ok(STREET_NAME.includes('Pagoda Street') && STREET_NAME.includes('South Bridge Road'));
@@ -160,8 +160,8 @@ test('the kopi counter: orders in kopi lingo, a wrong cup costs a try, all order
   for (const term of ['Kopi', 'Teh', 'O', 'C', 'Kosong', 'Siew dai', 'Peng', 'Chope']) assert.ok(LINGO.some(l => l.term === term), term);
 });
 
-test('Hawker Tales: ten side jobs, each offered after its story job, outside the chapters', () => {
-  assert.equal(SIDE.length, 10); assert.equal(MISSIONS.length, 35);
+test('Hawker Tales: thirteen side jobs, each offered after its story job, outside the chapters', () => {
+  assert.equal(SIDE.length, 13); assert.equal(MISSIONS.length, 45);
   for (const m of SIDE) { assert.ok(MISSION[m.id] === m); assert.ok(MISSIONS.some(x => x.id === m.side), `${m.id} opens after a story job`); assert.equal(m.ch, 0); }
   const s = newSave(2); s.done = ['m1', 'm2', 'm3']; assert.deepEqual(sideJobs(s).map(m => m.id), ['k1']);
   assert.ok(offered(s).some(m => m.id === 'k1') && offered(s).some(m => m.side === undefined));

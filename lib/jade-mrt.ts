@@ -50,7 +50,7 @@ export function trainAt(isle: Isle, time: number, k: number): TrainPos {
   const dir: 1 | -1 = leg.to > leg.from || (leg.to === leg.from && LEGS[(LEGS.indexOf(leg) + 1) % LEGS.length].to > leg.from) ? 1 : -1;
   const [x, y, h] = lineAt(isle, s);
   const at = leg.to === leg.from ? isle.stations.findIndex(st => st.s === leg.from) : -1;
-  return { x, y, h: dir > 0 ? h : h + Math.PI, s, dir, at, visible: s > isle.lineLen[3] - 40 };
+  return { x, y, h: dir > 0 ? h : h + Math.PI, s, dir, at, visible: s > isle.visFrom };
 }
 /** the station whose entrance you are at (open districts only) */
 export function stationNear(w: World, x = w.p.x, y = w.p.y): Station | null {

@@ -23,6 +23,7 @@ import { finesStep, payTicket, offence, FINE, type Patrol, type Ticket } from '.
 import { gangsStep, gangNear, gangAct, newGangs, type GangState } from './jade-gangs.js';
 import { stationNear, mrtTo, cantRide, routeToStation, stationById, MRT_TEXT } from './jade-mrt.js';
 import { hail, taxiStep, skipRide, type Taxi } from './jade-taxi.js';
+import { linkNear, linkGo, ferryStep, ferryLand, FARES, EAST_TEXT, RESORT_TEXT, type FerryRide } from './jade-cable.js';
 
 export const DT = 1 / 60;
 export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop: boolean; act: boolean;
@@ -34,12 +35,12 @@ export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop
 export const NO_INPUT: Input = { mx: 0, my: 0, sneak: false, dash: false, hop: false, act: false };
 export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; locked: boolean; tint: number; mission?: boolean; seen?: number; broken?: boolean };
 export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string };
-export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job'; label: string; x: number; y: number; id?: string; ride?: Ride };
+export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry'; label: string; x: number; y: number; id?: string; ride?: Ride };
 export type Snatcher = { x: number; y: number; h: number; t: number; out: boolean; took: number; wing: number; good?: string; dizzy?: number };
 export type Act = { n: string; t: number; dur: number; then?: () => void };
 export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' | 'sg' } | { kind: 'map' } | { kind: 'biz'; id: BizId } | { kind: 'gear' } | { kind: 'mama' } | { kind: 'glossary' }
   /** the island: a station's ticket gates, the train ride view, the taxi's drop-off list */
-  | { kind: 'mrt'; from: string } | { kind: 'ride-view'; from: string; to: string } | { kind: 'taxi' }
+  | { kind: 'mrt'; from: string } | { kind: 'ride-view'; from: string; to: string; via?: 'cable' } | { kind: 'taxi' }
   /** the job steps: a heist's quiet-or-loud choice, a witness's three questions (and what they said back) */
   | { kind: 'heist' } | { kind: 'branch' } | { kind: 'ask'; i: number; said?: string; ok?: boolean };
 
@@ -100,6 +101,8 @@ export class World {
   fineCd = new Map<string, number>(); warned = new Set<string>(); lastTile = -1; lastTileRide = 0; gangs: GangState = newGangs();
   /** the island: a hailed taxi (lib/jade-taxi.ts), the station the last train ride arrived at (lib/jade-mrt.ts) */
   taxi: Taxi | null = null; lastMrt = '';
+  /** the ninth pass: the ferry crossing you are on, and the last cable car or ferry stop you stepped off at */
+  ferry: FerryRide | null = null; lastLink = '';
   /** the partner thinking for themselves (lib/jade-pal.ts) */
   pal: PalState = newPal();
   /** the page has something important on screen: passers-by hold their remarks (lib/jade-notice.ts) */
@@ -200,7 +203,8 @@ export class World {
     if (this.banner) { this.banner.t -= dt; if (this.banner.t <= 0) this.banner = null; }
     this.gates.clear(); if (this.run) { closedTiles(this.run.sets, this.gates); teamGates(this.run, this.gates); }
     sgGates(this, this.gates);
-    const cab = this.taxi?.st === 'ride';
+    const cab = this.taxi?.st === 'ride' || !!this.ferry;
+    if (this.ferry) ferryStep(this, dt);
     if (!cab) this.playerStep(inp, dt);
     this.p.grabT = Math.max(0, this.p.grabT - dt); this.p.cheerT = Math.max(0, this.p.cheerT - dt);
     if (cab) { /* in the back of a taxi: both heroes ride along */ } else if (this.two) this.p2Step(inp2 ?? NO_INPUT, dt); else { mateStep(this, dt); palStep(this, dt); }
@@ -449,6 +453,7 @@ export class World {
     const p = this.p, x = p.x, y = p.y; let best: Near | null = null, bd = 1e9;
     const cand = (n: Near, r: number) => { const d = dist(n.x, n.y, x, y); if (d < r && d < bd) { bd = d; best = n; } };
     if (this.taxi?.st === 'ride') { this.near = { kind: 'taxi', label: 'Skip to the drop-off', x, y }; return; }
+    if (this.ferry) { this.near = { kind: 'ferry', label: 'Skip to the pier', x, y }; return; }
     if (p.hide) { this.near = { kind: 'unhide', label: 'Come out', x, y }; return; }
     if (this.ticket) { this.near = { kind: 'fine', label: `Pay the ticket: ${FINE[this.ticket.kind].name.toLowerCase()}, ${this.ticket.amt} coins`, x, y }; return; }
     if (p.seat) { this.near = null; return; }
@@ -485,6 +490,12 @@ export class World {
     const stn = stationNear(this);
     if (stn && (!this.run || this.run.cur?.t === 'train')) cand({ kind: 'station', label: this.run?.cur?.t === 'train' ? `${stn.name}: take the train to ${this.c.places[this.run.cur.to]?.name ?? 'the next stop'}` : `Ride the Jade Line (${stn.name}, 2 coins)`, x: stn.x, y: stn.y, id: stn.id }, 110);
     if (this.taxi?.st === 'wait') cand({ kind: 'taxi', label: 'Get in the taxi', x: this.taxi.b.x, y: this.taxi.b.y }, 110);
+    // the cable car station and the ferry pier (a job's cable step names its stop)
+    const lk = linkNear(this);
+    if (lk && (!this.run || this.run.cur?.t === 'cable')) {
+      const fare = FARES[lk.link.id], what = lk.link.id === 'cable' ? 'the cable car' : 'the ferry';
+      cand({ kind: lk.link.id, label: `Ride ${what} to ${lk.to.name} (${fare} coins)`, x: lk.from.x, y: lk.from.y, id: lk.from.id }, 110);
+    }
     // the island's playgrounds have a slide; after Island Night the Float-About Stage is a dance floor
     if (!this.run && this.c.isle) {
       for (const pr of this.c.props) if (pr.sprite === 'playground' && this.open.has(districtAt(Math.floor(pr.x / T), Math.floor(pr.y / T)))) cand({ kind: 'isle', label: 'Go down the slide', x: pr.x, y: pr.y + 40, id: 'slide' }, 90);
@@ -496,6 +507,7 @@ export class World {
     // the taxi you called wins once it is in reach
     if (this.taxi?.st === 'wait' && dist(this.taxi.b.x, this.taxi.b.y, x, y) < 110) best = { kind: 'taxi', label: 'Get in the taxi', x: this.taxi.b.x, y: this.taxi.b.y };
     // a job's train step: the station gates win over a scooter parked by the entrance
+    if (lk && this.run?.cur?.t === 'cable' && (best as Near | null)?.kind === 'ride') best = { kind: lk.link.id, label: `Ride to ${lk.to.name}`, x: lk.from.x, y: lk.from.y, id: lk.from.id };
     if (stn && this.run?.cur?.t === 'train' && (best as Near | null)?.kind === 'ride') best = { kind: 'station', label: `${stn.name}: take the train`, x: stn.x, y: stn.y, id: stn.id };
     this.near = best;
   }
@@ -533,6 +545,7 @@ export class World {
         this.ui = { kind: 'mrt', from: n.id! }; this.fx.push({ t: 'open' }); p.act = { n: 'tap-card', t: 0, dur: 0.5 }; p.face = 'up'; break;
       }
       case 'job': this.run?.jobAct(n.id!); break;
+      case 'cable': case 'ferry': if (this.ferry) ferryLand(this); else { p.face = 'up'; linkGo(this); } break;
       case 'taxi': if (this.taxi?.st === 'ride') skipRide(this); else { this.ui = { kind: 'taxi' }; this.fx.push({ t: 'open' }); } break;
       case 'isle':
         if (n.id === 'slide') { p.act = { n: 'slide', t: 0, dur: 1.3, then: () => { p.b.y += 40; this.fx.push({ t: 'good-deed' }); } }; p.face = 'down'; this.fx.push({ t: 'hop' }); }
@@ -578,19 +591,24 @@ export class World {
     else if (this.replaying) this.s.cash += Math.round(m.reward / 4);
     this.replaying = false;
     if (m.tip) this.s.tips = this.s.tips.filter(t => !(t.market === m.tip!.market && t.good === m.tip!.good));
-    const before = this.open.size, hadIsle = this.open.has('heartland'); this.open = new Set(openDistricts(this.s));
-    if (!hadIsle && this.open.has('heartland')) text(this, 'kamal', MRT_TEXT); this.fieldCache.clear();
+    const before = this.open.size, hadIsle = this.open.has('heartland'), hadEast = this.open.has('india'), hadResort = this.open.has('resort'); this.open = new Set(openDistricts(this.s));
+    if (!hadIsle && this.open.has('heartland')) text(this, 'kamal', MRT_TEXT);
+    if (!hadEast && this.open.has('india')) text(this, 'kamal', EAST_TEXT);
+    if (!hadResort && this.open.has('resort')) text(this, 'helang', RESORT_TEXT);
+    this.fieldCache.clear();
     this.fx.push({ t: 'mission-done', name: m.title, k: m.reward });
     this.banner = { text: 'Job done!', sub: `${m.title} · ${MEDAL_NAME[medal]}${medal ? ' medal' : ''}`, t: 3 };
     this.p.act = { n: 'celebrate', t: 0, dur: 1.1 };
     if (this.p.ride) this.p.act = null;
     this.cheer();
     for (const g of GEAR_GIFT[m.id] ?? []) if (giveGadget(this.s, g)) { this.fx.push({ t: 'gadget-gift', kind: g }); this.say(`New gadget: the ${GADGETS[g].name.toLowerCase()}! ${GADGETS[g].blurb}`, 'good'); }
-    if (this.open.size > before) { const d = [...this.open][this.open.size - 1]; this.fx.push({ t: 'district', name: DISTRICT_NAME[d] }); this.banner = this.open.size - before > 1 ? { text: 'The island opens!', sub: 'Toa Payoh and Marina Bay: take the Jade Line from Chinatown station', t: 4.5 } : { text: `${DISTRICT_NAME[d][0].toUpperCase()}${DISTRICT_NAME[d].slice(1)} opens!`, sub: 'The fog lifts', t: 4 }; }
+    if (this.open.size > before) { const d = [...this.open][this.open.size - 1]; this.fx.push({ t: 'district', name: DISTRICT_NAME[d] }); this.banner = this.open.size - before > 1 ? (this.open.has('india') && !hadEast ? { text: 'Over the Rochor River!', sub: 'Little India and Kampong Glam: take the Jade Line to Bugis or Little India', t: 4.5 } : { text: 'The island opens!', sub: 'Toa Payoh and Marina Bay: take the Jade Line from Chinatown station', t: 4.5 }) : { text: `${DISTRICT_NAME[d][0].toUpperCase()}${DISTRICT_NAME[d].slice(1)} opens!`, sub: 'The fog lifts', t: 4 }; }
     // the ending and credits play once, the first time Glint is beaten; a replay of the last job just ends
     if (m.id === 'm25' && !this.s.story.ending) this.fx.push({ t: 'finale' });
     // the island's ending plays once, the first time Director Kaw is stopped
     if (m.id === 'm35' && !this.s.story.isle) this.fx.push({ t: 'finale', kind: 'isle' });
+    // and chapter seven's, the first time Crow Number Nine is stopped
+    if (m.id === 'm45' && !this.s.story.lights) this.fx.push({ t: 'finale', kind: 'lights' });
   }
   /** the partner cheers (a job done, a catch) */
   cheer() { const m = this.mate; if (m.seat) m.cheerT = 1.2; else if (!m.act && !m.ride && !m.hide) m.act = { n: 'celebrate', t: 0, dur: 1.1 }; }

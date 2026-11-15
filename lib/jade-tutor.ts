@@ -8,6 +8,7 @@ import { dist } from './jade-rng.js';
 import type { World } from './jade-game.js';
 import { tagOption } from './jade-tag.js';
 import { MRT_HINT } from './jade-mrt.js';
+import { CABLE_HINT } from './jade-cable.js';
 
 export type Lesson = { id: string; text: string; kbText?: string; keys: string[]; touch: string; when: (w: World) => boolean; done: (w: World, fx: string[]) => boolean; max?: number };
 const onFoot = (w: World) => !w.p.ride && !w.p.roof;
@@ -16,6 +17,8 @@ export const LESSONS: Lesson[] = [
   // contextual lessons first: they win when they apply. The Jade Line first of all, once, when the island opens: shown
   // until you ride (or for 20 s), with the gold route line to Chinatown station while it shows
   { id: 'mrt', text: MRT_HINT, keys: ['E'], touch: 'Action', when: w => !!w.c.isle && w.open.has('heartland') && !w.run && !w.p.ride, done: (_w, fx) => fx.includes('mrt'), max: 20 },
+  // the cable car, once, when Sentosa opens: shown until you ride it (or the ferry), or for 20 s
+  { id: 'cable', text: CABLE_HINT, keys: ['E'], touch: 'Action', when: w => !!w.c.east && w.open.has('resort') && !w.run && !w.p.ride, done: (_w, fx) => fx.includes('cable') || fx.includes('ferry-go'), max: 20 },
   { id: 'heat', text: 'Lanterns lit: the wardens are after you. Break their line of sight to put them out.', keys: [], touch: '', when: w => w.heat >= 1, done: w => w.heat < 1, max: 9 },
   { id: 'hide', text: 'Duck into a bead curtain or a basket to hide: lanterns go out twice as fast.', keys: ['E'], touch: 'Action', when: w => w.heat >= 1 && learned(w, 'heat') && onFoot(w) && w.c.hides.some(h => dist(h.x, h.y, w.p.x, w.p.y) < 420), done: w => w.p.hide, max: 14 },
   { id: 'sneak', text: 'Sneak to stay quiet: walk slowly and you are much harder to notice.', keys: ['Shift'], touch: 'Sneak', when: w => onFoot(w) && !!w.run && (w.run.cur?.t === 'tail' || w.run.cur?.t === 'stealth'), done: w => w.p.sneak && w.p.b.speed > 20 },

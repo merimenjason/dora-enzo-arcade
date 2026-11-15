@@ -25,6 +25,9 @@ export const LEAN: Record<District, Record<Good, number>> = {
   arcade: { jade: 1.38, mooncake: 1.18, tea: 0.95, bowl: 1.12, fan: 0.72, mango: 1.25 },
   heartland: { jade: 0.9, mooncake: 0.82, tea: 0.88, bowl: 1.2, fan: 1.1, mango: 0.8 },
   bay: { jade: 1.3, mooncake: 1.24, tea: 1.2, bowl: 0.84, fan: 1.28, mango: 1.15 },
+  india: { jade: 1.16, mooncake: 0.96, tea: 0.74, bowl: 0.92, fan: 1.06, mango: 0.86 },
+  glam: { jade: 0.94, mooncake: 1.12, tea: 1.18, bowl: 1.24, fan: 0.76, mango: 0.92 },
+  resort: { jade: 1.34, mooncake: 1.06, tea: 1.0, bowl: 1.08, fan: 0.9, mango: 1.38 },
 };
 export type Tip = { night: number; market: District; good: Good; mult: number; from: string; text: string };
 export type Cargo = Record<Good, number>;

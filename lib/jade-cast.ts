@@ -104,4 +104,12 @@ export const CHAT: Record<string, string> = {
   lepak: 'Lepak means relax. Try it. Lie down. See? Nice.',
   kaw: 'Kaypoh Crows Pte Ltd: we know everyone’s business.',
   tock: 'Every gadget is tested on me first. Mostly safely.',
+  raju: 'Smell that? Cardamom, fresh this morning. Your nose says thank you.',
+  malar: 'Jasmine for luck, marigold for joy. Take one, my dear.',
+  kancil: 'Feel this songket. Gold thread, hand woven. Like holding sunshine.',
+  wangi: 'A little attar on the wrist. Not too much. Perfume should whisper.',
+  duyung: 'Fifty years on these waters and the sea still surprises me.',
+  helang: 'Fort Siloso, all present and correct! Salute!',
+  bising: 'KECOH! Ah, sorry. Mynahs only have one volume.',
+  nine: 'Number Nine. Not Number Two. Never Number Two.',
 };

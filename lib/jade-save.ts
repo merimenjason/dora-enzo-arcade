@@ -1,22 +1,23 @@
-// Jade Street: the save (localStorage 'jade-street-v9'), its repair and migration, progression (districts opened by the
+// Jade Street: the save (localStorage 'jade-street-v10'), its repair and migration, progression (districts opened by the
 // story, reputation tiers, safe houses, outfits, garage upgrades and paint), trophies and the stats screen.
 // Version 1 saves (the pre-release shape: `money`, `done` as a comma string, one shared rep number) and version 2 saves
 // (the first release, 'jade-street-v2': no medals, story flags, lessons, messages or radio) and version 3 saves (the
 // second release: no businesses, no Reduce shake), version 4 saves (the third release: no gadgets), version 5 saves
 // (no Singapore streets), version 6 saves (no island: no MRT or taxi counts, no island ending) and version 7 saves (no
 // job-step counts: photos, heists, traps and the rest) and version 8 saves (no partner setting, no lure, partner-help
-// or kopi-bribe counts) migrate forward, keeping every bit of progress, medals included.
+// or kopi-bribe counts) and version 9 saves (no Little India, Kampong Glam or Sentosa: no cable car, ferry or
+// festival counts, no chapter-seven ending) migrate forward, keeping every bit of progress, medals included.
 import { DISTRICTS, type District } from './jade-city.js';
 import { emptyCargo, GOODS, type Cargo, type Tip } from './jade-trade.js';
-import { MISSIONS, SIDE, MISSION, CHAPTER_OPENS, FINALE } from './jade-story.js';
+import { MISSIONS, SIDE, MISSION, CHAPTER_OPENS, FINALE, RESORT_OPENS } from './jade-story.js';
 import { hashStr, rng } from './jade-rng.js';
 import { asDiff, type Diff } from './jade-diff.js';
 import { BIZ, newBiz, type BizState } from './jade-biz.js';
 import { newGear, giveGadget, clipOf, ammoCap, GEAR_GIFT, GADGET_IDS, type GearState, type GadgetId } from './jade-gear.js';
 
-export const SAVE_KEY = 'jade-street-v9';
-export const OLD_KEYS = ['jade-street-v8', 'jade-street-v7', 'jade-street-v6', 'jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2', 'jade-street-v1'];
-export const SAVE_VERSION = 9;
+export const SAVE_KEY = 'jade-street-v10';
+export const OLD_KEYS = ['jade-street-v9', 'jade-street-v8', 'jade-street-v7', 'jade-street-v6', 'jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2', 'jade-street-v1'];
+export const SAVE_VERSION = 10;
 export type Hero = 'dora' | 'enzo';
 /** `keys`: remapped keyboard actions (action -> KeyboardEvent.code); `bigText`: larger HUD text; `cbMarks`: colour-blind-safe
  * markers (shapes and patterns, not only colour) */
@@ -32,7 +33,9 @@ export type Stats = { walked: number; driven: number; boated: number; missions: 
    * sprung full, crates swapped */
   photos: number; heists: number; quiet: number; defends: number; disguises: number; clues: number; traps: number; swaps: number;
   /** the eighth pass: guards lured by a noise you made, the partner's own help, witnesses bribed with kopi */
-  lures: number; palHelps: number; bribes: number };
+  lures: number; palHelps: number; bribes: number;
+  /** the ninth pass: cable car and ferry rides, Deepavali lamps lit and Hari Raya bazaar treats, mynahs caught */
+  cable: number; ferry: number; lamps: number; kuih: number; mynahs: number };
 export type Save = {
   v: number; seed: number; hero: Hero; started: boolean;
   cash: number; night: number; clock: number; cargo: Cargo; stash: Cargo;
@@ -45,7 +48,7 @@ export type Save = {
   /** best result per story job: medal tier (0 finished, 1 bronze, 2 silver, 3 gold), best time, plays */
   medals: Record<string, Medal>;
   /** the storybook: the opening seen, the last chapter card shown, the ending seen, the island's ending seen */
-  story: { intro: boolean; ch: number; ending: boolean; isle: boolean };
+  story: { intro: boolean; ch: number; ending: boolean; isle: boolean; lights: boolean };
   /** onboarding lessons already learned */
   learned: string[];
   /** texts on the phone */
@@ -90,19 +93,20 @@ export const SAFE_HOUSES: { id: string; d: District; need: number; price: number
   { id: 'safe-market', d: 'market', need: 0, price: 0 }, { id: 'safe-temple', d: 'temple', need: 15, price: 150 },
   { id: 'safe-canal', d: 'canal', need: 15, price: 200 }, { id: 'safe-docks', d: 'docks', need: 15, price: 250 }, { id: 'safe-arcade', d: 'arcade', need: 15, price: 300 },
   { id: 'safe-heartland', d: 'heartland', need: 10, price: 250 }, { id: 'safe-bay', d: 'bay', need: 15, price: 400 },
+  { id: 'safe-india', d: 'india', need: 10, price: 300 }, { id: 'safe-glam', d: 'glam', need: 12, price: 350 }, { id: 'safe-resort', d: 'resort', need: 15, price: 450 },
 ];
 
 export function newSave(seed = 1): Save {
   return {
     v: SAVE_VERSION, seed, hero: 'dora', started: false,
     cash: 100, night: 1, clock: 0, cargo: emptyCargo(), stash: emptyCargo(),
-    done: [], rep: { market: 0, temple: 0, canal: 0, docks: 0, arcade: 0, heartland: 0, bay: 0 },
+    done: [], rep: { market: 0, temple: 0, canal: 0, docks: 0, arcade: 0, heartland: 0, bay: 0, india: 0, glam: 0, resort: 0 },
     upgrades: { speed: 0, grip: 0, cargo: 0 }, paint: 'red',
     outfits: { dora: ['classic'], enzo: ['classic'] }, outfit: { dora: 'classic', enzo: 'classic' },
     cats: [], murals: [], trophies: [], tips: [], safe: 'safe-market', best: {}, daily: '', dailyDone: [],
-    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0, tolls: 0, junk: 0, kopi: 0, chope: 0, mrt: 0, taxi: 0, photos: 0, heists: 0, quiet: 0, defends: 0, disguises: 0, clues: 0, traps: 0, swaps: 0, lures: 0, palHelps: 0, bribes: 0 },
+    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0, tolls: 0, junk: 0, kopi: 0, chope: 0, mrt: 0, taxi: 0, photos: 0, heists: 0, quiet: 0, defends: 0, disguises: 0, clues: 0, traps: 0, swaps: 0, lures: 0, palHelps: 0, bribes: 0, cable: 0, ferry: 0, lamps: 0, kuih: 0, mynahs: 0 },
     settings: { sound: true, music: true, assist: true, diff: 'easy', touch: 'auto', shake: true, calm: false, keys: {}, bigText: false, cbMarks: false, partner: 'auto' },
-    medals: {}, story: { intro: false, ch: 0, ending: false, isle: false }, learned: [], msgs: [], radio: 0, helped: 0,
+    medals: {}, story: { intro: false, ch: 0, ending: false, isle: false, lights: false }, learned: [], msgs: [], radio: 0, helped: 0,
     biz: Object.fromEntries(BIZ.map(b => [b.id, newBiz()])), bizLog: [], gear: newGear(), bag: newBag(), fines: newFines(), lingo: [],
   };
 }
@@ -124,6 +128,7 @@ export function loadSave(raw: string | null): Save {
   if (o.v === 6) o = migrate6(o);
   if (o.v === 7) o = migrate7(o);
   if (o.v === 8) o = migrate8(o);
+  if (o.v === 9) o = migrate9(o);
   const s = newSave(Math.floor(num(o.seed, 1, 1, 2 ** 31)));
   s.hero = o.hero === 'enzo' ? 'enzo' : 'dora';
   s.started = o.started === true;
@@ -155,7 +160,7 @@ export function loadSave(raw: string | null): Save {
   const md = (o.medals ?? {}) as Record<string, unknown>;
   for (const [k, v] of Object.entries(md)) if (ids.has(k) && v && typeof v === 'object') { const x = v as Record<string, unknown>; s.medals[k] = { m: Math.floor(num(x.m, 0, 0, 3)), t: num(x.t, 0, 0, 1e6), plays: Math.floor(num(x.plays, 1, 1, 1e6)) }; }
   const sy = (o.story ?? {}) as Record<string, unknown>;
-  s.story = { intro: sy.intro === true, ch: Math.floor(num(sy.ch, 0, 0, 7)), ending: sy.ending === true, isle: sy.isle === true };
+  s.story = { intro: sy.intro === true, ch: Math.floor(num(sy.ch, 0, 0, 8)), ending: sy.ending === true, isle: sy.isle === true, lights: sy.lights === true };
   s.learned = strs(o.learned);
   s.msgs = Array.isArray(o.msgs) ? (o.msgs as Msg[]).filter(m => m && typeof m.text === 'string' && typeof m.from === 'string').slice(-30).map((m, i) => ({ id: Number.isInteger(m.id) ? m.id : i + 1, from: m.from, text: m.text, night: num(m.night, 1, 1, 1e5), read: m.read === true })) : [];
   s.radio = Math.floor(num(o.radio, 0, -1, 9)); s.helped = Math.floor(num(o.helped, 0, 0, 1e6));
@@ -231,6 +236,12 @@ function migrate8(o: Record<string, unknown>): Record<string, unknown> {
   const st = (o.stats ?? {}) as Record<string, unknown>, se = (o.settings ?? {}) as Record<string, unknown>;
   return { ...o, v: 9, stats: { ...st, lures: 0, palHelps: 0, bribes: 0 }, settings: { ...se, partner: 'auto' } };
 }
+/** version 9 (the eighth release): everything kept, medals too; Little India, Kampong Glam and Sentosa are new, so the
+ * cable car, ferry, festival and mynah counts start at zero and the chapter-seven ending is unseen */
+function migrate9(o: Record<string, unknown>): Record<string, unknown> {
+  const st = (o.stats ?? {}) as Record<string, unknown>, sy = (o.story ?? {}) as Record<string, unknown>;
+  return { ...o, v: 10, stats: { ...st, cable: 0, ferry: 0, lamps: 0, kuih: 0, mynahs: 0 }, story: { ...sy, lights: false } };
+}
 function keysOf(v: unknown): Record<string, string> {
   const out: Record<string, string> = {}; const used = new Set<string>();
   if (v && typeof v === 'object') for (const [k, c] of Object.entries(v as Record<string, unknown>)) if (/^[a-z0-9]{1,12}$/.test(k) && typeof c === 'string' && /^[A-Za-z0-9]{1,20}$/.test(c) && !used.has(c)) { out[k] = c; used.add(c); }
@@ -250,12 +261,15 @@ function migrate1(o: Record<string, unknown>): Record<string, unknown> {
 }
 
 // ── progression
-export const chapterOf = (s: Save) => { let ch = 1; for (let c = 1; c <= 6; c++) if (MISSIONS.filter(m => m.ch === c).every(m => s.done.includes(m.id))) ch = c + 1; return Math.min(ch, 7); };
+export const chapterOf = (s: Save) => { let ch = 1; for (let c = 1; c <= 7; c++) if (MISSIONS.filter(m => m.ch === c).every(m => s.done.includes(m.id))) ch = c + 1; return Math.min(ch, 8); };
 export function openDistricts(s: Save): District[] {
   const out: District[] = ['market'];
   for (let c = 1; c <= 4; c++) if (s.done.includes(`m${c * 5}`)) out.push(CHAPTER_OPENS[c - 1]);
   // the island opens once the Phoenix Drum is home: chapter six takes the story out of Chinatown
   if (s.done.includes('m25')) out.push('heartland', 'bay');
+  // chapter seven: Little India and Kampong Glam over the Rochor River once Island Night is won, Sentosa half way through
+  if (s.done.includes('m35')) out.push('india', 'glam');
+  if (s.done.includes(RESORT_OPENS)) out.push('resort');
   return out;
 }
 /** story missions you may start now: the chapter's jobs in order, a couple at a time */
@@ -314,6 +328,11 @@ export const TROPHIES: { id: string; name: string; desc: string; test: (s: Save)
   { id: 'island', name: 'Island Night', desc: 'Stop Director Kaw and win the Golden Chinchilla.', test: s => s.done.includes('m35') },
   { id: 'commuter', name: 'Commuter', desc: 'Ride the Jade Line five times.', test: s => s.stats.mrt >= 5 },
   { id: 'tumpang', name: 'Tumpang', desc: 'Take three taxi rides.', test: s => s.stats.taxi >= 3 },
+  { id: 'lights', name: 'Island Lights', desc: 'Stop Crow Number Nine and light up Siloso Beach.', test: s => s.done.includes('m45') },
+  { id: 'skyride', name: 'Sky Ride', desc: 'Ride the cable car three times.', test: s => s.stats.cable >= 3 },
+  { id: 'ferry', name: 'Sea Legs', desc: 'Take the island ferry.', test: s => s.stats.ferry >= 1 },
+  { id: 'festive', name: 'Festive', desc: 'Light a lamp at the Deepavali light-up and share kuih at the Hari Raya bazaar.', test: s => s.stats.lamps >= 1 && s.stats.kuih >= 1 },
+  { id: 'kecoh', name: 'Quiet Please', desc: 'Catch ten Kecoh Mynahs.', test: s => s.stats.mynahs >= 10 },
   { id: 'ghost', name: 'Ghost', desc: 'Pull off a heist the quiet way.', test: s => s.stats.quiet >= 1 },
   { id: 'sleuth', name: 'Sleuth', desc: 'Find eight clues by asking the right questions.', test: s => s.stats.clues >= 8 },
   { id: 'netted', name: 'Net Result', desc: 'Spring three traps that catch the whole gang.', test: s => s.stats.traps >= 3 },

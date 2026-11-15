@@ -44,7 +44,7 @@ export function missionSave(id, o = {}) {
   s.safe = 'safe-market';
   // on the island, the safe house of the contact's district
   const d = city().places[MISSION[id]?.at]?.d;
-  if (d === 'heartland' || d === 'bay') s.safe = `safe-${d}`;
+  if (['heartland', 'bay', 'india', 'glam', 'resort'].includes(d)) s.safe = `safe-${d}`;
   return s;
 }
 
@@ -361,6 +361,13 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
       case 'train': {
         if (p.ride) { offFoot(); return; }
         if (w.near?.kind === 'station') { press('act'); return; }
+        const tg = run.target(); if (tg) go(tg[0], tg[1]); return;
+      }
+      case 'cable': {
+        if (p.ride) { offFoot(); return; }
+        if (w.ui) { w.ui = null; return; }
+        if (w.ferry) return;
+        if (w.near?.kind === 'cable' || w.near?.kind === 'ferry') { press('act'); return; }
         const tg = run.target(); if (tg) go(tg[0], tg[1]); return;
       }
       case 'beat': { if (!p.ride) { getRide(r => r.kind === 'scooter'); return; } const [x, y] = run.spot(st.to); go(x, y); return; }

@@ -25,6 +25,7 @@ import { seat, newAI, type MateMode } from './jade-duo.js';
 import type { GadgetId } from './jade-gear.js';
 import type { Hero } from './jade-save.js';
 import type { Player } from './jade-game.js';
+import { linkById } from './jade-cable.js';
 import { lineAt, stationNear } from './jade-mrt.js';
 import { jobEnter, jobStep, jobNear, jobAct, jobMini, jobTag, jobGuardGoal, jobTarget, jobAim, jobGadget, walkOnly, heistPick, branchPick, askPick, askClose, type JobState, type BranchPick } from './jade-jobs.js';
 import type { Intel } from './jade-story.js';
@@ -36,7 +37,7 @@ export type Actor = { id: number; kind: string; b: Body; route: [number, number]
   /** painted blind (seconds), staring at a distraction (seconds, and at what), tangled in a net, the last single pounce */
   extra2?: number; stare?: number; stareX?: number; stareY?: number; stareAt?: string; netT?: number; pz?: { by: 'you' | 'mate'; t: number };
   /** a rival gang's look for a chase (an otter's sampan, a macaque) */
-  skin?: 'otter' | 'mac' | 'liz' | 'kaw';
+  skin?: 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine';
   /** what it has noticed (lib/jade-aware.ts): guards, lookouts, Pip, lured gang members, a blend's watchers */
   mind?: Mind;
   /** a sneaky raider (defend): slow, quiet, comes round the far side; a dash bowls it over */
@@ -192,7 +193,7 @@ export class Run {
         if (st.time) this.timer = st.time * k;
         if (st.rival) {
           const cls = st.rival === 'boat' ? 'boat' : st.rival === 'runner' ? 'foot' : 'small';
-          const [x, y] = nearestFree(w.c, cls, w.p.x + 30, w.p.y + 30, w.open, 4);
+          const [x, y] = nearestFree(w.c, cls, w.p.x + 30, w.p.y + 30, w.open, cls === 'boat' && w.p.ride?.kind !== 'boat' ? 12 : 4);
           const sp = st.rival === 'runner' ? 204 : st.rival === 'scooter' ? 292 : 220;
           this.actors.push(this.actor('rival-' + st.rival, x, y, cls, this.marks, sp * (this.assist ? 0.86 : 1) * this.w.diff.rival * this.mercy()));
         }
@@ -216,6 +217,7 @@ export class Run {
       case 'trade': this.base = w.s.stats.profit; this.meter = { name: 'Profit', v: 0 }; if (st.time) this.timer = st.time * k; if (this.m.tip) this.addTip(); break;
       case 'fares': this.count = 0; this.newFare(); break;
       case 'train': w.lastMrt = ''; break;
+      case 'cable': w.lastLink = ''; break;
       case 'beat': {
         // the train leaves `from` now and runs the line to `to`; its time is the road trip at a fair scooter pace,
         // longer on Assist, plus the doors closing
@@ -349,6 +351,7 @@ export class Run {
       case 'trade': { const made = w.s.stats.profit - this.base; this.meter = { name: `Profit ${Math.floor(made)}/${st.profit}`, v: clamp(made / st.profit, 0, 1) }; if (made >= st.profit) this.next(); break; }
       case 'fares': this.fares(st, dt); break;
       case 'train': if (w.lastMrt === st.to) this.next(); break;
+      case 'cable': if (w.lastLink === st.to && !w.ferry) this.next(); break;
       case 'beat': {
         const a = this.actors[0]; if (!a) break;
         if (a.stun > 0) { a.stun -= dt; if (a.stun <= 0) this.warn('Doors closing! The train is off!'); }
@@ -684,6 +687,7 @@ export class Run {
       case 'fares': return this.fare ? (this.fare.to ?? [this.fare.x, this.fare.y]) : null;
       case 'train': { const isle = w.c.isle; if (!isle) return null; const here = stationNear(w); if (here && here.id !== st.to) return null; const s = isle.stations.filter(x => x.id !== st.to && w.open.has(x.d)).sort((a, b) => dist(a.x, a.y, w.p.x, w.p.y) - dist(b.x, b.y, w.p.x, w.p.y))[0]; return s ? [s.x, s.y] : null; }
       case 'beat': return this.spot(st.to);
+      case 'cable': { const l = linkById(w, st.to); if (!l) return null; const from = l.link.stops.find(q => q.id !== st.to)!; return w.ferry ? null : [from.x, from.y]; }
       default: return null;
     }
   }
