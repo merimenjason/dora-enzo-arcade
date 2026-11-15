@@ -371,7 +371,8 @@ function marketNear(w: World, x: number, y: number): string {
 /** litter round the front: five spots on the pavement within six tiles */
 function litterSpots(w: World, x: number, y: number): Spot[] {
   const out: Spot[] = [];
-  for (let i = 0; i < 5; i++) { const a = i * 1.257 + 0.5, r = (3 + (i % 3)) * T; const [lx, ly] = nearestFree(w.c, 'walk', x + Math.cos(a) * r, y + 40 + Math.sin(a) * r, w.open, 4); out.push(tileOf(lx, ly)); }
+  // six bits of litter round the block, five to ten tiles out (the inspector checks the whole street front)
+  for (let i = 0; i < 6; i++) { const a = i * 1.047 + 0.5, r = (5 + (i * 7) % 6) * T; const [lx, ly] = nearestFree(w.c, 'walk', x + Math.cos(a) * r, y + 40 + Math.sin(a) * r, w.open, 4); out.push(tileOf(lx, ly)); }
   return out;
 }
 export function empireJob(w: World, jobId: string, id: BizId): Mission {
@@ -392,7 +393,7 @@ export function empireJob(w: World, jobId: string, id: BizId): Mission {
     case 'inspector':
       steps = [
         { t: 'talk', lines: [[g, `Inspector Siew, Environment Agency. I’m inspecting the ${b.name} shortly. Fine city, you know.`, 'calm'], ['mate', 'Litter by the door! Quick, before she gets there.', 'worried']] },
-        { t: 'collect', items: litterSpots(w, px, py), item: 'litter', time: w.assist ? 55 : 42, label: `Pick up every bit of litter round the ${b.name} before the inspector arrives (E)`, cp: true },
+        { t: 'collect', items: litterSpots(w, px, py), item: 'litter', time: w.assist ? 70 : 55, label: `Pick up every bit of litter round the ${b.name} before the inspector arrives (E)`, cp: true },
         { t: 'goto', at: front, label: `Meet Inspector Siew at the door of the ${b.name}`, ride: 'foot', r: 90 },
         { t: 'talk', lines: [[g, 'Clean floor, clean bins, not one tissue packet. Grade A. Put it in the window.', 'happy']] },
       ];
@@ -400,12 +401,13 @@ export function empireJob(w: World, jobId: string, id: BizId): Mission {
     case 'pricewar': {
       const R = rng(hashStr(`jade-pw:${w.s.seed}:${w.s.night}:${id}`));
       // Hoot's store: a street corner 10 to 14 tiles away; his runner's way there; three crates and a guard outside
-      let store: [number, number] = front, route: Spot[] = [];
+      let store: [number, number] = front, route: Spot[] = [], from: Spot = front;
       for (let k = 0; k < 10; k++) {
         const a = R() * Math.PI * 2, [sx, sy] = nearestFree(w.c, 'walk', px + Math.cos(a) * 12 * T, py + Math.sin(a) * 12 * T, w.open, 5);
         if (!w.open.has(districtAt(...tileOf(sx, sy)))) continue;
         const p = tilesDown(w.fieldTo('foot', sx, sy), ...tileOf(px, py + T)); if (p.length < 8 || p.length > 30) continue;
-        store = tileOf(sx, sy); route = [1, 2, 3].map(q => p[Math.min(p.length - 1, Math.round(p.length * q / 3))]); break;
+        // the runner sets off five tiles ahead of you (right beside you, he'd spot you at once)
+        store = tileOf(sx, sy); from = p[Math.min(5, p.length - 1)]; route = [0.45, 0.75, 1].map(q => p[Math.min(p.length - 1, Math.round((p.length - 1) * q))]); break;
       }
       if (!route.length) route = [store];
       const [sx, sy] = [(store[0] + 0.5) * T, (store[1] + 0.5) * T];
@@ -413,7 +415,7 @@ export function empireJob(w: World, jobId: string, id: BizId): Mission {
       const g1 = tileOf(...nearestFree(w.c, 'walk', sx - 4 * T, sy + 3 * T, w.open, 3)), g2 = tileOf(...nearestFree(w.c, 'walk', sx + 4 * T, sy + 3 * T, w.open, 3));
       steps = [
         { t: 'talk', lines: [[g, `Hoo-hoo. Half price at Hoot’s, every night. The ${b.name}? Empty by Sunday.`, 'smug'], ['mate', 'Half price on rotten stock and fake boards. Follow his runner, find his store.', 'cross']] },
-        { t: 'tail', from: front, route, calm: 0.85, label: 'Tail Hoot’s runner to his store (keep back, out of sight)', cp: true },
+        { t: 'tail', from, route, calm: 0.85, label: 'Tail Hoot’s runner to his store (keep back, out of sight)', cp: true },
         { t: 'swap', crates, guards: [[g1, g2]], time: w.assist ? 90 : 70, decoy: 'ticket', label: 'Swap his fake “half price” boards for honest ones while his guard looks away (E at each crate)', cp: true },
         { t: 'talk', lines: [[g, 'Hoo?! My boards say… fair prices? Who did this?!', 'cross'], ['hero', 'Fine city, Towkay. Fair prices too.', 'smug']] },
       ];

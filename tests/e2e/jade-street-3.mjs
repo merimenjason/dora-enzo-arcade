@@ -98,7 +98,7 @@ export async function third(h) {
   await act(); check(await appear('safe'), `${name}: the safe house`); const c1 = await W(() => window.__jade.world().s.cash);
   await press('safe-collect'); check(await W(c1 => window.__jade.world().s.cash === c1 + 80, c1), `${name}: collect every till at a safe house`); await press('close'); await settle();
   // the Businesses page
-  await press('pause-btn'); await press('tab-biz'); check(await exists('biz-page') && await exists('biz-row-noodle'), `${name}: the Businesses page`);
+  await press('pause-btn'); await press('tab-biz'); check(await exists('emp-page') && await exists('emp-row-noodle'), `${name}: the Empire page`);
   await look('businesses page'); await press('close'); await press('resume');
 
   // ── a crow raid: get there, then dash into the crows

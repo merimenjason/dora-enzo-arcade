@@ -7,6 +7,8 @@
 //             seed; it uses the partner (tag-team key) and the gadgets where a person would
 //   normal  - a steadier player on Normal with Assist off, and the same player on Hard: first-try and finish rates
 //             are reported (Normal should fail a fair share of first tries but still finish)
+// The empire (tenth pass): every empire job at a property that offers it, and every kind of raid each gang brings, played
+// the same way (`empireCases`); a raid starts as an alert across town, so the bot has to get there before the clock.
 // `--quick` (npm test) runs fewer seeds; `--diff` runs only the Normal and Hard players. Exports `playMission` and `missionSave` for tests/jade.mjs.
 import assert from 'node:assert/strict';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
@@ -25,6 +27,7 @@ import { tagOption, boostXY } from '../.checks/jade-tag.js';
 import { carried, giveGadget, GEAR_GIFT } from '../.checks/jade-gear.js';
 import { hiddenSpot, sightRange, BRANCHES } from '../.checks/jade-jobs.js';
 import { BIZ_OF } from '../.checks/jade-biz.js';
+import { startRaidAlert, startEmpireJob, RAID_KINDS, gangOf } from '../.checks/jade-empire.js';
 
 const QUICK = process.argv.includes('--quick');
 const MAIN = import.meta.url === `file://${process.argv[1]}`;
@@ -52,6 +55,25 @@ export function missionSave(id, o = {}) {
 const dist = (a, b, c, d) => Math.hypot(a - c, b - d);
 
 /** play one mission start to finish; returns { won, time, fails } */
+/** a save that has finished the story, with the empire's property `id` owned (and coins in its till) */
+export function empireSave(id, seed = 0) {
+  const s = newSave(seed); s.started = true; s.story.intro = true; s.done = [...MISSIONS.map(m => m.id), ...SIDE.map(m => m.id)];
+  for (const d of Object.keys(s.rep)) s.rep[d] = 60; s.cash = 2000; s.biz[id].lvl = 1; s.biz[id].bank = 200; s.empire.rank = 2;
+  s.safe = `safe-${BIZ_OF[id].d}`; if (!city().places[s.safe]) s.safe = 'safe-market';
+  return s;
+}
+/** the empire's cases: [label, property, options for playMission] — each empire job at a property that offers it, and
+ *  every raid kind of each gang (at one property in the gang's district); a raid alert starts across town, with the
+ *  real clock */
+export function empireCases() {
+  const out = [];
+  for (const [job, id] of [['supplier', 'chicken'], ['inspector', 'prata'], ['pricewar', 'textile'], ['taxi', 'taxi'], ['tour', 'bumboat'], ['tour', 'kayak'], ['karaoke', 'karaoke']])
+    out.push([`emp ${job} @${id}`, id, s => ({ save: s, setup: w => { w.placePlayer(...[BIZ_OF[id].at[0] * T + T / 2, BIZ_OF[id].at[1] * T + T + T / 2]); startEmpireJob(w, job, id); }, done: () => (s.empire.jobs[job] ?? 0) > 0, maxT: 700 })]);
+  for (const id of ['claw', 'noodle', 'bumboat', 'kopitiam', 'prata']) for (const kind of RAID_KINDS[gangOf(id)])
+    out.push([`raid ${kind} @${id}`, id, s => ({ save: s, setup: w => { startRaidAlert(w, id); w.emp.raid.kind = kind; }, done: () => s.stats.raidsWon > 0, lost: () => s.stats.raidsMissed > 0, maxT: 600 })]);
+  return out;
+}
+
 export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
   // lapse: the chance per decision of a human slip (a glance at the map, a fumbled turn) lasting 0.5-1.1 s;
   // notice: the chance of reading a telegraphed hazard in time to steer round it
@@ -646,6 +668,16 @@ if (MAIN) {
     tot.nw += nw; tot.nf += nFirst; tot.hw += hw; tot.hf += hFirst; tot.n += ns;
     const rate = DIFF_ONLY ? 1 : cw / seeds; worst = Math.min(worst, rate);
     rows.push(`${id.padEnd(4)} ${MISSION[id].title.padEnd(26)} casual ${String(Math.round(rate * 100)).padStart(3)}%  avg ${cw ? Math.round(ct / cw) : '-'}s  first try ${first}/${seeds}   Normal ${nw}/${ns} (first ${nFirst}, tries ${(nTries / ns).toFixed(1)})   Hard ${hw}/${ns} (first ${hFirst}, tries ${(hTries / ns).toFixed(1)})   perfect ${pr.won ? Math.round(pr.time) + 's' : 'LOST'}`);
+    console.log(rows[rows.length - 1]);
+  }
+  // the empire: each empire job and raid kind, casual on every seed, Normal and Hard reported
+  if (!only) for (const [label, id, opts] of empireCases()) {
+    let cw = 0, ct = 0, first = 0, nw = 0, hw = 0; const cs = QUICK ? 3 : seeds, ns = QUICK ? 1 : 4;
+    for (let k = 0; k < cs; k++) { const s = empireSave(id, k); const r = playMission(label, 'casual', k, opts(s)); if (r.won) { cw++; ct += r.time; if (!r.fails) first++; } else if (process.argv.includes('-v')) console.log('  casual lost', label, k, r); }
+    for (let k = 0; k < ns; k++) { const s = empireSave(id, 50 + k); if (playMission(label, 'normal', 50 + k, { ...opts(s), assist: false, diff: 'normal' }).won) nw++; }
+    for (let k = 0; k < ns; k++) { const s = empireSave(id, 80 + k); if (playMission(label, 'normal', 80 + k, { ...opts(s), assist: false, diff: 'hard' }).won) hw++; }
+    const rate = cw / cs; worst = Math.min(worst, rate);
+    rows.push(`${label.padEnd(31)} casual ${String(Math.round(rate * 100)).padStart(3)}%  avg ${cw ? Math.round(ct / cw) : '-'}s  first try ${first}/${cs}   Normal ${nw}/${ns}   Hard ${hw}/${ns}`);
     console.log(rows[rows.length - 1]);
   }
   const pc = (a, b) => `${Math.round(100 * a / Math.max(1, b))}%`;

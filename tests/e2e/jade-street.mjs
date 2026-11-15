@@ -9,7 +9,7 @@
 // upgrade and a paint), and the failure card (Retry and Quit job). On every screen it checks for sideways scroll and
 // for text that is too faint to read against its own backing. Fails on any failed check, page error or console
 // error. The third pass (voices, the typewriter, moods, set pieces, Glint's phases, businesses, raids, Reduce shake and
-// the new animations) is in ./jade-street-3.mjs, the fourth (both heroes, tag-team moves, gadgets, Tock's stall, two players) in ./jade-street-4.mjs, the fifth (Singapore: the hawker centre, chope, fines, kopi, the gangs, festivals, side jobs, accessibility, player 1's gamepad) in ./jade-street-5.mjs, the sixth (the island: the Jade Line, taxis, the slide, scooter wardens, the lizards, the notice queue, the island's ending) in ./jade-street-6.mjs, the seventh (the job steps: casing, heists and the safe, holding a stall, the disguise, the detective, traps, the crate swap) in ./jade-street-7.mjs, the eighth (guards who hear and think, the partner helping on their own and its setting, the harder stall, clue markers, the branch cards) in ./jade-street-8.mjs, and the ninth (Little India, Kampong Glam and Sentosa, the cable car and ferry, the festivals, the Kecoh Mynahs, chapter seven) in ./jade-street-9.mjs; all of them run at 1280×800 only, since Jade Street is a desktop game. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves a screenshot of every screen.
+// the new animations) is in ./jade-street-3.mjs, the fourth (both heroes, tag-team moves, gadgets, Tock's stall, two players) in ./jade-street-4.mjs, the fifth (Singapore: the hawker centre, chope, fines, kopi, the gangs, festivals, side jobs, accessibility, player 1's gamepad) in ./jade-street-5.mjs, the sixth (the island: the Jade Line, taxis, the slide, scooter wardens, the lizards, the notice queue, the island's ending) in ./jade-street-6.mjs, the seventh (the job steps: casing, heists and the safe, holding a stall, the disguise, the detective, traps, the crate swap) in ./jade-street-7.mjs, the eighth (guards who hear and think, the partner helping on their own and its setting, the harder stall, clue markers, the branch cards) in ./jade-street-8.mjs, the ninth (Little India, Kampong Glam and Sentosa, the cable car and ferry, the festivals, the Kecoh Mynahs, chapter seven) in ./jade-street-9.mjs, and the tenth (the Chinatown empire: properties, raids, the partner's round, repairs, the jaga, empire jobs, ranks) in ./jade-street-10.mjs; all of them run at 1280×800 only, since Jade Street is a desktop game. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves a screenshot of every screen.
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { third } from './jade-street-3.mjs';
@@ -19,6 +19,7 @@ import { sixth } from './jade-street-6.mjs';
 import { seventh } from './jade-street-7.mjs';
 import { eighth } from './jade-street-8.mjs';
 import { ninth } from './jade-street-9.mjs';
+import { tenth } from './jade-street-10.mjs';
 const require = createRequire(import.meta.url);
 let chromium;
 try { ({ chromium } = require('playwright')); } catch { ({ chromium } = createRequire(process.cwd() + '/')('playwright')); }
@@ -121,7 +122,7 @@ async function viewport(name, w, h, touch) {
   check(await p.waitForSelector('main[data-screen="title"]', { timeout: 60000 }).then(() => true, () => false), `${name}: Try again loads the rest and opens the title`);
   await p.unroute('**/art/jade-street/atlas-props.webp*'); blocking = false;
   await p.waitForSelector('main[data-ready="true"]', { timeout: 60000 });
-  await W(() => { for (const k of ['jade-street-v10', 'jade-street-v9', 'jade-street-v8', 'jade-street-v7', 'jade-street-v6', 'jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2']) localStorage.removeItem(k); }); await p.reload(); await p.waitForSelector('main[data-screen="title"]', { timeout: 60000 });
+  await W(() => { for (const k of ['jade-street-v11', 'jade-street-v10', 'jade-street-v9', 'jade-street-v8', 'jade-street-v7', 'jade-street-v6', 'jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2']) localStorage.removeItem(k); }); await p.reload(); await p.waitForSelector('main[data-screen="title"]', { timeout: 60000 });
 
   // ── the title: a new player, the hero pick
   check(await screen() === 'title', `${name}: opens on the title`);
@@ -142,6 +143,7 @@ async function viewport(name, w, h, touch) {
   if (process.env.PASS === '5') { await W(() => { window.__jade.world().s.settings.partner = 'tag'; }); await fifth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '6') { await W(() => { window.__jade.world().s.settings.partner = 'tag'; }); await sixth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '7') { await W(() => { window.__jade.world().s.settings.partner = 'tag'; }); if (!touch) await seventh({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
+  if (process.env.PASS === '10') { if (!touch) await tenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '9') { if (!touch) await ninth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '8') { if (!touch) await eighth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   await until(() => window.__jade?.world().s.hero === 'enzo');
@@ -423,12 +425,13 @@ async function viewport(name, w, h, touch) {
   await W(() => { window.__jade.world().s.settings.partner = 'auto'; });
   if (!touch) await eighth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
   if (!touch) await ninth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
+  if (!touch) await tenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
   await W(() => { window.__jade.world().s.done = ['m1', 'm2']; window.__jade.world().open = new Set(['market', 'temple']); });
 
   // ── back to the title, Continue, and both answers to starting over
   await press('pause-btn'); await press('to-title'); check(await screen() === 'title', `${name}: Save and quit to title`);
   check(await exists('continue'), `${name}: Continue on the title`);
-  { const t = await p.locator('[data-testid="continue"]').innerText(); const m = t.match(/(\d+)\/(\d+) jobs/); const all = await W(() => { const s = JSON.parse(localStorage.getItem('jade-street-v10') || '{}'); return (s.done || []).length; }); check(!!m && +m[2] >= 42 && +m[1] === all, `${name}: Continue counts every job, story and Hawker Tales (${t})`); }
+  { const t = await p.locator('[data-testid="continue"]').innerText(); const m = t.match(/(\d+)\/(\d+) jobs/); const all = await W(() => { const s = JSON.parse(localStorage.getItem('jade-street-v11') || '{}'); return (s.done || []).length; }); check(!!m && +m[2] >= 42 && +m[1] === all, `${name}: Continue counts every job, story and Hawker Tales (${t})`); }
   await press('new'); check(await exists('confirm-new'), `${name}: New game asks first`); await look('confirm new');
   await press('confirm-no'); check(await exists('continue'), `${name}: Keep my game`);
   // (the night the save holds: the long run above may have seen a dawn or two since the sleep)

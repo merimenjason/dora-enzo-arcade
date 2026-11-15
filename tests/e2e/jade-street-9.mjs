@@ -154,7 +154,7 @@ export async function ninth(h) {
   await press('pause-btn'); await press('tab-controls');
   const ctl = await loc('jade-controls').innerText(); check(/[Cc]able car/.test(ctl) && /[Ff]erry/.test(ctl) && /lamp|festival/i.test(ctl), `${name}: the Controls page has the cable car, ferry and festivals`);
   await press('close'); if (await exists('resume')) await press('resume');
-  check(await W(() => !!localStorage.getItem('jade-street-v10')), `${name}: saved as v10`);
+  check(await W(() => !!localStorage.getItem('jade-street-v11')), `${name}: saved as v11`);
 
   // ── playtest fixes: Esc closes the top-most panel (not Pause), the next-job plaque, Route me in the jobs book and on a job text
   await W(() => { const w = window.__jade.world(); w.quitJob(); w.ui = null; w.talk = null; window.__jade.play.paused = false; }); await settle();

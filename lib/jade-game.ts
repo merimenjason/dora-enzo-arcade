@@ -754,7 +754,7 @@ export class World {
   /** businesses: buy a stake, upgrade, and empty the tills (one stall, or all of them at a safe house) */
   buyBiz(id: BizId): string | null { const r = buyBiz(this.s, id, [...this.open]); if (!r) { if (!this.p.ride) this.p.act = { n: 'deal', t: 0, dur: 0.9 }; this.fx.push({ t: 'biz-buy', name: BIZ_OF[id].name }); } return r; }
   upgradeBiz(id: BizId): string | null { const r = upgradeBiz(this.s, id); if (!r) { if (!this.p.ride) this.p.act = { n: 'mend', t: 0, dur: 1 }; this.fx.push({ t: 'biz-up', name: BIZ_OF[id].name, k: this.s.biz[id].lvl }); } return r; }
-  collectBiz(id?: BizId): number { const n = collect(this.s, id); if (n > 0) { if (!this.p.ride) this.p.act = { n: 'collect', t: 0, dur: 0.9 }; this.fx.push({ t: 'coins', x: this.p.x, y: this.p.y, k: n }); } return n; }
+  collectBiz(id?: BizId): number { const n = collect(this.s, id); if (n > 0) { if (!this.p.ride) this.p.act = n >= 200 ? { n: 'count', t: 0, dur: 1.4 } : { n: 'collect', t: 0, dur: 0.9 }; this.fx.push({ t: 'coins', x: this.p.x, y: this.p.y, k: n }); } return n; }
   swapJacket() { const had = this.heat >= 1; this.clearHeat(); this.p.act = { n: 'swap', t: 0, dur: 0.9 }; if (had) { this.s.stats.escapes++; this.run?.onHeatClear(); } this.fx.push({ t: 'swap' }); }
   sleep() { this.newNight(); this.clearHeat(); this.p.act = { n: 'sleep', t: 0, dur: 1.2 }; this.fx.push({ t: 'sleep' }); }
 
