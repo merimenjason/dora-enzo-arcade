@@ -22,7 +22,7 @@ export async function fifth(h) {
   await W(() => window.__jade.teleportTo('hoon')); await wait(900);
   check(await W(() => !!window.__jade.world().c.sg && window.__jade.world().c.sg.tables.length === 6), `${name}: the hawker centre has six tables`);
   await look('hawker centre');
-  const ff = await W(() => { const c = window.__jade.world().c.sg; const i = c.fivefoot.findIndex((v, k) => v && k % 120 < 44 && Math.floor(k / 120) > 40); return [(i % 120) * 64 + 32, Math.floor(i / 120) * 64 + 32]; });
+  const ff = await W(() => { const c = window.__jade.world().c.sg, CW = 212; const i = c.fivefoot.findIndex((v, k) => v && k % CW < 44 && Math.floor(k / CW) > 40); return [(i % CW) * 64 + 32, Math.floor(i / CW) * 64 + 32]; });
   await at(ff[0], ff[1]); await wait(300);
   check(await W(() => window.__jade.world().p.shade), `${name}: under a five-foot way you stand in the shade`);
   await look('five-foot way');
@@ -94,7 +94,7 @@ export async function fifth(h) {
 
   // ── the fine city on Normal: a warden sees you jaywalk, the ticket pops up, E pays it; the next one you run from
   await W(() => { const w = window.__jade.world(); w.s.settings.diff = 'normal'; w.s.settings.assist = false; w.warned.clear(); });
-  const road = await W(() => { const w = window.__jade.world(); const z = w.c.decals.filter(d => d.sprite === 'd-zebra'); for (let ty = 44; ty < 52; ty++) for (let tx = 14; tx < 40; tx++) { const i = ty * 120 + tx; if (w.c.ground[i] === 2 && !z.some(d => Math.abs(d.x / 64 - tx) < 5 && Math.abs(d.y / 64 - ty) < 5)) return [tx * 64 + 32, ty * 64 + 32 - 128]; } return null; });
+  const road = await W(() => { const w = window.__jade.world(); const z = w.c.decals.filter(d => d.sprite === 'd-zebra'); for (let ty = 44; ty < 52; ty++) for (let tx = 14; tx < 40; tx++) { const i = ty * 212 + tx; if (w.c.ground[i] === 2 && !z.some(d => Math.abs(d.x / 64 - tx) < 5 && Math.abs(d.y / 64 - ty) < 5)) return [tx * 64 + 32, ty * 64 + 32 - 128]; } return null; });
   check(!!road, `${name}: a stretch of road away from the zebras`);
   await at(road[0], road[1]); await W(() => { window.__jade.warden(160, 0); window.__jade.world().lastTile = -1; window.__jade.world().cars = []; });
   await p.keyboard.down('s'); await until(() => !!window.__jade.world().ticket, null, 3000); await p.keyboard.up('s');

@@ -16,7 +16,7 @@ import { city, T, districtAt } from '@/lib/jade-city';
 import { translate, PAD } from '@/lib/jade-keys';
 import { startGang, type GangKind } from '@/lib/jade-gangs';
 import { dailyEvent, dayKey, openDistricts, chapterOf, type Save } from '@/lib/jade-save';
-import { MISSION, MISSIONS } from '@/lib/jade-story';
+import { MISSION, MISSIONS, SIDE } from '@/lib/jade-story';
 import type { JadeSound } from './sound';
 import type { Theme } from './music';
 import { BIZ_IDS, BIZ_OF, raidMission, type BizId } from '@/lib/jade-biz';
@@ -354,6 +354,8 @@ export class Play {
       sets: () => this.w.run ? this.w.run.sets.map(s => ({ k: s.def.k, ph: s.ph, down: s.down, swing: s.swing, rubble: s.rubble.length, drums: s.drums.length })) : [],
       fireSets: () => { const r = this.w.run; if (!r) return 0; const s0 = r.sets.find(s => s.ph === 'wait') ?? r.sets[0]; for (const s of r.sets) if (s.ph === 'wait') { const a = r.actors[0]; if (a) { a.wp = Math.max(a.wp, s.def.wp); a.b.x = s.x; a.b.y = s.y + 1.6 * T; a.stun = 3; } } if (s0) { const [x, y] = nearestFree(this.w.c, this.w.p.ride ? 'small' : 'walk', s0.x - 3 * T, s0.y - 2 * T, this.w.open, 6); this.w.placePlayer(x, y); if (this.w.p.ride) { this.w.p.ride.b.x = x; this.w.p.ride.b.y = y; } } return r.sets.length; },
       /** jump to a job and start it, dialogue skipped */
+      mission: (id: string) => MISSION[id] ?? null,
+      jobs: () => ({ story: MISSIONS.length, side: SIDE.length }),
       start: (id: string) => { (g.__jade as { jumpTo: (id: string) => void }).jumpTo(id); this.w.startMission(MISSION[id]); this.w.talk = null; this.bump(); return this.w.run?.m.id ?? null; },
       stepOf: (t: string, k?: string) => this.w.run ? this.w.run.m.steps.findIndex(st => st.t === t && (!k || (k === 'sets' ? 'sets' in st && !!st.sets : 'phase' in st && String(st.phase) === k))) : -1,
       enterStep: (i: number) => { const r = this.w.run; if (!r) return null; this.w.talk = null; r.snap = r.snapshot(i); r.enter(i); return r.cur?.t ?? null; },

@@ -310,6 +310,17 @@ for h in ('dora', 'enzo'):
     fx = cream if h == 'dora' else None
     grid(f'{h}-act9', [f'{h}-{a}' for a in ('hail-down', 'hail-side', 'tap-card', 'pole-0', 'pole-1', 'seat', 'phone', 'slide', 'point', 'dance-0', 'dance-1', 'panting')], 4, 3, 58, ref=f'{h}-tap-card', fix=fx)
 fit('isle-ui', ['i-taxiapp', 'i-mrt', 'pin-train', 'pin-taxi', 'pin-liz', 'mi-resort', 'mi-hdb', 'mi-wheel'], 4, 2, 128)
+# ── the job givers standing in the world (jobs7): six frames each, facing the street; each row scaled from its own idle
+CAST_H = {'kee': 52, 'mo': 60, 'pang': 56, 'heron': 70, 'ren': 58, 'kiri': 58, 'lim': 54, 'bo': 72, 'bristle': 62, 'gizmo': 58, 'glint': 64,
+          'pip': 50, 'hoon': 58, 'teo': 66, 'beng': 60, 'ong': 56, 'lily': 70, 'goh': 56, 'sleek': 58, 'kow': 62, 'kamal': 58, 'vanda': 66,
+          'lepak': 66, 'kaw': 64, 'tock': 52}
+CAST_POSES = ('idle-0', 'idle-1', 'wave-0', 'wave-1', 'talk-0', 'talk-1')
+for f, who in (('cast1', ['kee', 'mo', 'pang', 'heron']), ('cast2', ['ren', 'kiri', 'lim', 'bo']), ('cast3', ['bristle', 'gizmo', 'glint', 'pip']),
+               ('cast4', ['hoon', 'teo', 'beng', 'ong']), ('cast5', ['lily', 'goh', 'sleek', 'kow']), ('cast6', ['kamal', 'vanda', 'lepak', 'kaw']), ('cast7', ['tock'])):
+    gx, gy = (3, 2) if len(who) == 1 else (6, 4)
+    for r, n in enumerate(who):
+        names = [f'npc-{n}-{p}' for p in CAST_POSES] if len(who) == 1 else [f'npc-{n}-{p}' if j // 6 == r else None for j, p in enumerate(CAST_POSES * 4)]
+        grid(f, names, gx, gy, CAST_H[n], ref=f'npc-{n}-idle-0')
 FRAMES = {k: v for k, v in FRAMES.items() if v is not None}
 
 # ── seamless ground textures: crop each square, then blend it with its half-offset copy so the edges wrap
@@ -368,6 +379,7 @@ GROUPS = [('dora', lambda n: n.startswith('dora-')), ('enzo', lambda n: n.starts
           ('city2', lambda n: n in NEW_BLD),
           ('isle', lambda n: n.startswith(('hdb-', 'bay-'))),
           ('isle2', lambda n: n.startswith(('liz-', 'kamal-', 'vanda-', 'lepak-', 'kaw-', 'mynahs', 'piglet', 'crowd', 'crow-sales', 'folk-tapir', 'folk-mousedeer', 'folk-civet', 'mrt-', 'v-taxi', 'wscoot', 'rail', 'psd', 'fare-gate', 'hide-', 'crow-nest', 'playground', 'void-table', 'letterbox', 'bicycles', 'laundry', 'exercise', 'bus-stop', 'taxi-stand', 'durian-stall', 'bougain', 'prom-', 'xw-barrier', 'cones', 'spin-top', 'light-crate', 'carpet', 'statuette', 'jetty-sign', 'stn-pillar', 'mooncakes', 'balloons', 'stools'))), ('land', lambda n: n.startswith('lm2-')),
+          ('cast', lambda n: n.startswith('npc-')),
           ('city', lambda n: n.startswith(('shop-', 'roof-', 'flat-', 'bld-', 'lm-'))),
           ('rides', lambda n: n.startswith(('v-', 'car-', 'crow-cart', 'crow-boat', 'boss-', 'warden-bike'))),
           ('gear', lambda n: n.startswith(('g-', 'crate-', 'shot-', 'net-open', 'satchel', 'sp-', 'crow-netted', 'cart-netted', 'warden-slip', 'warden-paint', 'warden-dazed', 'crow-drop', 'awning-splat', 'glint-netted', 'lever-', 'sluice-', 'shutter-', 'pulley', 'boost-spot', 'window-', 'loot-bag', 'gadget-stall'))),

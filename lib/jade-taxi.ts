@@ -86,7 +86,7 @@ export function taxiStep(w: World, dt: number) {
   if (tx.st === 'come' && (w.run || w.heat >= 1)) { tx.st = 'gone'; tx.t = 0; return; }
   const d = dist(tx.b.x, tx.b.y, goal[0], goal[1]);
   if (d < (tx.st === 'ride' ? 110 : 90)) {
-    if (tx.st === 'come') { tx.st = 'wait'; tx.wait = 0; tx.b.speed = 0; w.fx.push({ t: 'taxi-stop', x: tx.b.x, y: tx.b.y }); w.say('Your taxi is here: E to get in', 'good'); }
+    if (tx.st === 'come') { tx.st = 'wait'; tx.wait = 0; tx.b.speed = 0; w.fx.push({ t: 'taxi-stop', x: tx.b.x, y: tx.b.y }); if (!w.p.act) { w.p.act = { n: 'point', t: 0, dur: 0.9 }; w.p.face = 'side'; } w.say('Your taxi is here: E to get in', 'good'); }
     else arrive(w);
     return;
   }

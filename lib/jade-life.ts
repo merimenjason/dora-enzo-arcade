@@ -120,7 +120,7 @@ export class Life {
   /** a townsperson's frame, sitting and with an umbrella in the rain */
   pedOver(x: CanvasRenderingContext2D, w: World, pd: Ped, t: number): string | null {
     // the Singapore townsfolk have no painted sitting pair: the goose auntie fans herself, the others just stand
-    if (pd.sit > 0) return pd.sp === 'goose' ? 'auntie-fan' : pd.sp === 'sunbear' || pd.sp === 'rooster' ? `folk-${pd.sp}-down` : `folk-${pd.sp}-sit-${Math.floor(t * 1.5 + pd.id) % 2}`;
+    if (pd.sit > 0) return pd.sp === 'goose' ? 'auntie-fan' : ['sunbear', 'rooster', 'tapir', 'mousedeer', 'civet'].includes(pd.sp) ? `folk-${pd.sp}-down` : `folk-${pd.sp}-sit-${Math.floor(t * 1.5 + pd.id) % 2}`;
     void x; void w; return null;
   }
   umbrella(x: CanvasRenderingContext2D, w: World, pd: Ped, hop: number) {

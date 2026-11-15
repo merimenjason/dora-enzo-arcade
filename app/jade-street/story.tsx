@@ -91,7 +91,7 @@ export function Storybook({ onDone }: { onDone: () => void }) {
 
 /** a card between chapters: ch is 1..5 */
 export function ChapterCard({ ch, onDone }: { ch: number; onDone: () => void }) {
-  const c = Math.max(1, Math.min(5, Math.round(ch)));
+  const c = Math.max(1, Math.min(6, Math.round(ch)));
   const done = useRef(false);
   const finish = useCallback(() => { if (!done.current) { done.current = true; onDone(); } }, [onDone]);
   useEffect(() => {

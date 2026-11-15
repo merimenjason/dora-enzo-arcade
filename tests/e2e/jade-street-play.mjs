@@ -2,7 +2,8 @@
 // half of it in the rain with a busker's crowd gathered, every business stall bought and fully upgraded, and the
 // third pass's effects firing (hit-stop, shake, painted debris, the heirloom slow-mo and zoom punch), and the fourth's
 // (the partner following and riding behind, a gadget fired twice a second with its shots, splats, bursts and puddles),
-// and the fifth's (gangs on the run, a festival, ticket wardens, storm flashes, the chope rush, speech bubbles),
+// and the fifth's (gangs on the run, a festival, ticket wardens, storm flashes, the chope rush, speech bubbles), and
+// the sixth's (the island's two districts, its trains overhead, the lizards and scooter wardens),
 // at 1280×800 with real keys: running, dashing and hopping on foot, riding a scooter with boosts, a spell of five-lantern
 // heat (wardens, roadblocks and the blimp) and a jump to fresh streets every few seconds. Logs the frame rate per
 // district and fails when any district averages under 55 fps, or on a page error. Needs `npm run dev` (or BASE_URL)
@@ -21,8 +22,8 @@ const errs = [];
 p.on('pageerror', e => errs.push(e.message));
 await p.goto(base, { waitUntil: 'networkidle', timeout: 120000 });
 await p.waitForSelector('main[data-ready="true"]', { timeout: 60000 });
-// every job done but the last, so all five districts are open
-await p.evaluate(() => localStorage.setItem('jade-street-v2', JSON.stringify({ v: 2, seed: 77, started: true, hero: 'dora', cash: 3000, done: Array.from({ length: 24 }, (_, i) => 'm' + (i + 1)), settings: { music: false } })));
+// every job done but the last, so all seven districts (Chinatown's five and the island's two) are open
+await p.evaluate(() => localStorage.setItem('jade-street-v2', JSON.stringify({ v: 2, seed: 77, started: true, hero: 'dora', cash: 3000, done: Array.from({ length: 34 }, (_, i) => 'm' + (i + 1)), settings: { music: false } })));
 await p.reload(); await p.waitForSelector('[data-testid="continue"]', { timeout: 120000 });
 await p.click('[data-testid="continue"]');
 await p.waitForFunction(() => !!window.__jade, null, { timeout: 30000 });
@@ -32,7 +33,7 @@ await p.evaluate(() => { const s = window.__jade.world().s; for (const id of Obj
 // every gadget, with deep satchels, so shots, splats, bursts and puddles are drawn while the partner follows
 await p.evaluate(() => { window.__jade.give(); const s = window.__jade.world().s; for (const g of s.gear.own) { s.gear.ammo[g] = 999; s.gear.lvl[g] = 2; } });
 
-const DISTRICTS = ['market', 'temple', 'canal', 'docks', 'arcade'];
+const DISTRICTS = ['market', 'temple', 'canal', 'docks', 'arcade', 'heartland', 'bay'];
 const keys = ['w', 'a', 's', 'd'];
 const rows = [];
 for (const d of DISTRICTS) {
@@ -45,7 +46,7 @@ for (const d of DISTRICTS) {
       rode = phase % 2 === 1;
       await p.evaluate(([d, k, rode]) => {
         const w = window.__jade.world(); w.talk = null; w.ui = null; if (w.run) w.quitJob(); if (w.p.ride) w.exit();
-        const spots = []; for (let ty = 1; ty < 91; ty++) for (let tx = 1; tx < 119; tx++) if (w.c.ground[ty * 120 + tx] === 2 && w.c.solid[ty * 120 + tx] === 0) spots.push([tx, ty]);
+        const spots = []; const CW = w.c.w ?? 212; for (let ty = 1; ty < 91; ty++) for (let tx = 1; tx < CW - 1; tx++) if (w.c.ground[ty * CW + tx] === 2 && w.c.solid[ty * CW + tx] === 0) spots.push([tx, ty]);
         const mine = spots.filter(([tx, ty]) => window.__jade.district(tx, ty) === d);
         const [tx, ty] = mine[(k * 7919) % mine.length];
         window.__jade.teleport(tx, ty);
@@ -57,7 +58,7 @@ for (const d of DISTRICTS) {
     if (k % 12 === 1) await p.evaluate(rain => { window.__jade.rain(rain ? 1 : null); window.__jade.event('busker', true); }, phase % 2 === 0);
     if (k % 30 === 10) await p.evaluate(() => window.__jade.heat(4.6));
     // the fifth pass's streets: a gang on the run, a festival, a ticket warden, a storm flash, the chope rush
-    if (k % 15 === 3) await p.evaluate(k => { const J = window.__jade, w = J.world(); J.gang(k % 2 ? 'otters' : 'macaques'); J.fest(['lion', 'lantern', 'getai'][k % 3], 260); J.warden(200, 80); w.sg.flash = 0.35; w.sg.rushT = 0; }, k);
+    if (k % 15 === 3) await p.evaluate(k => { const J = window.__jade, w = J.world(); J.gang(['otters', 'macaques', 'lizards'][k % 3]); J.fest(['lion', 'lantern', 'getai'][k % 3], 260); J.warden(200, 80); w.sg.flash = 0.35; w.sg.rushT = 0; }, k);
     if (k % 30 === 25) await p.evaluate(() => { const w = window.__jade.world(); w.swapJacket(); w.p.act = null; });
     // a crash, a smashed stall and an heirloom: debris, shake, hit-stop, slow-mo and the zoom punch
     if (k % 10 === 5) await p.evaluate(k => { const w = window.__jade.world(), x = w.p.x, y = w.p.y; w.fx.push({ t: 'impact', x, y, k: 1, kind: 'fruit' }, { t: 'smash', x: x + 40, y, k: 1 }); if (k % 20 === 5) w.fx.push({ t: 'loot', x, y, kind: 'heirloom' }); }, k);

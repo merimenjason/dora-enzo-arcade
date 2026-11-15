@@ -261,7 +261,8 @@ test('every step restores from its checkpoint: fail anywhere, retry, and still f
     if (st.t === 'talk' || (st.t === 'post' && !st.wait)) return; // a post without a wait passes on at once
     const r = playMission(m.id, 'perfect', 2, { failAt: i, maxT: 900 });
     // a pick-up right after a chase the passenger can finish with a grab is skipped when the grab lands it in your paws
-    const grabbed = st.t === 'pickup' && m.steps[i - 1]?.t === 'chase' && ['snatch', 'net'].includes(m.steps[i - 1].finish);
+    // (and so is one you land right on from the float's leap: the landing and the grab leave no free moment to fail in)
+    const grabbed = st.t === 'pickup' && ((m.steps[i - 1]?.t === 'chase' && ['snatch', 'net'].includes(m.steps[i - 1].finish)) || m.steps[i - 1]?.t === 'float');
     assert.ok(r.won && (r.fails >= 1 || grabbed), `${m.id} step ${i} (${st.t}) after a forced failure: ${JSON.stringify(r)}`);
   });
 });

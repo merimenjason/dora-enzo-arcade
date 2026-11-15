@@ -115,7 +115,7 @@ export function finesStep(w: World, dt: number) {
   }
   // a scooter warden on the roads nearby (one in Chinatown, two on the island's longer roads)
   const isle = Math.floor(px / T) >= OW, rides = w.patrols.filter(pt => pt.ride).length;
-  if (w.s.done.length >= 3 && rides < (isle ? 2 : 1) && w.tick % 45 === 20) {
+  if (w.s.done.length >= 3 && !w.run && rides < (isle ? 2 : 1) && w.tick % 45 === 20) {
     const a = w.R() * Math.PI * 2, d = 800 + w.R() * 400;
     const [sx, sy] = nearestFree(w.c, 'small', px + Math.cos(a) * d, py + Math.sin(a) * d, w.open, 6);
     const tx = Math.floor(sx / T), ty = Math.floor(sy / T);

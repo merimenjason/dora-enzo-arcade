@@ -6,6 +6,11 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Jade Street**: the job givers stand in the streets in person. Uncle Kee, Chef Mo, Auntie Hoon, Mr Kamal, Ms Vanda and the rest of the cast are painted full body, matching their portraits; they breathe and fidget, wave when they have a job for you, talk during their lines, and stay after their jobs with a word for you when you walk up. A job pin bobs over a giver's head, and you walk up to them rather than through them.
+- **Jade Street**: the island. After the Lantern Festival the city grows east into Toa Payoh (HDB blocks, void decks, a dragon playground with a slide, a kopitiam, a wet market, a longkang) and Marina Bay (glass towers, the Triple Sails Resort, the Float-About Stage on the water, the Durian Domes, the Bay Spinner), joined to Chinatown by the CTE, PIE and ECP expressways with gantries, each district with its own painted streets, buildings, market, safe house and townsfolk.
+- **Jade Street**: getting around the island. The Jade Line MRT runs from Chinatown to Raffles Place, Bayfront and Toa Payoh (2 coins, a painted ride while you travel, and a fine if you bring a durian), and taxis come when you hail one with G or book one in the Tumpang! app on the phone, then drive you to any safe house, market, station or sight.
+- **Jade Street**: chapter six, The Island: ten new jobs against Director Kaw and Kaypoh Crows Pte Ltd, with the otters, the macaques and a new gang, the Longkang Lizards, each with turf and a hideout; a race against the train, a chase round the expressways and a finale on the bay front, then a new ending and a dance on the stage. Three new trophies.
+- **Jade Street**: ticket wardens on scooters patrol the roads and fine riders, including for riding along the five-foot way.
 - **Jade Street**: Singapore. The quarter is now Singapore's Chinatown with its real street names: a hawker centre with five stalls to buy and tables to chope with a tissue packet (beat the aunties in the dinner rush), Uncle Teo's kopi counter where you make drinks in kopi lingo (with a glossary on the phone), shady five-foot ways that hide you from wardens, an HDB void deck with a chess uncle and a mama shop, a wet market, bumboats, Mr Ong the karang guni man, road-toll gantries and a sprinkle of Singlish from the townsfolk.
 - **Jade Street**: the fine city. Ticket wardens fine jaywalking, littering, gum, feeding pigeons and speeding, and cameras catch red lights and durians on transport; pay with E or run and the wardens give chase. Repeat offences cost more, Easy gives warnings first, and the phone lists every fine.
 - **Jade Street**: two rival gangs, the Riverside Romp otters and the Bukit Bunch macaques, with their own turf, bosses and street events; bubbles make otters play, bananas and sticky rice make macaques sit and munch.
@@ -18,6 +23,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Jade Street**: hints, toasts and speech bubbles no longer pile up: two toasts at a time, the important ones first, and the hint and passers-by wait while a fine or trophy shows.
+- **Jade Street**: Wedding Cake Weather is fairer on a first try: camera tickets cost coins but no longer bring the wardens, and one crash wobbles the cake once, not three times. A double pounce now also finishes the net chases on foot when you have no net. Saves move to v7 (older saves carry over).
 - **Jade Street**: the magpies are now house crows, the Kaypoh Crows, and Madame Glint still leads them.
 - **Jade Street**: Container Maze's lookouts pause at each end of their beat and are slower to spot you.
 - **Jade Street**: a second player now joins with Back on a gamepad (Start pauses); the save moves to version 6 and keeps everything.
@@ -25,6 +32,9 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Jade Street**: the job counts on the title's Continue button, in the jobs book and on the pause menu's story page now include chapter six and the Hawker Tales, and the jobs book has its own tab for chapter six.
+- **Jade Street**: E now gets you into a taxi the moment it pulls up, even while your hero is still pointing at it, and Chinatown runs smoother again in the bigger city (the minimap and the chasers' path finding were working over the whole island every frame).
+- **Jade Street**: a bumboat abandoned mid-channel after a failed try no longer leaves you stranded on the bank; a fresh one waits at the jetty.
 - **Jade Street**: The Silver Koi's counter now reads "Bumps 0/2 · then net it", matching what the job asks; cars no longer appear on a crossing's approach and run the red.
 - **Jade Street**: the "push all the way to run" lesson reads differently on a keyboard and no longer lingers, and the ending, credits and their festival message play only the first time Glint is beaten (a replay of the last job no longer brings them back, and the message never shows during a job).
 

@@ -3,14 +3,16 @@
 // and footbridges. Roads are crossed only at the zebra crossings: at a crossing with lights they wait for the traffic
 // on that road to be held at red, elsewhere for a gap in the cars. At a table they sit and eat; at a door or stall they
 // browse a moment and choose again. Anything fast coming at them still makes them hop aside, and a honk scatters them.
-import { T, W, H, S, G, F_BRIDGE, F_ALLEY, ROADS, districtAt, type City } from './jade-city.js';
+import { T, W, H, S, G, F_BRIDGE, F_ALLEY, ROADS, OW, districtAt, type City } from './jade-city.js';
 import { dist } from './jade-rng.js';
 import type { World } from './jade-game.js';
 import { lightOf, LIGHT_AT } from './jade-traffic.js';
 
 export const FOLK = ['rabbit', 'dog', 'squirrel', 'cat', 'duck', 'hedgehog', 'goose', 'sunbear', 'rooster'];
 /** the Singapore townsfolk, who say a word or two of Singlish (lib/jade-sg.ts) */
-export const SG_FOLK = ['goose', 'sunbear', 'rooster'];
+export const SG_FOLK = ['goose', 'sunbear', 'rooster', 'tapir', 'mousedeer', 'civet'];
+/** the island's townsfolk: mostly its own three (a tapir auntie, a mousedeer office worker, a civet student), with a few from town */
+export const ISLE_FOLK = ['tapir', 'mousedeer', 'civet', 'tapir', 'mousedeer', 'civet', 'rabbit', 'cat', 'sunbear', 'goose'];
 export type Ped = {
   id: number; sp: string; x: number; y: number; h: number; tx: number; ty: number; hop: number; hx: number; hy: number; scare: number; wait: number; walk: number;
   dest: number; sit: number; roadT: number; watch: boolean;
@@ -76,6 +78,8 @@ function pedField(w: World, d: number): Int32Array {
   f[D.ty * W + D.tx] = 0; q[t++] = D.ty * W + D.tx;
   while (h < t) {
     const i = q[h++], x = i % W, y = (i - x) / W;
+    // townsfolk pick places within 26 tiles, so the search stops well past that (the island made whole-city searches costly)
+    if (f[i] >= 64) continue;
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const nx = x + dx, ny = y + dy; if (!pedTile(w.c, nx, ny) || !w.open.has(districtAt(nx, ny))) continue;
       const j = ny * W + nx; if (f[j] >= 0) continue;
@@ -117,7 +121,7 @@ export function pedStep(w: World, dt: number) {
     const a = w.R() * Math.PI * 2, d = 600 + w.R() * 550;
     const tx = Math.floor((px + Math.cos(a) * d) / T), ty = Math.floor((py + Math.sin(a) * d) / T);
     if (pedTile(w.c, tx, ty) && zebraAt(tx, ty) < 0 && w.open.has(districtAt(tx, ty))) {
-      const pd: Ped = { id: w.nextId++, sp: FOLK[Math.floor(w.R() * FOLK.length)], x: tx * T + T / 2, y: ty * T + T / 2, h: 0, tx, ty, hop: 0, hx: 0, hy: 0, scare: 0, wait: 0, walk: w.R() * 9, dest: -1, sit: 0, roadT: 0, watch: false };
+      const pd: Ped = { id: w.nextId++, sp: (tx >= OW ? ISLE_FOLK : FOLK)[Math.floor(w.R() * (tx >= OW ? ISLE_FOLK : FOLK).length)], x: tx * T + T / 2, y: ty * T + T / 2, h: 0, tx, ty, hop: 0, hx: 0, hy: 0, scare: 0, wait: 0, walk: w.R() * 9, dest: -1, sit: 0, roadT: 0, watch: false };
       choose(w, pd); w.peds.push(pd);
     }
   }
