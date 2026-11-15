@@ -21,6 +21,8 @@ import { drawHero, gearGround, gearSorted, gearOver, wardenHitFrame, aimLine, se
 import { shooterFor } from './jade-gear.js';
 import { isleSorted, isleOver, isleActor, isleGround } from './jade-isledraw.js';
 import { eastGround, eastSorted, eastOver } from './jade-eastdraw.js';
+import { empSorted, empOver, jagaActor } from './jade-empdraw.js';
+import { BIZ, BIZ_OF, bizPos } from './jade-biz.js';
 import { jobActor, jobGround, mindBeam, mindBubble } from './jade-jobdraw.js';
 import { castFrame, castPose, type CastMember } from './jade-cast.js';
 
@@ -190,6 +192,13 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     case 'sniff': return `${h}-sniff-${t < 0.7 ? 0 : 1}`;
     case 'lounge': return `${h}-lounge-${cyc(2, 1)}`;
     case 'castle': return `${h}-castle-${cyc(2, 3)}`;
+    // the empire: mending a raided shop, a handshake hiring the jaga, sending the partner off, the partner's coin bag
+    // handed over, counting a big till
+    case 'repair': return `${h}-repair-${cyc(2, 5)}`;
+    case 'shake': return `${h}-shake`;
+    case 'send': return `${h}-send`;
+    case 'bag': return `${h}-bag-${t < 0.5 ? 0 : 1}`;
+    case 'count': return `${h}-count-${t < 0.7 ? 0 : 1}`;
     default: return `${h}-idle-${face}`;
   }
 }
@@ -420,7 +429,7 @@ export class Scene {
     for (const m of this.c.murals) if (vis(m.x, m.y)) list.push([m.y - 40, () => spr(x, w.s.murals.includes(m.id) ? 'mural-fresh' : 'mural-faded', m.x, m.y + 6, { w: 84 })]);
     for (const l of this.c.ladders) if (vis(l.x * T, l.y * T)) list.push([l.y * T + 10, () => spr(x, 'fire-ladder', l.x * T + T / 2, l.y * T + T - 4, { h: 96 })]);
     this.life.sorted(x, w, list, vis, this.t);
-    setSorted(this, x, w, list, vis);
+    setSorted(this, x, w, list, vis); empSorted(this, x, w, list, vis);
     sgSorted(this, x, w, list, vis);
     gearSorted(this, x, w, list, vis);
     isleSorted(this, x, w, list, vis);
@@ -442,7 +451,7 @@ export class Scene {
     gearOver(this, x, w, vis);
     sgOver(this, x, w, vis);
     isleOver(this, x, w, vis);
-    eastOver(this, x, w, vis);
+    eastOver(this, x, w, vis); empOver(this, x, w);
     // what F would grab right now gets a pulsing gold ring, so it stands out behind cables and heroes
     if (w.run && !w.talk) { const o = tagOption(w); if (o?.kind === 'snatch') { const g = grabTarget(w), p = w.p;
       const t = g?.kind === 'actor' ? [g.a.b.x, g.a.b.y] : w.run.items.filter(i => !i.got).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];
@@ -533,7 +542,7 @@ export class Scene {
   actor(x: CanvasRenderingContext2D, w: World, a: Actor) {
     const b = a.b; const fl = Math.floor(a.t * 6) % 2;
     x.fillStyle = 'rgba(0,0,0,.3)';
-    if (jobActor(this, x, w, a)) return;
+    if (jobActor(this, x, w, a) || jagaActor(this, x, a)) return;
     if (isleActor(this, x, a)) return;
     switch (a.kind) {
       case 'cart': this.shadow(x, b.x + 4, b.y + 6, 36, 18); spr(x, `crow-cart-${fl}`, b.x, b.y, { anchor: 'center', rot: b.h + Math.PI / 2 + (a.stun > 0 ? Math.sin(this.t * 30) * 0.3 : 0) }); if (a.stun > 0) this.stars(x, b.x, b.y - 30); break;
@@ -752,6 +761,9 @@ export class Scene {
     for (const st of w.c.isle?.stations ?? []) if (w.open.has(st.d)) { let [a, b] = toM(st.x, st.y); const d = Math.hypot(a - m.x, b - m.y); if (d > m.r - 10) { a = m.x + (a - m.x) / d * (m.r - 10); b = m.y + (b - m.y) / d * (m.r - 10); } spr(x, 'pin-train', a, b + 7, { w: 16 }); }
     // the cable car stations and ferry piers, once both ends are open
     for (const l of w.c.east ? [w.c.east.cable, w.c.east.ferry] : []) if (l.stops.every(st => w.open.has(districtAt(Math.floor(st.x / T), Math.floor(st.y / T))))) for (const st of l.stops) { let [a, b] = toM(st.x, st.y); const d = Math.hypot(a - m.x, b - m.y); if (d > m.r - 10) { a = m.x + (a - m.x) / d * (m.r - 10); b = m.y + (b - m.y) / d * (m.r - 10); } spr(x, l.id === 'cable' ? 'pin-cable' : 'pin-ferry', a, b + 7, { w: 16 }); }
+    // the empire: your properties as small jade dots, and a raid's painted pin, pulsing, held to the rim when off the edge
+    for (const b of BIZ) if (w.open.has(b.d) && w.s.biz[b.id]?.lvl) { const [bx, by] = bizPos(b); dot(bx, by, w.s.biz[b.id].dmg ? '#ff6a4a' : '#7fe0b0', 2.5); }
+    if (w.emp.raid) { const [bx, by] = bizPos(BIZ_OF[w.emp.raid.id]); let [a, b] = toM(bx, by); const d = Math.hypot(a - m.x, b - m.y); if (d > m.r - 12) { a = m.x + (a - m.x) / d * (m.r - 12); b = m.y + (b - m.y) / d * (m.r - 12); } spr(x, 'pin-raid', a, b, { w: 22 + 4 * Math.sin(this.t * 8), anchor: 'center' }); }
     for (const wd of w.wardens) dot(wd.b.x, wd.b.y, Math.floor(this.t * 4) % 2 ? '#ff4a4a' : '#5a8cff', 3);
     const o = w.objective(); if (o) dot(o[0], o[1], '#fff27a', 5);
     x.restore();

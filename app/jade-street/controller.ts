@@ -19,7 +19,8 @@ import { dailyEvent, dayKey, openDistricts, chapterOf, type Save } from '@/lib/j
 import { MISSION, MISSIONS, SIDE } from '@/lib/jade-story';
 import type { JadeSound } from './sound';
 import type { Theme } from './music';
-import { BIZ_IDS, BIZ_OF, raidMission, type BizId } from '@/lib/jade-biz';
+import { BIZ, BIZ_IDS, BIZ_OF, bizPos, raidMission, type BizId } from '@/lib/jade-biz';
+import { startRaidAlert, type RaidKind } from '@/lib/jade-empire';
 import { applyTwo } from '@/lib/jade-duo';
 import { duoFrame } from '@/lib/jade-duodraw';
 import { tagOption } from '@/lib/jade-tag';
@@ -296,8 +297,11 @@ export class Play {
       else if (f.t === 'heat-up' && f.k) this.toast(f.k === 1 ? 'A warden spotted you! Break line of sight, hide, or swap jackets at a safe house.' : `${f.k} lanterns of heat!`, 'bad');
       else if (f.t === 'finale') { this.endingT = 3; this.endingKind = f.kind === 'isle' || f.kind === 'lights' ? f.kind : ''; }
       else if (f.t === 'learned') this.snd?.fx([{ t: 'lesson' }]);
+      else if (f.t === 'raid-dmg') this.toast(`The ${f.name} was smashed up. Repair it to take anything.`, 'bad');
+      else if (f.t === 'raid-lost') this.toast(`The gang got away with ${f.k} coins from the ${f.name}.`, 'bad');
+      else if (f.t === 'jaga-hired') this.toast(`Pak Duri keeps watch at the ${f.name} now.`, 'gold');
       if (f.t === 'mission-done' && this.w.lastMedal) { const m = this.w.lastMedal; this.snd?.fx([{ t: 'medal', k: m.medal }]); if (m.best && m.medal) this.toast(`New best medal: ${['', 'bronze', 'silver', 'gold'][m.medal]}!`, 'gold'); }
-      if (f.t === 'mission-done' || f.t === 'district' || f.t === 'trophy') this.persist(this.w.s);
+      if (f.t === 'mission-done' || f.t === 'district' || f.t === 'trophy' || f.t === 'rank-up' || f.t === 'raid-lost' || f.t === 'raid-dmg') this.persist(this.w.s);
     }
   }
   /** which music theme fits the moment: Glint's finale, a chase or race, the festival, a market, or the street */
@@ -364,6 +368,13 @@ export class Play {
       run: () => { const r = this.w.run; return r ? { id: r.m.id, i: r.i, t: r.cur?.t, phase: r.cur && 'phase' in r.cur ? r.cur.phase ?? 0 : 0, meter: r.meter, meter2: r.meter2, warning: r.warning?.text ?? null, signs: r.signs.length, decoys: r.actors.filter(a => a.kind === 'decoy' && !a.gone).length, float: r.float ? { x: r.float.x / T, moving: r.float.moving, done: r.float.done } : null, actors: r.actors.length, timer: r.timer } : null; },
       biz: () => Object.fromEntries(BIZ_IDS.map(id => [id, { ...this.w.s.biz[id] }])),
       bizLog: () => this.w.s.bizLog.slice(),
+      /** the tenth pass: the empire. Start a raid alert at a property (and choose its kind), stand at a property, set
+       * the empire's rank, the raid clock and the partner's round, and read it all back */
+      raidAlert: (id: BizId, kind?: RaidKind) => { const w = this.w; Object.assign(w.emp, { raid: null }); w.quitJob(); w.talk = null; startRaidAlert(w, id); if (w.emp.raid && kind) w.emp.raid.kind = kind; this.bump(); return w.emp.raid ? { ...w.emp.raid } : null; },
+      toBiz: (id: BizId) => { const [x, y] = bizPos(BIZ_OF[id]); this.w.placePlayer(x, y + 46); this.w.step(NO_INPUT, DT); this.bump(); return this.w.near ? { kind: this.w.near.kind, label: this.w.near.label } : null; },
+      empire: () => { const w = this.w, e = w.emp; return { rank: w.s.empire.rank, jobs: { ...w.s.empire.jobs }, raid: e.raid ? { ...e.raid } : null, round: e.round ? { kind: e.round.kind, got: e.round.got, at: e.round.at, queue: e.round.queue.slice() } : null, jaga: !!e.jaga, owned: BIZ.filter(b => w.s.biz[b.id].lvl).map(b => b.id), stats: { raidsWon: w.s.stats.raidsWon, raidsMissed: w.s.stats.raidsMissed, repairs: w.s.stats.repairs, rounds: w.s.stats.rounds } }; },
+      setBiz: (id: BizId, o: { lvl?: number; bank?: number; dmg?: number; jaga?: boolean }) => { Object.assign(this.w.s.biz[id], o); this.bump(); },
+      rank: (r: number) => { this.w.s.empire.rank = r; },
       raid: (id: BizId) => { this.w.quitJob(); this.w.startMission(raidMission(this.w, id), { key: 'raid:' + id, reward: 40, d: BIZ_OF[id].d }); this.w.talk = null; return this.w.run?.cur?.t ?? null; },
       typed: () => ({ typed: Math.floor(this.typed), len: this.line()?.[1].length ?? 0, mood: this.line()?.[2] ?? null, who: this.line()?.[0] ?? null }),
       juice: () => { const j = this.scene.juice; return { debris: j.debris.length, pops: j.pops.length, trauma: j.trauma, slow: j.slow, stop: j.stop, opt: { ...j.opt } }; },

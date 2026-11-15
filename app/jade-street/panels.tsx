@@ -1,7 +1,7 @@
 'use client';
 // Jade Street panels: the market stall (the painted counter and its keeper, prices, cargo, tips and the haggle
 // needle), the safe house (jacket swap, sleep, stash, wardrobe, switching heroes, buying the house), the garage
-// (upgrades and paint), and the pause menu with the jobs book, story, businesses, controls, settings, trophies and stats.
+// (upgrades and paint), and the pause menu with the jobs book, story, empire, controls, settings, trophies and stats.
 // The map is in ./map.tsx.
 import { useEffect, useRef, useState } from 'react';
 import { GOODS, GOOD, cargoCount, haggleZone, haggleResult, needle, bestRoute, type Good } from '@/lib/jade-trade';
@@ -16,7 +16,8 @@ import { Sprite, Icon, Btn, fmt, GOOD_ICON, ART } from './ui';
 import type { JadeSound } from './sound';
 import { JobsBook, Controls } from './extras';
 import { learn } from '@/lib/jade-tutor';
-import { BizPage, CollectAll } from './biz';
+import { CollectAll } from './biz';
+import { EmpirePage } from './empire';
 
 const dName = (d: District) => DISTRICT_NAME[d].replace(/^the /, 'The ');
 export { MARKET_NAME } from '@/lib/jade-trade';
@@ -214,7 +215,7 @@ export function Garage({ play, snd, onClose, onSave }: { play: Play; snd: JadeSo
 }
 
 // ── pause menu
-type Tab = 'menu' | 'settings' | 'trophies' | 'stats' | 'story' | 'jobs' | 'controls' | 'businesses';
+type Tab = 'menu' | 'settings' | 'trophies' | 'stats' | 'story' | 'jobs' | 'controls' | 'empire';
 export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, touch }: { play: Play; onClose: () => void; onQuit: () => void; onNew: () => void; onSave: () => void; snd: JadeSound | null; onReplay: (id: string) => void; touch: boolean }) {
   const [tab, setTab] = useState<Tab>('menu'); const [confirm, setConfirm] = useState(false); const [, force] = useState(0);
   const s = play.w.s;
@@ -227,7 +228,7 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
           <Btn kind="jade" testid="resume" onClick={onClose}>Resume</Btn>
           <Btn kind="plain" testid="tab-jobs" onClick={() => setTab('jobs')}>Jobs book</Btn>
           <Btn kind="plain" testid="tab-story" onClick={() => setTab('story')}>Story</Btn>
-          <Btn kind="plain" testid="tab-biz" onClick={() => setTab('businesses')}>Businesses</Btn>
+          <Btn kind="plain" testid="tab-biz" onClick={() => setTab('empire')}>Empire{play.w.emp.raid ? ' (raid!)' : ''}</Btn>
           <Btn kind="plain" testid="tab-controls" onClick={() => setTab('controls')}>Controls</Btn>
           {!touch && <Btn kind="plain" testid="two-players" onClick={() => { play.setTwo(!play.w.two); onClose(); }}>{play.w.two ? 'Player 2 leaves' : 'Player 2 joins (same keyboard or a gamepad)'}</Btn>}
           <Btn kind="plain" testid="tab-settings" onClick={() => setTab('settings')}>Settings</Btn>
@@ -280,7 +281,7 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
         </dl>
       )}
       {tab === 'jobs' && <JobsBook play={play} onReplay={onReplay} onRoute={onClose} />}
-      {tab === 'businesses' && <BizPage play={play} />}
+      {tab === 'empire' && <EmpirePage play={play} onClose={onClose} />}
       {tab === 'controls' && <Controls touch={touch} />}
       {tab === 'story' && (
         <div className="jade-story" data-testid="story">

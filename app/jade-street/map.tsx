@@ -8,20 +8,21 @@ import { linksOf, FARES } from '@/lib/jade-cable';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DISTRICTS, DISTRICT_NAME, T, W, H, districtAt, type District } from '@/lib/jade-city';
 import { offered, safeOpen } from '@/lib/jade-save';
+import { BIZ, bizPos } from '@/lib/jade-biz';
 import { PEOPLE } from '@/lib/jade-story';
 import { spr, artLoaded, type Scene } from '@/lib/jade-scene';
 import type { Play } from './controller';
 import { Sprite, Btn, ART } from './ui';
 import './map.css';
 
-type PinKind = 'job' | 'market' | 'safe' | 'garage' | 'gig' | 'cat' | 'mural' | 'pin' | 'spot' | 'stn' | 'cable' | 'ferry';
+type PinKind = 'job' | 'market' | 'safe' | 'garage' | 'gig' | 'cat' | 'mural' | 'pin' | 'spot' | 'stn' | 'cable' | 'ferry' | 'prop' | 'own' | 'raid';
 type Pin = { kind: PinKind; name: string; sub?: string; x: number; y: number; key: string };
 type View = { cx: number; cy: number; z: number };
 
 const PIN_SPRITE: Record<PinKind, string> = {
-  job: 'pin-job', market: 'pin-market', safe: 'pin-safe', garage: 'pin-garage', gig: 'pin-gig', cat: 'pin-cat', mural: 'pin-mural', pin: 'pin-star', spot: 'pin-star', stn: 'pin-train', cable: 'pin-cable', ferry: 'pin-ferry',
+  job: 'pin-job', market: 'pin-market', safe: 'pin-safe', garage: 'pin-garage', gig: 'pin-gig', cat: 'pin-cat', mural: 'pin-mural', pin: 'pin-star', spot: 'pin-star', stn: 'pin-train', cable: 'pin-cable', ferry: 'pin-ferry', prop: 'pin-prop', own: 'pin-prop-own', raid: 'pin-raid',
 };
-const LEGEND: [PinKind, string][] = [['job', 'Job'], ['market', 'Market'], ['safe', 'Safe house'], ['garage', 'Garage'], ['gig', 'Side gig'], ['cat', 'Lucky cat found'], ['mural', 'Mural painted'], ['stn', 'Jade Line station (click to route)'], ['cable', 'Cable car (click to route)'], ['ferry', 'Ferry pier (click to route)'], ['pin', 'Your pin']];
+const LEGEND: [PinKind, string][] = [['job', 'Job'], ['prop', 'Property for sale'], ['own', 'Your property'], ['raid', 'A raid! Get there fast'], ['market', 'Market'], ['safe', 'Safe house'], ['garage', 'Garage'], ['gig', 'Side gig'], ['cat', 'Lucky cat found'], ['mural', 'Mural painted'], ['stn', 'Jade Line station (click to route)'], ['cable', 'Cable car (click to route)'], ['ferry', 'Ferry pier (click to route)'], ['pin', 'Your pin']];
 const TINT: Record<District, [number, number, number]> = { market: [255, 128, 70], temple: [90, 200, 120], canal: [60, 200, 215], arcade: [225, 90, 220], docks: [80, 125, 255], india: [255, 110, 170], glam: [150, 120, 255], resort: [70, 215, 245], heartland: [240, 200, 70], bay: [70, 225, 175] };
 const CENTRE: Record<District, [number, number]> = { market: [22, 58], temple: [23, 16], canal: [58, 31], arcade: [97, 34], docks: [84, 76], heartland: [168, 20], bay: [170, 56], india: [242, 22], glam: [242, 62], resort: [76, 110] };
 const dName = (d: District) => DISTRICT_NAME[d].replace(/^the /, 'The ');
@@ -91,6 +92,13 @@ function pinsOf(play: Play): Pin[] {
   else for (const m of offered(w.s)) { const pl = w.c.places[m.at]; if (pl) add({ kind: 'job', name: m.title, sub: `Job from ${PEOPLE[m.giver]?.name ?? 'a friend'}`, x: pl.x, y: pl.y, key: 'job-' + m.id }); }
   w.s.cats.forEach(i => { const ct = w.c.cats[i]; if (ct) add({ kind: 'cat', name: 'Lucky cat', sub: 'Found', x: ct.x, y: ct.y, key: 'cat-' + i }); });
   for (const m of w.c.murals) if (w.s.murals.includes(m.id)) add({ kind: 'mural', name: 'Mural', sub: 'Painted', x: m.x, y: m.y, key: m.id });
+  // the empire: properties for sale, yours (with the till), and a raid under way
+  for (const b of BIZ) {
+    const st = w.s.biz[b.id], [x, y] = bizPos(b), rd = w.emp.raid?.id === b.id;
+    if (rd) add({ kind: 'raid', name: `Raid on the ${b.name}!`, sub: 'The gang is at it: get there before the clock runs out', x, y, key: 'raid-' + b.id });
+    else if (st.lvl) add({ kind: 'own', name: b.name, sub: st.dmg ? 'Damaged: repair it to take anything' : `Yours, level ${st.lvl}: ${Math.floor(st.bank)} coins in the till`, x, y, key: 'prop-' + b.id });
+    else add({ kind: 'prop', name: b.name, sub: `For sale: ${b.price.toLocaleString('en-GB')} coins`, x, y, key: 'prop-' + b.id });
+  }
   if (w.waypoint) out.push({ kind: 'pin', name: 'Your pin', sub: 'The gold line leads here', x: w.waypoint[0], y: w.waypoint[1], key: 'waypoint' });
   return out;
 }
@@ -245,7 +253,7 @@ export function PaintedMap({ play, onClose }: { play: Play; onClose: () => void 
   const clear = () => { w.waypoint = null; w.route = []; w.updateRoute(); setSel(null); force(n => n + 1); play.bump(); };
   const scr = (wx: number, wy: number, v = view): [number, number] => [size.w / 2 + (wx - v.cx) * v.z, size.h / 2 + (wy - v.cy) * v.z];
   const pinSize = Math.round(Math.max(26, Math.min(44, view.z * 90)));
-  const small = (k: PinKind) => k === 'cat' || k === 'mural';
+  const small = (k: PinKind) => k === 'cat' || k === 'mural' || k === 'prop' || k === 'own';
   const order: PinKind[] = ['cat', 'mural', 'gig', 'garage', 'safe', 'market', 'stn', 'spot', 'pin', 'job'];
   const shown = [...pins].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || a.y - b.y);
   const [hx, hy] = scr(w.p.x, w.p.y);

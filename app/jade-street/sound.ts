@@ -420,6 +420,16 @@ export class JadeSound {
       case 'boss-down': case 'loot': this.gong(); this.chime(); break;
       case 'float-go': this.gong(); break;
       case 'coins': case 'biz-buy': case 'biz-up': this.coins(); this.good(); break;
+      // the empire: the raid alert (an alarm and a caw), a missed raid, a rank-up, the hammer of a repair, the jaga's
+      // whistle, the handshake, the partner setting off and bringing back the coin bag
+      case 'raid-alert': this.alarm(); this.caw(); break;
+      case 'raid-lost': case 'raid-dmg': this.sad(); this.bump(0.8); break;
+      case 'rank-up': this.fanfare(); this.chime(); break;
+      case 'repair': this.clank(); this.thud(); break;
+      case 'jaga-call': this.whistle(); break;
+      case 'jaga-hired': this.good(); this.ding(); break;
+      case 'round-out': this.whoosh(); break;
+      case 'mate-coins': this.coins(); break;
       case 'skid': this.skid(); break;
       default: if (f.t.startsWith('job-')) this.job(f.t);
     }

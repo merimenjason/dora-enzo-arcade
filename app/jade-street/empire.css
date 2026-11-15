@@ -1,0 +1,31 @@
+/* Jade Street, the tenth pass: the empire's screens (the rank card, the raid card, the ledger, the property list by
+   district, the property panel's empire row and its jobs, and the HUD's raid clock) */
+.jade-shell .jade-empire { display: grid; gap: 10px; }
+.jade-shell .jade-rank { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; align-items: center; padding: 8px 12px; border-radius: 12px; background: linear-gradient(90deg, rgba(242, 193, 78, .22), rgba(31, 154, 106, .14)); box-shadow: inset 0 0 0 2px rgba(242, 193, 78, .45); }
+.jade-shell .jade-rank .jade-rank-name { font: 700 20px var(--display); color: var(--gold); display: block; }
+.jade-shell .jade-rank small b { color: var(--gold); }
+.jade-shell .jade-rank small { display: block; opacity: .92; }
+.jade-shell .jade-rank-none { width: 72px; height: 72px; border-radius: 50%; background: rgba(255, 255, 255, .08); box-shadow: inset 0 0 0 3px rgba(242, 193, 78, .35); }
+.jade-shell .jade-meter { height: 10px; border-radius: 6px; background: rgba(0, 0, 0, .35); margin: 6px 0; overflow: hidden; }
+.jade-shell .jade-meter span { display: block; height: 100%; background: linear-gradient(90deg, var(--jade), var(--gold)); border-radius: 6px; }
+.jade-shell .jade-raidcard { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px 12px; border-radius: 12px; background: rgba(216, 68, 58, .22); box-shadow: inset 0 0 0 2px var(--red); animation: jade-raid-pulse 1.2s ease-in-out infinite alternate; }
+.jade-shell .jade-raidcard b { color: #ffb0a4; }
+.jade-shell .jade-raidcard small { display: block; }
+.jade-shell .jade-ledger { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: start; }
+.jade-shell .jade-ledger p { margin: 0; }
+.jade-shell .jade-empire .bad, .jade-shell .jade-empact .bad { color: var(--bad); }
+.jade-shell .jade-empdist h3 { font: 700 15px var(--display); color: var(--gold); margin: 6px 0 0; }
+.jade-shell .jade-bizrow.dmg { background: rgba(216, 68, 58, .16); box-shadow: inset 0 0 0 2px rgba(255, 138, 122, .5); }
+.jade-shell .jade-empact { display: grid; gap: 8px; margin: 8px 0; }
+.jade-shell .jade-empjobs { display: grid; gap: 6px; padding: 8px; border-radius: 10px; background: rgba(31, 154, 106, .14); }
+.jade-shell .jade-empjob { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.jade-shell .jade-empjob p { margin: 0; }
+.jade-shell .jade-empjob small { display: block; opacity: .92; }
+.jade-shell .jade-raidhud { position: absolute; left: 50%; top: 76px; transform: translateX(-50%); display: grid; gap: 4px; justify-items: center; z-index: 4; pointer-events: none; }
+.jade-shell .jade-raidclock { display: flex; gap: 8px; align-items: center; padding: 5px 14px; border-radius: 20px; background: rgba(120, 20, 20, .88); box-shadow: 0 0 0 2px var(--red), 0 6px 18px rgba(0, 0, 0, .4); font-weight: 800; }
+.jade-shell .jade-raidclock b { font: 700 18px var(--display); color: #fff; }
+.jade-shell .jade-raidclock.low { animation: jade-raid-pulse .5s ease-in-out infinite alternate; }
+.jade-shell .jade-roundhud { display: flex; gap: 6px; align-items: center; padding: 3px 12px; border-radius: 16px; background: rgba(15, 94, 64, .88); font-weight: 800; font-size: 14px; }
+@keyframes jade-raid-pulse { from { filter: brightness(1); } to { filter: brightness(1.35); } }
+@media (max-width: 520px) { .jade-shell .jade-empjob { grid-template-columns: 44px minmax(0, 1fr); } .jade-shell .jade-empjob button { grid-column: 1 / -1; } .jade-shell .jade-raidhud { top: 120px; max-width: calc(100% - 32px); } }
+@media (prefers-reduced-motion: reduce) { .jade-shell .jade-raidcard, .jade-shell .jade-raidclock.low { animation: none; } }

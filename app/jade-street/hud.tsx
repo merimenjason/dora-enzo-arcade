@@ -15,6 +15,7 @@ import type { Play } from './controller';
 import { JobNotes } from './jobs';
 import { tagOption } from '@/lib/jade-tag';
 import { Sprite, Icon, fmt, GOOD_ICON } from './ui';
+import { RaidHud } from './empire';
 import { GOODS } from '@/lib/jade-trade';
 
 export const clockText = (c: number) => { const m = Math.floor(c) + 19 * 60; const h = Math.floor(m / 60) % 24, mm = m % 60; const h12 = h % 12 === 0 ? 12 : h % 12; return `${h12}:${String(mm).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`; };
@@ -69,6 +70,7 @@ export function TopHud({ play, onMap, onPause }: { play: Play; onMap: () => void
         const px = Math.floor(pl.x / T), py = Math.floor(pl.y / T), where = streetAt(px, py) ?? DISTRICT_NAME[districtAt(px, py)].replace(/^the /, 'The ');
         return <div className="jade-job small" data-testid="next-job"><div className="jade-job-title">{m.side ? 'Hawker Tales' : `Chapter ${m.ch}`} · Next job</div><div className="jade-job-label">{m.title} · {PEOPLE[m.giver]?.name ?? 'a friend'}, {where}</div></div>;
       })()}
+      <RaidHud play={play} />
       {!run && w.waypoint && <div className="jade-job small"><div className="jade-job-label" data-testid="route-label">{w.c.isle?.stations.find(s => s.x === w.waypoint![0] && s.y === w.waypoint![1])?.name.replace(/^/, 'To ') ?? 'Following your map pin'}</div></div>}
     </>
   );

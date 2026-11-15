@@ -7,6 +7,7 @@ import { loadArt } from '@/lib/jade-scene';
 import { lesson } from '@/lib/jade-tutor';
 import { tagOption } from '@/lib/jade-tag';
 import { TaxiApp, JadeLineTab } from './isle';
+import { EmpirePage } from './empire';
 import { TAXI_APP } from '@/lib/jade-taxi';
 import { unread, readAll } from '@/lib/jade-phone';
 import { MISSIONS, MISSION, SIDE, CHAPTERS, PEOPLE, jobCounts } from '@/lib/jade-story';
@@ -87,8 +88,8 @@ export function PhoneView({ play, onClose }: { play: Play; onClose: () => void }
   const w = play.w;
   useEffect(() => { readAll(w); play.bump(); }, [w, play]);
   const msgs = w.s.msgs.slice().reverse();
-  const [tab, setTab] = useState<'msgs' | 'fines' | 'lingo' | 'taxi' | 'mrt'>('msgs');
-  const TABS: [typeof tab, string][] = [['msgs', 'Messages'], ['fines', `Fines (${w.s.fines.n})`], ['lingo', 'Kopi lingo'], ...(w.c.isle ? [['mrt', 'Jade Line'] as [typeof tab, string]] : []), ['taxi', TAXI_APP]];
+  const [tab, setTab] = useState<'msgs' | 'fines' | 'lingo' | 'taxi' | 'mrt' | 'empire'>(w.emp.raid ? 'empire' : 'msgs');
+  const TABS: [typeof tab, string][] = [['msgs', 'Messages'], ['fines', `Fines (${w.s.fines.n})`], ['empire', w.emp.raid ? 'Empire (raid!)' : 'Empire'], ['lingo', 'Kopi lingo'], ...(w.c.isle ? [['mrt', 'Jade Line'] as [typeof tab, string]] : []), ['taxi', TAXI_APP]];
   return (
     <div className="jade-modal-back" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="jade-panel phone" role="dialog" aria-label="Phone" data-testid="jade-phone-msgs">
@@ -101,6 +102,7 @@ export function PhoneView({ play, onClose }: { play: Play; onClose: () => void }
               {m.job && offered(w.s).some(x => x.id === m.job) && !w.run && <Btn kind="gold" testid={`msg-route-${m.job}`} onClick={() => { const pl = w.c.places[MISSION[m.job!].at]; if (pl) { w.waypoint = [pl.x, pl.y]; w.routeT = 0; w.updateRoute(); play.bump(); onClose(); } }}>Route me</Btn>}</div>
           ))}
           {tab === 'fines' && <FinesList play={play} />}
+          {tab === 'empire' && <EmpirePage play={play} onClose={onClose} />}
           {tab === 'taxi' && <TaxiApp play={play} onClose={onClose} />}
           {tab === 'mrt' && <JadeLineTab play={play} onClose={onClose} />}
           {tab === 'lingo' && <><p className="small">Order like a local. Uncle Teo calls the drinks this way at his kopi counter.</p><Glossary /></>}
@@ -183,6 +185,8 @@ export function Controls({ touch }: { touch: boolean }) {
     ['Hail a taxi at the kerb, then get in', ['G', 'E'], 'pin-taxi', 'The taxi app on the phone'],
     ['Ride the cable car or the ferry to Sentosa: walk up to the station or the pier', ['E'], 'i-cable', 'Action button'],
     ['Festivals and the beach: light a lamp, buy a kuih, shoo a mynah, a deck chair, a sandcastle', ['E'], 'i-festival', 'Action button'],
+    ['Your empire: buy, upgrade and repair properties, hire a jaga, take an empire job (walk up to one)', ['E'], 'i-empire', 'Action button'],
+    ['The Empire tab: rank, ledger, raids, send your partner round the tills', ['T'], 'i-ledger', 'Phone button'],
     ['Switch hero (Dora or Enzo)', ['Tab'], 'face-dora', 'Tap the partner’s portrait'],
     ['Tag-team move: boost, grab, pounce, hold, distract', ['F'], 'c-tap', 'Tap the green prompt'],
     ['Aim and fire a gadget', ['Mouse', 'Click'], 'g-sling', 'Desktop only'],
