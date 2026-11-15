@@ -13,7 +13,7 @@ import { DISTRICT_NAME, type District } from '@/lib/jade-city';
 import { PEOPLE } from '@/lib/jade-story';
 import type { Play } from './controller';
 import type { JadeSound } from './sound';
-import { Sprite, Btn, fmt, Icon } from './ui';
+import { Sprite, Btn, fmt, Icon, ART } from './ui';
 import './empire.css';
 
 const dName = (d: string) => DISTRICT_NAME[d as District].replace(/^the /, 'The ');
@@ -69,6 +69,7 @@ export function EmpirePage({ play, onClose }: { play: Play; onClose?: () => void
   const st = s.stats;
   return (
     <div className="jade-empire" data-testid="emp-page">
+      <img className="jade-emp-banner" src={`${ART}bg-empire.webp`} alt="" draggable={false} />
       <RankCard play={play} />
       <RaidCard play={play} onClose={onClose} />
       <div className="jade-ledger" data-testid="emp-ledger">
