@@ -81,6 +81,7 @@ test('raids: the raid hours, an alert with a text, a pin and a clock; get there 
   let raids = 0; for (let night = 1; night <= 60; night++) { s.night = night; w.emp.raid = null; s.clock = 239; w.clock(2); if (w.emp.raid) raids++; s.clock = 479; w.emp.raid = null; w.clock(2); if (w.emp.raid) raids++; }
   assert.ok(raids > 15 && raids < 60, `raids now and then (${raids} in 60 nights)`);
   w.emp.raid = null; s.clock = 100; w.clock(2); assert.equal(w.emp.raid, null, 'only at the raid hours');
+  w.emp.off = true; let quiet = true; for (let night = 1; night <= 30; night++) { s.night = night; w.emp.raid = null; s.clock = 239; w.clock(2); if (w.emp.raid) quiet = false; } assert.ok(quiet, 'switched off for the browser tests'); w.emp.off = false; w.emp.raid = null;
   // a raid needs coins in the till
   s.biz.noodle.bank = 5; let none = true; for (let night = 1; night <= 30; night++) { s.night = night; s.clock = 239; w.clock(2); if (w.emp.raid) none = false; } assert.ok(none);
   s.biz.noodle.bank = 300; startRaidAlert(w, 'noodle'); const fx = w.drain();
