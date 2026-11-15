@@ -77,7 +77,15 @@ export function bizRate(s: Save, id: BizId, open: District[], o: { daily?: { goo
   if (o.festival) { k *= 1.2; parts.push('the festival ×1.2'); }
   if (st.boost > 0 && st.boostK !== 1) { k *= st.boostK; parts.push(`an empire job ×${st.boostK} (${st.boost} night${st.boost > 1 ? 's' : ''} left)`); }
   if (s.empire?.rank >= 4) { k *= 1.1; parts.push('the Taipan’s name on the door ×1.1'); }
+  const cf = contestFactor(s, b.d); if (cf !== 1) { k *= cf; parts.push(`a rival gang muscling in ×${cf}`); }
   return { rate: Math.round(b.income[lvl] * k), parts };
+}
+/** the eleventh pass: a district the rivals contest (lib/jade-contracts.ts) takes less until it is retaken, and less
+ * again once they have dug in for three nights */
+export const CONTEST = { odds: 0.35, oddsAssist: 0.3, k: 0.75, dug: 0.6, dugNights: 3 } as const;
+export function contestFactor(s: Save, d: District): number {
+  const c = s.contracts?.contest; if (!c || c.d !== d) return 1;
+  return s.night - c.night >= CONTEST.dugNights ? CONTEST.dug : CONTEST.k;
 }
 const TILL_NIGHTS = 3;
 /** earnings for `mins` game minutes of the night (a night is 720) */

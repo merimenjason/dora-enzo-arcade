@@ -108,7 +108,7 @@ export function raidJob(w: World, id: BizId, kind: RaidKind, gang: Gang): Missio
 const skinOf = (g: Gang) => g === 'crow' ? undefined : g;
 const tileOf = (x: number, y: number): [number, number] => [Math.floor(x / T), Math.floor(y / T)];
 /** a loop of four street corners round the property for a chase (each on open pavement in an open district) */
-export function chaseLoop(w: World, px: number, py: number): Spot[] {
+export function chaseLoop(w: Pick<World, 'c' | 'open'>, px: number, py: number): Spot[] {
   const out: Spot[] = [];
   for (let i = 0; i < 4; i++) {
     const a = i * Math.PI / 2 + 0.4, [x, y] = nearestFree(w.c, 'walk', px + Math.cos(a) * 9 * T, py + Math.sin(a) * 7 * T, w.open, 8);
@@ -119,7 +119,7 @@ export function chaseLoop(w: World, px: number, py: number): Spot[] {
 }
 /** the gang's way in for a trap: a walkable path of 9 to 18 tiles ending by the property, nets along it, a spot to
  * keep back at off to the side */
-export function trapPlan(w: World, px: number, py: number): { spots: Spot[]; bait: Spot; wait: Spot; path: Spot[] } | null {
+export function trapPlan(w: Pick<World, 'c' | 'open' | 'fieldTo'>, px: number, py: number): { spots: Spot[]; bait: Spot; wait: Spot; path: Spot[] } | null {
   const [bx, by] = nearestFree(w.c, 'walk', px, py + T, w.open, 4); const f = w.fieldTo('foot', bx, by);
   for (let i = 0; i < 12; i++) {
     const a = i * Math.PI / 6 + 0.3, [sx, sy] = nearestFree(w.c, 'walk', bx + Math.cos(a) * 12 * T, by + Math.sin(a) * 12 * T, w.open, 6);
@@ -134,7 +134,7 @@ export function trapPlan(w: World, px: number, py: number): { spots: Spot[]; bai
   return null;
 }
 /** every tile from (tx,ty) down a flow field to its goal (pathFrom simplifies to corners; a trap wants the tiles) */
-function tilesDown(f: { dist: Int32Array; tx: number; ty: number }, tx: number, ty: number): [number, number][] {
+export function tilesDown(f: { dist: Int32Array; tx: number; ty: number }, tx: number, ty: number): [number, number][] {
   const out: [number, number][] = []; if (f.dist[ty * W + tx] < 0) return out;
   for (let k = 0; k < 60; k++) {
     out.push([tx, ty]); if (tx === f.tx && ty === f.ty) break;

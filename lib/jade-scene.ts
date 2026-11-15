@@ -470,6 +470,8 @@ export class Scene {
     const cl = w.s.clock;
     if (cl < 90) { x.fillStyle = `rgba(120,60,140,${0.16 * (1 - cl / 90)})`; x.fillRect(0, 0, this.w, this.h); }
     if (cl > 630) { x.fillStyle = `rgba(255,140,120,${0.14 * (cl - 630) / 90})`; x.fillRect(0, 0, this.w, this.h); }
+    // a contract's graveyard shift: the small hours, darker and bluer
+    if (w.dark) { x.fillStyle = 'rgba(14,18,60,.3)'; x.fillRect(0, 0, this.w, this.h); }
     const g = x.createRadialGradient(this.w / 2, this.h / 2, Math.min(this.w, this.h) * 0.45, this.w / 2, this.h / 2, Math.max(this.w, this.h) * 0.75);
     g.addColorStop(0, 'rgba(10,6,30,0)'); g.addColorStop(1, 'rgba(10,6,30,.45)'); x.fillStyle = g; x.fillRect(0, 0, this.w, this.h);
     sgFlash(x, w, this.cv.width, this.cv.height);
@@ -563,8 +565,10 @@ export class Scene {
         else f = `crow-walk-${sy > 0 ? 'down' : 'up'}-${fl}`;
         if (a.kind === 'lookout' && !((a.stare ?? 0) > 0) && !((a.extra2 ?? 0) > 0)) mindBeam(this, x, a.mind, b.x, b.y - 20, a.b.h, (w.assist ? 170 : 215) * w.diff.look, w.assist ? 0.45 : 0.55);
         if (a.kind === 'pip' && a.look > 0) mindBeam(this, x, a.mind, b.x, b.y - 20, a.face, w.assist ? 165 : 210, 1.2);
-        if (a.skin === 'mac') f = f.startsWith('crow-look') ? 'mac-taunt' : f.replace(/^crow-/, 'mac-');
-        spr(x, f, b.x, b.y + 4, { flip });
+        // a rival gang's runner (the tenth and eleventh passes): the same moves in their own painted frames
+        const gs = a.skin === 'mac' || a.skin === 'otter' || a.skin === 'liz' || a.skin === 'myna' ? a.skin : null;
+        if (gs) f = f.startsWith('crow-look') ? (gs === 'liz' ? 'liz-look' : `${gs}-taunt`) : f.replace(/^crow-/, gs + '-');
+        spr(x, f, b.x, b.y + 4, { flip, w: gs === 'liz' ? 56 : gs === 'myna' ? 44 : gs === 'otter' ? 46 : undefined });
         if ((a.kind === 'runner' || a.kind === 'raider') && a.stun <= 0) spr(x, a.skin === 'mac' ? 'bun' : 'coins', b.x, b.y - 52, { w: 20 });
         if ((a.kind === 'lookout' || a.kind === 'pip') && a.stun <= 0) mindBubble(this, x, a.mind, b.x, b.y - 84);
         break;
@@ -685,6 +689,8 @@ export class Scene {
         if (icon) spr(x, icon, pl.x, pl.y - 34 + Math.sin(this.t * 2 + pl.x) * 3, { w: 30, anchor: 'center', alpha: 0.95 });
         if (pl.kind === 'contact' && !w.cast.some(c => c.home && c.id === pid)) { spr(x, 'ui-ring', pl.x, pl.y - 26, { w: 46, anchor: 'center', alpha: 0.9 }); spr(x, 'face-' + contactFace(pl.name ?? ''), pl.x, pl.y - 26, { w: 32, anchor: 'center' }); }
       }
+      // a contract's giver: the job pin with a coin beside it (lib/jade-contracts.ts)
+      if (layer === 'over' && !run) for (const g of w.cast) if (g.job?.startsWith('con:')) { const top = g.y + 8 - (frameSize(`npc-${g.id}-idle-0`)[1] || 60); spr(x, 'pin-job', g.x, top - 20 + b, { w: 30, anchor: 'center' }); spr(x, 'ui-coin', g.x + 18, top - 30 + b, { w: 18, anchor: 'center' }); if (cb) this.cb(x, 'job', g.x + 26, top - 34 + b, 11); }
       if (layer === 'over' && !run) for (const g of w.gigs()) spr(x, 'flag', g.x, g.y + 6 + b * 0.2, { w: 26 });
     }
   }

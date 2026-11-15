@@ -36,7 +36,7 @@ export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop
 export const NO_INPUT: Input = { mx: 0, my: 0, sneak: false, dash: false, hop: false, act: false };
 export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; locked: boolean; tint: number; mission?: boolean; seen?: number; broken?: boolean };
 export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string };
-export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry' | 'east' | 'empire'; label: string; x: number; y: number; id?: string; ride?: Ride };
+export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry' | 'east' | 'empire' | 'contract'; label: string; x: number; y: number; id?: string; ride?: Ride };
 export type Snatcher = { x: number; y: number; h: number; t: number; out: boolean; took: number; wing: number; good?: string; dizzy?: number };
 export type Act = { n: string; t: number; dur: number; then?: () => void };
 export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' | 'sg' } | { kind: 'map' } | { kind: 'biz'; id: BizId } | { kind: 'gear' } | { kind: 'mama' } | { kind: 'glossary' }
@@ -86,6 +86,8 @@ export class World {
   tutor: TutorState = newTutor(); offered = new Set<string>(); phoneT = 0;
   /** rain from 0 to 1 (lib/jade-weather.ts) */
   rain = 0; rainForce: number | null = null;
+  /** a contract's graveyard shift (lib/jade-proc.ts): the streets darker, guards see less far */
+  dark = false;
   /** a replayed job pays a quarter and records a medal */
   replaying = false;
   /** tiles a set piece has closed (the lowered drawbridge, the shut yard gate) and a crow raid waiting to start */
@@ -298,7 +300,7 @@ export class World {
     this.s.tips = this.s.tips.filter(t => t.night >= this.s.night - 1);
     this.banner = { text: `Night ${this.s.night}`, sub: 'The markets set new prices', t: 3 };
     this.fx.push({ t: 'night' });
-    nightTip(this); empireNight(this);
+    nightTip(this); empireNight(this); contractNight(this);
   }
 
   // ── the player
@@ -409,6 +411,8 @@ export class World {
   enter(r: Ride) {
     const p = this.p;
     if (r.broken) { this.say('It won’t start. Give it a push: lean into it on foot.', 'bad'); return; }
+    // a no-rides contract (lib/jade-proc.ts): on foot all the way
+    if (this.run?.m.mods?.includes('foot')) { this.say('No rides on this contract: on foot all the way!', 'bad'); return; }
     if (r.locked) { this.ui = { kind: 'mini', mini: 'wires', level: 1, from: 'ride' }; this.pendingRide = r; this.fx.push({ t: 'mini' }); return; }
     if (p.carry === 'durian' && (r.kind === 'tuktuk' || r.kind === 'trishaw' || r.kind === 'boat')) offence(this, 'durian', r.b.x, r.b.y, true);
     p.act = { n: 'climb-on', t: 0, dur: 0.32, then: () => { p.ride = r; r.parked = false; p.b.x = r.b.x; p.b.y = r.b.y; p.hide = false; this.enteredAt = this.time; this.fx.push({ t: 'enter', kind: r.kind }); this.run?.onEnter(r); } };
@@ -490,6 +494,7 @@ export class World {
     if (stallOpen(this.s)) { const [gx, gy] = stallPos(this); cand({ kind: 'gear', label: 'Tock’s toy stall: gadgets, ammo and upgrades', x: gx, y: gy + 40 }, 80); }
     if (!this.run) for (const b of BIZ) if (this.open.has(b.d)) { const [bx, by] = bizPos(b); cand({ kind: 'biz', label: bizLabel(this, b), x: bx, y: by + 40, id: b.id }, 80); }
     if (!this.run) empireNear(this, cand);
+    if (!this.run) contractNear(this, cand);
     const en = eventNear(this); if (en) cand(en, 80);
     if (!this.run) { sgNear(this, cand); gangNear(this, cand); eastNear(this, cand); }
     if (this.festival) for (const f of this.c.festival) if (f.kind !== 'arch') cand({ kind: 'festival', label: f.kind === 'stage' ? 'Dance on the festival stage' : 'Let a sky lantern go', x: f.x, y: f.y, id: f.kind }, 80);
@@ -518,6 +523,9 @@ export class World {
     if (this.taxi?.st === 'wait' && dist(this.taxi.b.x, this.taxi.b.y, x, y) < 110) best = { kind: 'taxi', label: 'Get in the taxi', x: this.taxi.b.x, y: this.taxi.b.y };
     // a job's train step: the station gates win over a scooter parked by the entrance
     if (lk && this.run?.cur?.t === 'cable' && (best as Near | null)?.kind === 'ride') best = { kind: lk.link.id, label: `Ride to ${lk.to.name}`, x: lk.from.x, y: lk.from.y, id: lk.from.id };
+    // a job's ride step: its ride wins over a festival stage or a stall beside it
+    const jr = this.run?.cur?.t === 'ride' ? this.run.ride : null;
+    if (jr && jr.parked && dist(jr.b.x, jr.b.y, x, y) < 80) best = { kind: 'ride', label: `${jr.locked ? 'Jump-start' : 'Ride'} the ${VEHICLES[jr.kind].name.toLowerCase()}`, x: jr.b.x, y: jr.b.y, ride: jr };
     if (stn && this.run?.cur?.t === 'train' && (best as Near | null)?.kind === 'ride') best = { kind: 'station', label: `${stn.name}: take the train`, x: stn.x, y: stn.y, id: stn.id };
     this.near = best;
   }
@@ -550,6 +558,7 @@ export class World {
       case 'gang': gangAct(this, n.id!); break;
       case 'east': eastAct(this, n.id!); break;
       case 'empire': empireAct(this, n.id!); break;
+      case 'contract': contractAct(this, n.id!); break;
       case 'fine': payTicket(this); break;
       case 'station': {
         const st = this.run?.cur; if (st?.t === 'train') { if (n.id === st.to) { this.say('You are already here.', 'bad'); break; } mrtTo(this, st.to); break; }
@@ -589,12 +598,13 @@ export class World {
     this.run = new Run(this, m, gig);
     if (!gig) this.s.jobOpen = m.id;
     this.fx.push({ t: 'mission-start', name: m.title });
-    this.banner = { text: m.title, sub: gig ? 'Side gig' : m.side ? `Hawker Tales · ${PEOPLE[m.giver].name}` : `Chapter ${m.ch} · ${PEOPLE[m.giver].name}`, t: 2.6 };
+    this.banner = { text: m.title, sub: gig?.key.startsWith('con:') ? `${gig.key.startsWith('con:day') ? 'Contract of the day' : gig.key.startsWith('con:push') ? 'Retake' : 'Contract'} · ${PEOPLE[m.giver]?.name ?? ''}` : gig ? 'Side gig' : m.side ? `Hawker Tales · ${PEOPLE[m.giver].name}` : `Chapter ${m.ch} · ${PEOPLE[m.giver].name}`, t: 2.6 };
     this.run.begin();
   }
   finishMission(m: Mission, gig?: Gig) {
     this.lastRun = this.run; this.run = null; this.route = []; this.s.jobOpen = undefined;
     if (gig && gig.key.startsWith('emp:')) { empireJobDone(this, gig.key); this.s.cash += gig.reward; addRep(this.s, gig.d, 2); this.fx.push({ t: 'mission-done', name: m.title, k: gig.reward }); this.banner = { text: 'Empire job done!', sub: `${m.title} · +${gig.reward} coins · the shop takes more for a few nights`, t: 2.8 }; this.p.act = this.p.ride ? null : { n: 'celebrate', t: 0, dur: 1.1 }; return; }
+    if (gig && gig.key.startsWith('con:')) { const sub = contractDone(this, gig.key, this.lastRun?.time ?? 0); this.s.cash += gig.reward; addRep(this.s, gig.d, m.rep); this.fx.push({ t: 'mission-done', name: m.title, k: gig.reward }); this.banner = { text: 'Contract done!', sub: `${m.title} · +${gig.reward} coins${sub}`, t: 3 }; this.p.act = this.p.ride ? null : { n: 'celebrate', t: 0, dur: 1.1 }; this.cheer(); return; }
     if (gig && gig.key.startsWith('raid:')) { const id = gig.key.slice(5) as BizId; raidJobWon(this, id); this.s.cash += gig.reward; addRep(this.s, gig.d, 2); this.fx.push({ t: 'mission-done', name: m.title, k: gig.reward }); this.banner = { text: 'Raid repelled!', sub: `The till is safe · +${gig.reward} coins`, t: 2.6 }; this.p.act = this.p.ride ? null : { n: 'celebrate', t: 0, dur: 1.1 }; return; }
     if (gig) { this.s.cash += gig.reward; this.s.stats.gigs++; addRep(this.s, gig.d, 2); this.s.best[gig.key] = Math.max(this.s.best[gig.key] ?? 0, 1); this.fx.push({ t: 'mission-done', name: m.title, k: gig.reward }); this.banner = { text: 'Gig done!', sub: `+${gig.reward} coins`, t: 2.4 }; return; }
     const run = this.lastRun; const res = { time: run?.time ?? 0, maxHeat: run?.maxHeat ?? 0, retries: run?.retries ?? 0 };
@@ -627,7 +637,11 @@ export class World {
   /** the partner cheers (a job done, a catch) */
   cheer() { const m = this.mate; if (m.seat) m.cheerT = 1.2; else if (!m.act && !m.ride && !m.hide) m.act = { n: 'celebrate', t: 0, dur: 1.1 }; }
   lastRun: Run | null = null; lastMedal: { id: string; medal: number; time: number; maxHeat: number; retries: number; best: boolean } | null = null;
-  fail(reason: string) { if (!this.run) return; this.failed = { reason }; this.fx.push({ t: 'fail', msg: reason }); }
+  fail(reason: string) {
+    if (!this.run) return; this.failed = { reason }; this.fx.push({ t: 'fail', msg: reason });
+    // a contract's giver has something to say about it (their own voice, lib/jade-proc.ts VOICE)
+    const f = this.run.m.fails; if (f?.length) this.say(`${PEOPLE[this.run.m.giver]?.name ?? ''}: “${f[(this.run.retries + this.tick) % f.length]}”`, 'bad');
+  }
   retry() { this.failed = null; this.heat = 0; this.clearHeat(); if (this.run) this.run.retries++; this.run?.restore(); }
   quitJob() { this.s.jobOpen = undefined; const rid = this.run ? raidId(this.run.m.id) : null; if (rid) this.say(missRaid(this, rid), 'bad');
     this.failed = null; if (this.run && this.banner?.text === this.run.m.title) this.banner = null; this.run?.cleanup(); this.run = null; this.route = []; this.p.carry = null; this.replaying = false; }
@@ -655,6 +669,8 @@ export class World {
     // and only then at a street event
     if (this.assist && !this.p.roof) { const g = this.nextGiver(); if (g) return g; }
     const ev = eventTarget(this); if (ev && this.assist) return ev;
+    // the story's jobs all done for now: a contract's giver (the pinned one, else the nearest; lib/jade-contracts.ts)
+    if (this.assist && !this.p.roof && !offered(this.s).length) { const c = contractTarget(this); if (c) return c; }
     return null;
   }
   /** the job to do next: the story's next offered job, else the first Hawker Tale on offer */
@@ -787,4 +803,5 @@ const P2_KINDS: Near['kind'][] = ['ride', 'exit', 'ladder-up', 'ladder-down', 'h
 import { BIZ, BIZ_OF, bizPos, accrue, closeNight, raidId, raidMission, buyBiz, upgradeBiz, collect, type BizId } from './jade-biz.js';
 import { empireStep, empireClock, empireNight, empireNear, empireAct, empireTarget, empireJobDone, raidJobWon, missRaid, bizLabel, newEmp, type EmpState } from './jade-empire.js';
 import { text } from './jade-phone.js';
+import { contractNear, contractAct, contractDone, contractNight, contractTarget } from './jade-contracts.js';
 void cargoValue; void H; void F_ALLEY; void moveStep; void shove;

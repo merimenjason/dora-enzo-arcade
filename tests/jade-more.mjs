@@ -222,7 +222,7 @@ test('crow raids (the old grab-and-run job, now one of the empire raids): idle a
 
 // ── saves
 test('save: real v2 and v3 saves migrate with every bit of progress, and businesses start empty', () => {
-  assert.equal(SAVE_VERSION, 11); assert.equal(SAVE_KEY, 'jade-street-v11'); assert.ok(OLD_KEYS.includes('jade-street-v3') && OLD_KEYS.includes('jade-street-v2'));
+  assert.equal(SAVE_VERSION, 12); assert.equal(SAVE_KEY, 'jade-street-v12'); assert.ok(OLD_KEYS.includes('jade-street-v3') && OLD_KEYS.includes('jade-street-v2'));
   const v3 = JSON.parse(readFileSync(new URL('./fixtures/jade-save-v3.json', import.meta.url), 'utf8'));
   assert.equal(v3.v, 3);
   const s = loadSave(JSON.stringify(v3));

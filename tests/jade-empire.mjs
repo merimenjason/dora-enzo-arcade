@@ -8,7 +8,7 @@ import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
 import { city, T, W, S, districtAt } from '../.checks/jade-city.js';
 import { field } from '../.checks/jade-nav.js';
 import { MISSIONS, SIDE, PEOPLE, jobCounts } from '../.checks/jade-story.js';
-import { newSave, loadSave, SAVE_KEY, OLD_KEYS, TROPHIES, checkTrophies } from '../.checks/jade-save.js';
+import { newSave, loadSave, SAVE_KEY, OLD_KEYS, SAVE_VERSION, TROPHIES, checkTrophies } from '../.checks/jade-save.js';
 import { BIZ, BIZ_OF, STALL_IDS, bizPos, bizRate, buyBiz, upgradeBiz, accrue, closeNight, owned, RANKS, rankOf, empireValue, EMPIRE_COST, paidFor, bizSprite } from '../.checks/jade-biz.js';
 import { PROPS, RAID_GANG } from '../.checks/jade-props.js';
 import { EMP, startRaidAlert, raidJob, missRaid, repairCost, jagaCost, sendRound, sendDefend, jobsAt, startEmpireJob, empireJob, ledger, RAID_KINDS, trapPlan, chaseLoop, gangOf, repairBiz, hireJaga } from '../.checks/jade-empire.js';
@@ -73,7 +73,7 @@ test('ranks: Street Stall, Kopi Boss, Shophouse Tycoon and Island Taipan by what
   const s2 = rich(); for (const b of BIZ) if (b.d !== 'resort') s2.biz[b.id].lvl = 3; assert.ok(empireValue(s2) >= RANKS[4].need); assert.equal(rankOf(s2), 3);
   // the Taipan's perk: 10% more everywhere
   const s3 = rich(); s3.biz.kopi.lvl = 2; const before = bizRate(s3, 'kopi', ALL).rate; s3.empire.rank = 4; assert.ok(bizRate(s3, 'kopi', ALL).rate > before * 1.08);
-  assert.equal(TROPHIES.length, 42); assert.ok(STALL_IDS.length === 11);
+  assert.ok(TROPHIES.length >= 42); assert.ok(STALL_IDS.length === 11); // 42 trophies in the tenth pass; the eleventh adds three
 });
 
 test('raids: the raid hours, an alert with a text, a pin and a clock; get there in time and the job starts', () => {
@@ -171,12 +171,12 @@ test('empire jobs: offered by the right properties once a night, each completabl
 });
 
 test('save v11: a v10 save keeps every job, medal, stall, safe house and till; the empire starts fresh, its rank marked seen', () => {
-  assert.equal(SAVE_KEY, 'jade-street-v11'); assert.equal(OLD_KEYS[0], 'jade-street-v10');
+  assert.ok(SAVE_KEY === 'jade-street-v11' || OLD_KEYS.includes('jade-street-v11')); assert.ok(OLD_KEYS.includes('jade-street-v10'));
   const v10 = { v: 10, seed: 77, cash: 4321, night: 12, done: ['m1', 'm2', 'm3', 'k1'], medals: { m1: { m: 3, t: 50, plays: 2 } }, rep: { market: 44, temple: 20 },
     biz: { noodle: { lvl: 3, bank: 120.5, tonight: 10, hist: [100, 90], raids: 2, defended: 1 }, kopi: { lvl: 1, bank: 3, tonight: 0, hist: [], raids: 0, defended: 0 } },
     best: { 'house:safe-temple': 1 }, stats: { mynahs: 4, cable: 2 }, trophies: ['first-job', 'stake'], settings: { partner: 'tag', assist: false } };
   const s = loadSave(JSON.stringify(v10));
-  assert.equal(s.v, 11); assert.equal(s.cash, 4321); assert.deepEqual(s.done, v10.done); assert.equal(s.medals.m1.m, 3); assert.equal(s.rep.market, 44);
+  assert.equal(s.v, SAVE_VERSION); assert.equal(s.cash, 4321); assert.deepEqual(s.done, v10.done); assert.equal(s.medals.m1.m, 3); assert.equal(s.rep.market, 44);
   assert.equal(s.biz.noodle.lvl, 3); assert.equal(s.biz.noodle.bank, 120.5); assert.deepEqual(s.biz.noodle.hist, [100, 90]); assert.equal(s.biz.kopi.lvl, 1);
   assert.equal(s.biz.noodle.dmg, 0); assert.equal(s.biz.noodle.jaga, false); assert.equal(s.biz.kopitiam.lvl, 0, 'new properties start for sale');
   assert.ok(s.best['house:safe-temple'] === 1, 'the safe house you bought'); assert.equal(s.stats.mynahs, 4); assert.equal(s.stats.raidsWon, 0);
@@ -186,7 +186,7 @@ test('save v11: a v10 save keeps every job, medal, stall, safe house and till; t
   s.biz.noodle.dmg = 1; s.biz.noodle.jaga = true; s.biz.kopi.boost = 2; s.biz.kopi.boostK = 1.25; s.empire.jobs.taxi = 3; s.empire.last.taxi = 12;
   const back = loadSave(JSON.stringify(s)); assert.deepEqual(back.biz.noodle, s.biz.noodle); assert.deepEqual(back.biz.kopi, s.biz.kopi); assert.deepEqual(back.empire, s.empire);
   // and older saves still come forward through every step
-  const v3 = loadSave(JSON.stringify({ v: 3, seed: 2, cash: 50, done: ['m1'], rep: { market: 5 } })); assert.equal(v3.v, 11); assert.deepEqual(v3.done, ['m1']); assert.equal(v3.empire.rank, 0);
+  const v3 = loadSave(JSON.stringify({ v: 3, seed: 2, cash: 50, done: ['m1'], rep: { market: 5 } })); assert.equal(v3.v, SAVE_VERSION); assert.deepEqual(v3.done, ['m1']); assert.equal(v3.empire.rank, 0);
 });
 
 test('pacing: a careful player who reinvests owns everything in three to five hours of play', () => {
@@ -217,3 +217,4 @@ test('discoverability: properties for sale say their price at the door; a hint o
 });
 
 console.log(`jade (tenth pass, the empire): ${n} tests ok`);
+await import('./jade-proc.mjs');

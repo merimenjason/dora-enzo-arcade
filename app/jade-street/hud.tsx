@@ -16,6 +16,9 @@ import { JobNotes } from './jobs';
 import { tagOption } from '@/lib/jade-tag';
 import { Sprite, Icon, fmt, GOOD_ICON } from './ui';
 import { RaidHud } from './empire';
+import { nextContract, findListed } from '@/lib/jade-contracts';
+import { MOD_NAME } from '@/lib/jade-proc';
+import { offered } from '@/lib/jade-save';
 import { GOODS } from '@/lib/jade-trade';
 
 export const clockText = (c: number) => { const m = Math.floor(c) + 19 * 60; const h = Math.floor(m / 60) % 24, mm = m % 60; const h12 = h % 12 === 0 ? 12 : h % 12; return `${h12}:${String(mm).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`; };
@@ -51,7 +54,7 @@ export function TopHud({ play, onMap, onPause }: { play: Play; onMap: () => void
       </div>
       {run && (
         <div className="jade-job" data-testid="job">
-          <div className="jade-job-title">{run.gig ? 'Side gig' : run.m.side ? 'Hawker Tales' : `Chapter ${run.m.ch}`} · {run.m.title}</div>
+          <div className="jade-job-title">{run.gig?.key.startsWith('con:') ? `${run.gig.key.startsWith('con:day') ? 'Contract of the day' : run.gig.key.startsWith('con:push') ? 'Retake' : 'Contract'}${run.m.mods?.length ? ' · ' + run.m.mods.map(m => MOD_NAME[m]).join(', ') : ''}` : run.gig ? 'Side gig' : run.m.side ? 'Hawker Tales' : `Chapter ${run.m.ch}`} · {run.m.title}</div>
           <div className="jade-job-label" data-testid="objective">{run.label || 'Listen'}</div>
           <div className="jade-job-row">
             {run.timer !== null && <span className={'jade-timer' + (run.timer < 10 ? ' low' : '')} data-testid="timer">{Math.ceil(run.timer)}s</span>}
@@ -71,8 +74,26 @@ export function TopHud({ play, onMap, onPause }: { play: Play; onMap: () => void
         return <div className="jade-job small" data-testid="next-job"><div className="jade-job-title">{m.side ? 'Hawker Tales' : `Chapter ${m.ch}`} · Next job</div><div className="jade-job-label">{m.title} · {PEOPLE[m.giver]?.name ?? 'a friend'}, {where}</div></div>;
       })()}
       <RaidHud play={play} />
-      {!run && w.waypoint && <div className="jade-job small"><div className="jade-job-label" data-testid="route-label">{w.c.isle?.stations.find(s => s.x === w.waypoint![0] && s.y === w.waypoint![1])?.name.replace(/^/, 'To ') ?? 'Following your map pin'}</div></div>}
+      {!run && w.waypoint && <div className="jade-job small"><div className="jade-job-label" data-testid="route-label">{w.c.isle?.stations.find(s => s.x === w.waypoint![0] && s.y === w.waypoint![1])?.name.replace(/^/, 'To ') ?? conRoute(play) ?? 'Following your map pin'}</div></div>}
+      {!run && !w.waypoint && <NextContract play={play} />}
     </>
+  );
+}
+
+/** the route label for a pinned contract */
+function conRoute(play: Play) {
+  const w = play.w, pin = w.s.contracts?.pin; if (!pin) return null;
+  const l = findListed(w, pin); return l ? `To ${PEOPLE[l.c.giver]?.name ?? l.c.giver} for “${l.c.title}”` : null;
+}
+/** between jobs, with the story's jobs all done for now: the next contract, whose giver the gold line leads to */
+function NextContract({ play }: { play: Play }) {
+  const w = play.w; if (offered(w.s).length) return null;
+  const l = nextContract(w); if (!l) return null;
+  return (
+    <div className="jade-job small jade-nextcon" data-testid="next-contract">
+      <Sprite name={PEOPLE[l.c.giver]?.face ?? 'face-kee'} h={34} w={34} />
+      <div><div className="jade-job-title">{l.tag === 'day' ? 'Contract of the day' : l.tag === 'push' ? 'Retake' : 'Next contract'} · {'★'.repeat(l.c.stars)}</div><div className="jade-job-label">{PEOPLE[l.c.giver]?.name ?? l.c.giver}: {l.c.title}</div></div>
+    </div>
   );
 }
 

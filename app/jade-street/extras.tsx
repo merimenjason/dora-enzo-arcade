@@ -8,6 +8,8 @@ import { lesson } from '@/lib/jade-tutor';
 import { tagOption } from '@/lib/jade-tag';
 import { TaxiApp, JadeLineTab } from './isle';
 import { EmpirePage } from './empire';
+import { ContractsTab } from './contracts';
+import { contractsOpen } from '@/lib/jade-contracts';
 import { TAXI_APP } from '@/lib/jade-taxi';
 import { unread, readAll } from '@/lib/jade-phone';
 import { MISSIONS, MISSION, SIDE, CHAPTERS, PEOPLE, jobCounts } from '@/lib/jade-story';
@@ -88,8 +90,8 @@ export function PhoneView({ play, onClose }: { play: Play; onClose: () => void }
   const w = play.w;
   useEffect(() => { readAll(w); play.bump(); }, [w, play]);
   const msgs = w.s.msgs.slice().reverse();
-  const [tab, setTab] = useState<'msgs' | 'fines' | 'lingo' | 'taxi' | 'mrt' | 'empire'>(w.emp.raid ? 'empire' : 'msgs');
-  const TABS: [typeof tab, string][] = [['msgs', 'Messages'], ['fines', `Fines (${w.s.fines.n})`], ['empire', w.emp.raid ? 'Empire (raid!)' : 'Empire'], ['lingo', 'Kopi lingo'], ...(w.c.isle ? [['mrt', 'Jade Line'] as [typeof tab, string]] : []), ['taxi', TAXI_APP]];
+  const [tab, setTab] = useState<'msgs' | 'fines' | 'lingo' | 'taxi' | 'mrt' | 'empire' | 'con'>(w.emp.raid ? 'empire' : 'msgs');
+  const TABS: [typeof tab, string][] = [['msgs', 'Messages'], ['con', !contractsOpen(w.s) ? 'Contracts' : w.s.contracts.contest ? 'Contracts (retake!)' : 'Contracts (3)'], ['fines', `Fines (${w.s.fines.n})`], ['empire', w.emp.raid ? 'Empire (raid!)' : 'Empire'], ['lingo', 'Kopi lingo'], ...(w.c.isle ? [['mrt', 'Jade Line'] as [typeof tab, string]] : []), ['taxi', TAXI_APP]];
   return (
     <div className="jade-modal-back" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="jade-panel phone" role="dialog" aria-label="Phone" data-testid="jade-phone-msgs">
@@ -103,6 +105,7 @@ export function PhoneView({ play, onClose }: { play: Play; onClose: () => void }
           ))}
           {tab === 'fines' && <FinesList play={play} />}
           {tab === 'empire' && <EmpirePage play={play} onClose={onClose} />}
+          {tab === 'con' && <ContractsTab play={play} onClose={onClose} />}
           {tab === 'taxi' && <TaxiApp play={play} onClose={onClose} />}
           {tab === 'mrt' && <JadeLineTab play={play} onClose={onClose} />}
           {tab === 'lingo' && <><p className="small">Order like a local. Uncle Teo calls the drinks this way at his kopi counter.</p><Glossary /></>}
@@ -140,7 +143,7 @@ export function JobsBook({ play, onReplay, onRoute }: { play: Play; onReplay: (i
   const list = ch === 0 ? SIDE : MISSIONS.filter(m => m.ch === ch);
   return (
     <div className="jade-book" data-testid="jade-jobs">
-      <p className="jade-book-sum"><Sprite name="ui-medal-gold" h={24} w={24} /> {n.gold} gold · {n.marks}/{n.marksAll} marks · {n.story}/{n.storyAll} jobs · {n.tales}/{n.talesAll} Hawker Tales</p>
+      <p className="jade-book-sum"><Sprite name="ui-medal-gold" h={24} w={24} /> {n.gold} gold · {n.marks}/{n.marksAll} marks · {n.story}/{n.storyAll} jobs · {n.tales}/{n.talesAll} Hawker Tales{n.contracts ? <> · <span data-testid="jade-jobs-con">{n.contracts} contract{n.contracts === 1 ? '' : 's'} ({n.contractKinds} kinds{n.retaken ? `, ${n.retaken} retake${n.retaken === 1 ? '' : 's'}` : ''})</span></> : null}</p>
       <div className="jade-book-tabs" role="tablist">
         {CHAPTERS.map((c, i) => <button key={c} type="button" role="tab" aria-selected={ch === i + 1} className={'jade-tab' + (ch === i + 1 ? ' on' : '')} data-testid={`jade-jobs-ch${i + 1}`} onClick={() => setCh(i + 1)}>{i + 1}. {c}</button>)}
         <button type="button" role="tab" aria-selected={ch === 0} className={'jade-tab' + (ch === 0 ? ' on' : '')} data-testid="jade-jobs-side" onClick={() => setCh(0)}>Hawker Tales</button>
@@ -187,6 +190,7 @@ export function Controls({ touch }: { touch: boolean }) {
     ['Festivals and the beach: light a lamp, buy a kuih, shoo a mynah, a deck chair, a sandcastle', ['E'], 'i-festival', 'Action button'],
     ['Your empire: buy, upgrade and repair properties, hire a jaga, take an empire job (walk up to one)', ['E'], 'i-empire', 'Action button'],
     ['The Empire tab: rank, ledger, raids, send your partner round the tills', ['T'], 'i-ledger', 'Phone button'],
+    ['Contracts (after chapter six): the Contracts tab, Route me, then talk to the giver', ['T', 'E'], 'pin-job', 'Phone button'],
     ['Switch hero (Dora or Enzo)', ['Tab'], 'face-dora', 'Tap the partner’s portrait'],
     ['Tag-team move: boost, grab, pounce, hold, distract', ['F'], 'c-tap', 'Tap the green prompt'],
     ['Aim and fire a gadget', ['Mouse', 'Click'], 'g-sling', 'Desktop only'],

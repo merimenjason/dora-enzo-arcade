@@ -30,6 +30,8 @@ export function boostNear(w: World, p: Player, roof = false, r = 80): number {
 export function tagOption(w: World): TagOpt | null {
   const p = w.p, m = w.mate, n = nameOf(m.who);
   if (w.talk || w.ui || w.failed || p.act || p.hide || m.act) return null;
+  // a contract with the partner busy elsewhere (lib/jade-proc.ts): only your own F moves (springing a net)
+  if (w.run?.m.mods?.includes('solo') && !w.two) { const r = w.run.tagOption(); return r && r.kind === 'spring' ? r : null; }
   const r = w.run?.tagOption(); if (r) return r;
   if (p.ride) {
     if (m.seat !== p.ride) return null;

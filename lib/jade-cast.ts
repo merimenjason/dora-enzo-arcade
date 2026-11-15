@@ -9,6 +9,7 @@ import { PEOPLE } from './jade-story.js';
 import { offered } from './jade-save.js';
 import { stallOpen, stallPos } from './jade-gear.js';
 import { dist } from './jade-rng.js';
+import { listContracts, contractsOpen } from './jade-contracts.js';
 import type { World } from './jade-game.js';
 import type { Obstacle } from './jade-move.js';
 
@@ -38,6 +39,8 @@ export function castOf(w: World): CastMember[] {
     const pl = w.c.places[id];
     if (pl && pl.kind === 'contact' && !ROAMS.has(id) && w.open.has(pl.d)) { out.push(member(w, id, pl.x, pl.y, true, jobs.find(m => m.giver === id && m.at === id)?.id ?? null)); at.set(id, id); }
   }
+  // a contract's giver (lib/jade-contracts.ts) waves too, once no story job of theirs is on offer
+  if (!w.run) for (const l of listContracts(w)) { const c = out.find(x => x.id === l.c.giver && x.home && !x.job); if (c) c.job = 'con:' + l.which; }
   if (stallOpen(w.s) && w.open.has('market')) { const [gx, gy] = stallPos(w); out.push(member(w, 'tock', gx + 56, gy + 12, true, null)); }
   // a job offered away from its giver's own place: the giver waits beside it while it is offered
   for (const m of jobs) {
@@ -53,7 +56,7 @@ export function castOf(w: World): CastMember[] {
   return out;
 }
 /** a key that changes whenever castOf could: what is offered, whether a job runs, which districts are open */
-export const castKey = (w: World) => `${w.run ? 'run' : offered(w.s).map(m => m.id).join()}|${[...w.open].join()}|${stallOpen(w.s)}`;
+export const castKey = (w: World) => `${w.run ? 'run' : offered(w.s).map(m => m.id).join() + ':' + (contractsOpen(w.s) ? listContracts(w).map(l => l.c.giver).join() : '')}|${[...w.open].join()}|${stallOpen(w.s)}`;
 
 /** what a giver is doing this moment */
 export function castPose(w: World, c: CastMember): CastPose {

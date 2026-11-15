@@ -9,6 +9,7 @@
 //             are reported (Normal should fail a fair share of first tries but still finish)
 // The empire (tenth pass): every empire job at a property that offers it, and every kind of raid each gang brings, played
 // the same way (`empireCases`); a raid starts as an alert across town, so the bot has to get there before the clock.
+// The eleventh pass: generated contracts (`contractCase`), a few hundred of them in the full run.
 // `--quick` (npm test) runs fewer seeds; `--diff` runs only the Normal and Hard players. Exports `playMission` and `missionSave` for tests/jade.mjs.
 import assert from 'node:assert/strict';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
@@ -28,6 +29,9 @@ import { carried, giveGadget, GEAR_GIFT } from '../.checks/jade-gear.js';
 import { hiddenSpot, sightRange, BRANCHES } from '../.checks/jade-jobs.js';
 import { BIZ_OF } from '../.checks/jade-biz.js';
 import { startRaidAlert, startEmpireJob, RAID_KINDS, gangOf } from '../.checks/jade-empire.js';
+import { contractOf, tierOf, starsFor } from '../.checks/jade-contracts.js';
+import { contractMission } from '../.checks/jade-proc.js';
+import { openDistricts, SAFE_HOUSES } from '../.checks/jade-save.js';
 
 const QUICK = process.argv.includes('--quick');
 const MAIN = import.meta.url === `file://${process.argv[1]}`;
@@ -74,6 +78,24 @@ export function empireCases() {
   return out;
 }
 
+/** the eleventh pass: a save past the first ending (variant 0: chapter six under way, 1: the whole story done, 2: the
+ *  story done and an empire of a few properties, so the tier is higher), every safe house bought */
+export function contractSave(seed, variant = seed % 3) {
+  const s = newSave(seed + 1); s.started = true; s.story.intro = true;
+  s.done = variant === 0 ? MISSIONS.slice(0, MISSIONS.findIndex(m => m.id === 'm25') + 1).map(m => m.id) : [...MISSIONS.map(m => m.id), ...SIDE.map(m => m.id)];
+  for (const d of s.done) for (const g of GEAR_GIFT[d] ?? []) giveGadget(s, g);
+  for (const d of Object.keys(s.rep)) s.rep[d] = 50; s.cash = 600;
+  for (const h of SAFE_HOUSES) s.best['house:' + h.id] = 1;
+  if (variant === 2) { for (const id of ['noodle', 'bumboat', 'kopitiam', 'prata', 'claw']) s.biz[id].lvl = 2; s.empire.rank = 3; s.contracts.done = 12; }
+  return s;
+}
+/** a generated contract for the bots: seed k, its slot's stars from the save's tier (or forced) */
+export function contractCase(k, o = {}) {
+  const s = contractSave(1000 + k, o.variant);
+  const tier = tierOf(s), ref = { seed: 7919 * k + 13, tier, stars: o.stars ?? starsFor(k % 3, tier), open: openDistricts(s) };
+  const c = contractOf(ref);
+  return { s, c, opts: { save: s, setup: w => { const pl = w.c.places[c.at]; w.placePlayer(pl.x, pl.y + T); w.startMission(contractMission(c, w.assist), { key: 'con:test:' + ref.seed, reward: c.pay, d: c.d }); }, done: () => s.contracts.done > 0, maxT: 900 } };
+}
 export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
   // lapse: the chance per decision of a human slip (a glance at the map, a fumbled turn) lasting 0.5-1.1 s;
   // notice: the chance of reading a telegraphed hazard in time to steer round it
@@ -519,11 +541,11 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
       }
       case 'heat': {
         // head for the nearest safe house and swap jackets
-        const ids = ['safe-market', 'safe-temple', 'safe-canal', 'safe-docks', 'safe-arcade'].filter(id => w.open.has(w.c.places[id].d) && (id === 'safe-market' || s.best['house:' + id]));
+        const ids = SAFE_HOUSES.map(h => h.id).filter(id => w.open.has(w.c.places[id].d) && (id === 'safe-market' || s.best['house:' + id]));
         const pl = ids.map(id => w.c.places[id]).sort((a, b) => dist(a.x, a.y, p.x, p.y) - dist(b.x, b.y, p.x, p.y))[0];
         if (!p.ride && w.near?.kind === 'safe') { press('act'); return; }
         if (p.ride && dist(pl.x, pl.y, p.x, p.y) < 160) { offFoot(); return; }
-        if (!p.ride && dist(pl.x, pl.y, p.x, p.y) > 900) { getRide(r => r.kind === 'scooter'); return; }
+        if (!p.ride && dist(pl.x, pl.y, p.x, p.y) > 900 && !w.run.m.mods?.includes('foot')) { getRide(r => r.kind === 'scooter'); return; }
         go(pl.x, pl.y); return;
       }
       case 'case': case 'heist': case 'defend': case 'blend': case 'detective': case 'trap': case 'swap': return decideJob(st);
@@ -679,6 +701,20 @@ if (MAIN) {
     const rate = cw / cs; worst = Math.min(worst, rate);
     rows.push(`${label.padEnd(31)} casual ${String(Math.round(rate * 100)).padStart(3)}%  avg ${cw ? Math.round(ct / cw) : '-'}s  first try ${first}/${cs}   Normal ${nw}/${ns}   Hard ${hw}/${ns}`);
     console.log(rows[rows.length - 1]);
+  }
+  // the eleventh pass: generated contracts, each a new seed (a different job every time), across the three saves
+  // (just past chapter six, the whole story, a small empire at a higher tier): casual must finish at least 90%, Normal
+  // fails a fair share of first tries without walling anyone, Hard finishes at least 80%
+  if (!only) {
+    const cn = QUICK ? 24 : 300, nn = QUICK ? 8 : 150; const kinds = {};
+    let cw = 0, cf = 0, nw = 0, nf = 0, hw = 0, hf = 0;
+    for (let k = 0; k < cn; k++) { const { c, opts } = contractCase(k); const r = playMission('con' + k, 'casual', k, opts); const kd = kinds[c.kind] ??= { n: 0, w: 0 }; kd.n++; if (r.won) { cw++; kd.w++; if (!r.fails) cf++; } else if (process.argv.includes('-v')) console.log('  casual lost contract', k, c.kind, c.mods.join(), r.at); }
+    for (let k = 0; k < nn; k++) { const { opts } = contractCase(1000 + k); const r = playMission('con' + k, 'normal', k, { ...opts, assist: false, diff: 'normal' }); if (r.won) { nw++; if (!r.fails) nf++; } }
+    for (let k = 0; k < nn; k++) { const { opts } = contractCase(2000 + k); const r = playMission('con' + k, 'normal', k, { ...opts, assist: false, diff: 'hard' }); if (r.won) { hw++; if (!r.fails) hf++; } }
+    console.log(`contracts: casual ${cw}/${cn} (first ${cf})   Normal ${nw}/${nn} (first ${nf})   Hard ${hw}/${nn} (first ${hf})   by kind ${Object.entries(kinds).map(([k, v]) => `${k} ${v.w}/${v.n}`).join(', ')}`);
+    assert.ok(cw / cn >= 0.9, `the casual bot finishes at least 90% of generated contracts (${cw}/${cn})`);
+    assert.ok(hw / nn >= 0.8, `the Hard bot finishes at least 80% of generated contracts (${hw}/${nn})`);
+    if (!QUICK) { assert.ok(nw / nn >= 0.95, 'the Normal bot finishes (almost) every contract'); assert.ok(nf / nn <= 0.96 && nf / nn >= 0.85, `Normal first tries land near 88 to 95% (${nf}/${nn})`); }
   }
   const pc = (a, b) => `${Math.round(100 * a / Math.max(1, b))}%`;
   console.log(`Normal: finished ${pc(tot.nw, tot.n)}, first try ${pc(tot.nf, tot.n)}   Hard: finished ${pc(tot.hw, tot.n)}, first try ${pc(tot.hf, tot.n)}`);

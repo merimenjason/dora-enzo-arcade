@@ -21,6 +21,9 @@ import type { JadeSound } from './sound';
 import type { Theme } from './music';
 import { BIZ, BIZ_IDS, BIZ_OF, bizPos, raidMission, type BizId } from '@/lib/jade-biz';
 import { startRaidAlert, type RaidKind } from '@/lib/jade-empire';
+import { listContracts, startContract, giverAt, contractOf } from '@/lib/jade-contracts';
+import { contractMission, type Mod } from '@/lib/jade-proc';
+import { owned } from '@/lib/jade-biz';
 import { applyTwo } from '@/lib/jade-duo';
 import { duoFrame } from '@/lib/jade-duodraw';
 import { tagOption } from '@/lib/jade-tag';
@@ -378,6 +381,15 @@ export class Play {
       setBiz: (id: BizId, o: { lvl?: number; bank?: number; dmg?: number; jaga?: boolean }) => { Object.assign(this.w.s.biz[id], o); this.bump(); },
       rank: (r: number) => { this.w.s.empire.rank = r; },
       raid: (id: BizId) => { this.w.quitJob(); this.w.startMission(raidMission(this.w, id), { key: 'raid:' + id, reward: 40, d: BIZ_OF[id].d }); this.w.talk = null; return this.w.run?.cur?.t ?? null; },
+      /** the eleventh pass: the contracts on the phone, standing at a giver, starting one (with forced modifiers), winning
+       * the job under way, and a rival gang contesting a district you own property in */
+      talesAll: () => { const s = this.w.s; s.done = [...new Set([...s.done, ...SIDE.map(m => m.id)])]; this.bump(); },
+      contracts: () => { const w = this.w, cs = w.s.contracts; return { list: listContracts(w).map(l => ({ which: l.which, id: l.c.id, tag: l.tag, giver: l.c.giver, kind: l.c.kind, stars: l.c.stars, mods: l.c.mods.slice(), pay: l.c.pay, title: l.c.title })), done: cs.done, dayBest: cs.dayBest, dayRuns: cs.dayRuns, contest: cs.contest ? { ...cs.contest } : null, retaken: cs.retaken, pin: cs.pin }; },
+      toGiver: (which: string) => { const w = this.w, l = listContracts(w).find(x => x.which === which); if (!l) return null; const at = giverAt(w, l.c); if (!at) return null; w.placePlayer(at[0], at[1] + 40); w.step(NO_INPUT, DT); this.bump(); return w.near ? { kind: w.near.kind, label: w.near.label, id: w.near.id ?? null } : null; },
+      conStart: (which: string) => { const w = this.w; w.quitJob(); w.talk = null; const why = startContract(w, which); this.bump(); return why ?? w.run?.m.id ?? null; },
+      conMods: (mods: Mod[], seed = 4242) => { const w = this.w; w.quitJob(); w.talk = null; const c = contractOf({ seed, tier: 2, stars: 2, open: [...w.open] }); const pl = w.c.places[c.at]; w.placePlayer(pl.x, pl.y + T); w.startMission(contractMission({ ...c, mods }, w.assist), { key: 'con:test:' + seed, reward: c.pay, d: c.d }); this.bump(); return w.run?.m.id ?? null; },
+      conWin: () => { const w = this.w, r = w.run; if (!r) return false; w.talk = null; r.cleanup(); w.finishMission(r.m, r.gig); this.bump(); return true; },
+      contest: () => { const w = this.w, b = owned(w.s)[0]; if (!b) return null; w.s.contracts.contest = { d: b.d, gang: w.s.contracts.contest?.gang ?? 'crow', night: w.s.night }; this.bump(); return b.d; },
       typed: () => ({ typed: Math.floor(this.typed), len: this.line()?.[1].length ?? 0, mood: this.line()?.[2] ?? null, who: this.line()?.[0] ?? null }),
       juice: () => { const j = this.scene.juice; return { debris: j.debris.length, pops: j.pops.length, trauma: j.trauma, slow: j.slow, stop: j.stop, opt: { ...j.opt } }; },
       theme: () => this.theme(),

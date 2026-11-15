@@ -34,7 +34,7 @@ export type PalState = {
 };
 export const newPal = (): PalState => ({ warnCd: 2, fireCd: 2, warned: [], point: null, doing: '', n: { warn: 0, fire: 0, scoop: 0, tidy: 0, cower: 0, getaway: 0 }, runRef: null });
 
-export const palOn = (w: World) => w.s.settings.partner === 'auto' && !w.two;
+export const palOn = (w: World) => w.s.settings.partner === 'auto' && !w.two && !w.run?.m.mods?.includes('solo');
 
 const WARN: Record<string, string[]> = {
   lookout: ['Psst, crow at the corner!', 'Psst! Lookout ahead!', 'Psst, a crow with a torch, over there!'],
