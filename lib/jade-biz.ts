@@ -86,7 +86,7 @@ export function accrue(w: World, mins: number) {
   const open = [...w.open];
   for (const b of owned(w.s)) {
     const st = w.s.biz[b.id]; const r = bizRate(w.s, b.id, open, { daily: w.event, festival: w.festival }).rate;
-    const add = r * mins / 720; st.tonight += add; st.bank = Math.min(r * TILL_NIGHTS + 1, st.bank + add);
+    const add = r * mins / 720; st.tonight += add; st.bank = Math.min(Math.max(r * TILL_NIGHTS + 1, st.bank), st.bank + add); // never takes coins away (a smashed shop keeps its till)
   }
 }
 /** the night ends: each stall's takings go into its history (the last 10 nights) and the quarter's total */

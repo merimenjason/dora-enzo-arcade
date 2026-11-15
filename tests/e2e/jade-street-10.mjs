@@ -80,7 +80,7 @@ export async function tenth(h) {
   await press('jade-phone'); await press('phone-empire'); await press('emp-round');
   check(await W(() => window.__jade.empire().round?.kind === 'collect'), `${name}: Send partner round the tills`); await press('close'); await free();
   const c0 = await W(() => window.__jade.world().s.stats.bizCoins); // (not cash: a warden's fine could land meanwhile)
-  await W(() => { const J = window.__jade; for (let i = 0; i < 300 && J.world().emp.round; i++) J.step(60); J.step(90); });
+  await W(() => { const J = window.__jade; for (let i = 0; i < 300 && J.world().emp.round; i++) { J.world().s.clock = 10; J.step(60); } J.step(90); }); // (held before the raid hours: a night raid could empty a till mid-round)
   check(await W(c0 => window.__jade.world().s.stats.bizCoins >= c0 + 240, c0), `${name}: the partner hands over the takings (${await W(c0 => window.__jade.world().s.stats.bizCoins - c0, c0)} coins)`);
 
   // ── a damaged property repaired
