@@ -5,7 +5,7 @@
 // districts, dust and sparkles; game feel (shake, hit-stop, debris, speed lines) is in lib/jade-juice.ts and the set
 // pieces, the finale and the business stalls are drawn by lib/jade-setdraw.ts. Every picture is a Codex painting from the atlases in public/art/jade-street/.
 import { FRAMES, ATLASES, ATLAS_SIZE, TEXTURES } from './jade-art.js';
-import { T, W, H, G, OW, CT_H, EAST_X0, EAST_SPLIT, GROUND_NAMES, F_ROOF, districtAt, type City, type District } from './jade-city.js';
+import { T, W, H, G, OW, CT_H, EAST_X0, EAST_SPLIT, FAR_X0, FAR_SPLIT, CHANGI_X0, GROUND_NAMES, F_ROOF, districtAt, type City, type District } from './jade-city.js';
 import { F_XWAY } from './jade-island.js';
 import { VEHICLES } from './jade-move.js';
 import { tagOption, grabTarget } from './jade-tag.js';
@@ -21,6 +21,8 @@ import { drawHero, gearGround, gearSorted, gearOver, wardenHitFrame, aimLine, se
 import { shooterFor } from './jade-gear.js';
 import { isleSorted, isleOver, isleActor, isleGround } from './jade-isledraw.js';
 import { eastGround, eastSorted, eastOver } from './jade-eastdraw.js';
+import { farSorted, farOver } from './jade-fardraw.js';
+import { snapScale, foldTints, chunkStale } from './jade-perf.js';
 import { empSorted, empOver, jagaActor } from './jade-empdraw.js';
 import { BIZ, BIZ_OF, bizPos } from './jade-biz.js';
 import { jobActor, jobGround, mindBeam, mindBubble } from './jade-jobdraw.js';
@@ -34,7 +36,7 @@ let loaded = false;
 /** Little India, Kampong Glam and Sentosa open late in the story, so their atlases and ground textures load in the
  *  background once the game is running (the loading bar waits only for the rest); `lazyGen` counts them in, and the
  *  scene repaints its ground chunks when it changes */
-export const LAZY = (n: string) => /^atlas-(east|east2|resort)$/.test(n) || /^tex-(india|glam|sand|resort|lagoon|fort)$/.test(n);
+export const LAZY = (n: string) => /^atlas-(east|east2|resort|far|far2)$/.test(n) || /^tex-(india|glam|sand|resort|lagoon|fort|katong|orchard|tarmac|cycle|jewel|changi)$/.test(n);
 export let lazyGen = 0;
 export let lazyDone = false;
 /** one file at a time, so the decoding and the repaint each one brings are spread out instead of landing together */
@@ -192,6 +194,13 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     case 'sniff': return `${h}-sniff-${t < 0.7 ? 0 : 1}`;
     case 'lounge': return `${h}-lounge-${cyc(2, 1)}`;
     case 'castle': return `${h}-castle-${cyc(2, 3)}`;
+    // over the Geylang River: a bowl of laksa, a bauble on the tree, a kite on the beach, waving at a plane, a
+    // traveller's suitcase; riding a hired bike has its own pair (lib/jade-duodraw.ts)
+    case 'laksa': return `${h}-laksa-${cyc(2, 3)}`;
+    case 'bauble': return `${h}-bauble-${t < 0.7 ? 0 : 1}`;
+    case 'kite': return `${h}-kite-${cyc(2, 1.5)}`;
+    case 'plane': return `${h}-plane-${cyc(2, 3)}`;
+    case 'suitcase': return `${h}-suitcase-${cyc(2, 2.5)}`;
     // the empire: mending a raided shop, a handshake hiring the jaga, sending the partner off, the partner's coin bag
     // handed over, counting a big till
     case 'repair': return `${h}-repair-${cyc(2, 5)}`;
@@ -276,7 +285,7 @@ export class Scene {
     const c = this.c;
     // under a building: the district's own paving (Little India, Kampong Glam and Sentosa have theirs); bridges are
     // concrete outside Chinatown (the Sentosa Gateway too) and planks over the Singapore River
-    const bldTex = (i: number) => { const tx = i % W, ty = Math.floor(i / W); return ty >= CT_H ? 'resort' : tx >= EAST_X0 - 4 ? (ty < EAST_SPLIT ? 'india' : 'glam') : tx >= OW ? (ty < 38 ? 'hdb' : 'granite') : 'plaza'; };
+    const bldTex = (i: number) => { const tx = i % W, ty = Math.floor(i / W); return ty >= CT_H ? 'resort' : tx >= FAR_X0 - 4 ? (tx >= CHANGI_X0 ? 'changi' : ty < FAR_SPLIT ? 'orchard' : 'katong') : tx >= EAST_X0 - 4 ? (ty < EAST_SPLIT ? 'india' : 'glam') : tx >= OW ? (ty < 38 ? 'hdb' : 'granite') : 'plaza'; };
     const texOf = (g: number, i: number) => g === G.ROAD && (c.flags[i] & F_XWAY) ? 'xway' : g === G.BRIDGE ? (i % W >= OW || Math.floor(i / W) >= 80 ? 'xway' : 'canal') : g === G.STAIRS ? 'temple' : g === G.BLD ? bldTex(i) : GROUND_NAMES[g];
     const byTex = new Map<string, number[]>();
     for (let ty = ty0; ty < ty0 + nh; ty++) for (let tx = tx0; tx < tx0 + nw; tx++) {
@@ -405,7 +414,7 @@ export class Scene {
     // the scale is snapped to 1/512 (a chunk is 512 units, so it spans whole pixels) and the camera to whole pixels, so
     // a ground chunk painted at this scale is copied to the screen pixel for pixel: a scaled copy of every chunk was
     // the costliest thing in a frame
-    const s = Math.round(this.dpr * k * 512) / 512;
+    const s = snapScale(this.dpr, k);
     if (Math.abs(s - this.lastS) > 0.0005) { this.lastS = s; this.zoomStill = 0; } else this.zoomStill += dt;
     x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#100c20'; x.fillRect(0, 0, this.cv.width, this.cv.height);
     x.setTransform(s, 0, 0, s, Math.round(-ox * s), Math.round(-oy * s));
@@ -418,8 +427,9 @@ export class Scene {
     for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
       if (cx < 0 || cy < 0 || cx * CH >= W || cy * CH >= H) continue;
       const key = cx + cy * 1000, have = this.chunks.get(key);
-      if (!have || Math.abs(have.s - cs) >= 0.2) { if (made >= 3 && have) { x.drawImage(have.c, cx * CH * T, cy * CH * T, CH * T, CH * T); have.used = this.frame; continue; } made++; }
-      else if (have.s !== cs && this.zoomStill > 0.35 && exact < 1 && made < 2) { exact++; made++; this.chunks.delete(key); }
+      const stale = have ? chunkStale(have.s, cs, this.zoomStill) : 'now';
+      if (stale === 'now') { if (made >= 3 && have) { x.drawImage(have.c, cx * CH * T, cy * CH * T, CH * T, CH * T); have.used = this.frame; continue; } made++; }
+      else if (stale === 'later' && exact < 1 && made < 2) { exact++; made++; this.chunks.delete(key); }
       const c = this.chunk(cx, cy, cs);
       x.drawImage(c, cx * CH * T, cy * CH * T, CH * T, CH * T);
     }
@@ -454,7 +464,7 @@ export class Scene {
     sgSorted(this, x, w, list, vis);
     gearSorted(this, x, w, list, vis);
     isleSorted(this, x, w, list, vis);
-    eastSorted(this, x, w, list, vis);
+    eastSorted(this, x, w, list, vis); farSorted(this, x, w, list, vis);
     if (!p.roof) list.push([p.y + 1, () => this.hero(x, w)]);
     if (!m.roof && !m.seat && vis(m.x, m.y)) list.push([m.y + 0.5, () => drawHero(this, x, w, m, w.two)]);
     list.sort((a, b) => a[0] - b[0]);
@@ -472,7 +482,7 @@ export class Scene {
     gearOver(this, x, w, vis);
     sgOver(this, x, w, vis);
     isleOver(this, x, w, vis);
-    eastOver(this, x, w, vis); empOver(this, x, w);
+    eastOver(this, x, w, vis); farOver(this, x, w, vis); empOver(this, x, w);
     // what F would grab right now gets a pulsing gold ring, so it stands out behind cables and heroes
     if (w.run && !w.talk) { const o = tagOption(w); if (o?.kind === 'snatch') { const g = grabTarget(w), p = w.p;
       const t = g?.kind === 'actor' ? [g.a.b.x, g.a.b.y] : w.run.items.filter(i => !i.got).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];
@@ -509,9 +519,7 @@ export class Scene {
     const vw = Math.max(1, Math.round(this.w * this.dpr)), vh = Math.max(1, Math.round(this.h * this.dpr));
     // fold the fills: each one maps the screen D to c·a + (1 − a)·D, so together they are P + Q·D, one fill of alpha
     // 1 − Q and colour P / (1 − Q)
-    let pr = 0, pg = 0, pb = 0, q = 1;
-    for (const [r, g, b, a0] of tints) { const a = Math.max(0, Math.min(1, a0)); pr = r * a + (1 - a) * pr; pg = g * a + (1 - a) * pg; pb = b * a + (1 - a) * pb; q *= 1 - a; }
-    const A = Math.round((1 - q) * 200) / 200, col = A > 0 ? [pr, pg, pb].map(v => Math.round(v / (1 - q))).join(',') : '';
+    const { col, a: A } = foldTints(tints);
     const key = `${vw}x${vh}|${col}|${A}`;
     if (this.vig && this.vigKey === key) return this.vig;
     const c = this.vig && this.vig.width === vw && this.vig.height === vh ? this.vig : document.createElement('canvas'); c.width = vw; c.height = vh; const g = c.getContext('2d')!;
@@ -607,9 +615,9 @@ export class Scene {
         if (a.kind === 'lookout' && !((a.stare ?? 0) > 0) && !((a.extra2 ?? 0) > 0)) mindBeam(this, x, a.mind, b.x, b.y - 20, a.b.h, (w.assist ? 170 : 215) * w.diff.look, w.assist ? 0.45 : 0.55);
         if (a.kind === 'pip' && a.look > 0) mindBeam(this, x, a.mind, b.x, b.y - 20, a.face, w.assist ? 165 : 210, 1.2);
         // a rival gang's runner (the tenth and eleventh passes): the same moves in their own painted frames
-        const gs = a.skin === 'mac' || a.skin === 'otter' || a.skin === 'liz' || a.skin === 'myna' ? a.skin : null;
+        const gs = a.skin === 'mac' || a.skin === 'otter' || a.skin === 'liz' || a.skin === 'myna' || a.skin === 'bat' ? a.skin : null;
         if (gs) f = f.startsWith('crow-look') ? (gs === 'liz' ? 'liz-look' : `${gs}-taunt`) : f.replace(/^crow-/, gs + '-');
-        spr(x, f, b.x, b.y + 4, { flip, w: gs === 'liz' ? 56 : gs === 'myna' ? 44 : gs === 'otter' ? 46 : undefined });
+        spr(x, f, b.x, b.y + 4, { flip, w: gs === 'liz' ? 56 : gs === 'myna' ? 44 : gs === 'bat' ? 48 : gs === 'otter' ? 46 : undefined });
         if ((a.kind === 'runner' || a.kind === 'raider') && a.stun <= 0) spr(x, a.skin === 'mac' ? 'bun' : 'coins', b.x, b.y - 52, { w: 20 });
         if ((a.kind === 'lookout' || a.kind === 'pip') && a.stun <= 0) mindBubble(this, x, a.mind, b.x, b.y - 84);
         break;
@@ -617,9 +625,9 @@ export class Scene {
       case 'lion': this.shadow(x, b.x, b.y + 4, 44, 14); spr(x, `lion-${Math.floor(a.t * 3) % 2}`, b.x, b.y + 8, { flip: Math.cos(b.h) < 0 }); break;
     }
   }
-  flyer(x: CanvasRenderingContext2D, px: number, py: number, h: number, wing: number, kind: 'crow' | 'myna' = 'crow') {
+  flyer(x: CanvasRenderingContext2D, px: number, py: number, h: number, wing: number, kind: 'crow' | 'myna' | 'bat' = 'crow') {
     x.fillStyle = 'rgba(0,0,0,.22)'; this.shadow(x, px + 30, py + 50, 22, 10);
-    spr(x, `${kind}-fly-${Math.floor(wing) % 2 ? 0 : 1}`, px, py, { anchor: 'center', rot: h + Math.PI / 2, w: kind === 'myna' ? 54 : undefined });
+    spr(x, `${kind}-fly-${Math.floor(wing) % 2 ? 0 : 1}`, px, py, { anchor: 'center', rot: h + Math.PI / 2, w: kind === 'myna' ? 54 : kind === 'bat' ? 58 : undefined });
   }
   cat(x: CanvasRenderingContext2D, px: number, py: number, i: number) {
     const b = Math.sin(this.t * 3 + i) * 3;

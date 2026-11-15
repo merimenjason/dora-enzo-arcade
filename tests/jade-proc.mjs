@@ -232,7 +232,7 @@ test('modifiers in play: no rides, partner busy, storm, graveyard shift; they al
 });
 
 test('save v12: a v11 save keeps everything and gets an empty contracts book; junk is repaired', () => {
-  assert.equal(SAVE_VERSION, 12); assert.equal(SAVE_KEY, 'jade-street-v12'); assert.equal(OLD_KEYS[0], 'jade-street-v11');
+  assert.ok(SAVE_VERSION >= 12); assert.ok(OLD_KEYS.includes('jade-street-v11'));
   const v11 = { v: 11, seed: 5, cash: 999, night: 30, done: ['m1', 'm25'], medals: { m1: { m: 2, t: 40, plays: 1 } }, biz: { noodle: { lvl: 2, bank: 5, tonight: 0, hist: [], raids: 0, defended: 0 } }, empire: { rank: 2, jobs: { taxi: 1 }, last: {} } };
   const s = loadSave(JSON.stringify(v11));
   assert.equal(s.v, SAVE_VERSION); assert.equal(s.cash, 999); assert.deepEqual(s.done, v11.done); assert.equal(s.biz.noodle.lvl, 2); assert.equal(s.empire.rank, 2);
@@ -249,7 +249,7 @@ test('save v12: a v11 save keeps everything and gets an empty contracts book; ju
 
 test('trophies: Contractor, Job of the Day, Turf Holder', () => {
   for (const id of ['contractor', 'cotd', 'turf']) assert.ok(TROPHIES.some(t => t.id === id), id);
-  assert.equal(TROPHIES.length, 45);
+  assert.equal(TROPHIES.length, 50);
   const s = past(41); s.contracts.done = 10; s.contracts.dayRuns = 1; s.contracts.retaken = 3;
   const got = checkTrophies(s); for (const id of ['contractor', 'cotd', 'turf']) assert.ok(got.includes(id) || s.trophies.includes(id), id);
 });
@@ -262,3 +262,4 @@ test('tiers: rank, territory and contracts done raise the tier, capped at six', 
 });
 
 console.log(`jade (eleventh pass, contracts): ${n} tests ok`);
+await import('./jade-twelve.mjs');

@@ -166,7 +166,7 @@ test('Madame Glint: three phases with checkpoints, decoys, falling signs, and th
 
 // ── item 5: businesses
 test('businesses: eleven stalls (five at the hawker centre) and fifteen more properties across the districts, prices rise with value, and income follows level, reputation and events', () => {
-  assert.equal(BIZ.length, 26); assert.equal(BIZ.filter(b => ['ckt', 'chicken', 'satay', 'laksa', 'kopi'].includes(b.id)).length, 5, 'the five hawker stalls'); assert.ok(new Set(BIZ.map(b => b.d)).size >= 5, 'spread across the districts');
+  assert.equal(BIZ.length, 32); assert.equal(BIZ.filter(b => ['ckt', 'chicken', 'satay', 'laksa', 'kopi'].includes(b.id)).length, 5, 'the five hawker stalls'); assert.ok(new Set(BIZ.map(b => b.d)).size >= 5, 'spread across the districts');
   for (const b of BIZ) { assert.ok(b.income[1] < b.income[2] && b.income[2] < b.income[3]); assert.ok(b.price < b.up[0] + b.up[1]); assert.ok(b.price / b.income[1] >= 3, `${b.id}: pays back in three nights or more`); }
   const s = newSave(4); s.rep = { market: 50, temple: 50, canal: 50, docks: 50, arcade: 50 }; s.cash = 99999;
   assert.match(canBuy(s, 'jade', ['market']), /fog/); s.rep.market = 0; assert.match(canBuy(s, 'noodle', ALL_OPEN), /reputation/); s.rep.market = 50;
@@ -222,7 +222,7 @@ test('crow raids (the old grab-and-run job, now one of the empire raids): idle a
 
 // ── saves
 test('save: real v2 and v3 saves migrate with every bit of progress, and businesses start empty', () => {
-  assert.equal(SAVE_VERSION, 12); assert.equal(SAVE_KEY, 'jade-street-v12'); assert.ok(OLD_KEYS.includes('jade-street-v3') && OLD_KEYS.includes('jade-street-v2'));
+  assert.equal(SAVE_VERSION, 13); assert.equal(SAVE_KEY, 'jade-street-v13'); assert.ok(OLD_KEYS.includes('jade-street-v3') && OLD_KEYS.includes('jade-street-v2'));
   const v3 = JSON.parse(readFileSync(new URL('./fixtures/jade-save-v3.json', import.meta.url), 'utf8'));
   assert.equal(v3.v, 3);
   const s = loadSave(JSON.stringify(v3));

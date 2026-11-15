@@ -9,6 +9,7 @@
 // player 1 (and the panels and mini-games). A second player joins from the pause menu (or a gamepad's Back): they use
 // the arrow keys with / dash, . hop, , action, ; fire, ' gadget and Right Shift sneak, or a gamepad.
 import { World, DT, NO_INPUT, type Input } from '@/lib/jade-game';
+import { ymd } from '@/lib/jade-calendar';
 import { Scene, loadArt, artLoaded } from '@/lib/jade-scene';
 import { spawn, EVENT_KINDS, type EventKind } from '@/lib/jade-events';
 import { nearestFree } from '@/lib/jade-nav';
@@ -47,7 +48,7 @@ export class Play {
   /** the typewriter: characters of the current line shown so far, the line it belongs to, and the element it fills */
   typed = 0; typeKey = ''; typeEl: HTMLElement | null = null; reduced = false;
   constructor(public cv: HTMLCanvasElement, public save: Save, public snd: JadeSound | null, public onChange: () => void, public persist: (s: Save) => void) {
-    this.w = new World(save);
+    this.w = new World(save); this.w.today = ymd(new Date());
     // the browser tests turn off the night's raids so one never lands in the middle of another feature's checks
     if ((globalThis as { __jadeNoRaids?: boolean }).__jadeNoRaids) this.w.emp.off = true;
     this.w.event = dailyEvent(dayKey(new Date()));
@@ -300,7 +301,7 @@ export class Play {
       else if (f.t === 'trophy' && f.name) this.toast(`Trophy: ${f.name}`, 'gold');
       else if (f.t === 'caught') this.toast(f.msg ?? 'Caught! The wardens fined you and sent you to a safe house.', 'bad');
       else if (f.t === 'heat-up' && f.k) this.toast(f.k === 1 ? 'A warden spotted you! Break line of sight, hide, or swap jackets at a safe house.' : `${f.k} lanterns of heat!`, 'bad');
-      else if (f.t === 'finale') { this.endingT = 3; this.endingKind = f.kind === 'isle' || f.kind === 'lights' ? f.kind : ''; }
+      else if (f.t === 'finale') { this.endingT = 3; this.endingKind = f.kind === 'isle' || f.kind === 'lights' || f.kind === 'coast' ? f.kind : ''; }
       else if (f.t === 'learned') this.snd?.fx([{ t: 'lesson' }]);
       else if (f.t === 'raid-dmg') this.toast(`The ${f.name} was smashed up. Repair it to take anything.`, 'bad');
       else if (f.t === 'raid-lost') this.toast(`The gang got away with ${f.k} coins from the ${f.name}.`, 'bad');

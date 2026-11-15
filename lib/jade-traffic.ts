@@ -18,12 +18,12 @@ export type Light = { h: number; v: number; tx: number; ty: number; off: number 
 export const LIGHTS: Light[] = [];
 export const LIGHT_AT = new Map<string, number>();
 ROADS.forEach((r, i) => { if (r.axis !== 'h' || ![30, 46, 62].includes(r.at)) return; ROADS.forEach((r2, j) => {
-  if (r2.axis !== 'v' || ![26, 42, 60, 90].includes(r2.at) || r2.from > r.at || r2.to < r.at + 3) return;
+  if (r2.axis !== 'v' || ![26, 42, 60, 90].includes(r2.at) || r2.from > r.at || r2.to < r.at + 3 || r.from > r2.at || r.to < r2.at + 3) return;
   LIGHT_AT.set(`${i}:${j}`, LIGHTS.length); LIGHTS.push({ h: i, v: j, tx: r2.at, ty: r.at, off: (r2.at * 7 + r.at * 3) % 15 });
 }); });
 // the island's avenue crossings (Toa Payoh and the bay front), after Chinatown's so its lights keep their numbers
 ROADS.forEach((r, i) => { if (r.axis !== 'h' || XWAYS.includes(i)) return; ROADS.forEach((r2, j) => {
-  if (r2.axis !== 'v' || r2.at < OW || XWAYS.includes(j) || r2.from > r.at || r2.to < r.at + 3 || r.to < r2.at + 3) return;
+  if (r2.axis !== 'v' || r2.at < OW || XWAYS.includes(j) || r2.from > r.at || r2.to < r.at + 3 || r.to < r2.at + 3 || r.from > r2.at) return;
   LIGHT_AT.set(`${i}:${j}`, LIGHTS.length); LIGHTS.push({ h: i, v: j, tx: r2.at, ty: r.at, off: (r2.at * 7 + r.at * 3) % 15 });
 }); });
 /** cars on an expressway cruise faster */

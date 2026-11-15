@@ -9,7 +9,7 @@
 // by the MRT to Beach station, or by the ferry from Marina Bay. It has the beach, a theme park, a resort hotel,
 // the old fort at Siloso Point and the ferry pier. Real public place and road names; the shops and attractions are
 // real (owner, 16-11: real names, not parodies) or invented. Pure data: lib/jade-cable.ts runs the cable car and the ferry, lib/jade-eastdraw.ts paints.
-import { T, W, H, CT_H, OW, G, S, F_BRIDGE, F_PARK, F_ALLEY, ROADS, EAST_X0, EAST_X1, EAST_SPLIT, districtAt, type City, type Prop } from './jade-city.js';
+import { T, W, H, CT_H, OW, G, S, F_BRIDGE, F_PARK, F_ALLEY, ROADS, EAST_X0, EAST_X1, EAST_SPLIT, FAR_X0, districtAt, type City, type Prop } from './jade-city.js';
 import type { Station } from './jade-island.js';
 
 /** a two-stop link you ride (the cable car, the ferry): its stops and the path between them (world units) */
@@ -72,10 +72,10 @@ export function east(c: City) {
   type Seg = { axis: 'h' | 'v'; at: number; a: number; b: number; xw?: boolean };
   const segs: Seg[] = [];
   ROADS.forEach((r, i) => {
-    if (r.axis === 'h' && r.at < CT_H && r.to > EAST_X0) segs.push({ axis: 'h', at: r.at, a: EAST_X0 - 4, b: r.to });
-    if (r.axis === 'v' && r.at >= EAST_X0) segs.push({ axis: 'v', at: r.at, a: r.from, b: r.to });
+    if (r.axis === 'h' && r.at < CT_H && r.to > EAST_X0 && r.from < EAST_X0) segs.push({ axis: 'h', at: r.at, a: EAST_X0 - 4, b: r.to });
+    if (r.axis === 'v' && r.at >= EAST_X0 && r.at < EAST_X1) segs.push({ axis: 'v', at: r.at, a: r.from, b: r.to });
     if (i === 10) segs.push({ axis: 'v', at: r.at, a: 82, b: r.to });
-    if (i >= 21) segs.push(r.axis === 'h' ? { axis: 'h', at: r.at, a: r.from, b: r.to } : { axis: 'v', at: r.at, a: r.from, b: r.to });
+    if (i >= 21 && i <= 23) segs.push(r.axis === 'h' ? { axis: 'h', at: r.at, a: r.from, b: r.to } : { axis: 'v', at: r.at, a: r.from, b: r.to });
   });
   const kerbG = (x: number, y: number) => y >= CT_H ? (x <= 45 ? G.FORT : G.RESORT) : y < EAST_SPLIT ? G.INDIA : G.GLAM;
   const onSeg = (sg: Seg, x: number, y: number) => sg.axis === 'h' ? y >= sg.at && y < sg.at + 4 && x >= sg.a && x <= sg.b : x >= sg.at && x < sg.at + 4 && y >= sg.a && y <= sg.b;
@@ -280,4 +280,28 @@ export function east(c: City) {
     c.sg.pigeons.push([px(256), px(60)]);
   }
   c.east = { cable, ferry, pylons, arch, lamps, kolams, bazaar, pelita, beach, chairs };
+}
+/** the twelfth pass: the back lanes of Little India and Kampong Glam were bare. Every 5 × 5 block of open pavement with
+ * no prop near gets a bench (townsfolk walk over and sit: lib/jade-folk.ts dests) and a bit of everyday clutter, all
+ * underfoot or overhead so no job's route is blocked. Deterministic: no random draws, so nothing else moves */
+export function backLanes(c: City) {
+  const has = new Set(c.props.map(p => Math.floor(p.y / T) * W + Math.floor(p.x / T)));
+  const DECO = { india: ['flower-baskets', 'spice-sacks', 'bicycles', 'laundry', 'bougain'], glam: ['cafe-tables', 'bicycles', 'laundry', 'bougain', 'carpet'] } as const;
+  const W2: Record<string, number> = { 'flower-baskets': 80, 'spice-sacks': 76, bicycles: 90, laundry: 96, bougain: 60, 'cafe-tables': 110, carpet: 90 };
+  let k = 0;
+  for (let by = 0; by < CT_H; by += 5) for (let bx = EAST_X0; bx < FAR_X0 - 4; bx += 5) {
+    const d = districtAt(bx + 2, by + 2); if (d !== 'india' && d !== 'glam') continue;
+    let open = 0, near = 0;
+    for (let y = by; y < by + 5; y++) for (let x = bx; x < bx + 5; x++) {
+      const i = y * W + x; if (c.solid[i] === S.OPEN && c.ground[i] !== G.ROAD && c.ground[i] !== G.BRIDGE) open++;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (has.has(i + dy * W + dx)) near++;
+    }
+    if (open < 18 || near) continue;
+    const ok = (x: number, y: number) => c.solid[y * W + x] === S.OPEN && c.ground[y * W + x] !== G.ROAD && !Object.values(c.places).some(p => Math.abs(p.x / T - 0.5 - x) < 2 && Math.abs(p.y / T - 0.5 - y) < 2);
+    const spots = [[bx + 1, by + 1], [bx + 3, by + 3], [bx + 3, by + 1], [bx + 1, by + 3]].filter(([x, y]) => ok(x, y));
+    if (spots.length < 2) continue;
+    const [[x0, y0], [x1, y1]] = spots, deco = DECO[d][k++ % DECO[d].length];
+    c.props.push({ x: x0 * T + T / 2, y: y0 * T + T / 2, sprite: 'plaza-bench', r: 0, solid: 'none', layer: 'ground' });
+    c.props.push({ x: x1 * T + T / 2, y: y1 * T + T / 2, sprite: deco, r: 0, solid: 'none', layer: deco === 'laundry' || deco === 'bougain' ? 'over' : 'ground', w: W2[deco] });
+  }
 }

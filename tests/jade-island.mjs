@@ -32,7 +32,7 @@ const at = (w, id) => { const p = w.c.places[id]; const [x, y] = nearestFree(w.c
 
 test('the island: two new districts east of Chinatown, each with a market, a safe house, contacts and real place names', () => {
   const w = world(); const c = w.c;
-  assert.equal(W, 280); assert.equal(OW, 120); assert.deepEqual(DISTRICTS.slice(5, 7), ['heartland', 'bay']);
+  assert.equal(W, 376); assert.equal(OW, 120); assert.deepEqual(DISTRICTS.slice(5, 7), ['heartland', 'bay']);
   assert.equal(DISTRICT_NAME.heartland, 'Toa Payoh'); assert.equal(DISTRICT_NAME.bay, 'Marina Bay');
   for (let y = 0; y < H; y += 7) for (let x = 0; x < OW; x += 7) assert.ok(!['heartland', 'bay'].includes(districtAt(x, y)), 'Chinatown keeps its districts');
   for (const d of ['heartland', 'bay']) {
@@ -51,7 +51,7 @@ test('the island: two new districts east of Chinatown, each with a market, a saf
 
 test('expressways: flagged lanes, gantries and crash barriers; island avenues get traffic lights', () => {
   const w = world(); const c = w.c;
-  for (const i of XWAYS) { const r = ROADS[i]; const x = r.axis === 'h' ? 170 : r.at + 1, y = r.axis === 'h' ? r.at + 1 : 50; assert.ok(c.flags[y * W + x] & F_XWAY, `${i} is an expressway`); }
+  for (const i of XWAYS) { const r = ROADS[i]; const x = r.axis === 'h' ? (r.to < 170 || r.from > 170 ? Math.floor((r.from + r.to) / 2) : 170) : r.at + 1, y = r.axis === 'h' ? r.at + 1 : 50; assert.ok(c.flags[y * W + x] & F_XWAY, `${i} is an expressway`); }
   assert.ok(c.sg.gantries.filter(g => g.tx >= OW || g.ty >= 0 && g.tx === 122).length >= 5, 'island gantries');
   assert.ok(c.props.filter(p => p.sprite === 'xw-barrier').length > 20, 'crash barriers');
   assert.ok(LIGHTS.filter(L => L.tx >= OW).length >= 6, 'island crossings have lights');
@@ -63,7 +63,7 @@ test('expressways: flagged lanes, gantries and crash barriers; island avenues ge
 
 test('the MRT: a fixed timetable, the trains on the viaduct, fares, the ride view, a durian fine, no rides mid-job', () => {
   const w = world(); const isle = w.c.isle;
-  assert.equal(isle.stations.length, 7); assert.deepEqual(isle.stations.map(s => s.d), ['resort', 'canal', 'bay', 'bay', 'glam', 'india', 'heartland']);
+  assert.equal(isle.stations.length, 10); assert.deepEqual(isle.stations.map(s => s.d), ['changi', 'katong', 'orchard', 'resort', 'canal', 'bay', 'bay', 'glam', 'india', 'heartland']);
   let seen = false, under = false;
   for (let t = 0; t < 400; t += 1.7) for (let k = 0; k < TRAINS; k++) { const a = trainAt(isle, t, k), b = trainAt(isle, t, k); assert.deepEqual(a, b); if (a.visible) seen = true; else under = true; }
   assert.ok(seen && under, 'trains run underground and up on the viaduct');
@@ -133,7 +133,7 @@ test('chapter six: ten jobs, offered in order after the festival, both heroes ta
   assert.ok(MISSION.m30.steps.some(s => s.t === 'chase' && s.route.some(([x, y]) => y === 80 || x === 124)), 'the expressway chase rides the expressways');
   const s = newSave(); s.done = allDone.slice(0, 25); assert.equal(chapterOf(s), 6); assert.deepEqual(available(s).map(m => m.id), ['m26', 'm27']);
   s.done = allDone.slice(0, 34); assert.deepEqual(available(s).map(m => m.id), ['m35'], 'the finale waits for the rest');
-  s.done = allDone.slice(0, 35); assert.equal(chapterOf(s), 7); s.done = allDone; assert.equal(chapterOf(s), 8);
+  s.done = allDone.slice(0, 35); assert.equal(chapterOf(s), 7); s.done = allDone.filter(id => MISSION[id].ch <= 7); assert.equal(chapterOf(s), 8); s.done = allDone; assert.equal(chapterOf(s), 9);
 });
 
 test('chapter six: the solver finishes all ten, a forced failure restarts at the checkpoint, the island ending plays once', () => {

@@ -104,7 +104,7 @@ export async function tenth(h) {
   await press('pause-btn'); await press('tab-biz'); check(await appear('emp-page') && await exists('emp-row-noodle'), `${name}: the pause menu's Empire tab`); await look('pause: empire');
   await press('close'); await press('tab-controls'); check(/empire/i.test(await loc('jade-controls').innerText()), `${name}: the Controls page has the empire`);
   await press('close'); if (await exists('resume')) await press('resume');
-  check(await W(() => { const k = ['jade-street-v12', 'jade-street-v11'].find(x => localStorage.getItem(x)); return !!k && JSON.parse(localStorage.getItem(k)).v >= 11; }), `${name}: saved (v11 or later)`);
+  check(await W(() => { const k = ['jade-street-v13', 'jade-street-v12', 'jade-street-v11'].find(x => localStorage.getItem(x)); return !!k && JSON.parse(localStorage.getItem(k)).v >= 11; }), `${name}: saved (v11 or later)`);
 
   // ── every new pose
   const seen = await W(() => [...window.__seen10]);

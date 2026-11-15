@@ -77,7 +77,7 @@ export type Step =
   | { t: 'heist'; front: Spot; back: Spot; safe: Spot; drop: Spot; guards: Spot[][]; cams: [number, number, number][]; time: number; loot: string; level: number; label: string; cp?: boolean }
   /** hold out: `waves` waves of a gang (`per` in the first, one more each wave after) raid `at` for `time` seconds;
    * knock them back before they grab; `what` names the thing you guard (the Stall, the Stage, the Float) */
-  | { t: 'defend'; at: Spot; time: number; waves: number; per: number; gang: 'mac' | 'otter' | 'crow' | 'myna'; what: string; label: string; cp?: boolean }
+  | { t: 'defend'; at: Spot; time: number; waves: number; per: number; gang: 'mac' | 'otter' | 'crow' | 'myna' | 'bat'; what: string; label: string; cp?: boolean }
   /** blend in: put on the disguise at `rack` (the partner waits there), then walk with the crowd along `route` to `goal`
    * past the lookouts ([x, y, facing in degrees]); running, hopping, bumping folk or walking alone where they look
    * raises Suspicion */
@@ -87,7 +87,7 @@ export type Step =
   | { t: 'detective'; witnesses: Witness[]; spots: { at: Spot; tags: string[]; what: string }[]; item: string; time: number; label: string; cp?: boolean }
   /** set a trap: lay nets at `need` of the trap spots (E), put the bait down at `bait`, keep back by `wait`, and spring
    * a net (F) while one of the gang walking `path` is on it; catch `catch` of the `n` */
-  | { t: 'trap'; spots: Spot[]; need: number; bait: Spot; wait: Spot; path: Spot[]; gang: 'mac' | 'otter' | 'liz' | 'crow' | 'myna'; n: number; catch: number; label: string; cp?: boolean }
+  | { t: 'trap'; spots: Spot[]; need: number; bait: Spot; wait: Spot; path: Spot[]; gang: 'mac' | 'otter' | 'liz' | 'crow' | 'myna' | 'bat'; n: number; catch: number; label: string; cp?: boolean }
   /** swap: slip a decoy into each crate (E: a moment crouched at it) while the guards look the other way */
   | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat'; label: string; cp?: boolean };
 /** what a photo while casing tells you: the back way in, the guards' beats, where the cameras are wired, the safe's make */
@@ -134,6 +134,13 @@ export const PEOPLE: Record<string, { name: string; face: string; who: string }>
   helang: { name: 'Sergeant Helang', face: 'face-helang', who: 'Fort Siloso ranger (a sea eagle)' },
   bising: { name: 'Boss Bising', face: 'face-bising', who: 'Kecoh Mynahs boss (a mynah)' },
   nine: { name: 'Crow Number Nine', face: 'face-nine', who: 'Director Kaw’s old assistant (a house crow)' },
+  // the twelfth pass: Katong, Orchard Road and Changi
+  rosie: { name: 'Nyonya Rosie', face: 'face-rosie', who: 'Katong laksa auntie (a leopard cat)' },
+  bala: { name: 'Uncle Bala', face: 'face-bala', who: 'East Coast Park bike-hire uncle (a mudskipper)' },
+  tiara: { name: 'Ms Tiara', face: 'face-tiara', who: 'Orchard Road light-up producer (a crimson sunbird)' },
+  faiz: { name: 'Captain Faiz', face: 'face-faiz', who: 'airline pilot at Changi (a stork-billed kingfisher)' },
+  ubin: { name: 'Pak Ubin', face: 'face-ubin', who: 'Changi Village bumboat man (a sambar deer)' },
+  ciku: { name: 'Datin Ciku', face: 'face-ciku', who: 'Atas Bats boss (a fruit bat)' },
   // the tenth pass: the empire's supplier, the health inspector, the rival towkay and the jaga you can hire
   huat: { name: 'Ah Huat', face: 'face-huat', who: 'wholesale supplier (a wild boar)' },
   siew: { name: 'Inspector Siew', face: 'face-siew', who: 'health inspector (a milky stork)' },
@@ -153,11 +160,13 @@ export const HEIRLOOMS = [
 ] as const;
 /** which district each chapter's finale opens (chapter 1 is played in Smith Street) */
 export const CHAPTER_OPENS: District[] = ['temple', 'canal', 'docks', 'arcade'];
-export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Clarke Quay', 'The Island', 'Island Lights'];
+export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Clarke Quay', 'The Island', 'Island Lights', 'Christmas Star'];
 /** the last job of each chapter (its finale) */
-export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45'];
+export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55'];
 /** the story job that opens Sentosa (half way through chapter seven) */
 export const RESORT_OPENS = 'm40';
+/** the story job that opens Changi (half way through chapter eight) */
+export const CHANGI_OPENS = 'm52';
 
 // road crossings by name: X(v, h) is the lane tile where vertical road v meets horizontal road h
 const V = { a: 10, b: 26, c: 42, d: 60, e: 71, f: 90, g: 106 } as const;
@@ -593,6 +602,109 @@ export const MISSIONS: Mission[] = [
       { t: 'pickup', at: 'loot', item: 'firebox', label: 'Catch the firing box' },
       { t: 'talk', lines: [['nine', 'I just wanted… one night that was mine.', 'worried'], ['kaw', 'Nine. Come home. You can run the lantern stall. Your own stall.', 'calm'], ['helang', 'And the island’s lights go up on Siloso Beach. Fire!', 'happy'], ['hero', 'Best fireworks ever.', 'happy'], ['mate', 'Best island ever. All of it.', 'happy']] },
     ] },
+  // ── Chapter 8: Christmas Star. Past the Geylang River the MRT runs on to Katong, Orchard Road and Changi Airport. Datin
+  // Ciku, the Atas Bats' boss, a fruit bat in pearls who only likes the nicest things, wants the great star off the top of
+  // the Orchard Road light-up for her Emerald Hill townhouse, and her bats help themselves to everything else on the way
+  { id: 'm46', ch: 8, title: 'The Laksa Line', giver: 'kamal', at: 'kamal', reward: 500, rep: 16, blurb: 'The MRT runs on past the Geylang River. Nyonya Rosie in Katong is out of cockles on the busiest laksa night of the year, and bats keep pinching her prawns.',
+    steps: [
+      { t: 'talk', lines: [['kamal', 'Big news! The line runs on to Katong Park, Orchard and Changi Airport. And Nyonya Rosie in Katong is calling for help.', 'happy'], ['kamal', 'Something about bats. In bow ties.', 'worried'], ['mate', 'Bats in bow ties. Okay. Katong Park station, then.', 'smug']] },
+      { t: 'train', to: 'stn-katong', label: 'Take the MRT to Katong Park (E at the station gates)', cp: true },
+      { t: 'goto', at: 'rosie', label: 'Find Nyonya Rosie by her laksa shop on East Coast Road', ride: 'foot' },
+      { t: 'talk', lines: [['rosie', 'Aiyoh, finally! My laksa needs cockles and prawns, and the bats took my whole basket off the step.', 'worried'], ['rosie', 'Uncle Bala at the seafood centre keeps a spare basket for me. Go, go! The queue is already round the corner.', 'cross'], ['hero', 'Prawns, cockles, back before the broth boils.', 'calm']] },
+      { t: 'pickup', at: 'seafood', item: 'prawns', label: 'Pick up the seafood basket at the East Coast seafood centre', cp: true },
+      { t: 'deliver', to: 'laksa', item: 'prawns', time: 75, fragile: 6, label: 'Carry the basket to 328 Katong Laksa before the broth boils (bumps spill it)' },
+      { t: 'mini', kind: 'wok', level: 2, label: 'Help Nyonya Rosie cook the laksa' },
+      { t: 'talk', lines: [['rosie', 'Shiok! Coconut, chilli, cockles. Now Katong smells like Katong again.', 'happy'], ['rosie', 'Those bats, they are the Atas Bats. They only take nice things. Prawns, pearls, porcelain.', 'cross'], ['mate', 'Atas. Posh. Posh bats.', 'smug']] },
+    ] },
+  { id: 'm47', ch: 8, title: 'The Kamcheng Jar', giver: 'rosie', at: 'rosie', reward: 520, rep: 16, blurb: 'Nyonya Rosie’s great-grandmother’s kamcheng jar went missing from the Peranakan mansion on Joo Chiat. Ask the neighbours, then search where every clue points.',
+    steps: [
+      { t: 'talk', lines: [['rosie', 'My kamcheng! Pink and gold porcelain, a hundred years old. Gone from the mansion while I was cooking.', 'worried'], ['rosie', 'The whole street was out. Somebody must have seen something.', 'calm'], ['hero', 'We ask, then we look where the clues point.', 'calm']] },
+      { t: 'goto', at: 'joochiat', label: 'Go up Joo Chiat Road to the shophouses', ride: 'foot', cp: true },
+      { t: 'detective', item: 'kamcheng', time: 150, witnesses: [
+        { at: [297, 44], sp: 'robin', name: 'uncle with the songbird cage', ask: ['Did you hear anything?', 'Did you see where it went?', 'Did they look rich?'], right: 1, clue: 'Up! Something with leathery wings carried a pink thing up high. My birds went crazy.', tag: 'high', junk: ['Only my birds singing. Best singers in Katong.', '', 'Everybody in Katong looks rich tonight. Christmas, you know.'] },
+        { at: [285, 44], sp: 'pigeon', name: 'auntie with the shopping bags', ask: ['What did they smell of?', 'Which way did they go?', 'Were they wearing anything?'], right: 0, clue: 'Durian! Strong, strong durian. Who goes stealing smelling of durian?', tag: 'fruit', junk: ['', 'This way, that way, I was busy looking at the kebaya shop.', 'Pearls? A bow tie? Very smart for a thief.'] },
+        { at: [305, 44], sp: 'tapir', name: 'shopkeeper sweeping his five-foot way', ask: ['Did anyone drop anything?', 'Did you see a car?', 'What time was it?'], right: 0, clue: 'Painted tiles, broken, round the back by the shade. Like someone banged into a wall going round.', tag: 'shade', junk: ['', 'No car, only bicycles tonight.', 'Laksa time. Everybody’s time is laksa time.'] },
+      ], spots: [
+        { at: [312, 44], tags: ['high', 'fruit', 'shade'], what: 'the durian crates under the shophouse awning' },
+        { at: [289, 44], tags: ['fruit'], what: 'the fruit stall by the corner' },
+        { at: [320, 45], tags: ['high', 'shade'], what: 'the mansion’s back verandah' },
+        { at: [278, 44], tags: ['high'], what: 'the shophouse balcony planters' },
+        { at: [302, 38], tags: ['fruit', 'shade'], what: 'the market tarpaulins' },
+      ], label: 'Ask round Joo Chiat Road (E), then search where every clue points', cp: true },
+      { t: 'talk', lines: [['hero', 'The kamcheng! Not a crack. And a little fruit-bat bow tie stuck on the lid.', 'smug'], ['mate', 'Gently back to the mansion. It is older than Uncle Teo.', 'cross']] },
+      { t: 'deliver', to: 'mansion', item: 'kamcheng', time: 60, fragile: 4, label: 'Carry the kamcheng back to the Peranakan mansion (gently: bumps crack it)', cp: true },
+      { t: 'talk', lines: [['rosie', 'Thank you, thank you. My great-grandmother is smiling somewhere.', 'happy'], ['ciku', 'Darlings! That jar was a little gift for my collection. Never mind. There are nicer things on Orchard Road.', 'happy'], ['rosie', 'That one is Datin Ciku. She roosts in the casuarinas by the beach and thinks the whole East Coast is her shopping trip.', 'cross']] },
+    ] },
+  { id: 'm48', ch: 8, title: 'Pedal to the Park', giver: 'bala', at: 'bala', reward: 520, rep: 16, blurb: 'A bat on Uncle Bala’s last hired bike is racing off with his cash tin along the East Coast Park cycling track. Take the next bike and beat it round the markers.',
+    steps: [
+      { t: 'talk', lines: [['bala', 'Wah lau! A bat rode off on my bike with my cash tin in the basket! Bats can’t even pedal properly!', 'cross'], ['bala', 'It always goes round the track markers to show off. Take that bike, cut it off at every one.', 'calm'], ['mate', 'A bike! No engine, no fuss. I’ll ring the bell.', 'happy']] },
+      { t: 'ride', kind: 'bike', near: [288, 80], label: 'Hop on the hired bike by Uncle Bala’s rack', cp: true },
+      { t: 'race', ride: 'bike', rival: 'scooter', pace: 0.8, time: 85, marks: [[300, 82], [320, 81], [310, 86], [292, 85], [280, 81], [298, 82]], label: 'Pedal round every track marker before the bat', cp: true },
+      { t: 'goto', at: 'bala', label: 'Ride back to Uncle Bala', r: 140 },
+      { t: 'talk', lines: [['bala', 'My tin! And the bat fell in the bushes, wah, so paiseh for it.', 'happy'], ['bala', 'You keep the bike as long as you like. Free for friends. Ride by the sea, very shiok.', 'happy']] },
+    ] },
+  { id: 'm49', ch: 8, title: 'Lagoon Rush', giver: 'bala', at: 'bala', reward: 540, rep: 16, blurb: 'The East Coast Lagoon hawker centre is packed for the Christmas weekend, and the Atas Bats are swooping on every plate. Hold the stalls.',
+    steps: [
+      { t: 'talk', lines: [['bala', 'Christmas weekend! Everybody at the hawker centre: satay, sambal stingray, carrot cake.', 'happy'], ['bala', 'And the bats are circling. They want the satay and the nice plates.', 'worried'], ['mate', 'Then we hold the stalls. Knock them back before they grab.', 'smug']] },
+      { t: 'goto', at: 'hawker-ecp', label: 'Head to the East Coast Lagoon hawker centre', cp: true },
+      { t: 'defend', at: 'hawker-ecp', time: 66, waves: 3, per: 2, gang: 'bat', what: 'Stall', label: 'Guard the hawker stalls: knock the bats back before they grab ({mate} helps on their own)', cp: true },
+      { t: 'talk', lines: [['bala', 'Not one stick of satay lost! The uncles want to give you free sugarcane for a year.', 'happy'], ['ciku', 'Hawker food is so last season anyway. Ta-ta, darlings! I am off to do some real shopping.', 'happy'], ['hero', 'Real shopping. Orchard Road.', 'cross']] },
+    ] },
+  { id: 'm50', ch: 8, title: 'Light-Up on Orchard', giver: 'tiara', at: 'tiara', reward: 560, rep: 17, blurb: 'The bats pulled out the wires of the Orchard Road Christmas light-up and scattered its baubles. Rewire the switch box and hang them back on the trees.',
+    steps: [
+      { t: 'talk', lines: [['tiara', 'Tiara, Orchard Road light-up producer. Lights on in one hour, and look: wires everywhere, baubles everywhere!', 'worried'], ['tiara', 'Bats. Bats in bow ties. They took the big star off the arch and they want the rest.', 'cross'], ['mate', 'Wires first, then baubles. Then we find that star.', 'smug']] },
+      { t: 'goto', at: [300, 21], label: 'To the switch box under the light-up arch outside Lucky Plaza', ride: 'foot', cp: true },
+      { t: 'mini', kind: 'wires', level: 3, label: 'Rewire the light-up switch box' },
+      { t: 'collect', items: [[282, 21], [296, 33], [314, 10], [307, 37]], item: 'bauble', time: 90, label: 'Gather the four baubles the bats dropped along Orchard Road', cp: true },
+      { t: 'goto', at: 'ion', label: 'Bring the baubles to the ION Orchard tree', ride: 'foot' },
+      { t: 'talk', lines: [['tiara', 'Lights on! Look at it, all the way from Tanglin to Dhoby Ghaut.', 'happy'], ['tiara', 'But no star on top. Without the star, it’s just a very long string of lights.', 'worried'], ['hero', 'Then we get the star back.', 'calm']] },
+    ] },
+  { id: 'm51', ch: 8, title: 'Window Shopping', giver: 'tiara', at: 'tiara', reward: 580, rep: 17, blurb: 'The bats keep their shopping in the loading bay behind Lucky Plaza. Walk in with the Christmas crowd, then swap their bags for decoys while the lookouts preen.',
+    steps: [
+      { t: 'talk', lines: [['tiara', 'The bats bring everything to the loading bay behind Lucky Plaza. Bags and bags. Perfume, shoes, my star’s spare bulbs.', 'cross'], ['tiara', 'Their lookouts watch for chinchillas, but tonight the whole island is shopping.', 'calm'], ['mate', 'Then we shop too. Shopping bags from the rack, walk slow, look tired.', 'smug']] },
+      { t: 'blend', rack: [293, 21], route: [[296, 21], [301, 21], [306, 21], [309, 25], [309, 31]], goal: [306, 33], lookouts: [[303, 20, 90], [309, 22, 180], [308, 31, 270]], crowd: 9, folk: 'town', label: 'Walk with the shoppers past Lucky Plaza to the loading bay (keep to a walk)', cp: true },
+      { t: 'talk', lines: [['hero', 'Bags everywhere. And bats everywhere, pretending not to watch.', 'worried'], ['mate', 'Swap each bag for a decoy full of tissue paper. They’ll never know till they open them.', 'smug']] },
+      { t: 'swap', crates: [[302, 33], [305, 34], [310, 34], [313, 33]], guards: [[[301, 36], [313, 36]], [[313, 32], [301, 32]]], time: 90, decoy: 'decoy', skin: 'bat', label: 'Slip a decoy bag into each pile (E) while the bats look away', cp: true },
+      { t: 'goto', at: 'tiara', label: 'Bring the shopping back to Ms Tiara', ride: 'foot' },
+      { t: 'talk', lines: [['tiara', 'My spare bulbs! And in this bag… an invitation. Emerald Hill, tonight. “Star viewing, by invitation only. Datin C.”', 'worried'], ['hero', 'She’s going to show it off. At home.', 'cross'], ['mate', 'Then we visit. Without an invitation.', 'smug']] },
+    ] },
+  { id: 'm52', ch: 8, title: 'Emerald Hill', giver: 'tiara', at: 'tiara', reward: 600, rep: 18, blurb: 'Datin Ciku keeps the Christmas Star in the safe of her Emerald Hill townhouse. Case the place, then take it back: quiet or loud.',
+    steps: [
+      { t: 'talk', lines: [['tiara', 'Emerald Hill. Old Peranakan terraces, very pretty, very quiet. Her bats guard the house.', 'worried'], ['mate', 'Look first. Doors, guards, cameras, the safe.', 'smug']] },
+      { t: 'goto', at: [286, 10], label: 'Go up Emerald Hill Road', ride: 'foot', cp: true },
+      { t: 'case', spots: [{ at: [289, 7], kind: 'door' }, { at: [283, 9], kind: 'rota' }, { at: [280, 4], kind: 'cam' }, { at: [283, 6], kind: 'safe' }], need: 3, guards: [[[277, 4], [289, 4]], [[276, 10], [283, 10]]], label: 'Photograph three things (E): the back door, the bat rota, the camera, the safe' },
+      { t: 'talk', lines: [['mate', 'Quiet or loud? Either way, the star comes home.', 'smug']] },
+      { t: 'heist', front: [283, 10], back: [289, 7], safe: [283, 6], drop: 'safe-orchard', guards: [[[277, 4], [289, 4]], [[276, 10], [283, 10]]], cams: [[280, 5, 0], [288, 9, 180]], time: 65, loot: 'xmas-star', level: 3, label: 'Crack Datin Ciku’s safe', cp: true },
+      { t: 'talk', lines: [['hero', 'The safe’s empty. Just a boarding pass. Changi Airport, first flight out.', 'worried'], ['ciku', 'Darlings, you’re too late! The star and I are going on holiday. Somewhere with nicer shops.', 'happy'], ['tiara', 'Changi! The line runs to the airport now. Go!', 'cross']] },
+    ] },
+  { id: 'm53', ch: 8, title: 'Changi Village Stakeout', giver: 'ubin', at: 'ubin', reward: 600, rep: 18, blurb: 'Pak Ubin says the bats meet at the Changi Village hawker centre before every job. Net them on their way in, then follow the courier to the airport.',
+    steps: [
+      { t: 'talk', lines: [['ubin', 'Selamat datang. Fifty years I take the bumboat to Pulau Ubin. I see everything at this jetty.', 'calm'], ['ubin', 'The bats come through the village every night. Nasi lemak first, then they fly to the airport.', 'calm'], ['mate', 'Nets on their path, nasi lemak for bait. Then we follow the one who gets away.', 'smug']] },
+      { t: 'goto', at: 'village', label: 'Go into Changi Village', ride: 'foot', cp: true },
+      { t: 'trap', spots: [[340, 58], [344, 58], [348, 58], [352, 58]], need: 3, bait: [355, 58], wait: [348, 61], path: [[332, 58], [336, 58], [340, 58], [344, 58], [348, 58], [352, 58], [355, 58]], gang: 'bat', n: 3, catch: 2, label: 'Lay three nets along the village street (E)', cp: true },
+      { t: 'talk', lines: [['hero', 'Two in the nets. And one with a luggage tag in its claws, flying low.', 'smug'], ['mate', 'Let it lead us. I’ll wait by the station: switch to me there.', 'smug']] },
+      { t: 'tail', name: 'the courier', skin: 'bat', from: [345, 56], route: [[345, 50], [345, 44], [346, 36], [349, 30], [354, 24]], relay: { at: 3, spot: [348, 32] }, calm: 0.55, label: 'Follow the courier to the airport; switch to {mate} by the baggage hall (Tab)', cp: true },
+      { t: 'talk', lines: [['hero', 'The baggage hall. Datin Ciku’s luggage is going through tonight.', 'cross'], ['ubin', 'Captain Faiz flies the morning plane. He will help you. Tell him Ubin sent you.', 'happy']] },
+    ] },
+  { id: 'm54', ch: 8, title: 'Lost Luggage', giver: 'faiz', at: 'faiz', reward: 620, rep: 18, blurb: 'A bat in a porter’s cap is wheeling Datin Ciku’s suitcase across the apron to her plane. Captain Faiz says stop it before it’s loaded.',
+    steps: [
+      { t: 'talk', lines: [['faiz', 'Captain Faiz. Good evening. A bat porter is taking a suitcase to my plane that I did not load.', 'calm'], ['faiz', 'Heavy, star-shaped, and it hums Christmas songs. Most irregular.', 'worried'], ['mate', 'There! Across the apron, with a trolley!', 'cross']] },
+      { t: 'chase', who: 'runner', name: 'the porter', skin: 'bat', from: [350, 30], route: [[356, 30], [362, 26], [362, 12], [350, 9], [336, 10], [334, 12], [344, 22]], bumps: 2, loot: 'suitcase', speed: 200, finish: 'net', label: 'Catch the bat porter: bump it twice, then net it (click)', cp: true },
+      { t: 'pickup', at: 'loot', item: 'suitcase', label: 'Grab the suitcase' },
+      { t: 'talk', lines: [['hero', 'It’s… full of fruit. And a note. “Decoy, darlings. Love, C.”', 'cross'], ['faiz', 'Then the real star is still at the airport. Jewel. She loves the waterfall.', 'calm'], ['mate', 'The Rain Vortex. Of course she does.', 'smug']] },
+    ] },
+  { id: 'm55', ch: 8, title: 'Rain Vortex', giver: 'faiz', at: 'faiz', reward: 1200, rep: 25, blurb: 'Datin Ciku is hanging the Christmas Star over the Rain Vortex at Jewel for her farewell party. Slip past her bat lookouts, run her down round the forest valley, and bring the star home.',
+    steps: [
+      { t: 'talk', lines: [['faiz', 'Jewel is closed for the night. Only the waterfall, the forest and the bats.', 'calm'], ['ubin', 'Her lookouts hang from the terraces. They see well in the dark, but they are very vain.', 'calm'], ['mate', 'Then I keep them busy at the east door. You go in quiet.', 'smug']] },
+      { t: 'goto', at: [331, 46], label: 'Go to Jewel’s south doors', ride: 'foot', cp: true },
+      { t: 'stealth', lookouts: [[[327, 38], [327, 42]], [[335, 40], [335, 36]], [[328, 33], [335, 33]]], goal: 'vortex', exit: [331, 46], calm: 0.55, pause: 1.5, label: 'Reach the Rain Vortex unseen past the bat lookouts, then get out', cp: true },
+      { t: 'talk', lines: [['ciku', 'Darlings! You came to my party! No invitation, of course. How very common.', 'happy'], ['hero', 'The star, Datin. It belongs to Orchard Road.', 'calm'], ['ciku', 'Then catch me! In heels!', 'happy']] },
+      { t: 'chase', who: 'runner', name: 'Datin Ciku', skin: 'ciku', from: [331, 40], route: [[327, 36], [327, 24], [331, 20], [336, 24], [336, 36], [331, 42], [327, 30]], bumps: 2, loot: '', speed: 200, finish: 'pounce', label: 'Pounce on Datin Ciku together: F sends {mate} in, then dash', cp: true },
+      { t: 'talk', lines: [['ciku', 'My cape! My PEARLS! Very well. Take your little star. Bertie, fly it away!', 'cross'], ['mate', 'One of her bats has the star! It’s going up over the waterfall!', 'cross']] },
+      { t: 'bag', at: 'here', loot: 'xmas-star', skin: 'bat', time: 60, label: 'Knock the Christmas Star out of the bat’s claws (shoot it, or dash when it swoops low)', cp: true },
+      { t: 'pickup', at: 'loot', item: 'xmas-star', label: 'Catch the Christmas Star' },
+      { t: 'talk', lines: [['ciku', 'I only wanted something nobody else had.', 'worried'], ['tiara', 'Then come and switch it on with us, Datin. Everybody gets to have it. That’s the point.', 'happy'], ['rosie', 'And laksa after. My treat.', 'happy'], ['hero', 'Best Christmas ever.', 'happy'], ['mate', 'Best island ever. All of it, coast to coast.', 'happy']] },
+    ] },
 ];
 // ── Hawker Tales: the Singapore side jobs. They sit outside the five chapters (ch 0), open once their story job is
 // done, and pay like a story job; the townsfolk they help are in PEOPLE.
@@ -718,6 +830,30 @@ export const SIDE: Mission[] = [
       { t: 'goto', at: [52, 119], label: 'To the start line at the west end of the beach', ride: 'foot', cp: true },
       { t: 'race', ride: 'foot', rival: 'runner', marks: [[62, 121], [74, 122], [86, 120], [98, 122], [110, 120], [116, 117]], label: 'Beat the crow cadet along Siloso Beach' },
       { t: 'talk', lines: [['duyung', 'Ha! He’s sulking in the lagoon. Good for him. Ice kacang on me.', 'happy']] },
+    ] },
+  // the twelfth pass's Hawker Tales: Katong, Orchard Road and Changi
+  { id: 'k14', side: 'm47', ch: 0, title: 'Kueh for the Kebaya Club', giver: 'rosie', at: 'rosie', reward: 200, rep: 12, blurb: 'Nyonya Rosie’s kebaya ladies meet at the songbird corner tonight. Fold the kueh with her, then run the tray over before it goes soggy.',
+    steps: [
+      { t: 'talk', lines: [['rosie', 'Kueh lapis, ang ku kueh, onde-onde. My kebaya ladies eat like birds. Very hungry birds.', 'happy'], ['mate', 'We fold, you steam. Then we run.', 'smug']] },
+      { t: 'mini', kind: 'dumpling', level: 2, label: 'Fold the kueh with Nyonya Rosie', cp: true },
+      { t: 'pickup', at: 'rosie', item: 'kuih', label: 'Take the tray of kueh' },
+      { t: 'deliver', to: 'birds', item: 'kuih', time: 55, fragile: 5, label: 'Carry the kueh to the songbird corner (bumps squash them)', cp: true },
+      { t: 'talk', lines: [['rosie', 'They say the onde-onde is better than mine. Hmph. Next time I fold, you watch.', 'happy']] },
+    ] },
+  { id: 'k15', side: 'm52', ch: 0, title: 'Shopping Spree', giver: 'tiara', at: 'tiara', reward: 210, rep: 12, blurb: 'Ms Tiara’s whole crew dropped their shopping running from the bats. Gather the bags along Orchard Road before the night market closes.',
+    steps: [
+      { t: 'talk', lines: [['tiara', 'My crew ran from the bats and dropped everything! Gifts for the whole team, all over Orchard Road.', 'worried'], ['hero', 'Four bags. We’ll find them.', 'calm']] },
+      { t: 'collect', items: [[279, 10], [306, 9], [320, 21], [288, 33]], item: 'shop-bags', time: 85, label: 'Gather the four shopping bags along Orchard Road', cp: true },
+      { t: 'goto', at: 'tiara', label: 'Bring the bags back to Ms Tiara', ride: 'foot' },
+      { t: 'talk', lines: [['tiara', 'Every gift! You two are on the light-up team now. Honorary.', 'happy']] },
+    ] },
+  { id: 'k16', side: 'm54', ch: 0, title: 'Last Bumboat to Ubin', giver: 'ubin', at: 'ubin', reward: 220, rep: 12, blurb: 'Pak Ubin’s old rival says his bumboat is faster. Take Pak Ubin’s boat round the channel markers off Changi Beach and prove him wrong.',
+    steps: [
+      { t: 'talk', lines: [['ubin', 'That young otter says his boat is faster than mine. Fifty years! Faster!', 'cross'], ['ubin', 'Take my bumboat round the markers. Show him how an old boat goes.', 'happy']] },
+      { t: 'ride', kind: 'boat', near: [368, 90], label: 'Jump in Pak Ubin’s bumboat by the jetty', cp: true },
+      { t: 'race', ride: 'boat', rival: 'boat', pace: 0.88, time: 80, marks: [[360, 96], [346, 101], [332, 96], [346, 92], [362, 92]], label: 'Steer round every channel marker before the otter’s boat', cp: true },
+      { t: 'goto', at: 'ubin', label: 'Back to Pak Ubin at the jetty', ride: 'foot', r: 140 },
+      { t: 'talk', lines: [['ubin', 'Hah! Old boat, old captain, still the fastest. Come, kopi on me.', 'happy']] },
     ] },
 ];
 export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id, m])) as Record<string, Mission>;

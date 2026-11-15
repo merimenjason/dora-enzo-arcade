@@ -33,7 +33,7 @@ import type { World, Near } from './jade-game.js';
 import type { Actor } from './jade-mission.js';
 
 export type RaidKind = 'defend' | 'trap' | 'chase' | 'grab';
-export type Gang = 'crow' | 'mac' | 'otter' | 'liz' | 'myna';
+export type Gang = 'crow' | 'mac' | 'otter' | 'liz' | 'myna' | 'bat';
 /** a raid under way: the property, the gang, what kind of job it will be, seconds left to get there, and whether your
  * partner has gone to deal with it */
 export type Raid = { id: BizId; gang: Gang; kind: RaidKind; t: number; total: number; sent: boolean };
@@ -57,7 +57,7 @@ export const repairCost = (id: BizId) => Math.max(EMP.repairMin, Math.round(BIZ_
 export const jagaCost = (id: BizId) => Math.max(EMP.jagaMin, Math.round(BIZ_OF[id].price * EMP.jagaK / 10) * 10);
 export const gangOf = (id: BizId): Gang => RAID_GANG[BIZ_OF[id].d];
 /** which raid jobs a gang can bring: crows grab and run, the lizards keep low (no stand at the shop) */
-export const RAID_KINDS: Record<Gang, RaidKind[]> = { crow: ['grab', 'defend', 'trap', 'chase'], mac: ['defend', 'trap', 'chase'], otter: ['defend', 'trap', 'chase'], myna: ['defend', 'trap', 'chase'], liz: ['trap', 'chase'] };
+export const RAID_KINDS: Record<Gang, RaidKind[]> = { crow: ['grab', 'defend', 'trap', 'chase'], mac: ['defend', 'trap', 'chase'], otter: ['defend', 'trap', 'chase'], myna: ['defend', 'trap', 'chase'], bat: ['defend', 'trap', 'chase'], liz: ['trap', 'chase'] };
 export const RAID_WHAT: Record<RaidKind, string> = { defend: 'Hold the shop', trap: 'Net them on the way in', chase: 'Run down the one with the till', grab: 'Catch the crows with the coins' };
 
 // ── raids
@@ -326,7 +326,7 @@ export function empireJobDone(w: World, key: string) {
 export function empireNear(w: World, cand: (n: Near, r: number) => void) {
   const rd = w.emp.raid; if (rd && !rd.sent && !w.run) { const [x, y] = bizPos(BIZ_OF[rd.id]); cand({ kind: 'empire', label: `Stop the raid on the ${BIZ_OF[rd.id].name}!`, x, y: y + 40, id: 'raid' }, EMP.near + 40); }
 }
-export function empireAct(w: World, id: string) { if (id === 'raid') startRaidJob(w); }
+export function empireAct(w: World, id: string) { if (id === 'raid') startRaidJob(w); else if (id.startsWith('job:')) { const [, jid, bid] = id.split(':'); const e = startEmpireJob(w, jid, bid as BizId); if (e) w.say(e, 'bad'); } }
 /** where the route line goes with nothing else on: the raid */
 export function empireTarget(w: World): [number, number] | null { const rd = w.emp.raid; if (!rd || rd.sent) return null; return bizPos(BIZ_OF[rd.id]); }
 /** a property's label for the E prompt */

@@ -20,7 +20,7 @@ import { RAID_GANG, GANG_NAME } from './jade-props.js';
 import { chaseLoop, trapPlan, tilesDown } from './jade-empire.js';
 import { FRAMES } from './jade-art.js';
 
-export type Gang = 'crow' | 'mac' | 'otter' | 'liz' | 'myna';
+export type Gang = 'crow' | 'mac' | 'otter' | 'liz' | 'myna' | 'bat';
 /** night: a graveyard shift (darker, guards see less far); rain: a storm the whole way; timer: every clock is
  * shorter; foot: no rides; solo: the partner is busy elsewhere; wardens: the fine city's wardens out in force */
 export type Mod = 'night' | 'rain' | 'timer' | 'foot' | 'solo' | 'wardens';
@@ -62,12 +62,12 @@ export function makeCtx(open: District[]): GenCtx {
 
 // ── the cast, the gangs and their voices
 /** who gives contracts: everyone with a contact place of their own (Mr Ong rides his round, so not him) */
-export const GIVERS = ['kee', 'mo', 'pang', 'heron', 'ren', 'kiri', 'lim', 'gizmo', 'bo', 'hoon', 'beng', 'teo', 'goh', 'lily', 'kamal', 'vanda', 'raju', 'malar', 'kancil', 'wangi', 'helang', 'duyung', 'lepak', 'bising'];
+export const GIVERS = ['kee', 'mo', 'pang', 'heron', 'ren', 'kiri', 'lim', 'gizmo', 'bo', 'hoon', 'beng', 'teo', 'goh', 'lily', 'kamal', 'vanda', 'raju', 'malar', 'kancil', 'wangi', 'helang', 'duyung', 'lepak', 'bising', 'rosie', 'bala', 'tiara', 'faiz', 'ubin', 'ciku'];
 /** a giver whose face and body are painted (the phone card shows the face, the street the body); one still waiting for
  * art gives no contracts. A gang boss only needs the face, for a taunt */
 const painted = (g: string, body = GIVERS.includes(g)) => !!FRAMES[PEOPLE[g]?.face ?? ''] && (!body || !!FRAMES[`npc-${g}-idle-0`]);
 /** the two gang bosses who hire you against somebody else's gang */
-const BOSS_GANG: Record<string, Gang> = { lepak: 'liz', bising: 'myna' };
+const BOSS_GANG: Record<string, Gang> = { lepak: 'liz', bising: 'myna', ciku: 'bat' };
 type Voice = { hi: string[]; ok: string[]; oops: string[] };
 /** each giver's own way of talking: how they open, how they say thanks, what they say when it goes wrong */
 export const VOICE: Record<string, Voice> = {
@@ -95,16 +95,23 @@ export const VOICE: Record<string, Voice> = {
   duyung: { hi: ['Fifty years on these waters. Never seen this.', 'Ahoy, little ones. Trouble at sea, and on land.'], ok: ['Steady as she goes. Good work.', 'Ice kacang on me, as always.'], oops: ['Rough seas. Back to port and try again.', 'The sea teaches patience. Again.'] },
   lepak: { hi: ['Lepak means relax. But not today.', 'Don’t tell the lizards I asked you, ah.'], ok: ['Nice. Now I can lie down again.', 'Steady. Very steady.'], oops: ['Aiyah. Relax first, then go again.', 'Even a monitor lizard trips sometimes.'] },
   bising: { hi: ['KECOH! Sorry. Shh. I have a job.', 'Mynahs only have one volume, so listen fast!'], ok: ['KECOH! I mean, thank you!', 'Loudest thanks on the island!'], oops: ['Aiyoh! Too quiet, too slow!', 'Again! LOUDER! I mean, faster!'] },
+  rosie: { hi: ['Aiyoh, you came! Sit, eat first. No, work first.', 'Got problem, and got laksa. Problem first.'], ok: ['Shiok! Like my laksa: just right.', 'Good kids. Take some kueh home.'], oops: ['Aiyoh, too much santan in that plan. Again.', 'Never mind, the broth can wait. Try again.'] },
+  bala: { hi: ['Eh, friends! Got one job, very shiok one.', 'Ring ring! Bala here, got problem.'], ok: ['Wah, power! Free bike for a week.', 'Steady! Like riding downhill.'], oops: ['Puncture! Pump it up and go again.', 'Fell off the bike? Get back on lah.'] },
+  tiara: { hi: ['Places, everyone! I have a job.', 'Cue lights, cue music, cue chinchillas.'], ok: ['That’s a wrap! Lights look perfect.', 'Standing room only, all thanks to you.'], oops: ['Cut! Back to first positions.', 'Technical difficulty. We go again.'] },
+  faiz: { hi: ['Good evening, crew. A small irregularity.', 'Captain speaking. Please fasten your seatbelts.'], ok: ['A textbook landing. Well done.', 'Right on time. The tower thanks you.'], oops: ['We will be going around again.', 'A little turbulence. Second approach.'] },
+  ubin: { hi: ['Selamat datang. Sit, the tide is slow tonight.', 'Fifty years at this jetty, and still something new.'], ok: ['Bagus. Like the old days.', 'Steady hands. Good sailors.'], oops: ['The tide turned. Wait, then go again.', 'Slowly, slowly. The boat still floats.'] },
+  ciku: { hi: ['Darlings! A little favour, very exclusive.', 'Only the nicest chinchillas for this one.'], ok: ['Divine! Simply divine.', 'Mwah! You have taste.'], oops: ['How common. Again, darlings.', 'Not quite atas enough. Try again.'] },
 };
 /** a gang's name from the shared table (lib/jade-props.ts GANG_NAME), without the species on the end, so a rename there
  * flows through every contract */
 const gangName = (g: Gang, one: string) => (GANG_NAME[g] ?? g).replace(new RegExp(` ${one}s$`), '');
-export const GANG: Record<Gang, { name: string; one: string; boss: string; skin?: 'otter' | 'mac' | 'liz' | 'myna'; taunt: string[]; brag: string[] }> = {
+export const GANG: Record<Gang, { name: string; one: string; boss: string; skin?: 'otter' | 'mac' | 'liz' | 'myna' | 'bat'; taunt: string[]; brag: string[] }> = {
   crow: { name: gangName('crow', 'crow'), one: 'crow', boss: 'pip', taunt: ['Finders keepers, fluffballs!', 'Kaypoh means we know everything. Even this!'], brag: ['Caw! Shiny is mine!', 'Kaypoh Crows Pte Ltd, at your disservice!'] },
   mac: { name: gangName('mac', 'macaque'), one: 'macaque', boss: 'kow', skin: 'mac', taunt: ['Bananas belong to everyone. Mostly me!', 'Hoo hoo! Catch me if you can!'], brag: ['The Bunch takes what the Bunch likes!', 'Bananas first, questions never!'] },
   otter: { name: gangName('otter', 'otter'), one: 'otter', boss: 'sleek', skin: 'otter', taunt: ['Borrowing only! Hehe!', 'The river is our playground!'], brag: ['Splash and dash!', 'Otters don’t steal. We just… find early.'] },
   liz: { name: gangName('liz', 'lizard'), one: 'lizard', boss: 'lepak', skin: 'liz', taunt: ['Lepak lah, it’s only a small thing.', 'Down the drain it goes!'], brag: ['Slow and steady, then fast and gone.', 'The longkang never gives back.'] },
   myna: { name: gangName('myna', 'mynah'), one: 'mynah', boss: 'bising', skin: 'myna', taunt: ['KECOH! Mine now!', 'Loud and proud and gone!'], brag: ['We sing, we swipe, we fly!', 'KECOH KECOH KECOH!'] },
+  bat: { name: gangName('bat', 'bat'), one: 'bat', boss: 'ciku', skin: 'bat', taunt: ['Darling, it simply had to be mine.', 'So atas, so mine! Mwah!'], brag: ['We only take the nicest things.', 'Datin Ciku sends her regards. Ciao!'] },
 };
 /** the things a job is about, each with a painted sprite (lib/jade-scene.ts itemSprite) and how it is spoken of */
 export const ITEMS: { id: string; name: string; fragile?: boolean; stink?: boolean; food?: boolean }[] = [
@@ -130,7 +137,7 @@ const ASK: Record<Tag, [string, string]> = {
 };
 const JUNK: [string, string][] = [
   ['Is the hawker centre open?', 'Always open, always got queue.'], ['Are you hungry?', 'Always.'], ['Did it rain this morning?', 'A little. My umbrella is new, see?'],
-  ['Do you know {giver}?', 'Everybody knows {giver}.'], ['How much is a kopi here?', 'One-twenty. For you, also one-twenty.'], ['Seen any wardens?', 'Wardens, crows, mynahs. Everybody is kaypoh tonight.'],
+  ['Do you know {giver}?', 'Everybody knows {giver}.'], ['How much is a kopi here?', 'One-twenty. For you, also one-twenty.'], ['Seen any wardens?', 'Wardens, crows, mynahs, bats. Everybody is kaypoh tonight.'],
   ['Is that your bicycle?', 'Not mine. Don’t tell the warden.'], ['What time is it?', 'Late. Very late. Why you ask me?'], ['Nice night, isn’t it?', 'Nice for who? My feet are tired.'],
 ];
 const SPOTS: { what: string; tags: Tag[] }[] = [
@@ -227,7 +234,7 @@ export function genContract(ctx: GenCtx, ref: CRef): Contract {
     const pl = ctx.c.places[giver]; if (!pl) continue;
     const d = ref.contest?.d ?? pl.d;
     let gang: Gang = ref.contest?.gang ?? RAID_GANG[d];
-    if (BOSS_GANG[giver] === gang) gang = pick(Rb, (['crow', 'mac', 'otter', 'liz', 'myna'] as Gang[]).filter(x => x !== gang && x !== 'liz'));
+    if (BOSS_GANG[giver] === gang) gang = pick(Rb, (['crow', 'mac', 'otter', 'liz', 'myna', 'bat'] as Gang[]).filter(x => x !== gang && x !== 'liz'));
     const kinds = kindsFor(ctx, ref, d);
     const kind: Kind = ref.contest ? 'retake' : ref.kind && attempt === 0 && kinds.includes(ref.kind as Kind) ? ref.kind as Kind : pick(attempt ? Rb : Rk, kinds);
     const mods = modsFor(Rm, kind, stars, !!ref.day);
@@ -371,7 +378,7 @@ const BUILD: Record<Kind, (b: B) => Build | null> = {
     const g1 = tileOf(...nearestFree(ctx.c, 'walk', sx - 4 * T, sy + 3 * T, ctx.open, 3)), g2 = tileOf(...nearestFree(ctx.c, 'walk', sx + 4 * T, sy + 3 * T, ctx.open, 3));
     const steps: Step[] = [
       { t: 'tail', name: `the ${G.one}`, from: tl.from, route: tl.route, calm: 0.85, skin: G.skin, label: `Tail the ${G.one} to their store (keep back, out of sight)`, cp: true },
-      { t: 'swap', crates, guards: b.stars >= 3 ? [[g1, g2], [g2, g1]] : [[g1, g2]], time: Math.round(78 * (b.mods.includes('timer') ? 0.86 : 1)), decoy: 'ticket', skin: b.gang === 'liz' || b.gang === 'myna' ? b.gang : undefined, label: 'Swap their stolen goods for decoys while the guard looks away (E at each crate)', cp: true },
+      { t: 'swap', crates, guards: b.stars >= 3 ? [[g1, g2], [g2, g1]] : [[g1, g2]], time: Math.round(78 * (b.mods.includes('timer') ? 0.86 : 1)), decoy: 'ticket', skin: b.gang === 'liz' || b.gang === 'myna' || b.gang === 'bat' ? b.gang : undefined, label: 'Swap their stolen goods for decoys while the guard looks away (E at each crate)', cp: true },
     ];
     if (b.stars >= 2) steps.push({ t: 'heat', level: 2, label: 'The wardens saw you at the crates! Lose them (out of sight, or hide)' });
     steps.push({ t: 'goto', at: b.g, label: `Back to ${name(b.g)}` });
@@ -508,8 +515,8 @@ const BUILD: Record<Kind, (b: B) => Build | null> = {
       blurb: `The ${G.name} are muscling in on ${DISTRICT_NAME[b.d]}: our tills are down every night they stay. Push them out.` };
   },
 };
-const defGang = (g: Gang): 'mac' | 'otter' | 'crow' | 'myna' => g === 'liz' ? 'crow' : g;
-const trapGang = (g: Gang): 'mac' | 'otter' | 'liz' | 'crow' | 'myna' => g;
+const defGang = (g: Gang): 'mac' | 'otter' | 'crow' | 'myna' | 'bat' => g === 'liz' ? 'crow' : g;
+const trapGang = (g: Gang): 'mac' | 'otter' | 'liz' | 'crow' | 'myna' | 'bat' => g;
 /** a tail from `from` to a corner 10 to 14 tiles off: the runner starts five tiles down the way */
 function tailTo(b: B, from: [number, number]): { from: Spot; route: Spot[]; end: [number, number] } | null {
   const { ctx, R } = b;
@@ -548,15 +555,18 @@ function fallback(ctx: GenCtx, ref: CRef): Contract {
 
 // ── the job the runner plays
 /** the contract as a Mission for lib/jade-mission.ts: a few numbers bend to Assist the way the empire's jobs do */
-export function contractMission(c: Contract, assist: boolean): Mission {
+export function contractMission(c: Contract, assist: boolean, hard = false): Mission {
+  // the twelfth pass: Hard sharpens a contract a little more than Normal (the gap was two first tries in 150)
+  const tk = hard ? 0.86 : 0.9, ck = hard ? 1.07 : 1.04, pk = hard ? 0.05 : 0.03;
   const steps = c.steps.map(s => {
     // without assist a contract is a notch sharper than its story counterpart: you have done all this before
     if (!assist) {
-      if (s.t === 'deliver' && s.time) return { ...s, time: Math.round(s.time * 0.9) };
-      if ((s.t === 'collect' || s.t === 'detective') && s.time) return { ...s, time: Math.round(s.time * 0.9) };
-      if (s.t === 'chase') return { ...s, speed: Math.round(s.speed * 1.04) };
+      if (s.t === 'deliver' && s.time) return { ...s, time: Math.round(s.time * tk) };
+      if ((s.t === 'collect' || s.t === 'detective') && s.time) return { ...s, time: Math.round(s.time * tk) };
+      if (s.t === 'chase') return { ...s, speed: Math.round(s.speed * ck) };
       if (s.t === 'escort') return { ...s, crows: s.crows + 1 };
-      if (s.t === 'race' && s.pace) return { ...s, pace: Math.min(1, s.pace + 0.03) };
+      if (s.t === 'race' && s.pace) return { ...s, pace: Math.min(1, s.pace + pk) };
+      if (hard && s.t === 'swap') return { ...s, time: Math.round(s.time * 0.9) };
       return s;
     }
     if (s.t === 'defend') return { ...s, per: Math.max(1, s.per - 1) };

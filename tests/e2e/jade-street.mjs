@@ -21,6 +21,7 @@ import { eighth } from './jade-street-8.mjs';
 import { ninth } from './jade-street-9.mjs';
 import { tenth } from './jade-street-10.mjs';
 import { eleventh } from './jade-street-11.mjs';
+import { twelfth } from './jade-street-12.mjs';
 const require = createRequire(import.meta.url);
 let chromium;
 try { ({ chromium } = require('playwright')); } catch { ({ chromium } = createRequire(process.cwd() + '/')('playwright')); }
@@ -125,7 +126,7 @@ async function viewport(name, w, h, touch) {
   check(await p.waitForSelector('main[data-screen="title"]', { timeout: 60000 }).then(() => true, () => false), `${name}: Try again loads the rest and opens the title`);
   await p.unroute('**/art/jade-street/atlas-props.webp*'); blocking = false;
   await p.waitForSelector('main[data-ready="true"]', { timeout: 60000 });
-  await W(() => { for (const k of ['jade-street-v12', 'jade-street-v11', 'jade-street-v10', 'jade-street-v9', 'jade-street-v8', 'jade-street-v7', 'jade-street-v6', 'jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2']) localStorage.removeItem(k); }); await p.reload(); await p.waitForSelector('main[data-screen="title"]', { timeout: 60000 });
+  await W(() => { for (const k of ['jade-street-v13', 'jade-street-v12', 'jade-street-v11', 'jade-street-v10', 'jade-street-v9', 'jade-street-v8', 'jade-street-v7', 'jade-street-v6', 'jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2']) localStorage.removeItem(k); }); await p.reload(); await p.waitForSelector('main[data-screen="title"]', { timeout: 60000 });
 
   // ── the title: a new player, the hero pick
   check(await screen() === 'title', `${name}: opens on the title`);
@@ -146,6 +147,7 @@ async function viewport(name, w, h, touch) {
   if (process.env.PASS === '5') { await W(() => { window.__jade.world().s.settings.partner = 'tag'; }); await fifth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '6') { await W(() => { window.__jade.world().s.settings.partner = 'tag'; }); await sixth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '7') { await W(() => { window.__jade.world().s.settings.partner = 'tag'; }); if (!touch) await seventh({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
+  if (process.env.PASS === '12') { if (!touch) await twelfth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '11') { if (!touch) await eleventh({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '10') { if (!touch) await tenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '9') { if (!touch) await ninth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
@@ -431,16 +433,17 @@ async function viewport(name, w, h, touch) {
   if (!touch) await ninth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
   if (!touch) await tenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
   if (!touch) await eleventh({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
+  if (!touch) await twelfth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
   await W(() => { window.__jade.world().s.done = ['m1', 'm2']; window.__jade.world().open = new Set(['market', 'temple']); });
 
   // ── back to the title, Continue, and both answers to starting over
   await press('pause-btn'); await press('to-title'); check(await screen() === 'title', `${name}: Save and quit to title`);
   check(await exists('continue'), `${name}: Continue on the title`);
-  { const t = await p.locator('[data-testid="continue"]').innerText(); const m = t.match(/(\d+)\/(\d+) jobs/); const all = await W(() => { const s = JSON.parse(localStorage.getItem('jade-street-v12') || localStorage.getItem('jade-street-v11') || '{}'); return (s.done || []).length; }); check(!!m && +m[2] >= 42 && +m[1] === all, `${name}: Continue counts every job, story and Hawker Tales (${t})`); }
+  { const t = await p.locator('[data-testid="continue"]').innerText(); const m = t.match(/(\d+)\/(\d+) jobs/); const all = await W(() => { const s = JSON.parse(localStorage.getItem('jade-street-v13') || localStorage.getItem('jade-street-v12') || '{}'); return (s.done || []).length; }); check(!!m && +m[2] >= 42 && +m[1] === all, `${name}: Continue counts every job, story and Hawker Tales (${t})`); }
   await press('new'); check(await exists('confirm-new'), `${name}: New game asks first`); await look('confirm new');
   await press('confirm-no'); check(await exists('continue'), `${name}: Keep my game`);
   // (the night the save holds: the long run above may have seen a dawn or two since the sleep)
-  const savedNight = await W(() => JSON.parse(localStorage.getItem('jade-street-v12') || localStorage.getItem('jade-street-v11') || '{}').night);
+  const savedNight = await W(() => JSON.parse(localStorage.getItem('jade-street-v13') || localStorage.getItem('jade-street-v12') || '{}').night);
   await press('continue'); check(await screen() === 'game' && savedNight >= night + 1 && (await W(() => window.__jade.world().s.night)) === savedNight, `${name}: Continue picks up the saved game`);
   await settle(); await press('pause-btn'); await press('new-game'); check(await exists('confirm-new'), `${name}: New game from pause asks first`);
   await press('confirm-no'); await press('new-game'); await press('confirm-yes'); check(await exists('pick-hero'), `${name}: Yes, start over goes to the hero pick`);

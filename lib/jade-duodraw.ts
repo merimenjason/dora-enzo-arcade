@@ -115,6 +115,8 @@ function driver(sc: Scene, x: X, w: World, p: Player, r: Ride, variant: string) 
   if (p.anim === 'ride-bump') f = `${h}-ride-bump`;
   else if (k === 'scooter') f = w.banner?.text === 'Job done!' ? `${h}-ride-cheer` : `${h}-ride-scooter-${Math.sin(sc.t * 3) > 0 ? 0 : 1}`;
   else if (k === 'trishaw') f = `${h}-ride-pedal-${Math.floor(sc.t * (2 + r.b.speed / 50)) % 2}`;
+  // the hired bike: its own pedalling pair, faster the quicker you ride
+  else if (k === 'bike') f = `${h}-ride-bike-${Math.floor(sc.t * (2 + r.b.speed / 45)) % 2}`;
   else if (k === 'boat') f = `${h}-ride-pole-${Math.floor(sc.t * 1.5) % 2}`;
   if (f) spr(x, f, rx, ry, { anchor: 'center', rot: r.b.h + Math.PI / 2, variant });
   if (p.carry) spr(x, itemOf(p.carry), r.b.x, r.b.y, { w: 26, anchor: 'center', rot: r.b.h + Math.PI / 2 });
@@ -197,7 +199,7 @@ export function gearOver(sc: Scene, x: X, w: World, vis: Vis) {
   for (const a of run.actors) {
     if (a.kind === 'bagbird' && !a.gone) {
       const low = (a.extra ?? 0) > 0;
-      sc.flyer(x, a.b.x, a.b.y, a.b.h + (a.stun > 0 ? sc.t * 12 : 0), a.t * 9, a.skin === 'myna' ? 'myna' : 'crow');
+      sc.flyer(x, a.b.x, a.b.y, a.b.h + (a.stun > 0 ? sc.t * 12 : 0), a.t * 9, a.skin === 'myna' ? 'myna' : a.skin === 'bat' ? 'bat' : 'crow');
       spr(x, run.cur?.t === 'bag' && run.cur.loot === 'firebox' ? 'firebox' : 'loot-bag', a.b.x, a.b.y + 26, { w: 34, anchor: 'center' });
       if (low) sc.glow(x, a.b.x, a.b.y, 60, 'rgba(255,240,120,.35)');
     }

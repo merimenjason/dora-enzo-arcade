@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""gen.py [ids...] (jobs.py, jobs2.py, then jobs3.py, jobs4.py, jobs5.py, jobs5b.py, jobs6.py, jobs7.py, jobs8.py, jobs9.py, jobs10.py and jobs-empire*.py) — paints Jade Street sheets with Codex image generation, up to 6 at once.
+"""gen.py [ids...] (jobs.py, jobs2.py, then jobs3.py, jobs4.py, jobs5.py, jobs5b.py, jobs6.py, jobs7.py, jobs8.py, jobs9.py, jobs10.py, jobs-empire*.py and jobs12.py) — paints Jade Street sheets with Codex image generation, up to 6 at once.
 Each job in jobs.py: id -> (size, refs, prompt). Skips ids whose png already exists."""
 import subprocess, sys, concurrent.futures as cf
 from pathlib import Path
@@ -16,6 +16,7 @@ from jobs7 import J as JOBS7
 from jobs8 import J as JOBS8
 from jobs9 import J as JOBS9
 from jobs10 import J as JOBS10
+from jobs12 import J as JOBS12
 JOBS.update(JOBS2)
 JOBS.update(JOBS3)
 JOBS.update(JOBS4)
@@ -27,6 +28,7 @@ JOBS.update(JOBS7)
 JOBS.update(JOBS8)
 JOBS.update(JOBS9)
 JOBS.update(JOBS10)
+JOBS.update(JOBS12)
 # the tenth pass's empire sheets (jobs-empire*.py: hyphenated names, so loaded by path)
 import importlib.util
 for _f in sorted(D.glob('jobs-empire*.py')):
