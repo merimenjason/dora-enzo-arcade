@@ -168,6 +168,8 @@ export function Controls({ touch }: { touch: boolean }) {
     ['Phone messages, the Jade Line tab, the taxi app', ['T'], 'ui-phone', 'Phone button'],
     ['Ride the Jade Line: walk up to a station’s gates (the green train pin)', ['E'], 'i-mrt', 'Action button'],
     ['Hail a taxi at the kerb, then get in', ['G', 'E'], 'pin-taxi', 'The taxi app on the phone'],
+    ['Ride the cable car or the ferry to Sentosa: walk up to the station or the pier', ['E'], 'i-cable', 'Action button'],
+    ['Festivals and the beach: light a lamp, buy a kuih, shoo a mynah, a deck chair, a sandcastle', ['E'], 'c-tap', 'Action button'],
     ['Switch hero (Dora or Enzo)', ['Tab'], 'face-dora', 'Tap the partner’s portrait'],
     ['Tag-team move: boost, grab, pounce, hold, distract', ['F'], 'c-tap', 'Tap the green prompt'],
     ['Aim and fire a gadget', ['Mouse', 'Click'], 'g-sling', 'Desktop only'],

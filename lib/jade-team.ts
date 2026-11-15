@@ -38,7 +38,7 @@ export function teamEnter(run: Run, st: Step): boolean {
     case 'boost': return true;
     case 'bag': {
       const [x, y] = st.at === 'here' ? [run.here[0], run.here[1]] : xy(run, st.at);
-      const a = run.actor('bagbird', x + 120, y, 'fly', [], 150); a.extra = 0; a.look = 3; a.face = 0; run.actors.push(a); run.base = x; run.count = y;
+      const a = run.actor('bagbird', x + 120, y, 'fly', [], 150); a.skin = st.skin; a.extra = 0; a.look = 3; a.face = 0; run.actors.push(a); run.base = x; run.count = y;
       run.progress = 'Bag 0/1'; w.fx.push({ t: 'caw' });
       if (st.time) run.timer = st.time * (w.assist ? 1.4 : 1) * w.diff.timer;
       return true;

@@ -23,6 +23,7 @@ import { finesStep, payTicket, offence, FINE, type Patrol, type Ticket } from '.
 import { gangsStep, gangNear, gangAct, newGangs, type GangState } from './jade-gangs.js';
 import { stationNear, mrtTo, cantRide, routeToStation, stationById, MRT_TEXT } from './jade-mrt.js';
 import { hail, taxiStep, skipRide, type Taxi } from './jade-taxi.js';
+import { eastStep, eastNear, eastAct, newEast, type EastState } from './jade-eastfest.js';
 import { linkNear, linkGo, ferryStep, ferryLand, FARES, EAST_TEXT, RESORT_TEXT, type FerryRide } from './jade-cable.js';
 
 export const DT = 1 / 60;
@@ -35,7 +36,7 @@ export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop
 export const NO_INPUT: Input = { mx: 0, my: 0, sneak: false, dash: false, hop: false, act: false };
 export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; locked: boolean; tint: number; mission?: boolean; seen?: number; broken?: boolean };
 export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string };
-export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry'; label: string; x: number; y: number; id?: string; ride?: Ride };
+export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry' | 'east'; label: string; x: number; y: number; id?: string; ride?: Ride };
 export type Snatcher = { x: number; y: number; h: number; t: number; out: boolean; took: number; wing: number; good?: string; dizzy?: number };
 export type Act = { n: string; t: number; dur: number; then?: () => void };
 export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' | 'sg' } | { kind: 'map' } | { kind: 'biz'; id: BizId } | { kind: 'gear' } | { kind: 'mama' } | { kind: 'glossary' }
@@ -102,7 +103,7 @@ export class World {
   /** the island: a hailed taxi (lib/jade-taxi.ts), the station the last train ride arrived at (lib/jade-mrt.ts) */
   taxi: Taxi | null = null; lastMrt = '';
   /** the ninth pass: the ferry crossing you are on, and the last cable car or ferry stop you stepped off at */
-  ferry: FerryRide | null = null; lastLink = '';
+  ferry: FerryRide | null = null; lastLink = ''; east: EastState = newEast();
   /** the partner thinking for themselves (lib/jade-pal.ts) */
   pal: PalState = newPal();
   /** the page has something important on screen: passers-by hold their remarks (lib/jade-notice.ts) */
@@ -220,7 +221,7 @@ export class World {
     this.collectStep();
     trafficStep(this, dt); pedStep(this, dt);
     heatStep(this, dt);
-    finesStep(this, dt); sgStep(this, dt); gangsStep(this, dt);
+    finesStep(this, dt); sgStep(this, dt); gangsStep(this, dt); eastStep(this);
     if (this.run) this.run.step(dt, inp);
     this.snatchStep(dt);
     eventsStep(this, dt);
@@ -481,7 +482,7 @@ export class World {
     if (stallOpen(this.s)) { const [gx, gy] = stallPos(this); cand({ kind: 'gear', label: 'Tock’s toy stall: gadgets, ammo and upgrades', x: gx, y: gy + 40 }, 80); }
     if (!this.run) for (const b of BIZ) if (this.open.has(b.d)) { const [bx, by] = bizPos(b); const st = this.s.biz[b.id]; cand({ kind: 'biz', label: st.lvl ? `${b.name}: ${Math.floor(st.bank)} coins in the till` : `${b.name} (stake for sale)`, x: bx, y: by + 40, id: b.id }, 80); }
     const en = eventNear(this); if (en) cand(en, 80);
-    if (!this.run) { sgNear(this, cand); gangNear(this, cand); }
+    if (!this.run) { sgNear(this, cand); gangNear(this, cand); eastNear(this, cand); }
     if (this.festival) for (const f of this.c.festival) if (f.kind !== 'arch') cand({ kind: 'festival', label: f.kind === 'stage' ? 'Dance on the festival stage' : 'Let a sky lantern go', x: f.x, y: f.y, id: f.kind }, 80);
     for (const pr of this.tables()) cand({ kind: 'eat', label: 'Grab a bowl of noodles (3 coins)', x: pr.x, y: pr.y + 20 }, 56);
     for (const l of this.c.ladders) cand({ kind: 'ladder-up', label: 'Climb the ladder', x: l.x * T + T / 2, y: l.y * T + T / 2 }, 60);
@@ -538,6 +539,7 @@ export class World {
       case 'event': eventAct(this); break;
       case 'sg': sgAct(this, n.id!); break;
       case 'gang': gangAct(this, n.id!); break;
+      case 'east': eastAct(this, n.id!); break;
       case 'fine': payTicket(this); break;
       case 'station': {
         const st = this.run?.cur; if (st?.t === 'train') { if (n.id === st.to) { this.say('You are already here.', 'bad'); break; } mrtTo(this, st.to); break; }

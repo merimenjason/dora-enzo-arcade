@@ -551,7 +551,7 @@ function trapStep(run: Run, st: St<'trap'>, dt: number) {
     // the chase: caught by a dash (sitting there with its paws up), or bolting along its path once it has seen you
     if (a.extra === 3) { a.b.speed = 0; a.netT = (a.netT ?? 0) + dt; if (a.netT > 2.2) a.gone = true; continue; }
     if (chase && dist(a.b.x, a.b.y, p.x, p.y) < reach && bowl) {
-      a.extra = 3; a.netT = 0; js.caught++; w.fx.push({ t: 'job-caught', x: a.b.x, y: a.b.y }); w.say(`Caught one! ${js.caught} of ${st.catch}`, 'good'); continue;
+      a.extra = 3; a.netT = 0; js.caught++; if (st.gang === 'myna') w.s.stats.mynahs++; w.fx.push({ t: 'job-caught', x: a.b.x, y: a.b.y }); w.say(`Caught one! ${js.caught} of ${st.catch}`, 'good'); continue;
     }
     if (chase && a.mind?.st === 'alert') { if (run.walk(a, dt, a.speed * 1.55, false)) escape(run, a, 'outran you'); continue; }
     if (a.extra === 2) { a.stun -= dt; a.b.x += Math.cos(a.b.h) * 240 * dt; a.b.y += Math.sin(a.b.h) * 240 * dt; a.b.speed = 240; if (a.stun <= 0) a.gone = true; continue; }
@@ -612,7 +612,7 @@ export function spring(run: Run) {
   const it = run.items[best]; w.fx.push({ t: 'job-spring', x: it.x, y: it.y });
   if (!w.p.ride && !w.p.act) { w.p.act = { n: 'spring', t: 0, dur: 0.5 }; w.p.face = 'side'; w.p.flip = it.x < w.p.x; }
   const got = on(best);
-  for (const a of got) { a.extra = 1; a.netT = 1e9; js.caught++; w.fx.push({ t: 'job-caught', x: a.b.x, y: a.b.y }); }
+  for (const a of got) { a.extra = 1; a.netT = 1e9; js.caught++; if (a.skin === 'myna') w.s.stats.mynahs++; w.fx.push({ t: 'job-caught', x: a.b.x, y: a.b.y }); }
   if (!got.length) run.warn('Too early! That net is spent.'); else w.say(got.length > 1 ? `Two in one net! ${js.caught} caught` : `Caught one! ${js.caught} of ${st.catch}`, 'good');
 }
 
@@ -825,7 +825,7 @@ export function jobGadget(run: Run, a: Actor, g: GadgetId, pw: number, x: number
       return true;
     case 'lured':
       if (a.extra !== 0 || !run.js) return false;
-      if (g === 'net') { a.extra = 1; a.netT = 1e9; run.js.caught++; w.fx.push({ t: 'job-caught', x: a.b.x, y: a.b.y }); return true; }
+      if (g === 'net') { a.extra = 1; a.netT = 1e9; run.js.caught++; if (a.skin === 'myna') w.s.stats.mynahs++; w.fx.push({ t: 'job-caught', x: a.b.x, y: a.b.y }); return true; }
       escape(run, a, 'shot at'); run.warn('That scared one off! Spring the nets instead.'); return true;
   }
   return false;

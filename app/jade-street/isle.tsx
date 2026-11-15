@@ -8,7 +8,8 @@ import { Panel } from './panels';
 import { Sprite, ART } from './ui';
 import { destinations, mrtTo, FARE, RIDE_VIEW, routeToStation } from '@/lib/jade-mrt';
 import { dropOffs, taxiGo, hail, cantHail, TAXI_APP } from '@/lib/jade-taxi';
-import { DISTRICT_NAME } from '@/lib/jade-city';
+import { DISTRICT_NAME, districtAt, T } from '@/lib/jade-city';
+import { CABLE_VIEW, FARES, linksOf, routeToStop } from '@/lib/jade-cable';
 
 export function MrtPanel({ play, from, onClose }: { play: Play; from: string; onClose: () => void }) {
   const w = play.w; const st = w.c.isle?.stations.find(s => s.id === from);
@@ -33,7 +34,7 @@ export function MrtPanel({ play, from, onClose }: { play: Play; from: string; on
 }
 
 /** the ride view: a painted carriage with streaks of city light outside; closes itself, or any key / click skips */
-export function RideView({ play, from, to, onDone }: { play: Play; from: string; to: string; onDone: () => void }) {
+export function RideView({ play, from, to, via, onDone }: { play: Play; from: string; to: string; via?: 'cable'; onDone: () => void }) {
   const cv = useRef<HTMLCanvasElement>(null);
   // the page re-renders ten times a second: keep the timer running from the first frame
   const done = useRef(onDone); done.current = onDone;
@@ -46,16 +47,20 @@ export function RideView({ play, from, to, onDone }: { play: Play; from: string;
       if (c) {
         const x = c.getContext('2d')!; const W = c.width = c.clientWidth, H = c.height = c.clientHeight;
         x.clearRect(0, 0, W, H); x.globalCompositeOperation = 'lighter';
-        // lights streaking past the window
-        for (let i = 0; i < 26; i++) {
+        // lights streaking past the window (the cable car drifts: the harbour lights slide slowly by)
+        if (via !== 'cable') for (let i = 0; i < 26; i++) {
           const y = (i * 37 % 100) / 100 * H * 0.5 + H * 0.06, sp = 900 + (i * 53 % 7) * 220;
           const px = W - ((t * sp + i * 173) % (W + 400));
           const g = x.createLinearGradient(px, 0, px + 220, 0); const hue = [45, 330, 160, 200][i % 4];
           g.addColorStop(0, `hsla(${hue},100%,70%,0)`); g.addColorStop(1, `hsla(${hue},100%,70%,.55)`);
           x.fillStyle = g; x.fillRect(px, y, 220, 3);
         }
+        if (via === 'cable') for (let i = 0; i < 40; i++) {
+          const y = H * (0.55 + (i * 29 % 40) / 100), px = W - ((t * (60 + (i % 5) * 18) + i * 97) % (W + 40));
+          x.fillStyle = `hsla(${[45, 200, 330][i % 3]},100%,75%,.5)`; x.beginPath(); x.arc(px, y, 2 + (i % 3), 0, Math.PI * 2); x.fill();
+        }
       }
-      if (t > RIDE_VIEW) end(); else raf = requestAnimationFrame(f);
+      if (t > (via === 'cable' ? CABLE_VIEW : RIDE_VIEW)) end(); else raf = requestAnimationFrame(f);
     };
     raf = requestAnimationFrame(f);
     const k = (e: KeyboardEvent) => { e.preventDefault(); end(); };
@@ -64,9 +69,9 @@ export function RideView({ play, from, to, onDone }: { play: Play; from: string;
   }, []);
   return (
     <div className="jade-ride-view" data-testid="ride-view" onClick={onDone}>
-      <img src={`${ART}bg-mrt-ride.webp`} alt="" draggable={false} />
+      <img src={`${ART}bg-${via === 'cable' ? 'cable' : 'mrt'}-ride.webp`} alt="" draggable={false} />
       <canvas ref={cv} className="jade-ride-streaks" />
-      <div className="jade-ride-sign"><Sprite name="i-mrt" h={40} w={40} /><span>{from} <b>›</b> {to}</span><small>Press any key to skip</small></div>
+      <div className="jade-ride-sign"><Sprite name={via === 'cable' ? 'i-cable' : 'i-mrt'} h={40} w={40} /><span>{from} <b>›</b> {to}</span><small>Press any key to skip</small></div>
     </div>
   );
 }
@@ -90,7 +95,7 @@ export function JadeLineTab({ play, onClose }: { play: Play; onClose: () => void
   const near = sts.filter(s => w.open.has(s.d)).sort((a, b) => Math.hypot(a.x - w.p.x, a.y - w.p.y) - Math.hypot(b.x - w.p.x, b.y - w.p.y))[0];
   return (
     <div className="jade-line-tab" data-testid="mrt-tab">
-      <p className="small"><Sprite name="i-mrt" h={28} w={28} /> The Jade Line runs Chinatown, Raffles Place, Bayfront and Toa Payoh. Walk up to a station’s gates and press E: {FARE} coins a ride.{near ? ` Nearest: ${near.name}.` : ''}</p>
+      <p className="small"><Sprite name="i-mrt" h={28} w={28} /> The Jade Line runs Beach (Sentosa), Chinatown, Raffles Place, Bayfront, Bugis, Little India and Toa Payoh. Walk up to a station’s gates and press E: {FARE} coins a ride.{near ? ` Nearest: ${near.name}.` : ''}</p>
       <ul className="jade-line-list">{sts.map(s => {
         const open = w.open.has(s.d);
         return (
@@ -101,6 +106,19 @@ export function JadeLineTab({ play, onClose }: { play: Play; onClose: () => void
           </li>
         );
       })}</ul>
+      {w.c.east && <>
+        <p className="small"><Sprite name="i-cable" h={28} w={28} /> Over the water to Sentosa: the cable car from HarbourFront ({FARES.cable} coins), the ferry from Marina Bay ({FARES.ferry} coins), or walk the boardwalk.</p>
+        <ul className="jade-line-list">{linksOf(w).flatMap(l => l.stops.map(s => {
+          const open = w.open.has(districtAt(Math.floor(s.x / T), Math.floor(s.y / T)));
+          return (
+            <li key={s.id}>
+              <Sprite name={l.id === 'cable' ? 'pin-cable' : 'pin-ferry'} h={32} w={32} />
+              <span><b>{s.name}</b><small>{open ? (l.id === 'cable' ? 'cable car' : 'ferry pier') : 'under fog: follow the story'}</small></span>
+              <button type="button" className="jade-btn jade" disabled={!open || !!w.run} data-testid={`link-route-${s.id}`} onClick={() => { if (routeToStop(w, s.id)) { onClose(); play.bump(); } }}>Route me</button>
+            </li>
+          );
+        }))}</ul>
+      </>}
       {w.run && <p className="small">Finish the job first: the route line is busy with it.</p>}
     </div>
   );

@@ -54,10 +54,10 @@ export function ferryAt(l: Link, time: number): { x: number; y: number; h: numbe
 
 export const linksOf = (w: World): Link[] => w.c.east ? [w.c.east.cable, w.c.east.ferry] : [];
 const openStop = (w: World, s: LinkStop) => w.open.has(districtAt(Math.floor(s.x / T), Math.floor(s.y / T)));
-/** the cable car station or ferry pier you are at, its link, and the stop at the other end */
+/** the cable car station or ferry pier you are at, its link, and the stop at the other end (both ends open) */
 export function linkNear(w: World, x = w.p.x, y = w.p.y): { link: Link; from: LinkStop; to: LinkStop } | null {
   for (const l of linksOf(w)) for (let i = 0; i < 2; i++) {
-    const s = l.stops[i]; if (openStop(w, s) && dist(s.x, s.y, x, y) < LINK_R) return { link: l, from: s, to: l.stops[1 - i] };
+    const s = l.stops[i], o = l.stops[1 - i]; if (openStop(w, s) && openStop(w, o) && dist(s.x, s.y, x, y) < LINK_R) return { link: l, from: s, to: o };
   }
   return null;
 }
@@ -91,14 +91,14 @@ export function linkGo(w: World): boolean {
   w.s.stats.ferry++;
   const back = to.id === link.stops[0].id;
   w.ferry = { s: back ? total(link) : 0, dir: back ? -1 : 1, to: to.id, t: 0 };
-  w.p.hide = true; w.mate.hide = true;
+  w.p.hide = true; w.mate.hide = true; w.p.act = null;
   w.fx.push({ t: 'ferry-go' });
   w.say(`All aboard for ${to.name}! (E skips the crossing)`, 'good');
   return true;
 }
 function arriveAt(w: World, to: LinkStop) {
   const [x, y] = nearestFree(w.c, 'foot', to.x, to.y + T * 0.6, w.open, 3);
-  w.p.b.x = x; w.p.b.y = y; w.p.b.speed = 0; w.p.hide = false; w.p.roof = false; w.p.face = 'down'; w.mate.hide = false;
+  w.p.b.x = x; w.p.b.y = y; w.p.b.speed = 0; w.p.hide = false; w.p.roof = false; w.p.face = 'down'; w.mate.hide = false; w.p.act = null;
   w.regroup(); w.fieldCache.clear(); w.cars = []; w.patrols = []; w.peds = [];
   w.lastLink = to.id;
 }

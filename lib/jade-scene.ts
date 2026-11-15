@@ -5,7 +5,7 @@
 // districts, dust and sparkles; game feel (shake, hit-stop, debris, speed lines) is in lib/jade-juice.ts and the set
 // pieces, the finale and the business stalls are drawn by lib/jade-setdraw.ts. Every picture is a Codex painting from the atlases in public/art/jade-street/.
 import { FRAMES, ATLASES, ATLAS_SIZE, TEXTURES } from './jade-art.js';
-import { T, W, H, G, OW, GROUND_NAMES, F_ROOF, districtAt, type City, type District } from './jade-city.js';
+import { T, W, H, G, OW, CT_H, EAST_X0, EAST_SPLIT, GROUND_NAMES, F_ROOF, districtAt, type City, type District } from './jade-city.js';
 import { F_XWAY } from './jade-island.js';
 import { VEHICLES } from './jade-move.js';
 import type { World, Ride } from './jade-game.js';
@@ -19,6 +19,7 @@ import { sgGround, sgSorted, sgOver, sgFlash } from './jade-sgdraw.js';
 import { drawHero, gearGround, gearSorted, gearOver, wardenHitFrame, aimLine, setItemSprite } from './jade-duodraw.js';
 import { shooterFor } from './jade-gear.js';
 import { isleSorted, isleOver, isleActor, isleGround } from './jade-isledraw.js';
+import { eastGround, eastSorted, eastOver } from './jade-eastdraw.js';
 import { jobActor, jobGround, mindBeam, mindBubble } from './jade-jobdraw.js';
 import { castFrame, castPose, type CastMember } from './jade-cast.js';
 
@@ -160,6 +161,14 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     case 'point': return `${h}-point`;
     case 'slide': return `${h}-slide`;
     case 'isle-dance': return `${h}-dance-${cyc(2, 3)}`;
+    // over the Rochor River and on Sentosa: lighting a Deepavali lamp, a kuih at the bazaar, covering the ears at a
+    // mynah's racket, smelling the spices or the attar, a deck chair on the beach, building a sandcastle
+    case 'light-lamp': return `${h}-light-lamp-${t < 0.6 ? 0 : 1}`;
+    case 'kuih': return `${h}-kuih-${cyc(2, 3)}`;
+    case 'ears': return `${h}-ears-${cyc(2, 6)}`;
+    case 'sniff': return `${h}-sniff-${t < 0.7 ? 0 : 1}`;
+    case 'lounge': return `${h}-lounge-${cyc(2, 1)}`;
+    case 'castle': return `${h}-castle-${cyc(2, 3)}`;
     default: return `${h}-idle-${face}`;
   }
 }
@@ -220,7 +229,10 @@ export class Scene {
   /** paint tiles (tx0..tx0+n) of the city's ground layer into x (already transformed to world units) */
   paintGround(x: CanvasRenderingContext2D, tx0: number, ty0: number, nw: number, nh: number, simple = false) {
     const c = this.c;
-    const texOf = (g: number, i: number) => g === G.ROAD && (c.flags[i] & F_XWAY) ? 'xway' : g === G.BRIDGE ? (i % W >= OW ? 'xway' : 'canal') : g === G.STAIRS ? 'temple' : g === G.BLD ? (i % W >= OW ? (Math.floor(i / W) < 38 ? 'hdb' : 'granite') : 'plaza') : GROUND_NAMES[g];
+    // under a building: the district's own paving (Little India, Kampong Glam and Sentosa have theirs); bridges are
+    // concrete outside Chinatown (the Sentosa Gateway too) and planks over the Singapore River
+    const bldTex = (i: number) => { const tx = i % W, ty = Math.floor(i / W); return ty >= CT_H ? 'resort' : tx >= EAST_X0 - 4 ? (ty < EAST_SPLIT ? 'india' : 'glam') : tx >= OW ? (ty < 38 ? 'hdb' : 'granite') : 'plaza'; };
+    const texOf = (g: number, i: number) => g === G.ROAD && (c.flags[i] & F_XWAY) ? 'xway' : g === G.BRIDGE ? (i % W >= OW || Math.floor(i / W) >= 80 ? 'xway' : 'canal') : g === G.STAIRS ? 'temple' : g === G.BLD ? bldTex(i) : GROUND_NAMES[g];
     const byTex = new Map<string, number[]>();
     for (let ty = ty0; ty < ty0 + nh; ty++) for (let tx = tx0; tx < tx0 + nw; tx++) {
       if (tx < 0 || ty < 0 || tx >= W || ty >= H) continue;
@@ -359,6 +371,7 @@ export class Scene {
     const vis0 = (px: number, py: number, mm = 160) => px > ox - mm && px < ox + cam.w + mm && py > oy - mm && py < oy + cam.h + mm * 1.5;
     gearGround(this, x, w, vis0);
     isleGround(this, x, w, vis0);
+    eastGround(this, x, w, vis0);
     // y-sorted things
     const list: [number, () => void][] = [];
     const vis = (px: number, py: number, m = 160) => px > ox - m && px < ox + cam.w + m && py > oy - m && py < oy + cam.h + m * 1.5;
@@ -381,6 +394,7 @@ export class Scene {
     sgSorted(this, x, w, list, vis);
     gearSorted(this, x, w, list, vis);
     isleSorted(this, x, w, list, vis);
+    eastSorted(this, x, w, list, vis);
     if (!p.roof) list.push([p.y + 1, () => this.hero(x, w)]);
     if (!m.roof && !m.seat && vis(m.x, m.y)) list.push([m.y + 0.5, () => drawHero(this, x, w, m, w.two)]);
     list.sort((a, b) => a[0] - b[0]);
@@ -398,6 +412,7 @@ export class Scene {
     gearOver(this, x, w, vis);
     sgOver(this, x, w, vis);
     isleOver(this, x, w, vis);
+    eastOver(this, x, w, vis);
     if (w.run) for (const a of w.run.actors) if (a.kind === 'swoop') this.flyer(x, a.b.x, a.b.y, a.b.h + (a.stun > 0 ? this.t * 12 : 0), a.t * 9);
     this.life.over(x, w, vis, dt, cam);
     this.life.rainWorld(x, w, dt, cam);
@@ -513,9 +528,9 @@ export class Scene {
       case 'lion': this.shadow(x, b.x, b.y + 4, 44, 14); spr(x, `lion-${Math.floor(a.t * 3) % 2}`, b.x, b.y + 8, { flip: Math.cos(b.h) < 0 }); break;
     }
   }
-  flyer(x: CanvasRenderingContext2D, px: number, py: number, h: number, wing: number) {
+  flyer(x: CanvasRenderingContext2D, px: number, py: number, h: number, wing: number, kind: 'crow' | 'myna' = 'crow') {
     x.fillStyle = 'rgba(0,0,0,.22)'; this.shadow(x, px + 30, py + 50, 22, 10);
-    spr(x, Math.floor(wing) % 2 ? 'crow-fly-0' : 'crow-fly-1', px, py, { anchor: 'center', rot: h + Math.PI / 2 });
+    spr(x, `${kind}-fly-${Math.floor(wing) % 2 ? 0 : 1}`, px, py, { anchor: 'center', rot: h + Math.PI / 2, w: kind === 'myna' ? 54 : undefined });
   }
   cat(x: CanvasRenderingContext2D, px: number, py: number, i: number) {
     const b = Math.sin(this.t * 3 + i) * 3;

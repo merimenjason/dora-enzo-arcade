@@ -327,3 +327,4 @@ test('save v9: a v8 save keeps every job and medal; the partner setting starts o
 
 import { playMission } from './jade-bot.mjs';
 console.log(`jade (eighth pass): ${n} tests ok`);
+await import('./jade-nine.mjs');

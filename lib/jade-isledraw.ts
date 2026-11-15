@@ -79,6 +79,24 @@ export function isleActor(sc: Scene, x: X, a: Actor): boolean {
     if (a.stun > 0) sc.stars(x, b.x, b.y - 40); else spr(x, 'loot-bag', b.x, b.y - 46, { w: 20 });
     return true;
   }
+  if (a.skin === 'myna' && a.kind === 'runner') {
+    // a mynah on the run: it hops along the ground and flutters up over the railings
+    x.fillStyle = 'rgba(0,0,0,.3)'; sc.shadow(x, b.x, b.y + 2, 14, 6);
+    const cx = Math.cos(b.h), sy = Math.sin(b.h), side = Math.abs(cx) > Math.abs(sy);
+    const f = a.stun > 0 ? (a.netT ? 'myna-netted' : 'myna-dizzy') : b.speed < 5 ? 'myna-taunt' : b.speed > 170 ? `myna-fly-${fl}` : side ? `myna-run-${fl}` : `myna-walk-${sy > 0 ? 'down' : 'up'}-${fl}`;
+    if (f.startsWith('myna-fly')) spr(x, f, b.x, b.y - 14, { anchor: 'center', rot: b.h + Math.PI / 2, w: 54 });
+    else spr(x, f, b.x, b.y + 4, { flip: side && cx < 0, w: 44 });
+    if (a.stun > 0) sc.stars(x, b.x, b.y - 38); else spr(x, 'loot-bag', b.x, b.y - 40, { w: 18 });
+    return true;
+  }
+  if (a.skin === 'nine' && a.kind === 'runner') {
+    // Crow Number Nine, Kaw's old assistant, clutching his clipboard
+    x.fillStyle = 'rgba(0,0,0,.3)'; sc.shadow(x, b.x, b.y + 2, 16, 6);
+    const f = a.stun > 0 || b.speed < 5 ? 'nine-brief' : `nine-run-${fl}`;
+    spr(x, f, b.x, b.y + 4, { flip: Math.cos(b.h) < 0, w: 60 });
+    if (a.stun > 0) sc.stars(x, b.x, b.y - 50);
+    return true;
+  }
   if (a.skin === 'kaw' && a.kind === 'runner') {
     x.fillStyle = 'rgba(0,0,0,.3)'; sc.shadow(x, b.x, b.y + 2, 16, 6);
     const f = a.stun > 0 || b.speed < 5 ? 'kaw-brief' : 'kaw-flap';

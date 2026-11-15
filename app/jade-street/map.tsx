@@ -4,6 +4,7 @@
 // districts still locked, painted landmark icons, the district names on plaques, and painted pins for markets, safe
 // houses, garages, side gigs, jobs, found lucky cats, painted murals and your own pin. Drag to pan, pinch or wheel to
 // zoom; tap a pin for its name and a "Route here" button. Code draws only the tints, fog fallback and the route line.
+import { linksOf, FARES } from '@/lib/jade-cable';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DISTRICTS, DISTRICT_NAME, T, W, H, districtAt, type District } from '@/lib/jade-city';
 import { offered, safeOpen } from '@/lib/jade-save';
@@ -13,14 +14,14 @@ import type { Play } from './controller';
 import { Sprite, Btn, ART } from './ui';
 import './map.css';
 
-type PinKind = 'job' | 'market' | 'safe' | 'garage' | 'gig' | 'cat' | 'mural' | 'pin' | 'spot' | 'stn';
+type PinKind = 'job' | 'market' | 'safe' | 'garage' | 'gig' | 'cat' | 'mural' | 'pin' | 'spot' | 'stn' | 'cable' | 'ferry';
 type Pin = { kind: PinKind; name: string; sub?: string; x: number; y: number; key: string };
 type View = { cx: number; cy: number; z: number };
 
 const PIN_SPRITE: Record<PinKind, string> = {
-  job: 'pin-job', market: 'pin-market', safe: 'pin-safe', garage: 'pin-garage', gig: 'pin-gig', cat: 'pin-cat', mural: 'pin-mural', pin: 'pin-star', spot: 'pin-star', stn: 'pin-train',
+  job: 'pin-job', market: 'pin-market', safe: 'pin-safe', garage: 'pin-garage', gig: 'pin-gig', cat: 'pin-cat', mural: 'pin-mural', pin: 'pin-star', spot: 'pin-star', stn: 'pin-train', cable: 'pin-cable', ferry: 'pin-ferry',
 };
-const LEGEND: [PinKind, string][] = [['job', 'Job'], ['market', 'Market'], ['safe', 'Safe house'], ['garage', 'Garage'], ['gig', 'Side gig'], ['cat', 'Lucky cat found'], ['mural', 'Mural painted'], ['stn', 'Jade Line station (click to route)'], ['pin', 'Your pin']];
+const LEGEND: [PinKind, string][] = [['job', 'Job'], ['market', 'Market'], ['safe', 'Safe house'], ['garage', 'Garage'], ['gig', 'Side gig'], ['cat', 'Lucky cat found'], ['mural', 'Mural painted'], ['stn', 'Jade Line station (click to route)'], ['cable', 'Cable car (click to route)'], ['ferry', 'Ferry pier (click to route)'], ['pin', 'Your pin']];
 const TINT: Record<District, [number, number, number]> = { market: [255, 128, 70], temple: [90, 200, 120], canal: [60, 200, 215], arcade: [225, 90, 220], docks: [80, 125, 255], india: [255, 110, 170], glam: [150, 120, 255], resort: [70, 215, 245], heartland: [240, 200, 70], bay: [70, 225, 175] };
 const CENTRE: Record<District, [number, number]> = { market: [22, 58], temple: [23, 16], canal: [58, 31], arcade: [97, 34], docks: [84, 76], heartland: [168, 20], bay: [170, 56], india: [242, 22], glam: [242, 62], resort: [76, 110] };
 const dName = (d: District) => DISTRICT_NAME[d].replace(/^the /, 'The ');
@@ -69,6 +70,8 @@ function landmarks(play: Play): [string, number, number][] {
   out.push(['mi-lighthouse', 115.5 * T, 85.5 * T]);
   if (P.ferry) at('mi-ferry', 'ferry'); else at('mi-ferry', 'pier-end');
   const hall = c.buildings.find(b => b.sprite === 'lm2-hall'); if (hall) out.push(['mi-hall', (hall.x + hall.w / 2) * T, (hall.y + hall.h / 2) * T]);
+  // over the Rochor River and on Sentosa: the temple's gopuram, the mosque's golden dome, the fort and the coaster
+  at('mi-gopuram', 'temple-li', 0, -3 * T); at('mi-mosque', 'mosque', 0, -4 * T); at('mi-fort', 'fort', 0, -3 * T); at('mi-coaster', 'park', 2 * T, -3 * T);
   return out;
 }
 
@@ -82,6 +85,7 @@ function pinsOf(play: Play): Pin[] {
     else if (pl.kind === 'garage') add({ kind: 'garage', name: pl.name ?? 'Garage', sub: 'Upgrades and paint', x: pl.x, y: pl.y, key: id });
   }
   for (const st of w.c.isle?.stations ?? []) add({ kind: 'stn', name: st.name, sub: 'Jade Line: E at the gates, 2 coins a ride', x: st.x, y: st.y, key: st.id });
+  for (const l of linksOf(w)) for (const s of l.stops) add({ kind: l.id, name: s.name, sub: l.id === 'cable' ? `Cable car: E at the station, ${FARES.cable} coins` : `Ferry: E at the pier, ${FARES.ferry} coins`, x: s.x, y: s.y, key: s.id });
   for (const g of w.gigs()) add({ kind: 'gig', name: g.label, x: g.x, y: g.y, key: 'gig-' + (g.id ?? g.label) });
   if (w.run) { const o = w.objective(); if (o) out.push({ kind: 'job', name: w.run.label || 'Current job', sub: 'Your job’s next stop', x: o[0], y: o[1], key: 'job-now' }); }
   else for (const m of offered(w.s)) { const pl = w.c.places[m.at]; if (pl) add({ kind: 'job', name: m.title, sub: `Job from ${PEOPLE[m.giver]?.name ?? 'a friend'}`, x: pl.x, y: pl.y, key: 'job-' + m.id }); }
@@ -219,7 +223,7 @@ export function PaintedMap({ play, onClose }: { play: Play; onClose: () => void 
     const tgt = (e.target as HTMLElement).closest('[data-testid="jade-map-pin"]') as HTMLElement | null;
     const hit = tgt ? pins.find(p => p.key === tgt.dataset.key) : null;
     // a Jade Line station routes you there straight away (off a job)
-    if (hit) { if (hit.kind === 'stn' && !w.run) route(hit); else setSel(hit); return; }
+    if (hit) { if ((hit.kind === 'stn' || hit.kind === 'cable' || hit.kind === 'ferry') && !w.run) route(hit); else setSel(hit); return; }
     const [wx, wy] = toWorld(sx, sy);
     if (wx < 0 || wy < 0 || wx > MW || wy > MH) { setSel(null); return; }
     if (!w.open.has(districtAt(Math.floor(wx / T), Math.floor(wy / T)))) { setSel({ kind: 'spot', name: `${dName(districtAt(Math.floor(wx / T), Math.floor(wy / T)))} is in the fog`, sub: 'Follow the story to open it', x: wx, y: wy, key: 'fog' }); return; }

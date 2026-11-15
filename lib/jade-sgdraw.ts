@@ -77,8 +77,10 @@ export function sgSorted(sc: Scene, x: X, w: World, list: List, vis: Vis) {
   const ev = w.gangs.ev;
   if (ev) for (const m of ev.mobs) if (m.st !== 'gone' && vis(m.b.x, m.b.y)) list.push([m.b.y, () => {
     const f = mobSprite(ev.kind, m); x.fillStyle = 'rgba(0,0,0,.28)'; if (m.st !== 'swim') sc.shadow(x, m.b.x, m.b.y + 2, 14, 6);
-    spr(x, f.name, m.b.x, m.b.y + 6, { flip: f.flip, w: 52 });
-    if (m.has && m.st === 'run') spr(x, ev.kind === 'otters' ? 'crate-float' : ev.kind === 'lizards' ? 'mooncakes' : 'bun', m.b.x, m.b.y - 44, { w: 22 });
+    if (f.name.startsWith('myna-fly')) spr(x, f.name, m.b.x, m.b.y - 18, { anchor: 'center', rot: m.b.h + Math.PI / 2, w: 54 });
+    else spr(x, f.name, m.b.x, m.b.y + 6, { flip: f.flip, w: ev.kind === 'mynahs' ? 44 : 52 });
+    if (m.has && m.st === 'run') spr(x, ev.kind === 'otters' ? 'crate-float' : ev.kind === 'lizards' ? 'mooncakes' : ev.kind === 'mynahs' ? 'kuih' : 'bun', m.b.x, m.b.y - (ev.kind === 'mynahs' ? 38 : 44), { w: 22 });
+    if (m.sing !== undefined) sc.glow(x, m.b.x, m.b.y - 30, 30, 'rgba(255,230,120,.35)');
     if (m.st === 'dizzy' || m.st === 'netted') sc.stars(x, m.b.x, m.b.y - 40);
     if (w.s.settings.cbMarks && m.has) sc.cb(x, 'gang', m.b.x + 22, m.b.y - 52, 9);
   }]);

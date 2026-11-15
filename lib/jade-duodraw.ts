@@ -197,8 +197,8 @@ export function gearOver(sc: Scene, x: X, w: World, vis: Vis) {
   for (const a of run.actors) {
     if (a.kind === 'bagbird' && !a.gone) {
       const low = (a.extra ?? 0) > 0;
-      sc.flyer(x, a.b.x, a.b.y, a.b.h + (a.stun > 0 ? sc.t * 12 : 0), a.t * 9);
-      spr(x, 'loot-bag', a.b.x, a.b.y + 26, { w: 34, anchor: 'center' });
+      sc.flyer(x, a.b.x, a.b.y, a.b.h + (a.stun > 0 ? sc.t * 12 : 0), a.t * 9, a.skin === 'myna' ? 'myna' : 'crow');
+      spr(x, run.cur?.t === 'bag' && run.cur.loot === 'firebox' ? 'firebox' : 'loot-bag', a.b.x, a.b.y + 26, { w: 34, anchor: 'center' });
       if (low) sc.glow(x, a.b.x, a.b.y, 60, 'rgba(255,240,120,.35)');
     }
     if (a.kind === 'cart' && (a.netT ?? 0) > 0) spr(x, 'cart-netted', a.b.x, a.b.y, { anchor: 'center', rot: a.b.h + Math.PI / 2, w: 92, alpha: Math.min(1, (a.netT ?? 0) * 2) });

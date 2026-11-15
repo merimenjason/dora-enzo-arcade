@@ -292,7 +292,7 @@ export class Play {
       else if (f.t === 'trophy' && f.name) this.toast(`Trophy: ${f.name}`, 'gold');
       else if (f.t === 'caught') this.toast(f.msg ?? 'Caught! The wardens fined you and sent you to a safe house.', 'bad');
       else if (f.t === 'heat-up' && f.k) this.toast(f.k === 1 ? 'A warden spotted you! Break line of sight, hide, or swap jackets at a safe house.' : `${f.k} lanterns of heat!`, 'bad');
-      else if (f.t === 'finale') { this.endingT = 3; this.endingKind = f.kind === 'isle' ? 'isle' : ''; }
+      else if (f.t === 'finale') { this.endingT = 3; this.endingKind = f.kind === 'isle' || f.kind === 'lights' ? f.kind : ''; }
       else if (f.t === 'learned') this.snd?.fx([{ t: 'lesson' }]);
       if (f.t === 'mission-done' && this.w.lastMedal) { const m = this.w.lastMedal; this.snd?.fx([{ t: 'medal', k: m.medal }]); if (m.best && m.medal) this.toast(`New best medal: ${['', 'bronze', 'silver', 'gold'][m.medal]}!`, 'gold'); }
       if (f.t === 'mission-done' || f.t === 'district' || f.t === 'trophy') this.persist(this.w.s);
