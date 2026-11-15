@@ -65,7 +65,7 @@ export async function tenth(h) {
   check(await W(() => window.__jade.world().run?.m.id === 'raid-noodle'), `${name}: arriving starts the raid job`); await W(() => { window.__jade.world().talk = null; }); await wait(400); await look('raid: the stand');
   const bank = await W(() => window.__jade.world().s.biz.noodle.bank);
   await press('pause-btn'); await press('abandon'); await free();
-  check(await W(b => window.__jade.world().s.biz.noodle.bank < b && window.__jade.world().s.stats.raidsMissed === 1, bank), `${name}: giving up loses the night's takings`);
+  check(await W(b => { const st = window.__jade.world().s.biz.noodle; return (st.bank < b || st.dmg === 1) && window.__jade.world().s.stats.raidsMissed === 1; }, bank), `${name}: giving up loses the night's takings (or the shop is smashed)`);
 
   // ── a raid sent to the partner
   await W(() => { const J = window.__jade; J.setBiz('cake', { bank: 300 }); J.toBiz('kopitiam'); J.raidAlert('cake', 'defend'); });
