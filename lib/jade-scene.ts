@@ -733,6 +733,8 @@ export class Scene {
     if (!w.run) for (const n of nearList(w)) if (n.kind === 'mission') dot(n.x, n.y, '#ffb020', 5);
     // the Jade Line's stations: their painted pin (pinned to the rim when off the edge)
     for (const st of w.c.isle?.stations ?? []) if (w.open.has(st.d)) { let [a, b] = toM(st.x, st.y); const d = Math.hypot(a - m.x, b - m.y); if (d > m.r - 10) { a = m.x + (a - m.x) / d * (m.r - 10); b = m.y + (b - m.y) / d * (m.r - 10); } spr(x, 'pin-train', a, b + 7, { w: 16 }); }
+    // the cable car stations and ferry piers, once both ends are open
+    for (const l of w.c.east ? [w.c.east.cable, w.c.east.ferry] : []) if (l.stops.every(st => w.open.has(districtAt(Math.floor(st.x / T), Math.floor(st.y / T))))) for (const st of l.stops) { let [a, b] = toM(st.x, st.y); const d = Math.hypot(a - m.x, b - m.y); if (d > m.r - 10) { a = m.x + (a - m.x) / d * (m.r - 10); b = m.y + (b - m.y) / d * (m.r - 10); } spr(x, l.id === 'cable' ? 'pin-cable' : 'pin-ferry', a, b + 7, { w: 16 }); }
     for (const wd of w.wardens) dot(wd.b.x, wd.b.y, Math.floor(this.t * 4) % 2 ? '#ff4a4a' : '#5a8cff', 3);
     const o = w.objective(); if (o) dot(o[0], o[1], '#fff27a', 5);
     x.restore();

@@ -222,6 +222,48 @@ A ticket pops up with the offence, the amount and the warden's quip; E pays it (
 
 **Not built.** Curvier roads: the roads are the traffic lanes, lights, gantries and every job route, and bending them would have meant re-checking all of that; they stay straight. The full island conversion (HDB heartlands, the bay front, the MRT, expressways) is the next pass.
 
+## Little India, Kampong Glam and Sentosa (ninth pass)
+
+The owner's notes: two more districts with their own look, people, market, safe house, jobs, stations, road links and festivals (respectful and warm, no caricature, under their real street names); an island resort reached by a boardwalk and a cable car with a ride view, and by the Jade Line; a new gang from Singapore's wildlife; and chapter seven.
+
+**The map** grows to 280 × 128 tiles. Little India and Kampong Glam sit east of Chinatown over the Rochor River (`lib/jade-east.ts`, from x 212, split at y 42), and Sentosa south of the docks and Marina Bay (from y 92), joined by the Sentosa Gateway road and a boardwalk. Every older tile is unchanged; `east()` runs last in the city build, so no earlier random draw moves.
+
+- **Little India**: Serangoon Road (the main road, with the Deepavali light-up arch over it) and Race Course Road; a Hindu temple with a tall gopuram, the All-Hours Emporium, sari, spice, flower and garland shops, a prata shop, a little bangle arcade, a covered wet market and hawker centre, painted shophouses, Little India station, Tekka Market (Mr Raju) and the Race Course Road safe house (needs 10 reputation, 300 coins).
+- **Kampong Glam**: Arab Street, Bussorah Street, Haji Lane (a narrow lane of murals, where the mynahs gossip on the wires) and Kandahar Street; the golden-domed mosque, textile and perfume shops, the restaurant row, Bugis station, the Arab Street market (Abang Kancil) and the Kandahar Street safe house (12, 350). The Kecoh Mynahs' roost, a rain tree full of nests and trinkets, stands by the east coast.
+- **Sentosa**: Siloso Beach (umbrellas, deck chairs, a lifeguard tower, palms and lamps on the promenade), the resort hotel, Galaxy Studios (a theme park with a coaster, a carousel and a sky tower), the aquarium, Fort Siloso with its cannons, the Siloso beach kiosk (Kapten Duyung), the Siloso safe house (15, 450), Beach station, the cable car station and the ferry pier.
+- Each district has its own painted ground (terracotta five-foot-way tiles, sandstone pavers, sand, the resort promenade, a turquoise lagoon and the fort's stone), buildings and props, and its own townsfolk: a spotted-deer auntie in a sari (Little India), a slow-loris uncle in a baju Melayu and songkok (Kampong Glam), a sea-turtle tourist (Sentosa), mixed with the older species.
+- **Getting there.** The bridges on Syed Alwi Road and Arab Street cross the Rochor River, with toll gantries on the roads; the Jade Line runs on to Bugis and Little India, and to Beach station on Sentosa (seven stations, the same 2 coins). The **cable car** runs from HarbourFront on the docks to Sentosa: eight cabins go round overhead all night at 150 a second on two wires; E at either station pays 4 coins and rides it behind a painted ride view (any key skips), like the Jade Line's. The **ferry** runs from the Sentosa pier round the harbour to a Marina Bay stop on a timetable (300 a second, 8 s at each pier); E at a pier pays 3 coins and it carries you all the way (both heroes aboard; E skips to the pier). Neither runs mid-job unless the job's step names it, a durian aboard is a fine, and wardens lose you over the water. Both ends must be open: Sentosa is under fog until **Haji Lane Hush** (m40).
+- **Finding them.** The map and minimap have cable car and ferry pins (a click routes there) and new landmarks (the gopuram, the mosque, the fort, the coaster); the phone's Jade Line tab lists the new stations and the cable car and ferry stops with Route me; a one-time hint and Kamal's and Helang's texts say how to get there; the Controls page lists both.
+
+**Opening.** Island Night (m35) opens Little India and Kampong Glam; m40 opens Sentosa.
+
+**Festivals** (`lib/jade-eastfest.ts`). The two districts take turns: on even nights the Deepavali light-up glows over Serangoon Road (the arch lit, kolam patterns at six doorsteps, 16 clay lamps along the road waiting for a light), and on odd nights the Hari Raya bazaar sets up on Bussorah Street (six stalls under 14 pelita lamps). E lights a lamp (all 16: +15 coins and a banner), buys a kuih (3 coins), smells Mr Raju's spices or Puan Wangi's attar, lies back in a deck chair on Siloso Beach or builds a sandcastle (it stays all night); each has its own pose. None needs a job.
+
+**The Kecoh Mynahs** (`lib/jade-gangs.ts`), a gang of four cheeky Javan mynahs in mustard polka-dot scarves on the turf of all three new districts, with Boss Bising and a roost. They snatch kuih and hop-fly away (short flights over whatever is in the way), mimic sounds now and then (a phone, a siren, a reversing lorry, "Mind the gap!"), and a hero within 260 covers their ears; one that gets more than 1,500 away flies home. E shoos one; a bubble sets one bobbing after it, paint makes it stop to preen, a net catches it, the slingshot's rice ball is lunch, and a popper or confetti scatters the flock. They star in jobs as guards (they fly unless sneaky), raiders and a trap's gang.
+
+**Chapter seven, Island Lights** (m36 to m45, against Crow Number Nine, Kaw's nervous cadet, and the mynahs he has been teaching to copy voices):
+
+| Job | Giver | Steps |
+|---|---|---|
+| Garlands for Deepavali | Mr Kamal | train to Little India, detective, a fragile delivery to the temple |
+| The Spice Switch | Mr Raju | a crate swap under mynah lookouts |
+| Light-Up Night | Auntie Malar | rewire the arch (mini-game), then hold the light-up against mynah raiders |
+| Bolts of Arab Street | Abang Kancil | blend (disguise or commotion), then tail a mynah to the roost |
+| Haji Lane Hush | Puan Wangi | trap the mynahs (nets or chase); opens Sentosa |
+| Bazaar Night | Abang Kancil | collect ketupat, pick up the attar, deliver on a timer while wardens are out in force: every ticket or warning costs 8 s |
+| Up the Cable Car | Sergeant Helang | ride the cable car, chase a mynah with the fuse box |
+| Galaxy Studios After Dark | Sergeant Helang | case the park, then the heist (quiet or loud) for the firing box |
+| Ferry Fiasco | Kapten Duyung | steer the bumboat round six buoys before Nine's raft |
+| Siloso Showdown | Boss Bising | slip past the fort's lookouts (send the partner to the gate lever), chase Nine down the beach, grab the loot bag from the mynah |
+
+A chase or the bag grab is the climax of two of the ten. Three new Hawker Tales: **Teh Tarik Time** (Mr Raju: pull the tea, then a delivery to the hawker centre), **The Missing Attar** (Puan Wangi: a detective job) and **Siloso Fun Run** (Kapten Duyung: a race on foot along the beach). Eight new people, each with a portrait in four moods, a full-body figure in the world (six frames) and lines when you walk up.
+
+**The ending.** Siloso Showdown plays the Island Lights ending (two painted panels) once, then the credits; chapter seven's card opens the chapter. Five new trophies: Island Lights, Sky Ride (three cable car rides), Sea Legs (a ferry ride), Festive (a lamp lit and a kuih eaten) and Quiet Please (ten mynahs caught); 35 in all.
+
+**Save v10** (`jade-street-v10`): five new counts (cable car and ferry rides, lamps, kuih, mynahs) and `story.lights`; a v9 save keeps every job, medal, coin and setting, and its new counts start at zero.
+
+**Loading.** The three districts' atlases and six ground textures are not on the loading bar: they load in the background once the game is running (`LAZY` in `lib/jade-scene.ts`), and the ground chunks repaint when they arrive. They are needed only after chapter six.
+
 ## Guards, the partner and branches (eighth pass)
 
 The owner's notes: guards should hear, wonder, look, chase, call for help and give up; the partner should think for themselves; holding a stall was too easy; the detective's clues should be shown, not only written; Office Hours was stiff on Hard; and more steps should branch than the heist.
