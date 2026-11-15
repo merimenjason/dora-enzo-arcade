@@ -25,3 +25,5 @@
 .jade-shell .jade-job .jade-meter i { white-space: nowrap; }
 .jade-shell .jade-job .jade-meter { padding-right: 116px; }
 .jade-shell .jade-job .jade-meter b { position: absolute; left: auto; right: 110px; top: 50%; margin-top: -4.5px; transform: translateX(100%); }
+/* inside the job plaque (one column under the warning) */
+.jade-shell .jade-job .jade-notes { position: static; transform: none; width: auto; min-width: 0; margin-top: 6px; text-align: left; }

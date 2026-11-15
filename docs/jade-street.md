@@ -264,6 +264,19 @@ A chase or the bag grab is the climax of two of the ten. Three new Hawker Tales:
 
 **Loading.** The three districts' atlases and six ground textures are not on the loading bar: they load in the background once the game is running (`LAZY` in `lib/jade-scene.ts`), and the ground chunks repaint when they arrive. They are needed only after chapter six.
 
+### Playtest fixes (ninth pass)
+
+A first-time playtest of the live game (15-11-2026) found friction; the fixes, with `tests/jade-fix9.mjs` and the end of `tests/e2e/jade-street-9.mjs` guarding them:
+
+- **Mini-games fail when left alone.** Every mini-game now fails if you do nothing, Assist or not: the wok waits for one last toss once the order is in (`WokGame.ready`) and scorches twice as fast until then; the dumpling board has a patience timer (7 s on Assist, 5 s without) and ends messy. The dumpling timing bar is big and sits on the board.
+- **Where to go next.** Between jobs a plaque names the next job and its giver (`World.nextJob()`); the gold line points at the giver even when they are close (`nextGiver()` comes before street events in `objective()`); on a ride, an offered job's giver within reach reads "Talk to X" before "Get off", and E steps off and talks. The jobs book shows offered jobs by name with "On offer now · giver, place" and Route me. A job interrupted by closing the game is remembered (`Save.jobOpen`): the next load says which job stopped and routes to its giver.
+- **The phone.** Job texts come once per job (the save remembers them), in the giver's own voice (`firstPerson()`), with Route me. Texts carry a `kind` (`job`, `fine`, `help`); the badge counts only those, not tips or chatter.
+- **Keys and panels.** Esc closes the top-most thing: Pause, then the map or the phone, then a panel. The map opens centred on you (the view may run a third of a screen past the edge) with its key folded.
+- **Jobs.** A run's warning clears on every new step and when a heist or branch card opens; passing news is dropped while those cards are up. The crate swap points only at a crate no guard is watching (else a wait spot out of sight), counts down the look-away, and after a retry tips you to press F. The net trap's F waits until someone stands on a net. Speech bubbles are clamped to a safe area and stacked. The detective's wrong questions are on-topic. The red scooter's step says to jump-start it, and the sockets wear coloured rims.
+- **Pacing.** The clock runs at half speed in a job and dawn waits for the job to end. A blend step comes in chapter two (The Golden Bell: walk with the worshippers to the pagoda), and Hawker Tales open earlier: the kueh recipe after m4, the kopi switch after m7, the abacus job after m10. `chapterOf()` stops at the first unfinished chapter.
+- **Polish.** One market name for the prompt and the panel (`MARKET_NAME` in `lib/jade-trade.ts`); Buy and Max grey out when you cannot pay or carry more; "Tea is cheap"; "The Tanjong Pagar Docks are open"; a quiet "New game…"; the touch setting shows only on a touch screen; checkboxes stay on their label's line.
+- **Art.** Each district has its own safe house (`safe-hdb`, `safe-bay`, `safe-india`, `safe-glam`, `safe-resort`) and Chinatown station has an entrance canopy (`stn-entrance`), painted in the `safe-bld` sheet of `docs/jade-street-art/jobs10.py`.
+
 ## Guards, the partner and branches (eighth pass)
 
 The owner's notes: guards should hear, wonder, look, chase, call for help and give up; the partner should think for themselves; holding a stall was too easy; the detective's clues should be shown, not only written; Office Hours was stiff on Hard; and more steps should branch than the heist.

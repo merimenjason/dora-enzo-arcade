@@ -67,7 +67,7 @@ export async function eighth(h) {
   check(await until(() => /Ride the Jade Line/.test(document.querySelector('[data-testid="prompt"]')?.textContent ?? ''), null, 2000), `${name}: the gates prompt "E Ride the Jade Line"`); await look('mrt: gate prompt');
   // the phone's Jade Line tab: the stations, and Route me
   await press('jade-phone'); await press('phone-mrt'); check(await exists('mrt-tab'), `${name}: the phone's Jade Line tab`);
-  check(await p.locator('[data-testid^="mrt-route-"]').count() === 4, `${name}: every station listed with Route me`); await look('mrt: phone tab');
+  { const nr = await p.locator('[data-testid^="mrt-route-"]').count(), nl = await p.locator('.jade-line-list li').count(); check(nr === 7, `${name}: every station listed with Route me (${nr})`); void nl; } await look('mrt: phone tab');
   await press('mrt-route-stn-bayfront');
   check(!(await exists('jade-phone-msgs')) && JSON.stringify(await wp()) === JSON.stringify(await stnAt('stn-bayfront')), `${name}: Route me sets the route to Bayfront station`);
   // the Controls page lists the Jade Line and the taxi

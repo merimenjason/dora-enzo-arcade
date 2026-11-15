@@ -40,6 +40,8 @@ export type Save = {
   v: number; seed: number; hero: Hero; started: boolean;
   cash: number; night: number; clock: number; cargo: Cargo; stash: Cargo;
   done: string[]; rep: Record<District, number>;
+  /** the job you were in when the game was last saved (a reload offers it again), if any */
+  jobOpen?: string;
   upgrades: { speed: number; grip: number; cargo: number }; paint: string;
   outfits: Record<Hero, string[]>; outfit: Record<Hero, string>;
   cats: number[]; murals: string[]; trophies: string[]; tips: Tip[];
@@ -74,7 +76,8 @@ export type Fines = { paid: number; n: number; by: Record<string, number>; list:
 export const newBag = (): Bag => ({ tissue: 2, seed: 0, banana: 0, gum: 0, junk: 0 });
 export const newFines = (): Fines => ({ paid: 0, n: 0, by: {}, list: [], fled: 0 });
 export type Medal = { m: number; t: number; plays: number };
-export type Msg = { id: number; from: string; text: string; night: number; read: boolean };
+/** a text; `kind` 'job' (an offer, with its job id) and 'fine' count on the phone's badge, chatter doesn't */
+export type Msg = { id: number; from: string; text: string; night: number; read: boolean; kind?: 'job' | 'fine' | 'help'; job?: string };
 export const OUTFITS: { id: string; name: string; hero: Hero | 'both'; price: number; need: { d: District; rep: number } | null; hue: number }[] = [
   { id: 'classic', name: 'Street classic', hero: 'both', price: 0, need: null, hue: 0 },
   { id: 'midnight', name: 'Midnight blue', hero: 'both', price: 120, need: { d: 'market', rep: 20 }, hue: 1 },
@@ -137,6 +140,7 @@ export function loadSave(raw: string | null): Save {
   s.cargo = cargoOf(o.cargo); s.stash = cargoOf(o.stash);
   const ids = new Set([...MISSIONS, ...SIDE].map(m => m.id));
   s.done = strs(o.done, x => ids.has(x));
+  if (typeof o.jobOpen === 'string' && ids.has(o.jobOpen) && !s.done.includes(o.jobOpen)) s.jobOpen = o.jobOpen;
   const rep = (o.rep ?? {}) as Record<string, unknown>;
   for (const d of DISTRICTS) s.rep[d] = num(rep[d], 0, 0, 100);
   const up = (o.upgrades ?? {}) as Record<string, unknown>;
@@ -162,7 +166,7 @@ export function loadSave(raw: string | null): Save {
   const sy = (o.story ?? {}) as Record<string, unknown>;
   s.story = { intro: sy.intro === true, ch: Math.floor(num(sy.ch, 0, 0, 8)), ending: sy.ending === true, isle: sy.isle === true, lights: sy.lights === true };
   s.learned = strs(o.learned);
-  s.msgs = Array.isArray(o.msgs) ? (o.msgs as Msg[]).filter(m => m && typeof m.text === 'string' && typeof m.from === 'string').slice(-30).map((m, i) => ({ id: Number.isInteger(m.id) ? m.id : i + 1, from: m.from, text: m.text, night: num(m.night, 1, 1, 1e5), read: m.read === true })) : [];
+  s.msgs = Array.isArray(o.msgs) ? (o.msgs as Msg[]).filter(m => m && typeof m.text === 'string' && typeof m.from === 'string').slice(-30).map((m, i) => ({ id: Number.isInteger(m.id) ? m.id : i + 1, from: m.from, text: m.text, night: num(m.night, 1, 1, 1e5), read: m.read === true, ...(m.kind === 'job' || m.kind === 'fine' || m.kind === 'help' ? { kind: m.kind } : {}), ...(typeof m.job === 'string' ? { job: m.job } : {}) })) : [];
   s.radio = Math.floor(num(o.radio, 0, -1, 9)); s.helped = Math.floor(num(o.helped, 0, 0, 1e6));
   const bz = (o.biz ?? {}) as Record<string, unknown>;
   for (const b of BIZ) {
@@ -261,7 +265,7 @@ function migrate1(o: Record<string, unknown>): Record<string, unknown> {
 }
 
 // ── progression
-export const chapterOf = (s: Save) => { let ch = 1; for (let c = 1; c <= 7; c++) if (MISSIONS.filter(m => m.ch === c).every(m => s.done.includes(m.id))) ch = c + 1; return Math.min(ch, 8); };
+export const chapterOf = (s: Save) => { let ch = 1; for (let c = 1; c <= 7; c++) { if (MISSIONS.filter(m => m.ch === c).every(m => s.done.includes(m.id))) ch = c + 1; else break; } return Math.min(ch, 8); };
 export function openDistricts(s: Save): District[] {
   const out: District[] = ['market'];
   for (let c = 1; c <= 4; c++) if (s.done.includes(`m${c * 5}`)) out.push(CHAPTER_OPENS[c - 1]);

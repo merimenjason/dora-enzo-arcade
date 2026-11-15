@@ -159,7 +159,7 @@ export const MISSIONS: Mission[] = [
     steps: [
       { t: 'talk', lines: [['kee', 'Ah, hero! Good timing. The whole quarter is in a flap.', 'happy'], ['kee', 'The Kaypoh Crows swooped last night and took our five lucky heirlooms. Without them, no festival.', 'worried'], ['hero', 'Then we get them back. Where do we start?', 'smug'], ['mate', 'Together, like always. Two pairs of paws are faster than one.', 'happy'], ['kee', 'Start small. Chef Mo needs these mangoes for her stall, and my legs are slower than my stories.', 'calm']] },
       { t: 'pickup', at: [16, 44], item: 'crate', label: 'Pick up the crate of mangoes', cp: true },
-      { t: 'ride', kind: 'scooter', near: [19, 45], locked: true, label: 'Get on the red scooter by the kerb' },
+      { t: 'ride', kind: 'scooter', near: [19, 45], locked: true, label: 'Jump-start the red scooter by the kerb (E), then ride it' },
       { t: 'deliver', to: 'mo', time: 75, fragile: 8, item: 'crate', label: 'Ride the mangoes to Chef Mo before they bruise' },
       { t: 'talk', lines: [['mo', 'Mangoes! You are a lifesaver. Hop off and say hi properly.', 'happy'], ['mo', 'A crow has been circling my wok all night. Something tells me we will be busy.', 'worried']] },
     ] },
@@ -230,9 +230,11 @@ export const MISSIONS: Mission[] = [
       { t: 'deliver', to: 'temple-steps', time: 80, fragile: 7, item: 'cake', label: 'Deliver the cake before it melts (gently!)' },
       { t: 'talk', lines: [['heron', 'A perfect cake. The bride is crying happy tears.', 'happy']] },
     ] },
-  { id: 'm10', ch: 2, title: 'The Golden Bell', giver: 'heron', at: 'heron', reward: 300, rep: 20, blurb: 'Chase the cart carrying the Golden Bell down Temple Street.',
+  { id: 'm10', ch: 2, title: 'The Golden Bell', giver: 'heron', at: 'heron', reward: 300, rep: 20, blurb: 'Slip in with the temple crowd to find the Golden Bell, then chase the cart carrying it down Temple Street.',
     steps: [
-      { t: 'talk', lines: [['heron', 'There! The cart with the Golden Bell, rolling down the hill road!', 'worried'], ['hero', 'Not on my watch.', 'cross']] },
+      { t: 'talk', lines: [['heron', 'Crows in the courtyard, dressed as pilgrims. One of them has the Golden Bell.', 'worried'], ['heron', 'Take a shawl from the rack by me and walk with the worshippers to the pagoda. Do not run, and listen.', 'calm'], ['mate', 'I’ll watch the gate. Stay among the crowd.', 'calm']] },
+      { t: 'blend', rack: [21, 9], route: [[22, 9], [25, 8], [28, 8], [31, 7], [33, 8]], goal: [33, 8], lookouts: [[25, 6, 90], [29, 10, 270], [34, 5, 110]], crowd: 9, label: 'Walk with the worshippers to the pagoda (no running in the shawl!)', cp: true },
+      { t: 'talk', lines: [['pip', '…bell’s on the cart, down the hill road, go go go!', 'smug'], ['heron', 'There! The cart with the Golden Bell, rolling down the hill road!', 'worried'], ['hero', 'Not on my watch.', 'cross']] },
       { t: 'ride', kind: 'scooter', near: [35, 14], label: 'Grab a scooter', cp: true },
       { t: 'chase', who: 'cart', from: X('b', 'n'), route: [X('a', 'n'), X('a', 'm'), X('c', 'm'), X('c', 'n'), X('b', 'n')], bumps: 3, loot: '', speed: 265, label: 'Bump the bell cart three times', sets: [{ k: 'drums', at: [19, 13], wp: 0 }], cp: true },
       { t: 'talk', lines: [['mate', 'The bell’s in a bag and a crow’s got it! Up there, circling!', 'worried'], ['hero', 'Knock it loose with a shot, or catch it when it swoops low!', 'cross']] },
@@ -380,9 +382,9 @@ export const MISSIONS: Mission[] = [
       { t: 'train', to: 'stn-toapayoh', label: 'Take the Jade Line to Toa Payoh (E at the station entrance)', cp: true },
       { t: 'talk', lines: [['kamal', 'Welcome to Toa Payoh! I’m Mr Kamal, station master. Also: robbed. A crow in a little tie snatched my station keys and hid them somewhere round here!', 'worried'], ['mate', 'Somebody saw something. Ask the right question and they’ll remember.', 'smug'], ['hero', 'Then we search the one place that fits every clue. No guessing.', 'calm']] },
       { t: 'detective', item: 'loot-bag', time: 150, witnesses: [
-        { at: [148, 32], sp: 'rabbit', name: 'auntie with the trolley', ask: ['Did you see which way he went?', 'Was he carrying anything?', 'Do you have the time?'], right: 0, clue: 'He hopped under the covered walkway, out of the rain.', tag: 'roof', junk: ['', 'A briefcase? A bag? Aiyoh, so many crows these days.', 'Half past eleven. Why?'] },
-        { at: [157, 29], sp: 'sunbear', name: 'uncle at the bus stop', ask: ['Is this your bus stop?', 'What did the crow smell of?', 'What colour was his tie?'], right: 1, clue: 'Curry puffs! He must have hidden them near food.', tag: 'food', junk: ['Every night. Bus 238. Never on time.', '', 'Red? Blue? I am colour-blind, lah.'] },
-        { at: [140, 32], sp: 'duck', name: 'cleaner by the drain', ask: ['Did he drop anything?', 'Where did he fly off to?', 'Do you like your job?'], right: 0, clue: 'A grey feather, on something blue. I swept it up after.', tag: 'blue', junk: ['', 'Up. Crows fly up. Then I sweep.', 'Very much. Very clean, Toa Payoh.'] },
+        { at: [148, 32], sp: 'rabbit', name: 'auntie with the trolley', ask: ['Did you see which way he went?', 'Was he carrying anything?', 'Was he in a hurry?'], right: 0, clue: 'He hopped under the covered walkway, out of the rain.', tag: 'roof', junk: ['', 'A briefcase? A bag? Aiyoh, so many crows these days.', 'Everybody in Toa Payoh is in a hurry. Couldn’t say.'] },
+        { at: [157, 29], sp: 'sunbear', name: 'uncle at the bus stop', ask: ['Which way did the crow go?', 'What did the crow smell of?', 'What colour was his tie?'], right: 1, clue: 'Curry puffs! He must have hidden them near food.', tag: 'food', junk: ['Behind the bus. When it left, he was gone.', '', 'Red? Blue? I am colour-blind, lah.'] },
+        { at: [140, 32], sp: 'duck', name: 'cleaner by the drain', ask: ['Did he drop anything?', 'Where did he fly off to?', 'Did he say anything?'], right: 0, clue: 'A grey feather, on something blue. I swept it up after.', tag: 'blue', junk: ['', 'Up. Crows fly up. Then I sweep.', 'Caw. Just caw. Very rude.'] },
       ], spots: [
         { at: [146, 25], tags: ['food', 'roof'], what: 'curry puff stall’s crates' },
         { at: [156, 25], tags: ['blue', 'roof'], what: 'blue recycling bins' },
@@ -489,9 +491,9 @@ export const MISSIONS: Mission[] = [
       { t: 'goto', at: 'malar', label: 'Find Auntie Malar at the flower market on Buffalo Road', ride: 'foot' },
       { t: 'talk', lines: [['malar', 'Vanakkam, my dears! Somebody called the temple in MY voice and said no garlands this year. Then my jasmine strings vanished!', 'worried'], ['malar', 'Deepavali is in two nights. The whole street will be lit. The garlands must be there.', 'worried'], ['hero', 'Somebody round here saw something. We ask, then we search where the clues point.', 'calm']] },
       { t: 'detective', item: 'garland', time: 150, witnesses: [
-        { at: [236, 10], sp: 'rabbit', name: 'auntie by the Emporium doors', ask: ['Did you hear anybody shouting?', 'Do you sell sweets?', 'Is the Emporium open?'], right: 0, clue: 'Shouting in Auntie Malar’s voice! From up high, on a ledge. Funny voice, very squeaky.', tag: 'high', junk: ['', 'Murukku, jalebi, laddu. Deepavali, so everybody wants!', 'Always open! Twenty-four hours! Even I don’t sleep!'] },
-        { at: [252, 9], sp: 'sunbear', name: 'uncle with the flower cart', ask: ['Which way did they go?', 'What did they smell of?', 'Can I buy a flower?'], right: 1, clue: 'Sweets! Ghee and sugar. Whoever took the jasmine was eating jalebi.', tag: 'sweet', junk: ['Every way. Little India has many ways.', '', 'Later, later. Too busy tonight.'] },
-        { at: [241, 32], sp: 'duck', name: 'cleaner on Serangoon Road', ask: ['Did anyone drop something?', 'Is the light-up working?', 'How long have you worked here?'], right: 0, clue: 'Black feathers with white patches, stuck on something blue. Mynah feathers, I tell you.', tag: 'blue', junk: ['', 'Not yet! The switch box is playing up.', 'Thirty years. I sweep, the street shines.'] },
+        { at: [236, 10], sp: 'rabbit', name: 'auntie by the Emporium doors', ask: ['Did you hear anybody shouting?', 'Did you see who it was?', 'Did they go into the Emporium?'], right: 0, clue: 'Shouting in Auntie Malar’s voice! From up high, on a ledge. Funny voice, very squeaky.', tag: 'high', junk: ['', 'Too many people tonight. Everybody looks like somebody.', 'Maybe? Everybody goes into the Emporium. Twenty-four hours!'] },
+        { at: [252, 9], sp: 'sunbear', name: 'uncle with the flower cart', ask: ['Which way did they go?', 'What did they smell of?', 'How many of them were there?'], right: 1, clue: 'Sweets! Ghee and sugar. Whoever took the jasmine was eating jalebi.', tag: 'sweet', junk: ['Every way. Little India has many ways.', '', 'One? Five? They move so fast, I lost count.'] },
+        { at: [241, 32], sp: 'duck', name: 'cleaner on Serangoon Road', ask: ['Did anyone drop something?', 'Did they touch the light-up?', 'What were they wearing?'], right: 0, clue: 'Black feathers with white patches, stuck on something blue. Mynah feathers, I tell you.', tag: 'blue', junk: ['', 'The switch box is playing up, but who did it, I don’t know.', 'Scarves? Hats? In thirty years I never look at clothes.'] },
       ], spots: [
         { at: [241, 9], tags: ['sweet', 'high'], what: 'flower planters by the sari shop' },
         { at: [260, 9], tags: ['blue', 'high'], what: 'blue recycling bins behind the villa' },
@@ -617,13 +619,13 @@ export const SIDE: Mission[] = [
       { t: 'defend', at: 'hoon', time: 60, waves: 2, per: 5, gang: 'mac', what: 'Stall', label: 'Guard Auntie Hoon’s stall: knock the macaques back before they grab', cp: true },
       { t: 'talk', lines: [['kow', 'Ooh. Paiseh, auntie. Can have one bun or not?', 'worried'], ['hoon', 'Aiyah, take one lah. Only one!', 'happy']] },
     ] },
-  { id: 'k5', side: 'm9', ch: 0, title: 'The Kueh Recipe', giver: 'hoon', at: 'hoon', reward: 140, rep: 12, blurb: 'Auntie Hoon’s grandmother’s kueh lapis recipe has gone missing. Ask around the market and work out where Pip hid it.',
+  { id: 'k5', side: 'm4', ch: 0, title: 'The Kueh Recipe', giver: 'hoon', at: 'hoon', reward: 140, rep: 12, blurb: 'Auntie Hoon’s grandmother’s kueh lapis recipe has gone missing. Ask around the market and work out where Pip hid it.',
     steps: [
       { t: 'talk', lines: [['hoon', 'My mama’s kueh lapis recipe! Forty layers! Gone from my tin!', 'worried'], ['hero', 'Pip was on Smith Street this morning…', 'calm'], ['hoon', 'Ask around the market. But ask properly, ah! Then look where it fits.', 'cross']] },
       { t: 'detective', item: 'recipe', time: 140, witnesses: [
-        { at: [22, 68], sp: 'cat', name: 'cat at the noodle stall', ask: ['What did Pip smell of?', 'Is the noodle stall open?', 'Are you hungry?'], right: 0, clue: 'Pandan! Sweet and green. He went near something sweet.', tag: 'sweet', junk: ['', 'Always open, always queue.', 'Always.'] },
-        { at: [14, 74], sp: 'goose', name: 'goose with the umbrella', ask: ['Did it rain this morning?', 'Did Pip fly low or high?', 'Do you know Auntie Hoon?'], right: 1, clue: 'High! Up on a shelf or an awning, he was.', tag: 'high', junk: ['A little. My umbrella is new.', '', 'Everybody knows Auntie Hoon.'] },
-        { at: [25, 73], sp: 'hedgehog', name: 'hedgehog selling newspapers', ask: ['What was Pip holding?', 'How much is a paper?', 'Did you see where Pip slept?'], right: 0, clue: 'A folded paper. He tucked it in with more paper, like a page in a book.', tag: 'paper', junk: ['', 'One coin. You want one?', 'In a tree? Crows sleep in trees, right?'] },
+        { at: [22, 68], sp: 'cat', name: 'cat at the noodle stall', ask: ['What did Pip smell of?', 'Did Pip buy anything?', 'Did Pip look worried?'], right: 0, clue: 'Pandan! Sweet and green. He went near something sweet.', tag: 'sweet', junk: ['', 'Crows don’t queue. He didn’t buy, I’m sure.', 'Crows always look worried. Hard to say.'] },
+        { at: [14, 74], sp: 'goose', name: 'goose with the umbrella', ask: ['Did Pip have the recipe with him?', 'Did Pip fly low or high?', 'Did Pip talk to anyone?'], right: 1, clue: 'High! Up on a shelf or an awning, he was.', tag: 'high', junk: ['A paper? Maybe a napkin? I only saw wings.', '', 'Not to me. Crows never say thank you.'] },
+        { at: [25, 73], sp: 'hedgehog', name: 'hedgehog selling newspapers', ask: ['What was Pip holding?', 'Did Pip read the paper?', 'Did you see where Pip slept?'], right: 0, clue: 'A folded paper. He tucked it in with more paper, like a page in a book.', tag: 'paper', junk: ['', 'Crows only read the racing page. No, no.', 'In a tree? Crows sleep in trees, right?'] },
       ], spots: [
         { at: [13, 66], tags: ['sweet'], what: 'pandan leaf baskets' },
         { at: [24, 66], tags: ['high', 'paper'], what: 'newspaper bundle on the awning' },
@@ -652,7 +654,7 @@ export const SIDE: Mission[] = [
       { t: 'defend', at: 'getai', time: 60, waves: 3, per: 3, gang: 'crow', what: 'Stage', label: 'Hold the getai stage: knock the crows back until the show starts', cp: true },
       { t: 'talk', lines: [['lily', 'Thank you, thank you! This song is for you two!', 'happy'], ['lily', 'Front row? No, no, that one is for the spirits. You sit second row.', 'calm']] },
     ] },
-  { id: 'k8', side: 'm17', ch: 0, title: 'The Abacus Job', giver: 'pang', at: 'pang', reward: 170, rep: 12, blurb: 'The crows pawned Auntie Pang’s golden abacus and keep it in their counting-house safe. Case the lane, then take it back: quiet or loud.',
+  { id: 'k8', side: 'm10', ch: 0, title: 'The Abacus Job', giver: 'pang', at: 'pang', reward: 170, rep: 12, blurb: 'The crows pawned Auntie Pang’s golden abacus and keep it in their counting-house safe. Case the lane, then take it back: quiet or loud.',
     steps: [
       { t: 'talk', lines: [['pang', 'My golden abacus! The crows say I “sold” it to them. I did not! Now it’s in the safe behind their counting house.', 'cross'], ['hero', 'A safe. Guards?', 'calm'], ['pang', 'Guards, a camera, a back door down the alley. Look first, then go in.', 'calm']] },
       { t: 'goto', at: [45, 23], label: 'Go to the end of the counting-house lane', ride: 'foot', cp: true },
@@ -661,7 +663,7 @@ export const SIDE: Mission[] = [
       { t: 'heist', front: [45, 23], back: [52, 16], safe: [52, 21], drop: 'pang', guards: [[[47, 23], [51, 23]], [[54, 23], [58, 23]], [[52, 26], [52, 29]]], cams: [[46, 23, 0], [52, 22, 90]], time: 60, loot: 'abacus', level: 2, label: 'Crack the counting-house safe', cp: true },
       { t: 'talk', lines: [['pang', 'Every bead still there! Count it with me: one, two, three… thank you!', 'happy']] },
     ] },
-  { id: 'k9', side: 'm12', ch: 0, title: 'The Kopi Switch', giver: 'teo', at: 'teo', reward: 130, rep: 10, blurb: 'The crows stacked Uncle Teo’s stolen kopi beans at the void deck to sell. Swap them for sacks of sawdust before they load up.',
+  { id: 'k9', side: 'm7', ch: 0, title: 'The Kopi Switch', giver: 'teo', at: 'teo', reward: 130, rep: 10, blurb: 'The crows stacked Uncle Teo’s stolen kopi beans at the void deck to sell. Swap them for sacks of sawdust before they load up.',
     steps: [
       { t: 'talk', lines: [['teo', 'Aiyoh! My best kopi beans! The crows took six sacks to sell at the void deck. My beans!', 'worried'], ['mate', 'Then we swap them. Sawdust in their crates, beans back to Uncle Teo. They’ll never know till they brew it.', 'smug'], ['teo', 'Hah! Crow kopi with sawdust. Serve them right.', 'happy']] },
       { t: 'goto', at: [36, 74], label: 'Go round to the void deck', ride: 'foot', cp: true },
@@ -687,9 +689,9 @@ export const SIDE: Mission[] = [
     steps: [
       { t: 'talk', lines: [['wangi', 'My rose attar, the oldest bottle, my grandmother’s recipe. A mynah, I think. It always copies my shop bell first.', 'worried'], ['hero', 'Ask around, then search. No guessing.', 'calm']] },
       { t: 'detective', item: 'perfume', time: 140, witnesses: [
-        { at: [222, 56], sp: 'tapir', name: 'auntie at the café tables', ask: ['Did you smell roses?', 'Is the food good here?', 'Are you waiting for someone?'], right: 0, clue: 'Roses, yes! Then something sweet, like the kuih stall. It went that way, past the bins.', tag: 'sweet', junk: ['', 'Very good. Try the lamb, very tender.', 'My son. He is always late.'] },
-        { at: [243, 59], sp: 'civet', name: 'student on Haji Lane', ask: ['What are you drawing?', 'Did you see where the bird landed?', 'Do you like the murals?'], right: 1, clue: 'On top of something. It hopped up high and pushed something under.', tag: 'high', junk: ['The murals. Every night, a new one.', '', 'Of course! That’s why I draw here.'] },
-        { at: [234, 70], sp: 'mousedeer', name: 'office worker by Bugis station', ask: ['Did the bird drop anything?', 'Which exit is this?', 'Is it always this busy?'], right: 0, clue: 'A scrap of newspaper. It was carrying the bottle wrapped in paper.', tag: 'paper', junk: ['', 'Exit B. Or C. I always get lost.', 'Bazaar season. Very busy, very happy.'] },
+        { at: [222, 56], sp: 'tapir', name: 'auntie at the café tables', ask: ['Did you smell roses?', 'Did the bird come in here?', 'Was the bird carrying a box?'], right: 0, clue: 'Roses, yes! Then something sweet, like the kuih stall. It went that way, past the bins.', tag: 'sweet', junk: ['', 'Here? No, no, only cats come in for the lamb.', 'A box, a bag, I was looking for my son. Sorry.'] },
+        { at: [243, 59], sp: 'civet', name: 'student on Haji Lane', ask: ['Did you draw the bird?', 'Did you see where the bird landed?', 'Was it a crow or a mynah?'], right: 1, clue: 'On top of something. It hopped up high and pushed something under.', tag: 'high', junk: ['I draw walls, not birds. It was too quick.', '', 'Black bird. All black birds look the same at night.'] },
+        { at: [234, 70], sp: 'mousedeer', name: 'office worker by Bugis station', ask: ['Did the bird drop anything?', 'Which way did it run?', 'Did anyone chase it?'], right: 0, clue: 'A scrap of newspaper. It was carrying the bottle wrapped in paper.', tag: 'paper', junk: ['', 'Towards the exit. Exit B. Or C. I always get lost.', 'In the bazaar crowd? Nobody can chase anything.'] },
       ], spots: [
         { at: [222, 61], tags: ['sweet', 'high'], what: 'flower planters by the restaurant row' },
         { at: [243, 61], tags: ['sweet', 'high', 'paper'], what: 'newspaper bundle on the awning ledge' },

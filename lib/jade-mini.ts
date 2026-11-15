@@ -74,6 +74,8 @@ export type Food = typeof FOODS[number];
 export class WokGame {
   x = 0.5; items: { id: number; f: Food; x: number; y: number; vy: number; vx: number }[] = []; need: Partial<Record<Food, number>> = {}; got: Partial<Record<Food, number>> = {};
   burn = 0; strikes = 0; tossT = 0; spawnT = 0.6; ev: MiniEv[] = []; done = false; failed = false; inWok = 0; nid = 1; R: () => number; time = 0;
+  /** every ingredient is in: one last toss serves it (so a wok left alone never finishes: it scorches instead) */
+  ready = false;
   constructor(public o: MiniOpts) {
     this.R = rng(o.seed);
     const n = o.level > 1 ? 7 : 5;
@@ -83,7 +85,7 @@ export class WokGame {
   get left() { let k = 0; for (const f of FOODS) k += Math.max(0, (this.need[f] ?? 0) - (this.got[f] ?? 0)); return k; }
   moveTo(x: number) { this.x = Math.max(0.08, Math.min(0.92, x)); }
   nudge(d: number, dt: number) { this.moveTo(this.x + d * dt * 1.1); }
-  toss() { if (this.tossT > 0 || this.done) return; this.tossT = 0.45; this.burn = Math.max(0, this.burn - 0.6); this.ev.push({ t: 'toss' }); }
+  toss() { if (this.tossT > 0 || this.done || this.failed) return; this.tossT = 0.45; this.burn = Math.max(0, this.burn - 0.6); this.ev.push({ t: 'toss' }); if (this.ready) { this.done = true; this.ev.push({ t: 'served' }); } }
   step(dt: number) {
     if (this.done || this.failed) return;
     this.time += dt; this.tossT = Math.max(0, this.tossT - dt);
@@ -103,13 +105,14 @@ export class WokGame {
       if (it.y >= 0.78 && it.y < 0.86 && it.vy > 0 && Math.abs(it.x - this.x) < (this.o.assist ? 0.13 : 0.1)) {
         it.y = 2;
         const want = (this.need[it.f] ?? 0) > (this.got[it.f] ?? 0);
-        if (want) { this.got[it.f] = (this.got[it.f] ?? 0) + 1; this.inWok++; this.ev.push({ t: 'catch' }); if (this.left === 0) { this.done = true; this.ev.push({ t: 'served' }); } }
+        if (want) { this.got[it.f] = (this.got[it.f] ?? 0) + 1; this.inWok++; this.ev.push({ t: 'catch' }); if (this.left === 0 && !this.ready) { this.ready = true; this.ev.push({ t: 'ready' }); } }
         else { this.strikes++; this.ev.push({ t: 'oops' }); if (this.strikes >= 3) { this.failed = true; this.ev.push({ t: 'fail' }); } }
       }
     }
     this.items = this.items.filter(i => i.y < 1.1);
     if (this.inWok > 0) {
-      this.burn += dt * (this.o.assist ? 0.11 : 0.16);
+      // (a full wok left on the flame scorches twice as fast: toss it to serve)
+      this.burn += dt * (this.o.assist ? 0.11 : 0.16) * (this.ready ? 2 : 1);
       if (this.burn >= 1) { this.burn = 0; this.strikes++; this.ev.push({ t: 'scorch' }); if (this.strikes >= 3) { this.failed = true; this.ev.push({ t: 'fail' }); } }
     }
   }
@@ -120,6 +123,13 @@ export class DumplingGame {
   n: number; i = 0; phase: 'fill' | 'pleat' | 'next' = 'fill'; t = 0; pleats = 0; bad = 0; results: ('perfect' | 'good' | 'messy')[] = []; ev: MiniEv[] = []; done = false; failed = false; ring = 0; target = 0; wait = 0;
   constructor(public o: MiniOpts) { this.n = o.level > 1 ? 4 : 3; this.target = rng(o.seed)() * Math.PI * 2; }
   get zone() { return this.o.assist ? 0.14 : 0.09; }
+  /** seconds to make each press before it counts as a miss */
+  get patience() { return this.o.assist ? 7 : 5; }
+  private lateMiss() {
+    if (this.phase === 'fill') { this.bad++; this.ev.push({ t: 'splat' }); this.phase = 'pleat'; this.t = 0; this.pleats = 0; this.ring = 0; return; }
+    this.bad++; this.pleats++; this.ev.push({ t: 'squish' }); this.t = 0; this.target = (this.target + 2.3) % (Math.PI * 2);
+    if (this.pleats >= 3) { const r = this.bad === 0 ? 'perfect' : this.bad <= 1 ? 'good' : 'messy'; this.results.push(r); this.ev.push({ t: r }); this.bad = 0; this.i++; this.phase = 'next'; this.wait = 0.7; }
+  }
   get arc() { return this.o.assist ? 0.75 : 0.5; }
   spoon() { return needle(this.t, this.o.assist ? 0.65 : 0.85); }
   press() {
@@ -130,7 +140,7 @@ export class DumplingGame {
     } else if (this.phase === 'pleat') {
       let d = Math.abs(((this.ring - this.target) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI);
       const good = d <= this.arc / 2; if (!good) this.bad++;
-      this.pleats++; this.ev.push({ t: good ? 'pinch' : 'squish' }); this.target = (this.target + 2.3) % (Math.PI * 2);
+      this.pleats++; this.t = 0; this.ev.push({ t: good ? 'pinch' : 'squish' }); this.target = (this.target + 2.3) % (Math.PI * 2);
       void d;
       if (this.pleats >= 3) {
         const r = this.bad === 0 ? 'perfect' : this.bad <= 1 ? 'good' : 'messy';
@@ -141,6 +151,8 @@ export class DumplingGame {
   step(dt: number) {
     if (this.done || this.failed) return;
     this.t += dt; this.ring = (this.ring + dt * (this.o.assist ? 2.6 : 3.4)) % (Math.PI * 2);
+    // waiting too long for a spoonful or a pleat spoils it (so a board left alone ends messy, not never)
+    if ((this.phase === 'fill' || this.phase === 'pleat') && this.t > this.patience) { this.ev.push({ t: 'late' }); this.lateMiss(); return; }
     if (this.phase === 'next') { this.wait -= dt; if (this.wait <= 0) {
       if (this.i >= this.n) {
         const messy = this.results.filter(r => r === 'messy').length;

@@ -8,6 +8,7 @@ import { FRAMES, ATLASES, ATLAS_SIZE, TEXTURES } from './jade-art.js';
 import { T, W, H, G, OW, CT_H, EAST_X0, EAST_SPLIT, GROUND_NAMES, F_ROOF, districtAt, type City, type District } from './jade-city.js';
 import { F_XWAY } from './jade-island.js';
 import { VEHICLES } from './jade-move.js';
+import { tagOption, grabTarget } from './jade-tag.js';
 import type { World, Ride } from './jade-game.js';
 import type { Actor } from './jade-mission.js';
 import { OUTFITS, PAINTS } from './jade-save.js';
@@ -431,6 +432,11 @@ export class Scene {
     sgOver(this, x, w, vis);
     isleOver(this, x, w, vis);
     eastOver(this, x, w, vis);
+    // what F would grab right now gets a pulsing gold ring, so it stands out behind cables and heroes
+    if (w.run && !w.talk) { const o = tagOption(w); if (o?.kind === 'snatch') { const g = grabTarget(w), p = w.p;
+      const t = g?.kind === 'actor' ? [g.a.b.x, g.a.b.y] : w.run.items.filter(i => !i.got).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];
+      const [gx, gy] = Array.isArray(t) ? t : t ? [t.x, t.y] : [0, 0];
+      if (t) { x.save(); x.strokeStyle = 'rgba(255,214,90,.95)'; x.lineWidth = 4; x.setLineDash([10, 8]); x.lineDashOffset = -this.t * 40; x.beginPath(); x.arc(gx, gy - 20, 34 + Math.sin(this.t * 6) * 3, 0, Math.PI * 2); x.stroke(); x.restore(); } } }
     if (w.run) for (const a of w.run.actors) if (a.kind === 'swoop') this.flyer(x, a.b.x, a.b.y, a.b.h + (a.stun > 0 ? this.t * 12 : 0), a.t * 9);
     this.life.over(x, w, vis, dt, cam);
     this.life.rainWorld(x, w, dt, cam);

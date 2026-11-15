@@ -183,6 +183,9 @@
 .jade-shell .jade-menu { display: flex; flex-direction: column; gap: 8px; align-items: stretch; max-width: 340px; margin: 0 auto; }
 .jade-shell .jade-settings { display: flex; flex-direction: column; gap: 10px; font-weight: 800; }
 .jade-shell .jade-settings label { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+/* a checkbox stays on the line with its text, however long the text */
+.jade-shell .jade-settings label:has(> input[type=checkbox]) { flex-wrap: nowrap; }
+.jade-shell .jade-settings input[type=checkbox] { flex: none; }
 .jade-shell .jade-settings input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--jade); }
 .jade-shell .jade-settings select { font: 800 15px var(--body); padding: 4px 8px; border-radius: 8px; background: #2a2050; color: var(--ink); border: 2px solid var(--gold); }
 .jade-shell .jade-trophies { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
@@ -285,3 +288,4 @@
 .jade-shell .jade-bizrow small { display: block; opacity: .92; overflow-wrap: anywhere; }
 .jade-shell .jade-biz-total { display: grid; gap: 6px; justify-items: start; }
 @media (max-width: 520px) { .jade-shell .jade-bizrow { grid-template-columns: 48px minmax(0, 1fr); } .jade-shell .jade-bizrow .jade-bars { grid-column: 1 / -1; } }
+.jade-shell .jade-btn.jade-new-game { margin-top: 18px; opacity: .8; font-size: 13px; }

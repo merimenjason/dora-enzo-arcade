@@ -132,7 +132,7 @@ export class Run {
   enter(i: number) {
     const w = this.w;
     this.actors = []; this.items = []; this.marks = []; this.timer = null; this.meter = null; this.meter2 = null; this.progress = ''; this.phase = 0;
-    this.js = null; this.notes = []; this.hint = null;
+    this.js = null; this.notes = []; this.hint = null; this.warning = null;
     this.sets = []; this.signs = []; this.warned = 0; if (!(this.m.steps[i]?.t === 'pickup')) this.float = null; this.count = 0; this.lost = 0; this.hits = 0; this.spawned = 0; this.spawnT = 0;
     if (i >= this.m.steps.length) { this.cleanup(); w.finishMission(this.m, this.gig); return; }
     this.i = i; this.cur = this.m.steps[i]; const st = this.cur; this.here = [w.p.x, w.p.y];

@@ -42,7 +42,7 @@ export type JobState = {
   cool: number; paperCd: number; asked: number[]; clues: number[]; searched: number[]; hidden: number;
   set: number[]; sprung: number[]; caught: number; escaped: number; t: number; heatCd: Record<number, number>;
   /** pass 8: a sneaky raider has been pointed out; the branch picked on a blend, trap or detective step ('' until then) */
-  sneakWarned: boolean; pick: '' | 'disguise' | 'commotion' | 'nets' | 'chase' | 'ask' | 'bribe';
+  sneakWarned: boolean; tipped?: boolean; pick: '' | 'disguise' | 'commotion' | 'nets' | 'chase' | 'ask' | 'bribe';
 };
 export const freshJob = (): JobState => ({ ph: 0, mode: '', entered: false, div: false, alarm: false, entry: null, warnedLock: false, left: 0, wave: 0, queue: 0, spawnT: 0, spawned: 0, hp: 1, mendW: -1, cool: 0, paperCd: 0, asked: [], clues: [], searched: [], hidden: -1, set: [], sprung: [], caught: 0, escaped: 0, t: 0, heatCd: {}, sneakWarned: false, pick: '' });
 const isJob = (st: Step): st is St<JobStepKind> => (JOB_STEPS as readonly string[]).includes(st.t);
@@ -229,7 +229,7 @@ function heistStep(run: Run, st: St<'heist'>, dt: number) {
   const w = run.w, p = w.p, js = run.js!, n = nameOf(w.mate.who);
   // a checkpoint taken after the safe (phase 3 quiet, 4 loud) picks up on the way out
   if (run.phase >= 3 && js.ph !== 3) { js.mode = run.phase === 4 ? 'loud' : 'quiet'; js.ph = 3; js.entered = true; js.div = true; if (w.ui?.kind === 'heist') w.ui = null; js.entry = run.spot(run.intel.includes('door') ? st.back : st.front); if (js.mode === 'loud') getaway(run, st); else run.meter = { name: 'Alert', v: 0 }; }
-  if (js.ph === 0) { if (!w.ui) { w.ui = { kind: 'heist' }; w.fx.push({ t: 'open' }); } run.label = 'Choose how to do it: quiet or loud'; return; }
+  if (js.ph === 0) { if (!w.ui) { w.ui = { kind: 'heist' }; w.fx.push({ t: 'open' }); run.warning = null; } run.label = 'Choose how to do it: quiet or loud'; return; }
   const [sx, sy] = run.spot(st.safe);
   // cameras sweep; guards walk their beats, hear, look and chase (dazed ones sit in the confetti)
   for (const a of run.actors) {
@@ -314,7 +314,7 @@ export const BRIBE = 15;
 function branchOpen(run: Run, st: St<'blend' | 'trap' | 'detective'>): boolean {
   const js = run.js!, w = run.w; if (js.pick) return false;
   if (st.t === 'blend' && run.phase >= 1) { js.pick = 'disguise'; return false; }
-  if (!w.ui) { w.ui = { kind: 'branch' }; w.fx.push({ t: 'open' }); }
+  if (!w.ui) { w.ui = { kind: 'branch' }; w.fx.push({ t: 'open' }); run.warning = null; }
   run.label = 'Choose how to do it';
   return true;
 }
@@ -600,13 +600,14 @@ function trapStep(run: Run, st: St<'trap'>, dt: number) {
   run.label = chase ? `Run them down: dash (Space) into each of the ${GANG[st.gang]} before they get away` : `Keep back and spring a net (F) when one of the ${GANG[st.gang]} is on it`;
 }
 function escape(run: Run, a: Actor, why: string) { const js = run.js!; void why; a.extra = 2; a.stun = 1.4; a.b.h = a.b.h + Math.PI; js.escaped++; run.w.fx.push({ t: 'job-escape', x: a.b.x, y: a.b.y }); }
-/** F in a trap step: spring the net with the most of them on it (or, too early, the nearest one) */
+/** F in a trap step: spring the net with the most of them on it (never one with nobody on it) */
 export function spring(run: Run) {
   const st = run.cur, js = run.js, w = run.w; if (!st || st.t !== 'trap' || !js || js.ph !== 2) return;
   const R = run.assist ? 70 : 52, open = js.set.filter(i => !js.sprung.includes(i)); if (!open.length) return;
   const on = (i: number) => run.actors.filter(a => a.kind === 'lured' && a.extra === 0 && dist(a.b.x, a.b.y, run.items[i].x, run.items[i].y) < R);
   let best = open[0], bn = -1;
   for (const i of open) { const n = on(i).length; if (n > bn) { bn = n; best = i; } }
+  if (bn === 0) { w.say('Not yet: wait until one steps on a net.', ''); return; }
   if (bn === 0) { const ws = run.actors.filter(a => a.kind === 'lured' && a.extra === 0); best = open.slice().sort((i, j) => Math.min(...ws.map(a => dist(a.b.x, a.b.y, run.items[i].x, run.items[i].y)), 1e9) - Math.min(...ws.map(a => dist(a.b.x, a.b.y, run.items[j].x, run.items[j].y)), 1e9))[0]; }
   js.sprung.push(best); run.items[best].sprite = 'trap-sprung';
   const it = run.items[best]; w.fx.push({ t: 'job-spring', x: it.x, y: it.y });
@@ -616,6 +617,11 @@ export function spring(run: Run) {
   if (!got.length) run.warn('Too early! That net is spent.'); else w.say(got.length > 1 ? `Two in one net! ${js.caught} caught` : `Caught one! ${js.caught} of ${st.catch}`, 'good');
 }
 
+/** is a guard (not looking away, not distracted) facing this crate within sight? */
+export function crateWatched(run: Run, x: number, y: number) {
+  const rg = sightRange(run) * 1.1, half = cone(run) * 1.2;
+  return run.actors.some(a => a.kind === 'guard' && !blind(a) && a.look <= 0 && !((a.stare ?? 0) > 0) && dist(a.b.x, a.b.y, x, y) < rg && Math.abs(angDiff(a.b.h, Math.atan2(y - a.b.y, x - a.b.x))) < half);
+}
 function swapStep(run: Run, st: St<'swap'>, dt: number) {
   const w = run.w, p = w.p;
   const swapping = p.act?.n === 'crate-swap';
@@ -624,7 +630,11 @@ function swapStep(run: Run, st: St<'swap'>, dt: number) {
   if (crewWatch(run, dt, { kind: 'guard', look: true, rate: () => swapping ? 2.4 : nearCrate ? (p.sneak ? 0.5 : 1) * 0.8 : 0, calm: run.assist ? 0.75 : 1,
     warn: swapping ? 'A guard is looking right at you!' : 'A guard is watching the crates! Wait for them to look away.',
     spotted: 'A guard caught you at the crates! Swap while they look the other way, or have your partner distract them (F).', caught: 'A guard grabbed you by the crates! When one shouts, run for cover.' })) return;
-  run.label = crewLabel(run) ?? (swapping ? 'Swapping… keep your head down' : st.label);
+  // a guard looking over their shoulder: how long you have
+  const away = run.actors.filter(a => a.kind === 'guard' && a.look > 0).map(a => a.look);
+  run.label = crewLabel(run) ?? (swapping ? 'Swapping… keep your head down' : away.length ? `Go! A guard is looking away (${Math.max(...away).toFixed(1)} s)` : st.label);
+  // after a slip-up, the partner's distraction is the tip
+  if (run.retries > 0 && !run.js!.tipped) { run.js!.tipped = true; run.warn('Tip: press F and your partner distracts the guards while you swap.'); }
 }
 
 // ── what E does in these steps (Near kind 'job'; World.interact calls jobAct with its id)
@@ -762,7 +772,8 @@ export function jobTag(run: Run): TagOpt | null {
   const st = run.cur, w = run.w, p = w.p, m = w.mate, n = nameOf(m.who), js = run.js; if (!st || !isJob(st) || !js) return null;
   if (st.t === 'trap' && js.ph === 2 && js.set.length > js.sprung.length) {
     const R = run.assist ? 70 : 52, on = js.set.some(i => !js.sprung.includes(i) && run.actors.some(a => a.kind === 'lured' && a.extra === 0 && dist(a.b.x, a.b.y, run.items[i].x, run.items[i].y) < R));
-    return { kind: 'spring', label: on ? 'Spring the net!' : 'Spring a net (nobody on one yet)', go: () => spring(run) };
+    // (F does nothing to the nets until one of them is on a net, so it is never wasted by a stray press)
+    if (on) return { kind: 'spring', label: 'Spring the net!', go: () => spring(run) };
   }
   const quiet = st.t === 'case' || st.t === 'swap' || (st.t === 'heist' && js.mode === 'quiet' && js.ph >= 1);
   if (quiet && !p.ride && !m.seat) {
@@ -791,7 +802,15 @@ export function jobTarget(run: Run): [number, number] | null | undefined {
     case 'blend': return js.ph === 0 ? [run.items[0].x, run.items[0].y] : run.spot(st.goal);
     case 'detective': { const a = run.actors.filter(a => a.kind === 'witness' && !js.clues.includes(a.extra!)).sort((a, b) => dist(a.b.x, a.b.y, p.x, p.y) - dist(b.b.x, b.b.y, p.x, p.y))[0]; return a ? [a.b.x, a.b.y] : null; }
     case 'trap': { if (js.ph === 0) { const it = nearest(run.items.filter((_, i) => !js.set.includes(i))); return it ? [it.x, it.y] : null; } return js.ph === 1 ? run.spot(st.bait) : run.spot(st.wait); }
-    case 'swap': { const it = nearest(run.items.filter(i => !i.got)); return it ? [it.x, it.y] : null; }
+    case 'swap': {
+      // a crate no guard is watching now; if every one is watched, a spot out of their sight near the nearest (wait there)
+      const left = run.items.filter(i => !i.got), free = left.filter(i => !crateWatched(run, i.x, i.y));
+      const it = nearest(free.length ? free : left); if (!it) return null;
+      if (free.length) return [it.x, it.y];
+      const g = run.actors.filter(a => a.kind === 'guard').sort((a, b) => dist(a.b.x, a.b.y, it.x, it.y) - dist(b.b.x, b.b.y, it.x, it.y))[0];
+      if (!g) return [it.x, it.y];
+      const a = Math.atan2(it.y - g.b.y, it.x - g.b.x); return [it.x + Math.cos(a) * 170, it.y + Math.sin(a) * 170];
+    }
   }
   return undefined;
 }

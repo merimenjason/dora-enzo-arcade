@@ -366,6 +366,9 @@ grid('folk6', [f'folk-{s}-{k}' for s in ('deer', 'loris', 'turtle') for k in ('d
 for h in ('dora', 'enzo'):
     fx = cream if h == 'dora' else None
     grid(f'{h}-act12', [f'{h}-{a}' for a in ('light-lamp-0', 'light-lamp-1', 'kuih-0', 'kuih-1', 'ears-0', 'ears-1', 'sniff-0', 'sniff-1', 'lounge-0', 'lounge-1', 'castle-0', 'castle-1')], 4, 3, 58, ref=f'{h}-kuih-0', fix=fx)
+# the playtest fixes: each new district's own safe house (3×3 tiles), and the Jade Line entrance prop at Chinatown station
+square('safe-bld', ['safe-hdb', 'safe-bay', 'safe-india', 'safe-glam', 'safe-resort', None], 3, 2, 192, green=True)
+each('safe-bld', [None] * 5 + ['stn-entrance'], 3, 2, {'stn-entrance': 124}, green=True)
 fit('ui10', ['i-cable', 'pin-cable', 'pin-ferry', 'mi-mosque', 'mi-gopuram', 'mi-fort', 'mi-coaster', 'i-festival'], 4, 2, 128)
 # ── the job givers standing in the world (jobs7): six frames each, facing the street; each row scaled from its own idle
 CAST_H = {'kee': 52, 'mo': 60, 'pang': 56, 'heron': 70, 'ren': 58, 'kiri': 58, 'lim': 54, 'bo': 72, 'bristle': 62, 'gizmo': 58, 'glint': 64,
@@ -441,7 +444,7 @@ GROUPS = [('dora', lambda n: n.startswith('dora-')), ('enzo', lambda n: n.starts
           ('isle', lambda n: n.startswith(('hdb-', 'bay-'))),
           ('isle2', lambda n: n.startswith(('liz-', 'kamal-', 'vanda-', 'lepak-', 'kaw-', 'mynahs', 'piglet', 'crowd', 'crow-sales', 'folk-tapir', 'folk-mousedeer', 'folk-civet', 'mrt-', 'v-taxi', 'wscoot', 'rail', 'psd', 'fare-gate', 'hide-', 'crow-nest', 'playground', 'void-table', 'letterbox', 'bicycles', 'laundry', 'exercise', 'bus-stop', 'taxi-stand', 'durian-stall', 'bougain', 'prom-', 'xw-barrier', 'cones', 'spin-top', 'light-crate', 'carpet', 'statuette', 'jetty-sign', 'stn-pillar', 'mooncakes', 'balloons', 'stools'))), ('land', lambda n: n.startswith('lm2-')),
           ('cast', lambda n: n.startswith('npc-')),
-          ('city', lambda n: n.startswith(('shop-', 'roof-', 'flat-', 'bld-', 'lm-'))),
+          ('city', lambda n: n.startswith(('shop-', 'roof-', 'flat-', 'bld-', 'lm-', 'safe-', 'stn-entrance'))),
           ('rides', lambda n: n.startswith(('v-', 'car-', 'crow-cart', 'crow-boat', 'boss-', 'warden-bike'))),
           ('gear', lambda n: n.startswith(('g-', 'crate-', 'shot-', 'net-open', 'satchel', 'sp-', 'crow-netted', 'cart-netted', 'warden-slip', 'warden-paint', 'warden-dazed', 'crow-drop', 'awning-splat', 'glint-netted', 'lever-', 'sluice-', 'shutter-', 'pulley', 'boost-spot', 'window-', 'loot-bag', 'gadget-stall'))),
           ('jobs', lambda n: n.startswith(('guard-', 'intern-', 'job-', 'card-', 'mac-netted'))),

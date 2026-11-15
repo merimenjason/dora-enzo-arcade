@@ -115,7 +115,7 @@ export function ChapterCard({ ch, onDone }: { ch: number; onDone: () => void }) 
       <div className="jade-chapter-cap">
         <div className="jade-chapter-n">Chapter {c}</div>
         <h2>{CHAPTERS[c - 1]}</h2>
-        {opened && <p>{DISTRICT_NAME[opened].replace(/^the /, 'The ')} is open.</p>}
+        {opened && <p>{DISTRICT_NAME[opened].replace(/^the /, 'The ')} {/Docks$/.test(DISTRICT_NAME[opened]) ? 'are' : 'is'} open.</p>}
         {heir && <p>Find the {heir.name}.</p>}
         {c === 6 && <><p>Toa Payoh and Marina Bay are open: take the Jade Line from Chinatown station.</p><p>Stop Director Kaw.</p></>}
         {c === 7 && <><p>Little India and Kampong Glam are open: take the Jade Line to Little India or Bugis.</p><p>Find out who is copying voices.</p></>}

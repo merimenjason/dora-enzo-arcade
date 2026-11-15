@@ -203,9 +203,13 @@ async function viewport(name, w, h, touch) {
   await loc('set-diff').selectOption('hard'); check((await set()).diff === 'hard' && await W(() => window.__jade.world().diff.timer < 0.7), `${name}: Hard difficulty`); await loc('set-diff').selectOption('easy');
   await press('set-sound'); check((await set()).sound === false, `${name}: sound off`); await press('set-sound');
   await press('set-music'); check((await set()).music === false, `${name}: music off`); await press('set-music');
-  await loc('set-touch').selectOption(touch ? 'off' : 'on'); await wait(150);
-  check((await p.evaluate(() => document.querySelector('main').dataset.touch)) === (touch ? 'false' : 'true'), `${name}: the touch-controls setting switches them`);
-  await loc('set-touch').selectOption('auto'); await press('close');
+  // (Jade Street is desktop-only: the touch setting shows only on a touch screen)
+  if (touch) {
+    await loc('set-touch').selectOption('off'); await wait(150);
+    check((await p.evaluate(() => document.querySelector('main').dataset.touch)) === 'false', `${name}: the touch-controls setting switches them`);
+    await loc('set-touch').selectOption('auto');
+  } else check(!(await exists('set-touch')), `${name}: no touch setting on a desktop`);
+  await press('close');
   await press('tab-trophies'); check(await exists('trophies'), `${name}: trophies`); await look('trophies'); await press('close');
   await press('tab-stats'); check(await exists('stats'), `${name}: stats`); await look('stats'); await press('close');
   await press('abandon'); check(!(await st()).run && !(await exists('pause')), `${name}: Quit this job`);
@@ -427,7 +431,9 @@ async function viewport(name, w, h, touch) {
   { const t = await p.locator('[data-testid="continue"]').innerText(); const m = t.match(/(\d+)\/(\d+) jobs/); const all = await W(() => { const s = JSON.parse(localStorage.getItem('jade-street-v10') || '{}'); return (s.done || []).length; }); check(!!m && +m[2] >= 42 && +m[1] === all, `${name}: Continue counts every job, story and Hawker Tales (${t})`); }
   await press('new'); check(await exists('confirm-new'), `${name}: New game asks first`); await look('confirm new');
   await press('confirm-no'); check(await exists('continue'), `${name}: Keep my game`);
-  await press('continue'); check(await screen() === 'game' && (await W(() => window.__jade.world().s.night)) === night + 1, `${name}: Continue picks up the saved game`);
+  // (the night the save holds: the long run above may have seen a dawn or two since the sleep)
+  const savedNight = await W(() => JSON.parse(localStorage.getItem('jade-street-v10') || '{}').night);
+  await press('continue'); check(await screen() === 'game' && savedNight >= night + 1 && (await W(() => window.__jade.world().s.night)) === savedNight, `${name}: Continue picks up the saved game`);
   await settle(); await press('pause-btn'); await press('new-game'); check(await exists('confirm-new'), `${name}: New game from pause asks first`);
   await press('confirm-no'); await press('new-game'); await press('confirm-yes'); check(await exists('pick-hero'), `${name}: Yes, start over goes to the hero pick`);
   await press('pick-dora'); await until(() => window.__jade?.world().s.hero === 'dora');

@@ -113,7 +113,7 @@ export function spawn(w: World, kind: EventKind): StreetEvent | null {
     const [x, y] = nearestFree(w.c, 'walk', st.x, st.y + T, w.open, 3);
     const d = districtAt(Math.floor(x / T), Math.floor(y / T));
     e = { kind, d, x, y, t: 0, phase: 'on', b: { x, y, h: 0, speed: 0, r: 12, len: 0, cls: 'walk' } };
-    text(w, CONTACT_OF[d], `Help! A crow just snatched a mango from a stall near you in ${DISTRICT_NAME[d].replace(/^the /, 'the ')}. Dash into it to make it drop it!`);
+    text(w, CONTACT_OF[d], `Help! A crow just snatched a mango from a stall near you in ${DISTRICT_NAME[d].replace(/^the /, 'the ')}. Dash into it to make it drop it!`, { kind: 'help' });
   } else if (kind === 'duckling') {
     const all = dests(w.c).filter(d => near(d.x, d.y, 160, 520) && d.kind !== 'seat');
     const homes = dests(w.c).filter(d => near(d.x, d.y, 12 * T, 22 * T) && d.kind !== 'seat');
@@ -121,14 +121,14 @@ export function spawn(w: World, kind: EventKind): StreetEvent | null {
     const a = all[Math.floor(w.R() * all.length)], h = homes[Math.floor(w.R() * homes.length)];
     const d = districtAt(a.tx, a.ty);
     e = { kind, d, x: a.x, y: a.y, t: 0, phase: 'on', b: { x: a.x, y: a.y, h: Math.PI / 2, speed: 0, r: 8, len: 0, cls: 'walk' }, home: [h.x, h.y] };
-    text(w, CONTACT_OF[d], 'A little duckling is lost and peeping near you. Walk it home to its mother? It will follow you on foot.');
+    text(w, CONTACT_OF[d], 'A little duckling is lost and peeping near you. Walk it home to its mother? It will follow you on foot.', { kind: 'help' });
   } else if (kind === 'van') {
     const vans = w.rides.filter(r => r.kind === 'van' && r.parked && !r.mission && !r.locked && near(r.b.x, r.b.y, 220, 1000));
     if (!vans.length) return null;
     const r = vans[Math.floor(w.R() * vans.length)]; r.broken = true;
     const d = districtAt(Math.floor(r.b.x / T), Math.floor(r.b.y / T));
     e = { kind, d, x: r.b.x, y: r.b.y, t: 0, phase: 'on', ride: r, push: 0 };
-    text(w, CONTACT_OF[d], 'A delivery van has broken down near you. Give it a push-start? Lean into it on foot.');
+    text(w, CONTACT_OF[d], 'A delivery van has broken down near you. Give it a push-start? Lean into it on foot.', { kind: 'help' });
   } else {
     const spots = dests(w.c).filter(d => near(d.x, d.y, 200, 800) && d.kind !== 'seat');
     if (!spots.length) return null;

@@ -12,6 +12,8 @@ import { cargoCount } from '@/lib/jade-trade';
 import { PEOPLE, MISSION } from '@/lib/jade-story';
 import { goals } from '@/lib/jade-medals';
 import type { Play } from './controller';
+import { JobNotes } from './jobs';
+import { tagOption } from '@/lib/jade-tag';
 import { Sprite, Icon, fmt, GOOD_ICON } from './ui';
 import { GOODS } from '@/lib/jade-trade';
 
@@ -57,8 +59,16 @@ export function TopHud({ play, onMap, onPause }: { play: Play; onMap: () => void
             {run.meter2 && <span className={'jade-meter' + (run.meter2.bad ? ' bad' : '')} data-testid="meter2"><i>{run.meter2.name}</i><b style={{ width: `${Math.round(run.meter2.v * 110)}px` }} /></span>}
           </div>
           {run.warning && <div className="jade-warn" role="alert" data-testid="warning">{run.warning.text}</div>}
+          {/* the notebook or the intel stack under the plaque, in one column, so nothing overlaps */}
+          <JobNotes play={play} />
         </div>
       )}
+      {!run && !w.waypoint && (() => {
+        // between jobs: what to do next and where (the gold line leads there on Assist)
+        const m = w.nextJob(), pl = m && w.c.places[m.at]; if (!m || !pl) return null;
+        const px = Math.floor(pl.x / T), py = Math.floor(pl.y / T), where = streetAt(px, py) ?? DISTRICT_NAME[districtAt(px, py)].replace(/^the /, 'The ');
+        return <div className="jade-job small" data-testid="next-job"><div className="jade-job-title">{m.side ? 'Hawker Tales' : `Chapter ${m.ch}`} · Next job</div><div className="jade-job-label">{m.title} · {PEOPLE[m.giver]?.name ?? 'a friend'}, {where}</div></div>;
+      })()}
       {!run && w.waypoint && <div className="jade-job small"><div className="jade-job-label" data-testid="route-label">{w.c.isle?.stations.find(s => s.x === w.waypoint![0] && s.y === w.waypoint![1])?.name.replace(/^/, 'To ') ?? 'Following your map pin'}</div></div>}
     </>
   );
@@ -77,6 +87,8 @@ export function Toasts({ play }: { play: Play }) {
 export function Prompt({ play, touch }: { play: Play; touch: boolean }) {
   const w = play.w, n = w.near;
   if (!n || w.talk || w.ui || w.failed || w.p.act) return null;
+  // one job prompt at a time: while a job's F move is on offer, "Get off" waits
+  if (n.kind === 'exit' && w.run) { const o = tagOption(w); if (o && o.kind !== 'wait' && o.kind !== 'call') return null; }
   return (
     <button type="button" className={'jade-prompt' + (touch ? ' touch' : '')} data-testid="prompt" onClick={() => play.press('act')}>
       {!touch && <kbd>E</kbd>}<span>{n.label}</span>
