@@ -43,6 +43,8 @@ let seed = 1234567;
 const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
 
 export class Juice {
+  /** the heat's red vignette, painted once per screen size */
+  heatVig: HTMLCanvasElement | null = null;
   opt: JuiceOpts = { shake: true, calm: false, reduced: false };
   trauma = 0; stop = 0; slow = 0; punch = 0; flash = 0; flashCol = '255,60,60'; landT = 0; heatPulse = 0;
   debris: Deb[] = []; pops: Pop[] = []; ghosts: Ghost[] = []; ghostT = 0; t = 0;
@@ -148,8 +150,14 @@ export class Juice {
     // heat: a red vignette that pulses when it rises and stays faintly while you're wanted
     const hv = Math.min(1, heat / 5) * 0.35 + this.heatPulse * (this.gentle ? 0.1 : 0.3);
     if (hv > 0.02) {
-      const g = x.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.72);
-      g.addColorStop(0, 'rgba(255,20,40,0)'); g.addColorStop(1, `rgba(255,20,40,${hv})`); x.fillStyle = g; x.fillRect(0, 0, W, H);
+      // painted once per screen size at full strength and stamped at the heat's alpha (a full-screen gradient a frame)
+      const vw = Math.max(1, Math.round(W / 2)), vh = Math.max(1, Math.round(H / 2));
+      if (!this.heatVig || this.heatVig.width !== vw || this.heatVig.height !== vh) {
+        const c = document.createElement('canvas'); c.width = vw; c.height = vh; const g = c.getContext('2d')!;
+        const gr = g.createRadialGradient(vw / 2, vh / 2, Math.min(vw, vh) * 0.35, vw / 2, vh / 2, Math.max(vw, vh) * 0.72);
+        gr.addColorStop(0, 'rgba(255,20,40,0)'); gr.addColorStop(1, 'rgba(255,20,40,1)'); g.fillStyle = gr; g.fillRect(0, 0, vw, vh); this.heatVig = c;
+      }
+      const a0 = x.globalAlpha; x.globalAlpha = a0 * Math.min(1, hv); x.drawImage(this.heatVig, 0, 0, W, H); x.globalAlpha = a0;
     }
   }
   /** turn the world's events into feel */

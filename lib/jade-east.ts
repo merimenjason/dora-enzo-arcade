@@ -1,14 +1,14 @@
 // Jade Street: the ninth pass's three districts. Runs last on the finished city (after Chinatown, its remodel and
 // dressing, the Singapore pass and the island), so nothing built before moves. East of Toa Payoh and Marina Bay, over
 // the Rochor River, are Little India (colourful shophouses along Serangoon Road and Race Course Road, the garland and
-// flower stalls, spice shops, sari shops, a temple with a tall gopuram, the All-Hours Emporium that never closes, the
+// flower stalls, spice shops, sari shops, a temple with a tall gopuram, Mustafa Centre, which never closes, the
 // Tekka-style wet market and hawker centre, the Deepavali light-up arch over Serangoon Road) and Kampong Glam (the
 // golden-domed mosque, Haji Lane's murals, the textile and perfume shops of Arab Street, a row of Middle-Eastern
 // restaurants and Bussorah Street, where the Hari Raya bazaar sets up). South of the docks, over the harbour, is
 // Sentosa: reached on foot along the boardwalk beside the Sentosa Gateway bridge, by the cable car from HarbourFront,
-// by the Jade Line to Beach station, or by the ferry from Marina Bay. It has the beach, a theme park, a resort hotel,
+// by the MRT to Beach station, or by the ferry from Marina Bay. It has the beach, a theme park, a resort hotel,
 // the old fort at Siloso Point and the ferry pier. Real public place and road names; the shops and attractions are
-// parodies or invented. Pure data: lib/jade-cable.ts runs the cable car and the ferry, lib/jade-eastdraw.ts paints.
+// real (owner, 16-11: real names, not parodies) or invented. Pure data: lib/jade-cable.ts runs the cable car and the ferry, lib/jade-eastdraw.ts paints.
 import { T, W, H, CT_H, OW, G, S, F_BRIDGE, F_PARK, F_ALLEY, ROADS, EAST_X0, EAST_X1, EAST_SPLIT, districtAt, type City, type Prop } from './jade-city.js';
 import type { Station } from './jade-island.js';
 
@@ -27,10 +27,10 @@ export type East = {
   beach: [number, number][]; chairs: [number, number][];
 };
 const px = (t: number) => t * T + T / 2;
-/** the parody names in the new districts (no real companies or attractions copied) */
+/** the real names of the new districts' attractions (the gangs are fictional) */
 export const EAST_NAMES = {
-  store: 'the All-Hours Emporium', park: 'Galaxy Studios', hotel: 'the Palawan Sands Resort', tower: 'the Imbiah Sky Spinner',
-  aquarium: 'the Coral Dome', gang: 'the Kecoh Mynahs', cable: 'the Sentosa cable car', ferry: 'the island ferry',
+  store: 'Mustafa Centre', park: 'Universal Studios Singapore', hotel: 'Shangri-La Rasa Sentosa', tower: 'SkyHelix Sentosa',
+  aquarium: 'S.E.A. Aquarium', gang: 'the Kecoh Mynahs', cable: 'the Sentosa cable car', ferry: 'the island ferry',
 };
 
 export function east(c: City) {
@@ -112,10 +112,10 @@ export function east(c: City) {
   // Race Course Road: the temple and its forecourt, garland stalls at the gate
   bld(214, 2, 6, 6, 'india-temple'); prop(221, 3, 'garland-stall', 22, 'tall', 'over', 96); prop(221, 7, 'flower-baskets', 18, 'tall', 'over', 80);
   deco(216, 9, 'kolam', 110, 'ground'); place('temple-li', 217, 9, 'spot', 'the Serangoon Road temple');
-  // Serangoon Road's north end: the All-Hours Emporium and the sari shops; the villa and a shophouse row past it
+  // Serangoon Road's north end: Mustafa Centre and the sari shops; the villa and a shophouse row past it
   bld(229, 1, 9, 5, 'india-emporium'); bld(238, 1, 6, 4, 'india-sari');
   prop(232, 8, 'flower-baskets', 18, 'tall', 'over', 80); prop(236, 8, 'spice-sacks', 18, 'tall', 'over', 76);
-  place('emporium', 233, 7, 'spot', 'the All-Hours Emporium');
+  place('emporium', 233, 7, 'spot', 'Mustafa Centre');
   bld(249, 2, 5, 4, 'india-villa'); bld(255, 2, 8, 4, 'india-shop-a'); prop(252, 8, 'bougain', 16, 'tall', 'over', 60);
   // Buffalo Road: the safe house and the prata shop, the spice shops and the garland and flower market, a shophouse
   // row and the arcade
@@ -243,7 +243,7 @@ export function east(c: City) {
   for (const pk of c.parking) if (pk.kind === 'boat' && pk.y >= CT_H * T) c.sg?.jetties.push([pk.x, pk.y]);
   c.parking.push({ x: px(112), y: px(87), d: 'docks', kind: 'boat', rot: Math.PI / 2 });
 
-  // ── the Jade Line runs on: from Beach station under the harbour to Chinatown, then (as before) to Raffles Place and
+  // ── the MRT runs on: from Beach station under the harbour to Chinatown, then (as before) to Raffles Place and
   // Bayfront, on under the Rochor River to Bugis, up a portal to Little India's elevated station, and west along the
   // viaduct to Toa Payoh
   const isle = c.isle;

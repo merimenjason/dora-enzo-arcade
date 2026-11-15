@@ -11,7 +11,7 @@ import { T, W, S, OW, F_ROOF, districtAt, type District } from './jade-city.js';
 import { VEHICLES, drive, type Body, type VehicleKind } from './jade-move.js';
 import { los, downhill, nearestFree, type Field } from './jade-nav.js';
 import { dist, angDiff, clamp } from './jade-rng.js';
-import { PEOPLE, type Mission, type Step, type Spot } from './jade-story.js';
+import { PEOPLE, type Mission, type Step, type Spot, type Skin } from './jade-story.js';
 import type { World, Ride, Near, Input } from './jade-game.js';
 import type { Car } from './jade-traffic.js';
 import { addHeat } from './jade-heat.js';
@@ -37,7 +37,7 @@ export type Actor = { id: number; kind: string; b: Body; route: [number, number]
   /** painted blind (seconds), staring at a distraction (seconds, and at what), tangled in a net, the last single pounce */
   extra2?: number; stare?: number; stareX?: number; stareY?: number; stareAt?: string; netT?: number; pz?: { by: 'you' | 'mate'; t: number };
   /** a rival gang's look for a chase (an otter's sampan, a macaque) */
-  skin?: 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine';
+  skin?: Skin;
   /** what it has noticed (lib/jade-aware.ts): guards, lookouts, Pip, lured gang members, a blend's watchers */
   mind?: Mind;
   /** a sneaky raider (defend): slow, quiet, comes round the far side; a dash bowls it over */
@@ -419,7 +419,7 @@ export class Run {
     if (st.t !== 'chase' || a !== this.actors[0]) { a.stun = Math.max(a.stun, 0.6); return false; }
     const trip = (msg: string) => { a.stun = Math.max(a.stun, 0.4); a.b.speed *= 0.5; w.fx.push({ t: 'hit', x: a.b.x, y: a.b.y, k: 0 }); this.warn(msg); return false; };
     if (st.finish === 'pounce') {
-      if (how === 'bump' || how === 'grab' || how === 'net') return trip('Pip wriggles free! Pounce on him together.');
+      if (how === 'bump' || how === 'grab' || how === 'net') return trip(st.name ? `${st.name[0].toUpperCase() + st.name.slice(1)} wriggles free! Pounce together.` : 'Pip wriggles free! Pounce on him together.');
       const other = how === 'you' ? 'mate' : 'you';
       if (!(a.pz && a.pz.by === other && w.time - a.pz.t < pounceWindow(w))) {
         a.pz = { by: how, t: w.time };
@@ -507,8 +507,11 @@ export class Run {
     const range = (this.assist ? 165 : 210) * this.w.diff.look;
     // a relay: once Pip is past the corner, he knows the face of the hero who started; the partner waits there
     const st = this.cur as Extract<Step, { t: 'tail' }>;
+    // who you tail, as the messages name them: Pip by default, the crow or the courier or a gang's runner otherwise
+    const it = !!(st.name || a.skin), Who = st.name ? st.name[0].toUpperCase() + st.name.slice(1) : a.skin ? 'The runner' : 'Pip';
+    const he = it ? 'it' : 'he', him = it ? 'it' : 'him';
     const known = !!st.relay && a.wp >= st.relay.at && p.who === this.starter;
-    if (known) this.label = `Pip knows your face now: switch to ${nameOf(w.mate.who)} (Tab), waiting at the corner`;
+    if (known) this.label = `${Who} knows your face now: switch to ${nameOf(w.mate.who)} (Tab), waiting at the corner`;
     else if (st.relay && p.who !== this.starter) { this.label = st.label; if (w.mate.ai.story) releaseMate(this); }
     const facing = a.look > 0 ? a.face : a.b.h;
     const inCone = Math.abs(angDiff(facing, Math.atan2(p.y - a.b.y, p.x - a.b.x))) < (a.look > 0 ? 1.2 : 0.55);
@@ -519,15 +522,15 @@ export class Run {
     m.bad = m.v > 0.6;
     // what the bubble and his cone show: looking round, suspicious, sure
     mind.st = m.v > 0.85 ? 'alert' : m.v > 0.45 ? 'look' : a.look > 0 ? 'sus' : 'patrol'; mind.seen = sees;
-    if (m.v > 0.6 && this.warned < 1) { this.warned = 1; this.warn('Pip is getting suspicious! Drop back, sneak or hide!'); }
+    if (m.v > 0.6 && this.warned < 1) { this.warned = 1; this.warn(`${Who} is getting suspicious! Drop back, sneak or hide!`); }
     if (m.v < 0.25 && this.warned === 1) this.warned = 0;
-    if (m.v >= 1) return this.fail(`${this.actors[0]?.skin ? 'The runner' : 'Pip'} spotted you! Keep further back, sneak, or hide when ${this.actors[0]?.skin ? 'it' : 'he'} looks round.`);
+    if (m.v >= 1) return this.fail(`${Who} spotted you! Keep further back, sneak, or hide when ${he} looks round.`);
     // the other way to fail is falling too far behind: a second meter shows how close he is to slipping away
     const dm = st.relay ? Math.min(d, dist(a.b.x, a.b.y, w.mate.x, w.mate.y)) : d;
     this.lost = dm > (this.assist ? 680 : 540) ? this.lost + dt : Math.max(0, this.lost - dt * 2);
-    this.meter2 = this.lost > 0 ? { name: 'Losing him', v: Math.min(1, this.lost / 6), bad: this.lost > 3 } : null;
-    if (this.lost > 3 && this.warned !== 2) { this.warned = 2; this.warn('Pip is slipping away! Keep him in sight!'); }
-    if (this.lost > 6) this.fail(`You lost ${this.actors[0]?.skin ? 'the runner' : 'him'}. Keep ${this.actors[0]?.skin ? 'it' : 'him'} in sight.`);
+    this.meter2 = this.lost > 0 ? { name: `Losing ${him}`, v: Math.min(1, this.lost / 6), bad: this.lost > 3 } : null;
+    if (this.lost > 3 && this.warned !== 2) { this.warned = 2; this.warn(`${Who} is slipping away! Keep ${him} in sight!`); }
+    if (this.lost > 6) this.fail(`You lost ${it ? Who[0].toLowerCase() + Who.slice(1) : 'him'}. Keep ${him} in sight.`);
   }
   escort(st: Extract<Step, { t: 'escort' }>, dt: number, pb: Body) {
     const w = this.w, lion = this.actors[0]; if (!lion) return;

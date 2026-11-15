@@ -1,4 +1,4 @@
-// Jade Street: the Jade Line, the island's MRT. Four stations (Chinatown, Raffles Place, Bayfront and Toa Payoh) on one
+// Jade Street: the MRT, the island's MRT. Four stations (Chinatown, Raffles Place, Bayfront and Toa Payoh) on one
 // line: underground from Chinatown to Bayfront, then up a portal onto the viaduct you can see, north up Bayfront
 // Avenue and west to Toa Payoh's elevated station. Two trains shuttle end to end on a fixed timetable worked out
 // from the clock, so the trains overhead are where the timetable says. Fast travel: E at a station entrance, pick a
@@ -69,7 +69,7 @@ export function cantRide(w: World): string | null {
   if (w.run && w.run.cur?.t !== 'train') return 'Not in the middle of a job';
   return null;
 }
-/** ride the Jade Line to station `id`: pay, travel (both heroes), and show the ride view. True when you rode */
+/** ride the MRT to station `id`: pay, travel (both heroes), and show the ride view. True when you rode */
 export function mrtTo(w: World, id: string): boolean {
   const isle = w.c.isle; const from = stationNear(w); const to = isle?.stations.find(s => s.id === id);
   if (!isle || !from || !to || from.id === to.id) return false;
@@ -83,7 +83,7 @@ export function mrtTo(w: World, id: string): boolean {
   w.p.b.x = x; w.p.b.y = y; w.p.b.speed = 0; w.p.hide = false; w.p.roof = false; w.p.face = 'down';
   w.regroup(); w.fieldCache.clear(); w.cars = []; w.patrols = []; w.peds = [];
   w.lastMrt = to.id;
-  // the first ride is the Jade Line lesson learned (the hint and its route line go)
+  // the first ride is the MRT lesson learned (the hint and its route line go)
   if (!w.s.learned.includes('mrt')) w.s.learned.push('mrt'); if (w.tutor.cur === 'mrt') w.tutor.cur = null;
   w.ui = { kind: 'ride-view', from: from.name, to: to.name };
   w.fx.push({ t: 'mrt', name: to.name, x, y });
@@ -91,9 +91,9 @@ export function mrtTo(w: World, id: string): boolean {
 }
 /** the ride view's length (seconds); the page closes it, or a key skips it */
 export const RIDE_VIEW = 3.2;
-/** the Jade Line made easy to find (owner, 15-11): the one-time hint, the phone text, and routing to a station */
-export const MRT_HINT = 'The Jade Line is open! Chinatown station is in Boat Quay: Madame Glint waits by the gates with your next job; press E to ride (2 coins).';
-export const MRT_TEXT = 'The Jade Line is running! Chinatown station is in Boat Quay, by the river. Walk up to the gates and press E: 2 coins to Raffles Place, Bayfront or Toa Payoh. Open your phone’s Jade Line tab to find a station.';
+/** the MRT made easy to find (owner, 15-11): the one-time hint, the phone text, and routing to a station */
+export const MRT_HINT = 'The MRT is open! Chinatown station is in Boat Quay: Madame Glint waits by the gates with your next job; press E to ride (2 coins).';
+export const MRT_TEXT = 'The MRT is running! Chinatown station is in Boat Quay, by the river. Walk up to the gates and press E: 2 coins to Raffles Place, Bayfront or Toa Payoh. Open your phone’s MRT tab to find a station.';
 export const stationById = (w: World, id: string) => w.c.isle?.stations.find(s => s.id === id) ?? null;
 /** set the gold route line to a station (the map's pin, the phone's Route me, the first-ride hint) */
 export function routeToStation(w: World, id: string): boolean {

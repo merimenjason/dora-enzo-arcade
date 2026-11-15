@@ -2,7 +2,7 @@
 // desktop-only): Little India and Kampong Glam over the Rochor River, Sentosa over the harbour, the Kecoh Mynahs and
 // chapter seven. Chapter seven's card when the districts open and Mr Kamal's text; the new districts on screen (their
 // markets with the painted stall, a safe house bought); the map's cable car and ferry pins (a click routes there) and
-// landmarks; the phone's Jade Line tab with the cable car and ferry; E at HarbourFront rides the cable car with its
+// landmarks; the phone's MRT tab with the cable car and ferry; E at HarbourFront rides the cable car with its
 // ride view (a key skips it); E at the pier boards the ferry and E skips the crossing; the festivals by key (light a
 // Deepavali lamp, buy a kuih at the bazaar, smell the spices, lie in a deck chair, build a sandcastle); the mynahs
 // (shoo one with E, a paint shot with the mouse, ears covered when one sings); a job's cable step; a Hawker Tale in
@@ -27,7 +27,7 @@ export async function ninth(h) {
     const n = w.s.msgs.length; J.start('m35'); w.talk = null; w.finishMission(w.run.m); w.run = null; w.talk = null; w.ui = null; w.s.story.isle = true; w.fx = w.fx.filter(f => f.t !== 'finale'); J.play.endingT = 0; J.play.paused = false; J.play.bump(); return n;
   });
   check(await W(() => { const o = window.__jade.world().open; return o.has('india') && o.has('glam') && !o.has('resort'); }), `${name}: Island Night opens Little India and Kampong Glam (Sentosa later)`);
-  check(await W(n => window.__jade.world().s.msgs.slice(n).some(m => m.from === 'kamal' && /Little India/.test(m.text)), n0), `${name}: Mr Kamal texts that the Jade Line runs on`);
+  check(await W(n => window.__jade.world().s.msgs.slice(n).some(m => m.from === 'kamal' && /Little India/.test(m.text)), n0), `${name}: Mr Kamal texts that the MRT runs on`);
   check(await appear('jade-chapter-card'), `${name}: chapter seven's card`);
   check(/Island Lights/.test(await loc('jade-chapter-card').innerText()), `${name}: the card names Island Lights`); await wait(300); await look('chapter seven');
   await press('jade-story-skip'); await settle();
@@ -60,9 +60,9 @@ export async function ninth(h) {
   await p.locator('[data-testid="jade-map-pin"][data-key="cable-harbour"]').click({ force: true }); await wait(200);
   const hb = await W(() => { const s = window.__jade.world().c.places['cable-harbour']; return [s.x, s.y]; });
   check(!(await exists('map')) && await W(hb => { const wp = window.__jade.world().waypoint; return !!wp && Math.hypot(wp[0] - hb[0], wp[1] - hb[1]) < 200; }, hb), `${name}: a click on the cable car pin routes there`);
-  // the phone's Jade Line tab: the new stations, the cable car and the ferry with Route me
+  // the phone's MRT tab: the new stations, the cable car and the ferry with Route me
   await press('jade-phone'); await press('phone-mrt');
-  check(await p.locator('[data-testid^="mrt-route-"]').count() === 7, `${name}: seven Jade Line stations on the phone`);
+  check(await p.locator('[data-testid^="mrt-route-"]').count() === 7, `${name}: seven MRT stations on the phone`);
   check(await p.locator('[data-testid^="link-route-"]').count() === 4, `${name}: the cable car and ferry stops listed`); await look('phone: links');
   await press('link-route-ferry-bay'); check(!(await exists('jade-phone-msgs')) && await W(() => !!window.__jade.world().waypoint), `${name}: Route me to the ferry pier`);
   await W(() => { const w = window.__jade.world(); w.waypoint = null; w.route = []; }); await free();

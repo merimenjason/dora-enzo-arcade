@@ -1,5 +1,5 @@
 // Jade Street, ninth pass: Little India and Kampong Glam over the Rochor River, Sentosa over the harbour (the
-// boardwalk, the cable car, the ferry and Beach station on the extended Jade Line), the Kecoh Mynahs, the Deepavali
+// boardwalk, the cable car, the ferry and Beach station on the extended MRT), the Kecoh Mynahs, the Deepavali
 // light-up and the Hari Raya bazaar, chapter seven (Island Lights), three more Hawker Tales and save v10.
 import assert from 'node:assert/strict';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
@@ -78,7 +78,7 @@ test('the districts open with the story: over the river after Island Night, Sent
   assert.ok(w.s.msgs.some(m => /Bugis/.test(m.text)), 'Kamal texts about the new stations');
 });
 
-test('the Jade Line runs on: Beach station on Sentosa, Bugis and Little India; trains overhead on the new viaduct', () => {
+test('the MRT runs on: Beach station on Sentosa, Bugis and Little India; trains overhead on the new viaduct', () => {
   const w = world(); const isle = w.c.isle;
   assert.deepEqual(isle.stations.map(s => s.id), ['stn-beach', 'stn-chinatown', 'stn-raffles', 'stn-bayfront', 'stn-bugis', 'stn-littleindia', 'stn-toapayoh']);
   at(w, 'stn-chinatown'); const cash = w.s.cash; w.heat = 0;
@@ -157,7 +157,7 @@ test('chapter seven: ten jobs in the new districts, every kind of step, branches
   assert.equal(seven.length, 10); assert.equal(CHAPTERS[6], 'Island Lights'); assert.equal(FINALE[6], 'm45');
   const c = city();
   for (const m of seven) {
-    // (the first is Kamal's call from the Jade Line that sends you there; Sergeant Helang waits at the HarbourFront cable car)
+    // (the first is Kamal's call from the MRT that sends you there; Sergeant Helang waits at the HarbourFront cable car)
     if (m.id !== 'm36' && m.id !== 'm42') assert.ok(['india', 'glam', 'resort'].includes(c.places[m.at].d), `${m.id} is given in a new district`);
     assert.ok(m.steps.some(s => s.cp), `${m.id} checkpoint`);
     for (const st of m.steps) if (st.t === 'talk') for (const [who] of st.lines) assert.ok(who === 'hero' || who === 'mate' || PEOPLE[who], `${m.id} ${who}`);

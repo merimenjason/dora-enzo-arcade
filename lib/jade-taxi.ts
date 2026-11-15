@@ -1,4 +1,4 @@
-// Jade Street: taxis, hailed through the Tumpang! app on the phone or by hailing at the kerb (G). A teal or yellow
+// Jade Street: taxis, hailed through the Grab app on the phone or by hailing at the kerb (G). A teal or yellow
 // taxi drives over (or one already on the road pulls in), you both climb in, pick a drop-off on the list, and it
 // drives you there on its own along the roads (skip the ride with E). The fare is by distance. Free roam only: no
 // taxis during a job, with heat, or with a ticket in hand. No DOM; deterministic.
@@ -8,7 +8,7 @@ import { dist } from './jade-rng.js';
 import type { Body } from './jade-move.js';
 import type { World } from './jade-game.js';
 
-export const TAXI_APP = 'Tumpang!';
+export const TAXI_APP = 'Grab';
 /** autopilot speed (world units a second): quick, so the island's districts are a short ride apart */
 export const TAXI_SPEED = 420;
 export type Taxi = { b: Body; st: 'come' | 'wait' | 'ride' | 'gone'; t: number; to: string | null; sprite: string; fare: number; wait: number };

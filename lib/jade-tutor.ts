@@ -14,7 +14,7 @@ export type Lesson = { id: string; text: string; kbText?: string; keys: string[]
 const onFoot = (w: World) => !w.p.ride && !w.p.roof;
 const learned = (w: World, id: string) => w.s.learned.includes(id);
 export const LESSONS: Lesson[] = [
-  // contextual lessons first: they win when they apply. The Jade Line first of all, once, when the island opens: shown
+  // contextual lessons first: they win when they apply. The MRT first of all, once, when the island opens: shown
   // until you ride (or for 20 s), with the gold route line to Chinatown station while it shows
   { id: 'mrt', text: MRT_HINT, keys: ['E'], touch: 'Action', when: w => !!w.c.isle && w.open.has('heartland') && !w.run && !w.p.ride, done: (_w, fx) => fx.includes('mrt'), max: 20 },
   // the cable car, once, when Sentosa opens: shown until you ride it (or the ferry), or for 20 s

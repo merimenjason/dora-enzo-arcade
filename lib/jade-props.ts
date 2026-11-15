@@ -30,7 +30,7 @@ export const PROPS: PropDef[] = [
   P('bumboat', 'Boat Quay Bumboat Service', 'kiri', 'canal', [64, 40], 1300, 0.8, 20, 'bumboat'),
   P('karaoke', 'Clarke Quay Karaoke Lounge', 'lily', 'arcade', [105, 29], 1500, 1.2, 22, 'karaoke'),
   P('kopitiam', 'Toa Payoh Kopitiam', 'teo', 'heartland', [121, 26], 1200, 1.2, 12, 'food'),
-  P('taxi', 'Lion City Taxi Company', 'kamal', 'heartland', [165, 35], 2600, 1.3, 18, 'taxi'),
+  P('taxi', 'ComfortDelGro Taxi Depot', 'kamal', 'heartland', [165, 35], 2600, 1.3, 18, 'taxi'),
   P('provision', 'Void Deck Provision Shop', 'goh', 'heartland', [149, 11], 950, 1, 10, 'shop'),
   P('rooftop', 'Bayfront Rooftop Bar', 'vanda', 'bay', [161, 66], 3000, 0.8, 20, 'bar'),
   P('icekacang', 'Marina Ice Kacang Cart', 'vanda', 'bay', [184, 59], 800, 0.85, 10, 'food'),

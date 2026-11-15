@@ -11,7 +11,7 @@
 //             halves what a missed one costs, never lets it be damaged, and in a stand at the shop he patrols, notices
 //             the gang (his own suspicious, alert and chasing states) and sees off the ones in the open.
 //   rounds    from Kopi Boss your partner can go round the tills for you: they walk (or, far off screen, hop on the
-//             Jade Line) to each property, collect, and hand you the coins when they are back at your side.
+//             MRT) to each property, collect, and hand you the coins when they are back at your side.
 //   jobs      the empire jobs (lib/jade-empjobs.ts) built for the property you take them at, once a night each: a
 //             supplier deal, a health inspector, a price war, a taxi rush, a river tour and karaoke night; a win boosts
 //             that property's takings for a few nights.

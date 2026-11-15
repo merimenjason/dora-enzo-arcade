@@ -34,8 +34,8 @@ export async function eighth(h) {
   check(await W(() => JSON.parse(localStorage.getItem('jade-street-v12') ?? localStorage.getItem('jade-street-v11') ?? '{}').settings?.partner === 'auto'), `${name}: the setting is saved`);
   await press('close'); if (await exists('resume')) await press('resume'); await W(() => { window.__jade.play.paused = false; }); await settle();
 
-  // ── the Jade Line made easy to find: the hint and Mr Kamal's text when the island opens, the route to Chinatown
-  // station, the station pins and their key on the map (a click routes there), the gate prompt, the phone's Jade Line tab
+  // ── the MRT made easy to find: the hint and Mr Kamal's text when the island opens, the route to Chinatown
+  // station, the station pins and their key on the map (a click routes there), the gate prompt, the phone's MRT tab
   const stnAt = id => W(id => { const s = window.__jade.world().c.isle.stations.find(s => s.id === id); return [s.x, s.y]; }, id);
   const wp = () => W(() => window.__jade.world().waypoint);
   const n0 = await W(() => {
@@ -44,12 +44,12 @@ export async function eighth(h) {
     const n = w.s.msgs.length; window.__jade.start('m25'); w.talk = null; w.finishMission(w.run.m); w.run = null; w.talk = null; w.ui = null; window.__jade.play.paused = false; return n;
   });
   check(await W(() => window.__jade.world().open.has('heartland')), `${name}: the last Chinatown job opens the island`);
-  check(await W(n => window.__jade.world().s.msgs.slice(n).some(m => m.from === 'kamal' && /Chinatown station/.test(m.text) && /press E/.test(m.text)), n0), `${name}: Mr Kamal texts how to ride the Jade Line`);
+  check(await W(n => window.__jade.world().s.msgs.slice(n).some(m => m.from === 'kamal' && /Chinatown station/.test(m.text) && /press E/.test(m.text)), n0), `${name}: Mr Kamal texts how to ride the MRT`);
   // first chapter six's card (as in play), then the hint
   check(await appear('jade-chapter-card'), `${name}: chapter six's card`); await press('jade-story-skip'); await settle();
   // (finishAll above earns every trophy at once: their toasts would hold the hint back for half a minute, so they go)
   await W(() => { const n = window.__jade.play.notices; n.queue = []; n.shown = []; });
-  check(await until(() => document.querySelector('[data-testid="jade-hint"][data-lesson="mrt"]'), null, 9000), `${name}: the Jade Line hint shows when chapter six opens`);
+  check(await until(() => document.querySelector('[data-testid="jade-hint"][data-lesson="mrt"]'), null, 9000), `${name}: the MRT hint shows when chapter six opens`);
   check(/Chinatown station is in Boat Quay.*press E to ride \(2 coins\)/.test(await loc('jade-hint').innerText().then(t => t.replace(/\s+/g, ' '))), `${name}: the hint says where and how`);
   const ct = await stnAt('stn-chinatown');
   check(JSON.stringify(await wp()) === JSON.stringify(ct), `${name}: the gold route leads to Chinatown station while the hint shows`);
@@ -57,22 +57,22 @@ export async function eighth(h) {
   await W(() => { window.__jade.world().banner = null; });
   // the map: a station pin for each stop, a key entry, and a click on one routes there
   await press('map-btn'); for (let i = 0; i < 6; i++) await press('jade-map-zoom-out');
-  check(await p.locator('[data-testid="jade-map-pin"][data-kind="stn"]').count() === 4, `${name}: four Jade Line station pins on the map`);
-  if (!(await loc('jade-map-legend').innerText()).includes('Jade Line')) await press('jade-map-legend-toggle');
-  check((await loc('jade-map-legend').innerText()).includes('Jade Line station'), `${name}: the map key lists Jade Line stations`); await look('mrt: map pins and key');
+  check(await p.locator('[data-testid="jade-map-pin"][data-kind="stn"]').count() === 4, `${name}: four MRT station pins on the map`);
+  if (!(await loc('jade-map-legend').innerText()).includes('MRT')) await press('jade-map-legend-toggle');
+  check((await loc('jade-map-legend').innerText()).includes('MRT station'), `${name}: the map key lists MRT stations`); await look('mrt: map pins and key');
   await p.locator('[data-testid="jade-map-pin"][data-key="stn-toapayoh"]').click({ force: true }); await wait(200);
   check(!(await exists('map')) && JSON.stringify(await wp()) === JSON.stringify(await stnAt('stn-toapayoh')), `${name}: a click on a station pin routes there and closes the map`);
-  // the gates: "E Ride the Jade Line"
+  // the gates: "E Ride the MRT"
   await W(c => { window.__jade.world().placePlayer(c[0], c[1] + 30); }, ct); await wait(300);
-  check(await until(() => /Ride the Jade Line/.test(document.querySelector('[data-testid="prompt"]')?.textContent ?? ''), null, 2000), `${name}: the gates prompt "E Ride the Jade Line"`); await look('mrt: gate prompt');
-  // the phone's Jade Line tab: the stations, and Route me
-  await press('jade-phone'); await press('phone-mrt'); check(await exists('mrt-tab'), `${name}: the phone's Jade Line tab`);
+  check(await until(() => /Ride the MRT/.test(document.querySelector('[data-testid="prompt"]')?.textContent ?? ''), null, 2000), `${name}: the gates prompt "E Ride the MRT"`); await look('mrt: gate prompt');
+  // the phone's MRT tab: the stations, and Route me
+  await press('jade-phone'); await press('phone-mrt'); check(await exists('mrt-tab'), `${name}: the phone's MRT tab`);
   { const nr = await p.locator('[data-testid^="mrt-route-"]').count(), nl = await p.locator('.jade-line-list li').count(); check(nr === 7, `${name}: every station listed with Route me (${nr})`); void nl; } await look('mrt: phone tab');
   await press('mrt-route-stn-bayfront');
   check(!(await exists('jade-phone-msgs')) && JSON.stringify(await wp()) === JSON.stringify(await stnAt('stn-bayfront')), `${name}: Route me sets the route to Bayfront station`);
-  // the Controls page lists the Jade Line and the taxi
+  // the Controls page lists the MRT and the taxi
   await press('pause-btn'); await press('tab-controls');
-  const ctl = await loc('jade-controls').innerText(); check(/Jade Line/.test(ctl) && /taxi/i.test(ctl), `${name}: the Controls page has the Jade Line (E) and taxis (G)`);
+  const ctl = await loc('jade-controls').innerText(); check(/MRT/.test(ctl) && /taxi/i.test(ctl), `${name}: the Controls page has the MRT (E) and taxis (G)`);
   await press('close'); if (await exists('resume')) await press('resume');
   await W(() => { const w = window.__jade.world(); w.waypoint = null; w.route = []; window.__jade.finishAll(); w.s.learned.push('mrt'); w.tutor.cur = null; window.__jade.play.paused = false; }); await settle();
 

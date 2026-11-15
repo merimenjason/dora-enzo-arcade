@@ -339,11 +339,11 @@ const BUILD: Record<Kind, (b: B) => Build | null> = {
     let from = ringTile(ctx, R, ...b.gp, 3, 6, b.gt, 14); if (!from) return null;
     if (b.stars >= 2) {
       const tl = tailTo(b, b.gt); if (!tl) return null;
-      steps.push({ t: 'tail', from: tl.from, route: tl.route, calm: 0.85, skin: G.skin, label: `Tail the ${G.one} back to the hideout (keep back, out of sight)`, cp: true });
+      steps.push({ t: 'tail', name: `the ${G.one}`, from: tl.from, route: tl.route, calm: 0.85, skin: G.skin, label: `Tail the ${G.one} back to the hideout (keep back, out of sight)`, cp: true });
       from = tl.end;
     }
     const loop = chaseLoop(ctx, ...mid(from)); if (loop.some(s => typeof s !== 'string' && !okTile(ctx, s))) return null;
-    steps.push({ t: 'chase', who: 'runner', skin: G.skin, from, route: loop, bumps: b.stars >= 3 ? 3 : 2, loot: item, speed: 192 + 6 * b.stars + Math.min(6, b.tier), label: `The ${G.one} has the ${it.name}! Run it down and bump it${b.stars >= 3 ? ' three times' : ' twice'}`, cp: true });
+    steps.push({ t: 'chase', who: 'runner', name: `the ${G.one}`, skin: G.skin, from, route: loop, bumps: b.stars >= 3 ? 3 : 2, loot: item, speed: 192 + 6 * b.stars + Math.min(6, b.tier), label: `The ${G.one} has the ${it.name}! Run it down and bump it${b.stars >= 3 ? ' three times' : ' twice'}`, cp: true });
     steps.push({ t: 'pickup', at: 'loot', item, label: `Pick up the ${it.name}` });
     if (b.stars >= 3) steps.push({ t: 'heat', level: 2, label: 'The wardens think you’re the thief! Lose them (out of sight, or hide)' });
     steps.push({ t: 'goto', at: b.g, label: `Bring the ${it.name} back to ${name(b.g)}` });
@@ -356,7 +356,7 @@ const BUILD: Record<Kind, (b: B) => Build | null> = {
     for (const a of anchors) { plan = trapPlan(ctx, ...mid(a)); if (plan && valid(ctx, [{ t: 'trap', ...plan, need: 3, gang: tg, n: 3, catch: 2, label: '' } as Step], b.gt)) { at = a; break; } plan = null; }
     if (!plan || !at) return null;
     const steps: Step[] = [{ t: 'trap', spots: plan.spots, need: 3, bait: plan.bait, wait: plan.wait, path: plan.path, gang: tg, n: 3, catch: b.stars >= 3 ? 3 : 2, label: `The ${G.name} come this way every night: lay three nets on their path (E), bait it, and spring them (F)`, cp: true }];
-    if (b.stars >= 2) { const loop = chaseLoop(ctx, ...mid(plan.bait as [number, number])); steps.push({ t: 'chase', who: 'runner', skin: G.skin, from: plan.bait, route: loop, bumps: 2, loot: 'coins', speed: 190 + 6 * b.stars, label: `Their ringleader got away with the takings! Run it down`, cp: true }, { t: 'pickup', at: 'loot', item: 'coins', label: 'Pick up the takings' }); }
+    if (b.stars >= 2) { const loop = chaseLoop(ctx, ...mid(plan.bait as [number, number])); steps.push({ t: 'chase', who: 'runner', name: `the ${G.one}`, skin: G.skin, from: plan.bait, route: loop, bumps: 2, loot: 'coins', speed: 190 + 6 * b.stars, label: `Their ringleader got away with the takings! Run it down`, cp: true }, { t: 'pickup', at: 'loot', item: 'coins', label: 'Pick up the takings' }); }
     else { const lt = litter(b, at, 4); if (!lt) return null; steps.push({ t: 'collect', items: lt, item: 'litter', time: 75, label: 'They dropped their loot all over: pick it up before the warden comes (E)', cp: true }); }
     steps.push({ t: 'goto', at: b.g, label: `Tell ${name(b.g)} it’s done` });
     const place = spotName(ctx, at);
@@ -370,7 +370,7 @@ const BUILD: Record<Kind, (b: B) => Build | null> = {
     const crates = [0, 1, 2].map(q => tileOf(...nearestFree(ctx.c, 'walk', sx + Math.cos(q * 2.1 + R()) * 2.5 * T, sy + Math.sin(q * 2.1) * 2.5 * T, ctx.open, 3)));
     const g1 = tileOf(...nearestFree(ctx.c, 'walk', sx - 4 * T, sy + 3 * T, ctx.open, 3)), g2 = tileOf(...nearestFree(ctx.c, 'walk', sx + 4 * T, sy + 3 * T, ctx.open, 3));
     const steps: Step[] = [
-      { t: 'tail', from: tl.from, route: tl.route, calm: 0.85, skin: G.skin, label: `Tail the ${G.one} to their store (keep back, out of sight)`, cp: true },
+      { t: 'tail', name: `the ${G.one}`, from: tl.from, route: tl.route, calm: 0.85, skin: G.skin, label: `Tail the ${G.one} to their store (keep back, out of sight)`, cp: true },
       { t: 'swap', crates, guards: b.stars >= 3 ? [[g1, g2], [g2, g1]] : [[g1, g2]], time: Math.round(78 * (b.mods.includes('timer') ? 0.86 : 1)), decoy: 'ticket', skin: b.gang === 'liz' || b.gang === 'myna' ? b.gang : undefined, label: 'Swap their stolen goods for decoys while the guard looks away (E at each crate)', cp: true },
     ];
     if (b.stars >= 2) steps.push({ t: 'heat', level: 2, label: 'The wardens saw you at the crates! Lose them (out of sight, or hide)' });
@@ -395,7 +395,7 @@ const BUILD: Record<Kind, (b: B) => Build | null> = {
     const anchors = anchorsNear(b, 0, 14); const at = anchors[0]; if (!at) return null;
     const what = pick(R, ['Stall', 'Shop', 'Counter']);
     const steps: Step[] = [{ t: 'defend', at, time: 40 + 3 * b.stars, waves: b.stars >= 3 ? 3 : 2, per: b.stars >= 2 ? 2 : 1, gang, what, label: `Hold the ${what.toLowerCase()}: knock the ${G.name} back before they reach it`, cp: true }];
-    if (b.stars >= 2) { const loop = chaseLoop(ctx, ...mid(at)); steps.push({ t: 'chase', who: 'runner', skin: G.skin, from: at, route: loop, bumps: 2, loot: 'coins', speed: 190 + 6 * b.stars, label: 'Their ringleader ran off with the float! Run it down', cp: true }, { t: 'pickup', at: 'loot', item: 'coins', label: 'Pick up the float' }); }
+    if (b.stars >= 2) { const loop = chaseLoop(ctx, ...mid(at)); steps.push({ t: 'chase', who: 'runner', name: `the ${G.one}`, skin: G.skin, from: at, route: loop, bumps: 2, loot: 'coins', speed: 190 + 6 * b.stars, label: 'Their ringleader ran off with the float! Run it down', cp: true }, { t: 'pickup', at: 'loot', item: 'coins', label: 'Pick up the float' }); }
     else { const lt = litter(b, at, 4); if (!lt) return null; steps.push({ t: 'collect', items: lt, item: 'litter', time: 75, label: `They left a mess behind: tidy it before the warden sees (E)`, cp: true }); }
     steps.push({ t: 'goto', at: b.g, label: `Tell ${name(b.g)} it’s safe` });
     const place = spotName(ctx, at);
@@ -450,7 +450,7 @@ const BUILD: Record<Kind, (b: B) => Build | null> = {
       witnesses.push({ at: t, sp: folk[k], name: `${folk[k]} ${roles[k]}`, ask: ask as [string, string, string], right, clue: fill(ASK[tag][1]), tag, junk: jk as [string, string, string] });
     }
     const steps: Step[] = [{ t: 'detective', item, time: Math.round([0, 150, 140, 130][b.stars] * (b.mods.includes('timer') ? 0.86 : 1)), witnesses, spots, label: 'Ask the neighbours (E), then search where every clue points', cp: true }];
-    { const loop = chaseLoop(ctx, ...mid(spotTile(ctx, spots[chosen.indexOf(cs.ans)].at))); steps.push({ t: 'chase', who: 'runner', skin: G.skin, from: spots[chosen.indexOf(cs.ans)].at, route: loop, bumps: b.stars >= 3 ? 2 : 1, loot: item, speed: 180 + 6 * b.stars, label: `The ${G.one} came back for it! Run it down`, cp: true }, { t: 'pickup', at: 'loot', item, label: `Pick up the ${it.name}` }); }
+    { const loop = chaseLoop(ctx, ...mid(spotTile(ctx, spots[chosen.indexOf(cs.ans)].at))); steps.push({ t: 'chase', who: 'runner', name: `the ${G.one}`, skin: G.skin, from: spots[chosen.indexOf(cs.ans)].at, route: loop, bumps: b.stars >= 3 ? 2 : 1, loot: item, speed: 180 + 6 * b.stars, label: `The ${G.one} came back for it! Run it down`, cp: true }, { t: 'pickup', at: 'loot', item, label: `Pick up the ${it.name}` }); }
     steps.push({ t: 'goto', at: b.g, label: `Bring the ${it.name} back to ${name(b.g)}`, ride: 'foot' });
     return { steps, item, title: pick(R, [`Who Took the ${cap(it.name.split(' ').pop()!)}?`, `The Case of the Missing ${cap(it.name.split(' ').pop()!)}`, 'Kaypoh Detective']),
       blurb: `My ${it.name} is gone, and ${an(G.one)} was seen nearby. Ask around properly, ah, then look where every clue points.` };
@@ -502,7 +502,7 @@ const BUILD: Record<Kind, (b: B) => Build | null> = {
     else if (b.gang !== 'liz') steps.push({ t: 'defend', at, time: 44, waves: 2, per: 2, gang: defGang(b.gang), what: 'Turf', label: `Hold the street: knock the ${G.name} back`, cp: true });
     else if (plan) steps.push({ t: 'trap', spots: plan.spots, need: 3, bait: plan.bait, wait: plan.wait, path: plan.path, gang: 'liz', n: 3, catch: 2, label: `The ${G.name} are moving in: net them on their way (E, then F)`, cp: true });
     else return null;
-    steps.push({ t: 'chase', who: 'runner', skin: G.skin, from: at, route: chaseLoop(ctx, ...mid(at)), bumps: 2, loot: 'coins', speed: 196, label: `Their boss’s runner has the protection money! Run it down`, cp: true }, { t: 'pickup', at: 'loot', item: 'coins', label: 'Pick up the money' });
+    steps.push({ t: 'chase', who: 'runner', name: `the ${G.one}`, skin: G.skin, from: at, route: chaseLoop(ctx, ...mid(at)), bumps: 2, loot: 'coins', speed: 196, label: `Their boss’s runner has the protection money! Run it down`, cp: true }, { t: 'pickup', at: 'loot', item: 'coins', label: 'Pick up the money' });
     steps.push({ t: 'goto', at: b.g, label: `Tell ${name(b.g)} ${DISTRICT_NAME[b.d]} is yours again` });
     return { steps, title: pick(R, [`Retake ${DISTRICT_NAME[b.d].replace(/^the /, 'the ')}`, `Turf War: ${DISTRICT_NAME[b.d].replace(/^the /, 'The ')}`, `Push Back the ${G.name}`]),
       blurb: `The ${G.name} are muscling in on ${DISTRICT_NAME[b.d]}: our tills are down every night they stay. Push them out.` };

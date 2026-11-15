@@ -2,11 +2,11 @@
 // pass), so nothing in Chinatown moves: it fills the 92 columns east of it. North of the Pan Island Expressway are the
 // Toa Payoh heartlands (slab and point blocks with void decks, a neighbourhood centre, a kopitiam, a multi-storey car
 // park, playgrounds, a wet market, a hawker centre, the bus interchange and the elevated MRT station); south of it the
-// Marina Bay front (glass towers, Raffles Place, the waterfront promenade round the bay, the Triple Sails resort, the
+// Marina Bay front (glass towers, Raffles Place, the waterfront promenade round the bay, Marina Bay Sands, the
 // floating stage, the domed theatre, the observation wheel and the tree grove). The Central Expressway runs down the
 // seam, the East Coast Parkway crosses the bay mouth on a bridge, and Chinatown's east-west roads run on into the
-// island. The MRT line (the Jade Line) runs underground from Chinatown to Raffles Place and Bayfront, then climbs onto
-// a viaduct to Toa Payoh. Real public place and road names; every company-like name is a parody. Pure data.
+// island. The MRT line (the MRT) runs underground from Chinatown to Raffles Place and Bayfront, then climbs onto
+// a viaduct to Toa Payoh. Real public place and road names; real names for the bay's landmarks too (owner, 16-11). Pure data.
 import { T, W, OW, CT_H, G, S, F_BRIDGE, F_PARK, ROADS, XWAYS, ISLE_X1, districtAt, type City, type District, type Prop } from './jade-city.js';
 import { rng } from './jade-rng.js';
 
@@ -28,10 +28,10 @@ export type Isle = {
 export const F_XWAY = 32;
 const px = (t: number) => t * T + T / 2;
 
-/** the parody names on the bay front (no real companies, resorts or attractions) */
+/** the bay front's real landmark names, the MRT and the taxi app (the crows' company is fictional) */
 export const ISLE_NAMES = {
-  resort: 'Triple Sails Resort', stage: 'the Float-About Stage', domes: 'the Durian Domes', wheel: 'the Bay Spinner', grove: 'the Super Grove',
-  line: 'the Jade Line', taxiApp: 'Tumpang!', crows: 'Kaypoh Crows Pte Ltd',
+  resort: 'Marina Bay Sands', stage: 'the Float @ Marina Bay', domes: 'the Esplanade', wheel: 'the Singapore Flyer', grove: 'Supertree Grove',
+  line: 'the MRT', taxiApp: 'Grab', crows: 'Kaypoh Crows Pte Ltd',
 };
 
 export function island(c: City) {
@@ -170,9 +170,9 @@ export function island(c: City) {
   for (let x = 128; x <= 206; x += 6) if (c.solid[at(x, 66)] === S.OPEN) prop(x, 66, x % 12 === 2 ? 'prom-palm' : 'prom-lamp', 12, 'tall', 'over', x % 12 === 2 ? 70 : 54);
   for (const x of [131, 143, 167, 185]) if (c.solid[at(x, 67)] === S.OPEN) prop(x, 67, 'prom-bench', 0, 'low', 'ground', 72);
   c.decals.push({ x: 154 * T, y: 72 * T, sprite: 'bay-stage', r: 0, solid: 'none', layer: 'ground', w: 8 * T, rot: 0 });
-  place('stage', 154, 72, 'spot', 'the Float-About Stage'); place('vanda', 153, 70, 'contact', 'Ms Vanda');
+  place('stage', 154, 72, 'spot', 'the Float @ Marina Bay'); place('vanda', 153, 70, 'contact', 'Ms Vanda');
   place('mk-bay', 142, 67, 'market', 'Promenade kiosk'); prop(142, 66, 'stall-red', 0, 'tall', 'over', 2.1 * T);
-  place('resort', 201, 75, 'spot', 'Triple Sails Resort'); place('promenade', 170, 67, 'spot', 'the bay promenade');
+  place('resort', 201, 75, 'spot', 'Marina Bay Sands'); place('promenade', 170, 67, 'spot', 'the bay promenade');
   place('holt', 200, 85, 'spot', 'the Riverside Romp holt'); prop(200, 85, 'hide-otter', 30, 'tall', 'over', 130);
   prop(185, 70, 'balloons', 0, 'none', 'over', 50);
 

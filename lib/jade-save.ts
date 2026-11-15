@@ -29,7 +29,7 @@ export type Settings = { sound: boolean; music: boolean; assist: boolean; diff: 
 export type PartnerMode = 'auto' | 'tag' | 'off';
 export const PARTNER_MODES: PartnerMode[] = ['auto', 'tag', 'off'];
 export type Stats = { walked: number; driven: number; boated: number; missions: number; gigs: number; trades: number; profit: number; caught: number; escapes: number; bumps: number; cats: number; murals: number; maxHeat: number; playTime: number; minis: number; bizCoins: number; shots: number; tags: number; switches: number; tolls: number; junk: number; kopi: number; chope: number;
-  /** the island: Jade Line rides, taxi rides */
+  /** the island: MRT rides, taxi rides */
   mrt: number; taxi: number;
   /** the job steps: photos taken casing, heists (and quiet ones), stands held, disguises worn, clues found, traps
    * sprung full, crates swapped */
@@ -391,7 +391,7 @@ export const TROPHIES: { id: string; name: string; desc: string; test: (s: Save)
   { id: 'koi', name: 'Silver Koi', desc: 'Win back the Silver Koi.', test: s => s.done.includes('m20') },
   { id: 'drum', name: 'Phoenix Drum', desc: 'Win back the Phoenix Drum and start the festival.', test: s => s.done.includes('m25') },
   { id: 'island', name: 'Island Night', desc: 'Stop Director Kaw and win the Golden Chinchilla.', test: s => s.done.includes('m35') },
-  { id: 'commuter', name: 'Commuter', desc: 'Ride the Jade Line five times.', test: s => s.stats.mrt >= 5 },
+  { id: 'commuter', name: 'Commuter', desc: 'Ride the MRT five times.', test: s => s.stats.mrt >= 5 },
   { id: 'tumpang', name: 'Tumpang', desc: 'Take three taxi rides.', test: s => s.stats.taxi >= 3 },
   { id: 'lights', name: 'Island Lights', desc: 'Stop Crow Number Nine and light up Siloso Beach.', test: s => s.done.includes('m45') },
   { id: 'skyride', name: 'Sky Ride', desc: 'Ride the cable car three times.', test: s => s.stats.cable >= 3 },
