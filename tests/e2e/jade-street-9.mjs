@@ -113,7 +113,7 @@ export async function ninth(h) {
   // ── the Kecoh Mynahs: E shoos one, a paint shot makes one preen, a singing one makes you cover your ears
   await W(() => { window.__jade.teleportTo('serangoon'); window.__jade.give(['paint']); const w = window.__jade.world(), s = w.s, h = w.p.who; s.gear.carry[h] = ['paint']; s.gear.slot[h] = 0; s.gear.clip.paint = 6; s.gear.ammo.paint = 30; });
   check(await W(() => window.__jade.gang('mynahs')), `${name}: the Kecoh Mynahs turn up on their turf`); await wait(500); await look('mynahs');
-  const mob = await W(() => { const w = window.__jade.world(), m = w.gangs.ev.mobs.find(m => m.has && m.st === 'run' && m.fly === undefined); if (!m) return null; m.b.speed = 0; w.placePlayer(m.b.x, m.b.y + 50); w.findNear(); return { id: m.id, near: w.near?.label ?? '', ride: w.p.ride?.kind ?? null }; });
+  const mob = await W(() => { const w = window.__jade.world(), m = w.gangs.ev.mobs.find(m => m.has && m.st === 'run' && m.fly === undefined); if (!m) return null; m.b.speed = 0; /* (beside it on a side where a parked van's prompt is not nearer) */ for (const [dx, dy] of [[0, 50], [0, -50], [50, 0], [-50, 0]]) { w.placePlayer(m.b.x + dx, m.b.y + dy); w.findNear(); if (/Shoo the mynah/.test(w.near?.label ?? '')) break; } return { id: m.id, near: w.near?.label ?? '', ride: w.p.ride?.kind ?? null }; });
   check(/Shoo the mynah/.test(mob?.near ?? ''), `${name}: "Shoo the mynah!" (${JSON.stringify(mob)})`); await key('e', 300);
   check(await until(() => window.__jade.world().p.act?.n === 'shoo', null, 1500), `${name}: E shoos it`); await wait(500);
   // a paint shot with the mouse
