@@ -90,7 +90,7 @@ export function mateStep(w: World, dt: number) {
 /** walk or run to a point: straight when the way is clear, on the flow field otherwise; hop what blocks you */
 function moveTo(w: World, m: Player, goal: [number, number], speed: number, sneak: boolean, dt: number) {
   let [gx, gy] = goal; const d = dist(m.x, m.y, gx, gy);
-  if (!m.roof && (d > T * 1.3 || !los(w.c, m.x, m.y, gx, gy))) { const f = w.fieldTo('walk', gx, gy); const n = downhill(w.c, f, m.b.x, m.b.y, w.open); if (n) { gx = n[0]; gy = n[1]; } }
+  if (!m.roof && (d > T * 1.3 || !los(w.c, m.x, m.y, gx, gy))) { const f = w.fieldNear('walk', gx, gy); const n = downhill(w.c, f, m.b.x, m.b.y, w.open); if (n) { gx = n[0]; gy = n[1]; } }
   const dx = gx - m.b.x, dy = gy - m.b.y, l = Math.hypot(dx, dy) || 1;
   // on the roofs a gap ahead is hopped
   if (m.roof && m.hopT <= 0) { const ax = m.b.x + dx / l * 40, ay = m.b.y + dy / l * 40; if (!(w.c.flags[Math.floor(ay / T) * W + Math.floor(ax / T)] & F_ROOF)) m.hopT = FOOT.hopT; }

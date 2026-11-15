@@ -35,9 +35,12 @@ export function MrtPanel({ play, from, onClose }: { play: Play; from: string; on
 /** the ride view: a painted carriage with streaks of city light outside; closes itself, or any key / click skips */
 export function RideView({ play, from, to, onDone }: { play: Play; from: string; to: string; onDone: () => void }) {
   const cv = useRef<HTMLCanvasElement>(null);
+  // the page re-renders ten times a second: keep the timer running from the first frame
+  const done = useRef(onDone); done.current = onDone;
+  void play;
   useEffect(() => {
-    let raf = 0; const t0 = performance.now(); let done = false;
-    const end = () => { if (!done) { done = true; onDone(); } };
+    let raf = 0; const t0 = performance.now(); let fin = false;
+    const end = () => { if (!fin) { fin = true; done.current(); } };
     const f = (now: number) => {
       const t = (now - t0) / 1000; const c = cv.current;
       if (c) {
@@ -58,8 +61,7 @@ export function RideView({ play, from, to, onDone }: { play: Play; from: string;
     const k = (e: KeyboardEvent) => { e.preventDefault(); end(); };
     window.addEventListener('keydown', k);
     return () => { cancelAnimationFrame(raf); window.removeEventListener('keydown', k); };
-  }, [onDone]);
-  void play;
+  }, []);
   return (
     <div className="jade-ride-view" data-testid="ride-view" onClick={onDone}>
       <img src={`${ART}bg-mrt-ride.webp`} alt="" draggable={false} />

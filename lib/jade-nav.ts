@@ -14,20 +14,19 @@ export function navOk(c: City, cls: MoveClass, tx: number, ty: number, open: Set
   return passable(c, cls, tx, ty);
 }
 
-/** distances (in tile steps ×10, diagonals 14) from every tile to the goal tile */
-export function field(c: City, cls: MoveClass, tx: number, ty: number, open: Set<District>): Field {
+/** distances (in tile steps ×10, diagonals 14) from every tile to the goal tile; with `max`, the search stops at that
+ *  distance and tiles further away stay unreached (-1) */
+export function field(c: City, cls: MoveClass, tx: number, ty: number, open: Set<District>, max = Infinity): Field {
   const dist = new Int32Array(W * H).fill(-1);
-  const q = new Int32Array(W * H * 2); let qh = 0, qt = 0;
   // Dijkstra-lite: two-bucket queue is enough for 10/14 costs at this size; a plain heap keeps it exact
   const heap: number[] = [];
   const push = (i: number, d: number) => { heap.push(d * 65536 + i); let k = heap.length - 1; while (k > 0) { const p = (k - 1) >> 1; if (heap[p] <= heap[k]) break; [heap[p], heap[k]] = [heap[k], heap[p]]; k = p; } };
   const pop = () => { const top = heap[0]; const last = heap.pop()!; if (heap.length) { heap[0] = last; let k = 0; for (;;) { const l = k * 2 + 1, r = l + 1; let m = k; if (l < heap.length && heap[l] < heap[m]) m = l; if (r < heap.length && heap[r] < heap[m]) m = r; if (m === k) break; [heap[m], heap[k]] = [heap[k], heap[m]]; k = m; } } return top; };
-  void q; void qh; void qt;
   if (tx < 0 || ty < 0 || tx >= W || ty >= H) return { dist, tx, ty, cls };
   dist[ty * W + tx] = 0; push(ty * W + tx, 0);
   while (heap.length) {
     const v = pop(); const i = v % 65536, d = Math.floor(v / 65536);
-    if (d > dist[i]) continue;
+    if (d > dist[i] || d > max) continue;
     const x = i % W, y = (i - x) / W;
     for (const [dx, dy] of N8) {
       const nx = x + dx, ny = y + dy;

@@ -1,14 +1,14 @@
 'use client';
 // Jade Street extras: the painted loading screen (every atlas and texture decoded before the world draws, with a
 // retry), the lesson hints with the right key or button, the little phone with texts from contacts, the ride radio,
-// the jobs book (all 25 jobs by chapter with medals, goals and replay) and the controls page.
+// the jobs book (every story job by chapter, and the Hawker Tales, with medals, goals and replay) and the controls page.
 import { useEffect, useState } from 'react';
 import { loadArt } from '@/lib/jade-scene';
 import { lesson } from '@/lib/jade-tutor';
 import { TaxiApp } from './isle';
 import { TAXI_APP } from '@/lib/jade-taxi';
 import { unread, readAll } from '@/lib/jade-phone';
-import { MISSIONS, SIDE, CHAPTERS, PEOPLE } from '@/lib/jade-story';
+import { MISSIONS, SIDE, CHAPTERS, PEOPLE, jobCounts } from '@/lib/jade-story';
 import { FinesList, Glossary } from './sg';
 import { MEDAL_NAME, MEDAL_SPRITE, goals, fmtTime } from '@/lib/jade-medals';
 import type { Play } from './controller';
@@ -120,16 +120,16 @@ export function switchStation(play: Play, snd: JadeSound | null) {
 
 // ── the jobs book
 export function JobsBook({ play, onReplay }: { play: Play; onReplay: (id: string) => void }) {
-  const s = play.w.s; const [ch, setCh] = useState(() => Math.max(1, Math.min(5, MISSIONS.find(m => !s.done.includes(m.id))?.ch ?? 5)));
-  const story = s.done.filter(id => MISSIONS.some(m => m.id === id)).length;
-  const list = ch === 6 ? SIDE : MISSIONS.filter(m => m.ch === ch);
-  const total = MISSIONS.reduce((a, m) => a + (s.medals[m.id]?.m ?? 0), 0);
+  const s = play.w.s; // ch 0 is the Hawker Tales tab; 1 to CHAPTERS.length are the chapters
+  const [ch, setCh] = useState(() => Math.max(1, Math.min(CHAPTERS.length, MISSIONS.find(m => !s.done.includes(m.id))?.ch ?? CHAPTERS.length)));
+  const n = jobCounts(s);
+  const list = ch === 0 ? SIDE : MISSIONS.filter(m => m.ch === ch);
   return (
     <div className="jade-book" data-testid="jade-jobs">
-      <p className="jade-book-sum"><Sprite name="ui-medal-gold" h={24} w={24} /> {MISSIONS.filter(m => s.medals[m.id]?.m === 3).length} gold · {total}/75 marks · {story}/25 jobs · {s.done.length - story}/{SIDE.length} Hawker Tales</p>
+      <p className="jade-book-sum"><Sprite name="ui-medal-gold" h={24} w={24} /> {n.gold} gold · {n.marks}/{n.marksAll} marks · {n.story}/{n.storyAll} jobs · {n.tales}/{n.talesAll} Hawker Tales</p>
       <div className="jade-book-tabs" role="tablist">
         {CHAPTERS.map((c, i) => <button key={c} type="button" role="tab" aria-selected={ch === i + 1} className={'jade-tab' + (ch === i + 1 ? ' on' : '')} data-testid={`jade-jobs-ch${i + 1}`} onClick={() => setCh(i + 1)}>{i + 1}. {c}</button>)}
-        <button type="button" role="tab" aria-selected={ch === 6} className={'jade-tab' + (ch === 6 ? ' on' : '')} data-testid="jade-jobs-side" onClick={() => setCh(6)}>Hawker Tales</button>
+        <button type="button" role="tab" aria-selected={ch === 0} className={'jade-tab' + (ch === 0 ? ' on' : '')} data-testid="jade-jobs-side" onClick={() => setCh(0)}>Hawker Tales</button>
       </div>
       <ol className="jade-book-list">
         {list.map(m => {
@@ -138,7 +138,7 @@ export function JobsBook({ play, onReplay }: { play: Play; onReplay: (id: string
             <li key={m.id} data-testid={`jade-job-${m.id}`} className={done ? 'done' : ''}>
               <Sprite name={done ? MEDAL_SPRITE[md?.m ?? 0] : 'ui-medal-none'} h={44} w={44} title={done ? MEDAL_NAME[md?.m ?? 0] : 'Not done yet'} />
               <div className="jade-book-job">
-                <b>{done || (m.side ? s.done.includes(m.side) : s.done.length >= MISSIONS.indexOf(m)) ? m.title : '???'}</b>
+                <b>{done || (m.side ? s.done.includes(m.side) : n.story >= MISSIONS.indexOf(m)) ? m.title : '???'}</b>
                 {m.side && !done && !s.done.includes(m.side) && <small>Opens after “{MISSIONS.find(x => x.id === m.side)?.title}”</small>}
                 <small>{p?.name ?? m.giver}{md?.t ? ` · best ${fmtTime(md.t)}` : ''}{md ? ` · played ${md.plays}×` : ''}</small>
                 <span className="jade-goals">{goals(m).map(g => <em key={g}>{g}</em>)}</span>

@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
 import { T, W, H, OW, S, G, ROADS, XWAYS, DISTRICTS, districtAt, DISTRICT_NAME, streetAt } from '../.checks/jade-city.js';
 import { F_XWAY, ISLE_NAMES } from '../.checks/jade-island.js';
-import { MISSIONS, MISSION, PEOPLE, FINALE, CHAPTERS } from '../.checks/jade-story.js';
+import { MISSIONS, MISSION, SIDE, PEOPLE, FINALE, CHAPTERS, jobCounts } from '../.checks/jade-story.js';
 import { newSave, loadSave, SAVE_VERSION, SAVE_KEY, OLD_KEYS, offered, available, chapterOf, openDistricts, safeOpen, buySafe } from '../.checks/jade-save.js';
 import { FRAMES, FILL, TEXTURES, PLAIN } from '../.checks/jade-art.js';
 import { trainAt, mrtTo, stationNear, FARE, TRAINS } from '../.checks/jade-mrt.js';
@@ -21,6 +21,7 @@ import { PAR } from '../.checks/jade-medals.js';
 import { Notices } from '../.checks/jade-notice.js';
 import { field, nearestFree } from '../.checks/jade-nav.js';
 import { playMission } from './jade-bot.mjs';
+import { CAST_IDS, CAST_POSES, CAST_R, castPose, castFrame, CHAT } from '../.checks/jade-cast.js';
 
 let n = 0;
 const test = (name, f) => { try { f(); n++; } catch (e) { console.error('FAILED:', name); throw e; } };
@@ -182,6 +183,55 @@ test('every island painting is in the atlas and none is blank', () => {
   for (const f of need) { assert.ok(FRAMES[f], f); assert.ok(FILL[f] > 0.04, `${f} is painted`); }
   for (const t of ['xway', 'hdb', 'rubber', 'granite', 'deck', 'bay']) assert.ok(TEXTURES.includes(t), t);
   for (const p of ['bg-chapter-6', 'bg-end-4', 'bg-mrt-ride', 'bg-stall-heartland', 'bg-stall-bay']) assert.ok(PLAIN[p], p);
+});
+
+test('every job count shown comes from the job lists, none is written in by hand', () => {
+  const s = newSave(3); s.done = ['m1', 'm2', 'k1']; s.medals = { m1: { m: 3 }, m2: { m: 1 }, k1: { m: 2 } };
+  const n = jobCounts(s);
+  assert.deepEqual([n.story, n.tales, n.done, n.gold, n.marks], [2, 1, 3, 1, 4]);
+  assert.equal(n.storyAll, MISSIONS.length); assert.equal(n.talesAll, SIDE.length); assert.equal(n.all, MISSIONS.length + SIDE.length); assert.equal(n.marksAll, MISSIONS.length * 3);
+  // the page, the jobs book and the pause panel show counts only through jobCounts or the lists' lengths: no
+  // "/25", "of 35 jobs" and the like in the source, for any count the lists could give
+  const counts = new Set([MISSIONS.length, SIDE.length, MISSIONS.length + SIDE.length, MISSIONS.length * 3, 25, 75]);
+  for (const f of ['page.tsx', 'extras.tsx', 'panels.tsx', 'isle.tsx', 'story.tsx', 'ui.tsx']) {
+    const src = readFileSync(new URL(`../app/jade-street/${f}`, import.meta.url), 'utf8');
+    for (const k of counts) {
+      const re = new RegExp(`(/\\s*${k}\\b|\\bof ${k}\\b|\\b${k} (story )?jobs\\b|\\b${k} marks\\b)`);
+      assert.ok(!re.test(src), `${f} writes the count ${k} in by hand`);
+    }
+    assert.ok(!/\.startsWith\('m'\)\)\.length/.test(src), `${f} counts story jobs by their id`);
+  }
+});
+
+test('the job givers stand in the world: painted, solid, waving with a job, talking in their lines', () => {
+  // every person bar the heroes has all six painted frames
+  assert.equal(CAST_IDS.length, Object.keys(PEOPLE).length - 2);
+  for (const id of CAST_IDS) for (const p of CAST_POSES) { const f = `npc-${id}-${p}`; assert.ok(FRAMES[f], f); assert.ok(FILL[f] > 0.04, `${f} is painted`); }
+  for (const id of CAST_IDS) assert.ok(CHAT[id], `${id} has something to say`);
+  // a fresh game: Uncle Kee stands at his place with the first job, solid, waving when you come near
+  const s = newSave(4); s.started = true; s.story.intro = true; const w = new World(s, 4); w.quiet = true; w.step(NO_INPUT, DT);
+  const kee = w.cast.find(c => c.id === 'kee'); const pl = w.c.places.kee;
+  assert.ok(kee && kee.home && Math.hypot(kee.x - pl.x, kee.y - pl.y) < 2 * T, 'Uncle Kee stands at his place');
+  assert.equal(kee.job, 'm1'); assert.ok(w.cast.every(c => w.open.has(c.d)), 'only in open districts');
+  w.p.b.x = kee.x; w.p.b.y = kee.y + 120; w.p.ride = null; assert.equal(castPose(w, kee), 'wave');
+  for (let i = 0; i < 90; i++) w.step({ ...NO_INPUT, my: -1 }, DT);
+  assert.ok(Math.hypot(w.p.x - kee.x, w.p.y - kee.y) >= CAST_R + w.p.b.r - 1, 'you walk up to him, not through him');
+  w.findNear(); assert.equal(w.near?.kind, 'mission'); w.interact();
+  assert.ok(w.talk && w.talk.lines[w.talk.i][0] === 'kee', 'his job starts with his lines'); assert.equal(castPose(w, kee), 'talk');
+  assert.match(castFrame(kee, 'talk', 0), /^npc-kee-talk-[01]$/);
+  w.talk = null; w.quitJob();
+  // after the job he keeps standing there and has a word for you
+  const s2 = newSave(4); s2.started = true; s2.story.intro = true; s2.done = MISSIONS.map(m => m.id).concat(SIDE.map(m => m.id)); const w2 = new World(s2, 4); w2.quiet = true; w2.step(NO_INPUT, DT);
+  const k2 = w2.cast.find(c => c.id === 'kee'); assert.ok(k2 && !k2.job, 'still there after his jobs');
+  assert.ok(new Set(w2.cast.map(c => c.d)).size >= 7, 'givers stand in every district');
+  w2.p.b.x = k2.x; w2.p.b.y = k2.y + 40; w2.p.ride = null; w2.findNear(); assert.equal(w2.near?.kind, 'giver'); assert.equal(w2.near.label, 'Talk to Uncle Kee');
+  w2.interact(); assert.equal(w2.talk?.lines[0][0], 'kee'); assert.equal(castPose(w2, k2), 'talk');
+  // a giver whose job is offered somewhere else waits beside it, and goes once the job starts
+  const s3 = newSave(4); s3.started = true; s3.story.intro = true; s3.done = MISSIONS.filter(m => m.ch <= 5).map(m => m.id); const w3 = new World(s3, 4); w3.quiet = true; w3.step(NO_INPUT, DT);
+  const gl = w3.cast.find(c => c.id === 'glint' && c.job === 'm26'); const st = w3.c.places['stn-chinatown'];
+  assert.ok(gl && !gl.home && Math.hypot(gl.x - st.x, gl.y - st.y) < 2 * T, 'Madame Glint waits by Chinatown station with chapter six');
+  w3.startMission(MISSION.m26); w3.talk = null; for (let i = 0; i < 8; i++) w3.step(NO_INPUT, DT);
+  assert.ok(!w3.cast.some(c => c.id === 'glint'), 'and leaves when the job starts'); w3.quitJob();
 });
 
 console.log(`jade (sixth pass): ${n} tests ok`);

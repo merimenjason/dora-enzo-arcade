@@ -17,6 +17,7 @@ import { Storybook, ChapterCard, Ending, Credits } from './story';
 import { Loader, Hint, PhoneHud, PhoneView, RadioHud, switchStation } from './extras';
 import { chapterOf } from '@/lib/jade-save';
 import { learn } from '@/lib/jade-tutor';
+import { jobCounts } from '@/lib/jade-story';
 import { MiniGame } from './minis';
 import { TicketCard, MamaShop, KopiMini } from './sg';
 import { MrtPanel, RideView, TaxiPanel } from './isle';
@@ -136,7 +137,7 @@ export default function JadeStreetPage() {
             <p className="jade-tag">A night-time caper in Singapore’s Chinatown and out across the island. Win back five lucky heirlooms from the Kaypoh Crows, then stop Director Kaw on the bay front, and mind the fines.</p>
             {!confirm && !pick && (
               <div className="jade-title-btns">
-                {save.started && <button type="button" className="jade-btn jade big" data-testid="continue" onClick={() => begin(saveRef.current)}>Continue · night {save.night}, {save.done.filter(id => id.startsWith('m')).length}/35 jobs</button>}
+                {save.started && <button type="button" className="jade-btn jade big" data-testid="continue" onClick={() => begin(saveRef.current)}>Continue · night {save.night}, {jobCounts(save).done}/{jobCounts(save).all} jobs</button>}
                 <button type="button" className={'jade-btn big ' + (save.started ? 'plain' : 'jade')} data-testid="new" onClick={() => save.started ? setConfirm(true) : setPick(true)}>New game</button>
               </div>
             )}

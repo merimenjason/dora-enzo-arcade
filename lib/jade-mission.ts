@@ -7,7 +7,7 @@
 // timer and a warning before it bites: the getaway meter in chases, the troupe meter in escorts, suspicion and alert
 // when tailing and sneaking, wobble for fragile cargo, timers on deliveries, trades, races and hurried trips. Chase set
 // pieces live in lib/jade-setpiece.ts, Madame Glint's phases and float in lib/jade-boss.ts, raids in lib/jade-biz.ts.
-import { T, W, S, F_ROOF, districtAt, type District } from './jade-city.js';
+import { T, W, S, OW, F_ROOF, districtAt, type District } from './jade-city.js';
 import { VEHICLES, drive, type Body, type VehicleKind } from './jade-move.js';
 import { los, downhill, nearestFree, type Field } from './jade-nav.js';
 import { dist, angDiff, clamp } from './jade-rng.js';
@@ -87,7 +87,8 @@ export class Run {
     const p = w.p;
     // the ride you were on comes back with you when the checkpoint had one of that kind
     const keep = p.ride && p.ride.kind === s.ride ? p.ride : null;
-    if (p.ride) { p.ride.parked = true; p.ride.b.speed = 0; p.ride = null; }
+    if (p.ride) { p.ride.parked = true; p.ride.b.speed = 0; if (p.ride.kind === 'boat' && !keep) p.ride.b.x = p.ride.b.y = -9999; p.ride = null; }
+    // (a boat you were steering when it went wrong is towed away: a fresh one waits at the mooring, where you can step aboard)
     p.hide = false; p.act = null; p.dashT = 0; p.hopT = 0; p.carry = s.carry;
     if (s.ride) {
       if (keep) keep.b.x = keep.b.y = -9999;
@@ -337,7 +338,7 @@ export class Run {
         const [x, y, h] = lineAt(w.c.isle!, a.extra!); a.b.x = x; a.b.y = y; a.b.h = h; a.t += dt; a.b.speed = a.stun > 0 ? 0 : a.speed;
         const [gx, gy] = this.spot(st.to);
         this.meter = { name: 'Train', v: clamp(1 - Math.abs(a.extra2! - a.extra!) / Math.max(1, Math.abs(a.extra2! - (w.c.isle!.stations.find(z => z.id === st.from)?.s ?? 0))), 0, 1), bad: true };
-        if (dist(px, py, gx, gy) < 120 && !p.roof) { w.fx.push({ t: 'win' }); a.gone = true; this.next(); return; }
+        if (dist(px, py, gx, gy) < 120 && !p.roof) { w.fx.push({ t: 'win' }); a.gone = true; if (!p.ride) p.act = { n: 'panting', t: 0, dur: 1.2 }; else w.mate.act = { n: 'panting', t: 0, dur: 1.2 }; this.next(); return; }
         if (a.extra === a.extra2) return this.fail('The train got there first! Cut through the junctions and keep your boost for the straights.');
         if (this.meter.v > 0.75 && this.warned < 1) { this.warned = 1; this.warn('The train is nearly at Toa Payoh!'); }
         break;
@@ -477,7 +478,7 @@ export class Run {
     const inCone = Math.abs(angDiff(facing, Math.atan2(p.y - a.b.y, p.x - a.b.x))) < (a.look > 0 ? 1.2 : 0.55);
     const sees = !p.hide && d < range && (inCone || d < 60) && los(w.c, a.b.x, a.b.y, p.x, p.y);
     const m = this.meter!;
-    if (sees) m.v = Math.min(1, m.v + dt * (p.sneak && !p.ride ? 0.45 : 1.1) * (d < 90 ? 1.8 : 1) * (this.assist ? 0.7 : 1) * this.w.diff.look * (known ? 3 : 1));
+    if (sees) m.v = Math.min(1, m.v + dt * (p.sneak && !p.ride ? 0.45 : 1.1) * (d < 90 ? 1.8 : 1) * (this.assist ? 0.7 : 1) * this.w.diff.look * (st.calm ?? 1) * (known ? 3 : 1));
     else m.v = Math.max(0, m.v - dt * 0.25);
     m.bad = m.v > 0.6;
     if (m.v > 0.6 && this.warned < 1) { this.warned = 1; this.warn('Pip is getting suspicious! Drop back, sneak or hide!'); }
@@ -570,7 +571,7 @@ export class Run {
       const a = R() * Math.PI * 2, d = (8 + R() * 8) * T;
       const tx = Math.floor((w.p.x + Math.cos(a) * d) / T), ty = Math.floor((w.p.y + Math.sin(a) * d) / T);
       if (!this.fareOk(tx, ty)) continue;
-      this.fare = { x: tx * T + T / 2, y: ty * T + T / 2, to: null, sp: ['rabbit', 'dog', 'cat', 'duck'][Math.floor(R() * 4)] };
+      this.fare = { x: tx * T + T / 2, y: ty * T + T / 2, to: null, sp: (tx >= OW ? ['tapir', 'mousedeer', 'civet', 'tapir'] : ['rabbit', 'dog', 'cat', 'duck'])[Math.floor(R() * 4)] };
       this.label = `Pick up the fare (${this.count + 1}/${(this.cur as { n: number }).n})`; this.timer = null;
       return;
     }

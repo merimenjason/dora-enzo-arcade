@@ -8,7 +8,7 @@ import { GOODS, GOOD, cargoCount, haggleZone, haggleResult, needle, bestRoute, t
 import { DISTRICTS, DISTRICT_NAME, T, W, H, type District } from '@/lib/jade-city';
 import { OUTFITS, PAINTS, UPGRADE_COST, SAFE_HOUSES, TROPHIES, buyUpgrade, buyPaint, buyOutfit, buySafe, safeOpen, available, DAILY_NEED, type Save } from '@/lib/jade-save';
 import { VEHICLES } from '@/lib/jade-move';
-import { MISSIONS, HEIRLOOMS, CHAPTERS } from '@/lib/jade-story';
+import { MISSIONS, SIDE, HEIRLOOMS, CHAPTERS, jobCounts } from '@/lib/jade-story';
 import { lanterns } from '@/lib/jade-heat';
 import { KEY_ACTIONS, bind, boundTo, keyName, type KeyAction } from '@/lib/jade-keys';
 import type { Play } from './controller';
@@ -281,7 +281,7 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
         <div className="jade-story" data-testid="story">
           <p>The Kaypoh Crows stole the quarter’s five lucky heirlooms the night before the Lantern Festival. Win them back, chapter by chapter, and the fog over each district lifts.</p>
           <div className="jade-heirlooms">{HEIRLOOMS.map((h, i) => <div key={h.id} className={s.done.includes(`m${(i + 1) * 5}`) ? 'got' : ''}><Sprite name={h.sprite} h={56} w={56} /><b>{h.name}</b><small>{CHAPTERS[i]}</small></div>)}</div>
-          <p className="small">{s.done.length} of {MISSIONS.length} jobs done. Side gigs, lucky cats and murals are waiting in every open district.</p>
+          <p className="small">{jobCounts(s).story} of {MISSIONS.length} story jobs and {jobCounts(s).tales} of {SIDE.length} Hawker Tales done. Side gigs, lucky cats and murals are waiting in every open district.</p>
         </div>
       )}
     </Panel>

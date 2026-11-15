@@ -28,6 +28,8 @@ ROADS.forEach((r, i) => { if (r.axis !== 'h' || XWAYS.includes(i)) return; ROADS
 }); });
 /** cars on an expressway cruise faster */
 const XW = new Set(XWAYS);
+/** Chinatown's roads come first in ROADS */
+const CT_ROADS = ROADS.findIndex(r => (r.axis === 'v' ? r.at : r.from) >= OW);
 /** how far a road passes from (x, y), in world units */
 const roadDist = (r: typeof ROADS[number], x: number, y: number) => { const a = (r.at + 2) * T, lo = r.from * T, hi = (r.to + 1) * T; return r.axis === 'h' ? Math.hypot(Math.max(0, lo - x, x - hi), y - a) : Math.hypot(Math.max(0, lo - y, y - hi), x - a); };
 export const CYCLE = 15;
@@ -54,9 +56,10 @@ export function trafficStep(w: World, dt: number) {
   const px = w.p.x, py = w.p.y;
   // spawn in a ring off screen
   if (w.cars.length < MAX_CARS && w.tick % 9 === 0) {
-    // a road that passes near you (the island has many more roads than you can see)
-    const near = ROADS.map((_, i) => i).filter(i => roadDist(ROADS[i], px, py) < 1500);
-    const ri = near.length ? near[Math.floor(w.R() * near.length)] : Math.floor(w.R() * ROADS.length), r = ROADS[ri];
+    // in Chinatown any of its twelve roads, as before (so its traffic is as busy as it was); on the island a road that
+    // passes near you (it has many more roads than you can see)
+    const near = px < OW * T ? [] : ROADS.map((_, i) => i).filter(i => roadDist(ROADS[i], px, py) < 1500);
+    const ri = near.length ? near[Math.floor(w.R() * near.length)] : Math.floor(w.R() * CT_ROADS), r = ROADS[ri];
     const d: 1 | -1 = w.R() < 0.5 ? 1 : -1;
     const lo = (r.from + 1) * T, hi = (r.to) * T;
     const s = lo + w.R() * (hi - lo);

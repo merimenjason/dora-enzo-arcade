@@ -19,6 +19,7 @@ import { sgGround, sgSorted, sgOver, sgFlash } from './jade-sgdraw.js';
 import { drawHero, gearGround, gearSorted, gearOver, wardenHitFrame, aimLine, setItemSprite } from './jade-duodraw.js';
 import { shooterFor } from './jade-gear.js';
 import { isleSorted, isleOver, isleActor, isleGround } from './jade-isledraw.js';
+import { castFrame, castPose, type CastMember } from './jade-cast.js';
 
 export const ART = '/art/jade-street/';
 const CH = 8; // tiles per chunk
@@ -171,6 +172,8 @@ export class Scene {
   chunks = new Map<number, Chunk>(); frame = 0; t = 0;
   overBuckets: Map<number, number[]> = new Map();
   map: HTMLCanvasElement | null = null; mapK = 8;
+  /** the minimap's copy of the map in strips under 1,024 px wide: the island-wide map canvas is too wide to draw from cheaply every frame */
+  mapStrips: { c: HTMLCanvasElement; x0: number }[] = []; mapStripsOf: HTMLCanvasElement | null = null;
   dust: { x: number; y: number; t: number; vx: number; vy: number; c: string; s: number }[] = [];
   juice = new Juice(); lookX = 0; lookY = 0; zoomRide = 1;
   /** the camera's focus eases between heroes on a switch and frames both with a second player; the mouse aim */
@@ -365,6 +368,7 @@ export class Scene {
     for (const r of w.rides) if (r !== ride && r !== m.ride && vis(r.b.x, r.b.y)) list.push([r.b.y, () => this.ride(x, w, r, false)]);
     for (const c of w.cars) if (vis(c.x, c.y)) list.push([c.y, () => { x.fillStyle = 'rgba(0,0,0,.3)'; this.shadow(x, c.x + 5, c.y + 7, c.len * 0.5, c.rad); spr(x, c.sprite, c.x, c.y, { anchor: 'center', rot: c.h + Math.PI / 2 + (c.wob > 0 ? Math.sin(this.t * 40) * 0.06 : 0) }); }]);
     for (const pd of w.peds) if (vis(pd.x, pd.y)) list.push([pd.y, () => this.ped(x, w, pd)]);
+    for (const cm of w.cast) if (vis(cm.x, cm.y)) list.push([cm.y, () => this.giver(x, w, cm)]);
     for (const wd of w.wardens) if (vis(wd.b.x, wd.b.y)) list.push([wd.b.y, () => this.warden(x, wd)]);
     for (const b of w.blocks) if (vis(b.x, b.y)) list.push([b.y, () => spr(x, b.sprite, b.x, b.y, { anchor: 'center', rot: b.h, w: 100, alpha: b.knocked > 0 ? Math.max(0, 1 - b.knocked) : 1 })]);
     if (w.run) for (const a of w.run.actors) if (vis(a.b.x, a.b.y) && a.kind !== 'swoop' && !a.gone) list.push([a.b.y, () => this.actor(x, w, a)]);
@@ -443,6 +447,11 @@ export class Scene {
     if (r.locked && !player) { const b = Math.sin(this.t * 4) * 3; spr(x, 'i-key', r.b.x, r.b.y - 30 + b, { w: 26, anchor: 'center' }); }
   }
   hero(x: CanvasRenderingContext2D, w: World) { drawHero(this, x, w, w.p, true); }
+  /** a job giver standing at their place: idle, waving when they have a job for you, talking during their lines */
+  giver(x: CanvasRenderingContext2D, w: World, cm: CastMember) {
+    x.fillStyle = 'rgba(0,0,0,.3)'; this.shadow(x, cm.x, cm.y + 4, 18, 7);
+    spr(x, castFrame(cm, castPose(w, cm), this.t), cm.x, cm.y + 8, {});
+  }
   ped(x: CanvasRenderingContext2D, w: World, pd: World['peds'][number]) {
     const cx = Math.cos(pd.h), sy = Math.sin(pd.h);
     let f = `folk-${pd.sp}-`, flip = false;
@@ -596,17 +605,20 @@ export class Scene {
       }
       if (layer === 'over' && !run) for (const n of nearList(w)) {
         if (n.kind !== 'mission') continue;
+        // the giver stands there in person: a job marker bobs over their head; otherwise their face in a ring
+        const g = w.cast.find(c => c.job === n.id);
+        if (g) { const top = g.y + 8 - (frameSize(`npc-${g.id}-idle-0`)[1] || 60); spr(x, 'pin-job', g.x, top - 20 + b, { w: 34, anchor: 'center' }); if (cb) this.cb(x, 'job', g.x + 26, top - 34 + b, 11); continue; }
         const m = MISSION_FACE(n.id!);
         spr(x, 'ui-ring', n.x, n.y - 40 + b, { w: 64, anchor: 'center' });
         spr(x, m, n.x, n.y - 40 + b, { w: 46, anchor: 'center' });
         spr(x, 'ui-pin', n.x, n.y - 2 + b * 0.3, { w: 22 });
         if (cb) this.cb(x, 'job', n.x + 36, n.y - 64 + b, 11);
       }
-      if (layer === 'over') for (const [, pl] of Object.entries(this.c.places)) {
+      if (layer === 'over') for (const [pid, pl] of Object.entries(this.c.places)) {
         if (!w.open.has(pl.d)) continue;
         const icon = pl.kind === 'market' ? 'ui-coin' : pl.kind === 'safe' ? 'i-safe' : pl.kind === 'garage' ? 'i-garage' : pl.kind === 'contact' ? '' : '';
         if (icon) spr(x, icon, pl.x, pl.y - 34 + Math.sin(this.t * 2 + pl.x) * 3, { w: 30, anchor: 'center', alpha: 0.95 });
-        if (pl.kind === 'contact') { spr(x, 'ui-ring', pl.x, pl.y - 26, { w: 46, anchor: 'center', alpha: 0.9 }); spr(x, 'face-' + contactFace(pl.name ?? ''), pl.x, pl.y - 26, { w: 32, anchor: 'center' }); }
+        if (pl.kind === 'contact' && !w.cast.some(c => c.home && c.id === pid)) { spr(x, 'ui-ring', pl.x, pl.y - 26, { w: 46, anchor: 'center', alpha: 0.9 }); spr(x, 'face-' + contactFace(pl.name ?? ''), pl.x, pl.y - 26, { w: 32, anchor: 'center' }); }
       }
       if (layer === 'over' && !run) for (const g of w.gigs()) spr(x, 'flag', g.x, g.y + 6 + b * 0.2, { w: 26 });
     }
@@ -658,18 +670,25 @@ export class Scene {
   drawMinimap(x: CanvasRenderingContext2D, w: World) {
     const m = this.minimap; if (!m.r) return;
     const map = this.buildMap(); const k = this.mapK / T;
+    if (this.mapStripsOf !== map) {
+      this.mapStripsOf = map; this.mapStrips = [];
+      for (let x0 = 0; x0 < map.width; x0 += 840) { const c = document.createElement('canvas'); c.width = Math.min(848, map.width - x0); c.height = map.height; c.getContext('2d')!.drawImage(map, -x0, 0); this.mapStrips.push({ c, x0 }); }
+    }
     const zoom = 0.9; // map px per minimap px
     x.save(); x.beginPath(); x.arc(m.x, m.y, m.r, 0, Math.PI * 2); x.clip();
     x.fillStyle = '#0d1530'; x.fillRect(m.x - m.r, m.y - m.r, m.r * 2, m.r * 2);
     const px = w.p.x * k, py = w.p.y * k;
     const sc = 1.6 / zoom;
-    x.drawImage(map, px - m.r / sc, py - m.r / sc, m.r * 2 / sc, m.r * 2 / sc, m.x - m.r, m.y - m.r, m.r * 2, m.r * 2);
+    { const sx = px - m.r / sc, sy = py - m.r / sc, sw = m.r * 2 / sc, sh = m.r * 2 / sc;
+      for (const st of this.mapStrips) { const a0 = Math.max(sx, st.x0), a1 = Math.min(sx + sw, st.x0 + st.c.width); if (a1 <= a0) continue;
+        x.drawImage(st.c, a0 - st.x0, sy, a1 - a0, sh, m.x - m.r + (a0 - sx) * sc, m.y - m.r, (a1 - a0) * sc, m.r * 2); } }
     const toM = (wx: number, wy: number): [number, number] => [m.x + (wx * k - px) * sc, m.y + (wy * k - py) * sc];
     // fog
     for (const [d, rx, ry, rw, rh] of [['temple', 0, 0, 46, 30], ['canal', 46, 0, 29, 62], ['arcade', 75, 0, 45, 62], ['docks', 46, 62, 74, 30]] as [District, number, number, number, number][]) {
       if (w.open.has(d)) continue; const [a, b] = toM(rx * T, ry * T); x.fillStyle = 'rgba(40,30,70,.82)'; x.fillRect(a, b, rw * T * k * sc, rh * T * k * sc);
     }
-    if (w.route.length > 1 && (w.assist || (!w.run && w.waypoint))) { x.strokeStyle = 'rgba(255,220,100,.95)'; x.lineWidth = 3; x.beginPath(); const [a0, b0] = toM(w.p.x, w.p.y); x.moveTo(a0, b0); for (const [rx, ry] of w.route.slice(1)) { const [a, b] = toM(rx, ry); x.lineTo(a, b); } x.stroke(); }
+    if (w.route.length > 1 && (w.assist || (!w.run && w.waypoint))) { x.strokeStyle = 'rgba(255,220,100,.95)'; x.lineWidth = 3; x.beginPath(); const [a0, b0] = toM(w.p.x, w.p.y); x.moveTo(a0, b0); // only the part of the route inside the dial (a long route across the island is thousands of units of line)
+      for (let i = 1; i < w.route.length; i++) { const [a, b] = toM(w.route[i][0], w.route[i][1]); x.lineTo(a, b); if (Math.hypot(a - m.x, b - m.y) > m.r * 1.6) break; } x.stroke(); }
     const dot = (wx: number, wy: number, col: string, r = 4) => { let [a, b] = toM(wx, wy); const d = Math.hypot(a - m.x, b - m.y); if (d > m.r - 6) { a = m.x + (a - m.x) / d * (m.r - 6); b = m.y + (b - m.y) / d * (m.r - 6); } x.fillStyle = col; x.beginPath(); x.arc(a, b, r, 0, Math.PI * 2); x.fill(); x.strokeStyle = 'rgba(0,0,0,.6)'; x.lineWidth = 1.5; x.stroke(); };
     for (const [, pl] of Object.entries(this.c.places)) if (w.open.has(pl.d)) { if (pl.kind === 'market') dot(pl.x, pl.y, '#ffd25a', 3); else if (pl.kind === 'safe') dot(pl.x, pl.y, '#3ed6a4', 3); }
     if (!w.run) for (const n of nearList(w)) if (n.kind === 'mission') dot(n.x, n.y, '#ffb020', 5);

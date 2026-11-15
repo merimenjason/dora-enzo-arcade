@@ -1,5 +1,6 @@
-// Jade Street: the story. The Kaypoh Crows swiped the quarter's five lucky heirlooms; twenty-five jobs from the
-// shopkeepers, five chapters, each ending in a chase for one heirloom that clears the fog from the next district.
+// Jade Street: the story. The Kaypoh Crows swiped the quarter's five lucky heirlooms; jobs from the shopkeepers in
+// chapters, the first five each ending in a chase for one heirloom that clears the fog from the next district, the
+// sixth on the island. MISSIONS and SIDE are the only source of how many jobs there are (see jobCounts).
 // Missions are lists of steps the runner in lib/jade-mission.ts understands; `cp` marks a checkpoint (a failed step
 // restarts from the last one). Places are names from lib/jade-city.ts or [tileX, tileY] pairs. 'hero' in a line is
 // whoever you are playing (Dora or Enzo) and 'mate' is the other one, your partner.
@@ -29,7 +30,7 @@ export type Step =
   | { t: 'float'; label: string; rope?: Spot; cp?: boolean }
   | { t: 'raid'; at: Spot; n: number; label: string; cp?: boolean }
   /** `relay`: from waypoint `at` on, the hero who started is easy for Pip to spot; the partner waits at `spot` */
-  | { t: 'tail'; from: Spot; route: Spot[]; label: string; relay?: { at: number; spot: Spot }; cp?: boolean }
+  | { t: 'tail'; from: Spot; route: Spot[]; label: string; relay?: { at: number; spot: Spot }; cp?: boolean; /** under 1: the one you tail notices you more slowly */ calm?: number }
   /** `flanks`: crows come in pairs from both sides and the partner guards the far flank */
   | { t: 'escort'; from: Spot; route: Spot[]; label: string; crows: number; flanks?: boolean; skin?: 'otter'; cp?: boolean }
   /** `relay`: the marks from this one on count only for the partner waiting there (a hand-off) */
@@ -352,9 +353,9 @@ export const MISSIONS: Mission[] = [
   { id: 'm28', ch: 6, title: 'Longkang Lizards', giver: 'lepak', at: 'lepak', reward: 300, rep: 14, blurb: 'Tail Kaw’s courier to the storm drain where the Longkang Lizards keep his stash.',
     steps: [
       { t: 'talk', lines: [['lepak', 'Mmm. I am Lord Lepak. Lepak means I don’t move much. Why are you disturbing my sunbathing?', 'calm'], ['hero', 'Your lizards are keeping things for Director Kaw.', 'smug'], ['lepak', 'Are they? Hmm. I was sleeping. Follow his courier and see.', 'calm'], ['mate', 'The courier will know your face. I’ll wait by the wet market: switch to me there.', 'smug']] },
-      { t: 'tail', from: [136, 24], route: [[143, 24], [150, 24], [157, 24], [163, 24], [164, 30]], relay: { at: 3, spot: [155, 21] }, label: 'Follow the courier out of sight; switch to {mate} at the corner (Tab)', cp: true },
+      { t: 'tail', from: [136, 24], route: [[143, 24], [150, 24], [157, 24], [163, 24], [164, 30]], relay: { at: 3, spot: [155, 21] }, calm: 0.75, label: 'Follow the courier out of sight; switch to {mate} at the corner (Tab)', cp: true },
       { t: 'talk', lines: [['hero', 'He handed a sack to a lizard behind the wet market!', 'cross'], ['lepak', 'Ah. That is Kriss, my fastest. Slippery on soap, though.', 'calm']] },
-      { t: 'chase', who: 'runner', skin: 'liz', from: [163, 32], route: [[156, 34], [146, 34], [140, 31], [134, 33], [143, 24], [158, 24]], bumps: 2, loot: 'loot-bag', speed: 190, finish: 'net', label: 'Trip Kriss (a bubble makes a lizard slip), then net him (click)', cp: true },
+      { t: 'chase', who: 'runner', skin: 'liz', from: [163, 32], route: [[156, 34], [146, 34], [140, 31], [134, 33], [143, 24], [158, 24]], bumps: 2, loot: 'loot-bag', speed: 180, finish: 'net', label: 'Trip Kriss (a bubble makes a lizard slip), then net him (click)', cp: true },
       { t: 'pickup', at: 'loot', item: 'loot-bag', label: 'Grab the sack' },
       { t: 'goto', at: 'lepak', label: 'Show Lord Lepak what was in it', ride: 'foot' },
       { t: 'talk', lines: [['lepak', 'Stage passes for Island Night at the Float-About Stage. And a drawing of the Golden Chinchilla.', 'worried'], ['lepak', 'Kaw paid us in kueh. Very nice kueh. But the Longkang Lizards don’t steal awards. Too much effort.', 'happy'], ['mate', 'So Island Night is the big caper.', 'cross']] },
@@ -387,7 +388,7 @@ export const MISSIONS: Mission[] = [
   { id: 'm32', ch: 6, title: 'Office Hours', giver: 'vanda', at: 'raffles', reward: 340, rep: 14, blurb: 'Sneak into the Kaypoh Crows’ head office at Raffles Place and find Kaw’s plan for Island Night.',
     steps: [
       { t: 'talk', lines: [['vanda', 'Kaypoh Crows Pte Ltd has a head office now. With a water cooler.', 'worried'], ['mate', 'Its shutter only stays up while someone holds the lever. Send me (F), then sneak in.', 'smug'], ['hero', 'Sneak. Shift. Got it.', 'calm']] },
-      { t: 'stealth', lookouts: [[[132, 57], [138, 57]], [[132, 61], [139, 61]], [[139, 56], [139, 60]]], goal: 'crownest', exit: [142, 58], shutter: [133, 60], calm: 0.85, pause: 1.4, label: 'Send {mate} to the shutter lever (F), reach Kaw’s desk unseen, then get out', cp: true },
+      { t: 'stealth', lookouts: [[[132, 57], [138, 57]], [[132, 61], [139, 61]], [[139, 56], [139, 60]]], goal: 'crownest', exit: [142, 58], shutter: [133, 60], calm: 0.8, pause: 1.5, label: 'Send {mate} to the shutter lever (F), reach Kaw’s desk unseen, then get out', cp: true },
       { t: 'talk', lines: [['hero', 'A plan with arrows. At the big finale, they swap the Golden Chinchilla for a chocolate one.', 'cross'], ['vanda', 'The prize for Island Night! And his runner already took the stage pass onto the train at Bayfront.', 'worried']] },
     ] },
   { id: 'm33', ch: 6, title: 'MRT Chase', giver: 'vanda', at: 'vanda', reward: 360, rep: 15, blurb: 'Kaw’s runner is on the train to Toa Payoh with the stage pass. Beat the train there.',
@@ -489,3 +490,14 @@ export const SIDE: Mission[] = [
     ] },
 ];
 export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id, m])) as Record<string, Mission>;
+
+/** every count of jobs shown to the player, derived from MISSIONS and SIDE (never written in by hand): story jobs and
+ *  Hawker Tales done and in all, the medal marks (three a story job) earned and possible, and gold medals */
+export function jobCounts(s: { done: string[]; medals: Record<string, { m: number } | undefined> }) {
+  const story = MISSIONS.filter(m => s.done.includes(m.id)).length, tales = SIDE.filter(m => s.done.includes(m.id)).length;
+  return {
+    story, storyAll: MISSIONS.length, tales, talesAll: SIDE.length, done: story + tales, all: MISSIONS.length + SIDE.length,
+    marks: MISSIONS.reduce((a, m) => a + (s.medals[m.id]?.m ?? 0), 0), marksAll: MISSIONS.length * 3,
+    gold: MISSIONS.filter(m => s.medals[m.id]?.m === 3).length,
+  };
+}

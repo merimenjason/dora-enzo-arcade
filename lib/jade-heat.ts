@@ -65,7 +65,7 @@ export function heatStep(w: World, dt: number) {
   }
   // wardens ride to where they last saw you (straight at you when they can see you)
   const tgt = seen ? [px, py] : w.lastSeen;
-  const f = L > 0 ? w.fieldTo('small', tgt[0], tgt[1]) : null;
+  const f = L > 0 ? w.fieldNear('small', tgt[0], tgt[1]) : null;
   const top = w.diff.warden + L * 12;
   for (const wd of w.wardens) {
     wd.pedal += dt;
