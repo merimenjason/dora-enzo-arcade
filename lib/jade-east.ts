@@ -134,7 +134,7 @@ export function east(c: City) {
   bld(228, 26, 8, 4, 'india-shop-b'); bld(236, 26, 8, 4, 'hdb-stn');
   bld(229, 35, 6, 4, 'india-sari'); prop(237, 37, 'void-table', 22, 'tall', 'over', 84);
   place('stn-littleindia', 239, 31, 'station', 'Little India station');
-  bld(249, 27, 8, 4, 'india-shop-a'); bld(258, 27, 5, 4, 'india-villa');
+  bld(249, 27, 8, 4, 'india-shop-c'); bld(258, 27, 5, 4, 'india-villa');
   prop(252, 36, 'tree-round', 22, 'tall'); prop(259, 38, 'tree-round', 22, 'tall');
   place('serangoon', 241, 36, 'spot', 'Serangoon Road');
   // the Deepavali light-up: an arch over Serangoon Road, oil lamps along the pavements, kolams at the doorsteps
@@ -157,6 +157,8 @@ export function east(c: City) {
   bld(229, 57, 8, 3, 'glam-haji'); bld(238, 57, 4, 4, 'glam-perfume');
   place('kancil', 232, 54, 'contact', 'Abang Kancil'); place('wangi', 239, 54, 'contact', 'Puan Wangi');
   place('hajilane', 235, 56, 'spot', 'Haji Lane');
+  // a row of mynahs gossiping on the wires over Haji Lane
+  deco(236, 55, 'kecoh-flock', 150, 'sky');
   // the golden-domed mosque, its forecourt and palms
   bld(251, 50, 10, 8, 'glam-mosque');
   for (const x of [249, 262]) for (const y of [52, 56]) prop(x, y, 'prom-palm', 14, 'tall', 'over', 70);
@@ -165,7 +167,7 @@ export function east(c: City) {
   bld(231, 67, 4, 2, 'bay-stn'); bld(235, 73, 8, 4, 'glam-cafe');
   place('stn-bugis', 233, 70, 'station', 'Bugis station');
   bld(213, 67, 6, 4, 'glam-bussorah'); bld(213, 75, 8, 4, 'glam-textile');
-  bld(248, 67, 6, 4, 'glam-bussorah'); bld(258, 67, 6, 4, 'glam-haji');
+  bld(248, 67, 6, 4, 'glam-bussorah'); bld(258, 67, 6, 4, 'glam-shop');
   rect(255, 66, 2, 16, G.COBBLE);
   for (let y = 67; y <= 80; y += 3) { prop(254, y, 'prom-palm', 14, 'tall', 'over', 70); prop(257, y, 'prom-palm', 14, 'tall', 'over', 70); }
   const bazaar: [number, number][] = [], pelita: [number, number][] = [];
@@ -174,6 +176,7 @@ export function east(c: City) {
   place('bussorah', 256, 74, 'spot', 'Bussorah Street');
   // the Kecoh Mynahs' roost: a big rain tree by the east coast park
   prop(269, 72, 'hide-myna', 34, 'tall', 'over', 150);
+  deco(267, 74, 'myna-perch', 44); deco(271, 71, 'myna-perch', 40);
   place('roost', 269, 74, 'spot', 'the Kecoh Mynahs’ roost'); place('bising', 270, 76, 'contact', 'Boss Bising');
 
   // ── Sentosa
@@ -203,6 +206,7 @@ export function east(c: City) {
   for (let x = 48; x <= 116; x += 6) { prop(x, 120, x % 12 === 0 ? 'beach-umbrella' : 'prom-palm', 12, 'tall', 'over', x % 12 === 0 ? 76 : 70); if (x % 12 === 0) { deco(x + 1, 121, 'deck-chair', 54, 'ground'); chairs.push([px(x + 1), px(121)]); } }
   prop(90, 122, 'lifeguard', 18, 'tall', 'over', 84);
   for (const x of [57, 75, 95, 111]) beach.push([px(x), px(122)]);
+  deco(66, 122, 'beach-ball', 30, 'ground'); deco(104, 121, 'surfboard', 56, 'ground'); deco(84, 122, 'surfboard', 56, 'ground');
   place('beach', 76, 121, 'spot', 'Siloso Beach');
   for (let x = 48; x <= 118; x += 7) if (c.solid[at(x, 116)] === S.OPEN) prop(x, 116, 'prom-lamp', 12, 'tall', 'over', 54);
 

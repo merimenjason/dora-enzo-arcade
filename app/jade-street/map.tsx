@@ -265,7 +265,7 @@ export function PaintedMap({ play, onClose }: { play: Play; onClose: () => void 
             if (a < -40 || b < -40 || a > size.w + 40 || b > size.h + 60) return null;
             return (
               <button key={p.key} type="button" className={'jade-pmap-pin k-' + p.kind + (sel?.key === p.key ? ' on' : '')} style={{ left: a, top: b }} aria-label={p.name}
-                data-testid="jade-map-pin" data-kind={p.kind} data-name={p.name} data-key={p.key} onClick={e => { e.stopPropagation(); if (gest.current.moved) return; if (p.kind === 'stn' && !w.run) route(p); else setSel(p); }}>
+                data-testid="jade-map-pin" data-kind={p.kind} data-name={p.name} data-key={p.key} onClick={e => { e.stopPropagation(); if (gest.current.moved) return; if ((p.kind === 'stn' || p.kind === 'cable' || p.kind === 'ferry') && !w.run) route(p); else setSel(p); }}>
                 <Sprite name={PIN_SPRITE[p.kind]} h={sz} w={sz} />
               </button>
             );

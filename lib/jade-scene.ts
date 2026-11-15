@@ -28,9 +28,24 @@ const CH = 8; // tiles per chunk
 const images: Record<string, HTMLImageElement | HTMLCanvasElement> = {};
 let loaded = false;
 
+/** Little India, Kampong Glam and Sentosa open late in the story, so their atlases and ground textures load in the
+ *  background once the game is running (the loading bar waits only for the rest); `lazyGen` counts them in, and the
+ *  scene repaints its ground chunks when it changes */
+export const LAZY = (n: string) => /^atlas-(east|east2|resort)$/.test(n) || /^tex-(india|glam|sand|resort|lagoon|fort)$/.test(n);
+export let lazyGen = 0;
+function loadLazy(base: string, names: string[]) {
+  for (const n of names) {
+    const old = images[n] as HTMLImageElement | undefined; if (old && old.complete && old.naturalWidth) continue;
+    const im = new Image(); im.decoding = 'async';
+    im.onload = () => { (im.decode ? im.decode() : Promise.resolve()).catch(() => undefined).then(() => { lazyGen++; }); };
+    im.onerror = () => { delete images[n]; };
+    im.src = `${base}${n}.webp`; images[n] = im;
+  }
+}
 /** load and decode every atlas and ground texture; `progress` gets (done, total); rejects with the files that failed */
 export function loadArt(base = ART, progress?: (done: number, total: number) => void): Promise<void> {
-  const names = [...ATLASES.map(a => a as string), ...TEXTURES.map(t => 'tex-' + t)];
+  const every = [...ATLASES.map(a => a as string), ...TEXTURES.map(t => 'tex-' + t)];
+  const names = every.filter(n => !LAZY(n)), later = every.filter(LAZY);
   let done = 0; const failed: string[] = [];
   progress?.(0, names.length);
   return Promise.all(names.map(n => new Promise<void>(res => {
@@ -41,7 +56,7 @@ export function loadArt(base = ART, progress?: (done: number, total: number) => 
     im.onload = () => { (im.decode ? im.decode() : Promise.resolve()).catch(() => undefined).then(ok); };
     im.onerror = () => { delete images[n]; failed.push(n); done++; progress?.(done, names.length); res(); };
     im.src = `${base}${n}.webp${old ? '?r=' + Date.now() : ''}`; images[n] = im;
-  }))).then(() => { if (failed.length) throw new Error('Could not load: ' + failed.join(', ')); loaded = true; });
+  }))).then(() => { if (failed.length) throw new Error('Could not load: ' + failed.join(', ')); loaded = true; loadLazy(base, later); });
 }
 export const artLoaded = () => loaded;
 
@@ -321,8 +336,11 @@ export class Scene {
   }
 
   // ── a frame
+  lazySeen = 0;
   draw(w: World, dt: number) {
     const x = this.x; this.frame++; this.t += dt;
+    // a late district atlas just arrived: repaint the ground chunks and the minimap with it
+    if (this.lazySeen !== lazyGen) { this.lazySeen = lazyGen; this.chunks.clear(); this.map = null; this.patterns = {}; }
     const p = w.p; const ride = p.ride;
     this.juice.tick(dt);
     if (ride) this.juice.trail(dt, p.boostT > 0, ride.b.x, ride.b.y, ride.b.h, 'v-' + ride.kind);

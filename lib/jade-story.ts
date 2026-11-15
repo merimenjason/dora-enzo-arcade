@@ -36,7 +36,7 @@ export type Step =
   /** `flanks`: crows come in pairs from both sides and the partner guards the far flank */
   | { t: 'escort'; from: Spot; route: Spot[]; label: string; crows: number; flanks?: boolean; skin?: 'otter'; cp?: boolean }
   /** `relay`: the marks from this one on count only for the partner waiting there (a hand-off) */
-  | { t: 'race'; marks: Spot[]; label: string; rival?: 'runner' | 'scooter' | 'boat'; roof?: boolean; time?: number; ride?: VehicleKind | 'foot'; relay?: number; cp?: boolean }
+  | { t: 'race'; marks: Spot[]; label: string; rival?: 'runner' | 'scooter' | 'boat'; roof?: boolean; time?: number; ride?: VehicleKind | 'foot'; relay?: number; cp?: boolean; /** the rival's speed against the usual (a slow raft) */ pace?: number }
   /** `shutter`: the goal's shutter is down unless the partner holds its lever there */
   /** `calm`: lookouts grow sure more slowly (a multiplier on the Alert meter's rise); `pause`: each stops this many
    * seconds at the ends of its beat, sweeping its torch, so a careful player can read the gap */
@@ -530,7 +530,7 @@ export const MISSIONS: Mission[] = [
     ] },
   { id: 'm40', ch: 7, title: 'Haji Lane Hush', giver: 'wangi', at: 'wangi', reward: 440, rep: 16, blurb: 'The mynahs copy every sound in Haji Lane and the shops can’t hear themselves think. Catch the noisiest: nets on their path, or run them down.',
     steps: [
-      { t: 'talk', lines: [['wangi', 'Selamat malam. I make perfume, and perfume needs calm. Every night the mynahs land on Haji Lane and copy everything. Phones, bells, scooters, me!', 'cross'], ['wangi', 'Catch the three noisiest and Boss Bising will listen. He always does when his best singers are missing.', 'smug'], ['mate', 'Nets and jalebi for bait. Or we just chase them.', 'smug']] },
+      { t: 'talk', lines: [['wangi', 'Selamat malam. I make perfume, and perfume needs calm. Every night the mynahs land on Haji Lane and copy everything. Phones, bells, scooters, me!', 'cross'], ['wangi', 'Catch the three noisiest and Boss Bising will listen. He always does when his best singers are missing.', 'happy'], ['mate', 'Nets and jalebi for bait. Or we just chase them.', 'smug']] },
       { t: 'trap', spots: [[231, 55], [234, 56], [237, 55], [240, 56]], need: 3, bait: [242, 56], wait: [236, 61], path: [[228, 56], [231, 55], [234, 56], [237, 55], [240, 56], [242, 56]], gang: 'myna', n: 3, catch: 2, label: 'Lay three nets along Haji Lane (E)', cp: true },
       { t: 'talk', lines: [['bising', 'My singers! In nets! Okay, okay, chinchillas. Let them go and Bising tells you something.', 'worried'], ['bising', 'Crow Number Nine pays us in jalebi to copy voices. His big night is on Sentosa: the fireworks. Bridge is open now, cable car too.', 'calm'], ['wangi', 'Sentosa, then. Go, before he copies the whole sky.', 'happy']] },
     ] },
@@ -558,13 +558,13 @@ export const MISSIONS: Mission[] = [
       { t: 'case', spots: [{ at: [111, 104], kind: 'door' }, { at: [103, 108], kind: 'rota' }, { at: [104, 105], kind: 'cam' }, { at: [107, 107], kind: 'safe' }], need: 3, guards: [[[103, 105], [110, 105]], [[110, 110], [103, 110]]], label: 'Photograph three things (E): the back door, the guard rota, the camera, the safe' },
       { t: 'talk', lines: [['mate', 'Quiet or loud? Either way the firing box comes out.', 'smug']] },
       { t: 'heist', front: [103, 111], back: [111, 104], safe: [107, 107], drop: 'park', guards: [[[103, 105], [110, 105]], [[110, 110], [103, 110]]], cams: [[104, 106, 0], [110, 108, 180]], time: 65, loot: 'firebox', level: 2, label: 'Crack the ride-control safe', cp: true },
-      { t: 'talk', lines: [['helang', 'The firing box! Without it nobody sets off anything.', 'happy'], ['nine', 'Fine. Keep the box. Nine has a backup plan, and a boat.', 'smug'], ['duyung', 'A boat? In MY harbour? Come to the ferry pier, quick!', 'cross']] },
+      { t: 'talk', lines: [['helang', 'The firing box! Without it nobody sets off anything.', 'happy'], ['nine', 'Fine. Keep the box. Nine has a backup plan, and a boat.', 'calm'], ['duyung', 'A boat? In MY harbour? Come to the ferry pier, quick!', 'cross']] },
     ] },
   { id: 'm44', ch: 7, title: 'Ferry Fiasco', giver: 'duyung', at: 'duyung', reward: 480, rep: 17, blurb: 'The mynahs cut the harbour buoys loose and Nine’s raft is collecting them. Steer the bumboat round every buoy before the raft does.',
     steps: [
       { t: 'talk', lines: [['duyung', 'Kapten Duyung, ferry captain, fifty years on these waters. Somebody cut my buoys loose!', 'cross'], ['duyung', 'Nine’s raft is collecting them to mark out his own fireworks barge. Get to each buoy first!', 'worried'], ['mate', 'Bumboat’s by the pier. I’ll steer the spotlight.', 'smug']] },
       { t: 'ride', kind: 'boat', near: [125, 108], label: 'Jump in the bumboat by the ferry pier', cp: true },
-      { t: 'race', ride: 'boat', rival: 'boat', time: 80, marks: [[132, 112], [142, 118], [132, 126], [114, 126], [96, 125], [124, 121]], label: 'Steer round every buoy before Nine’s raft', cp: true },
+      { t: 'race', ride: 'boat', rival: 'boat', pace: 0.9, time: 80, marks: [[132, 112], [142, 118], [132, 126], [114, 126], [96, 125], [124, 121]], label: 'Steer round every buoy before Nine’s raft', cp: true },
       { t: 'goto', at: 'duyung', label: 'Back to Kapten Duyung at the pier', ride: 'foot', r: 140 },
       { t: 'talk', lines: [['duyung', 'Every buoy home. The ferry runs to Marina Bay again: three coins, best view in Singapore.', 'happy'], ['bising', 'Psst. Chinchillas. Nine stopped paying in jalebi. He’s at the fort, with the spare fireworks. Bising helps you now.', 'calm']] },
     ] },
@@ -572,7 +572,7 @@ export const MISSIONS: Mission[] = [
     steps: [
       { t: 'talk', lines: [['bising', 'Nine is in the old fort. The mynah lookouts still work for him, they don’t know yet. Bising is too loud to sneak.', 'worried'], ['helang', 'The fort gate has a lever. One holds it, one goes in.', 'calm'], ['mate', 'Send me to the lever (F). You sneak.', 'smug']] },
       { t: 'goto', at: [52, 110], label: 'Go to the edge of Siloso Point', ride: 'foot', cp: true },
-      { t: 'stealth', lookouts: [[[47, 107], [47, 111]], [[36, 109], [44, 109]], [[45, 105], [45, 108]]], goal: 'fort', exit: [52, 110], shutter: [44, 111], calm: 0.75, pause: 1.5, label: 'Send {mate} to the gate lever (F), reach the fort unseen, then get out', cp: true },
+      { t: 'stealth', lookouts: [[[47, 107], [47, 111]], [[36, 109], [44, 109]], [[45, 105], [45, 108]]], goal: 'fort', exit: [52, 110], shutter: [44, 111], calm: 0.5, pause: 1.5, label: 'Send {mate} to the gate lever (F), reach the fort unseen, then get out', cp: true },
       { t: 'talk', lines: [['nine', 'You again! Nine Lives Fireworks Pte Ltd will not be stopped! Kaw never let me run anything!', 'cross'], ['hero', 'He’s running for the beach!', 'cross'], ['mate', 'Pounce together: F sends me in, then dash!', 'cross']] },
       { t: 'chase', who: 'runner', skin: 'nine', from: [46, 110], route: [[52, 117], [64, 118], [78, 118], [90, 121], [104, 120], [86, 117]], bumps: 2, loot: '', speed: 205, finish: 'pounce', label: 'Pounce on Crow Number Nine together: F sends {mate} in, then dash', cp: true },
       { t: 'talk', lines: [['nine', 'Fine! Then nobody gets fireworks! Fly, little mynah, fly!', 'cross'], ['bising', 'That mynah is mine! Hey! Come back! Kecoh!', 'cross']] },
@@ -701,7 +701,7 @@ export const SIDE: Mission[] = [
     ] },
   { id: 'k13', side: 'm44', ch: 0, title: 'Siloso Fun Run', giver: 'duyung', at: 'duyung', reward: 190, rep: 12, blurb: 'Kapten Duyung’s grandnephew, a cheeky crow cadet, says nobody beats him along Siloso Beach. Prove him wrong.',
     steps: [
-      { t: 'talk', lines: [['duyung', 'My grandnephew is a crow cadet. Don’t ask. He says nobody beats him along the beach.', 'smug'], ['mate', 'Sand slows everybody. Even crows.', 'smug']] },
+      { t: 'talk', lines: [['duyung', 'My grandnephew is a crow cadet. Don’t ask. He says nobody beats him along the beach.', 'happy'], ['mate', 'Sand slows everybody. Even crows.', 'smug']] },
       { t: 'goto', at: [52, 119], label: 'To the start line at the west end of the beach', ride: 'foot', cp: true },
       { t: 'race', ride: 'foot', rival: 'runner', marks: [[62, 121], [74, 122], [86, 120], [98, 122], [110, 120], [116, 117]], label: 'Beat the crow cadet along Siloso Beach' },
       { t: 'talk', lines: [['duyung', 'Ha! He’s sulking in the lagoon. Good for him. Ice kacang on me.', 'happy']] },
