@@ -2,6 +2,8 @@
 
 Game 105, `/jade-street`. A top-down open-city caper set on the night before the Lantern Festival in Singapore’s Chinatown (its real public street names, with invented people, shops and jobs). The Kaypoh Crows have stolen five lucky heirlooms, and Dora (cream-white fur, red eyes, jade bomber with a gold crane) or Enzo (grey fur, vermilion tracksuit top) wins them back over 25 story jobs, then follows the crows out across the island for ten more. It is original: the quarter, its people, the jobs, the heat system and the interface were all made for this game.
 
+**Tenth pass (15-11-2026): the Chinatown empire.** A long goal that also works after the story: the eleven stalls and fifteen new properties (a shophouse, a zi char kitchen, a bumboat service, a karaoke lounge, a kopitiam, a taxi company, a provision shop, a rooftop bar, an ice kacang cart, a prata shop, a spice shophouse, a café, a textile house, a beach bar and a kayak hire) across all ten districts, each with three upgrades; nightly takings in the till, collected in person, at a safe house or by the partner; rival gangs raiding now and then (a text, a red pin and a clock: hold the shop, net them on the way in, or run down the one with the till); a missed raid costs the night's takings or leaves the place damaged until repaired, never lost; a hired jaga; six empire jobs; four ranks from Street Stall to Island Taipan; and the Empire tab on the phone and in the pause menu. See **The Chinatown empire**. Saves move to v11.
+
 **Eighth pass (15-11-2026): guards, the partner and branches.** Guards, lookouts and wardens hear you and think: six states (patrol, suspicious, investigate, alert, search, back) with their own torch colours, bubbles, poses and sounds, calls for help and lures; the partner helps on their own (warns, fires at troublemakers, scoops loot, hides, waits at the getaway) with a three-way setting; holding a stall is a fight; clues leave painted traces at the spots they fit; and the disguise, trap and detective steps each offer two ways. See **Guards, the partner and branches**. Saves move to v9.
 
 **Seventh pass (15-11-2026): job variety.** Most jobs had been chases. Seven new kinds of step (casing, the heist with a safe-dial mini-game, holding a stall, the disguise, the detective, traps and the crate swap) rebuild thirteen jobs around them, with the same givers and stories, and three new Hawker Tales show them off. A chase is now the climax of 9 of the 45 jobs (was 14 of 42); see **Job variety (seventh pass)** below.
@@ -37,7 +39,11 @@ The engine is plain TypeScript with no DOM, split one file per system. It steps 
 | `lib/jade-mini.ts` | the mini-games as engines: lock, wires, wok, dumplings, kopi and (seventh pass) the safe dial |
 | `lib/jade-setpiece.ts` | the chase set pieces (stall smash, temple drums, drawbridge, crane, yard gate): when each triggers, its telegraph, the knock-downs and the tiles a closed bridge or gate blocks |
 | `lib/jade-boss.ts` | Madame Glint's three phases: decoys, falling neon signs, then her float and the rooftop leap, with a checkpoint at each phase |
-| `lib/jade-biz.ts` | the six businesses: prices, upgrades, nightly takings, the night's event, collecting, crow raids and their defend job |
+| `lib/jade-biz.ts` | the businesses (the eleven stalls and the empire's properties, one list): prices, upgrades, nightly takings, the night's event, collecting, the empire's value and ranks, and the crows' grab-and-run raid job |
+| `lib/jade-props.ts` | the tenth pass's fifteen properties (pure data: name, keeper, district, tile, price), the price-to-upgrade and price-to-takings rules every business follows, and which gang raids each district |
+| `lib/jade-empire.ts` | the empire's rules: the raid alert and its clock, the raid jobs (defend, trap, chase, grab) built for any property, a missed raid, repairs, the jaga and his guard mind, the partner's round of the tills and their solo raid defence, the six empire jobs built for the property, the rank-up card and hint, and the ledger |
+| `lib/jade-empjobs.ts` | the six empire jobs (pure data: giver, which kinds of property offer it, the rank it needs, reward and takings boost) |
+| `lib/jade-empdraw.ts` | drawing the empire in the world: for-sale boards, damage and the repair scaffold, the jaga's stool, the raiders before you arrive, the raid's glow and pin, an empire job's giver at the property, and Pak Duri in a stand |
 | `lib/jade-juice.ts`, `lib/jade-setdraw.ts` | drawing only: hit-stop, shake, painted debris, slow-mo and the zoom punch, speed lines, the boost trail, squash and stretch, pops and coin tallies, the heat flash (all tunable in `JUICE`); the set pieces, telegraphs, stalls and Glint's float |
 | `lib/jade-duo.ts` | the partner: following on the flow fields (never stuck: a partner stalled or off screen too long catches up out of sight), riding as the passenger, hiding with you, posts a job gives them, switching heroes, the second player and the leash |
 | `lib/jade-tag.ts` | the tag-team moves on F: the passenger's grab, boost up and haul up at seven walls, the double pounce, distracting a warden, wait and call over |
@@ -74,7 +80,8 @@ The engine is plain TypeScript with no DOM, split one file per system. It steps 
 | `app/jade-street/map.tsx` | the painted paper map: pan, pinch and wheel zoom, fog, plaques, landmarks, pins, legend and Route here |
 | `app/jade-street/story.tsx` | the storybook opening, chapter cards, the ending and the credits |
 | `app/jade-street/sound.ts`, `music.ts`, `radio.ts` | WebAudio effects, district ambience and rain; the layered score (guzheng, erhu, drums, wood block, cymbal) with street, market, chase, boss, festival and menu themes that crossfade, and each speaker's babble voice; the ride radio's stations |
-| `app/jade-street/biz.tsx` | the stall panel, the Businesses page and collecting at a safe house |
+| `app/jade-street/biz.tsx` | the property panel (buy, upgrade, collect) and collecting at a safe house |
+| `app/jade-street/empire.tsx`, `empire.css` | the Empire page (on the phone and in the pause menu): the banner, rank card, raid card, ledger, the partner's round and every property by district with Route me; the property panel's empire row (repair, jaga, empire jobs); the HUD's raid clock |
 | `app/jade-street/duo.tsx`, `duo.css` | the duo bar (both portraits, the partner's status, click to switch), the F prompt, the gadget hands and Tock's toy stall |
 
 The React HUD re-renders about ten times a second, or at once when a panel, dialogue or failure opens; the world itself is never rendered by React.
@@ -221,6 +228,88 @@ A ticket pops up with the offence, the amount and the warden's quip; E pays it (
 **Accessibility.** Settings has Larger text (the HUD, prompts, dialogue and panels about a fifth larger), Colour-blind-safe markers (each kind of marker also gets its own black-and-white shape: the goal a crossed diamond, loot a star, things to collect a ring, a job a square, a ticket warden a triangle, a gang member a cross; lit lanterns are outlined and the heat shows as a number; every map pin kind carries a shape badge) and Player 1 keys (click an action and press a key; a key in use swaps; Reset keys). A gamepad drives player 1: left stick moves, A dash, B hop, X action, Y tag-team, RB or RT fire, LB gadget, LT sneak, right stick aims, d-pad up map, down phone, left reload, right (or a stick click) switches hero, Start pauses, Back brings in player 2 (who then takes the pad, or the second pad). In a panel the d-pad or stick moves the focus, A presses, B closes; in a mini-game they stand in for the arrows and Space (the wires mini-game has an arrow cursor).
 
 **Not built.** Curvier roads: the roads are the traffic lanes, lights, gantries and every job route, and bending them would have meant re-checking all of that; they stay straight. The full island conversion (HDB heartlands, the bay front, the MRT, expressways) is the next pass.
+
+## The Chinatown empire (tenth pass)
+
+The owner's notes: a GTA-style long-term goal that also works after the story. Buy properties in every district and build them up, take nightly takings, defend them from rival gang raids with the job steps, the smart guards and the partner, never lose a property for good, short empire jobs, and ranks with trophies. A careful player should own everything in about three to five hours. Desktop only; Assist on by default.
+
+**One system.** The eleven stalls (third and fifth passes) and fifteen new properties are one list, `BIZ` in `lib/jade-biz.ts`, with the same panel, till, upgrades and raids. Every business follows one rule from its price: the upgrades cost 0.8 and 1.3 times the price, and it takes 0.3, 0.5 and 0.74 times the price a night at levels 1 to 3 (before reputation, weather, events and boosts). That rebalanced the old stalls: a Noodle Cart that took 70 a night at level 1 now takes 150. Safe houses stay separate (they are bought once, for sleeping and the stash).
+
+| Property | District | Keeper | Price | Upgrades | Takings a night (levels 1 to 3) | Rep | Raided by |
+|---|---|---|---|---|---|---|---|
+| Noodle Cart | Smith Street | Chef Mo | 500 | 400, 650 | 150, 250, 370 | 15 | Bukit Bunch macaques |
+| Mooncake Bakery | Smith Street | Uncle Kee | 650 | 520, 850 | 195, 325, 481 | 20 | Bukit Bunch macaques |
+| Hilltop Tea House | Temple Street | Auntie Pang | 800 | 640, 1,040 | 240, 400, 592 | 20 | Bukit Bunch macaques |
+| Canal Fan Shop | Boat Quay | Kiri | 950 | 760, 1,240 | 285, 475, 703 | 20 | Riverside Romp otters |
+| Harbour Jade Counter | Tanjong Pagar Docks | Big Bo | 1,500 | 1,200, 1,950 | 450, 750, 1,110 | 25 | Riverside Romp otters |
+| Neon Claw Booth | Clarke Quay | Gizmo | 1,200 | 960, 1,560 | 360, 600, 888 | 25 | Kaypoh Crows |
+| Char Kway Teow Stall | Smith Street | Ah Beng | 300 | 240, 390 | 90, 150, 222 | 8 | Bukit Bunch macaques |
+| Chicken Rice Stall | Smith Street | Auntie Hoon | 350 | 280, 460 | 105, 175, 259 | 10 | Bukit Bunch macaques |
+| Satay Stall | Smith Street | Chef Mo | 400 | 320, 520 | 120, 200, 296 | 12 | Bukit Bunch macaques |
+| Laksa Pot | Smith Street | Auntie Pang | 420 | 340, 550 | 126, 210, 311 | 12 | Bukit Bunch macaques |
+| Uncle Teo’s Kopi Stall | Smith Street | Uncle Teo | 280 | 220, 360 | 84, 140, 207 | 6 | Bukit Bunch macaques |
+| Pagoda Street Shophouse | Smith Street | Uncle Kee | 1,050 | 840, 1,370 | 315, 525, 777 | 18 | Bukit Bunch macaques |
+| Harbour Zi Char Kitchen | Tanjong Pagar Docks | Big Bo | 1,700 | 1,360, 2,210 | 510, 850, 1,258 | 20 | Riverside Romp otters |
+| Boat Quay Bumboat Service | Boat Quay | Kiri | 1,300 | 1,040, 1,690 | 390, 650, 962 | 20 | Riverside Romp otters |
+| Clarke Quay Karaoke Lounge | Clarke Quay | Lily Sparkle | 1,500 | 1,200, 1,950 | 450, 750, 1,110 | 22 | Kaypoh Crows |
+| Toa Payoh Kopitiam | Toa Payoh | Uncle Teo | 1,200 | 960, 1,560 | 360, 600, 888 | 12 | Longkang Lizards |
+| Lion City Taxi Company | Toa Payoh | Mr Kamal | 2,600 | 2,080, 3,380 | 780, 1,300, 1,924 | 18 | Longkang Lizards |
+| Void Deck Provision Shop | Toa Payoh | Uncle Goh | 950 | 760, 1,240 | 285, 475, 703 | 10 | Longkang Lizards |
+| Bayfront Rooftop Bar | Marina Bay | Ms Vanda | 3,000 | 2,400, 3,900 | 900, 1,500, 2,220 | 20 | Longkang Lizards |
+| Marina Ice Kacang Cart | Marina Bay | Ms Vanda | 800 | 640, 1,040 | 240, 400, 592 | 10 | Longkang Lizards |
+| Race Course Prata Shop | Little India | Auntie Malar | 1,350 | 1,080, 1,760 | 405, 675, 999 | 12 | Kecoh Mynahs |
+| Serangoon Spice Shophouse | Little India | Mr Raju | 1,850 | 1,480, 2,410 | 555, 925, 1,369 | 15 | Kecoh Mynahs |
+| Haji Lane Café | Kampong Glam | Puan Wangi | 1,450 | 1,160, 1,890 | 435, 725, 1,073 | 12 | Kecoh Mynahs |
+| Arab Street Textile House | Kampong Glam | Abang Kancil | 2,100 | 1,680, 2,730 | 630, 1,050, 1,554 | 15 | Kecoh Mynahs |
+| Siloso Beach Bar | Sentosa | Kapten Duyung | 2,700 | 2,160, 3,510 | 810, 1,350, 1,998 | 15 | Kecoh Mynahs |
+| Siloso Kayak Hire | Sentosa | Sergeant Helang | 2,250 | 1,800, 2,930 | 675, 1,125, 1,665 | 15 | Kecoh Mynahs |
+
+Everything at level 3 costs 102,810 coins and takes about 24,500 a night. The till holds three nights. A property you don't own has a painted for-sale board and a gold map pin; its door prompt says the price.
+
+**Pacing.** A greedy simulation in `tests/jade-empire.mjs` (buy whatever pays back soonest as soon as you can afford it, reputation about 50, an Assist night every 14 minutes, a tenth of the takings lost to raids) owns everything in 3.0 to 5.0 hours of play at 30 to 60 coins a minute from jobs, gigs and trading, and about 4 hours at 45.
+
+**Raids.** At 11 pm and 3 am (game clock 240 and 480) a gang may raid one of your properties with at least 30 coins in its till: 40% at each hour (30% on Assist), never during a job, one raid at a time. A fuller till draws them; a jaga halves a property's pull, and a damaged one is left alone. You get a text from the keeper, a toast, a red pin on the map and minimap, a pulsing red glow over the property with two gang members carrying off the till, and a clock on the HUD: 110 seconds (150 on Assist). The route line leads there. Arriving within 230 px (or E at the door) starts a raid job built for that property; the gang depends on the district (macaques in Chinatown and Temple Street, otters at Boat Quay and the docks, crows at Clarke Quay, lizards in Toa Payoh and Marina Bay, mynahs in Little India, Kampong Glam and Sentosa) and so does the kind of job:
+
+- **Hold the shop** (the defend step): the gang comes at the counter in waves; dash into them.
+- **Net them on the way in** (the trap step): three nets on the gang's way in, a 9-to-18-tile path walked tile by tile from a street corner 12 tiles out.
+- **Run down the one with the till** (the chase step): a loop of four street corners round the property; bump the runner twice.
+- **Catch the crows with the coins** (the crows' old grab-and-run raid job, Kaypoh Crows only).
+
+Lizards never stand at a shop (trap or chase only). A win pays 30 coins plus 4% of the price, a point of reputation, and counts in the ledger. **A missed raid** (the clock runs out, or you give the job up) costs that night's takings from the till (half with a jaga). At level 2 and up without a jaga, two misses in five instead leave the place **damaged**: boarded up with knocked-over crates, taking nothing until you repair it at its panel (12% of the price, at least 80 coins; your hero hammers at it on a bamboo scaffold). A property is never lost.
+
+**The partner.** From Kopi Boss, *Send partner round the tills* (Empire tab) sends the partner to every owned till nearest-first; they collect each one (their own collect pose), come back and hand over the bag (the bag pose). Any raid can be answered with *Send my partner* instead of going: they win 55% of the time plus 8% a level, +20% with a jaga, +10% on Assist (at most 95%); a win counts as defended and pays half the reward, a loss counts as a half-cost miss and is never damage. A job starting, a second player joining or a hero switch ends the errand at once, with the coins so far.
+
+**The jaga.** From Shophouse Tycoon, Pak Duri (an old Malayan porcupine night watchman) can be hired at any property (30% of the price, at least 300 coins; a handshake). A raid there is half as likely to pick it, a missed one costs half and is never damage, and in a stand at the shop he joins in: an ally guard with the eighth pass's guard mind (his beat, suspicious, alert with a whistle, then he runs at the nearest raider and shoos it). He sees raiders in the open up to 340 px ahead, sneaks only within 110.
+
+**Empire jobs.** Each property offers the jobs that fit its kind, once a night each, at its panel:
+
+| Job | Giver | Offered at | Rank | Reward | Takings boost | What you do |
+|---|---|---|---|---|---|---|
+| Supplier Deal | Ah Huat (wild boar) | food stalls, kitchens, bars | Street Stall | 120 | +25% for 3 nights | fetch fresh stock from another market, a fragile delivery back on a timer |
+| Health Inspector | Inspector Siew (milky stork) | food stalls, kitchens, bars | Street Stall | 140 | +15% for 5 nights | pick up six bits of litter round the block before she arrives (70 s, 55 without Assist): Grade A |
+| Price War | Towkay Hoot (buffy fish owl) | food, shops, shophouses, bars | Kopi Boss | 200 | +30% for 3 nights | tail his runner to his store (the runner starts five tiles ahead), then swap three crates of fake boards past a guard |
+| Taxi Rush | Mr Kamal | the taxi company | Street Stall | 150 | +25% for 3 nights | drive three fares in the company tuk-tuk |
+| River Tour | Kiri | the bumboat service, the kayak hire | Street Stall | 150 | +25% for 3 nights | a boat race through the river's gates (bumboat) or the lagoon's buoys (kayak) |
+| Karaoke Night | Lily Sparkle | the karaoke lounge, bars | Street Stall | 160 | +30% for 3 nights | fetch her lucky microphone from the getai stage, then hold the show against the crows |
+
+The giver waits at the property while the job runs. Grade A counts for a trophy.
+
+**Ranks.** By the coins you have put into properties (price plus upgrades), shown with a painted badge and a meter on the Empire page; reaching one shows a card, Ah Huat texts and the save is written.
+
+| Rank | Needs | Perk |
+|---|---|---|
+| Street Stall | any property | the ledger |
+| Kopi Boss | 6,000 | send the partner round the tills |
+| Shophouse Tycoon | 30,000 | hire a jaga |
+| Island Taipan | 70,000 and a property in every district | every till takes 10% more |
+
+**Trophies** (seven new, 42 in all): Kopi Boss, Shophouse Tycoon, Island Taipan, Full House (every property at level 3), Night Watch (ten raids seen off), Grade A, and Towkay (every kind of empire job). Magnate now means the first eleven stalls at their grandest.
+
+**Discoverability.** Properties for sale have gold pins on the map (yours are jade, a raid red) and a key entry; the door prompt says the price; a hint the first time you can afford one; the phone's Empire tab (it opens on its own during a raid) and the pause menu's Empire tab list every property by district with **Route me**; the Controls page has two rows for the empire.
+
+**Saves** move to v11 (`jade-street-v11`). A v10 save (or any older one, through every step) keeps its jobs, medals, stalls and their tills, safe houses, trophies and settings; the new properties start for sale and the empire's rank is set to the one you already hold, so no card pops up.
+
+**Art** (`docs/jade-street-art/jobs-empire.py`, job ids `emp-*`, `cast10`, `dora-act13`, `enzo-act13`, `empire`): five sheets of properties (three a sheet, each shuttered and for sale, then levels 1 to 3), the damage, repair and empire props, two sheets of raiders (each gang carrying off the till, kicking a crate, gloating) and Pak Duri, the four new people's portraits in four moods and their full bodies, the heroes' empire poses (repairing, the handshake, sending the partner, the coin bag, counting a till), the pins, icons and four rank badges, and the Empire page's banner. They pack into their own `atlas-empire`.
 
 ## Little India, Kampong Glam and Sentosa (ninth pass)
 
@@ -446,6 +535,8 @@ The sixth pass's art is in `docs/jade-street-art/jobs6.py`: thirteen sheets (two
 - The seventh pass's browser checks (`tests/e2e/jade-street-7.mjs`, 1280×800 only, `PASS=7` runs them alone) press every new action with a real key or click: E for a photo, the intel row, 1 and 2 on the heist cards, the safe dial with ← →, its Turn buttons, Space and Set it, the confetti at the gate, Space to dash into a raider and E to tidy the stall, E at the coat rack and for the newspaper, E, 1 to 3 and E with a witness and the Okay button, the notebook, E to search, E for nets and bait and F to spring one, F for the partner's distraction and E to swap a crate; and the poses for each.
 - The eighth pass's engine tests (`tests/jade-aware.mjs`, 19): hearing (a dash, silent sneaking, running feet, five-foot-way muffling, lures, radius and Assist); the six states one by one on a lone guard (turning to a noise, walking over, looking round, the grumble home); alert, chase, search and giving up, with Assist and Hard tuning; calling for help in and out of range; a job crew going alert and failing you if you stand there, and calming down when you get away; a popper luring a guard and the partner's distraction as a lure; a trap's gang walking to a toy; a foot warden hearing a crash; every new painting; the partner's warning (once, on a cooldown), own fire at raiders and never at wardens, townsfolk or job guards (a stray auto shot passes through a passer-by), scooping loot and going back to following, tidying, hiding (counted once), the getaway and switching it off; the three partner settings and two players; the stall's trios, sneaks and damage; clue markers and painted spots; the three branch cards each won by the bot; sixty guards in a world step; ; the Jade Line hint (Mr Kamal's text, the hint text, the route to Chinatown station, gone after 20 s or a ride, once only), the gate prompt, the station routing, and Glint beside the gates; and save v9.
 - The eighth pass's browser checks (`tests/e2e/jade-street-8.mjs`, 1280×800, `PASS=8` runs them alone) press and click every new action: the Partner setting's three choices (saved), a real dash behind a guard (suspicious), its torch (alert), hiding (search) and the walk home, the partner's warning and paw, hiding, their own slingshot and a sneaky raider, the branch cards by key 2 and by mouse, the commotion's wok lid, Space into a macaque on the chase, E for the kopi bribe (coins spent, the clue at once) and the clue markers; and the Jade Line: chapter six's card, then the hint and Mr Kamal's text, the route and HUD label to Chinatown station, four station pins and the map key, a click on a pin routing there, the gate prompt, the phone's Jade Line tab and Route me, and the Controls rows.
+- The tenth pass's engine tests (`tests/jade-empire.mjs`, 13): 26 properties in every district on open, reachable ground, apart and painted at four levels; buying, both upgrades, takings filling the till, the ledger, reputation and fog gating a sale; the four ranks, their cards, trophies and the Taipan's perk (and its every-district rule); the raid hours, alert, text, route line and arriving; a missed raid's lost takings or damage and the repair; the jaga (rank, cost, half a miss, never damage, his patrol, suspicion, alert and shoo in a stand); every raid job for every property and kind on open ground; the bot seeing off each kind of raid from across town in time; the partner's round and solo raid defence; each empire job completed by the bot at its property, its boost and once a night; the v10 to v11 migration; the pacing simulation; and the door prompt and first hint. `npm run bot:jade` also plays each empire job and every raid kind of each gang (`empireCases` in `tests/jade-bot.mjs`).
+- The tenth pass's browser checks (`tests/e2e/jade-street-10.mjs`, 1280×800, `PASS=10` runs them alone) click every new action: the for-sale prompt, E, Buy and both Upgrades; the map's property pins, key, popup and Route here; the phone's Empire tab with its rank, ledger and Route me; the rank-up card; a raid's HUD clock, red map pin, the phone opening on the raid, Route me, arriving, and Quit this job losing the night; Send my partner; Send partner round the tills; Repair; Hire Pak Duri; a big till counted; an empire job's Take it; the pause menu's Empire tab; the Controls rows; the v11 save; and every new pose (deal, mend, repair, shake, send, bag, count).
 - `npm run play:jade`: plays two minutes in each district at 1280×800 with keys, rides, five-lantern heat, rain half the time with a busker's crowd gathered, and constant jumps to fresh streets, then a minute of a casing job with 43 guards hearing dashes and hops, turning, walking over and searching (`GUARDS_ONLY=1` times just that), and fails under 55 fps.
 
 ### Results (16-11-2026, ninth pass: Little India, Kampong Glam, Sentosa and chapter seven)
@@ -552,7 +643,7 @@ Browser suite: 868 checks passed (292 at 1280×800, 288 each at 390×844 and 844
 - **Hard leans on two jobs.** Container Maze and Hot Goods account for most of Hard's retries; Container Maze averages 3.6 tries, a little over the three we aimed for, even with the retry easing.
 - **The bots are not people.** They react late, wobble and lapse, and they now wait at red lights, but they do not misread a telegraph or panic; the numbers are a guide, not a measurement of players.
 - **The set pieces are scripted to each chase's route.** They fire where the thief goes, so a player who cuts across the city can sometimes miss one.
-- **The businesses are a modest economy.** Six stalls at their grandest earn about 1,745 coins a night against 23,550 to buy everything; there is nothing to spend a fortune on once the outfits and garage are bought.
+- **The businesses were a modest economy** (now the empire, tenth pass). Six stalls at their grandest earn about 1,745 coins a night against 23,550 to buy everything; there is nothing to spend a fortune on once the outfits and garage are bought.
 - **The city is still built on a grid underneath.** Landmarks, plazas and curving paths break it up, but the roads themselves are straight.
 - **Phones are not a target.** The game is desktop-only; the older touch checks still pass in Chromium's phone emulation, but the third pass's features were not designed or checked for phones.
 - **The contrast check skips text over paintings or the canvas**, where no single backing colour exists; those labels rely on their dark plates and outlines.

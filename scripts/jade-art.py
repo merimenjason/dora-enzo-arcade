@@ -370,14 +370,34 @@ for h in ('dora', 'enzo'):
 square('safe-bld', ['safe-hdb', 'safe-bay', 'safe-india', 'safe-glam', 'safe-resort', None], 3, 2, 192, green=True)
 each('safe-bld', [None] * 5 + ['stn-entrance'], 3, 2, {'stn-entrance': 124}, green=True)
 fit('ui10', ['i-cable', 'pin-cable', 'pin-ferry', 'mi-mosque', 'mi-gopuram', 'mi-fort', 'mi-coaster', 'i-festival'], 4, 2, 128)
+# ── tenth batch (docs/jade-street-art/jobs-empire.py): the empire. Fifteen properties at four levels (shuttered and for
+# sale, then three upgrades), the damage and repair dressing and the empire's props, the gangs raiding (carrying off the
+# till, kicking a crate, gloating), Pak Duri the jaga, the four new people's faces, the heroes' empire poses, the
+# empire's pins, icons and rank badges
+EMP_PROPS = (('emp-props1', ('shophouse', 'zichar', 'bumboat')), ('emp-props2', ('karaoke', 'kopitiam', 'taxi')), ('emp-props3', ('provision', 'rooftop', 'icekacang')),
+             ('emp-props4', ('prata', 'spice', 'cafe')), ('emp-props5', ('textile', 'beachbar', 'kayak')))
+EMP_BIZ = tuple(f'biz-{b}-' for _, ids in EMP_PROPS for b in ids)
+for f, ids in EMP_PROPS:
+    grid(f, [f'biz-{b}-{l}' for b in ids for l in range(4)], 4, 3, 112, ref=f'biz-{ids[0]}-1')
+each('emp-dmg', ['emp-boards', 'emp-mess', 'emp-sign-broken', 'emp-scaffold', 'emp-forsale', 'emp-stool', 'emp-ledger', 'emp-cashbox', 'emp-coinbag', 'emp-rosette', 'emp-boards-honest', 'emp-boards-fake'], 4, 3,
+     {'emp-boards': 110, 'emp-mess': 64, 'emp-sign-broken': 60, 'emp-scaffold': 110, 'emp-forsale': 42, 'emp-stool': 40, 'emp-ledger': 50, 'emp-cashbox': 34, 'emp-coinbag': 30, 'emp-rosette': 30, 'emp-boards-honest': 50, 'emp-boards-fake': 50})
+RAID_POSES = ('till-0', 'till-1', 'kick', 'gloat')
+each('emp-raid1', [f'{g}-{p}' for g in ('crow', 'mac', 'otter') for p in RAID_POSES], 4, 3, 56, dim='h')
+each('emp-raid2', [f'{g}-{p}' for g in ('liz', 'myna') for p in RAID_POSES] + ['duri-walk-0', 'duri-walk-1', 'duri-alert', 'duri-shoo'], 4, 3,
+     {**{f'liz-{p}': 40 for p in RAID_POSES}, **{f'myna-{p}': 46 for p in RAID_POSES}, 'duri-walk-0': 60, 'duri-walk-1': 60, 'duri-alert': 62, 'duri-shoo': 62}, dim='h')
+fit('emp-faces', [f'face-{w}{m}' for w in ('huat', 'siew', 'hoot', 'duri') for m in ('', '-happy', '-worried', '-cross')], 4, 4, 256)
+for h in ('dora', 'enzo'):
+    grid(f'{h}-act13', [f'{h}-{a}' for a in ('repair-0', 'repair-1', 'shake', 'send', 'bag-0', 'bag-1', 'count-0', 'count-1')], 4, 2, 58, ref=f'{h}-send', fix=cream if h == 'dora' else None)
+fit('emp-ui', ['pin-prop', 'pin-prop-own', 'pin-raid', 'i-empire', 'i-ledger', 'i-repair', 'i-jaga', 'i-round', 'rank-1', 'rank-2', 'rank-3', 'rank-4'], 4, 3, 160)
 # ── the job givers standing in the world (jobs7): six frames each, facing the street; each row scaled from its own idle
 CAST_H = {'kee': 52, 'mo': 60, 'pang': 56, 'heron': 70, 'ren': 58, 'kiri': 58, 'lim': 54, 'bo': 72, 'bristle': 62, 'gizmo': 58, 'glint': 64,
           'pip': 50, 'hoon': 58, 'teo': 66, 'beng': 60, 'ong': 56, 'lily': 70, 'goh': 56, 'sleek': 58, 'kow': 62, 'kamal': 58, 'vanda': 66,
-          'lepak': 66, 'kaw': 64, 'tock': 52, 'raju': 58, 'malar': 56, 'kancil': 58, 'wangi': 62, 'duyung': 72, 'helang': 66, 'bising': 56, 'nine': 60}
+          'lepak': 66, 'kaw': 64, 'tock': 52, 'raju': 58, 'malar': 56, 'kancil': 58, 'wangi': 62, 'duyung': 72, 'helang': 66, 'bising': 56, 'nine': 60,
+          'huat': 68, 'siew': 74, 'hoot': 62, 'duri': 60}
 CAST_POSES = ('idle-0', 'idle-1', 'wave-0', 'wave-1', 'talk-0', 'talk-1')
 for f, who in (('cast1', ['kee', 'mo', 'pang', 'heron']), ('cast2', ['ren', 'kiri', 'lim', 'bo']), ('cast3', ['bristle', 'gizmo', 'glint', 'pip']),
                ('cast4', ['hoon', 'teo', 'beng', 'ong']), ('cast5', ['lily', 'goh', 'sleek', 'kow']), ('cast6', ['kamal', 'vanda', 'lepak', 'kaw']), ('cast7', ['tock']),
-               ('cast8', ['raju', 'malar', 'kancil', 'wangi']), ('cast9', ['duyung', 'helang', 'bising', 'nine'])):
+               ('cast8', ['raju', 'malar', 'kancil', 'wangi']), ('cast9', ['duyung', 'helang', 'bising', 'nine']), ('cast10', ['huat', 'siew', 'hoot', 'duri'])):
     gx, gy = (3, 2) if len(who) == 1 else (6, 4)
     for r, n in enumerate(who):
         names = [f'npc-{n}-{p}' for p in CAST_POSES] if len(who) == 1 else [f'npc-{n}-{p}' if j // 6 == r else None for j, p in enumerate(CAST_POSES * 4)]
@@ -412,6 +432,7 @@ for f, names in (('ground', ['road', 'walk', 'plaza', 'grass', 'canal', 'plank']
 # ── full paintings
 PLAIN = {}
 BIG = ['loading'] + [f'stall-{d}' for d in ('market', 'temple', 'canal', 'docks', 'arcade')] + [f'story-{i}' for i in range(1, 5)] + [f'chapter-{i}' for i in range(1, 6)] + [f'end-{i}' for i in range(1, 4)] + ['gadget-shop', 'chapter-6', 'end-4', 'mrt-ride', 'stall-heartland', 'stall-bay', 'chapter-7', 'end-5', 'cable-ride', 'stall-india', 'stall-glam', 'stall-resort']
+BIG += ['empire']  # the tenth pass: the Empire page's banner
 for n, size in (('title', (1536, 1024)), ('mg-lock', (1280, 853)), ('mg-wire', (1280, 853)), ('mg-wok', (1280, 853)), ('mg-board', (1280, 853)), ('mg-haggle', (1280, 853)), ('mg-kopi', (1280, 853)), ('mg-safe', (1280, 853)), ('map-paper', (1024, 683))) + tuple((b, (1280, 853)) for b in BIG):
     p = SRC / f'{n}-crow.png' if (SRC / f'{n}-crow.png').exists() else SRC / f'{n}.png'
     if not p.exists(): MISSING.append(n); continue
@@ -437,6 +458,8 @@ if (SRC / 'map-frame.png').exists():
 # ── atlases
 NEW_BLD = tuple(f'shop-{i}' for i in range(7, 13)) + tuple(f'roof-{i}' for i in range(7, 13)) + ('bld-pavilion', 'bld-incense', 'bld-callig', 'bld-boathouse', 'bld-flowers', 'bld-wheel', 'bld-fish', 'bld-rope', 'bld-chandler', 'bld-hotel', 'bld-robot', 'bld-boba')
 GROUPS = [('dora', lambda n: n.startswith('dora-')), ('enzo', lambda n: n.startswith('enzo-')),
+          # the tenth pass's empire: the new properties, the damage and props, the raiders and Pak Duri, the rank badges
+          ('empire', lambda n: n.startswith(('emp-', 'duri-', 'rank-') + EMP_BIZ) or n.endswith(('-till-0', '-till-1', '-kick', '-gloat'))),
           ('city2', lambda n: n in NEW_BLD),
           # the ninth pass's districts: loaded in the background after the game starts (lib/jade-scene.ts LAZY)
           ('east', lambda n: n.startswith(('india-', 'glam-'))), ('resort', lambda n: n.startswith('resort-')),
