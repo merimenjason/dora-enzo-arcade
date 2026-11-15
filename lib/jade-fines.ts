@@ -10,7 +10,8 @@
 import { T, W, G, OW, districtAt } from './jade-city.js';
 import { drive, type Body } from './jade-move.js';
 import { los, downhill, nearestFree } from './jade-nav.js';
-import { dist, clamp } from './jade-rng.js';
+import { dist, clamp, angDiff } from './jade-rng.js';
+import { mindStep, type Mind } from './jade-aware.js';
 import { pedTile } from './jade-folk.js';
 import { addHeat } from './jade-heat.js';
 import { LIGHTS, lightOf } from './jade-traffic.js';
@@ -35,7 +36,9 @@ export const fineAmount = (kind: Offence, before: number) => Math.round(FINE[kin
 /** how far a ticket warden notices things, by difficulty */
 const SIGHT = { easy: 300, normal: 360, hard: 400 } as const;
 /** `ride`: a scooter warden, who keeps to the roads */
-export type Patrol = { id: number; b: Body; goal: [number, number] | null; pace: number; write: number; spot: number; ride?: boolean };
+export type Patrol = { id: number; b: Body; goal: [number, number] | null; pace: number; write: number; spot: number; ride?: boolean;
+  /** what a warden on foot has noticed (lib/jade-aware.ts): a noise turns them, they walk over to look, then grumble off */
+  mind?: Mind };
 export type Ticket = { kind: Offence; amt: number; t: number; pid: number; x: number; y: number };
 
 // ── the zebra crossings, as a tile mask: a few tiles either side of each painted crossing are fair game
@@ -61,7 +64,8 @@ const roadAxis = (tx: number, ty: number): 'h' | 'v' | null => { for (const r of
 export function witness(w: World, x: number, y: number): Patrol | null {
   if (w.p.roof || w.p.hide) return null;
   const r = SIGHT[w.s.settings.diff] * (w.p.shade && !w.p.ride ? 0.6 : 1);
-  for (const pt of w.patrols) if (dist(pt.b.x, pt.b.y, x, y) < r * (pt.ride ? 1.25 : 1) && los(w.c, pt.b.x, pt.b.y, x, y)) return pt;
+  // a warden on foot watches what is in front of them; behind, only what is close
+  for (const pt of w.patrols) { const k = pt.ride ? 1.25 : Math.abs(angDiff(pt.b.h, Math.atan2(y - pt.b.y, x - pt.b.x))) < 1.9 ? 1 : 0.45; if (dist(pt.b.x, pt.b.y, x, y) < r * k && los(w.c, pt.b.x, pt.b.y, x, y)) return pt; }
   return null;
 }
 
@@ -135,6 +139,8 @@ export function finesStep(w: World, dt: number) {
       for (let k = 0; k < 12; k++) { const a = w.R() * Math.PI * 2, d = (4 + w.R() * 8) * T; const tx = Math.floor((pt.b.x + Math.cos(a) * d) / T), ty = Math.floor((pt.b.y + Math.sin(a) * d) / T); if (pedTile(w.c, tx, ty) && w.open.has(districtAt(tx, ty))) { goal = [tx * T + T / 2, ty * T + T / 2]; break; } }
       pt.goal = goal;
     }
+    // a noise nearby: the warden turns, walks over to look and grumbles off again (not while writing a ticket)
+    if (!pt.ride && !tk && pt.write <= 0) { const r = mindStep(w, pt, dt, { seen: null, home: null }); if (r !== 'route') continue; }
     if (pt.write > 0 || !goal) { pt.b.speed *= 0.8; continue; }
     if (tk && dist(pt.b.x, pt.b.y, px, py) < 46) { pt.b.speed *= 0.7; continue; }
     const f = w.fieldTo(pt.ride ? 'small' : 'walk', goal[0], goal[1]); const n = downhill(w.c, f, pt.b.x, pt.b.y, w.open) ?? goal;

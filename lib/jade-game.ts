@@ -21,7 +21,7 @@ import { heatStep, addHeat, caught, type Warden, type Roadblock } from './jade-h
 import { sgStep, sgNear, sgAct, sgGates, newSg, cheer, type SgState, type Bark } from './jade-sg.js';
 import { finesStep, payTicket, offence, FINE, type Patrol, type Ticket } from './jade-fines.js';
 import { gangsStep, gangNear, gangAct, newGangs, type GangState } from './jade-gangs.js';
-import { stationNear, mrtTo, cantRide } from './jade-mrt.js';
+import { stationNear, mrtTo, cantRide, routeToStation, stationById, MRT_TEXT } from './jade-mrt.js';
 import { hail, taxiStep, skipRide, type Taxi } from './jade-taxi.js';
 
 export const DT = 1 / 60;
@@ -41,7 +41,7 @@ export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; i
   /** the island: a station's ticket gates, the train ride view, the taxi's drop-off list */
   | { kind: 'mrt'; from: string } | { kind: 'ride-view'; from: string; to: string } | { kind: 'taxi' }
   /** the job steps: a heist's quiet-or-loud choice, a witness's three questions (and what they said back) */
-  | { kind: 'heist' } | { kind: 'ask'; i: number; said?: string; ok?: boolean };
+  | { kind: 'heist' } | { kind: 'branch' } | { kind: 'ask'; i: number; said?: string; ok?: boolean };
 
 export class Player {
   constructor(public who: Hero = 'dora') { }
@@ -75,6 +75,8 @@ export class World {
   failed: { reason: string } | null = null; banner: { text: string; sub: string; t: number } | null = null;
   snatchT = 20; spawnT = 0; daySales: Record<string, number> = {}; profitBase = 0; tripCost: Record<Good, number>;
   fieldCache = new Map<string, Field>();
+  /** noises made this frame or the last (lib/jade-aware.ts): what guards, wardens and gangs hear */
+  noises: Noise[] = [];
   quiet = false;
   /** a street event in progress (lib/jade-events.ts), the wait till the next, and a busker's crowd */
   street: StreetEvent | null = null; streetT = 30; crowd: { x: number; y: number } | null = null; pushing = false;
@@ -98,6 +100,8 @@ export class World {
   fineCd = new Map<string, number>(); warned = new Set<string>(); lastTile = -1; lastTileRide = 0; gangs: GangState = newGangs();
   /** the island: a hailed taxi (lib/jade-taxi.ts), the station the last train ride arrived at (lib/jade-mrt.ts) */
   taxi: Taxi | null = null; lastMrt = '';
+  /** the partner thinking for themselves (lib/jade-pal.ts) */
+  pal: PalState = newPal();
   /** the page has something important on screen: passers-by hold their remarks (lib/jade-notice.ts) */
   hush = false;
   /** the job givers standing in the world (lib/jade-cast.ts), solid like lamp posts; castK says when to refresh */
@@ -183,7 +187,7 @@ export class World {
   step(inp: Input, dt = DT, inp2?: Input) {
     if (this.talk || this.ui || this.failed) return;
     if (inp.swap) this.switchHero();
-    this.time += dt; this.tick++;
+    this.time += dt; this.tick++; noiseStep(this);
     if (this.tick % 6 === 1 || !this.castK) this.refreshCast();
     this.s.stats.playTime += dt;
     this.clock(dt);
@@ -199,7 +203,7 @@ export class World {
     const cab = this.taxi?.st === 'ride';
     if (!cab) this.playerStep(inp, dt);
     this.p.grabT = Math.max(0, this.p.grabT - dt); this.p.cheerT = Math.max(0, this.p.cheerT - dt);
-    if (cab) { /* in the back of a taxi: both heroes ride along */ } else if (this.two) this.p2Step(inp2 ?? NO_INPUT, dt); else mateStep(this, dt);
+    if (cab) { /* in the back of a taxi: both heroes ride along */ } else if (this.two) this.p2Step(inp2 ?? NO_INPUT, dt); else { mateStep(this, dt); palStep(this, dt); }
     if (inp.hail && !cab) hail(this);
     taxiStep(this, dt);
     leash(this); this.leashT = Math.max(0, this.leashT - dt);
@@ -224,6 +228,12 @@ export class World {
     const fxs = this.fx.slice(f0).map(f => f.t);
     if (fxs.includes('text')) this.phoneT = 1.6;
     tutorStep(this, dt, fxs);
+    // the Jade Line hint: while it shows, the gold route line leads to Chinatown station (unless you set your own pin)
+    if (this.tutor.cur === 'mrt' && !this.waypoint && !this.mrtGuide) this.mrtGuide = routeToStation(this, 'stn-chinatown');
+    if (this.tutor.cur !== 'mrt' && this.mrtGuide) {
+      this.mrtGuide = false; const s = stationById(this, 'stn-chinatown');
+      if (s && this.waypoint && this.waypoint[0] === s.x && this.waypoint[1] === s.y) { this.waypoint = null; this.route = []; this.updateRoute(); }
+    }
     if (this.fx.length > 300) this.fx.splice(0, this.fx.length - 300);
   }
   /** gadget keys for one player: fire, switch, reload (on a ride the passenger fires for the driver) */
@@ -298,7 +308,7 @@ export class World {
     if (p.ride) return this.rideStep(inp, dt);
     // on foot
     p.sneak = inp.sneak;
-    if (inp.dash && p.dashCd <= 0 && !p.air) { p.dashT = FOOT.dashT; p.dashCd = FOOT.dashCd; this.fx.push({ t: 'dash', x: p.b.x, y: p.b.y }); if (Math.hypot(mx, my) < 0.2) { mx = Math.cos(p.b.h); my = Math.sin(p.b.h); } }
+    if (inp.dash && p.dashCd <= 0 && !p.air) { p.dashT = FOOT.dashT; p.dashCd = FOOT.dashCd; this.fx.push({ t: 'dash', x: p.b.x, y: p.b.y }); noise(this, p.b.x, p.b.y, 'dash'); if (Math.hypot(mx, my) < 0.2) { mx = Math.cos(p.b.h); my = Math.sin(p.b.h); } }
     // on foot, a sharp about-turn at a run skids
     if (Math.hypot(mx, my) > 0.5 && p.b.speed > 180 && p.skidCd <= 0 && Math.abs(angDiff(p.b.h, Math.atan2(my, mx))) > 2.3) { p.skidT = 0.22; p.skidCd = 0.6; this.fx.push({ t: 'skid', x: p.b.x, y: p.b.y + 8, k: 0.6 }); }
     if (inp.hop && p.hopCd <= 0 && !p.air) { p.hopT = FOOT.hopT; p.hopCd = FOOT.hopCd + FOOT.hopT; this.fx.push({ t: 'hop', x: p.b.x, y: p.b.y }); }
@@ -311,10 +321,12 @@ export class World {
     const ctx = this.ctx(p.roof, p.air || wasAir);
     const ox = p.b.x, oy = p.b.y;
     const res = drive(ctx, p.b, mx, my, top, 2400, 30, dt, true);
-    if (res.bump > 160 && !p.air) { p.bumpT = 0.3; this.fx.push({ t: 'bump', x: p.b.x, y: p.b.y, k: 0.5 }); }
+    if (res.bump > 160 && !p.air) { p.bumpT = 0.3; this.fx.push({ t: 'bump', x: p.b.x, y: p.b.y, k: 0.5 }); noise(this, p.b.x, p.b.y, 'crash', 'you', 180); }
+    // running footsteps carry a little way (a walk or a sneak is silent); a hop lands with a thump
+    if (!p.sneak && p.b.speed > FOOT.walk + 15 && !p.air && Math.floor(p.animT * 3) !== Math.floor((p.animT - dt) * 3)) noise(this, p.b.x, p.b.y, 'step');
     const moved = Math.hypot(p.b.x - ox, p.b.y - oy); this.s.stats.walked += moved;
     // landing from a hop: on a roof you must land on a roof; in the street you can't land in a low prop
-    if (wasAir && !p.air) { this.land(); this.fx.push({ t: 'land', x: p.b.x, y: p.b.y, k: 0.4 }); }
+    if (wasAir && !p.air) { this.land(); this.fx.push({ t: 'land', x: p.b.x, y: p.b.y, k: 0.4 }); if (!p.sneak) noise(this, p.b.x, p.b.y, 'hop'); }
     if (p.roof && !p.air) { const tx = Math.floor(p.b.x / T), ty = Math.floor(p.b.y / T); if (this.c.flags[ty * W + tx] & F_ROOF) p.lastRoof = [p.b.x, p.b.y]; }
     // facing and animation
     if (p.b.speed > 8) this.faceFrom(p.b.h);
@@ -372,14 +384,15 @@ export class World {
     if (p.bumpT > 0) return;
     p.bumpT = 0.35; this.s.stats.bumps++;
     this.fx.push({ t: 'bump', x, y, k: Math.min(1, k / 300), kind: what });
+    noise(this, x, y, 'crash', 'you', 160 + Math.min(260, k * 0.6));
     this.run?.onBump(k, what);
     // smashing a stall at speed brings the wardens
     if (what === 'wall') {
       const tx = Math.floor(x / T), ty = Math.floor(y / T);
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const i = (ty + dy) * W + tx + dx; if (this.c.solid[i] === S.TALL && k > 170) { addHeat(this, 0.45, 'stall'); this.fx.push({ t: 'spill', x, y }); return; } }
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const i = (ty + dy) * W + tx + dx; if (this.c.solid[i] === S.TALL && k > 170) { addHeat(this, 0.45, 'stall'); this.fx.push({ t: 'spill', x, y }); noise(this, x, y, 'prop'); return; } }
     }
   }
-  honk() { if (this.p.boostCd > 2.1) return; this.fx.push({ t: 'honk', x: this.p.x, y: this.p.y }); for (const pd of this.peds) if (dist(pd.x, pd.y, this.p.x, this.p.y) < 220) pd.scare = 1; }
+  honk() { if (this.p.boostCd > 2.1) return; this.fx.push({ t: 'honk', x: this.p.x, y: this.p.y }); noise(this, this.p.x, this.p.y, 'horn'); for (const pd of this.peds) if (dist(pd.x, pd.y, this.p.x, this.p.y) < 220) pd.scare = 1; }
 
   // ── getting on and off
   enter(r: Ride) {
@@ -450,7 +463,8 @@ export class World {
     if (p.roof) { const lp = this.run?.nearAction(x, y); if (lp) { this.near = lp; return; } for (const l of this.c.ladders) cand({ kind: 'ladder-down', label: 'Climb down', x: l.rx * T + T / 2, y: l.ry * T + T / 2 }, 70); this.near = best; return; }
     // a giver with no job for you now: walk up and have a word
     if (!this.run) for (const cm of this.cast) if (!cm.job && CHAT[cm.id]) cand({ kind: 'giver', label: `Talk to ${PEOPLE[cm.id].name}`, x: cm.x, y: cm.y, id: cm.id }, 64);
-    if (!this.run) for (const m of offered(this.s)) { const pl = this.c.places[m.at]; if (pl) cand({ kind: 'mission', label: `${PEOPLE[m.giver].name}: “${m.title}”`, x: pl.x, y: pl.y, id: m.id }, 80); }
+    // a job offered at a station's gates is taken from its giver standing there, so E at the gates still rides the train
+    if (!this.run) for (const m of offered(this.s)) { const pl = this.c.places[m.at]; if (!pl) continue; const g = m.at.startsWith('stn-') ? this.cast.find(c => c.id === m.giver) : null; cand({ kind: 'mission', label: `${PEOPLE[m.giver].name}: “${m.title}”`, x: g ? g.x : pl.x, y: g ? g.y : pl.y, id: m.id }, g ? 60 : 80); }
     const rm = this.run?.nearAction(x, y); if (rm) cand(rm, 90);
     for (const [id, pl] of Object.entries(this.c.places)) {
       if (!this.open.has(pl.d)) continue;
@@ -469,7 +483,7 @@ export class World {
     for (const h of this.c.hides) cand({ kind: 'hide', label: 'Hide here', x: h.x, y: h.y }, 52);
     // the island: a station's gates (a job's train step names its stop), a taxi waiting at the kerb
     const stn = stationNear(this);
-    if (stn && (!this.run || this.run.cur?.t === 'train')) cand({ kind: 'station', label: this.run?.cur?.t === 'train' ? `${stn.name}: take the train to ${this.c.places[this.run.cur.to]?.name ?? 'the next stop'}` : `${stn.name}: ride the Jade Line (2 coins)`, x: stn.x, y: stn.y, id: stn.id }, 110);
+    if (stn && (!this.run || this.run.cur?.t === 'train')) cand({ kind: 'station', label: this.run?.cur?.t === 'train' ? `${stn.name}: take the train to ${this.c.places[this.run.cur.to]?.name ?? 'the next stop'}` : `Ride the Jade Line (${stn.name}, 2 coins)`, x: stn.x, y: stn.y, id: stn.id }, 110);
     if (this.taxi?.st === 'wait') cand({ kind: 'taxi', label: 'Get in the taxi', x: this.taxi.b.x, y: this.taxi.b.y }, 110);
     // the island's playgrounds have a slide; after Island Night the Float-About Stage is a dance floor
     if (!this.run && this.c.isle) {
@@ -564,7 +578,8 @@ export class World {
     else if (this.replaying) this.s.cash += Math.round(m.reward / 4);
     this.replaying = false;
     if (m.tip) this.s.tips = this.s.tips.filter(t => !(t.market === m.tip!.market && t.good === m.tip!.good));
-    const before = this.open.size; this.open = new Set(openDistricts(this.s)); this.fieldCache.clear();
+    const before = this.open.size, hadIsle = this.open.has('heartland'); this.open = new Set(openDistricts(this.s));
+    if (!hadIsle && this.open.has('heartland')) text(this, 'kamal', MRT_TEXT); this.fieldCache.clear();
     this.fx.push({ t: 'mission-done', name: m.title, k: m.reward });
     this.banner = { text: 'Job done!', sub: `${m.title} · ${MEDAL_NAME[medal]}${medal ? ' medal' : ''}`, t: 3 };
     this.p.act = { n: 'celebrate', t: 0, dur: 1.1 };
@@ -597,6 +612,8 @@ export class World {
   // ── the route arrow: a path to the current objective
   /** a pin the player dropped on the full map (used when no job is running) */
   waypoint: [number, number] | null = null;
+  /** the first-ride hint set the route to Chinatown station (and clears it when the hint goes) */
+  mrtGuide = false;
   objective(): [number, number] | null {
     if (this.run) return this.run.target();
     if (this.waypoint && dist(this.waypoint[0], this.waypoint[1], this.p.x, this.p.y) < 110) { this.waypoint = null; this.fx.push({ t: 'arrive' }); }
@@ -722,6 +739,8 @@ import { tutorStep, newTutor, type TutorState } from './jade-tutor.js';
 import { rainAt } from './jade-weather.js';
 import { medalOf, MEDAL_NAME } from './jade-medals.js';
 import { closedTiles } from './jade-setpiece.js';
+import { noise, noiseStep, type Noise } from './jade-aware.js';
+import { palStep, newPal, type PalState } from './jade-pal.js';
 import { mateStep, switchHero, leash, seat, board, leaveSeat, newAI, type MateAI } from './jade-duo.js';
 import { tag, distractStep, matePounceHit } from './jade-tag.js';
 import { teamGates } from './jade-team.js';

@@ -5,6 +5,7 @@
 // loot, wardens stunned with heat, townsfolk and stall awnings splattered, soap puddles, bursts that scatter a flock,
 // nets on a getaway cart); ammo, reloads, crates and Tock's stall; two players and the leash; save v5 migration from
 // v2, v3 and v4 with the gadgets the story gave; and the new paintings.
+import { BRANCHES } from '../.checks/jade-jobs.js';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
@@ -78,6 +79,8 @@ function playOnto(id, t, o = {}) {
   const i = MISSION[id].steps.findIndex(st => st.t === t && (!o.where || o.where(st)));
   assert.ok(i >= 0, `${id} has a ${t} step`);
   const run = w.run; run.snap = run.snapshot(i); run.enter(i); w.talk = null;
+  // pass 8: the branch cards on a blend, trap or detective step; these tests take the first way unless told
+  if (run.js && BRANCHES[run.cur.t]) run.js.pick = o.pick ?? BRANCHES[run.cur.t][0];
   return { w, run, i };
 }
 

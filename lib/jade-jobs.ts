@@ -17,6 +17,7 @@ import { FOOT } from './jade-move.js';
 import { dist, angDiff, clamp } from './jade-rng.js';
 import { los, nearestFree } from './jade-nav.js';
 import { addHeat } from './jade-heat.js';
+import { newMind, mindStep, alertMind, tune, hear, goTo, noise, turnTo } from './jade-aware.js';
 import type { Run, Actor } from './jade-mission.js';
 import type { Step, Intel, Spot } from './jade-story.js';
 import type { Player, Near } from './jade-game.js';
@@ -40,8 +41,10 @@ export type JobState = {
   left: number; wave: number; queue: number; spawnT: number; spawned: number; hp: number; mendW: number;
   cool: number; paperCd: number; asked: number[]; clues: number[]; searched: number[]; hidden: number;
   set: number[]; sprung: number[]; caught: number; escaped: number; t: number; heatCd: Record<number, number>;
+  /** pass 8: a sneaky raider has been pointed out; the branch picked on a blend, trap or detective step ('' until then) */
+  sneakWarned: boolean; pick: '' | 'disguise' | 'commotion' | 'nets' | 'chase' | 'ask' | 'bribe';
 };
-export const freshJob = (): JobState => ({ ph: 0, mode: '', entered: false, div: false, alarm: false, entry: null, warnedLock: false, left: 0, wave: 0, queue: 0, spawnT: 0, spawned: 0, hp: 1, mendW: -1, cool: 0, paperCd: 0, asked: [], clues: [], searched: [], hidden: -1, set: [], sprung: [], caught: 0, escaped: 0, t: 0, heatCd: {} });
+export const freshJob = (): JobState => ({ ph: 0, mode: '', entered: false, div: false, alarm: false, entry: null, warnedLock: false, left: 0, wave: 0, queue: 0, spawnT: 0, spawned: 0, hp: 1, mendW: -1, cool: 0, paperCd: 0, asked: [], clues: [], searched: [], hidden: -1, set: [], sprung: [], caught: 0, escaped: 0, t: 0, heatCd: {}, sneakWarned: false, pick: '' });
 const isJob = (st: Step): st is St<JobStepKind> => (JOB_STEPS as readonly string[]).includes(st.t);
 const k = (run: Run) => (run.assist ? 1.4 : 1) * run.w.diff.timer;
 
@@ -77,6 +80,68 @@ function alert(run: Run, rate: number, dt: number, warn: string): boolean {
   if (m.v > 0.5 && !run.jsWarned) { run.jsWarned = true; run.warn(warn); }
   if (m.v < 0.2) run.jsWarned = false;
   return m.v >= 1;
+}
+
+/** what a crew of watchers (a step's guards, or the stealth step's lookouts) does each frame, with lib/jade-aware.ts:
+ * each one sees (its cone, wider once it is on edge), hears and thinks; the Alert meter fills while one sees you; when
+ * it is full the one who saw you goes alert ("!"), calls the others to the spot and chases. You are only caught if an
+ * alert one keeps you in sight too long or reaches you; break its line of sight and it searches, then gives up.
+ * `loud`: no meter (the alarm is already ringing): a guard who sees you chases, and one who reaches you knocks you
+ * over (a little heat) rather than ending the job. Returns true when the job failed (or `onFull` took over) */
+export type CrewCfg = { kind: string; look: boolean; rate: (a: Actor, h: Player) => number; warn: string; spotted: string; caught: string;
+  extra?: () => number; onFull?: () => boolean; loud?: boolean; meter?: boolean; walk?: (a: Actor, dt: number) => void; range?: number; half?: number; calm?: number };
+export function crewWatch(run: Run, dt: number, c: CrewCfg): boolean {
+  const w = run.w, tn = tune(w), crew = run.actors.filter(a => a.kind === c.kind);
+  let rate = 0, who: Actor | null = null, whoH: Player | null = null, anyAlert = false;
+  for (const a of crew) {
+    const m = a.mind ?? (a.mind = newMind());
+    const busy = blind(a), graced = run.grace > 0 && m.st === 'patrol';
+    const edgy = m.st === 'alert' ? 1.45 : m.st === 'patrol' ? 1 : 1.2;
+    let seen: Player | null = null, r = 0;
+    // close up they are sure at once; at the far end of the beam it takes them a while
+    const rg = (c.range ?? sightRange(run)) * (m.st === 'alert' ? 1.15 : 1);
+    for (const h of heroes(run)) if (!busy && !graced && sees(run, a, h, rg, (c.half ?? cone(run)) * edgy)) { const dd = dist(a.b.x, a.b.y, h.x, h.y); const v = c.rate(a, h) * (dd < 90 ? 1.5 : dd > rg * 0.65 ? 0.55 : 1); if (v > r) { r = v; seen = h; } }
+    const res = mindStep(w, a, dt, { seen, home: a.route[a.wp] ?? null, busy });
+    if (res === 'route') (c.walk ?? ((x: Actor, d: number) => guardWalk(run, x, d, c.look)))(a, dt);
+    else a.t += dt;
+    if (r > rate) { rate = r; who = a; whoH = seen; }
+    if (c.loud && seen && m.st !== 'alert') alertMind(w, a, seen.x, seen.y, crew);
+    if (m.st === 'alert') anyAlert = true;
+  }
+  if (c.loud) {
+    // a loud job: a chasing guard who reaches you bowls you over (a moment without control, a little heat)
+    const p = w.p;
+    for (const a of crew) if (a.mind?.st === 'alert' && !p.hide && !p.ride && p.stunT <= 0 && dist(a.b.x, a.b.y, p.x, p.y) < 34) {
+      w.knock(a.b.x, a.b.y, 0.6, 'tumble', 0.7, 0.2); addHeat(w, 0.3, 'story'); a.extra = 1.6; a.mind.st = 'search'; a.mind.t = tn.search * 0.5; a.mind.pts = [];
+      run.warn('A guard bowled you over! Keep moving!'); w.fx.push({ t: 'aware', kind: 'grab', x: p.x, y: p.y });
+    }
+    return false;
+  }
+  if (c.meter === false) return false;
+  rate = Math.max(rate, c.extra?.() ?? 0) * (c.calm ?? 1);
+  const was = run.jsAlert;
+  run.jsAlert = anyAlert;
+  if (was && !anyAlert && run.meter) run.meter.v = Math.min(run.meter.v, 0.6);
+  const full = alert(run, rate, dt, c.warn);
+  if (anyAlert && run.meter) { run.meter.v = Math.max(run.meter.v, 0.98); run.meter.bad = true; }
+  if (full && !anyAlert) {
+    if (c.onFull?.()) return true;
+    const h = whoH ?? w.p, a = who ?? crew.slice().sort((u, v) => dist(u.b.x, u.b.y, h.x, h.y) - dist(v.b.x, v.b.y, h.x, h.y))[0];
+    if (a) { alertMind(w, a, h.x, h.y, crew); run.warn('Spotted! Run and hide until they give up!'); }
+  }
+  for (const a of crew) {
+    const m = a.mind; if (!m || m.st !== 'alert') continue;
+    if (m.pinned >= tn.pin) { run.fail(c.spotted || 'They spotted you! Keep out of their sight lines, sneak, and hide when one shouts.'); return true; }
+    for (const h of heroes(run)) if (!h.hide && !h.ride && dist(a.b.x, a.b.y, h.x, h.y) < 36) { run.fail(c.caught || 'Caught! When a guard shouts, run and break their line of sight.'); return true; }
+  }
+  return false;
+}
+/** the objective line while a crew is on edge */
+export function crewLabel(run: Run): string | null {
+  const ms = run.actors.map(a => a.mind?.st).filter(Boolean);
+  if (ms.includes('alert')) return 'Spotted! Break their line of sight and hide';
+  if (ms.includes('search')) return 'They’re searching for you: stay hidden until they give up';
+  return null;
 }
 
 // ── entering a step
@@ -116,7 +181,7 @@ export function jobEnter(run: Run, st: Step): boolean {
     }
     case 'detective': {
       st.witnesses.forEach((wi, i) => { const [x, y] = run.spot(wi.at); const [sx, sy] = nearestFree(w.c, 'walk', x, y, w.open, 4); const a = run.actor('witness', sx, sy, 'foot', [], 0); a.extra = i; a.skin = wi.sp as Actor['skin']; a.b.h = Math.PI / 2; run.actors.push(a); });
-      run.items = st.spots.map(s => { const [x, y] = run.spot(s.at); return { x, y, got: false, sprite: 'search-pile' }; });
+      run.items = st.spots.map((s, i) => { const [x, y] = run.spot(s.at); return { x, y, got: false, sprite: spotSprite(s.what, i), marks: [] }; });
       js.hidden = hiddenSpot(st); run.timer = st.time * k(run); run.progress = `Clues 0/${st.witnesses.length}`; run.notes = [];
       break;
     }
@@ -153,11 +218,10 @@ export function jobStep(run: Run, st: Step, dt: number): boolean {
 }
 
 function caseStep(run: Run, st: St<'case'>, dt: number) {
-  const p = run.w.p; let seen = false;
-  const calm = run.intel.includes('rota') ? 0.7 : 1;
-  for (const a of run.actors) { guardWalk(run, a, dt, false); for (const h of heroes(run)) if (sees(run, a, h, sightRange(run), cone(run))) seen = true; }
-  if (alert(run, seen ? (p.sneak ? 0.4 : 1) * calm : 0, dt, 'A guard is turning your way! Get out of the torch beam or hide!')) return run.fail('A guard spotted you casing the joint! Keep out of the torch beams and take your photos from cover.');
-  run.label = st.label;
+  const p = run.w.p, calm = run.intel.includes('rota') ? 0.7 : 1;
+  if (crewWatch(run, dt, { kind: 'guard', look: false, rate: () => (p.sneak ? 0.4 : 1) * calm, warn: 'A guard is turning your way! Get out of the torch beam or hide!',
+    spotted: 'A guard spotted you casing the joint! Keep out of the torch beams and take your photos from cover.', caught: 'A guard caught you casing the joint! When one shouts, run and hide until he gives up.' })) return;
+  run.label = crewLabel(run) ?? st.label;
 }
 const photoRange = (run: Run) => run.assist ? 320 : 260;
 
@@ -167,19 +231,16 @@ function heistStep(run: Run, st: St<'heist'>, dt: number) {
   if (run.phase >= 3 && js.ph !== 3) { js.mode = run.phase === 4 ? 'loud' : 'quiet'; js.ph = 3; js.entered = true; js.div = true; if (w.ui?.kind === 'heist') w.ui = null; js.entry = run.spot(run.intel.includes('door') ? st.back : st.front); if (js.mode === 'loud') getaway(run, st); else run.meter = { name: 'Alert', v: 0 }; }
   if (js.ph === 0) { if (!w.ui) { w.ui = { kind: 'heist' }; w.fx.push({ t: 'open' }); } run.label = 'Choose how to do it: quiet or loud'; return; }
   const [sx, sy] = run.spot(st.safe);
-  // cameras sweep; guards walk their beats (dazed ones sit in the confetti)
+  // cameras sweep; guards walk their beats, hear, look and chase (dazed ones sit in the confetti)
   for (const a of run.actors) {
     if (a.kind === 'cam') { a.t += dt; if (!(a.extra2 && a.extra2 > 1e8)) a.b.h = a.face + Math.sin(a.t * 0.7 + a.id) * 0.65; continue; }
     if (a.hits === 1 && (a.extra2 ?? 0) <= 0) { a.hits = 0; w.fx.push({ t: 'look', x: a.b.x, y: a.b.y }); }
-    guardWalk(run, a, dt, false);
   }
   if (js.mode === 'quiet') {
-    let rate = 0; const calm = run.intel.includes('rota') ? 0.7 : 1;
-    for (const a of run.actors) for (const h of heroes(run)) {
-      if (a.kind === 'cam') { if (sees(run, a, h, run.assist ? 200 : 240, 0.32)) rate = Math.max(rate, p.sneak ? 0.7 : 1.3); }
-      else if (sees(run, a, h, sightRange(run), cone(run))) rate = Math.max(rate, (p.sneak ? 0.4 : 1) * calm);
-    }
-    if (js.entered && alert(run, rate, dt, 'Someone is looking your way! Out of the beam, or hide!')) return alarm(run, st);
+    const calm = run.intel.includes('rota') ? 0.7 : 1;
+    const cams = () => { let r = 0; for (const a of run.actors) if (a.kind === 'cam') for (const h of heroes(run)) if (sees(run, a, h, run.assist ? 200 : 240, 0.32)) r = Math.max(r, p.sneak ? 0.7 : 1.3); return r; };
+    if (crewWatch(run, dt, { kind: 'guard', look: false, rate: () => js.entered ? (p.sneak ? 0.4 : 1) * calm : 0, extra: () => js.entered ? cams() : 0, meter: js.entered,
+      warn: 'Someone is looking your way! Out of the beam, or hide!', spotted: '', caught: '', onFull: () => { alarm(run, st); return true; } })) return;
     if (!js.entered) {
       const [ex, ey] = js.entry!, [bx, by] = run.spot(st.back);
       run.label = run.intel.includes('door') ? 'Sneak in at the back door' : 'Sneak in at the front (the back door is locked: you didn’t case it)';
@@ -195,6 +256,7 @@ function heistStep(run: Run, st: St<'heist'>, dt: number) {
     run.label = 'Reach the safe without being seen';
   } else {
     if (!js.div) {
+      crewWatch(run, dt, { kind: 'guard', look: false, rate: () => 0, meter: false, warn: '', spotted: '', caught: '' });
       const [fx, fy] = run.spot(st.front);
       run.label = `Get to the front: ${n} sets off the confetti diversion`;
       const mateThere = dist(w.mate.x, w.mate.y, fx, fy) < 80, youThere = dist(p.x, p.y, fx, fy) < 120;
@@ -202,11 +264,13 @@ function heistStep(run: Run, st: St<'heist'>, dt: number) {
       return;
     }
     if (js.ph === 3) {
+      crewWatch(run, dt, { kind: 'guard', look: false, rate: () => 0, meter: false, warn: '', spotted: '', caught: '' });
       const [dx, dy] = run.spot(st.drop); run.label = 'Getaway! Ride to the drop with the loot';
       if (dist(p.x, p.y, dx, dy) < 110) { w.clearHeat(); w.fx.push({ t: 'win' }); return run.next(); }
       return;
     }
-    // a guard back on its feet who sees you blows the whistle: more heat, not a failure
+    // a guard back on its feet who sees you blows the whistle and gives chase: more heat, not a failure
+    crewWatch(run, dt, { kind: 'guard', look: false, rate: () => 1, loud: true, warn: '', spotted: '', caught: '' });
     for (const a of run.actors) if (a.kind === 'guard' && sees(run, a, p, sightRange(run), cone(run)) && w.time > (js.heatCd[a.id] ?? 0)) { js.heatCd[a.id] = w.time + 3; addHeat(w, 0.35, 'story'); run.warn('A guard blows the whistle!'); w.fx.push({ t: 'whistle', x: a.b.x, y: a.b.y }); }
     run.label = 'Go go go! Crack the safe before the crows recover';
   }
@@ -242,6 +306,35 @@ function getaway(run: Run, st: St<'heist'>) {
   run.timer = null; run.meter = null;
   if (!w.rides.some(r => r.parked && !r.locked && r.kind === 'scooter' && dist(r.b.x, r.b.y, sx, sy) < 260)) { const [rx, ry] = w.rideSpot('scooter', sx + 70, sy + 40); w.addRide('scooter', rx, ry, 0, false, 0, true); }
 }
+/** the branch cards on a blend, trap or detective step (pass 8): which of the two ways to do it */
+export type BranchPick = 'disguise' | 'commotion' | 'nets' | 'chase' | 'ask' | 'bribe';
+export const BRANCHES: Record<'blend' | 'trap' | 'detective', [BranchPick, BranchPick]> = { blend: ['disguise', 'commotion'], trap: ['nets', 'chase'], detective: ['ask', 'bribe'] };
+export const BRIBE = 15;
+/** open the branch cards once, at the start of the step (a checkpoint after the pick restores it) */
+function branchOpen(run: Run, st: St<'blend' | 'trap' | 'detective'>): boolean {
+  const js = run.js!, w = run.w; if (js.pick) return false;
+  if (st.t === 'blend' && run.phase >= 1) { js.pick = 'disguise'; return false; }
+  if (!w.ui) { w.ui = { kind: 'branch' }; w.fx.push({ t: 'open' }); }
+  run.label = 'Choose how to do it';
+  return true;
+}
+export function branchPick(run: Run, pick: BranchPick) {
+  const st = run.cur, w = run.w, js = run.js, p = w.p; if (!st || !js || js.pick || (st.t !== 'blend' && st.t !== 'trap' && st.t !== 'detective')) return;
+  if (!BRANCHES[st.t].includes(pick)) return;
+  js.pick = pick; if (w.ui?.kind === 'branch') w.ui = null; w.fx.push({ t: 'job-pick', kind: pick });
+  if (pick === 'commotion' && st.t === 'blend') {
+    // the partner bangs a wok lid by the clothes rack: every lookout turns to stare at them for a while
+    js.ph = 1; p.disguise = false; js.t = run.assist ? 13 : 9;
+    for (const a of run.actors) if (a.kind === 'watcher') { a.stare = js.t; a.stareAt = w.mate.who; }
+    run.meter = { name: 'Suspicion', v: 0 };
+    w.say(`${nameOf(w.mate.who)} starts the racket! Go while they stare!`, 'good');
+  }
+  if (pick === 'chase' && st.t === 'trap') {
+    // no nets: the gang walks its path and you run each one down with a dash before it gets away
+    js.ph = 2; js.queue = st.n; js.spawnT = 1; run.items = []; run.progress = `Caught 0/${st.catch}`;
+  }
+  if (pick === 'bribe' && st.t === 'detective' && w.s.cash < BRIBE) run.warn(`Kopi costs ${BRIBE} coins each: you’ll have to ask nicely when you run out.`);
+}
 export function heistPick(run: Run, mode: 'quiet' | 'loud') {
   const st = run.cur, w = run.w, js = run.js; if (!st || st.t !== 'heist' || !js || js.ph !== 0) return;
   js.mode = mode; js.ph = 1; w.ui = null; w.fx.push({ t: 'job-pick', kind: mode });
@@ -254,35 +347,60 @@ function defendStep(run: Run, st: St<'defend'>, dt: number) {
   const w = run.w, p = w.p, js = run.js!, [tx, ty] = run.spot(st.at), pb = p.ride ? p.ride.b : p.b;
   js.left -= dt; const total = st.time * (run.assist ? 0.9 : 1);
   const waveLen = total / st.waves, wave = Math.min(st.waves, Math.floor((total - js.left) / waveLen) + 1);
-  if (wave > js.wave && js.left > 2) { js.wave = wave; js.queue += st.per + wave - 1; run.warn(`Wave ${wave} of ${st.waves}! Here come the ${GANG[st.gang]}!`); w.fx.push({ t: 'job-wave', k: wave }); }
+  if (wave > js.wave && js.left > 2) { js.wave = wave; js.queue += st.per + wave * 2 + 1; run.warn(`Wave ${wave} of ${st.waves}! Here come the ${GANG[st.gang]}!`); w.fx.push({ t: 'job-wave', k: wave }); }
   run.progress = `Wave ${js.wave}/${st.waves} · hold ${Math.max(0, Math.ceil(js.left))}s`;
   js.spawnT -= dt;
+  // they come in pairs from opposite sides (so you can't guard one road); from the second wave every third one is a
+  // sneak (two in three from the third wave, off Assist): slow, silent, under a box or a branch, from the side of the stand away from you
   if (js.queue > 0 && js.spawnT <= 0) {
-    js.queue--; js.spawnT = run.assist ? 1.4 : 1.05;
-    const ang = js.spawned * 2.39 + 0.6, R = 640;
-    const cls = st.gang === 'crow' ? 'fly' : 'foot';
-    const [sx, sy] = cls === 'fly' ? [tx + Math.cos(ang) * R, ty + Math.sin(ang) * R] : nearestFree(w.c, 'walk', tx + Math.cos(ang) * R, ty + Math.sin(ang) * R, w.open, 8);
-    const sp = { mac: 128, otter: 112, crow: 118 }[st.gang] * (run.assist ? 0.82 : 1) * w.diff.rival * run.mercy();
-    const a = run.actor('pest', sx, sy, cls, [cls === 'fly' ? [tx, ty] : nearestFree(w.c, 'walk', tx, ty, w.open, 3)], sp);
-    a.skin = st.gang === 'crow' ? undefined : st.gang; a.extra = 0; a.stareX = sx; a.stareY = sy; run.actors.push(a); js.spawned++;
-    if (js.spawned % 2) w.fx.push({ t: st.gang === 'crow' ? 'caw' : 'job-gang' });
+    const pair = Math.min(js.queue, 3); js.spawnT = (run.assist ? 3 : 1.9) * (pair / 3);
+    const base = js.spawned * 1.37 + 0.6;
+    for (let k = 0; k < pair; k++) {
+      js.queue--;
+      const sneaky = js.wave >= 2 && (js.spawned % 3 === 2 || (!run.assist && js.wave >= 3 && js.spawned % 3 === 1));
+      const ang = sneaky ? Math.atan2(ty - pb.y, tx - pb.x) + (k ? 0.5 : -0.5) : base + k * 2.09 + (k ? 0.3 : 0), R = sneaky ? 520 : 600;
+      const cls = st.gang === 'crow' && !sneaky ? 'fly' : 'foot';
+      const [sx, sy] = cls === 'fly' ? [tx + Math.cos(ang) * R, ty + Math.sin(ang) * R] : nearestFree(w.c, 'walk', tx + Math.cos(ang) * R, ty + Math.sin(ang) * R, w.open, 8);
+      const sp = { mac: 128, otter: 112, crow: 118 }[st.gang] * (run.assist ? 0.82 : 1) * w.diff.rival * run.mercy() * (sneaky ? 0.72 : 1);
+      const a = run.actor('pest', sx, sy, cls, [cls === 'fly' ? [tx, ty] : nearestFree(w.c, 'walk', tx, ty, w.open, 3)], sp);
+      a.skin = st.gang === 'crow' ? undefined : st.gang; a.extra = 0; a.stareX = sx; a.stareY = sy; a.sneaky = sneaky; run.actors.push(a); js.spawned++;
+      if (!sneaky && js.spawned % 2) w.fx.push({ t: st.gang === 'crow' ? 'caw' : 'job-gang' });
+    }
   }
   const hitting = p.ride ? pb.speed > 60 : (p.dashT > 0 || p.hopT > 0 || p.b.speed > 150), reach = 30 + pb.r + (run.assist ? 18 : 6);
+  // a sneak only notices a dash, a hop or a ride (walking into one just nudges it)
+  const bowl = p.ride ? pb.speed > 60 : (p.dashT > 0 || p.hopT > 0 || (run.assist && p.b.speed > 150));
+  // how hard a raider at the stand knocks it about each second, and the bite when it runs off with something
+  const hard = w.s.settings.diff === 'hard' ? 1.2 : 1, dwell = run.assist ? 2.2 : 1.6;
+  const chew = (run.assist ? 0.03 : 0.16) * hard * run.mercy(), bite = (run.assist ? 0.05 : 0.21) * hard * run.mercy();
   const m = w.mate;
   for (const a of run.actors) {
     if (a.kind !== 'pest' || a.gone) continue;
     a.t += dt;
     const shoo = (by: Player | null) => { const had = a.extra === 1; a.extra = 2; a.stun = 1.1; a.b.h = Math.atan2(a.b.y - ty, a.b.x - tx); w.fx.push({ t: 'shoo', x: a.b.x, y: a.b.y }); w.fx.push({ t: 'hit', x: a.b.x, y: a.b.y, k: 0, kind: 'pest' }); if (had) { js.hp = Math.min(1, js.hp + 0.05); w.say('Got it back!', 'good'); } if (by) by.act = by.act ?? (by.ride ? null : { n: 'shoo', t: 0, dur: 0.4 }); };
     if (a.extra === 2) { a.stun -= dt; a.b.x += Math.cos(a.b.h) * 260 * dt; a.b.y += Math.sin(a.b.h) * 260 * dt; a.b.speed = 260; if (a.stun <= 0) a.gone = true; continue; }
-    if (dist(a.b.x, a.b.y, pb.x, pb.y) < reach && hitting) { shoo(null); continue; }
-    if (m.ai.mode === 'guard' && !m.seat && dist(a.b.x, a.b.y, m.x, m.y) < 46) { shoo(m); continue; }
+    if (dist(a.b.x, a.b.y, pb.x, pb.y) < reach && (a.sneaky ? bowl : hitting)) { shoo(null); continue; }
+    // dizzy from a toy: it sits there seeing stars (easy to bowl over)
+    if (a.stun > 0) { a.stun -= dt; a.b.speed = 0; if (m.ai.mode === 'guard' && !m.seat && dist(a.b.x, a.b.y, m.x, m.y) < 46) shoo(m); continue; }
+    // the partner on guard sees off the ones walking up in the open; a sneak under its box slips past them
+    if (m.ai.mode === 'guard' && !m.seat && !a.sneaky && dist(a.b.x, a.b.y, m.x, m.y) < 46) { shoo(m); continue; }
+    if (a.extra === 4) {
+      // at the stand, knocking it about: the damage mounts while it stays; then it grabs something and runs
+      a.look -= dt; a.b.speed = 0; js.hp -= chew * dt;
+      if (Math.floor(a.t * 2) !== Math.floor((a.t - dt) * 2)) w.fx.push({ t: 'job-grab', x: tx, y: ty });
+      if (a.look <= 0) {
+        a.extra = 1; js.hp -= bite; a.route = [[a.stareX!, a.stareY!]]; a.wp = 0; w.fx.push({ t: 'snatch', x: tx, y: ty });
+      }
+      if (js.hp < 0.4 && !run.jsWarned) { run.jsWarned = true; run.warn(`The ${st.what.toLowerCase()} can’t take much more! Knock them back!`); }
+      continue;
+    }
     if (a.extra === 0) {
       if (a.b.cls === 'fly') { const dx = tx - a.b.x, dy = ty - a.b.y, l = Math.hypot(dx, dy) || 1; a.b.h = Math.atan2(dy, dx); a.b.x += dx / l * a.speed * dt; a.b.y += dy / l * a.speed * dt; a.b.speed = a.speed; }
       else run.walk(a, dt, a.speed, false);
       if (dist(a.b.x, a.b.y, tx, ty) < 58) {
-        a.extra = 1; js.hp -= (run.assist ? 0.08 : 0.12) * (w.s.settings.diff === 'hard' ? 1.2 : 1) * run.mercy(); a.route = [[a.stareX!, a.stareY!]]; a.wp = 0;
-        w.fx.push({ t: 'job-grab', x: tx, y: ty }); w.fx.push({ t: 'snatch', x: tx, y: ty });
-        if (js.hp < 0.4 && !run.jsWarned) { run.jsWarned = true; run.warn(`The ${st.what.toLowerCase()} can’t take much more! Knock them back!`); }
+        a.extra = 4; a.look = dwell; a.b.h = Math.atan2(ty - a.b.y, tx - a.b.x);
+        w.fx.push({ t: 'job-grab', x: tx, y: ty });
+        if (a.sneaky && !js.sneakWarned) { js.sneakWarned = true; run.warn('A sneaky one crept up the far side! Dash into it!'); }
       }
     } else {
       const [ox, oy] = [a.stareX!, a.stareY!], dx = ox - a.b.x, dy = oy - a.b.y, l = Math.hypot(dx, dy) || 1;
@@ -303,11 +421,29 @@ function defendStep(run: Run, st: St<'defend'>, dt: number) {
 
 function blendStep(run: Run, st: St<'blend'>, dt: number) {
   const w = run.w, p = w.p, js = run.js!;
+  if (branchOpen(run, st)) return;
   if (run.phase >= 1 && js.ph === 0) { js.ph = 1; p.disguise = true; }
+  const loud = js.pick === 'commotion';
+  if (loud && js.t > 0) {
+    // the racket: the partner bangs the lid (its own pose), loud enough for the whole plaza
+    js.t -= dt; w.mate.anim = 'gong'; w.mate.face = 'down';
+    if (Math.floor(js.t * 1.5) !== Math.floor((js.t + dt) * 1.5)) noise(w, w.mate.x, w.mate.y, 'commotion', 'mate');
+    if (js.t <= 0) { run.warn('The racket is over! Out of their sight, quick!'); for (const a of run.actors) if (a.kind === 'watcher') a.stare = 0; }
+  }
   // the crowd strolls up and down the route; the lookouts turn their heads
   for (const a of run.actors) {
     a.t += dt;
-    if (a.kind === 'watcher') { if (!((a.stare ?? 0) > 0)) a.b.h = a.face + Math.sin(a.t * 0.55 + a.id) * 0.9; continue; }
+    if (a.kind === 'watcher') {
+      // a lookout hears a noise (your running feet, a toy, a bump) and turns to look straight at it for a moment
+      const mi = a.mind ?? (a.mind = newMind()); mi.t += dt;
+      const n = !((a.stare ?? 0) > 0) && mi.st !== 'sus' ? hear(w, a.b.x, a.b.y) : null;
+      if (n && n.by !== 'world') { mi.st = 'sus'; mi.t = 0; mi.at = [n.x, n.y]; w.fx.push({ t: 'aware', kind: 'sus', x: a.b.x, y: a.b.y }); }
+      if (mi.st === 'sus' && mi.t > 1.8) mi.st = 'patrol';
+      if ((a.stare ?? 0) > 0) continue;
+      if (mi.st === 'sus') a.b.h = turnTo(a.b.h, Math.atan2(mi.at![1] - a.b.y, mi.at![0] - a.b.x), dt * 5);
+      else a.b.h = turnTo(a.b.h, a.face + Math.sin(a.t * 0.55 + a.id) * 0.9, dt * 3);
+      continue;
+    }
     if (a.kind !== 'crowd') continue;
     if (a.stun > 0) { a.stun -= dt; a.b.speed = 0; continue; }
     const [gx, gy] = a.route[a.wp], [px, py] = a.route[Math.max(0, Math.min(a.route.length - 1, a.wp - a.lookCd))];
@@ -324,14 +460,17 @@ function blendStep(run: Run, st: St<'blend'>, dt: number) {
   const fast = p.dashT > 0 || p.air, calm = !p.ride && !fast && p.b.speed <= FOOT.walk + 15;
   let rate = 0, watched = false;
   for (const a of run.actors) {
+    if (a.mind) a.mind.seen = false;
     if (a.kind !== 'watcher' || blind(a) || paper) continue;
     const d = dist(a.b.x, a.b.y, p.x, p.y);
     const look = d < (run.assist ? 260 : 300) * w.diff.look && Math.abs(angDiff(a.b.h, Math.atan2(p.y - a.b.y, p.x - a.b.x))) < 0.95 && los(w.c, a.b.x, a.b.y, p.x, p.y);
     if (!look && d >= 80) continue;
     watched = true;
-    let r = calm ? (inCrowd ? 0 : 0.14) : fast ? 2.2 : 0.95;
+    // without a disguise (the commotion), anyone they see is a stranger: being in the crowd only helps a little
+    let r = loud ? (fast ? 2.4 : inCrowd ? 0.6 : 1.5) : calm ? (inCrowd ? 0 : 0.14) : fast ? 2.2 : 0.95;
     if (d < 80 && !inCrowd) r += 0.6;
     rate = Math.max(rate, r);
+    if (a.mind && r > 0) { a.mind.seen = true; if (a.mind.st !== 'sus') a.mind.st = run.meter!.v > 0.7 ? 'alert' : 'look'; }
   }
   // bumping into folk turns heads anywhere near a lookout
   if (js.cool <= 0 && !paper && p.b.speed > 70) for (const c of crowd) if (dist(c.b.x, c.b.y, p.x, p.y) < 26) {
@@ -339,6 +478,7 @@ function blendStep(run: Run, st: St<'blend'>, dt: number) {
     if (run.actors.some(a => a.kind === 'watcher' && dist(a.b.x, a.b.y, p.x, p.y) < 520)) { const m = run.meter!; m.v = Math.min(1, m.v + 0.16 * w.diff.look); run.warn('Paiseh! Bumping into folk draws looks.'); }
     break;
   }
+  for (const a of run.actors) if (a.kind === 'watcher' && a.mind && (a.mind.st === 'look' || a.mind.st === 'alert') && !a.mind.seen) a.mind.st = 'patrol';
   const m = run.meter!;
   if (paper) m.v = Math.max(0, m.v - dt * 0.35);
   else if (rate > 0) m.v = Math.min(1, m.v + dt * rate * w.diff.look * (run.assist ? 0.7 : 1) * run.mercy());
@@ -349,13 +489,17 @@ function blendStep(run: Run, st: St<'blend'>, dt: number) {
   if (m.v < 0.3) run.jsWarned = false;
   if (m.v >= 1) return run.fail('The crows saw through the disguise! Walk, don’t run, stay in the crowd, and read your paper when they look your way.');
   const [gx, gy] = run.spot(st.goal);
-  run.label = paper ? 'Behind the paper… nobody here but us pigeons' : !calm && watched ? 'Walk! Running in a disguise looks shifty' : st.label;
-  if (dist(p.x, p.y, gx, gy) < 80) { p.disguise = false; w.fx.push({ t: 'job-disguise', kind: 'off' }); releaseMate(run); if (w.s.stats) w.s.stats.disguises = (w.s.stats.disguises ?? 0) + 1; run.next(); }
+  run.label = loud ? (js.t > 0 ? `They’re all staring at ${nameOf(w.mate.who)}! Get to the goal (${Math.ceil(js.t)}s)` : 'Stay out of the lookouts’ sight and reach the goal') : paper ? 'Behind the paper… nobody here but us pigeons' : !calm && watched ? 'Walk! Running in a disguise looks shifty' : st.label;
+  if (dist(p.x, p.y, gx, gy) < 80) { if (loud) for (const a of run.actors) if (a.kind === 'watcher') a.stare = 0; p.disguise = false; w.fx.push({ t: 'job-disguise', kind: 'off' }); releaseMate(run); if (w.s.stats) w.s.stats.disguises = (w.s.stats.disguises ?? 0) + 1; run.next(); }
 }
 
 function detectiveStep(run: Run, st: St<'detective'>, dt: number) {
   const js = run.js!; void dt;
+  if (branchOpen(run, st)) { if (run.timer !== null) run.timer += dt; return; }
   for (const a of run.actors) { a.t += dt; if (a.kind === 'witness' && dist(a.b.x, a.b.y, run.w.p.x, run.w.p.y) < 140) a.b.h = Math.atan2(run.w.p.y - a.b.y, run.w.p.x - a.b.x); }
+  // the clue markers: each clue you have shows its trace at every spot it fits
+  const tags = js.clues.map(i => st.witnesses[i].tag);
+  run.items.forEach((it, j) => { it.marks = tags.filter(t => st.spots[j].tags.includes(t)).map(t => CLUE_MARK[t] ?? 'clue-paws'); });
   const left = st.witnesses.length - js.clues.length;
   run.label = left > 0 ? `${st.label} (${left} to ask)` : 'Every clue points one way: search the spot that fits them all (E)';
   // Assist: a ring round where the clues point, smaller with each clue (never a pin)
@@ -364,6 +508,14 @@ function detectiveStep(run: Run, st: St<'detective'>, dt: number) {
     run.hint = { x: it.x + Math.cos(a) * r * 0.35, y: it.y + Math.sin(a) * r * 0.35, r };
   } else run.hint = null;
 }
+/** each search spot is painted as what it is (crates of curry puffs, blue bins, a cooler box…) */
+const SPOT_ART: [RegExp, string][] = [[/curry puff/, 'spot-puffs'], [/recycling bins/, 'spot-bins'], [/cooler/, 'spot-cooler'], [/planter/, 'spot-planters'], [/bicycle/, 'spot-bikes'],
+  [/pandan/, 'spot-pandan'], [/newspaper/, 'spot-papers'], [/steamer/, 'spot-steamers'], [/shelf|kueh box|cake/, 'spot-cakes'], [/recycling bin|litter|bin/, 'spot-bin'], [/awning/, 'spot-awning'], [/kopi/, 'spot-kopi']];
+const SPOT_ALL = ['spot-puffs', 'spot-bins', 'spot-cooler', 'spot-planters', 'spot-bikes', 'spot-pandan', 'spot-papers', 'spot-steamers', 'spot-cakes', 'spot-bin', 'spot-awning', 'spot-kopi'];
+export function spotSprite(what: string, i: number) { const w = what.toLowerCase(); for (const [re, f] of SPOT_ART) if (re.test(w)) return f; return SPOT_ALL[i % SPOT_ALL.length]; }
+/** the trace each kind of clue leaves at the spots it fits (painted): bird footprints under a roof, crumbs by food, a
+ * grey feather on something blue, sticky pandan syrup by something sweet, claw scratches up high, paper scraps */
+export const CLUE_MARK: Record<string, string> = { roof: 'clue-prints', food: 'clue-crumbs', blue: 'clue-feathers', sweet: 'clue-syrup', high: 'clue-scratch', paper: 'clue-paper' };
 export function askPick(run: Run, q: number) {
   const w = run.w, st = run.cur, js = run.js, ui = w.ui; if (!st || st.t !== 'detective' || !js || !ui || ui.kind !== 'ask' || ui.said) return;
   const wi = st.witnesses[ui.i];
@@ -380,7 +532,9 @@ export function askClose(run: Run) { const w = run.w; if (w.ui?.kind === 'ask') 
 
 function trapStep(run: Run, st: St<'trap'>, dt: number) {
   const w = run.w, p = w.p, js = run.js!;
-  const R = run.assist ? 70 : 52;
+  if (branchOpen(run, st)) return;
+  const R = run.assist ? 70 : 52, chase = js.pick === 'chase';
+  const bowl = p.ride ? (p.ride.b.speed > 60) : (p.dashT > 0 || p.hopT > 0), reach = 36 + (run.assist ? 16 : 0);
   if (js.ph < 2) { run.label = js.ph === 0 ? `${st.label} (${js.set.length}/${st.need} nets laid)` : 'Now put the bait down where their path ends (E)'; return; }
   js.spawnT -= dt; js.t += dt;
   if (js.queue > 0 && js.spawnT <= 0) {
@@ -394,24 +548,56 @@ function trapStep(run: Run, st: St<'trap'>, dt: number) {
     if (a.kind !== 'lured' || a.gone) continue;
     a.t += dt;
     if (a.extra === 1) { a.b.speed = 0; continue; }
+    // the chase: caught by a dash (sitting there with its paws up), or bolting along its path once it has seen you
+    if (a.extra === 3) { a.b.speed = 0; a.netT = (a.netT ?? 0) + dt; if (a.netT > 2.2) a.gone = true; continue; }
+    if (chase && dist(a.b.x, a.b.y, p.x, p.y) < reach && bowl) {
+      a.extra = 3; a.netT = 0; js.caught++; w.fx.push({ t: 'job-caught', x: a.b.x, y: a.b.y }); w.say(`Caught one! ${js.caught} of ${st.catch}`, 'good'); continue;
+    }
+    if (chase && a.mind?.st === 'alert') { if (run.walk(a, dt, a.speed * 1.55, false)) escape(run, a, 'outran you'); continue; }
     if (a.extra === 2) { a.stun -= dt; a.b.x += Math.cos(a.b.h) * 240 * dt; a.b.y += Math.sin(a.b.h) * 240 * dt; a.b.speed = 240; if (a.stun <= 0) a.gone = true; continue; }
     if (a.look > 0) { a.look -= dt; a.b.speed = 0; if (a.look <= 0) escape(run, a, 'ate the bait and ran'); continue; }
-    // seen: a gang member who spots you close by and ahead of them (or right beside them) turns tail
-    const d = dist(a.b.x, a.b.y, p.x, p.y);
+    // seen: a gang member who spots you close by and ahead of them (or right beside them) stops, stares ("?") and,
+    // if you are still there a moment later, turns tail
+    const d = dist(a.b.x, a.b.y, p.x, p.y), mi = a.mind ?? (a.mind = newMind()), tn = tune(w); mi.t += dt;
     const ahead = Math.abs(Math.atan2(Math.sin(Math.atan2(p.y - a.b.y, p.x - a.b.x) - a.b.h), Math.cos(Math.atan2(p.y - a.b.y, p.x - a.b.x) - a.b.h))) < 1.1;
-    if (!p.hide && (ahead || d < 70) && d < (run.assist ? 120 : 150) && los(w.c, a.b.x, a.b.y, p.x, p.y)) { escape(run, a, 'spotted you'); run.warn('They spotted you! Keep further back from their path.'); continue; }
-    if (run.walk(a, dt, a.speed, false)) { a.look = 1.4; w.fx.push({ t: 'eat', x: a.b.x, y: a.b.y }); }
+    const seeNow = !p.hide && (ahead || d < 70) && d < (run.assist ? 120 : 150) && los(w.c, a.b.x, a.b.y, p.x, p.y);
+    if (seeNow) {
+      if (mi.st !== 'sus' || mi.why !== 'saw') { mi.st = 'sus'; mi.why = 'saw'; mi.t = 0; w.fx.push({ t: 'aware', kind: 'sus', x: a.b.x, y: a.b.y }); }
+      else if (mi.t >= tn.react * 0.9) {
+        mi.st = 'alert';
+        if (chase) { w.fx.push({ t: 'aware', kind: 'alert', x: a.b.x, y: a.b.y }); continue; }
+        escape(run, a, 'spotted you'); run.warn('They spotted you! Keep further back from their path.'); continue;
+      }
+      a.b.speed = 0; a.b.h = turnTo(a.b.h, Math.atan2(p.y - a.b.y, p.x - a.b.x), dt * 5); mi.seen = true; continue;
+    }
+    mi.seen = false;
+    if (mi.st === 'sus' && mi.why === 'saw') { if (mi.t > tn.react * 0.9 + 0.4) mi.st = 'patrol'; else { a.b.speed = 0; continue; } }
+    // a noise: a toy landing or bursting is worth a look (they walk over to it: lure them onto a net); a footstep only
+    // makes them stop and peer
+    const heard = mi.st === 'patrol' || mi.st === 'back' ? hear(w, a.b.x, a.b.y) : null;
+    if (heard && heard.by !== 'world') {
+      mi.at = [heard.x, heard.y]; mi.t = 0; mi.dwell = 0; mi.why = 'heard'; mi.st = heard.lure ? 'look' : 'sus';
+      w.fx.push({ t: 'aware', kind: mi.st, x: a.b.x, y: a.b.y }); if (heard.lure && w.s.stats) w.s.stats.lures = (w.s.stats.lures ?? 0) + 1;
+    }
+    if (mi.st === 'sus') { a.b.speed = 0; a.b.h = turnTo(a.b.h, Math.atan2(mi.at![1] - a.b.y, mi.at![0] - a.b.x), dt * 5); if (mi.t > 0.9) mi.st = 'patrol'; continue; }
+    if (mi.st === 'look') {
+      if (mi.dwell > 0) { mi.dwell -= dt; a.b.speed = 0; a.b.h = mi.base + Math.sin(mi.t * 2.4) * 1.1; if (mi.dwell <= 0) { mi.st = 'back'; mi.pose = 'grumble'; mi.poseT = 0.8; } continue; }
+      if (goTo(w, a.b, mi.at![0], mi.at![1], a.speed * 1.15, dt) < 26 || mi.t > 6) { mi.dwell = 1.6; mi.base = a.b.h; }
+      continue;
+    }
+    if (mi.st === 'back') { if (mi.poseT > 0) { mi.poseT -= dt; a.b.speed = 0; continue; } const [hx, hy] = a.route[a.wp]; if (goTo(w, a.b, hx, hy, a.speed, dt) < 24 || mi.t > 8) mi.st = 'patrol'; continue; }
+    if (run.walk(a, dt, a.speed, false)) { if (chase) escape(run, a, 'got away'); else { a.look = 1.4; w.fx.push({ t: 'eat', x: a.b.x, y: a.b.y }); } }
   }
   run.actors = run.actors.filter(a => !a.gone);
   const spare = st.n - st.catch;
-  run.progress = `Caught ${js.caught}/${st.catch} · nets left ${js.set.length - js.sprung.length}`;
+  run.progress = chase ? `Caught ${js.caught}/${st.catch}` : `Caught ${js.caught}/${st.catch} · nets left ${js.set.length - js.sprung.length}`;
   run.meter = { name: 'Got away', v: clamp(js.escaped / (spare + 1), 0, 1), bad: js.escaped >= spare };
   for (const i of js.set) if (!js.sprung.includes(i)) run.items[i].sprite = run.actors.some(a => a.kind === 'lured' && a.extra === 0 && dist(a.b.x, a.b.y, run.items[i].x, run.items[i].y) < R) ? 'trap-ready' : 'trap-set';
   if (js.caught >= st.catch) { js.t = Math.min(js.t, 0); js.ph = 3; w.fx.push({ t: 'win' }); if (w.s.stats) w.s.stats.traps = (w.s.stats.traps ?? 0) + 1; return run.next(); }
-  if (js.escaped > spare) return run.fail(`The ${GANG[st.gang]} got away! Spring a net while one of them is right on it, and keep out of sight.`);
+  if (js.escaped > spare) return run.fail(chase ? `The ${GANG[st.gang]} got away! Dash into each one before it reaches the end of its path.` : `The ${GANG[st.gang]} got away! Spring a net while one of them is right on it, and keep out of sight.`);
   const walking = run.actors.filter(a => a.kind === 'lured' && a.extra === 0).length + js.queue;
-  if (js.set.length - js.sprung.length === 0 && walking > 0 && js.caught < st.catch) return run.fail('Out of nets! Wait until one of them is right on a net before you spring it.');
-  run.label = `Keep back and spring a net (F) when one of the ${GANG[st.gang]} is on it`;
+  if (!chase && js.set.length - js.sprung.length === 0 && walking > 0 && js.caught < st.catch) return run.fail('Out of nets! Wait until one of them is right on a net before you spring it.');
+  run.label = chase ? `Run them down: dash (Space) into each of the ${GANG[st.gang]} before they get away` : `Keep back and spring a net (F) when one of the ${GANG[st.gang]} is on it`;
 }
 function escape(run: Run, a: Actor, why: string) { const js = run.js!; void why; a.extra = 2; a.stun = 1.4; a.b.h = a.b.h + Math.PI; js.escaped++; run.w.fx.push({ t: 'job-escape', x: a.b.x, y: a.b.y }); }
 /** F in a trap step: spring the net with the most of them on it (or, too early, the nearest one) */
@@ -431,15 +617,14 @@ export function spring(run: Run) {
 }
 
 function swapStep(run: Run, st: St<'swap'>, dt: number) {
-  const w = run.w, p = w.p; let rate = 0;
+  const w = run.w, p = w.p;
   const swapping = p.act?.n === 'crate-swap';
   const nearCrate = run.items.some(it => !it.got && dist(it.x, it.y, p.x, p.y) < 200);
-  for (const a of run.actors) {
-    guardWalk(run, a, dt, true);
-    for (const h of heroes(run)) if (sees(run, a, h, sightRange(run), cone(run))) rate = Math.max(rate, swapping ? 2.4 : nearCrate ? (p.sneak ? 0.5 : 1) * 0.8 : 0);
-  }
-  if (alert(run, rate * (run.assist ? 0.75 : 1), dt, swapping ? 'A guard is looking right at you!' : 'A guard is watching the crates! Wait for them to look away.')) return run.fail('A guard caught you at the crates! Swap while they look the other way, or have your partner distract them (F).');
-  run.label = swapping ? 'Swapping… keep your head down' : st.label;
+  // a guard only cares about someone near the crates (and very much about someone at one)
+  if (crewWatch(run, dt, { kind: 'guard', look: true, rate: () => swapping ? 2.4 : nearCrate ? (p.sneak ? 0.5 : 1) * 0.8 : 0, calm: run.assist ? 0.75 : 1,
+    warn: swapping ? 'A guard is looking right at you!' : 'A guard is watching the crates! Wait for them to look away.',
+    spotted: 'A guard caught you at the crates! Swap while they look the other way, or have your partner distract them (F).', caught: 'A guard grabbed you by the crates! When one shouts, run for cover.' })) return;
+  run.label = crewLabel(run) ?? (swapping ? 'Swapping… keep your head down' : st.label);
 }
 
 // ── what E does in these steps (Near kind 'job'; World.interact calls jobAct with its id)
@@ -464,7 +649,7 @@ export function jobNear(run: Run, x: number, y: number): Near | null {
     }
     case 'detective': {
       let best: Near | null = null, bd = 1e9;
-      for (const a of run.actors) if (a.kind === 'witness' && !js.clues.includes(a.extra!)) { const d = dist(a.b.x, a.b.y, x, y); if (d < 80 && d < bd) { bd = d; best = near(`Ask the ${st.witnesses[a.extra!].name} what they saw`, `ask:${a.extra}`); } }
+      for (const a of run.actors) if (a.kind === 'witness' && !js.clues.includes(a.extra!)) { const d = dist(a.b.x, a.b.y, x, y); if (d < 80 && d < bd) { bd = d; best = near(js.pick === 'bribe' && run.w.s.cash >= BRIBE ? `Hand the ${st.witnesses[a.extra!].name} a kopi (${BRIBE} coins)` : `Ask the ${st.witnesses[a.extra!].name} what they saw`, `ask:${a.extra}`); } }
       run.items.forEach((it, j) => { if (js.searched.includes(j)) return; const d = dist(it.x, it.y, x, y); if (d < 90 && d < bd) { bd = d; best = near(`Search the ${st.spots[j].what}`, `search:${j}`); } });
       return best;
     }
@@ -518,6 +703,13 @@ export function jobAct(run: Run, id: string) {
     }
     case 'ask': {
       if (st.t !== 'detective') return; const a = run.actors.find(a => a.kind === 'witness' && a.extra === i); if (a) face(a.b.x, a.b.y);
+      // the kopi bribe: hand over a takeaway kopi and they tell you straight (costs coins and a moment)
+      if (js.pick === 'bribe' && w.s.cash >= BRIBE) {
+        w.s.cash -= BRIBE; if (w.s.stats) w.s.stats.bribes = (w.s.stats.bribes ?? 0) + 1;
+        p.act = { n: 'bribe', t: 0, dur: 1.1, then: () => { w.ui = { kind: 'ask', i }; w.fx.push({ t: 'open' }); askPick(run, st.witnesses[i].right); } };
+        w.fx.push({ t: 'job-bribe', x: p.x, y: p.y });
+        return;
+      }
       p.act = { n: 'notes', t: 0, dur: 0.35, then: () => { w.ui = { kind: 'ask', i }; w.fx.push({ t: 'open' }); } };
       return;
     }
@@ -621,7 +813,12 @@ export function jobGadget(run: Run, a: Actor, g: GadgetId, pw: number, x: number
     case 'cam':
       if (g === 'paint') { a.extra2 = 1e9; a.hits = 2; w.fx.push({ t: 'blind', x: a.b.x, y: a.b.y }); run.warn('Splat! That camera sees nothing now.'); return true; }
       return false;
-    case 'pest': if (a.extra === 2) return false; { const had = a.extra === 1; a.extra = 2; a.stun = 1.1; a.b.h = Math.atan2(a.b.y - y, a.b.x - x); w.fx.push({ t: 'shoo', x: a.b.x, y: a.b.y }); if (had && run.js) run.js.hp = Math.min(1, run.js.hp + 0.05); } return true;
+    case 'pest': if (a.extra === 2) return false;
+      // a sneak's box (or branch) takes the hit: it is knocked off, and the raider is just a raider again
+      if (a.sneaky) { a.sneaky = false; w.fx.push({ t: 'hit', x: a.b.x, y: a.b.y, k: 0, kind: 'pest' }); return true; }
+      // a toy makes a raider dizzy for a moment (on Assist it sends them packing); you still have to bowl it over
+      if (!run.assist && a.extra !== 1) { if (a.stun > 0) return false; a.stun = 1.7; w.fx.push({ t: 'hit', x: a.b.x, y: a.b.y, k: 0, kind: 'pest' }); return true; }
+      { const had = a.extra === 1; a.extra = 2; a.stun = 1.1; a.b.h = Math.atan2(a.b.y - y, a.b.x - x); w.fx.push({ t: 'shoo', x: a.b.x, y: a.b.y }); if (had && run.js) run.js.hp = Math.min(1, run.js.hp + 0.05); } return true;
     case 'watcher':
       if (g === 'paint') { a.extra2 = 8 * pw; w.fx.push({ t: 'blind', x: a.b.x, y: a.b.y }); }
       if (run.meter) { run.meter.v = Math.min(1, run.meter.v + 0.3); run.warn('Shooting toys in a disguise? Very shifty.'); }

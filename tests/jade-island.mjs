@@ -155,14 +155,14 @@ test('the notice queue: two at a time, bad news first, repeats refresh, stale ch
   startGang(w, 'macaques'); assert.equal(w.barks.length, before, 'passers-by hold their remarks while something important shows');
 });
 
-test('save: a v6 save migrates through v7 to v8 (island counts at zero, island ending unseen); v8 round trips', () => {
-  assert.equal(SAVE_VERSION, 8); assert.equal(SAVE_KEY, 'jade-street-v8'); assert.equal(OLD_KEYS[0], 'jade-street-v7');
+test('save: a v6 save migrates through v7 and v8 to v9 (island counts at zero, island ending unseen); v9 round trips', () => {
+  assert.equal(SAVE_VERSION, 9); assert.equal(SAVE_KEY, 'jade-street-v9'); assert.equal(OLD_KEYS[0], 'jade-street-v8'); assert.equal(OLD_KEYS[1], 'jade-street-v7');
   const v6 = JSON.parse(JSON.stringify({ ...newSave(9), v: 6 })); delete v6.stats.mrt; delete v6.stats.taxi; delete v6.story.isle; v6.done = allDone.slice(0, 25); v6.cash = 777; delete v6.rep.heartland; delete v6.rep.bay;
   const s = loadSave(JSON.stringify(v6));
   assert.equal(s.v, SAVE_VERSION); assert.equal(s.cash, 777); assert.equal(s.stats.mrt, 0); assert.equal(s.stats.photos, 0); assert.equal(s.stats.taxi, 0); assert.equal(s.story.isle, false); assert.equal(s.rep.heartland, 0);
   assert.equal(chapterOf(s), 6); assert.ok(openDistricts(s).includes('heartland'));
   s.stats.mrt = 3; s.done.push('m26'); s.story.isle = true; s.rep.bay = 12;
-  assert.deepEqual(loadSave(JSON.stringify(s)), s, 'v8 round trip');
+  assert.deepEqual(loadSave(JSON.stringify(s)), s, 'v9 round trip');
   // the island's safe houses are bought with island reputation
   s.rep.heartland = 20; s.cash = 900; assert.equal(buySafe(s, 'safe-heartland'), null); assert.ok(safeOpen(s, 'safe-heartland'));
 });

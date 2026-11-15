@@ -321,6 +321,28 @@ each('heist-props', ['job-cam', 'job-cam-paint', 'job-safe', 'job-safe-open', 'j
      {'job-cam': 40, 'job-cam-paint': 40, 'job-safe': 56, 'job-safe-open': 56, 'job-door': 70, 'job-rota': 56, 'job-crate': 54, 'job-crate-fake': 54, 'job-net': 60, 'job-net-sprung': 52, 'job-bait': 34, 'job-rack': 54, 'job-bell': 30, 'job-pile': 64, 'job-decoy': 26, 'job-mess': 50}, lo=90)
 fit('ui8', ['i-camera', 'i-clue', 'i-net', 'i-swap', 'i-defend', 'i-disguise', 'i-dial', 'i-ask'], 4, 2, 128)
 fit('cards8', ['card-quiet', 'card-loud'], 2, 1, 520)
+# ── awareness and the partner's own moves (jobs9): the heroes' warning, own-shot, scoop, hide, getaway, bribe, commotion
+# and guarding poses; guards, lizards, crows and wardens looking round, searching, calling for help and grumbling off;
+# gang members peering at a noise and caught in a chase; sneaky raiders and stall damage; clue markers; search spots;
+# the state bubbles and the branch cards
+for h in ('dora', 'enzo'):
+    fx = cream if h == 'dora' else None
+    grid(f'{h}-act11', [f'{h}-{a}' for a in ('psst-down', 'psst-side', 'ready', 'scoop', 'hold-bag', 'beckon', 'cower', 'peek', 'bribe', 'gong-0', 'gong-1', 'brace')], 4, 3, 58, ref=f'{h}-hold-bag', fix=fx)
+grid('aware-guards', ['guard-look-l', 'guard-look-r', 'guard-search-0', 'guard-search-1', 'guard-call', 'guard-grumble'], 4, 3, 56)
+grid('aware-guards', [None] * 6 + ['liz-look', 'liz-search', 'liz-call'], 4, 3, 50, ref='liz-call')
+grid('aware-guards', [None] * 9 + ['crow-search', 'crow-call', 'crow-grumble'], 4, 3, 54, ref='crow-grumble')
+each('aware-folk', ['warden-listen', 'warden-look-l', 'warden-look-r', 'warden-search', 'warden-grumble', 'mac-peer', 'otter-peer', 'crow-peer', 'mac-caught', 'otter-caught', 'crow-sneak-0', 'crow-sneak-1'], 4, 3,
+     {'warden-listen': 62, 'warden-look-l': 62, 'warden-look-r': 62, 'warden-search': 56, 'warden-grumble': 62, 'mac-peer': 48, 'otter-peer': 46, 'crow-peer': 54, 'mac-caught': 48, 'otter-caught': 44, 'crow-sneak-0': 50, 'crow-sneak-1': 50}, dim='h')
+each('raiders9', ['mac-sneak-0', 'mac-sneak-1', 'otter-sneak-0', 'otter-sneak-1', 'crow-grab', 'mac-grab', 'otter-grab', 'stall-dmg-1', 'stall-dmg-2', 'stall-dmg-3', 'puff-feathers', 'puff-dust'], 4, 3,
+     {'mac-sneak-0': 64, 'mac-sneak-1': 64, 'otter-sneak-0': 70, 'otter-sneak-1': 70, 'crow-grab': 62, 'mac-grab': 58, 'otter-grab': 50, 'stall-dmg-1': 84, 'stall-dmg-2': 84, 'stall-dmg-3': 84, 'puff-feathers': 60, 'puff-dust': 70})
+each('clues9', ['clue-prints', 'clue-feathers', 'clue-crumbs', 'clue-kopi', 'clue-paper', 'clue-pandan', 'clue-scratch', 'clue-straw', 'clue-paws', 'clue-feather', 'clue-syrup', 'clue-wrappers'], 4, 3,
+     {'clue-prints': 44, 'clue-feathers': 40, 'clue-crumbs': 38, 'clue-kopi': 40, 'clue-paper': 40, 'clue-pandan': 42, 'clue-scratch': 44, 'clue-straw': 36, 'clue-paws': 42, 'clue-feather': 26, 'clue-syrup': 38, 'clue-wrappers': 40}, lo=100)
+each('spots9', ['spot-puffs', 'spot-bins', 'spot-cooler', 'spot-planters', 'spot-bikes', 'spot-pandan', 'spot-papers', 'spot-steamers', 'spot-cakes', 'spot-bin', 'spot-awning', 'spot-kopi'], 4, 3,
+     {'spot-puffs': 58, 'spot-bins': 56, 'spot-cooler': 48, 'spot-planters': 66, 'spot-bikes': 68, 'spot-pandan': 56, 'spot-papers': 50, 'spot-steamers': 40, 'spot-cakes': 52, 'spot-bin': 34, 'spot-awning': 44, 'spot-kopi': 30})
+fit('ui9', ['bub-sus', 'bub-alert', 'bub-search', 'bub-grumble', 'bub-call', 'bub-psst', 'ui-paw', 'i-noise'], 4, 2, 96)
+fit('cards9a', ['card-disguise', 'card-commotion'], 2, 1, 520)
+fit('cards9b', ['card-nets', 'card-chase'], 2, 1, 520)
+fit('cards9c', ['card-ask', 'card-bribe'], 2, 1, 520)
 each('mg-parts2', ['mg-dial', 'mg-notch', 'mg-lamp-off', 'mg-lamp-on', 'mg-tumbler', 'mg-scope', 'mg-handle', 'mg-sparkle'], 4, 2,
      {'mg-dial': 300, 'mg-notch': 36, 'mg-lamp-off': 56, 'mg-lamp-on': 76, 'mg-tumbler': 40, 'mg-scope': 90, 'mg-handle': 140, 'mg-sparkle': 90})
 # ── the job givers standing in the world (jobs7): six frames each, facing the street; each row scaled from its own idle
@@ -397,6 +419,7 @@ GROUPS = [('dora', lambda n: n.startswith('dora-')), ('enzo', lambda n: n.starts
           ('rides', lambda n: n.startswith(('v-', 'car-', 'crow-cart', 'crow-boat', 'boss-', 'warden-bike'))),
           ('gear', lambda n: n.startswith(('g-', 'crate-', 'shot-', 'net-open', 'satchel', 'sp-', 'crow-netted', 'cart-netted', 'warden-slip', 'warden-paint', 'warden-dazed', 'crow-drop', 'awning-splat', 'glint-netted', 'lever-', 'sluice-', 'shutter-', 'pulley', 'boost-spot', 'window-', 'loot-bag', 'gadget-stall'))),
           ('jobs', lambda n: n.startswith(('guard-', 'intern-', 'job-', 'card-', 'mac-netted'))),
+          ('aware', lambda n: n.startswith(('clue-', 'spot-', 'bub-', 'stall-dmg-', 'puff-', 'mac-sneak', 'otter-sneak', 'mac-grab', 'otter-grab', 'crow-grab', 'mac-peer', 'otter-peer', 'crow-peer', 'mac-caught', 'otter-caught', 'crow-sneak', 'crow-search', 'crow-call', 'crow-grumble', 'liz-look', 'liz-search', 'liz-call', 'warden-listen', 'warden-look', 'warden-search', 'warden-grumble'))),
           ('faces', lambda n: n.startswith('face-') and n.count('-') >= 2 and n.split('-')[-1] in ('happy', 'worried', 'cross', 'smug')),
           ('set', lambda n: n.startswith(('stall-smash', 'drum-', 'warn-bell', 'bridge-', 'crane-load', 'gate-', 'neon-', 'float', 'decoy-', 'bunting', 'ramp', 'db-', 'glint-', 'biz-'))),
           ('folk', lambda n: n.startswith(('folk-', 'crow-', 'warden-', 'blimp', 'block-', 'cone', 'face-'))),

@@ -3,7 +3,8 @@
 // third pass's effects firing (hit-stop, shake, painted debris, the heirloom slow-mo and zoom punch), and the fourth's
 // (the partner following and riding behind, a gadget fired twice a second with its shots, splats, bursts and puddles),
 // and the fifth's (gangs on the run, a festival, ticket wardens, storm flashes, the chope rush, speech bubbles), and
-// the sixth's (the island's two districts, its trains overhead, the lizards and scooter wardens),
+// the sixth's (the island's two districts, its trains overhead, the lizards and scooter wardens), the eighth's (a
+// casing job with 43 guards hearing, wondering, chasing and searching),
 // at 1280×800 with real keys: running, dashing and hopping on foot, riding a scooter with boosts, a spell of five-lantern
 // heat (wardens, roadblocks and the blimp) and a jump to fresh streets every few seconds. Logs the frame rate per
 // district and fails when any district averages under 55 fps, or on a page error. Needs `npm run dev` (or BASE_URL)
@@ -33,7 +34,8 @@ await p.evaluate(() => { const s = window.__jade.world().s; for (const id of Obj
 // every gadget, with deep satchels, so shots, splats, bursts and puddles are drawn while the partner follows
 await p.evaluate(() => { window.__jade.give(); const s = window.__jade.world().s; for (const g of s.gear.own) { s.gear.ammo[g] = 999; s.gear.lvl[g] = 2; } });
 
-const DISTRICTS = ['market', 'temple', 'canal', 'docks', 'arcade', 'heartland', 'bay'];
+// GUARDS_ONLY=1 skips the districts and times only the eighth pass's crowd of guards
+const DISTRICTS = process.env.GUARDS_ONLY ? [] : ['market', 'temple', 'canal', 'docks', 'arcade', 'heartland', 'bay'];
 const keys = ['w', 'a', 's', 'd'];
 const rows = [];
 for (const d of DISTRICTS) {
@@ -78,6 +80,34 @@ for (const d of DISTRICTS) {
   const sorted = [...s].sort((a, b) => a - b); const p5 = sorted[Math.floor(sorted.length * 0.05)] ?? lo;
   rows.push({ d, avg, p5, lo, n: s.length });
   console.log(`${d.padEnd(7)} ${(MS / 60000).toFixed(1)} min  avg ${avg.toFixed(1)} fps  5th percentile ${p5.toFixed(1)}  lowest half-second ${lo.toFixed(1)}`);
+}
+// the eighth pass: a casing job with forty-odd extra guards on patrol, hearing the dashes and hops, turning, walking
+// over to look, chasing and searching, their torches and bubbles all drawn, while the partner warns and fires
+{
+  const t0 = Date.now(), dur = Math.min(MS, 60000); let k = 0;
+  await p.evaluate(() => {
+    const J = window.__jade, w = J.world(); w.talk = null; w.ui = null; if (w.run) w.quitJob(); if (w.p.ride) w.exit();
+    J.start('m17'); const r = w.run, i = r.m.steps.findIndex(s => s.t === 'case'); r.snap = r.snapshot(i); r.enter(i); w.talk = null; w.s.settings.assist = true;
+    const g0 = r.actors.find(a => a.kind === 'guard');
+    for (let n = 0; n < 40; n++) { const a = r.actor('guard', g0.b.x + ((n % 8) - 4) * 110, g0.b.y + (Math.floor(n / 8) - 2) * 110, 'fly', g0.route, 46); r.actors.push(a); }
+    window.__g0 = [g0.b.x, g0.b.y]; w.placePlayer(g0.b.x + 520, g0.b.y);
+    window.__jade.play.fpsLog.length = 0; window.__jade.play.paused = false; window.__jade.play.bump();
+  });
+  while (Date.now() - t0 < dur) {
+    // stay out of the torches mostly (a failed job would end the test early), with a dash or a hop for them to hear
+    await p.evaluate(k => { const w = window.__jade.world(); if (w.failed) { w.failed = null; w.ui = null; window.__jade.play.paused = false; } const r = w.run; if (r?.meter) r.meter.v = 0; for (const a of r?.actors ?? []) if (a.mind) a.mind.pinned = 0;
+      // back to the edge of the crowd of guards every few seconds, so they keep hearing, looking, chasing and searching
+      if (k % 8 === 0 && window.__g0) { const [x, y] = window.__g0; w.placePlayer(x + 380 + (k % 3) * 80, y + ((k % 5) - 2) * 90); }
+      if (k % 6 === 3) { const c = {}; for (const a of r?.actors ?? []) if (a.mind) c[a.mind.st] = (c[a.mind.st] ?? 0) + 1; window.__mindLog = window.__mindLog ?? {}; for (const [st, v] of Object.entries(c)) window.__mindLog[st] = Math.max(window.__mindLog[st] ?? 0, v); } }, k);
+    const kk = keys[k % 4]; await p.keyboard.down(kk); await p.waitForTimeout(200); await p.keyboard.press(k % 2 ? ' ' : 'q'); await p.waitForTimeout(200); await p.keyboard.up(kk);
+    k++;
+  }
+  const log = await p.evaluate(() => window.__jade.fpsLog());
+  const s = log.slice(2); const avg = s.reduce((a, x) => a + x, 0) / Math.max(1, s.length); const lo = Math.min(...s);
+  const sorted = [...s].sort((a, b) => a - b); const p5 = sorted[Math.floor(sorted.length * 0.05)] ?? lo;
+  const minds = await p.evaluate(() => JSON.stringify(window.__mindLog ?? {}));
+  rows.push({ d: 'guards', avg, p5, lo, n: s.length });
+  console.log(`guards  ${(dur / 60000).toFixed(1)} min  avg ${avg.toFixed(1)} fps  5th percentile ${p5.toFixed(1)}  lowest half-second ${lo.toFixed(1)}  (most guards in each state at once: ${minds})`);
 }
 await b.close();
 const slow = rows.filter(r => r.avg < 55);

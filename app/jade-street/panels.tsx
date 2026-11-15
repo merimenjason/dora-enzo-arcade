@@ -246,6 +246,7 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
       {tab === 'settings' && (
         <div className="jade-settings">
           <label><input type="checkbox" data-testid="set-assist" checked={s.settings.assist} onChange={e => set(x => { x.assist = e.target.checked; })} /> Assist: route line, aim help, gentler timers and lookouts</label>
+          <label>Partner <select data-testid="set-partner" value={s.settings.partner} onChange={e => set(x => { x.partner = e.target.value as 'auto' | 'tag' | 'off'; })}><option value="auto">Helps on their own (warns, fires at troublemakers, grabs loot)</option><option value="tag">Only when I press F</option><option value="off">Off (waits; F still sends them where a job needs two)</option></select></label>
           <label>Difficulty <select data-testid="set-diff" value={s.settings.diff} onChange={e => set(x => { x.diff = e.target.value as 'easy' | 'normal' | 'hard'; })}><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>
           <label><input type="checkbox" data-testid="set-sound" checked={s.settings.sound} onChange={e => set(x => { x.sound = e.target.checked; })} /> Sound effects</label>
           <label><input type="checkbox" data-testid="set-music" checked={s.settings.music} onChange={e => set(x => { x.music = e.target.checked; })} /> Music</label>
@@ -271,6 +272,7 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
           <dt>Walked</dt><dd>{(st.walked / T * 2 / 1000).toFixed(1)} km</dd><dt>Ridden</dt><dd>{(st.driven / T * 2 / 1000).toFixed(1)} km</dd><dt>Boated</dt><dd>{(st.boated / T * 2 / 1000).toFixed(1)} km</dd>
           <dt>Times caught</dt><dd>{st.caught}</dd><dt>Escapes</dt><dd>{st.escapes}</dd><dt>Most lanterns</dt><dd>{st.maxHeat}</dd>
           <dt>Mini-games</dt><dd>{st.minis}</dd><dt>Nights</dt><dd>{s.night}</dd><dt>Play time</dt><dd>{Math.floor(st.playTime / 60)} min</dd>
+          <dt>Guards lured away</dt><dd>{st.lures ?? 0}</dd><dt>Partner helped</dt><dd>{st.palHelps ?? 0} times</dd><dt>Kopi bribes</dt><dd>{st.bribes ?? 0}</dd>
           <dt>Reputation</dt><dd>{DISTRICTS.map(d => `${dName(d)} ${Math.floor(s.rep[d])}`).join(' · ')}</dd>
         </dl>
       )}

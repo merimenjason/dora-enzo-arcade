@@ -1,10 +1,11 @@
-// Jade Street: the save (localStorage 'jade-street-v8'), its repair and migration, progression (districts opened by the
+// Jade Street: the save (localStorage 'jade-street-v9'), its repair and migration, progression (districts opened by the
 // story, reputation tiers, safe houses, outfits, garage upgrades and paint), trophies and the stats screen.
 // Version 1 saves (the pre-release shape: `money`, `done` as a comma string, one shared rep number) and version 2 saves
 // (the first release, 'jade-street-v2': no medals, story flags, lessons, messages or radio) and version 3 saves (the
 // second release: no businesses, no Reduce shake), version 4 saves (the third release: no gadgets), version 5 saves
 // (no Singapore streets), version 6 saves (no island: no MRT or taxi counts, no island ending) and version 7 saves (no
-// job-step counts: photos, heists, traps and the rest) migrate forward, keeping every bit of progress, medals included.
+// job-step counts: photos, heists, traps and the rest) and version 8 saves (no partner setting, no lure, partner-help
+// or kopi-bribe counts) migrate forward, keeping every bit of progress, medals included.
 import { DISTRICTS, type District } from './jade-city.js';
 import { emptyCargo, GOODS, type Cargo, type Tip } from './jade-trade.js';
 import { MISSIONS, SIDE, MISSION, CHAPTER_OPENS, FINALE } from './jade-story.js';
@@ -13,19 +14,25 @@ import { asDiff, type Diff } from './jade-diff.js';
 import { BIZ, newBiz, type BizState } from './jade-biz.js';
 import { newGear, giveGadget, clipOf, ammoCap, GEAR_GIFT, GADGET_IDS, type GearState, type GadgetId } from './jade-gear.js';
 
-export const SAVE_KEY = 'jade-street-v8';
-export const OLD_KEYS = ['jade-street-v7', 'jade-street-v6', 'jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2', 'jade-street-v1'];
-export const SAVE_VERSION = 8;
+export const SAVE_KEY = 'jade-street-v9';
+export const OLD_KEYS = ['jade-street-v8', 'jade-street-v7', 'jade-street-v6', 'jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2', 'jade-street-v1'];
+export const SAVE_VERSION = 9;
 export type Hero = 'dora' | 'enzo';
 /** `keys`: remapped keyboard actions (action -> KeyboardEvent.code); `bigText`: larger HUD text; `cbMarks`: colour-blind-safe
  * markers (shapes and patterns, not only colour) */
-export type Settings = { sound: boolean; music: boolean; assist: boolean; diff: Diff; touch: 'auto' | 'on' | 'off'; shake: boolean; calm: boolean; keys: Record<string, string>; bigText: boolean; cbMarks: boolean };
+export type Settings = { sound: boolean; music: boolean; assist: boolean; diff: Diff; touch: 'auto' | 'on' | 'off'; shake: boolean; calm: boolean; keys: Record<string, string>; bigText: boolean; cbMarks: boolean;
+  /** the partner's own initiative (lib/jade-pal.ts): helps on their own, only when you press F, or off */
+  partner: PartnerMode };
+export type PartnerMode = 'auto' | 'tag' | 'off';
+export const PARTNER_MODES: PartnerMode[] = ['auto', 'tag', 'off'];
 export type Stats = { walked: number; driven: number; boated: number; missions: number; gigs: number; trades: number; profit: number; caught: number; escapes: number; bumps: number; cats: number; murals: number; maxHeat: number; playTime: number; minis: number; bizCoins: number; shots: number; tags: number; switches: number; tolls: number; junk: number; kopi: number; chope: number;
   /** the island: Jade Line rides, taxi rides */
   mrt: number; taxi: number;
   /** the job steps: photos taken casing, heists (and quiet ones), stands held, disguises worn, clues found, traps
    * sprung full, crates swapped */
-  photos: number; heists: number; quiet: number; defends: number; disguises: number; clues: number; traps: number; swaps: number };
+  photos: number; heists: number; quiet: number; defends: number; disguises: number; clues: number; traps: number; swaps: number;
+  /** the eighth pass: guards lured by a noise you made, the partner's own help, witnesses bribed with kopi */
+  lures: number; palHelps: number; bribes: number };
 export type Save = {
   v: number; seed: number; hero: Hero; started: boolean;
   cash: number; night: number; clock: number; cargo: Cargo; stash: Cargo;
@@ -93,8 +100,8 @@ export function newSave(seed = 1): Save {
     upgrades: { speed: 0, grip: 0, cargo: 0 }, paint: 'red',
     outfits: { dora: ['classic'], enzo: ['classic'] }, outfit: { dora: 'classic', enzo: 'classic' },
     cats: [], murals: [], trophies: [], tips: [], safe: 'safe-market', best: {}, daily: '', dailyDone: [],
-    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0, tolls: 0, junk: 0, kopi: 0, chope: 0, mrt: 0, taxi: 0, photos: 0, heists: 0, quiet: 0, defends: 0, disguises: 0, clues: 0, traps: 0, swaps: 0 },
-    settings: { sound: true, music: true, assist: true, diff: 'easy', touch: 'auto', shake: true, calm: false, keys: {}, bigText: false, cbMarks: false },
+    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0, tolls: 0, junk: 0, kopi: 0, chope: 0, mrt: 0, taxi: 0, photos: 0, heists: 0, quiet: 0, defends: 0, disguises: 0, clues: 0, traps: 0, swaps: 0, lures: 0, palHelps: 0, bribes: 0 },
+    settings: { sound: true, music: true, assist: true, diff: 'easy', touch: 'auto', shake: true, calm: false, keys: {}, bigText: false, cbMarks: false, partner: 'auto' },
     medals: {}, story: { intro: false, ch: 0, ending: false, isle: false }, learned: [], msgs: [], radio: 0, helped: 0,
     biz: Object.fromEntries(BIZ.map(b => [b.id, newBiz()])), bizLog: [], gear: newGear(), bag: newBag(), fines: newFines(), lingo: [],
   };
@@ -116,6 +123,7 @@ export function loadSave(raw: string | null): Save {
   if (o.v === 5) o = migrate5(o);
   if (o.v === 6) o = migrate6(o);
   if (o.v === 7) o = migrate7(o);
+  if (o.v === 8) o = migrate8(o);
   const s = newSave(Math.floor(num(o.seed, 1, 1, 2 ** 31)));
   s.hero = o.hero === 'enzo' ? 'enzo' : 'dora';
   s.started = o.started === true;
@@ -143,7 +151,7 @@ export function loadSave(raw: string | null): Save {
   const st = (o.stats ?? {}) as Record<string, unknown>;
   for (const k of Object.keys(s.stats) as (keyof Stats)[]) s.stats[k] = num(st[k], 0, 0, 1e12);
   const se = (o.settings ?? {}) as Record<string, unknown>;
-  s.settings = { sound: se.sound !== false, music: se.music !== false, assist: se.assist !== false, diff: asDiff(se.diff), touch: se.touch === 'on' || se.touch === 'off' ? se.touch : 'auto', shake: se.shake !== false, calm: se.calm === true, keys: keysOf(se.keys), bigText: se.bigText === true, cbMarks: se.cbMarks === true };
+  s.settings = { sound: se.sound !== false, music: se.music !== false, assist: se.assist !== false, diff: asDiff(se.diff), touch: se.touch === 'on' || se.touch === 'off' ? se.touch : 'auto', shake: se.shake !== false, calm: se.calm === true, keys: keysOf(se.keys), bigText: se.bigText === true, cbMarks: se.cbMarks === true, partner: PARTNER_MODES.includes(se.partner as PartnerMode) ? se.partner as PartnerMode : 'auto' };
   const md = (o.medals ?? {}) as Record<string, unknown>;
   for (const [k, v] of Object.entries(md)) if (ids.has(k) && v && typeof v === 'object') { const x = v as Record<string, unknown>; s.medals[k] = { m: Math.floor(num(x.m, 0, 0, 3)), t: num(x.t, 0, 0, 1e6), plays: Math.floor(num(x.plays, 1, 1, 1e6)) }; }
   const sy = (o.story ?? {}) as Record<string, unknown>;
@@ -216,6 +224,12 @@ function migrate6(o: Record<string, unknown>): Record<string, unknown> {
 function migrate7(o: Record<string, unknown>): Record<string, unknown> {
   const st = (o.stats ?? {}) as Record<string, unknown>;
   return { ...o, v: 8, stats: { ...st, photos: 0, heists: 0, quiet: 0, defends: 0, disguises: 0, clues: 0, traps: 0, swaps: 0 } };
+}
+/** version 8 (the seventh release): everything kept, medals too; the partner helps on their own by default and the new
+ * counts start at zero */
+function migrate8(o: Record<string, unknown>): Record<string, unknown> {
+  const st = (o.stats ?? {}) as Record<string, unknown>, se = (o.settings ?? {}) as Record<string, unknown>;
+  return { ...o, v: 9, stats: { ...st, lures: 0, palHelps: 0, bribes: 0 }, settings: { ...se, partner: 'auto' } };
 }
 function keysOf(v: unknown): Record<string, string> {
   const out: Record<string, string> = {}; const used = new Set<string>();
