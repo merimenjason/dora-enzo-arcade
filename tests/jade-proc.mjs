@@ -53,7 +53,7 @@ function checkContract(ctx, k, open) {
   const gp = c.places[k.giver]; assert.ok(gp, `${k.id}: giver ${k.giver} has a place`);
   assert.ok(open.includes(gp.d) || k.ref.contest, `${k.id}: giver's district open`);
   assert.ok(GIVERS.includes(k.giver) && PEOPLE[k.giver], `${k.id}: a known giver`);
-  assert.ok(FRAMES[PEOPLE[k.giver].face], `${k.id}: the giver's face is painted`);
+  assert.ok(FRAMES[PEOPLE[k.giver].face] && FRAMES[`npc-${k.giver}-idle-0`], `${k.id}: the giver is painted, face and body`);
   assert.ok(k.core.length >= 2 && k.core.length <= 4, `${k.id}: ${k.core.length} core steps (${k.core.join()})`);
   assert.ok(k.steps.length >= 3 && k.steps[0].t === 'talk' && k.steps.at(-1).t === 'talk');
   const f = field(c, 'foot', Math.floor(gp.x / T), Math.floor(gp.y / T), new Set(open));
@@ -82,7 +82,7 @@ function checkContract(ctx, k, open) {
 
 test('the tables: givers, voices, gangs, items, kinds and modifiers are complete', () => {
   for (const g of GIVERS) { assert.ok(c.places[g], `place for ${g}`); assert.ok(VOICE[g] && VOICE[g].hi.length && VOICE[g].ok.length && VOICE[g].oops.length, `voice for ${g}`); assert.ok(PEOPLE[g]?.face, `face for ${g}`); }
-  assert.ok(GIVERS.filter(g => FRAMES[PEOPLE[g].face]).length >= 20, 'nearly every giver has a painted face (the rest give no contracts until they do)');
+  assert.ok(GIVERS.filter(g => FRAMES[PEOPLE[g].face] && FRAMES[`npc-${g}-idle-0`]).length >= 16, 'most givers are painted, face and body (the rest give no contracts until they are)');
   for (const [id, gg] of Object.entries(GANG)) { assert.ok(gg.name && gg.one && gg.taunt.length && gg.brag.length, id); assert.ok(FRAMES[gg.boss] || FRAMES['face-' + gg.boss] || PEOPLE[gg.boss], `boss face for ${id}`); }
   for (const it of ITEMS) assert.ok(itemFrame(it.id), `item ${it.id} painted`);
   for (const k of KINDS) assert.ok(KIND_NAME[k]);
