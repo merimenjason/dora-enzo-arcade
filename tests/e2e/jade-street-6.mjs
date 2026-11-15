@@ -105,6 +105,9 @@ export async function sixth(h) {
   await E(); await wait(500); check(await W(() => window.__jade.world().p.act?.n === 'isle-dance'), `${name}: E dances with your partner`); await look('island dance'); await wait(2600);
 
   // ── the job givers in person: walk up to one in each district and talk (they stand facing the street, solid)
+  // (the story is done, so contracts are open: deal tonight's three to other givers and drop the contract of the day, so
+  // these seven just chat; the eleventh pass's suite covers a giver with a contract)
+  await W(() => { const w = window.__jade.world(), cs = w.s.contracts; if (cs) { cs.night = w.s.night; cs.contest = null; cs.offers = [0, 1, 2].map(i => ({ seed: 700 + i, tier: 0, stars: 1, open: [...w.open], avoid: ['kee', 'heron', 'kiri', 'bo', 'gizmo', 'kamal', 'vanda'] })); window.__ev6 = w.event; w.event = null; } });
   await W(() => { const w = window.__jade.world(); w.talk = null; w.ui = null; w.heat = 0; w.wardens = []; window.__jade.play.paused = false; });
   for (const [who, d] of [['kee', 'Smith Street'], ['heron', 'Temple Street'], ['kiri', 'Boat Quay'], ['bo', 'the docks'], ['gizmo', 'Clarke Quay'], ['kamal', 'Toa Payoh'], ['vanda', 'Marina Bay']]) {
     const g = await W(who => { const w = window.__jade.world(); w.refreshCast(); const c = w.cast.find(c => c.id === who && c.home); if (!c) return null; w.talk = null; w.ui = null; if (w.p.ride) w.exit(); w.p.act = null; w.mate.act = null; w.placePlayer(c.x, c.y + 150); return { x: c.x, y: c.y, job: c.job }; }, who);
@@ -121,6 +124,7 @@ export async function sixth(h) {
     if (['kee', 'kamal', 'vanda'].includes(who)) { await wait(300); await look(`giver ${who}`); }
     await key('e', 200); await key('e', 300); await until(() => !window.__jade.world().talk, null, 3000);
   }
+  await W(() => { const w = window.__jade.world(); if (window.__ev6) w.event = window.__ev6; });
   // a giver with a job waves; the job marker bobs over their head
   await W(() => { const w = window.__jade.world(); w.refreshCast(); const c = w.cast.find(c => c.job); w.placePlayer(c.x - 40, c.y + 110); window.__w6 = c.id; }); await wait(600);
   check(await W(() => { const w = window.__jade.world(); const c = w.cast.find(c => c.id === window.__w6 && c.job); return !!c && Math.hypot(c.x - w.p.x, c.y - w.p.y) < 560; }), `${name}: a giver with a job for you, close by`); await look('giver with a job');
