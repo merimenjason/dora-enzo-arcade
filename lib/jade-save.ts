@@ -1,4 +1,4 @@
-// Jade Street: the save (localStorage 'jade-street-v10'), its repair and migration, progression (districts opened by the
+// Jade Street: the save (localStorage 'jade-street-v11'), its repair and migration, progression (districts opened by the
 // story, reputation tiers, safe houses, outfits, garage upgrades and paint), trophies and the stats screen.
 // Version 1 saves (the pre-release shape: `money`, `done` as a comma string, one shared rep number) and version 2 saves
 // (the first release, 'jade-street-v2': no medals, story flags, lessons, messages or radio) and version 3 saves (the
@@ -6,18 +6,20 @@
 // (no Singapore streets), version 6 saves (no island: no MRT or taxi counts, no island ending) and version 7 saves (no
 // job-step counts: photos, heists, traps and the rest) and version 8 saves (no partner setting, no lure, partner-help
 // or kopi-bribe counts) and version 9 saves (no Little India, Kampong Glam or Sentosa: no cable car, ferry or
-// festival counts, no chapter-seven ending) migrate forward, keeping every bit of progress, medals included.
+// festival counts, no chapter-seven ending) and version 10 saves (no empire: no damage, jagas, boosts, ranks or empire
+// counts) migrate forward, keeping every bit of progress, medals included.
 import { DISTRICTS, type District } from './jade-city.js';
 import { emptyCargo, GOODS, type Cargo, type Tip } from './jade-trade.js';
 import { MISSIONS, SIDE, MISSION, CHAPTER_OPENS, FINALE, RESORT_OPENS } from './jade-story.js';
 import { hashStr, rng } from './jade-rng.js';
 import { asDiff, type Diff } from './jade-diff.js';
-import { BIZ, newBiz, type BizState } from './jade-biz.js';
+import { BIZ, STALL_IDS, newBiz, rankOf, type BizState } from './jade-biz.js';
+import { EMPIRE_JOB_IDS } from './jade-empjobs.js';
 import { newGear, giveGadget, clipOf, ammoCap, GEAR_GIFT, GADGET_IDS, type GearState, type GadgetId } from './jade-gear.js';
 
-export const SAVE_KEY = 'jade-street-v10';
-export const OLD_KEYS = ['jade-street-v9', 'jade-street-v8', 'jade-street-v7', 'jade-street-v6', 'jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2', 'jade-street-v1'];
-export const SAVE_VERSION = 10;
+export const SAVE_KEY = 'jade-street-v11';
+export const OLD_KEYS = ['jade-street-v10', 'jade-street-v9', 'jade-street-v8', 'jade-street-v7', 'jade-street-v6', 'jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2', 'jade-street-v1'];
+export const SAVE_VERSION = 11;
 export type Hero = 'dora' | 'enzo';
 /** `keys`: remapped keyboard actions (action -> KeyboardEvent.code); `bigText`: larger HUD text; `cbMarks`: colour-blind-safe
  * markers (shapes and patterns, not only colour) */
@@ -35,7 +37,14 @@ export type Stats = { walked: number; driven: number; boated: number; missions: 
   /** the eighth pass: guards lured by a noise you made, the partner's own help, witnesses bribed with kopi */
   lures: number; palHelps: number; bribes: number;
   /** the ninth pass: cable car and ferry rides, Deepavali lamps lit and Hari Raya bazaar treats, mynahs caught */
-  cable: number; ferry: number; lamps: number; kuih: number; mynahs: number };
+  cable: number; ferry: number; lamps: number; kuih: number; mynahs: number;
+  /** the tenth pass: raids seen off (by you or your partner), raids missed, repairs, the partner's rounds of the tills,
+   * empire jobs finished, health inspections passed with an A */
+  raidsWon: number; raidsMissed: number; repairs: number; rounds: number; empJobs: number; gradeA: number };
+/** the empire (lib/jade-empire.ts): the highest rank reached (its card shows once), empire jobs finished (by id) and the
+ * night each was last done (one a night) */
+export type Empire = { rank: number; jobs: Record<string, number>; last: Record<string, number> };
+export const newEmpire = (): Empire => ({ rank: 0, jobs: {}, last: {} });
 export type Save = {
   v: number; seed: number; hero: Hero; started: boolean;
   cash: number; night: number; clock: number; cargo: Cargo; stash: Cargo;
@@ -69,6 +78,8 @@ export type Save = {
   fines: Fines;
   /** the kopi lingo you have ordered at least once (the glossary ticks them) */
   lingo: string[];
+  /** the tenth pass: the empire's rank and its jobs */
+  empire: Empire;
 };
 export type Bag = { tissue: number; seed: number; banana: number; gum: number; junk: number };
 export type FineRec = { kind: string; amt: number; night: number };
@@ -107,10 +118,10 @@ export function newSave(seed = 1): Save {
     upgrades: { speed: 0, grip: 0, cargo: 0 }, paint: 'red',
     outfits: { dora: ['classic'], enzo: ['classic'] }, outfit: { dora: 'classic', enzo: 'classic' },
     cats: [], murals: [], trophies: [], tips: [], safe: 'safe-market', best: {}, daily: '', dailyDone: [],
-    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0, tolls: 0, junk: 0, kopi: 0, chope: 0, mrt: 0, taxi: 0, photos: 0, heists: 0, quiet: 0, defends: 0, disguises: 0, clues: 0, traps: 0, swaps: 0, lures: 0, palHelps: 0, bribes: 0, cable: 0, ferry: 0, lamps: 0, kuih: 0, mynahs: 0 },
+    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0, tolls: 0, junk: 0, kopi: 0, chope: 0, mrt: 0, taxi: 0, photos: 0, heists: 0, quiet: 0, defends: 0, disguises: 0, clues: 0, traps: 0, swaps: 0, lures: 0, palHelps: 0, bribes: 0, cable: 0, ferry: 0, lamps: 0, kuih: 0, mynahs: 0, raidsWon: 0, raidsMissed: 0, repairs: 0, rounds: 0, empJobs: 0, gradeA: 0 },
     settings: { sound: true, music: true, assist: true, diff: 'easy', touch: 'auto', shake: true, calm: false, keys: {}, bigText: false, cbMarks: false, partner: 'auto' },
     medals: {}, story: { intro: false, ch: 0, ending: false, isle: false, lights: false }, learned: [], msgs: [], radio: 0, helped: 0,
-    biz: Object.fromEntries(BIZ.map(b => [b.id, newBiz()])), bizLog: [], gear: newGear(), bag: newBag(), fines: newFines(), lingo: [],
+    biz: Object.fromEntries(BIZ.map(b => [b.id, newBiz()])), bizLog: [], gear: newGear(), bag: newBag(), fines: newFines(), lingo: [], empire: newEmpire(),
   };
 }
 
@@ -132,6 +143,7 @@ export function loadSave(raw: string | null): Save {
   if (o.v === 7) o = migrate7(o);
   if (o.v === 8) o = migrate8(o);
   if (o.v === 9) o = migrate9(o);
+  if (o.v === 10) o = migrate10(o);
   const s = newSave(Math.floor(num(o.seed, 1, 1, 2 ** 31)));
   s.hero = o.hero === 'enzo' ? 'enzo' : 'dora';
   s.started = o.started === true;
@@ -172,7 +184,10 @@ export function loadSave(raw: string | null): Save {
   for (const b of BIZ) {
     const x = (bz[b.id] ?? {}) as Record<string, unknown>;
     const hist = Array.isArray(x.hist) ? (x.hist as unknown[]).filter((v): v is number => typeof v === 'number' && isFinite(v)).map(v => Math.max(0, Math.round(v))).slice(-10) : [];
-    s.biz[b.id] = { lvl: Math.floor(num(x.lvl, 0, 0, 3)), bank: num(x.bank, 0, 0, 1e6), tonight: num(x.tonight, 0, 0, 1e6), hist, raids: Math.floor(num(x.raids, 0, 0, 1e6)), defended: Math.floor(num(x.defended, 0, 0, 1e6)) };
+    const lvl = Math.floor(num(x.lvl, 0, 0, 3));
+    s.biz[b.id] = { lvl, bank: num(x.bank, 0, 0, 1e6), tonight: num(x.tonight, 0, 0, 1e6), hist, raids: Math.floor(num(x.raids, 0, 0, 1e6)), defended: Math.floor(num(x.defended, 0, 0, 1e6)),
+      dmg: lvl ? Math.floor(num(x.dmg, 0, 0, 1)) : 0, jaga: lvl > 0 && x.jaga === true, boost: Math.floor(num(x.boost, 0, 0, 9)), boostK: num(x.boostK, 1, 1, 2), missed: Math.floor(num(x.missed, 0, 0, 1e6)) };
+    if (!s.biz[b.id].boost) s.biz[b.id].boostK = 1;
   }
   s.gear = gearOf(o.gear, s);
   const bg = (o.bag ?? {}) as Record<string, unknown>; const nb = newBag();
@@ -181,6 +196,8 @@ export function loadSave(raw: string | null): Save {
   s.fines = { paid: num(fi.paid, 0, 0, 1e9), n: Math.floor(num(fi.n, 0, 0, 1e6)), fled: Math.floor(num(fi.fled, 0, 0, 1e6)), by: Object.fromEntries(Object.entries(by).filter(([, v]) => typeof v === 'number' && isFinite(v)).map(([k, v]) => [k, Math.max(0, Math.floor(v as number))])),
     list: Array.isArray(fi.list) ? (fi.list as FineRec[]).filter(f => f && typeof f.kind === 'string' && typeof f.amt === 'number').slice(-12).map(f => ({ kind: f.kind, amt: Math.max(0, Math.round(f.amt)), night: Math.floor(num(f.night, 1, 1, 1e5)) })) : [] };
   s.lingo = strs(o.lingo).slice(0, 40);
+  const em = (o.empire ?? {}) as Record<string, unknown>; const nums = (v: unknown) => Object.fromEntries(Object.entries((v && typeof v === 'object' ? v : {}) as Record<string, unknown>).filter(([k, x]) => /^[a-z0-9-]{1,24}$/.test(k) && typeof x === 'number' && isFinite(x)).map(([k, x]) => [k, Math.max(0, Math.floor(x as number))]));
+  s.empire = { rank: Math.floor(num(em.rank, 0, 0, 4)), jobs: nums(em.jobs), last: nums(em.last) };
   s.bizLog = Array.isArray(o.bizLog) ? (o.bizLog as unknown[]).filter((v): v is number => typeof v === 'number' && isFinite(v)).map(v => Math.max(0, Math.round(v))).slice(-10) : [];
   return s;
 }
@@ -245,6 +262,15 @@ function migrate8(o: Record<string, unknown>): Record<string, unknown> {
 function migrate9(o: Record<string, unknown>): Record<string, unknown> {
   const st = (o.stats ?? {}) as Record<string, unknown>, sy = (o.story ?? {}) as Record<string, unknown>;
   return { ...o, v: 10, stats: { ...st, cable: 0, ferry: 0, lamps: 0, kuih: 0, mynahs: 0 }, story: { ...sy, lights: false } };
+}
+/** version 10 (the ninth release): everything kept (jobs, medals, every stall and safe house you own, their tills); the
+ * empire is new: nothing damaged, no jagas or boosts, the empire counts start at zero, and the rank you already hold
+ * is marked seen so no card pops up for it */
+function migrate10(o: Record<string, unknown>): Record<string, unknown> {
+  const st = (o.stats ?? {}) as Record<string, unknown>;
+  const tmp = newSave(1); const bz = (o.biz ?? {}) as Record<string, Record<string, unknown>>;
+  for (const b of BIZ) tmp.biz[b.id].lvl = Math.floor(num(bz[b.id]?.lvl, 0, 0, 3));
+  return { ...o, v: 11, stats: { ...st, raidsWon: 0, raidsMissed: 0, repairs: 0, rounds: 0, empJobs: 0, gradeA: 0 }, empire: { rank: rankOf(tmp), jobs: {}, last: {} } };
 }
 function keysOf(v: unknown): Record<string, string> {
   const out: Record<string, string> = {}; const used = new Set<string>();
@@ -356,7 +382,15 @@ export const TROPHIES: { id: string; name: string; desc: string; test: (s: Save)
   { id: 'daily', name: 'Regular', desc: 'Finish a daily market event.', test: s => s.dailyDone.some(x => x.startsWith('day:')) },
   { id: 'chefs', name: 'Kitchen Hand', desc: 'Play the mini-games 10 times.', test: s => s.stats.minis >= 10 },
   { id: 'stake', name: 'Stallholder', desc: 'Buy a stake in a business.', test: s => Object.values(s.biz).some(b => b.lvl > 0) },
-  { id: 'magnate', name: 'Quarter Magnate', desc: 'Own all six businesses at their grandest.', test: s => BIZ.every(b => s.biz[b.id]?.lvl >= 3) },
+  { id: 'magnate', name: 'Quarter Magnate', desc: 'Own the first eleven stalls at their grandest.', test: s => STALL_IDS.every(id => s.biz[id]?.lvl >= 3) },
+  // the tenth pass: the empire's ranks (Street Stall is the Stallholder trophy), the whole empire, raids and its jobs
+  { id: 'kopi-boss', name: 'Kopi Boss', desc: 'Reach the empire rank of Kopi Boss.', test: s => rankOf(s) >= 2 },
+  { id: 'tycoon-sh', name: 'Shophouse Tycoon', desc: 'Reach the empire rank of Shophouse Tycoon.', test: s => rankOf(s) >= 3 },
+  { id: 'taipan', name: 'Island Taipan', desc: 'Reach the empire rank of Island Taipan.', test: s => rankOf(s) >= 4 },
+  { id: 'full-house', name: 'Full House', desc: 'Own every property on the island at its grandest.', test: s => BIZ.every(b => s.biz[b.id]?.lvl >= 3) },
+  { id: 'night-watch', name: 'Night Watch', desc: 'See off ten raids on your properties.', test: s => s.stats.raidsWon >= 10 },
+  { id: 'grade-a', name: 'Grade A', desc: 'Pass a health inspection with an A.', test: s => s.stats.gradeA >= 1 },
+  { id: 'emp-jobs', name: 'Towkay', desc: 'Finish every kind of empire job.', test: s => EMPIRE_JOB_IDS.every(id => (s.empire?.jobs[id] ?? 0) > 0) },
   { id: 'defender', name: 'Till Keeper', desc: 'Chase off three crow raids.', test: s => Object.values(s.biz).reduce((a, b) => a + b.defended, 0) >= 3 },
 ];
 /** award any trophies newly earned; returns their names */

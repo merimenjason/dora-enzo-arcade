@@ -206,16 +206,16 @@ test('the Island Lights ending plays once, after Crow Number Nine is stopped; th
   w.finishMission(MISSION.m45); assert.ok(w.fx.some(f => f.t === 'finale' && f.kind === 'lights'));
   w.s.story.lights = true; w.fx = []; w.replaying = true; w.finishMission(MISSION.m45); assert.ok(!w.fx.some(f => f.t === 'finale'));
   const s = newSave(); s.done = allDone; assert.ok(checkTrophies(s).includes('Island Lights'));
-  assert.equal(TROPHIES.length, 35);
+  assert.equal(TROPHIES.length, 42);
   s.stats.mynahs = 10; s.stats.cable = 3; const got = checkTrophies(s); assert.ok(got.includes('Quiet Please') && got.includes('Sky Ride'));
 });
 
 test('save v10: a v9 save keeps every job, medal and coin; the new counts start at zero; the ending is unseen', () => {
-  assert.equal(SAVE_VERSION, 10); assert.equal(SAVE_KEY, 'jade-street-v10'); assert.equal(OLD_KEYS[0], 'jade-street-v9');
+  assert.equal(SAVE_VERSION, 11); assert.equal(SAVE_KEY, 'jade-street-v11'); assert.equal(OLD_KEYS[1], 'jade-street-v9');
   const v9 = { ...newSave(3), v: 9, cash: 912, done: allDone.slice(0, 35), medals: { m12: { m: 3, t: 50, plays: 2 }, m35: { m: 2, t: 300, plays: 1 } } };
   delete v9.stats.cable; delete v9.stats.ferry; delete v9.stats.lamps; delete v9.stats.kuih; delete v9.stats.mynahs; delete v9.story.lights;
   const s = loadSave(JSON.stringify(v9));
-  assert.equal(s.v, 10); assert.equal(s.cash, 912); assert.deepEqual(s.done, v9.done); assert.equal(s.medals.m12.m, 3); assert.equal(s.medals.m35.m, 2);
+  assert.equal(s.v, 11); assert.equal(s.cash, 912); assert.deepEqual(s.done, v9.done); assert.equal(s.medals.m12.m, 3); assert.equal(s.medals.m35.m, 2);
   for (const k of ['cable', 'ferry', 'lamps', 'kuih', 'mynahs']) assert.equal(s.stats[k], 0, k);
   assert.equal(s.story.lights, false); assert.equal(chapterOf(s), 7);
   assert.equal(s.rep.india, 0); assert.equal(s.rep.resort, 0);
@@ -232,3 +232,4 @@ test('the new people stand in the world with a line each, and the mynah roost is
 
 console.log(`jade (ninth pass): ${n} tests ok`);
 await import('./jade-fix9.mjs');
+await import('./jade-empire.mjs');

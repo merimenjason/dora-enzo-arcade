@@ -15,10 +15,12 @@ import type { Save } from './jade-save.js';
 import type { World } from './jade-game.js';
 import type { Mission, Step } from './jade-story.js';
 import type { Run, Actor } from './jade-mission.js';
+import { PROPS, STALL_KIND, upOf, incomeOf, type PropDef, type PropKind } from './jade-props.js';
 
-export type BizId = 'noodle' | 'cake' | 'tea' | 'fan' | 'jade' | 'claw' | 'ckt' | 'chicken' | 'satay' | 'laksa' | 'kopi';
-export type BizDef = { id: BizId; name: string; keeper: string; d: District; at: [number, number]; good: Good | null; price: number; up: [number, number]; income: [number, number, number, number]; rain: number; need: number };
-export const BIZ: BizDef[] = [
+/** the eleven first stalls by name; the tenth pass's properties (lib/jade-props.ts) are plain strings */
+export type BizId = 'noodle' | 'cake' | 'tea' | 'fan' | 'jade' | 'claw' | 'ckt' | 'chicken' | 'satay' | 'laksa' | 'kopi' | (string & {});
+export type BizDef = PropDef & { id: BizId; kind?: PropKind };
+const STALLS: BizDef[] = [
   { id: 'noodle', name: 'Noodle Cart', keeper: 'mo', d: 'market', at: [39, 68], good: 'bowl', price: 500, up: [600, 1000], income: [0, 70, 120, 190], rain: 1.2, need: 15 },
   { id: 'cake', name: 'Mooncake Bakery', keeper: 'kee', d: 'market', at: [22, 59], good: 'mooncake', price: 650, up: [800, 1300], income: [0, 90, 150, 240], rain: 1, need: 20 },
   { id: 'tea', name: 'Hilltop Tea House', keeper: 'pang', d: 'temple', at: [39, 22], good: 'tea', price: 800, up: [950, 1600], income: [0, 110, 185, 290], rain: 1.25, need: 20 },
@@ -32,11 +34,19 @@ export const BIZ: BizDef[] = [
   { id: 'laksa', name: 'Laksa Pot', keeper: 'pang', d: 'market', at: [24, 68], good: null, price: 420, up: [500, 840], income: [0, 60, 104, 162], rain: 1.25, need: 12 },
   { id: 'kopi', name: 'Uncle Teo’s Kopi Stall', keeper: 'teo', d: 'market', at: [15, 73], good: null, price: 280, up: [360, 600], income: [0, 42, 76, 118], rain: 1.2, need: 6 },
 ];
+// the tenth pass: one rule for every property's numbers (lib/jade-props.ts), the first eleven included, then the fifteen
+// new properties across every district
+for (const b of STALLS) { b.up = upOf(b.price); b.income = incomeOf(b.price); b.kind = STALL_KIND[b.id]; }
+export const STALL_IDS = STALLS.map(b => b.id);
+export const BIZ: BizDef[] = [...STALLS, ...PROPS];
 export const BIZ_OF = Object.fromEntries(BIZ.map(b => [b.id, b])) as Record<BizId, BizDef>;
 export const BIZ_IDS = BIZ.map(b => b.id);
 /** what the save keeps per business: level (0 not owned), coins waiting in the till, the last nights' takings */
-export type BizState = { lvl: number; bank: number; tonight: number; hist: number[]; raids: number; defended: number };
-export const newBiz = (): BizState => ({ lvl: 0, bank: 0, tonight: 0, hist: [], raids: 0, defended: 0 });
+export type BizState = { lvl: number; bank: number; tonight: number; hist: number[]; raids: number; defended: number;
+  /** the tenth pass: damaged by a raid nobody answered (earns nothing till repaired), a jaga (night watchman) hired,
+   * nights left of a takings boost from an empire job and how big it is, raids missed */
+  dmg: number; jaga: boolean; boost: number; boostK: number; missed: number };
+export const newBiz = (): BizState => ({ lvl: 0, bank: 0, tonight: 0, hist: [], raids: 0, defended: 0, dmg: 0, jaga: false, boost: 0, boostK: 1, missed: 0 });
 export const bizPos = (b: BizDef): [number, number] => [b.at[0] * T + T / 2, b.at[1] * T + T / 2];
 export const owned = (s: Save) => BIZ.filter(b => (s.biz[b.id]?.lvl ?? 0) > 0);
 export const bizSprite = (id: BizId, lvl: number) => `biz-${id}-${clamp(lvl, 0, 3)}`;
@@ -55,6 +65,7 @@ export const rainyNight = (seed: number, night: number) => showers(seed, night).
 export function bizRate(s: Save, id: BizId, open: District[], o: { daily?: { good: string; market?: District } | null; festival?: boolean } = {}) {
   const b = BIZ_OF[id], st = s.biz[id]; const lvl = st?.lvl ?? 0;
   if (!lvl) return { rate: 0, parts: [] as string[] };
+  if (st.dmg) return { rate: 0, parts: ['damaged in a raid: repair it to trade again'] };
   const parts: string[] = []; let k = 0.75 + s.rep[b.d] / 200;
   parts.push(`reputation ×${k.toFixed(2)}`);
   if (rainyNight(s.seed, s.night) && b.rain !== 1) { k *= b.rain; parts.push(`${b.rain > 1 ? 'rain brings customers' : 'rain keeps buyers away'} ×${b.rain}`); }
@@ -64,6 +75,8 @@ export function bizRate(s: Save, id: BizId, open: District[], o: { daily?: { goo
   if (b.good && s.tips.some(t => t.night === s.night && t.market === b.d && t.good === b.good)) { k *= 1.25; parts.push('a tip for its goods ×1.25'); }
   if (b.good && o.daily && o.daily.good === b.good && (!o.daily.market || o.daily.market === b.d)) { k *= 1.3; parts.push('the daily event ×1.3'); }
   if (o.festival) { k *= 1.2; parts.push('the festival ×1.2'); }
+  if (st.boost > 0 && st.boostK !== 1) { k *= st.boostK; parts.push(`an empire job ×${st.boostK} (${st.boost} night${st.boost > 1 ? 's' : ''} left)`); }
+  if (s.empire?.rank >= 4) { k *= 1.1; parts.push('the Taipan’s name on the door ×1.1'); }
   return { rate: Math.round(b.income[lvl] * k), parts };
 }
 const TILL_NIGHTS = 3;
@@ -79,7 +92,7 @@ export function accrue(w: World, mins: number) {
 /** the night ends: each stall's takings go into its history (the last 10 nights) and the quarter's total */
 export function closeNight(s: Save) {
   let tot = 0;
-  for (const b of owned(s)) { const st = s.biz[b.id]; st.hist.push(Math.round(st.tonight)); if (st.hist.length > 10) st.hist.shift(); tot += st.tonight; st.tonight = 0; }
+  for (const b of owned(s)) { const st = s.biz[b.id]; st.hist.push(Math.round(st.tonight)); if (st.hist.length > 10) st.hist.shift(); tot += st.tonight; st.tonight = 0; if (st.boost > 0 && --st.boost === 0) st.boostK = 1; }
   if (owned(s).length) { s.bizLog.push(Math.round(tot)); if (s.bizLog.length > 10) s.bizLog.shift(); }
 }
 export function canBuy(s: Save, id: BizId, open: District[]): string | null {
@@ -165,3 +178,25 @@ export function raidStep(run: Run, st: Extract<Step, { t: 'raid' }>, dt: number)
 export function raidLost(s: Save, id: BizId) { const st = s.biz[id]; if (!st) return 0; const k = Math.floor(st.bank * 0.4); st.bank -= k; st.raids++; return k; }
 export function raidWon(s: Save, id: BizId) { const st = s.biz[id]; if (st) { st.defended++; st.raids++; } }
 export const raidId = (missionId: string): BizId | null => missionId.startsWith('raid-') ? missionId.slice(5) as BizId : null;
+
+// ── the tenth pass: the empire's ranks. What you have put into your properties (stakes and upgrades paid) sets your
+// rank; the Island Taipan also owns a property in every district. Each rank unlocks something (lib/jade-empire.ts).
+export const RANKS = [
+  { n: 0, name: 'Nobody yet', badge: '', need: 0, perk: '' },
+  { n: 1, name: 'Street Stall', badge: 'rank-1', need: 1, perk: 'The ledger: every till and the last ten nights on your phone' },
+  { n: 2, name: 'Kopi Boss', badge: 'rank-2', need: 6000, perk: 'Send your partner round the tills to collect for you' },
+  { n: 3, name: 'Shophouse Tycoon', badge: 'rank-3', need: 30000, perk: 'Hire a jaga (night watchman) for any property' },
+  { n: 4, name: 'Island Taipan', badge: 'rank-4', need: 70000, perk: 'Every till takes 10% more: the Taipan’s name on the door' },
+] as const;
+/** coins put into a property: its stake and every upgrade bought */
+export const paidFor = (id: BizId, lvl: number) => { const b = BIZ_OF[id]; return lvl <= 0 ? 0 : b.price + (lvl >= 2 ? b.up[0] : 0) + (lvl >= 3 ? b.up[1] : 0); };
+export const empireValue = (s: Save) => BIZ.reduce((a, b) => a + paidFor(b.id, s.biz[b.id]?.lvl ?? 0), 0);
+/** everything bought and upgraded: the whole empire's cost */
+export const EMPIRE_COST = BIZ.reduce((a, b) => a + paidFor(b.id, 3), 0);
+export const DISTRICTS_WITH_PROPS = [...new Set(BIZ.map(b => b.d))];
+export function rankOf(s: Save): number {
+  const v = empireValue(s); let r = 0;
+  for (const k of RANKS) if (v >= k.need && k.n > 0) r = k.n;
+  if (r >= 4 && !DISTRICTS_WITH_PROPS.every(d => BIZ.some(b => b.d === d && (s.biz[b.id]?.lvl ?? 0) > 0))) r = 3;
+  return r;
+}

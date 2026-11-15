@@ -112,4 +112,9 @@ export const CHAT: Record<string, string> = {
   helang: 'Fort Siloso, all present and correct! Salute!',
   bising: 'KECOH! Ah, sorry. Mynahs only have one volume.',
   nine: 'Number Nine. Not Number Two. Never Number Two.',
+  // the tenth pass: they turn up at your properties (lib/jade-empire.ts), not at a place of their own
+  huat: 'Fresh stock every morning, boss. Cash only, no credit, no durian on the MRT.',
+  siew: 'Clean counter, clean floor, clean bins. I can tell from the door, you know.',
+  hoot: 'Hoo-hoo. Half price, always half price. How I do it? Trade secret.',
+  duri: 'Nobody touches the till on my watch, boss. I am small, but I am very pointy.',
 };
