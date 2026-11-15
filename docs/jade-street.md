@@ -448,6 +448,14 @@ The sixth pass's art is in `docs/jade-street-art/jobs6.py`: thirteen sheets (two
 - The eighth pass's browser checks (`tests/e2e/jade-street-8.mjs`, 1280×800, `PASS=8` runs them alone) press and click every new action: the Partner setting's three choices (saved), a real dash behind a guard (suspicious), its torch (alert), hiding (search) and the walk home, the partner's warning and paw, hiding, their own slingshot and a sneaky raider, the branch cards by key 2 and by mouse, the commotion's wok lid, Space into a macaque on the chase, E for the kopi bribe (coins spent, the clue at once) and the clue markers; and the Jade Line: chapter six's card, then the hint and Mr Kamal's text, the route and HUD label to Chinatown station, four station pins and the map key, a click on a pin routing there, the gate prompt, the phone's Jade Line tab and Route me, and the Controls rows.
 - `npm run play:jade`: plays two minutes in each district at 1280×800 with keys, rides, five-lantern heat, rain half the time with a busker's crowd gathered, and constant jumps to fresh streets, then a minute of a casing job with 43 guards hearing dashes and hops, turning, walking over and searching (`GUARDS_ONLY=1` times just that), and fails under 55 fps.
 
+### Results (16-11-2026, ninth pass: Little India, Kampong Glam, Sentosa and chapter seven)
+
+- `npm run test:jade`: 31 + 14 + 13 + 19 + 14 + 14 + 19 + 15 ninth-pass + 9 playtest-fix tests pass with every frame painted (1711 frames, 24 textures, none missing).
+- `npm run bot:jade` (all ten casual seeds, after the last tuning change): casual 100% on all 58 jobs; Normal finished 100%, first try 93%; Hard finished 100%, first try 87%.
+- `npm run test:e2e:jade`: 1421/1421 checks at 1280×800, 390×844 and 844×390, with 0 page or console errors.
+- Atlases: the three new district atlases and six ground textures (about 2.0 MB) load one at a time after the game starts, and only the new districts' ground is repainted as each lands; the always-loaded atlases grew by the safe houses, the station entrance, the new cast, the faces and the heroes' new poses (`atlas-city` 1993 KB, `atlas-faces` 2218 KB).
+- Frame rate on this Mac in headless Chromium at 1280×800, two minutes per district, on a busy machine (other agents painting and testing, load average 4 to 5): 57.3 to 60.0 average in every district (Little India 57.3, Kampong Glam 57.5, Sentosa 58.6; lowest half-second 40.7 in Little India), and 55.0 for the guards minute. The same guards minute on `main` measured 49.9 to 50.1 at the same hour, and both branches measured 58.7 to 58.8 in a back-to-back 20-second profile, where `fill` and `restore` (torch cones and glows) are 60% of the time; so the spread is the machine, not the new code. Repeat on a quiet machine.
+
 ### Results (15-11-2026, eighth pass: guards, the partner and branches)
 
 Bots over all 45 jobs (the bots take the first branch on even seeds and the second on odd ones, and back off from a guard who turns their way): the casual bot on Assist and Easy finished every job in all ten seeds. With Assist off over eight seeds a job, Normal finished 100% and 93% first time, Hard 99% and 85% (the seventh pass: 90% and 84%). The stalls now fail: Lantern Parade 7 of 8 first time on Normal, Monkey Business 7, Getai Rescue 8 (22 of 24, 92%; all 24 before), and 8, 6 and 5 on Hard. Office Hours went from 2 of 8 to 7 of 8 first time on Hard, and from 5 of 8 to 8 of 8 on Normal: the fairer guards made it easier on Normal too. Each branch way played by the bots over eight seeds: the commotion 8 of 8 on Normal and Hard (Office Hours Hard 6 of 8), the chase 8 of 8 (7 first time), the bribe 8 of 8 first time. Hot Goods on Hard is the stiffest job (6 of 8 finished, 2 first time, 3.8 tries), as before this pass.
@@ -499,6 +507,13 @@ Frame rate on this Mac in headless Chromium at 1280×800, two minutes per distri
 Browser suite: 868 checks passed (292 at 1280×800, 288 each at 390×844 and 844×390) with no page errors, before the owner ruled Jade Street desktop-only; the third pass's checks now run at 1280×800 only, while the older phone passes still run as they were.
 
 ## What is weakest
+
+- **Frame rate was measured on a busy machine.** `play:jade` fails its 55 fps floor on some runs because of other work on the Mac (market 54.3 to 59.1 and guards 36.8 to 60.0 across runs of the same code); the ninth pass has not been timed on a quiet machine.
+- **The new districts are big and fairly empty off the main streets.** Little India, Kampong Glam and Sentosa have their landmarks, markets, safe houses, festivals and townsfolk, but the back lanes have fewer props than Chinatown's.
+- **The ferry boat sprite reads more like a train front at a glance.** It is a top-down boat seen bow-on; a repaint in profile would read better.
+- **Festivals alternate by night only.** Deepavali and the Hari Raya bazaar take turns night by night instead of following a calendar.
+- **The swap's wait spot is a fixed 170 units past the crate.** When every crate is watched, the chevron points at a spot away from the guard, not at true cover.
+- **A job interrupted by closing the game restarts from the beginning.** The reload says which job stopped and routes to its giver, but does not resume from the checkpoint.
 
 - **Sound goes through walls.** A noise is a circle: a guard behind a container hears a dash as well as one in the open. Only a five-foot way (half) and hiding (0.3) muffle it.
 - **Guards call only their own crew.** An alert job guard brings the other guards in that job; street wardens and gang members never answer it, and wardens on foot only hear and look (they do not search).

@@ -34,14 +34,19 @@ let loaded = false;
  *  scene repaints its ground chunks when it changes */
 export const LAZY = (n: string) => /^atlas-(east|east2|resort)$/.test(n) || /^tex-(india|glam|sand|resort|lagoon|fort)$/.test(n);
 export let lazyGen = 0;
+export let lazyDone = false;
+/** one file at a time, so the decoding and the repaint each one brings are spread out instead of landing together */
 function loadLazy(base: string, names: string[]) {
-  for (const n of names) {
-    const old = images[n] as HTMLImageElement | undefined; if (old && old.complete && old.naturalWidth) continue;
+  const next = (i: number) => {
+    if (i >= names.length) { lazyDone = true; lazyGen++; return; }
+    const n = names[i];
+    const old = images[n] as HTMLImageElement | undefined; if (old && old.complete && old.naturalWidth) return next(i + 1);
     const im = new Image(); im.decoding = 'async';
-    im.onload = () => { (im.decode ? im.decode() : Promise.resolve()).catch(() => undefined).then(() => { lazyGen++; }); };
-    im.onerror = () => { delete images[n]; };
+    im.onload = () => { (im.decode ? im.decode() : Promise.resolve()).catch(() => undefined).then(() => { lazyGen++; setTimeout(() => next(i + 1), 250); }); };
+    im.onerror = () => { delete images[n]; next(i + 1); };
     im.src = `${base}${n}.webp`; images[n] = im;
-  }
+  };
+  next(0);
 }
 /** load and decode every atlas and ground texture; `progress` gets (done, total); rejects with the files that failed */
 export function loadArt(base = ART, progress?: (done: number, total: number) => void): Promise<void> {
@@ -341,7 +346,13 @@ export class Scene {
   draw(w: World, dt: number) {
     const x = this.x; this.frame++; this.t += dt;
     // a late district atlas just arrived: repaint the ground chunks and the minimap with it
-    if (this.lazySeen !== lazyGen) { this.lazySeen = lazyGen; this.chunks.clear(); this.map = null; this.patterns = {}; }
+    if (this.lazySeen !== lazyGen) {
+      // a late painting came in: repaint the ground in the new districts (the rest never uses it) as each one lands
+      this.lazySeen = lazyGen;
+      for (const k of [...this.chunks.keys()]) { const tx = (k % 1000) * CH, ty = Math.floor(k / 1000) * CH; if (tx + CH >= EAST_X0 - 4 || ty + CH >= CT_H) this.chunks.delete(k); }
+      for (const n of Object.keys(this.patterns)) if (LAZY('tex-' + n) || LAZY(n)) delete this.patterns[n];
+      if (lazyDone) { this.chunks.clear(); this.map = null; } // (and everything once at the end, for any late prop drawn outside them)
+    }
     const p = w.p; const ride = p.ride;
     this.juice.tick(dt);
     if (ride) this.juice.trail(dt, p.boostT > 0, ride.b.x, ride.b.y, ride.b.h, 'v-' + ride.kind);

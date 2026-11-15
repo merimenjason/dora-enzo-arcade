@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 16-11-2026
+
+### Changed
+
+- **Jade Street**: Little India, Kampong Glam and Sentosa are fully painted, and their paintings now arrive one at a time in the background after the game starts, so the first minutes in Chinatown stay smooth while they load.
+
 ## 15-11-2026
 
 ### Added
