@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import type { Play } from './controller';
 import { Panel } from './panels';
 import { Sprite } from './ui';
-import { INTEL } from '@/lib/jade-jobs';
+import { INTEL, BRANCHES, type BranchPick } from '@/lib/jade-jobs';
 import type { Intel } from '@/lib/jade-story';
 
 const INTEL_ICON: Record<Intel, string> = { door: 'i-key', rota: 'ui-watch', cam: 'i-camera', safe: 'i-dial' };
@@ -42,6 +42,46 @@ export function HeistPanel({ play }: { play: Play }) {
         </button>
       </div>
       <IntelRow intel={run.intel} />
+    </Panel>
+  );
+}
+
+/** the branch cards (pass 8): the two ways to do a blend, a trap or a detective step */
+const CARDS: Record<string, { title: string; text: (mate: string) => string; small: (mate: string) => string }> = {
+  disguise: { title: 'Disguise', text: () => 'Put on the coat and walk in with the crowd. Keep to a walk; the paper hides you when they stare.', small: () => 'Slow and safe: they only notice running or being alone.' },
+  commotion: { title: 'Commotion', text: m => `${m} bangs a wok lid like a gong. Every lookout turns to stare at the racket: go while it lasts.`, small: () => 'Quick, but no disguise: once the racket stops, anyone who sees you is a stranger.' },
+  nets: { title: 'Nets', text: () => 'Lay nets along their path, put the bait down, keep back and spring a net (F) when one is on it.', small: () => 'Patient: a sprung net is spent, so wait for the moment.' },
+  chase: { title: 'Chase', text: () => 'No nets: run each of them down with a dash (Space) before they reach the end of their path.', small: () => 'Fast and loud: once one sees you it bolts, so cut it off.' },
+  ask: { title: 'Ask around', text: () => 'Ask each witness the right question. A wrong one wastes their time, and yours.', small: () => 'Free, but read the notes and pick your words.' },
+  bribe: { title: 'Kopi bribe', text: () => 'Hand each witness a takeaway kopi and they tell you straight away.', small: () => 'No wrong answers, but 15 coins a kopi.' },
+};
+export function BranchPanel({ play }: { play: Play }) {
+  const w = play.w, run = w.run, st = run?.cur;
+  const two = st && (st.t === 'blend' || st.t === 'trap' || st.t === 'detective') ? BRANCHES[st.t] : null;
+  const pick = (k: BranchPick) => { w.run?.branchPick(k); play.bump(); };
+  useEffect(() => {
+    if (!two) return;
+    const k = (e: KeyboardEvent) => {
+      if (e.key === '1' || e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); pick(two[0]); }
+      else if (e.key === '2' || e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); pick(two[1]); }
+    };
+    window.addEventListener('keydown', k, true);
+    return () => window.removeEventListener('keydown', k, true);
+  });
+  if (!two) return null;
+  const mate = w.mate.who === 'dora' ? 'Dora' : 'Enzo';
+  return (
+    <Panel title="Which way?" onClose={() => { w.ui = null; play.bump(); }} cls="heist" testid="branch">
+      <div className="jade-heist-cards">
+        {two.map((k, i) => (
+          <button key={k} type="button" className={'jade-heist-card ' + (i ? 'loud' : 'quiet')} data-testid={`branch-${k}`} onClick={() => pick(k)}>
+            <Sprite name={`card-${k}`} h={250} w={182} />
+            <b>{CARDS[k].title} <kbd>{i + 1}</kbd></b>
+            <span>{CARDS[k].text(mate)}</span>
+            <small>{CARDS[k].small(mate)}{k === 'bribe' ? ` You have ${w.s.cash} coins.` : ''}</small>
+          </button>
+        ))}
+      </div>
     </Panel>
   );
 }

@@ -4,6 +4,7 @@
 // foot, the two of you pounce together; with a warden on your tail, your partner waves and pulls a silly dance to
 // draw them off; a job may ask for more (hold a lever, wait at a relay point: lib/jade-team.ts). Otherwise F tells
 // your partner to wait, or calls them back. Each move has its own painted animation for both heroes.
+import { noise } from './jade-aware.js';
 import { T, districtAt } from './jade-city.js';
 import { dist } from './jade-rng.js';
 import { nearestFree } from './jade-nav.js';
@@ -123,6 +124,8 @@ export function distract(w: World, tx: number, ty: number, dur: number) {
 /** a warden who can see a waving, dancing partner stops to stare */
 export function distractStep(w: World) {
   const m = w.mate; if (m.ai.mode !== 'distract' || !m.ai.holding) return;
+  // the dance is loud: guards near it come over to look (lib/jade-aware.ts), away from you
+  if (Math.floor(w.time * 1.6) !== Math.floor((w.time - 1 / 60) * 1.6)) noise(w, m.x, m.y, 'distract', 'mate');
   for (const wd of w.wardens) if (!wd.leave && dist(wd.b.x, wd.b.y, m.x, m.y) < 650) { wd.stun = Math.max(wd.stun, 0.25); wd.stare = 0.3; }
 }
 export const pounceWindow = (w: World) => w.assist ? 1.2 : 0.8;

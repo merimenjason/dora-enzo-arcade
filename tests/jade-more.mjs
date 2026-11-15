@@ -3,6 +3,7 @@
 // phases (decoys, falling signs, the float and the leap); businesses (income maths, the till, history, buying,
 // upgrading, collecting) and crow raids (won and lost); the v2 → v4 and v3 → v4 save migrations with a real v3 save;
 // the new paintings; and a painted portrait for the mood of every line of dialogue.
+import { BRANCHES } from '../.checks/jade-jobs.js';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
@@ -26,6 +27,8 @@ function at(id, i, o = {}) {
   const w = new World(s, o.seed ?? 9); w.quiet = true;
   w.startMission(MISSION[id]); w.talk = null;
   const run = w.run; run.snap = run.snapshot(i); run.enter(i); w.talk = null;
+  // pass 8: the branch cards on a blend, trap or detective step; these tests take the first way unless told
+  if (run.js && BRANCHES[run.cur.t]) run.js.pick = o.pick ?? BRANCHES[run.cur.t][0];
   return { w, run };
 }
 const idle = (w, sec, until = () => false) => { for (let k = 0; k < sec * 60 && !w.failed && !until(); k++) { w.step(NO_INPUT, DT); if (w.talk) w.talk = null; } };
@@ -222,7 +225,7 @@ test('crow raids: a text and a defend job; idle and they escape (losing part of 
 
 // ── saves
 test('save: real v2 and v3 saves migrate with every bit of progress, and businesses start empty', () => {
-  assert.equal(SAVE_VERSION, 8); assert.equal(SAVE_KEY, 'jade-street-v8'); assert.ok(OLD_KEYS.includes('jade-street-v3') && OLD_KEYS.includes('jade-street-v2'));
+  assert.equal(SAVE_VERSION, 9); assert.equal(SAVE_KEY, 'jade-street-v9'); assert.ok(OLD_KEYS.includes('jade-street-v3') && OLD_KEYS.includes('jade-street-v2'));
   const v3 = JSON.parse(readFileSync(new URL('./fixtures/jade-save-v3.json', import.meta.url), 'utf8'));
   assert.equal(v3.v, 3);
   const s = loadSave(JSON.stringify(v3));

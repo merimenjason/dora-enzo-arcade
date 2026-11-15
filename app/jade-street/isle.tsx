@@ -6,7 +6,7 @@ import { useEffect, useRef } from 'react';
 import type { Play } from './controller';
 import { Panel } from './panels';
 import { Sprite, ART } from './ui';
-import { destinations, mrtTo, FARE, RIDE_VIEW } from '@/lib/jade-mrt';
+import { destinations, mrtTo, FARE, RIDE_VIEW, routeToStation } from '@/lib/jade-mrt';
 import { dropOffs, taxiGo, hail, cantHail, TAXI_APP } from '@/lib/jade-taxi';
 import { DISTRICT_NAME } from '@/lib/jade-city';
 
@@ -84,6 +84,28 @@ export function TaxiPanel({ play, onClose }: { play: Play; onClose: () => void }
 }
 
 /** the taxi app on the phone: book a taxi to where you stand */
+/** the phone's Jade Line tab: every station, where it is, and a button that draws the gold route line to it */
+export function JadeLineTab({ play, onClose }: { play: Play; onClose: () => void }) {
+  const w = play.w; const sts = w.c.isle?.stations ?? [];
+  const near = sts.filter(s => w.open.has(s.d)).sort((a, b) => Math.hypot(a.x - w.p.x, a.y - w.p.y) - Math.hypot(b.x - w.p.x, b.y - w.p.y))[0];
+  return (
+    <div className="jade-line-tab" data-testid="mrt-tab">
+      <p className="small"><Sprite name="i-mrt" h={28} w={28} /> The Jade Line runs Chinatown, Raffles Place, Bayfront and Toa Payoh. Walk up to a station’s gates and press E: {FARE} coins a ride.{near ? ` Nearest: ${near.name}.` : ''}</p>
+      <ul className="jade-line-list">{sts.map(s => {
+        const open = w.open.has(s.d);
+        return (
+          <li key={s.id}>
+            <Sprite name="pin-train" h={32} w={32} />
+            <span><b>{s.name}</b><small>{open ? DISTRICT_NAME[s.d] : 'under fog: follow the story'}</small></span>
+            <button type="button" className="jade-btn jade" disabled={!open || !!w.run} data-testid={`mrt-route-${s.id}`} onClick={() => { if (routeToStation(w, s.id)) { onClose(); play.bump(); } }}>Route me</button>
+          </li>
+        );
+      })}</ul>
+      {w.run && <p className="small">Finish the job first: the route line is busy with it.</p>}
+    </div>
+  );
+}
+
 export function TaxiApp({ play, onClose }: { play: Play; onClose: () => void }) {
   const w = play.w; const why = cantHail(w);
   return (

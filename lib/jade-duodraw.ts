@@ -49,6 +49,20 @@ export function duoFrame(p: Player, t: number): { f: string; flip: boolean } {
     case 'whistle': return { f: `${h}-whistle`, flip: false };
     case 'paper': return { f: `${h}-dis-paper`, flip: false };
     case 'disguise-on': return { f: `${h}-dis-on`, flip: false };
+    // the partner on their own (lib/jade-pal.ts) and the branches (lib/jade-jobs.ts): a whispered warning, a wind-up
+    // before their own shot, scooping up loot, beckoning you to the getaway, curling up, tidying the stand, the kopi
+    // bribe, the wok-lid commotion
+    case 'psst-side': return { f: `${h}-psst-side`, flip };
+    case 'psst-down': return { f: `${h}-psst-down`, flip };
+    case 'ready': return { f: `${h}-ready`, flip };
+    case 'scoop': return { f: `${h}-scoop`, flip };
+    case 'beckon': return { f: `${h}-beckon`, flip };
+    case 'cower': return { f: `${h}-cower`, flip: false };
+    case 'peek': return { f: `${h}-peek`, flip };
+    case 'brace': return { f: `${h}-brace`, flip: false };
+    case 'bribe': return { f: `${h}-bribe`, flip };
+    case 'hold-bag': return { f: `${h}-hold-bag`, flip: false };
+    case 'gong': return { f: `${h}-gong-${cyc(2, 4)}`, flip: false };
   }
   // in the spy disguise: its own walk (a stroll in the trench coat), and standing still in it
   if (p.disguise && !p.ride) {

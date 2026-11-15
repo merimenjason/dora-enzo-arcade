@@ -63,6 +63,8 @@ export function heatStep(w: World, dt: number) {
       }
     }
   }
+  // a horn or a crash within earshot gives you away: they head for the noise
+  if (L > 0) for (const n of w.noises) if (n.at === w.time && n.by === 'you' && (n.kind === 'horn' || n.kind === 'crash' || n.kind === 'prop') && w.wardens.some(wd => !wd.leave && dist(wd.b.x, wd.b.y, n.x, n.y) < n.r * 1.4)) { w.lastSeen = [n.x, n.y]; w.seenT = Math.max(0, w.seenT - 0.6); }
   // wardens ride to where they last saw you (straight at you when they can see you)
   const tgt = seen ? [px, py] : w.lastSeen;
   const f = L > 0 ? w.fieldNear('small', tgt[0], tgt[1]) : null;

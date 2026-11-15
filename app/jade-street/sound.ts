@@ -324,13 +324,32 @@ export class JadeSound {
       case 'job-spring': this.tone(120, n, 0.18, 'square', 0.1, o, 3.5); this.burst(n, 0.12, 1500, 1, 0.2); break;
       case 'job-caught': this.good(); this.tone(180, n, 0.2, 'triangle', 0.12, o, 0.6); break;
       case 'job-escape': this.whoosh(); this.tone(700, n, 0.2, 'sine', 0.05, o, 1.6); break;
+      case 'job-bribe': this.burst(n, 0.15, 2500, 0.6, 0.1); this.pluck(mtof(76), n + 0.1, 0.3, o, 0.3); this.pluck(mtof(83), n + 0.2, 0.3, o, 0.3); break;
       case 'job-swap': this.tone(380, n, 0.06, 'square', 0.06, o); this.tone(300, n + 0.12, 0.08, 'triangle', 0.1, o); break;
+    }
+  }
+  /** a watcher changing its mind (lib/jade-aware.ts), one sound per state: a rising "hm?" when suspicious, two soft
+   * steps when it goes to look, a sharp sting when it is alert, a whistle when it calls for help, a ticking sweep while
+   * searching, a falling grumble when it gives up; the partner's "psst" is a breathy hiss with a little chime */
+  aware(kind: string) {
+    if (!this.ok('aware-' + kind, kind === 'alert' ? 0.4 : 0.25)) return; const n = this.t, o = this.out!;
+    switch (kind) {
+      case 'sus': this.tone(330, n, 0.18, 'triangle', 0.07, o, 1.5); break;
+      case 'look': this.tone(160, n, 0.06, 'sine', 0.08, o); this.tone(150, n + 0.16, 0.06, 'sine', 0.08, o); break;
+      case 'alert': this.tone(880, n, 0.07, 'square', 0.07, o); this.tone(1320, n + 0.07, 0.16, 'square', 0.07, o, 1.1); break;
+      case 'call': this.whistle(); break;
+      case 'search': for (let i = 0; i < 3; i++) this.tone(1200 - i * 120, n + i * 0.12, 0.04, 'sine', 0.04, o); break;
+      case 'back': this.tone(220, n, 0.3, 'sawtooth', 0.04, o, 0.6); break;
+      case 'grab': this.thud(); break;
+      case 'psst': this.burst(n, 0.25, 5000, 2, 0.08); this.pluck(mtof(88), n + 0.2, 0.3, o, 0.2); break;
     }
   }
   /** play the world's events */
   fx(list: Fx[]) {
     for (const f of list) switch (f.t) {
       case 'fire': this.gadget(f.kind); break;
+      case 'aware': this.aware(f.kind ?? ''); break;
+      case 'pal-warn': this.aware('psst'); break;
       case 'shot-land': case 'stall-splat': case 'ped-hit': this.splat(f.kind); break;
       case 'burst': this.pop(f.kind); break;
       case 'reload': case 'gear-switch': case 'reloaded': this.reload(); break;
@@ -349,8 +368,8 @@ export class JadeSound {
       case 'honk': this.honk(); break;
       case 'car-honk': this.honk(); break;
       // the island: the train's door chime and rumble, a whistle for a taxi, its doors and its meter
-      case 'mrt': { const t = this.t, o = this.out!; this.tone(mtof(76), t, 0.3, 'sine', 0.1, o); this.tone(mtof(72), t + 0.32, 0.4, 'sine', 0.1, o); this.burst(t + 0.2, 1.4, 260, 0.6, 0.12); break; }
-      case 'hail': { const t = this.t, o = this.out!; this.tone(1800, t, 0.12, 'sine', 0.08, o, 1.15); this.tone(2100, t + 0.15, 0.2, 'sine', 0.07, o, 0.9); break; }
+      case 'mrt': { if (!this.ctx) break; const t = this.t, o = this.out!; this.tone(mtof(76), t, 0.3, 'sine', 0.1, o); this.tone(mtof(72), t + 0.32, 0.4, 'sine', 0.1, o); this.burst(t + 0.2, 1.4, 260, 0.6, 0.12); break; }
+      case 'hail': { if (!this.ctx) break; const t = this.t, o = this.out!; this.tone(1800, t, 0.12, 'sine', 0.08, o, 1.15); this.tone(2100, t + 0.15, 0.2, 'sine', 0.07, o, 0.9); break; }
       case 'taxi-stop': case 'taxi-in': this.honk(); break;
       case 'taxi-out': this.coins(); break;
       case 'train-go': this.whoosh(); break;
@@ -389,7 +408,7 @@ export class JadeSound {
       case 'look': this.bad(); break;
       case 'chase': this.gong(); break;
       case 'impact': this.bump(Math.min(1, (f.k ?? 0.6) + 0.2)); break;
-      case 'smash': this.bump(1); this.burst(this.t, 0.3, 1800, 0.6, 0.25); break;
+      case 'smash': this.bump(1); if (this.ctx) this.burst(this.t, 0.3, 1800, 0.6, 0.25); break;
       case 'warn': this.bad(); break;
       case 'bell': this.ding(); break;
       case 'rumble': case 'creak': this.rumble(); break;

@@ -48,13 +48,16 @@ export async function sixth(h) {
   await key('g', 300); check(await W(() => !!window.__jade.world().taxi), `${name}: G hails a taxi`);
   await until(() => window.__jade.world().taxi?.st === 'wait', null, 30000);
   check((await st()).taxiSt === 'wait', `${name}: the taxi pulls up`); await look('taxi waiting');
-  await W(() => { const w = window.__jade.world(); w.p.act = null; w.placePlayer(w.taxi.b.x, w.taxi.b.y + 50); });
+  // (a parked ride can sit closer to the taxi than you: try each side of it)
+  await W(() => { const w = window.__jade.world(); w.p.act = null; for (const [dx, dy] of [[0, 50], [0, -50], [50, 0], [-50, 0]]) { w.placePlayer(w.taxi.b.x + dx, w.taxi.b.y + dy); w.findNear(); if (w.near?.kind === 'taxi') break; } });
   const n1 = await near(); check(n1?.kind === 'taxi', `${name}: "${n1?.label}"`);
   await E(); check(await appear('taxi'), `${name}: E opens the drop-off list`); await look('taxi drop-offs');
   const to = await W(() => [...document.querySelectorAll('[data-testid^="taxi-"]')].map(b => b.dataset.testid).find(t => /safe-heartland|stn-toapayoh|mk-heartland/.test(t)) ?? [...document.querySelectorAll('[data-testid^="taxi-"]')].map(b => b.dataset.testid)[0]);
   const t0 = await st(); await press(to);
   check((await st()).taxiSt === 'ride', `${name}: a click on ${to} rides there`); await wait(1500); await look('taxi ride');
-  await key('e', 400); const t1 = await st();
+  // (late in the full run a line of dialogue can take the first E: press again while the ride is still on)
+  for (let k = 0; k < 3 && (await st()).taxiSt === 'ride'; k++) { await W(() => { window.__jade.world().talk = null; }); await key('e', 400); }
+  const t1 = await st();
   check(t1.taxi === t0.taxi + 1 && t1.cash < t0.cash && !t1.taxiSt?.match(/ride/), `${name}: E skips to the drop-off and pays`);
   // the Tumpang! app on the phone books one
   await W(() => { const w = window.__jade.world(); w.taxi = null; w.p.act = null; }); await wait(200);

@@ -31,6 +31,7 @@
 .jade-shell .jade-pmap-pin { position: absolute; transform: translate(-50%, -100%); z-index: 2; line-height: 0; filter: drop-shadow(0 3px 3px rgba(40, 20, 5, .55)); touch-action: none; }
 .jade-shell .jade-pmap-pin.on { transform: translate(-50%, -100%) scale(1.25); z-index: 4; }
 .jade-shell .jade-pmap-pin.k-job { animation: jade-pmap-bob 1.2s ease-in-out infinite; }
+.jade-shell .jade-pmap-pin.k-stn { z-index: 3; filter: drop-shadow(0 0 6px rgba(90, 255, 190, .9)) drop-shadow(0 3px 3px rgba(40, 20, 5, .55)); }
 @keyframes jade-pmap-bob { 50% { margin-top: -5px; } }
 .jade-shell .jade-pmap-me { position: absolute; transform: translate(-50%, -50%); z-index: 3; pointer-events: none; display: grid; place-items: center; }
 .jade-shell .jade-pmap-me > * { grid-area: 1 / 1; }

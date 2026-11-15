@@ -13,14 +13,14 @@ import type { Play } from './controller';
 import { Sprite, Btn, ART } from './ui';
 import './map.css';
 
-type PinKind = 'job' | 'market' | 'safe' | 'garage' | 'gig' | 'cat' | 'mural' | 'pin' | 'spot';
+type PinKind = 'job' | 'market' | 'safe' | 'garage' | 'gig' | 'cat' | 'mural' | 'pin' | 'spot' | 'stn';
 type Pin = { kind: PinKind; name: string; sub?: string; x: number; y: number; key: string };
 type View = { cx: number; cy: number; z: number };
 
 const PIN_SPRITE: Record<PinKind, string> = {
-  job: 'pin-job', market: 'pin-market', safe: 'pin-safe', garage: 'pin-garage', gig: 'pin-gig', cat: 'pin-cat', mural: 'pin-mural', pin: 'pin-star', spot: 'pin-star',
+  job: 'pin-job', market: 'pin-market', safe: 'pin-safe', garage: 'pin-garage', gig: 'pin-gig', cat: 'pin-cat', mural: 'pin-mural', pin: 'pin-star', spot: 'pin-star', stn: 'pin-train',
 };
-const LEGEND: [PinKind, string][] = [['job', 'Job'], ['market', 'Market'], ['safe', 'Safe house'], ['garage', 'Garage'], ['gig', 'Side gig'], ['cat', 'Lucky cat found'], ['mural', 'Mural painted'], ['pin', 'Your pin']];
+const LEGEND: [PinKind, string][] = [['job', 'Job'], ['market', 'Market'], ['safe', 'Safe house'], ['garage', 'Garage'], ['gig', 'Side gig'], ['cat', 'Lucky cat found'], ['mural', 'Mural painted'], ['stn', 'Jade Line station (click to route)'], ['pin', 'Your pin']];
 const TINT: Record<District, [number, number, number]> = { market: [255, 128, 70], temple: [90, 200, 120], canal: [60, 200, 215], arcade: [225, 90, 220], docks: [80, 125, 255], heartland: [240, 200, 70], bay: [70, 225, 175] };
 const CENTRE: Record<District, [number, number]> = { market: [22, 58], temple: [23, 16], canal: [58, 31], arcade: [97, 34], docks: [84, 76], heartland: [168, 20], bay: [170, 56] };
 const dName = (d: District) => DISTRICT_NAME[d].replace(/^the /, 'The ');
@@ -81,6 +81,7 @@ function pinsOf(play: Play): Pin[] {
     else if (pl.kind === 'safe') add({ kind: 'safe', name: pl.name ?? 'Safe house', sub: safeOpen(w.s, id) ? 'Yours: sleep, swap and stash here' : 'For sale', x: pl.x, y: pl.y, key: id });
     else if (pl.kind === 'garage') add({ kind: 'garage', name: pl.name ?? 'Garage', sub: 'Upgrades and paint', x: pl.x, y: pl.y, key: id });
   }
+  for (const st of w.c.isle?.stations ?? []) add({ kind: 'stn', name: st.name, sub: 'Jade Line: E at the gates, 2 coins a ride', x: st.x, y: st.y, key: st.id });
   for (const g of w.gigs()) add({ kind: 'gig', name: g.label, x: g.x, y: g.y, key: 'gig-' + (g.id ?? g.label) });
   if (w.run) { const o = w.objective(); if (o) out.push({ kind: 'job', name: w.run.label || 'Current job', sub: 'Your job’s next stop', x: o[0], y: o[1], key: 'job-now' }); }
   else for (const m of offered(w.s)) { const pl = w.c.places[m.at]; if (pl) add({ kind: 'job', name: m.title, sub: `Job from ${PEOPLE[m.giver]?.name ?? 'a friend'}`, x: pl.x, y: pl.y, key: 'job-' + m.id }); }
@@ -217,7 +218,8 @@ export function PaintedMap({ play, onClose }: { play: Play; onClose: () => void 
     const [sx, sy] = local(e);
     const tgt = (e.target as HTMLElement).closest('[data-testid="jade-map-pin"]') as HTMLElement | null;
     const hit = tgt ? pins.find(p => p.key === tgt.dataset.key) : null;
-    if (hit) { setSel(hit); return; }
+    // a Jade Line station routes you there straight away (off a job)
+    if (hit) { if (hit.kind === 'stn' && !w.run) route(hit); else setSel(hit); return; }
     const [wx, wy] = toWorld(sx, sy);
     if (wx < 0 || wy < 0 || wx > MW || wy > MH) { setSel(null); return; }
     if (!w.open.has(districtAt(Math.floor(wx / T), Math.floor(wy / T)))) { setSel({ kind: 'spot', name: `${dName(districtAt(Math.floor(wx / T), Math.floor(wy / T)))} is in the fog`, sub: 'Follow the story to open it', x: wx, y: wy, key: 'fog' }); return; }
@@ -238,7 +240,7 @@ export function PaintedMap({ play, onClose }: { play: Play; onClose: () => void 
   const scr = (wx: number, wy: number, v = view): [number, number] => [size.w / 2 + (wx - v.cx) * v.z, size.h / 2 + (wy - v.cy) * v.z];
   const pinSize = Math.round(Math.max(26, Math.min(44, view.z * 90)));
   const small = (k: PinKind) => k === 'cat' || k === 'mural';
-  const order: PinKind[] = ['cat', 'mural', 'gig', 'garage', 'safe', 'market', 'spot', 'pin', 'job'];
+  const order: PinKind[] = ['cat', 'mural', 'gig', 'garage', 'safe', 'market', 'stn', 'spot', 'pin', 'job'];
   const shown = [...pins].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || a.y - b.y);
   const [hx, hy] = scr(w.p.x, w.p.y);
   const plaque = Math.round(Math.max(12, Math.min(19, view.z * 60)));
@@ -255,11 +257,11 @@ export function PaintedMap({ play, onClose }: { play: Play; onClose: () => void 
             return <div key={d} className={'jade-pmap-plaque' + (locked ? ' locked' : '')} style={{ left: a, top: b, fontSize: plaque }} data-testid="jade-map-plaque">{dName(d)}{locked && <small>in the fog</small>}</div>;
           })}
           {view.z > 0 && shown.map(p => {
-            const [a, b] = scr(p.x, p.y); const sz = small(p.kind) ? Math.round(pinSize * 0.72) : pinSize;
+            const [a, b] = scr(p.x, p.y); const sz = small(p.kind) ? Math.round(pinSize * 0.72) : p.kind === 'stn' ? Math.round(pinSize * 1.3) : pinSize;
             if (a < -40 || b < -40 || a > size.w + 40 || b > size.h + 60) return null;
             return (
               <button key={p.key} type="button" className={'jade-pmap-pin k-' + p.kind + (sel?.key === p.key ? ' on' : '')} style={{ left: a, top: b }} aria-label={p.name}
-                data-testid="jade-map-pin" data-kind={p.kind} data-name={p.name} data-key={p.key} onClick={e => { e.stopPropagation(); if (!gest.current.moved) setSel(p); }}>
+                data-testid="jade-map-pin" data-kind={p.kind} data-name={p.name} data-key={p.key} onClick={e => { e.stopPropagation(); if (gest.current.moved) return; if (p.kind === 'stn' && !w.run) route(p); else setSel(p); }}>
                 <Sprite name={PIN_SPRITE[p.kind]} h={sz} w={sz} />
               </button>
             );

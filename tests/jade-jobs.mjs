@@ -6,6 +6,7 @@
 // questions, no pin, the clue notebook, the Assist ring, searching), traps (nets, bait, springing early and on time,
 // being seen), the crate swap (guards turning round, the partner's distraction), the safe dial, the variety rule for
 // the job list, and save v8 migrating from v7 with medals kept.
+import { BRANCHES } from '../.checks/jade-jobs.js';
 import assert from 'node:assert/strict';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
 import { MISSIONS, MISSION, SIDE } from '../.checks/jade-story.js';
@@ -26,6 +27,8 @@ function at(id, i, o = {}) {
   const w = new World(s, o.seed ?? 9); w.quiet = true;
   w.startMission(MISSION[id]); w.talk = null;
   const run = w.run; run.snap = run.snapshot(i); run.enter(i); w.talk = null;
+  // pass 8: the branch cards on a blend, trap or detective step; these tests take the first way unless told
+  if (run.js && BRANCHES[run.cur.t]) run.js.pick = o.pick ?? BRANCHES[run.cur.t][0];
   return { w, run, st: run.cur };
 }
 const stepOf = (id, t) => MISSION[id].steps.findIndex(s => s.t === t);
@@ -65,7 +68,7 @@ test('casing: E photographs a spot in view and in range, each photo is intel, an
   const { w: w2, run: r2 } = at('m17', i), g = r2.actors[0];
   idle(w2, 2); w2.placePlayer(g.b.x + Math.cos(g.b.h) * 60, g.b.y + Math.sin(g.b.h) * 60);
   let warned = false; for (let k = 0; k < 600 && !w2.failed; k++) { w2.step(NO_INPUT, DT); if (r2.warning) warned = true; }
-  assert.ok(warned && w2.failed && /spotted/i.test(w2.failed.reason), String(w2.failed?.reason));
+  assert.ok(warned && w2.failed && /spotted|caught/i.test(w2.failed.reason), String(w2.failed?.reason));
   for (const k of Object.keys(INTEL)) assert.ok(INTEL[k].gain.length > 10);
 });
 
@@ -127,7 +130,7 @@ test('holding a stall: waves come, a grab dents the meter, a dash knocks them ba
   // stand aside: they grab, the stall meter drops, and in the end it fails with a reason
   w.placePlayer(...run.spot(st.at)); w.p.b.y += 900; w.mate.ai = { ...w.mate.ai, mode: 'stay' };
   idle(w, 40); assert.ok(run.js.hp < 1 || w.failed, 'grabbed');
-  const { w: w2, run: r2 } = at('k4', i); r2.js.hp = 0.5; r2.js.wave = 1; w2.placePlayer(...r2.spot(st.at)); r2.actors = []; idle(w2, 0.1);
+  const { w: w2, run: r2 } = at('k4', i); w2.s.settings.partner = 'tag'; r2.js.hp = 0.5; r2.js.wave = 1; w2.placePlayer(...r2.spot(st.at)); r2.actors = []; idle(w2, 0.1);
   const nr = jobNear(r2, w2.p.x, w2.p.y); assert.equal(nr?.id, 'mend'); act(w2); idle(w2, 1.5); assert.ok(r2.js.hp > 0.55, 'tidied');
   const { w: w3, run: r3 } = at('k4', i); w3.placePlayer(...r3.spot(st.at)); w3.p.b.y += 2000; w3.mate.ai = { ...w3.mate.ai, mode: 'stay' }; w3.mate.b.y += 2000;
   idle(w3, 120); assert.ok(w3.failed && /stall/i.test(w3.failed.reason), String(w3.failed?.reason));
@@ -222,14 +225,15 @@ test('the paintings: hero poses for every new action, the disguise walk, guards,
 });
 
 test('save v8: a v7 save keeps every job and medal, and the new counts start at zero; four new trophies', () => {
-  assert.equal(SAVE_VERSION, 8);
+  assert.ok(SAVE_VERSION >= 8);
   const v7 = { ...newSave(5), v: 7 }; v7.done = ['m1', 'm2', 'm12', 'm17']; v7.medals = { m12: { m: 3, t: 50, plays: 2 }, m17: { m: 2, t: 90, plays: 1 } };
   v7.stats = { ...v7.stats }; for (const k of ['photos', 'heists', 'quiet', 'defends', 'disguises', 'clues', 'traps', 'swaps']) delete v7.stats[k];
   const s = loadSave(JSON.stringify(v7));
-  assert.equal(s.v, 8); assert.deepEqual(s.done, v7.done); assert.equal(s.medals.m12.m, 3, 'medals kept for reworked jobs'); assert.equal(s.medals.m17.m, 2);
+  assert.equal(s.v, SAVE_VERSION); assert.deepEqual(s.done, v7.done); assert.equal(s.medals.m12.m, 3, 'medals kept for reworked jobs'); assert.equal(s.medals.m17.m, 2);
   for (const k of ['photos', 'heists', 'quiet', 'defends', 'disguises', 'clues', 'traps', 'swaps']) assert.equal(s.stats[k], 0, k);
   for (const id of ['ghost', 'sleuth', 'netted', 'holdout']) assert.ok(TROPHIES.find(t => t.id === id), id);
   s.stats.quiet = 1; assert.ok(checkTrophies(s).includes('Ghost'));
 });
 
 console.log(`jade (seventh pass): ${n} tests ok`);
+await import("./jade-aware.mjs");

@@ -19,6 +19,8 @@ type St<K extends Step['t']> = Extract<Step, { t: K }>;
 const xy = (run: Run, s: Spot) => run.spot(s);
 /** the partner gets an order from the job */
 export function postMate(run: Run, mode: 'post' | 'hold' | 'guard' | 'stay', at: [number, number]) {
+  // Settings, partner Off: they wait rather than guard on their own
+  if (mode === 'guard' && run.w.s.settings.partner === 'off' && !run.w.two) mode = 'stay';
   const m = run.w.mate; if (m.seat) leaveSeatQuiet(run, m);
   m.ai = { ...m.ai, mode, at, story: true, holding: false, t: 0, stuck: 0, best: 1e9, offT: 0 };
 }

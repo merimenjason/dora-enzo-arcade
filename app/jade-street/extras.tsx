@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { loadArt } from '@/lib/jade-scene';
 import { lesson } from '@/lib/jade-tutor';
-import { TaxiApp } from './isle';
+import { TaxiApp, JadeLineTab } from './isle';
 import { TAXI_APP } from '@/lib/jade-taxi';
 import { unread, readAll } from '@/lib/jade-phone';
 import { MISSIONS, SIDE, CHAPTERS, PEOPLE, jobCounts } from '@/lib/jade-story';
@@ -78,8 +78,8 @@ export function PhoneView({ play, onClose }: { play: Play; onClose: () => void }
   const w = play.w;
   useEffect(() => { readAll(w); play.bump(); }, [w, play]);
   const msgs = w.s.msgs.slice().reverse();
-  const [tab, setTab] = useState<'msgs' | 'fines' | 'lingo' | 'taxi'>('msgs');
-  const TABS: [typeof tab, string][] = [['msgs', 'Messages'], ['fines', `Fines (${w.s.fines.n})`], ['lingo', 'Kopi lingo'], ['taxi', TAXI_APP]];
+  const [tab, setTab] = useState<'msgs' | 'fines' | 'lingo' | 'taxi' | 'mrt'>('msgs');
+  const TABS: [typeof tab, string][] = [['msgs', 'Messages'], ['fines', `Fines (${w.s.fines.n})`], ['lingo', 'Kopi lingo'], ...(w.c.isle ? [['mrt', 'Jade Line'] as [typeof tab, string]] : []), ['taxi', TAXI_APP]];
   return (
     <div className="jade-modal-back" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="jade-panel phone" role="dialog" aria-label="Phone" data-testid="jade-phone-msgs">
@@ -92,6 +92,7 @@ export function PhoneView({ play, onClose }: { play: Play; onClose: () => void }
           ))}
           {tab === 'fines' && <FinesList play={play} />}
           {tab === 'taxi' && <TaxiApp play={play} onClose={onClose} />}
+          {tab === 'mrt' && <JadeLineTab play={play} onClose={onClose} />}
           {tab === 'lingo' && <><p className="small">Order like a local. Uncle Teo calls the drinks this way at his kopi counter.</p><Glossary /></>}
         </div>
       </div>
@@ -164,7 +165,9 @@ export function Controls({ touch }: { touch: boolean }) {
     ['Action: talk, ride, trade, hide', ['E'], 'c-tap', 'Action button'],
     ['Change radio station', ['R'], 'ui-radio', 'Tap the radio'],
     ['Map', ['M'], 'i-map', 'Map button, top right'],
-    ['Phone messages', ['T'], 'ui-phone', 'Phone button'],
+    ['Phone messages, the Jade Line tab, the taxi app', ['T'], 'ui-phone', 'Phone button'],
+    ['Ride the Jade Line: walk up to a station’s gates (the green train pin)', ['E'], 'i-mrt', 'Action button'],
+    ['Hail a taxi at the kerb, then get in', ['G', 'E'], 'pin-taxi', 'The taxi app on the phone'],
     ['Switch hero (Dora or Enzo)', ['Tab'], 'face-dora', 'Tap the partner’s portrait'],
     ['Tag-team move: boost, grab, pounce, hold, distract', ['F'], 'c-tap', 'Tap the green prompt'],
     ['Aim and fire a gadget', ['Mouse', 'Click'], 'g-sling', 'Desktop only'],

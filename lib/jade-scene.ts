@@ -19,7 +19,7 @@ import { sgGround, sgSorted, sgOver, sgFlash } from './jade-sgdraw.js';
 import { drawHero, gearGround, gearSorted, gearOver, wardenHitFrame, aimLine, setItemSprite } from './jade-duodraw.js';
 import { shooterFor } from './jade-gear.js';
 import { isleSorted, isleOver, isleActor, isleGround } from './jade-isledraw.js';
-import { jobActor, jobGround } from './jade-jobdraw.js';
+import { jobActor, jobGround, mindBeam, mindBubble } from './jade-jobdraw.js';
 import { castFrame, castPose, type CastMember } from './jade-cast.js';
 
 export const ART = '/art/jade-street/';
@@ -497,15 +497,17 @@ export class Scene {
         const cx = Math.cos(b.h), sy = Math.sin(b.h); let f: string, flip = false;
         if (a.stun > 0) f = 'crow-dizzy';
         else if (a.look > 0) f = `crow-look-${Math.floor(a.look * 2) % 2}`;
+        else if (a.kind === 'lookout' && a.mind && b.speed < 5 && a.mind.pose) f = a.mind.pose === 'call' ? 'crow-call' : a.mind.pose === 'grumble' ? 'crow-grumble' : a.mind.pose === 'search' ? 'crow-search' : a.mind.pose === 'peer' ? 'crow-peer' : `crow-look-${Math.floor(a.t * 1.5) % 2}`;
         else if (a.kind === 'lookout' && (a.extra ?? 0) > 0) f = `crow-look-${Math.floor(a.t * 1.5) % 2}`;
         else if (b.speed < 5) f = a.kind === 'pip' && a.t < 1 ? 'crow-taunt' : 'crow-walk-down-0';
         else if (Math.abs(cx) > Math.abs(sy)) { f = `crow-run-${Math.floor(a.t * (a.kind === 'pip' || a.kind === 'lookout' ? 5 : 9)) % 2}`; flip = cx < 0; }
         else f = `crow-walk-${sy > 0 ? 'down' : 'up'}-${fl}`;
-        if (a.kind === 'lookout') this.beam(x, b.x, b.y - 20, a.b.h, w.assist ? 170 : 215, w.assist ? 0.45 : 0.55);
-        if (a.kind === 'pip' && a.look > 0) this.beam(x, b.x, b.y - 20, a.face, w.assist ? 165 : 210, 1.2);
+        if (a.kind === 'lookout' && !((a.stare ?? 0) > 0) && !((a.extra2 ?? 0) > 0)) mindBeam(this, x, a.mind, b.x, b.y - 20, a.b.h, (w.assist ? 170 : 215) * w.diff.look, w.assist ? 0.45 : 0.55);
+        if (a.kind === 'pip' && a.look > 0) mindBeam(this, x, a.mind, b.x, b.y - 20, a.face, w.assist ? 165 : 210, 1.2);
         if (a.skin === 'mac') f = f.startsWith('crow-look') ? 'mac-taunt' : f.replace(/^crow-/, 'mac-');
         spr(x, f, b.x, b.y + 4, { flip });
         if ((a.kind === 'runner' || a.kind === 'raider') && a.stun <= 0) spr(x, a.skin === 'mac' ? 'bun' : 'coins', b.x, b.y - 52, { w: 20 });
+        if ((a.kind === 'lookout' || a.kind === 'pip') && a.stun <= 0) mindBubble(this, x, a.mind, b.x, b.y - 84);
         break;
       }
       case 'lion': this.shadow(x, b.x, b.y + 4, 44, 14); spr(x, `lion-${Math.floor(a.t * 3) % 2}`, b.x, b.y + 8, { flip: Math.cos(b.h) < 0 }); break;
@@ -521,8 +523,10 @@ export class Scene {
     spr(x, 'lucky-cat', px, py + 6 + b, { w: 30 });
     if (Math.floor(this.t * 2 + i) % 3 === 0) this.sparkle(x, px + 10, py - 26 + b);
   }
-  beam(x: CanvasRenderingContext2D, px: number, py: number, h: number, r: number, half: number) {
-    x.save(); const g = x.createRadialGradient(px, py, 10, px, py, r); g.addColorStop(0, 'rgba(255,240,150,.38)'); g.addColorStop(1, 'rgba(255,240,150,0)');
+  /** a sight cone; `col` is an "r,g,b" triple (lib/jade-aware.ts CONE: gold on patrol, amber suspicious, orange
+   * investigating, red alert, violet searching) */
+  beam(x: CanvasRenderingContext2D, px: number, py: number, h: number, r: number, half: number, col = '255,240,150') {
+    x.save(); const g = x.createRadialGradient(px, py, 10, px, py, r); g.addColorStop(0, `rgba(${col},.38)`); g.addColorStop(1, `rgba(${col},0)`);
     x.fillStyle = g; x.beginPath(); x.moveTo(px, py); x.arc(px, py, r, h - half, h + half); x.closePath(); x.fill(); x.restore();
   }
   glow(x: CanvasRenderingContext2D, px: number, py: number, r: number, col: string) {
@@ -694,6 +698,8 @@ export class Scene {
     const dot = (wx: number, wy: number, col: string, r = 4) => { let [a, b] = toM(wx, wy); const d = Math.hypot(a - m.x, b - m.y); if (d > m.r - 6) { a = m.x + (a - m.x) / d * (m.r - 6); b = m.y + (b - m.y) / d * (m.r - 6); } x.fillStyle = col; x.beginPath(); x.arc(a, b, r, 0, Math.PI * 2); x.fill(); x.strokeStyle = 'rgba(0,0,0,.6)'; x.lineWidth = 1.5; x.stroke(); };
     for (const [, pl] of Object.entries(this.c.places)) if (w.open.has(pl.d)) { if (pl.kind === 'market') dot(pl.x, pl.y, '#ffd25a', 3); else if (pl.kind === 'safe') dot(pl.x, pl.y, '#3ed6a4', 3); }
     if (!w.run) for (const n of nearList(w)) if (n.kind === 'mission') dot(n.x, n.y, '#ffb020', 5);
+    // the Jade Line's stations: their painted pin (pinned to the rim when off the edge)
+    for (const st of w.c.isle?.stations ?? []) if (w.open.has(st.d)) { let [a, b] = toM(st.x, st.y); const d = Math.hypot(a - m.x, b - m.y); if (d > m.r - 10) { a = m.x + (a - m.x) / d * (m.r - 10); b = m.y + (b - m.y) / d * (m.r - 10); } spr(x, 'pin-train', a, b + 7, { w: 16 }); }
     for (const wd of w.wardens) dot(wd.b.x, wd.b.y, Math.floor(this.t * 4) % 2 ? '#ff4a4a' : '#5a8cff', 3);
     const o = w.objective(); if (o) dot(o[0], o[1], '#fff27a', 5);
     x.restore();

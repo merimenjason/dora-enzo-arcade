@@ -3,6 +3,8 @@
 // foot, the otters and macaques and what they drop, the lion dance, the lantern kids, the getai singer); code adds
 // only light and shade: the five-foot ways' shadow, the storm's lightning flash and the speech bubbles of Singlish.
 // The rules live in lib/jade-sg.ts, lib/jade-fines.ts and lib/jade-gangs.ts.
+import { mindBubble } from './jade-jobdraw.js';
+import { newMind } from './jade-aware.js';
 import { T, W } from './jade-city.js';
 import { spr } from './jade-scene.js';
 import { mobSprite } from './jade-gangs.js';
@@ -62,9 +64,13 @@ export function sgSorted(sc: Scene, x: X, w: World, list: List, vis: Vis) {
     list.push([pt.b.y, () => {
       x.fillStyle = 'rgba(0,0,0,.3)'; sc.shadow(x, pt.b.x, pt.b.y + 2, 16, 6);
       const cx = Math.cos(pt.b.h), side = Math.abs(cx) > Math.abs(Math.sin(pt.b.h)), k = Math.floor(pt.pace * 5) % 2;
-      const f = pt.write > 0 ? 'warden-write' : tk && pt.b.speed < 20 ? 'warden-ticket' : pt.b.speed < 8 ? 'warden-down-0' : side ? `warden-side-${k}` : `warden-down-${k}`;
+      // a noise nearby (lib/jade-aware.ts): a hand to the ear, a look left and right, the magnifier, a grumble off
+      const mi = pt.mind, pose = !tk && pt.write <= 0 && mi && pt.b.speed < 8 ? (mi.pose === 'grumble' ? 'warden-grumble' : mi.st === 'sus' ? 'warden-listen' : mi.pose === 'look' ? (Math.sin(t * 2.4) > 0 ? 'warden-look-l' : 'warden-look-r') : mi.pose === 'search' ? 'warden-search' : '') : '';
+      const f = pt.write > 0 ? 'warden-write' : tk && pt.b.speed < 20 ? 'warden-ticket' : pose ? pose : pt.b.speed < 8 ? 'warden-down-0' : side ? `warden-side-${k}` : `warden-down-${k}`;
       spr(x, f, pt.b.x, pt.b.y + 6, { flip: side && cx < 0, w: 60 });
       if (tk && w.s.settings.cbMarks) sc.cb(x, 'warn', pt.b.x, pt.b.y - 70, 12);
+      if (tk) mindBubble(sc, x, { ...(mi ?? newMind()), st: 'alert', pose: '' }, pt.b.x, pt.b.y - 104);
+      else mindBubble(sc, x, mi, pt.b.x, pt.b.y - 104);
     }]);
   }
   // the rival gangs
@@ -88,6 +94,10 @@ export function sgSorted(sc: Scene, x: X, w: World, list: List, vis: Vis) {
 
 /** over everything: speech bubbles and the storm's lightning */
 export function sgOver(sc: Scene, x: X, w: World, vis: Vis) {
+  // the partner's warning: a gold paw over what they spotted, and a "psst" bubble over them
+  const pt = w.pal.point;
+  if (pt && vis(pt.x, pt.y)) { const a = Math.min(1, pt.t * 2), bob = Math.sin(sc.t * 6) * 5; sc.glow(x, pt.x, pt.y - 20, 60, `rgba(255,214,90,${0.35 * a})`); spr(x, 'ui-paw', pt.x, pt.y - 64 + bob, { w: 34, alpha: a, rot: Math.PI, anchor: 'center' }); }
+  if (w.pal.doing === 'warn' && !w.mate.seat && vis(w.mate.x, w.mate.y)) spr(x, 'bub-psst', w.mate.x + 22, w.mate.y - 70 + Math.sin(sc.t * 5) * 2, { w: 30 });
   for (const b of w.barks) {
     if (!vis(b.x, b.y)) continue;
     const a = Math.min(1, b.t * 6, (2.8 - b.t) * 3); if (a <= 0) continue;

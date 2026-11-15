@@ -7,6 +7,8 @@
 // lookouts can be blinded with paint or turned by a popper. Hitting a warden or a townsfolk raises heat, and a stall
 // that gets splattered leaves its owner cross. Pure engine: projectiles step with the world; reactions of job actors
 // are in lib/jade-team.ts.
+import { noise } from './jade-aware.js';
+import { palFair } from './jade-pal.js';
 import { T, W, S, F_ROOF, districtAt } from './jade-city.js';
 import { nearestFree } from './jade-nav.js';
 import { dist, angDiff, clamp } from './jade-rng.js';
@@ -55,7 +57,9 @@ export function giveGadget(s: Save, g: GadgetId) {
 }
 export function carried(s: Save, h: Hero): GadgetId | null { const c = s.gear.carry[h]; return c[Math.min(c.length - 1, s.gear.slot[h])] ?? null; }
 
-export type Shot = { id: number; g: GadgetId; by: Hero; x: number; y: number; sx: number; sy: number; vx: number; vy: number; t: number; life: number; power: number; tx: number; ty: number; roof: boolean };
+export type Shot = { id: number; g: GadgetId; by: Hero; x: number; y: number; sx: number; sy: number; vx: number; vy: number; t: number; life: number; power: number; tx: number; ty: number; roof: boolean;
+  /** fired by the partner on their own (lib/jade-pal.ts): passes through anyone who isn't fair game */
+  auto?: boolean };
 export type Splat = { x: number; y: number; sprite: string; t: number; life: number; rot: number; puddle?: boolean };
 export type Crate = { x: number; y: number; back: number };
 /** something a shot can hit: job actors, cargo snatchers, the street-event crow, wardens, townsfolk */
@@ -158,6 +162,7 @@ export function gearStep(w: World, dt: number) {
     // a crate up on a balcony (a job's high items) is knocked down by any shot that reaches it
     if (w.run?.shotAt(sh.x, sh.y)) { land(w, sh, true); sh.t = 1e9; continue; }
     for (const t of tg) {
+      if (sh.auto && !palFair(t)) continue;
       if (dist(t.x, t.y, sh.x, sh.y) > t.r + (sh.g === 'net' ? 18 : 8)) continue;
       if (def.kind === 'burst') { burst(w, sh, tg, 150); sh.t = 1e9; break; }
       if (hit(w, t, sh.g, sh.power, sh.x, sh.y)) { land(w, sh, true); sh.t = 1e9; break; }
@@ -181,13 +186,16 @@ function land(w: World, sh: Shot, onTarget = false) {
   // a mess on the pavement is littering in this city, if a ticket warden sees it (free roam: in a job they're busy)
   if ((sh.g === 'sling' || sh.g === 'paint') && !w.run) offence(w, 'litter', sh.x, sh.y);
   w.fx.push({ t: 'shot-land', kind: sh.g, x: sh.x, y: sh.y });
+  // a toy landing makes a noise a guard comes to look at (a thrown lure); bubbles and nets land softly
+  if (sh.g !== 'bubble') noise(w, sh.x, sh.y, onTarget ? 'hit' : 'thud', sh.by === w.p.who ? 'you' : 'mate');
 }
 /** a popper or confetti bursts: everything within reach reacts */
 function burst(w: World, sh: Shot, tg: Target[], r: number) {
   const R = r * (0.85 + 0.15 * sh.power);
   w.splats.push({ x: sh.x, y: sh.y, sprite: sh.g === 'popper' ? 'sp-pop' : 'sp-confetti', t: 0, life: sh.g === 'popper' ? 0.7 : 1.4, rot: 0 });
   w.fx.push({ t: 'burst', kind: sh.g, x: sh.x, y: sh.y });
-  for (const t of tg) if (dist(t.x, t.y, sh.x, sh.y) < R + t.r) hit(w, t, sh.g, sh.power, sh.x, sh.y);
+  noise(w, sh.x, sh.y, sh.g === 'popper' ? 'popper' : 'confetti', sh.by === w.p.who ? 'you' : 'mate');
+  for (const t of tg) if ((!sh.auto || palFair(t)) && dist(t.x, t.y, sh.x, sh.y) < R + t.r) hit(w, t, sh.g, sh.power, sh.x, sh.y);
   if (w.run) w.run.onBurst(sh.g, sh.x, sh.y, R);
 }
 

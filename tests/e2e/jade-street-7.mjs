@@ -11,9 +11,11 @@ export async function seventh(h) {
   const near = () => W(() => { const w = window.__jade.world(); w.findNear(); return w.near ? { kind: w.near.kind, id: w.near.id ?? '', label: w.near.label } : null; });
   /** start a job at its step of kind `t` (talk skipped), easy, no heat */
   const step = (id, t, o = {}) => W(([id, t, o]) => {
-    const J = window.__jade, w = J.world(); J.start(id); w.s.settings.diff = 'easy'; w.s.settings.assist = o.assist ?? true; w.heat = 0; w.wardens = []; w.ticket = null;
+    const J = window.__jade, w = J.world(); J.start(id); w.s.settings.partner = 'tag'; w.s.settings.diff = 'easy'; w.s.settings.assist = o.assist ?? true; w.heat = 0; w.wardens = []; w.ticket = null;
     const r = w.run, i = r.m.steps.findIndex(s => s.t === t); if (o.intel) r.intel = o.intel.slice();
-    w.p.act = null; w.mate.act = null; w.p.carry = null; w.ui = null; r.snap = r.snapshot(i); r.enter(i); w.talk = null; J.play.paused = false; J.play.bump(); return r.cur.t;
+    w.p.act = null; w.mate.act = null; w.p.carry = null; w.ui = null; r.snap = r.snapshot(i); r.enter(i); w.talk = null;
+    // pass 8 asks which way on these steps; this pass plays the first way (the eighth pass plays the others)
+    const first = { blend: 'disguise', trap: 'nets', detective: 'ask' }[t]; if (first && r.js && o.pick !== null) r.js.pick = first; J.play.paused = false; J.play.bump(); return r.cur.t;
   }, [id, t, o]);
   const run = () => W(() => { const r = window.__jade.world().run; return r ? { t: r.cur?.t, i: r.i, label: r.label, progress: r.progress, meter: r.meter && { name: r.meter.name, v: r.meter.v }, js: r.js && { ph: r.js.ph, mode: r.js.mode, hp: r.js.hp, clues: r.js.clues.length, set: r.js.set.length, sprung: r.js.sprung.length, caught: r.js.caught, entered: r.js.entered, div: r.js.div }, intel: r.intel.slice(), notes: r.notes.slice() } : null; });
   const place = (x, y) => W(([x, y]) => { const w = window.__jade.world(); w.p.act = null; w.placePlayer(x, y); }, [x, y]);

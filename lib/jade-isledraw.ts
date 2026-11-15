@@ -13,7 +13,14 @@ type List = [number, () => void][];
 type Vis = (px: number, py: number, m?: number) => boolean;
 
 /** the taxi on its way, waiting or driving you */
+const BARE = new WeakMap<object, { x: number; y: number; d: string }[]>();
 export function isleSorted(sc: Scene, x: X, w: World, list: List, vis: Vis) {
+  // every open station entrance has its painted Jade Line lamp beside the gates, readable from across the street
+  // (a station that already has its lamp in the city's props keeps that one)
+  let bare = BARE.get(w.c); if (!bare) BARE.set(w.c, bare = (w.c.isle?.stations ?? []).filter(st => !w.c.props.some(p => p.sprite === 'stn-pillar' && Math.hypot(p.x - st.x, p.y - st.y) < 200)));
+  for (const st of bare) if (w.open.has(st.d as never) && vis(st.x + 52, st.y, 120)) list.push([st.y + 4, () => {
+    x.fillStyle = 'rgba(0,0,0,.3)'; sc.shadow(x, st.x + 56, st.y + 6, 16, 7); spr(x, 'stn-pillar', st.x + 52, st.y + 6, { w: 44 });
+  }]);
   const tx = w.taxi;
   if (tx && vis(tx.b.x, tx.b.y)) list.push([tx.b.y, () => {
     x.fillStyle = 'rgba(0,0,0,.3)'; sc.shadow(x, tx.b.x + 5, tx.b.y + 7, 40, 22);
@@ -49,6 +56,11 @@ export function isleOver(sc: Scene, x: X, w: World, vis: Vis) {
     const t = trainAt(isle, w.time, k); if (!t.visible || !vis(t.x, t.y, 400)) continue;
     train(x, w, t.s, t.dir);
     sc.glow(x, t.x, t.y, 70, 'rgba(160,255,220,.25)');
+  }
+  // above each open station, the Jade Line's painted pin bobs like a job pin, so a station reads from a distance
+  for (const st of isle.stations) if (w.open.has(st.d) && vis(st.x, st.y, 260)) {
+    const b = Math.sin(sc.t * 2.4 + st.s) * 5; sc.glow(x, st.x, st.y - 110 + b, 46, 'rgba(90,255,190,.35)');
+    spr(x, 'pin-train', st.x, st.y - 92 + b, { w: 46, anchor: 'bottom' });
   }
   // the train you race in a job
   const a = w.run?.actors.find(q => q.kind === 'train');
@@ -86,6 +98,6 @@ export function isleActor(sc: Scene, x: X, a: Actor): boolean {
 /** Kaw's boat in the finale is a crow boat; the island's station entrances glow so you can find them */
 export function isleGround(sc: Scene, x: X, w: World, vis: Vis) {
   const isle = w.c.isle; if (!isle) return;
-  for (const st of isle.stations) if (w.open.has(st.d) && vis(st.x, st.y)) sc.glow(x, st.x, st.y, 90, 'rgba(80,255,190,.22)');
+  for (const st of isle.stations) if (w.open.has(st.d) && vis(st.x, st.y)) sc.glow(x, st.x, st.y, 110 + Math.sin(sc.t * 2) * 10, 'rgba(80,255,190,.3)');
   void T;
 }

@@ -59,7 +59,7 @@ export function TopHud({ play, onMap, onPause }: { play: Play; onMap: () => void
           {run.warning && <div className="jade-warn" role="alert" data-testid="warning">{run.warning.text}</div>}
         </div>
       )}
-      {!run && w.waypoint && <div className="jade-job small"><div className="jade-job-label">Following your map pin</div></div>}
+      {!run && w.waypoint && <div className="jade-job small"><div className="jade-job-label" data-testid="route-label">{w.c.isle?.stations.find(s => s.x === w.waypoint![0] && s.y === w.waypoint![1])?.name.replace(/^/, 'To ') ?? 'Following your map pin'}</div></div>}
     </>
   );
 }

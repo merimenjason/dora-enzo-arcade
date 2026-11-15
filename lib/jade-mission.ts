@@ -26,15 +26,21 @@ import type { GadgetId } from './jade-gear.js';
 import type { Hero } from './jade-save.js';
 import type { Player } from './jade-game.js';
 import { lineAt, stationNear } from './jade-mrt.js';
-import { jobEnter, jobStep, jobNear, jobAct, jobMini, jobTag, jobGuardGoal, jobTarget, jobAim, jobGadget, walkOnly, heistPick, askPick, askClose, type JobState } from './jade-jobs.js';
+import { jobEnter, jobStep, jobNear, jobAct, jobMini, jobTag, jobGuardGoal, jobTarget, jobAim, jobGadget, walkOnly, heistPick, branchPick, askPick, askClose, type JobState, type BranchPick } from './jade-jobs.js';
 import type { Intel } from './jade-story.js';
+import { hear, type Mind, newMind, tune } from './jade-aware.js';
+import { crewWatch, crewLabel } from './jade-jobs.js';
 
 export type Gig = { key: string; reward: number; d: District };
 export type Actor = { id: number; kind: string; b: Body; route: [number, number][]; wp: number; speed: number; t: number; stun: number; look: number; lookCd: number; face: number; gone: boolean; hits: number; extra?: number;
   /** painted blind (seconds), staring at a distraction (seconds, and at what), tangled in a net, the last single pounce */
   extra2?: number; stare?: number; stareX?: number; stareY?: number; stareAt?: string; netT?: number; pz?: { by: 'you' | 'mate'; t: number };
   /** a rival gang's look for a chase (an otter's sampan, a macaque) */
-  skin?: 'otter' | 'mac' | 'liz' | 'kaw' };
+  skin?: 'otter' | 'mac' | 'liz' | 'kaw';
+  /** what it has noticed (lib/jade-aware.ts): guards, lookouts, Pip, lured gang members, a blend's watchers */
+  mind?: Mind;
+  /** a sneaky raider (defend): slow, quiet, comes round the far side; a dash bowls it over */
+  sneaky?: boolean };
 export type Meter = { name: string; v: number; bad?: boolean };
 type Snap = { i: number; x: number; y: number; h?: number; roof: boolean; ride: VehicleKind | null; carry: string | null; phase?: number; intel?: Intel[];
   /** who you were playing and where the partner was (and what they had been told to do) */
@@ -47,7 +53,7 @@ export class Run {
   sets: SetState[] = []; signs: Sign[] = []; float: Float | null = null; private warned = 0;
   /** seconds after a checkpoint restore when lookouts and Pip don't notice you yet */
   grace = 0;
-  actors: Actor[] = []; marks: [number, number][] = []; mark = 0; items: { x: number; y: number; got: boolean; sprite: string }[] = [];
+  actors: Actor[] = []; marks: [number, number][] = []; mark = 0; items: { x: number; y: number; got: boolean; sprite: string; marks?: string[] }[] = [];
   loot: { x: number; y: number; sprite: string } | null = null; snap!: Snap; phase = 0; count = 0; lost = 0; base = 0; hits = 0;
   spawned = 0; spawnT = 0; envelopes = 5; fare: { x: number; y: number; to: [number, number] | null; sp: string } | null = null;
   /** for the medals: active seconds, the most heat, and retries from a checkpoint */
@@ -64,6 +70,8 @@ export class Run {
   /** the seventh pass's job steps (lib/jade-jobs.ts): what casing found out (kept from step to step), the step's own
    * state, the clue notebook, the Assist hint ring, and whether its meter's warning has been given */
   intel: Intel[] = []; js: JobState | null = null; notes: string[] = []; hint: { x: number; y: number; r: number } | null = null; jsWarned = false;
+  /** a crew watcher is alert this frame (lib/jade-jobs.ts crewWatch) */
+  jsAlert = false;
   constructor(public w: World, public m: Mission, public gig?: Gig) {}
 
   get assist() { return this.w.assist; }
@@ -471,6 +479,10 @@ export class Run {
   tail(dt: number) {
     const w = this.w, a = this.actors[0], p = w.p; if (!a) return;
     a.t += dt;
+    // Pip hears you (a dash, a hop, running footsteps): he stops and looks straight at the noise (lib/jade-aware.ts)
+    const mind = a.mind ?? (a.mind = newMind());
+    const heard = a.look <= 0 && this.grace <= 0 ? hear(w, a.b.x, a.b.y) : null;
+    if (heard && heard.by !== 'world') { a.look = 1.5; a.lookCd = Math.max(a.lookCd, 3); a.face = Math.atan2(heard.y - a.b.y, heard.x - a.b.x); w.fx.push({ t: 'look', x: a.b.x, y: a.b.y }); w.fx.push({ t: 'aware', kind: 'sus', x: a.b.x, y: a.b.y }); }
     if (a.look > 0) { a.look -= dt; a.b.speed = 0; } else {
       a.lookCd -= dt;
       if (a.lookCd <= 0) { a.look = 1.8; a.lookCd = 5 + (a.id % 4); a.face = a.b.h + Math.PI; w.fx.push({ t: 'look', x: a.b.x, y: a.b.y }); }
@@ -491,6 +503,8 @@ export class Run {
     if (sees) m.v = Math.min(1, m.v + dt * (p.sneak && !p.ride ? 0.45 : 1.1) * (d < 90 ? 1.8 : 1) * (this.assist ? 0.7 : 1) * this.w.diff.look * (st.calm ?? 1) * (known ? 3 : 1));
     else m.v = Math.max(0, m.v - dt * 0.25);
     m.bad = m.v > 0.6;
+    // what the bubble and his cone show: looking round, suspicious, sure
+    mind.st = m.v > 0.85 ? 'alert' : m.v > 0.45 ? 'look' : a.look > 0 ? 'sus' : 'patrol'; mind.seen = sees;
     if (m.v > 0.6 && this.warned < 1) { this.warned = 1; this.warn('Pip is getting suspicious! Drop back, sneak or hide!'); }
     if (m.v < 0.25 && this.warned === 1) this.warned = 0;
     if (m.v >= 1) return this.fail('Pip spotted you! Keep further back, sneak, or hide when he looks round.');
@@ -542,36 +556,24 @@ export class Run {
   stealth(st: Extract<Step, { t: 'stealth' }>, dt: number) {
     const w = this.w, p = w.p;
     const range = (this.assist ? 170 : 215) * this.w.diff.look, cone = this.assist ? 0.45 : 0.55;
-    let seen = false;
-    // the lookouts watch you (and, with a second player, your partner too); a painted or distracted one sees nothing
-    const heroes: Player[] = w.two ? [p, w.mate] : [p];
-    for (const a of this.actors) {
+    // the lookouts walk their beats (pausing at the ends to sweep their torches, Container Maze), hear, look round,
+    // chase and call each other (lib/jade-jobs.ts crewWatch); a painted or distracted one sees nothing
+    const walk = (a: Actor, dt: number) => {
       a.t += dt;
-      // a pause at the ends of the beat: the lookout stands and sweeps its torch (Container Maze), then walks on
       if (st.pause && (a.extra ?? 0) > 0) { a.extra = (a.extra ?? 0) - dt; a.b.speed = 0; a.b.h += Math.sin(a.t * 2.2) * dt * 0.9; }
       else if (!((a.stare ?? 0) > 0)) { const wp = a.wp; this.walk(a, dt, 46, true); if (st.pause && a.wp !== wp) a.extra = st.pause; }
       else a.b.speed = 0;
-      if (blind(a)) continue;
-      for (const h of heroes) {
-        const d = dist(a.b.x, a.b.y, h.x, h.y);
-        if (!h.hide && d < range && Math.abs(angDiff(a.b.h, Math.atan2(h.y - a.b.y, h.x - a.b.x))) < cone && los(w.c, a.b.x, a.b.y, h.x, h.y)) seen = true;
-        if (d < 34 && !h.hide) seen = true;
-      }
-    }
-    if (this.grace > 0) { this.grace -= dt; seen = false; }
-    const m = this.meter!;
-    // the Alert meter: it rises while a beam is on you (slower when you sneak) and falls once you're out of it
-    m.v = seen ? Math.min(1, m.v + dt * (p.sneak ? 0.4 : 1) * this.w.diff.look * this.mercy() * (st.calm ?? 1)) : Math.max(0, m.v - dt * 0.6); m.bad = m.v > 0.5;
-    if (m.v > 0.5 && this.warned < 1) { this.warned = 1; this.warn('A lookout is turning your way! Get out of the beam or hide!'); }
-    if (m.v < 0.2) this.warned = 0;
-    if (m.v >= 1) return this.fail('A lookout spotted you! Watch their torch beams and sneak.');
+    };
+    if (crewWatch(this, dt, { kind: 'lookout', look: false, range, half: cone, walk, calm: st.calm ?? 1, rate: () => p.sneak ? 0.4 : 1,
+      warn: 'A lookout is turning your way! Get out of the beam or hide!', spotted: 'A lookout spotted you! Watch their torch beams and sneak.', caught: 'A lookout caught you! When one shouts, run and hide until they give up.' })) return;
+    const busy = crewLabel(this);
     if (this.phase === 0) {
       const [gx, gy] = this.spot(st.goal);
       const shut = !!st.shutter && !holding(this);
-      this.label = shut ? (w.mate.ai.mode === 'hold' ? `${nameOf(w.mate.who)} is sneaking round to the shutter lever…` : `The office shutter is down: send ${nameOf(w.mate.who)} to hold its lever (F)`) : 'Reach the yard office unseen';
+      this.label = busy ?? (shut ? (w.mate.ai.mode === 'hold' ? `${nameOf(w.mate.who)} is sneaking round to the shutter lever…` : `The office shutter is down: send ${nameOf(w.mate.who)} to hold its lever (F)`) : 'Reach the yard office unseen');
       if (dist(p.x, p.y, gx, gy) < 60 && !p.act && !shut) { p.act = { n: 'pickup', t: 0, dur: 0.45, then: () => { p.carry = 'manifest'; w.fx.push({ t: 'pickup' }); this.phase = 1; releaseMate(this); this.snap = { ...this.snapshot(this.i), phase: 1 }; w.fx.push({ t: 'checkpoint' }); } }; }
     } else {
-      const [ex, ey] = this.spot(st.exit); this.label = 'Sneak back out through the gate';
+      const [ex, ey] = this.spot(st.exit); this.label = busy ?? 'Sneak back out through the gate';
       if (dist(p.x, p.y, ex, ey) < 70) { p.carry = null; this.next(); }
     }
   }
@@ -655,6 +657,7 @@ export class Run {
   jobAct(id: string) { jobAct(this, id); }
   walkOnly() { return walkOnly(this); }
   heistPick(mode: 'quiet' | 'loud') { heistPick(this, mode); }
+  branchPick(pick: BranchPick) { branchPick(this, pick); }
   askPick(q: number) { askPick(this, q); }
   askClose() { askClose(this); }
   /** a hop off the roof edge near a flag, or the Action button on a flag, during the float phase */

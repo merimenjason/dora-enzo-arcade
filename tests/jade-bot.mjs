@@ -23,7 +23,7 @@ import { ROADS } from '../.checks/jade-city.js';
 import { inWindow, LADDER } from '../.checks/jade-boss.js';
 import { tagOption, boostXY } from '../.checks/jade-tag.js';
 import { carried, giveGadget, GEAR_GIFT } from '../.checks/jade-gear.js';
-import { hiddenSpot, sightRange } from '../.checks/jade-jobs.js';
+import { hiddenSpot, sightRange, BRANCHES } from '../.checks/jade-jobs.js';
 
 const QUICK = process.argv.includes('--quick');
 const MAIN = import.meta.url === `file://${process.argv[1]}`;
@@ -158,8 +158,30 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
     if (a.kind === 'cam') return dist(a.b.x, a.b.y, x, y) < (assist ? 200 : 240) * margin + 20 && angTo(a, x, y) < 1.0 && los(w.c, a.b.x, a.b.y, x, y);
     return false;
   });
+  /** a guard or lookout on edge (a "?" or "!" over its head) that has you in its eye or is coming over: a person backs
+   * off to the last spot where nobody was looking and waits there for it to give up (lib/jade-aware.ts) */
+  let trail = [], hideTo = null;
+  function backOff() {
+    const p = w.p, run = w.run;
+    const edgy = run.actors.filter(a => a.mind && a.mind.st !== 'patrol' && a.mind.st !== 'back' && !blindA(a));
+    if (!trail.length || dist(trail[trail.length - 1][0], trail[trail.length - 1][1], p.x, p.y) > 40) { trail.push([p.x, p.y]); if (trail.length > 40) trail.shift(); }
+    if (trail.length && dist(trail[0][0], trail[0][1], p.x, p.y) > 1400) trail = [[p.x, p.y]];
+    if (!edgy.length) { hideTo = null; return false; }
+    const near = edgy.some(a => a.mind.seen || dist(a.b.x, a.b.y, p.x, p.y) < 320 && los(w.c, a.b.x, a.b.y, p.x, p.y));
+    if (!near && !hideTo) return false;
+    // the most recent spot behind us that none of them can see
+    const safe = ([x, y]) => edgy.every(a => !los(w.c, a.b.x, a.b.y, x, y) || dist(a.b.x, a.b.y, x, y) > 330);
+    if (!hideTo || !safe(hideTo)) { hideTo = null; for (let k = trail.length - 1; k >= 0; k--) if (safe(trail[k])) { hideTo = trail[k]; break; } }
+    if (!hideTo) hideTo = trail[0];
+    // one is shouting and coming for us: run (a run outpaces a chase) back the way we came, as far as it takes
+    const hunter = edgy.find(a => a.mind.st === 'alert' && dist(a.b.x, a.b.y, p.x, p.y) < 360);
+    if (hunter) { let best = trail[0], bv = -1; for (const q of trail) { const v = dist(q[0], q[1], hunter.b.x, hunter.b.y) - dist(q[0], q[1], p.x, p.y) * 0.3 + (los(w.c, hunter.b.x, hunter.b.y, q[0], q[1]) ? 0 : 200); if (v > bv) { bv = v; best = q; } } inp.sneak = false; go(best[0], best[1], 1); return true; }
+    if (!hideTo || dist(hideTo[0], hideTo[1], p.x, p.y) < 18) { inp.mx = 0; inp.my = 0; inp.sneak = true; return !!hideTo; }
+    inp.sneak = !edgy.some(a => a.mind.st === 'alert'); go(hideTo[0], hideTo[1], 1); return true;
+  }
   /** sneak towards a point, holding back while the next stretch is watched, backing out of a guard's way */
   function sneakTo(x, y) {
+    if (backOff()) return;
     const p = w.p; inp.sneak = true; go(x, y, 1);
     const nx = p.x + inp.mx * 60, ny = p.y + inp.my * 60;
     if (watched(nx, ny) && !watched(p.x, p.y, 0.8)) { inp.mx = 0; inp.my = 0; }
@@ -208,6 +230,13 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
       }
       case 'blend': {
         if (p.act) return;
+        if (js.pick === 'commotion') {
+          // the racket: hurry to the goal while they stare; after it, sneak on (and wait while a lookout faces us)
+          const [gx, gy] = run.spot(st.goal); go(gx, gy);
+          if (js.t <= 0) { inp.sneak = true; const nx = p.x + inp.mx * 60, ny = p.y + inp.my * 60; if (run.actors.some(a => a.kind === 'watcher' && !blindA(a) && dist(a.b.x, a.b.y, nx, ny) < 300 && angTo(a, nx, ny) < 1.1 && los(w.c, a.b.x, a.b.y, nx, ny))) { inp.mx = 0; inp.my = 0; } }
+          else if (js.t < 3) inp.sneak = false;
+          return;
+        }
         if (js.ph === 0) { if (nearJob('disguise')) { press('act'); return; } go(run.items[0].x, run.items[0].y); return; }
         if ((run.meter?.v ?? 0) > (P.slop ? 0.5 : 0.4) && nearJob('paper')) { press('act'); return; }
         const [gx, gy] = run.spot(st.goal);
@@ -239,6 +268,15 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
       }
       case 'trap': {
         if (p.act) return;
+        if (js.pick === 'chase') {
+          // run each one down: head for the nearest still walking (cutting in ahead of it) and dash when close
+          const a = run.actors.filter(x => x.kind === 'lured' && x.extra === 0).sort((u, v) => dist(u.b.x, u.b.y, p.x, p.y) - dist(v.b.x, v.b.y, p.x, p.y))[0];
+          if (!a) { const [x0, y0] = run.path(st.path, 'foot')[0]; if (dist(x0, y0, p.x, p.y) > 200) go(x0, y0); return; }
+          const d = dist(a.b.x, a.b.y, p.x, p.y), lead = Math.min(1, d / 400) * 60;
+          go(a.b.x + Math.cos(a.b.h) * lead, a.b.y + Math.sin(a.b.h) * lead);
+          if (d < 95) press('dash');
+          return;
+        }
         if (js.ph === 0) { if (nearJob('set')) { press('act'); return; } const tg = run.target(); if (tg) go(tg[0], tg[1]); return; }
         if (js.ph === 1) { if (nearJob('bait')) { press('act'); return; } const [bx, by] = run.spot(st.bait); go(bx, by); return; }
         const [wx, wy] = run.spot(st.wait);
@@ -275,6 +313,8 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
       // walk to the contact and press the action button
       const pl = w.c.places[m.at];
       if (w.near?.kind === 'mission' && w.near.id === id) { press('act'); return; }
+      // (a job offered at a station's gates is taken from its giver, who waits beside them)
+      const gv = w.cast.find(c => c.job === id); if (gv && m.at.startsWith('stn-')) { go(gv.x, gv.y); return; }
       go(pl.x, pl.y); return;
     }
     started = true;
@@ -397,7 +437,8 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
         const tgt = run.phase === 0 ? run.spot(st.goal) : run.spot(st.exit);
         if (st.shutter && run.phase === 0 && !(w.mate.ai.mode === 'hold')) { if (tagIf('hold')) return; }
         inp.sneak = true;
-        if (st.shutter && run.phase === 0 && !(w.mate.ai.mode === 'hold' && w.mate.ai.holding) && dist(tgt[0], tgt[1], p.x, p.y) < 200) { inp.mx = 0; inp.my = 0; return; }
+        if (backOff()) return;
+        if (st.shutter && run.phase === 0 && !(w.mate.ai.mode === 'hold' && w.mate.ai.holding)) { inp.mx = 0; inp.my = 0; return; }
         go(tgt[0], tgt[1], 1);
         // wait when the next stretch is in a lookout's beam
         const nx = p.x + inp.mx * 60, ny = p.y + inp.my * 60;
@@ -533,6 +574,8 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
       if (w.ui.kind === 'safe') { w.swapJacket(); w.ui = null; continue; }
       // the heist: the bots take turns, quiet on even seeds, loud on odd ones (o.heist forces one)
       if (w.ui.kind === 'heist') { t += 0.6; w.run.heistPick(o.heist ?? (seed % 2 ? 'loud' : 'quiet')); continue; }
+      // the branch cards (blend, trap, detective): the same, the first way on even seeds and the second on odd ones
+      if (w.ui.kind === 'branch') { t += 0.6; const two = BRANCHES[w.run.cur.t]; w.run.branchPick(o.branch && two.includes(o.branch) ? o.branch : two[seed % 2]); continue; }
       // a witness: the right question most of the time (a person reads them), another one now and then
       if (w.ui.kind === 'ask') {
         const ui = w.ui, wi = w.run.cur.witnesses[ui.i]; t += 0.8;
@@ -559,7 +602,7 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
     if (unstick > 0) { unstick -= DT; inp.mx = uDir[0]; inp.my = uDir[1]; }
     // a ticket from a warden: pay it at once (a person reads the popup within a moment or so)
     if (w.ticket && w.ticket.t > 0.6 && !w.p.act) inp.act = true;
-    w.step(inp, DT); t += DT;
+    w.step(inp, DT); t += DT; o.each?.(w);
     if (o.trace && Math.floor(t / o.trace) !== Math.floor((t - DT) / o.trace)) { const r = w.run; const a = r?.actors[0]; console.log(`t${Math.round(t)} p(${Math.round(w.p.x / T)},${Math.round(w.p.y / T)}) ride=${w.p.ride?.kind ?? '-'} roof=${w.p.roof} step=${r?.i}:${r?.cur?.t} near=${w.near?.kind ?? '-'} inp=${inp.mx.toFixed(1)},${inp.my.toFixed(1)}${a ? ` a(${Math.round(a.b.x / T)},${Math.round(a.b.y / T)}) wp${a.wp}/${a.route.length} look${a.look.toFixed(1)}` : ''} meter=${r?.meter ? r.meter.name + ':' + r.meter.v.toFixed(2) : '-'} heat=${w.heat.toFixed(1)} ui=${w.ui?.kind ?? "-"} wd=${w.wardens.map(x => Math.round(Math.hypot(x.b.x - w.p.x, x.b.y - w.p.y)) + "@" + Math.round(x.b.x) + "," + Math.round(x.b.y) + (x.leave ? "L" : "")).join("|")} pp=${Math.round(w.p.x)},${Math.round(w.p.y)} fail=${w.failed ?? ""}${o.traceRide && r?.ride ? ` rr(${(r.ride.b.x / T).toFixed(1)},${(r.ride.b.y / T).toFixed(1)} ${r.ride.parked} ${r.ride.locked}) nr(${w.near?.ride ? (w.near.ride.b.x / T).toFixed(1) + ',' + (w.near.ride.b.y / T).toFixed(1) + ' ' + w.near.ride.kind + ' ' + w.near.ride.locked : '-'}) act=${w.p.act?.n ?? '-'}` : ''}`); }
     w.drain();
     inp.act = false; inp.dash = false; inp.hop = false; inp.tag = false; inp.swap = false; inp.fire = false; inp.slot = undefined; inp.reload = false;
