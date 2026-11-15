@@ -61,7 +61,7 @@ export type Step =
   /** give the partner a boost onto the roof at boost spot `at` (lib/jade-tag.ts BOOSTS) */
   | { t: 'boost'; at: number; label: string; cp?: boolean }
   /** a crow circles with a loot bag: knock it loose with a gadget, or pounce when it swoops low */
-  | { t: 'bag'; at: Spot; loot?: string; time?: number; label: string; cp?: boolean }
+  | { t: 'bag'; at: Spot; loot?: string; time?: number; label: string; skin?: 'myna'; cp?: boolean }
   // ── the seventh pass's job steps (lib/jade-jobs.ts)
   /** case the joint: photograph spots (E) from where you have a clear view of them, without the guards seeing you; each
    * photo is intel the next step uses (lib/jade-jobs.ts INTEL); `need` photos end the step (all of them by default) */
@@ -576,7 +576,7 @@ export const MISSIONS: Mission[] = [
       { t: 'talk', lines: [['nine', 'You again! Nine Lives Fireworks Pte Ltd will not be stopped! Kaw never let me run anything!', 'cross'], ['hero', 'He’s running for the beach!', 'cross'], ['mate', 'Pounce together: F sends me in, then dash!', 'cross']] },
       { t: 'chase', who: 'runner', skin: 'nine', from: [46, 110], route: [[52, 117], [64, 118], [78, 118], [90, 121], [104, 120], [86, 117]], bumps: 2, loot: '', speed: 205, finish: 'pounce', label: 'Pounce on Crow Number Nine together: F sends {mate} in, then dash', cp: true },
       { t: 'talk', lines: [['nine', 'Fine! Then nobody gets fireworks! Fly, little mynah, fly!', 'cross'], ['bising', 'That mynah is mine! Hey! Come back! Kecoh!', 'cross']] },
-      { t: 'bag', at: 'here', loot: 'firebox', time: 60, label: 'Knock the spare firing box out of the mynah’s claws (shoot it, or dash when it swoops low)', cp: true },
+      { t: 'bag', at: 'here', loot: 'firebox', skin: 'myna', time: 60, label: 'Knock the spare firing box out of the mynah’s claws (shoot it, or dash when it swoops low)', cp: true },
       { t: 'pickup', at: 'loot', item: 'firebox', label: 'Catch the firing box' },
       { t: 'talk', lines: [['nine', 'I just wanted… one night that was mine.', 'worried'], ['kaw', 'Nine. Come home. You can run the lantern stall. Your own stall.', 'calm'], ['helang', 'And the island’s lights go up on Siloso Beach. Fire!', 'happy'], ['hero', 'Best fireworks ever.', 'happy'], ['mate', 'Best island ever. All of it.', 'happy']] },
     ] },

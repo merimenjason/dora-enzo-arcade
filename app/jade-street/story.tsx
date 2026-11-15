@@ -36,6 +36,12 @@ const ISLE_END: Panel[] = [
   { img: 'bg-end-4', title: 'Island Night', focus: '50% 35%',
     text: 'On the Float-About Stage, the Golden Chinchilla goes to the heroes of the island, and the fireworks go up over the bay. Kaw holds the mop. Nobody minds.' },
 ];
+const LIGHTS_END: Panel[] = [
+  { img: 'bg-chapter-7', title: 'Island Lights', focus: '50% 40%',
+    text: 'Crow Number Nine hands back the spare fireworks. Boss Bising’s mynahs sing (in their own voices, for once), and the lamps along Serangoon Road and the pelita on Bussorah Street glow all the way to the sea.' },
+  { img: 'bg-end-5', title: 'Fireworks over Siloso Beach', focus: '50% 35%',
+    text: 'Sergeant Helang gives the word and the fireworks go up over Sentosa. Kaw and Nine run the lantern stall together. Nobody fights over the last kuih. Well, almost nobody.' },
+];
 /** keyboard and timing for a run of painted panels */
 function usePages(n: number, onDone: () => void) {
   const [i, setI] = useState(0);
@@ -112,6 +118,7 @@ export function ChapterCard({ ch, onDone }: { ch: number; onDone: () => void }) 
         {opened && <p>{DISTRICT_NAME[opened].replace(/^the /, 'The ')} is open.</p>}
         {heir && <p>Find the {heir.name}.</p>}
         {c === 6 && <><p>Toa Payoh and Marina Bay are open: take the Jade Line from Chinatown station.</p><p>Stop Director Kaw.</p></>}
+        {c === 7 && <><p>Little India and Kampong Glam are open: take the Jade Line to Little India or Bugis.</p><p>Find out who is copying voices.</p></>}
         <div className="jade-chapter-bar"><span /></div>
       </div>
       <button type="button" className="jade-btn plain jade-story-skip" data-testid="jade-story-skip" onClick={e => { e.stopPropagation(); finish(); }}>Skip ›</button>
@@ -120,9 +127,9 @@ export function ChapterCard({ ch, onDone }: { ch: number; onDone: () => void }) 
 }
 
 /** the ending panels; hero picks who is named first */
-export function Ending({ hero, isle = false, onDone }: { hero: 'dora' | 'enzo'; isle?: boolean; onDone: () => void }) {
+export function Ending({ hero, isle = false, lights = false, onDone }: { hero: 'dora' | 'enzo'; isle?: boolean; lights?: boolean; onDone: () => void }) {
   const a = hero === 'enzo' ? 'Enzo' : 'Dora', b = hero === 'enzo' ? 'Dora' : 'Enzo';
-  const panels = (isle ? ISLE_END : ENDING).map((p, k) => k === 0 ? { ...p, text: `${a} and ${b} did it. ` + p.text } : p);
+  const panels = (lights ? LIGHTS_END : isle ? ISLE_END : ENDING).map((p, k) => k === 0 ? { ...p, text: `${a} and ${b} did it. ` + p.text } : p);
   return <Pages panels={panels} onDone={onDone} testid="jade-ending" last="Credits ›" />;
 }
 
