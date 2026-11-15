@@ -113,8 +113,8 @@ export async function ninth(h) {
   // ── the Kecoh Mynahs: E shoos one, a paint shot makes one preen, a singing one makes you cover your ears
   await W(() => { window.__jade.teleportTo('serangoon'); window.__jade.give(['paint']); const w = window.__jade.world(), s = w.s, h = w.p.who; s.gear.carry[h] = ['paint']; s.gear.slot[h] = 0; s.gear.clip.paint = 6; s.gear.ammo.paint = 30; });
   check(await W(() => window.__jade.gang('mynahs')), `${name}: the Kecoh Mynahs turn up on their turf`); await wait(500); await look('mynahs');
-  const mob = await W(() => { const w = window.__jade.world(), m = w.gangs.ev.mobs.find(m => m.has && m.st === 'run' && m.fly === undefined); if (!m) return null; m.b.speed = 0; w.placePlayer(m.b.x, m.b.y + 50); w.findNear(); return { id: m.id, near: w.near?.label ?? '' }; });
-  check(/Shoo the mynah/.test(mob?.near ?? ''), `${name}: "Shoo the mynah!"`); await key('e', 300);
+  const mob = await W(() => { const w = window.__jade.world(), m = w.gangs.ev.mobs.find(m => m.has && m.st === 'run' && m.fly === undefined); if (!m) return null; m.b.speed = 0; w.placePlayer(m.b.x, m.b.y + 50); w.findNear(); return { id: m.id, near: w.near?.label ?? '', ride: w.p.ride?.kind ?? null }; });
+  check(/Shoo the mynah/.test(mob?.near ?? ''), `${name}: "Shoo the mynah!" (${JSON.stringify(mob)})`); await key('e', 300);
   check(await until(() => window.__jade.world().p.act?.n === 'shoo', null, 1500), `${name}: E shoos it`); await wait(500);
   // a paint shot with the mouse
   const tgt = await W(() => { const w = window.__jade.world(), m = w.gangs.ev?.mobs.find(m => m.has && m.st === 'run'); if (!m) return null; m.b.speed = 0; m.fly = undefined; w.placePlayer(m.b.x - 200, m.b.y); w.s.settings.assist = true; return window.__jade.screenOf(m.b.x / 64, m.b.y / 64); });
@@ -129,7 +129,7 @@ export async function ninth(h) {
   // ── a job's cable step: Up the Cable Car rides it and goes on from Sentosa
   check(await W(() => { const J = window.__jade, w = J.world(); w.s.done = w.s.done.filter(id => id !== 'm42'); J.job('m42'); w.talk = null; return J.enterStep(J.stepOf('cable')); }) === 'cable', `${name}: Up the Cable Car: the cable step`);
   await W(() => { window.__jade.world().talk = null; window.__jade.teleportTo('cable-harbour'); }); await wait(300);
-  const nj = await near(); check(nj?.kind === 'cable', `${name}: the job's cable step at the station: "${nj?.label}"`);
+  const nj = await near(); check(nj?.kind === 'cable', `${name}: the job's cable step at the station: "${nj?.label}" (${await W(() => JSON.stringify([window.__jade.world().p.ride?.kind, window.__jade.world().run?.m.id, window.__jade.world().run?.cur?.t]))})`);
   await E(); check(await appear('ride-view'), `${name}: E rides the job's cable car`); await key('Enter', 300);
   check(await W(() => window.__jade.world().run?.cur?.t !== 'cable'), `${name}: the job goes on from Sentosa`); await look('job: after the cable car');
   await W(() => { window.__jade.world().quitJob(); }); await free();
@@ -150,6 +150,30 @@ export async function ninth(h) {
   const ctl = await loc('jade-controls').innerText(); check(/[Cc]able car/.test(ctl) && /[Ff]erry/.test(ctl) && /lamp|festival/i.test(ctl), `${name}: the Controls page has the cable car, ferry and festivals`);
   await press('close'); if (await exists('resume')) await press('resume');
   check(await W(() => !!localStorage.getItem('jade-street-v10')), `${name}: saved as v10`);
+
+  // ── playtest fixes: Esc closes the top-most panel (not Pause), the next-job plaque, Route me in the jobs book and on a job text
+  await W(() => { const w = window.__jade.world(); w.quitJob(); w.ui = null; w.talk = null; window.__jade.play.paused = false; }); await settle();
+  await press('jade-phone'); check(await appear('jade-phone-msgs'), `${name}: the phone opens`);
+  await key('Escape', 300);
+  check(!(await exists('jade-phone-msgs')) && !(await exists('resume')), `${name}: Esc closes the phone, not into Pause`);
+  await press('map-btn'); check(await appear('map'), `${name}: the map opens`);
+  await key('Escape', 300); check(!(await exists('map')) && !(await exists('resume')), `${name}: Esc closes the map`);
+  await press('pause-btn'); check(await appear('resume'), `${name}: paused`); await key('Escape', 300); check(!(await exists('resume')), `${name}: Esc closes Pause`);
+  // a job on offer: the plaque names it, the jobs book routes there, a job text has Route me
+  const offer = await W(() => { const J = window.__jade, w = J.world(); w.s.done = w.s.done.filter(id => id !== 'm45' && id !== 'k13'); w.s.story.ending = false; w.waypoint = null; for (const id of ['k13', 'm45']) w.offered.delete(id); w.s.msgs = w.s.msgs.filter(m => m.job !== 'k13' && m.job !== 'm45'); return w.nextJob()?.id ?? null; });
+  check(!!offer, `${name}: a job on offer (${offer})`);
+  check(await appear('next-job'), `${name}: the next-job plaque in free roam`); await look('next job plaque');
+  await press('pause-btn'); await press('tab-jobs');
+  check(await exists(`jade-route-${offer}`), `${name}: the jobs book has Route me for ${offer}`);
+  await press(`jade-route-${offer}`); check(await W(() => !!window.__jade.world().waypoint), `${name}: Route me sets the gold line`);
+  if (await exists('close')) await press('close'); if (await exists('resume')) await press('resume');
+  await W(() => { const w = window.__jade.world(); w.waypoint = null; }); await wait(1200);
+  await press('jade-phone');
+  const rb = await W(() => [...document.querySelectorAll('[data-testid^="msg-route-"]')].map(e => e.dataset.testid));
+  check(rb.length > 0, `${name}: a job text has Route me (${rb.join(', ')})`);
+  if (rb.length) { await press(rb[0]); check(await W(() => !!window.__jade.world().waypoint) && !(await exists('jade-phone-msgs')), `${name}: Route me on a text sets the gold line and closes the phone`); }
+  else await key('Escape', 300);
+  await W(() => { const w = window.__jade.world(); w.s.done.push('k13', 'm45'); w.s.story.ending = true; w.waypoint = null; });
 
   // ── every new pose was played
   const seen = await W(() => [...window.__seen9]);

@@ -231,3 +231,4 @@ test('the new people stand in the world with a line each, and the mynah roost is
 });
 
 console.log(`jade (ninth pass): ${n} tests ok`);
+await import('./jade-fix9.mjs');

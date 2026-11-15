@@ -119,7 +119,7 @@ export function east(c: City) {
   bld(249, 2, 5, 4, 'india-villa'); bld(255, 2, 8, 4, 'india-shop-a'); prop(252, 8, 'bougain', 16, 'tall', 'over', 60);
   // Buffalo Road: the safe house and the prata shop, the spice shops and the garland and flower market, a shophouse
   // row and the arcade
-  bld(213, 17, 3, 3, 'lm-safe'); bld(218, 17, 4, 4, 'india-prata');
+  bld(213, 17, 3, 3, 'safe-india'); bld(218, 17, 4, 4, 'india-prata');
   bld(229, 16, 6, 4, 'india-spice'); bld(236, 16, 6, 4, 'india-flower');
   bld(249, 16, 8, 4, 'india-shop-b'); bld(258, 17, 5, 3, 'india-arcade');
   prop(234, 20, 'spice-sacks', 18, 'tall', 'over', 76); prop(242, 20, 'garland-stall', 22, 'tall', 'over', 96);
@@ -149,7 +149,7 @@ export function east(c: City) {
   for (const x of [229, 232, 235, 238, 241]) prop(x, 43, x % 2 ? 'carpet-stall' : 'textile-stall', 20, 'tall', 'over', 92);
   place('mk-glam', 234, 44, 'market', 'Arab Street market');
   // a row of Middle-Eastern restaurants, the safe house
-  bld(213, 51, 8, 4, 'glam-cafe'); bld(213, 57, 3, 3, 'lm-safe'); prop(222, 55, 'cafe-tables', 0, 'low', 'ground', 110);
+  bld(213, 51, 8, 4, 'glam-cafe'); bld(213, 57, 3, 3, 'safe-glam'); prop(222, 55, 'cafe-tables', 0, 'low', 'ground', 110);
   place('safe-glam', 214, 60, 'safe', 'Kandahar Street safe house'); place('cafes', 217, 56, 'spot', 'the restaurant row');
   // the textile shops and the perfume shop, Haji Lane (a narrow lane of murals), more of its shophouses
   bld(229, 50, 8, 4, 'glam-textile'); bld(238, 50, 4, 4, 'glam-perfume');
@@ -187,7 +187,7 @@ export function east(c: City) {
   bld(34, 97, 10, 8, 'resort-fort'); prop(36, 107, 'cannon', 20, 'tall', 'over', 90); prop(42, 107, 'cannon', 20, 'tall', 'over', 90);
   place('fort', 39, 106, 'spot', 'Fort Siloso'); place('helang', 41, 109, 'contact', 'Sergeant Helang');
   // the north side of Siloso Road: the safe house, the cable car station, the sky tower, Beach station, the hotel
-  bld(50, 95, 3, 3, 'lm-safe'); place('safe-resort', 51, 98, 'safe', 'Siloso safe house');
+  bld(50, 95, 3, 3, 'safe-resort'); place('safe-resort', 51, 98, 'safe', 'Siloso safe house');
   bld(64, 95, 6, 4, 'resort-cable'); place('cable-sentosa', 66, 99, 'cable', 'Sentosa cable car');
   bld(76, 95, 4, 4, 'resort-tower'); place('skytower', 78, 99, 'spot', EAST_NAMES.tower);
   bld(96, 95, 6, 3, 'resort-stn'); place('stn-beach', 98, 98, 'station', 'Beach station');

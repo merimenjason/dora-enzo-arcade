@@ -234,3 +234,18 @@ J['stall-glam'] = (L, SP + ['stall-market.png', 'east-faces.png'], STYLE + ISLE 
 J['stall-resort'] = (L, SP + ['stall-bay.png', 'east-faces2.png'], STYLE + ISLE + EAST + STALL + "The stall-keeper is Kapten Duyung, a "
   "big gentle DUGONG in a navy captain's cap and peacoat (copy him from the attached portrait sheet), behind a bamboo beach kiosk "
   "counter strung with fairy lights. Behind: a moonlit beach with palms, beach umbrellas and the sea. No text, signs are blank shapes.")
+
+# ── playtest fixes: a safe house of its own in each new district (they borrowed Chinatown's), and a Jade Line entrance
+J['safe-bld'] = (L, SREF + ['landmarks.png', 'hdb-bld.png', 'bay-bld.png', 'india-bld.png'], STYLE + ISLE + EAST + "A game sprite "
+  "sheet of six separate items for a top-down city game. " + BLD + "A 3 by 2 grid. Each of the first five is a cosy SAFE HOUSE where "
+  "two young chinchilla heroes hide out, about square, with a small lit doorway, a potted plant and a single paw-print shape painted "
+  "on the door, each in the style of its own neighbourhood: (1) a TOA PAYOH HDB flat: a ground-floor corner unit of a cream and "
+  "pastel-green public housing block, a metal gate, shoe rack and potted plants along the corridor; (2) a MARINA BAY LOFT: a sleek "
+  "small glass-and-timber penthouse box on a rooftop terrace with fairy lights and a deck; (3) a LITTLE INDIA shophouse unit on Buffalo "
+  "Road: a narrow two-storey shophouse in turquoise and marigold with carved shutters and a jasmine garland over the door; (4) a "
+  "KAMPONG GLAM shophouse on Kandahar Street: a narrow two-storey shophouse in pale green and cream with arched windows, patterned tiles "
+  "and a brass lantern; (5) a SENTOSA beach hut: a raised wooden hut with a thatched roof, a little verandah with a hammock, palm "
+  "trees and a surfboard leaning on it. (6) not a building but a PROP: a covered METRO STATION ENTRANCE seen from the same camera, a "
+  "small glass canopy over a stairway going down, with jade-green steel frame, a glowing jade-green round sign plate (blank, no "
+  "letters) on a short post beside it, and tiled steps, about one and a half times as wide as deep. No text anywhere, signs are blank "
+  "coloured shapes. " + GRN)

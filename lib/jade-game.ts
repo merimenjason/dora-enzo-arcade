@@ -10,7 +10,7 @@ import { VEHICLES, FOOT, drive, step as moveStep, obstacleGrid, shove, overlappi
 import { nearestFree, field, pathFrom, type Field } from './jade-nav.js';
 import { castOf, castKey, CHAT, type CastMember } from './jade-cast.js';
 import { rng, clamp, angDiff, dist } from './jade-rng.js';
-import { cargoCount, cargoValue, capacity, GOODS, GOOD, midPrice, prices, buy as tBuy, sell as tSell, moveGoods, type Good } from './jade-trade.js';
+import { cargoCount, cargoValue, capacity, GOODS, GOOD, midPrice, prices, buy as tBuy, sell as tSell, moveGoods, MARKET_NAME, type Good } from './jade-trade.js';
 import { type Save, type Hero, openDistricts, offered, addRep, checkTrophies, safeOpen, SAFE_HOUSES, DAILY_NEED, dailyEvent } from './jade-save.js';
 import { MISSION, PEOPLE, type Mission } from './jade-story.js';
 import { Run, type Gig } from './jade-mission.js';
@@ -133,6 +133,9 @@ export class World {
     this.crates = makeCrates(this);
     const home = this.c.places[save.safe] ?? this.c.places['safe-market'];
     this.placePlayer(home.x, home.y + T * 0.6);
+    // the game was closed mid-job: say so, and lead back to its giver to start it again
+    const lost = save.jobOpen ? MISSION[save.jobOpen] : null;
+    if (lost) { save.jobOpen = undefined; const pl = this.c.places[lost.at]; if (pl && this.open.has(pl.d)) this.waypoint = [pl.x, pl.y]; this.say(`“${lost.title}” stopped when you left. Talk to ${PEOPLE[lost.giver]?.name ?? 'them'} to start it again (the gold line leads there).`, 'gold'); }
   }
   mateOf(p: Player) { return p === this.p ? this.mate : this.p; }
   /** where a pounce's target is now: a job actor by id, or (-1) the street crow */
@@ -268,10 +271,12 @@ export class World {
 
   clock(dt: number) {
     const before = this.s.clock;
-    this.s.clock += dt * (this.assist ? 0.85 : 1); // one game minute a second; 12 h nights
+    // one game minute a second (12 h nights), half that during a job; dawn waits until the job is done
+    this.s.clock += dt * (this.assist ? 0.85 : 1) * (this.run ? 0.5 : 1);
+    if (this.run && this.s.clock >= 719.5) this.s.clock = 719.5;
     accrue(this, Math.min(720, this.s.clock) - before);
     const r = raidCheck(this, before, this.s.clock);
-    if (r) { this.raidWait = { id: r, t: 0 }; const b = BIZ_OF[r]; text(this, b.keeper, `Help! Crows are raiding the ${b.name}! Get here quick and chase them off before they empty the till.`); }
+    if (r) { this.raidWait = { id: r, t: 0 }; const b = BIZ_OF[r]; text(this, b.keeper, `Help! Crows are raiding the ${b.name}! Get here quick and chase them off before they empty the till.`, { kind: 'help' }); }
     if (this.s.clock >= 720) this.newNight();
   }
   /** a raid starts as soon as you are free to answer it (not in a job, a menu, a talk or the middle of an action) */
@@ -460,9 +465,11 @@ export class World {
     if (p.seat) { this.near = null; return; }
     if (p.ride) {
       if (this.run?.wantsRide()) { this.near = null; }
+      // a job's giver is close: E gets off and talks to them (before "Get off")
+      if (!this.run && p.ride.kind !== 'boat') for (const m of offered(this.s)) { const pl = this.c.places[m.at]; if (pl) cand({ kind: 'mission', label: `Talk to ${PEOPLE[m.giver].name}: “${m.title}”`, x: pl.x, y: pl.y, id: m.id }, 130); }
       for (const id of ['garage-market', 'garage-canal']) { const g = this.c.places[id]; if (this.open.has(g.d)) cand({ kind: 'garage', label: 'Garage: upgrades and paint', x: g.x, y: g.y, id }, 110); }
       // markets are drive-up: trade from the saddle
-      if (p.ride.kind !== 'boat') for (const pl of Object.values(this.c.places)) if (pl.kind === 'market' && this.open.has(pl.d)) cand({ kind: 'market', label: `Trade at ${pl.name}`, x: pl.x, y: pl.y, id: pl.d }, 120);
+      if (p.ride.kind !== 'boat') for (const pl of Object.values(this.c.places)) if (pl.kind === 'market' && this.open.has(pl.d)) cand({ kind: 'market', label: `Trade at ${MARKET_NAME[pl.d]}`, x: pl.x, y: pl.y, id: pl.d }, 120);
       if (!best) best = { kind: 'exit', label: p.ride.kind === 'boat' ? 'Step off the boat' : 'Get off', x, y };
       this.near = best; return;
     }
@@ -474,7 +481,7 @@ export class World {
     const rm = this.run?.nearAction(x, y); if (rm) cand(rm, 90);
     for (const [id, pl] of Object.entries(this.c.places)) {
       if (!this.open.has(pl.d)) continue;
-      if (pl.kind === 'market') cand({ kind: 'market', label: `Trade at ${pl.name}`, x: pl.x, y: pl.y, id: pl.d }, 90);
+      if (pl.kind === 'market') cand({ kind: 'market', label: `Trade at ${MARKET_NAME[pl.d]}`, x: pl.x, y: pl.y, id: pl.d }, 90);
       if (pl.kind === 'safe') cand(safeOpen(this.s, id) ? { kind: 'safe', label: `${pl.name}`, x: pl.x, y: pl.y, id } : { kind: 'buy-safe', label: `${pl.name} (for sale)`, x: pl.x, y: pl.y, id }, 80);
       if (pl.kind === 'garage') cand({ kind: 'garage', label: 'Garage: upgrades and paint', x: pl.x, y: pl.y, id }, 80);
     }
@@ -519,7 +526,7 @@ export class World {
     if (p.act && ['point', 'hail', 'wave'].includes(p.act.n)) p.act = null;
     if (p.act) return;
     switch (n.kind) {
-      case 'mission': this.startMission(MISSION[n.id!]); break;
+      case 'mission': if (this.p.ride) this.exit(); this.startMission(MISSION[n.id!]); break;
       case 'giver': this.talk = { lines: [[n.id!, CHAT[n.id!], 'happy']], i: 0 }; this.fx.push({ t: 'open' }); break;
       case 'market': this.ui = { kind: 'market', d: n.id as District }; this.fx.push({ t: 'open' }); break;
       case 'safe': this.ui = { kind: 'safe', id: n.id! }; this.s.safe = n.id!; this.fx.push({ t: 'open' }); break;
@@ -577,12 +584,13 @@ export class World {
     if (this.run) return;
     if (!gig) { this.street = null; this.crowd = null; this.pushing = false; }
     this.run = new Run(this, m, gig);
+    if (!gig) this.s.jobOpen = m.id;
     this.fx.push({ t: 'mission-start', name: m.title });
     this.banner = { text: m.title, sub: gig ? 'Side gig' : m.side ? `Hawker Tales · ${PEOPLE[m.giver].name}` : `Chapter ${m.ch} · ${PEOPLE[m.giver].name}`, t: 2.6 };
     this.run.begin();
   }
   finishMission(m: Mission, gig?: Gig) {
-    this.lastRun = this.run; this.run = null; this.route = [];
+    this.lastRun = this.run; this.run = null; this.route = []; this.s.jobOpen = undefined;
     if (gig && gig.key.startsWith('raid:')) { const id = gig.key.slice(5) as BizId; raidWon(this.s, id); this.s.cash += gig.reward; addRep(this.s, gig.d, 2); this.fx.push({ t: 'mission-done', name: m.title, k: gig.reward }); this.banner = { text: 'Raid repelled!', sub: `The till is safe · +${gig.reward} coins`, t: 2.6 }; this.p.act = this.p.ride ? null : { n: 'celebrate', t: 0, dur: 1.1 }; return; }
     if (gig) { this.s.cash += gig.reward; this.s.stats.gigs++; addRep(this.s, gig.d, 2); this.s.best[gig.key] = Math.max(this.s.best[gig.key] ?? 0, 1); this.fx.push({ t: 'mission-done', name: m.title, k: gig.reward }); this.banner = { text: 'Gig done!', sub: `+${gig.reward} coins`, t: 2.4 }; return; }
     const run = this.lastRun; const res = { time: run?.time ?? 0, maxHeat: run?.maxHeat ?? 0, retries: run?.retries ?? 0 };
@@ -617,7 +625,7 @@ export class World {
   lastRun: Run | null = null; lastMedal: { id: string; medal: number; time: number; maxHeat: number; retries: number; best: boolean } | null = null;
   fail(reason: string) { if (!this.run) return; this.failed = { reason }; this.fx.push({ t: 'fail', msg: reason }); }
   retry() { this.failed = null; this.heat = 0; this.clearHeat(); if (this.run) this.run.retries++; this.run?.restore(); }
-  quitJob() { const rid = this.run ? raidId(this.run.m.id) : null; if (rid) { const k = raidLost(this.s, rid); this.say(`The crows made off with ${k} coins from the ${BIZ_OF[rid].name}.`, 'bad'); }
+  quitJob() { this.s.jobOpen = undefined; const rid = this.run ? raidId(this.run.m.id) : null; if (rid) { const k = raidLost(this.s, rid); this.say(`The crows made off with ${k} coins from the ${BIZ_OF[rid].name}.`, 'bad'); }
     this.failed = null; if (this.run && this.banner?.text === this.run.m.title) this.banner = null; this.run?.cleanup(); this.run = null; this.route = []; this.p.carry = null; this.replaying = false; }
   clearHeat() { this.heat = 0; this.wardens = []; this.blocks = []; this.blimp.on = false; }
   advanceTalk() {
@@ -638,14 +646,19 @@ export class World {
     if (this.run) return this.run.target();
     if (this.waypoint && dist(this.waypoint[0], this.waypoint[1], this.p.x, this.p.y) < 110) { this.waypoint = null; this.fx.push({ t: 'arrive' }); }
     if (this.waypoint) return this.waypoint;
+    // with Assist on, point at the next job's giver in story order (even when they are close: the line ends at them),
+    // and only then at a street event
+    if (this.assist && !this.p.roof) { const g = this.nextGiver(); if (g) return g; }
     const ev = eventTarget(this); if (ev && this.assist) return ev;
-    // with Assist on and nothing else to do, point at the next job's contact
-    if (this.assist && !this.p.roof) {
-      let best: [number, number] | null = null, bd = 1e18;
-      for (const m of offered(this.s)) { const pl = this.c.places[m.at]; if (!pl) continue; const d = dist(pl.x, pl.y, this.p.x, this.p.y); if (d < bd && d > 90) { bd = d; best = [pl.x, pl.y]; } }
-      return best;
-    }
     return null;
+  }
+  /** the job to do next: the story's next offered job, else the first Hawker Tale on offer */
+  nextJob(): Mission | null { return offered(this.s).find(m => !!this.c.places[m.at]) ?? null; }
+  /** where its giver stands (beside the gates when the job is at a station) */
+  nextGiver(): [number, number] | null {
+    const m = this.nextJob(); if (!m) return null;
+    const pl = this.c.places[m.at], g = m.at.startsWith('stn-') ? this.cast.find(c => c.id === m.giver) : null;
+    return g ? [g.x, g.y] : [pl.x, pl.y];
   }
   updateRoute() {
     const o = this.objective(); if (!o) { this.route = []; return; }

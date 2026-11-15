@@ -88,7 +88,7 @@ export function offence(w: World, kind: Offence, x: number, y: number, camera = 
     return;
   }
   const amt = fineAmount(kind, before);
-  if (camera) { pay(w, kind, amt, false); text(w, 'bristle', `Ticket in the post: ${FINE[kind].name.toLowerCase()}, ${amt} coins. Paid from your purse. ${FINE[kind].quip}`); return; }
+  if (camera) { pay(w, kind, amt, false); text(w, 'bristle', `Ticket in the post: ${FINE[kind].name.toLowerCase()}, ${amt} coins. Paid from your purse. ${FINE[kind].quip}`, { kind: 'fine' }); return; }
   w.ticket = { kind, amt, t: 0, pid: pt!.id, x, y }; pt!.write = 1.4;
   w.fx.push({ t: 'ticket', kind, k: amt, x: pt!.b.x, y: pt!.b.y });
 }

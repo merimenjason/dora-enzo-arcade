@@ -97,3 +97,6 @@ export function bestRoute(seed: number, night: number, open: District[], tips: T
   }
   return best;
 }
+
+/** each market's name, the same on its E prompt and its panel */
+export const MARKET_NAME: Record<District, string> = { market: 'Smith Street Market', temple: 'Temple Street Bazaar', canal: 'Boat Quay Market', docks: 'Tanjong Pagar Market', arcade: 'Clarke Quay Neon Market', heartland: 'Toa Payoh Provision Shop', bay: 'Promenade Kiosk', india: 'Tekka Market', glam: 'Arab Street Market', resort: 'Siloso Beach Kiosk' };

@@ -30,6 +30,8 @@ export class Notices {
     this.queue = this.queue.filter(n => n.prio >= 2 || n.wait < STALE);
     while (this.shown.length < SHOW && this.queue.length) this.shown.push(this.queue.shift()!);
   }
+  /** clear the passing news (good news and chatter), shown or waiting; warnings and trophies stay */
+  dropChatter() { this.shown = this.shown.filter(n => n.prio >= 2); this.queue = this.queue.filter(n => n.prio >= 2); }
   /** something important is on screen: the lesson hint and speech bubbles hold back */
   get busy() { return this.shown.some(n => n.prio >= 2); }
 }

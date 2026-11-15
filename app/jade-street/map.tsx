@@ -102,7 +102,8 @@ export function PaintedMap({ play, onClose }: { play: Play; onClose: () => void 
   const [view, setView] = useState<View>({ cx: w.p.x, cy: w.p.y, z: 0 });
   const vref = useRef(view); vref.current = view;
   const [sel, setSel] = useState<Pin | null>(null);
-  const [legend, setLegend] = useState(() => typeof window === 'undefined' || (window.innerWidth > 720 && window.innerHeight > 520));
+  // the key starts folded away (it covered the only open district early on); a button opens it
+  const [legend, setLegend] = useState(false);
   const [, force] = useState(0);
   const lms = useMemo(() => landmarks(play), [play]);
   const pins = pinsOf(play);
@@ -113,8 +114,9 @@ export function PaintedMap({ play, onClose }: { play: Play; onClose: () => void 
     if (!size.w) return v;
     const z = Math.max(minZ, Math.min(maxZ, v.z || Math.min(maxZ, Math.max(fillZ, fitZ * 1.8))));
     const hw = size.w / 2 / z, hh = size.h / 2 / z;
-    const cx = hw * 2 >= MW ? MW / 2 : Math.max(hw, Math.min(MW - hw, v.cx));
-    const cy = hh * 2 >= MH ? MH / 2 : Math.max(hh, Math.min(MH - hh, v.cy));
+    // (the view may run up to a third of the screen past the map's edge, so you can be centred even at the edge)
+    const cx = hw * 2 >= MW ? MW / 2 : Math.max(hw * 0.34, Math.min(MW - hw * 0.34, v.cx));
+    const cy = hh * 2 >= MH ? MH / 2 : Math.max(hh * 0.34, Math.min(MH - hh * 0.34, v.cy));
     return { cx, cy, z };
   }, [size.w, size.h, minZ, fillZ, fitZ]);
 

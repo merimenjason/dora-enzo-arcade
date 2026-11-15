@@ -136,7 +136,7 @@ export function MiniGame({ kind, level, assist, seed, snd, onDone }: { kind: str
       </div>
       <canvas ref={cv} className="jade-mini-cv" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} data-testid="mini-canvas" />
       <div className="jade-mini-foot">
-        {g instanceof WokGame && <div className="jade-order" data-testid="wok-order">{FOODS.filter(f => (g.need[f] ?? 0) > 0).map(f => <span key={f} className={(g.got[f] ?? 0) >= (g.need[f] ?? 0) ? 'got' : ''}><Sprite name={FOOD_SPR[f]} h={28} w={28} />{FOOD_NAME[f]} {g.got[f] ?? 0}/{g.need[f]}</span>)}<span className="strikes">Oops {g.strikes}/3</span></div>}
+        {g instanceof WokGame && <div className="jade-order" data-testid="wok-order">{FOODS.filter(f => (g.need[f] ?? 0) > 0).map(f => <span key={f} className={(g.got[f] ?? 0) >= (g.need[f] ?? 0) ? 'got' : ''}><Sprite name={FOOD_SPR[f]} h={28} w={28} />{FOOD_NAME[f]} {g.got[f] ?? 0}/{g.need[f]}</span>)}<span className="strikes">Oops {g.strikes}/3</span>{g.ready && <b className="ready" data-testid="wok-ready">Toss to serve!</b>}</div>}
         {g instanceof DumplingGame && <div className="jade-order">Dumpling {Math.min(g.n, g.i + 1)}/{g.n} · {g.phase === 'fill' ? 'drop the filling' : g.phase === 'pleat' ? `pleat ${g.pleats + 1}/3` : 'into the steamer'}</div>}
         {g instanceof LockGame && <div className="jade-order">Pins set {g.pins.filter(p => p.set).length}/{g.pins.length}</div>}
         {g instanceof SafeGame && <div className="jade-order" data-testid="safe-order">Number {Math.min(g.nums.length, g.i + 1)}/{g.nums.length} · turn {g.dirs[Math.min(g.i, g.dirs.length - 1)] > 0 ? 'right ›' : '‹ left'}{g.misses ? ` · slips ${g.misses}` : ''}</div>}
@@ -182,8 +182,8 @@ function draw(x: CanvasRenderingContext2D, c: HTMLCanvasElement, g: AnyMini, bg:
     x.fillStyle = 'rgba(0,0,0,.5)'; x.fillRect(340, 120, 600, 14); x.fillStyle = g.time < 10 ? '#ff6a5a' : '#ffd25a'; x.fillRect(340, 120, 600 * Math.max(0, g.time) / ((g.o.assist ? 75 : 50) + (g.pins.length - 3) * 10), 14);
   } else if (g instanceof WireGame) {
     const cols: Record<string, string> = { red: '#e8423a', blue: '#3a86ff', yellow: '#ffd23a', green: '#2ec27e' };
-    // socket colour hints on the right
-    for (let j = 0; j < 4; j++) { const col = WIRE_COLS[g.right[j]]; spr(x, `mg-plug-${col}`, 882 + 92, WY[j], { h: 60, anchor: 'center', alpha: 0.9, rot: Math.PI / 2 }); }
+    // each socket on the right wears a bezel in the colour it takes (not loose plugs, which read as spare wires)
+    for (let j = 0; j < 4; j++) { const col = cols[WIRE_COLS[g.right[j]]]; x.save(); x.lineWidth = 10; x.strokeStyle = 'rgba(0,0,0,.6)'; x.beginPath(); x.arc(882, WY[j], 38, 0, Math.PI * 2); x.stroke(); x.lineWidth = 7; x.strokeStyle = col; x.beginPath(); x.arc(882, WY[j], 38, 0, Math.PI * 2); x.stroke(); x.restore(); }
     const cable = (x0: number, y0: number, x1: number, y1: number, col: string) => { x.strokeStyle = 'rgba(0,0,0,.55)'; x.lineWidth = 20; x.beginPath(); x.moveTo(x0, y0 + 4); x.bezierCurveTo(x0 + 200, y0 + 80, x1 - 200, y1 + 80, x1, y1 + 4); x.stroke(); x.strokeStyle = col; x.lineWidth = 14; x.beginPath(); x.moveTo(x0, y0); x.bezierCurveTo(x0 + 200, y0 + 70, x1 - 200, y1 + 70, x1, y1); x.stroke(); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 4; x.stroke(); };
     for (let i = 0; i < 4; i++) {
       const col = WIRE_COLS[i]; const l = g.links[i];
@@ -234,12 +234,15 @@ function draw(x: CanvasRenderingContext2D, c: HTMLCanvasElement, g: AnyMini, bg:
     if (g.phase === 'fill') {
       spr(x, 'mg-wrapper', cx, cy, { h: 300, anchor: 'center' });
       // the spoon swings across a bar: drop it in the middle
-      const bx0 = 340, bx1 = 940, by = 150;
-      x.fillStyle = 'rgba(30,20,10,.65)'; x.fillRect(bx0, by - 16, bx1 - bx0, 32);
-      x.fillStyle = 'rgba(120,230,140,.75)'; const zw = g.zone * (bx1 - bx0); x.fillRect((bx0 + bx1) / 2 - zw, by - 16, zw * 2, 32);
+      // (big and on the board itself, under the wrapper, framed so it reads against the painting)
+      const bx0 = 290, bx1 = 990, by = 640, bh = 56;
+      x.fillStyle = 'rgba(30,20,10,.82)'; x.beginPath(); x.roundRect(bx0 - 8, by - bh / 2 - 8, bx1 - bx0 + 16, bh + 16, 16); x.fill();
+      x.strokeStyle = '#ffd25a'; x.lineWidth = 4; x.stroke();
+      x.fillStyle = 'rgba(120,230,140,.85)'; const zw = g.zone * (bx1 - bx0); x.fillRect((bx0 + bx1) / 2 - zw, by - bh / 2, zw * 2, bh);
+      x.fillStyle = 'rgba(255,255,255,.8)'; x.fillRect((bx0 + bx1) / 2 - 2, by - bh / 2, 4, bh);
       const sxp = bx0 + g.spoon() * (bx1 - bx0);
-      spr(x, 'mg-filled', sxp, by + 4, { h: 90, anchor: 'center', alpha: 0.95 });
-      x.strokeStyle = '#fff'; x.lineWidth = 4; x.beginPath(); x.moveTo(sxp, by - 26); x.lineTo(sxp, by + 26); x.stroke();
+      spr(x, 'mg-filled', sxp, by - bh / 2 - 34, { h: 80, anchor: 'center', alpha: 0.95 });
+      x.strokeStyle = '#fff'; x.lineWidth = 6; x.beginPath(); x.moveTo(sxp, by - bh / 2 - 6); x.lineTo(sxp, by + bh / 2 + 6); x.stroke();
     } else {
       spr(x, g.phase === 'next' ? (g.results[g.results.length - 1] === 'messy' ? 'mg-messy' : 'mg-dumpling') : g.pleats > 0 ? 'mg-half' : 'mg-filled', cx, cy, { h: 300, anchor: 'center' });
       if (g.phase === 'pleat') {

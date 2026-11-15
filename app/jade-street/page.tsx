@@ -21,7 +21,7 @@ import { jobCounts } from '@/lib/jade-story';
 import { MiniGame } from './minis';
 import { TicketCard, MamaShop, KopiMini } from './sg';
 import { MrtPanel, RideView, TaxiPanel } from './isle';
-import { HeistPanel, BranchPanel, AskPanel, JobNotes } from './jobs';
+import { HeistPanel, BranchPanel, AskPanel } from './jobs';
 import './jobs.css';
 import './isle.css';
 import './sg.css';
@@ -43,6 +43,7 @@ export default function JadeStreetPage() {
   const [, setTick] = useState(0);
   const [paused, setPaused] = useState(false);
   const [mapOpen, setMapOpen] = useState(false); mapRef.current = mapOpen;
+  const phoneRef = useRef(false); phoneRef.current = phone; const pausedRef = useRef(false); pausedRef.current = paused;
   const [coarse, setCoarse] = useState(false);
   const cvRef = useRef<HTMLCanvasElement>(null);
   const playRef = useRef<Play | null>(null);
@@ -81,7 +82,10 @@ export default function JadeStreetPage() {
     play.onKey = (k: string) => {
       const w = play.w;
       if (storyRef.current) return true;
+      // Escape closes the top-most thing first: the pause menu, then the map or the phone, then a panel
+      if (k === 'Escape' && pausedRef.current) { setPaused(false); play.paused = !!(mapRef.current || phoneRef.current); return true; }
       if (k === 'Escape' && mapRef.current) { setMapOpen(false); play.paused = false; return true; }
+      if (k === 'Escape' && phoneRef.current) { setPhone(false); play.paused = false; return true; }
       if (k === 'r' && w.p.ride && !w.ui) { switchStation(play, sndRef.current); return true; }
       if (k === 't' && !w.ui && !w.talk && !mapRef.current) { setPhone(v => { play.paused = !v; return !v; }); return true; }
       if (k === 'Escape' || k === 'p') {
@@ -169,7 +173,6 @@ export default function JadeStreetPage() {
           <div className="jade-stage"><canvas ref={cvRef} className="jade-cv" data-testid="world" /></div>
           {play && w && (
             <>
-              <JobNotes play={play} />
               <TopHud play={play} onMap={() => { play.paused = true; setMapOpen(true); }} onPause={() => { play.paused = true; setPaused(true); }} />
               <Toasts play={play} />
               {!touch && <KeyHelp />}

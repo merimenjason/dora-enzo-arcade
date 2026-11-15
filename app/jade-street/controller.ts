@@ -282,6 +282,8 @@ export class Play {
     this.snd?.radio(w.p.ride?.kind ?? null);
     this.ambT -= dt; if (this.ambT <= 0) { this.ambT = 1; this.snd?.ambient(districtAt(Math.floor(w.p.x / T), Math.floor(w.p.y / T)), w.rain); }
     if (this.endingT > 0 && !this.paused) { this.endingT -= dt; if (this.endingT <= 0) this.onEnding?.(); }
+    // the job's cards are up: the street's passing news (a photo taken, coins) is done with
+    if (this.w.ui && (this.w.ui.kind === 'heist' || this.w.ui.kind === 'branch')) this.notices.dropChatter();
     this.notices.step(dt); this.w.hush = this.notices.busy || !!this.w.banner;
   };
   events(fx: ReturnType<World['drain']>) {

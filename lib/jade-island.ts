@@ -134,7 +134,7 @@ export function island(c: City) {
   bld(171, 16, 10, 4, 'hdb-slab-b'); bld(183, 16, 5, 5, 'hdb-cc'); bld(190, 16, 4, 4, 'hdb-point-a'); bld(201, 16, 4, 4, 'hdb-point-b');
   deco(175, 21, 'laundry', 96); prop(195, 20, 'letterbox', 18, 'tall', 'over', 84);
   // block H: the hawker centre, the safe house, the drain
-  bld(127, 26, 5, 4, 'hdb-hawker'); bld(134, 26, 3, 3, 'lm-safe'); prop(129, 31, 'void-table', 22, 'tall', 'over', 84);
+  bld(127, 26, 5, 4, 'hdb-hawker'); bld(134, 26, 3, 3, 'safe-hdb'); prop(129, 31, 'void-table', 22, 'tall', 'over', 84);
   prop(129, 33, 'hide-liz', 30, 'tall', 'over', 120);
   // block I: the MRT station (elevated), the bus interchange, the provision shop market and a taxi stand
   bld(148, 26, 8, 4, 'hdb-stn'); bld(157, 26, 8, 3, 'hdb-bus');
@@ -155,7 +155,7 @@ export function island(c: City) {
   bld(127, 40, 6, 6, 'bay-tower-a'); bld(133, 41, 6, 4, 'bay-hotel');
   bld(145, 40, 5, 5, 'bay-tower-b'); bld(152, 40, 6, 5, 'bay-tower-c'); bld(160, 40, 5, 5, 'bay-tower-d');
   bld(171, 40, 6, 6, 'bay-tower-a'); bld(179, 42, 9, 3, 'bay-mall'); bld(189, 40, 5, 5, 'bay-tower-b'); bld(201, 40, 6, 5, 'bay-tower-c');
-  bld(127, 51, 5, 5, 'bay-tower-b'); bld(134, 51, 5, 5, 'bay-tower-d'); bld(128, 57, 3, 3, 'lm-safe');
+  bld(127, 51, 5, 5, 'bay-tower-b'); bld(134, 51, 5, 5, 'bay-tower-d'); bld(128, 57, 3, 3, 'safe-bay');
   // Raffles Place: a granite square with the station's glass canopy and the spinning top
   bld(145, 51, 6, 6, 'bay-tower-a'); bld(159, 51, 6, 5, 'bay-tower-c'); bld(152, 53, 4, 2, 'bay-stn');
   prop(154, 59, 'spin-top', 24, 'tall', 'over', 90); prop(147, 59, 'prom-palm', 14, 'tall', 'over', 70); prop(161, 59, 'prom-palm', 14, 'tall', 'over', 70);
@@ -204,6 +204,8 @@ export function island(c: City) {
     if (Object.values(c.places).some(p => Math.abs(p.x - px(x)) < 2 * T && Math.abs(p.y - px(y)) < 2 * T)) continue;
     const d = (x - 58) ** 2 + (y - 50) ** 2; if (d < best) { best = d; cx = x; cy = y; }
   } }
+  // its entrance: a covered stair and escalator canopy going down, just behind the gates
+  c.props.push({ x: px(cx), y: px(cy) - T * 0.55, sprite: 'stn-entrance', r: 0, solid: 'none', layer: 'over', w: 124 });
   c.props.push({ x: px(cx), y: px(cy) - 20, sprite: 'stn-pillar', r: 0, solid: 'none', layer: 'over', w: 40 });
   place('stn-chinatown', cx, cy, 'station', 'Chinatown station');
 

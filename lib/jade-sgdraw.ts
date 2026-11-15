@@ -100,14 +100,28 @@ export function sgOver(sc: Scene, x: X, w: World, vis: Vis) {
   const pt = w.pal.point;
   if (pt && vis(pt.x, pt.y)) { const a = Math.min(1, pt.t * 2), bob = Math.sin(sc.t * 6) * 5; sc.glow(x, pt.x, pt.y - 20, 60, `rgba(255,214,90,${0.35 * a})`); spr(x, 'ui-paw', pt.x, pt.y - 64 + bob, { w: 34, alpha: a, rot: Math.PI, anchor: 'center' }); }
   if (w.pal.doing === 'warn' && !w.mate.seat && vis(w.mate.x, w.mate.y)) spr(x, 'bub-psst', w.mate.x + 22, w.mate.y - 70 + Math.sin(sc.t * 5) * 2, { w: 30 });
+  // bubbles stay inside a safe area (clear of the job plaque at the top, the screen edges and the minimap) and stack
+  // instead of overlapping; all in world units, worked out from the camera
+  const c = sc.cam, k = c.k || 1, L = c.x - c.w / 2, Tp = c.y - c.h / 2, mm = sc.minimap;
+  const placed: [number, number, number, number][] = [];
   for (const b of w.barks) {
     if (!vis(b.x, b.y)) continue;
     const a = Math.min(1, b.t * 6, (2.8 - b.t) * 3); if (a <= 0) continue;
     x.save(); x.globalAlpha = a; x.font = '700 15px system-ui, sans-serif';
-    const tw = Math.min(260, x.measureText(b.text).width) + 18, bx = b.x - tw / 2, by = b.y - 34 - b.t * 6;
+    const tw = Math.min(260, x.measureText(b.text).width) + 18;
+    let bx = b.x - tw / 2, by = b.y - 34 - b.t * 6;
+    if (c.w) {
+      bx = Math.max(L + 16 / k, Math.min(L + c.w - 16 / k - tw, bx));
+      by = Math.max(Tp + 150 / k, Math.min(Tp + c.h - 40 / k, by));
+      // over the minimap: lift it above
+      if (mm.r) { const sx0 = (bx - L) * k, sx1 = (bx + tw - L) * k, sy1 = (by + 26 - Tp) * k; if (sx0 < mm.x + mm.r && sx1 > mm.x - mm.r && sy1 > mm.y - mm.r) by = Tp + (mm.y - mm.r - 8) / k - 26; }
+      for (let tries = 0; tries < 4 && placed.some(([px0, py0, pw, ph]) => bx < px0 + pw && bx + tw > px0 && by < py0 + ph && by + 26 > py0); tries++) by -= 30;
+    }
+    placed.push([bx, by, tw, 26]);
     x.fillStyle = b.hero ? 'rgba(255,248,224,.96)' : 'rgba(255,255,255,.95)'; x.strokeStyle = 'rgba(40,20,50,.8)'; x.lineWidth = 2;
-    x.beginPath(); x.roundRect(bx, by, tw, 26, 12); x.moveTo(b.x - 6, by + 26); x.lineTo(b.x, by + 34); x.lineTo(b.x + 6, by + 26); x.fill(); x.stroke();
-    x.fillStyle = '#2b2033'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(b.text, b.x, by + 13, 250);
+    const tx = Math.max(bx + 12, Math.min(bx + tw - 12, b.x));
+    x.beginPath(); x.roundRect(bx, by, tw, 26, 12); if (by + 34 <= b.y) { x.moveTo(tx - 6, by + 26); x.lineTo(tx, by + 34); x.lineTo(tx + 6, by + 26); } x.fill(); x.stroke();
+    x.fillStyle = '#2b2033'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(b.text, bx + tw / 2, by + 13, 250);
     x.restore();
   }
 }

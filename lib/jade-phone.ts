@@ -6,17 +6,25 @@ import { GOODS, GOOD } from './jade-trade.js';
 import { offered } from './jade-save.js';
 import { PEOPLE } from './jade-story.js';
 import type { World } from './jade-game.js';
+import type { Msg } from './jade-save.js';
 
 export const CONTACT_OF: Record<District, string> = { market: 'kee', temple: 'pang', canal: 'kiri', docks: 'bo', arcade: 'gizmo', heartland: 'kamal', bay: 'vanda', india: 'raju', glam: 'kancil', resort: 'duyung' };
-export function text(w: World, from: string, msg: string) {
+export function text(w: World, from: string, msg: string, o: { kind?: Msg['kind']; job?: string } = {}) {
   const s = w.s; const id = (s.msgs[s.msgs.length - 1]?.id ?? 0) + 1;
-  s.msgs.push({ id, from, text: msg, night: s.night, read: false });
+  s.msgs.push({ id, from, text: msg, night: s.night, read: false, ...o });
   if (s.msgs.length > 30) s.msgs.splice(0, s.msgs.length - 30);
   w.fx.push({ t: 'text', name: from, msg });
 }
-export const unread = (w: World) => w.s.msgs.filter(m => !m.read).length;
+/** the badge: unread job offers, fines and calls for help (tips and chatter don't count) */
+export const unread = (w: World) => w.s.msgs.filter(m => !m.read && !!m.kind).length;
 export function readAll(w: World) { for (const m of w.s.msgs) m.read = true; }
 
+/** a job's blurb in the giver's own voice: "Ah Beng’s wok rolled off…" becomes "My wok rolled off…" */
+export function firstPerson(blurb: string, name: string) {
+  if (!name) return blurb;
+  const esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return blurb.replace(new RegExp(`(^|[.!?]\\s+)${esc}’s `, 'g'), '$1My ').replace(new RegExp(`${esc}’s `, 'g'), 'my ').replace(new RegExp(`(^|[.!?]\\s+)${esc}\\b`, 'g'), '$1I').replace(new RegExp(`\\b${esc}\\b`, 'g'), 'me');
+}
 /** job offers: text once for each job that becomes available (not the very first, Uncle Kee is right there) */
 export function phoneStep(w: World) {
   if (w.tick % 30 !== 0 || !w.s.story.intro) return;
@@ -25,8 +33,10 @@ export function phoneStep(w: World) {
     if (w.offered.has(m.id)) continue;
     w.offered.add(m.id);
     if (m.id === 'm1' || w.run) continue;
+    // once per job, ever (the save remembers the text, so a reload doesn't send it again)
+    if (w.s.msgs.some(x => x.job === m.id)) continue;
     const where = w.c.places[m.at];
-    text(w, m.giver, `${m.blurb} Come and find me${where ? ` in ${DISTRICT_NAME[where.d].replace(/^the /, 'the ')}` : ''}. (Job: “${m.title}”)`);
+    text(w, m.giver, `Job for you: “${m.title}”. ${firstPerson(m.blurb, PEOPLE[m.giver]?.name ?? '')} Come and find me${where ? ` in ${DISTRICT_NAME[where.d].replace(/^the /, 'the ')}` : ''}.`, { kind: 'job', job: m.id });
   }
   void ids;
 }

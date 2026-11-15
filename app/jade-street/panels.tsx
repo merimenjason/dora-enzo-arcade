@@ -19,7 +19,8 @@ import { learn } from '@/lib/jade-tutor';
 import { BizPage, CollectAll } from './biz';
 
 const dName = (d: District) => DISTRICT_NAME[d].replace(/^the /, 'The ');
-export const MARKET_NAME: Record<District, string> = { market: 'Smith Street Market', temple: 'Temple Street Bazaar', canal: 'Boat Quay Market', docks: 'Tanjong Pagar Market', arcade: 'Clarke Quay Neon Market', heartland: 'Toa Payoh Provision Shop', bay: 'Promenade Kiosk', india: 'Tekka Market', glam: 'Arab Street Market', resort: 'Siloso Beach Kiosk' };
+export { MARKET_NAME } from '@/lib/jade-trade';
+import { MARKET_NAME } from '@/lib/jade-trade';
 export const KEEPER: Record<District, string> = { market: 'Uncle Kee', temple: 'Auntie Pang', canal: 'Kiri', docks: 'Big Bo', arcade: 'Gizmo', heartland: 'Mr Kamal', bay: 'Ms Vanda', india: 'Mr Raju', glam: 'Abang Kancil', resort: 'Kapten Duyung' };
 
 export function Panel({ title, onClose, children, cls = '', testid }: { title: string; onClose: () => void; children: React.ReactNode; cls?: string; testid?: string }) {
@@ -89,8 +90,8 @@ export function Market({ play, d, snd, onClose }: { play: Play; d: District; snd
                 <td><Icon name={GOOD_ICON[g]} size={30} /> {GOOD[g].name}{tip && <em className="tip"> tip!</em>}{s.cargo[g] > 0 && <small className="have"> ×{s.cargo[g]}</small>}</td>
                 <td>{p.buy}</td><td>{p.sell}</td><td>{s.cargo[g]}</td>
                 <td className="btns">
-                  <Btn kind="jade" testid={`buy-${g}`} onClick={() => act(w.buy(d, g, 1, mult))}>Buy</Btn>
-                  <Btn kind="jade" testid={`buymax-${g}`} onClick={() => act(w.buy(d, g, 99, mult))}>Max</Btn>
+                  <Btn kind="jade" testid={`buy-${g}`} disabled={s.cash < p.buy || have >= cap} onClick={() => act(w.buy(d, g, 1, mult))}>Buy</Btn>
+                  <Btn kind="jade" testid={`buymax-${g}`} disabled={s.cash < p.buy || have >= cap} onClick={() => act(w.buy(d, g, 99, mult))}>Max</Btn>
                   <Btn kind="red" testid={`sell-${g}`} disabled={!s.cargo[g]} onClick={() => act(w.sell(d, g, 1, mult))}>Sell</Btn>
                   <Btn kind="red" testid={`sellall-${g}`} disabled={!s.cargo[g]} onClick={() => act(w.sell(d, g, 99, mult))}>All</Btn>
                 </td>
@@ -102,7 +103,7 @@ export function Market({ play, d, snd, onClose }: { play: Play; d: District; snd
       <div className="jade-tips">
         {tips.map((t, i) => <p key={i}><b>{t.from}:</b> {GOOD[t.good].name} at {dName(t.market)} {t.mult > 1 ? 'pays well' : 'is cheap'} tonight.</p>)}
         {ev && <p><b>Daily event · {ev.name}:</b> {ev.desc} ({ev.task}{s.dailyDone.includes('day:' + ev.day) ? ', done!' : ''})</p>}
-        {hint && hint.gain > 0.15 && <p className="hint"><b>Assist tip:</b> {GOOD[hint.good].name} are cheap at {dName(hint.from)} and pay at {dName(hint.to)}.</p>}
+        {hint && hint.gain > 0.15 && <p className="hint"><b>Assist tip:</b> {GOOD[hint.good].name} {hint.good === 'tea' ? 'is' : 'are'} cheap at {dName(hint.from)} and pay at {dName(hint.to)}.</p>}
         <p className="small">Prices change every night. Crows swoop at riders carrying valuable cargo: dash or boost to dodge.</p>
       </div>
         </div>
@@ -234,7 +235,8 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
           <Btn kind="plain" testid="tab-stats" onClick={() => setTab('stats')}>Stats</Btn>
           {play.w.run && <Btn kind="plain" testid="abandon" onClick={() => { play.w.quitJob(); onClose(); }}>Quit this job</Btn>}
           <Btn kind="plain" testid="to-title" onClick={onQuit}>Save and quit to title</Btn>
-          <Btn kind="red" testid="new-game" onClick={() => setConfirm(true)}>New game</Btn>
+          {/* set apart and quiet, so it is never hit by mistake after "Save and quit" (it still asks first) */}
+          <Btn kind="plain" cls="jade-new-game" testid="new-game" onClick={() => setConfirm(true)}>New game…</Btn>
         </div>
       )}
       {confirm && (
@@ -252,7 +254,8 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
           <label><input type="checkbox" data-testid="set-music" checked={s.settings.music} onChange={e => set(x => { x.music = e.target.checked; })} /> Music</label>
           <label><input type="checkbox" data-testid="set-shake" checked={s.settings.shake} onChange={e => set(x => { x.shake = e.target.checked; })} /> Screen shake</label>
           <label><input type="checkbox" data-testid="set-calm" checked={s.settings.calm} onChange={e => set(x => { x.calm = e.target.checked; })} /> Reduce shake: gentler shake, no flashes, short slow motion</label>
-          <label>Touch controls <select data-testid="set-touch" value={s.settings.touch} onChange={e => set(x => { x.touch = e.target.value as 'auto' | 'on' | 'off'; })}><option value="auto">Automatic</option><option value="on">Always</option><option value="off">Never</option></select></label>
+          {/* (a desktop game: the touch setting shows only on a touch screen, or once it has been changed) */}
+          {(touch || s.settings.touch !== 'auto') && <label>Touch controls <select data-testid="set-touch" value={s.settings.touch} onChange={e => set(x => { x.touch = e.target.value as 'auto' | 'on' | 'off'; })}><option value="auto">Automatic</option><option value="on">Always</option><option value="off">Never</option></select></label>}
           <label><input type="checkbox" data-testid="set-bigtext" checked={s.settings.bigText} onChange={e => set(x => { x.bigText = e.target.checked; })} /> Larger text: bigger prompts, dialogue, HUD and panels</label>
           <label><input type="checkbox" data-testid="set-cbmarks" checked={s.settings.cbMarks} onChange={e => set(x => { x.cbMarks = e.target.checked; })} /> Colour-blind-safe markers: shapes and patterns on map pins, goals and lanterns</label>
           <KeyRemap play={play} onSave={onSave} />
@@ -276,7 +279,7 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
           <dt>Reputation</dt><dd>{DISTRICTS.map(d => `${dName(d)} ${Math.floor(s.rep[d])}`).join(' · ')}</dd>
         </dl>
       )}
-      {tab === 'jobs' && <JobsBook play={play} onReplay={onReplay} />}
+      {tab === 'jobs' && <JobsBook play={play} onReplay={onReplay} onRoute={onClose} />}
       {tab === 'businesses' && <BizPage play={play} />}
       {tab === 'controls' && <Controls touch={touch} />}
       {tab === 'story' && (

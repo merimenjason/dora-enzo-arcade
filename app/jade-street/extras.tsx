@@ -5,10 +5,15 @@
 import { useEffect, useState } from 'react';
 import { loadArt } from '@/lib/jade-scene';
 import { lesson } from '@/lib/jade-tutor';
+import { tagOption } from '@/lib/jade-tag';
 import { TaxiApp, JadeLineTab } from './isle';
 import { TAXI_APP } from '@/lib/jade-taxi';
 import { unread, readAll } from '@/lib/jade-phone';
-import { MISSIONS, SIDE, CHAPTERS, PEOPLE, jobCounts } from '@/lib/jade-story';
+import { MISSIONS, MISSION, SIDE, CHAPTERS, PEOPLE, jobCounts } from '@/lib/jade-story';
+import { offered } from '@/lib/jade-save';
+import { T, streetAt, districtAt, DISTRICT_NAME } from '@/lib/jade-city';
+/** where a job's giver is, as a street (or district) name */
+export function placeName(w: Play['w'], at: string) { const pl = w.c.places[at]; if (!pl) return ''; const x = Math.floor(pl.x / T), y = Math.floor(pl.y / T); return pl.name && pl.kind !== 'contact' ? pl.name : streetAt(x, y) ?? DISTRICT_NAME[districtAt(x, y)].replace(/^the /, 'The '); }
 import { FinesList, Glossary } from './sg';
 import { MEDAL_NAME, MEDAL_SPRITE, goals, fmtTime } from '@/lib/jade-medals';
 import type { Play } from './controller';
@@ -50,6 +55,10 @@ export function Hint({ play, touch }: { play: Play; touch: boolean }) {
   const w = play.w; const l = lesson(w.tutor.cur);
   // the lesson hint steps aside while a banner or an important toast is up (lib/jade-notice.ts)
   if (!l || w.talk || w.ui || w.failed || play.notices.busy || w.banner) return null;
+  // and for the E prompt it is about (the gates, a cable car station, a pier, a job's giver), so it never covers it
+  if (w.near && ['station', 'cable', 'ferry', 'mission'].includes(w.near.kind)) return null;
+  // and for a job's own F move
+  if (w.run) { const o = tagOption(w); if (o && o.kind !== 'wait' && o.kind !== 'call') return null; }
   return (
     <div className="jade-hint" data-testid="jade-hint" data-lesson={l.id}>
       <span className="jade-hint-keys">
@@ -88,7 +97,8 @@ export function PhoneView({ play, onClose }: { play: Play; onClose: () => void }
         <div className="jade-panel-body">
           {tab === 'msgs' && !msgs.length && <p>No texts yet. Your contacts text job offers, market tips and calls for help.</p>}
           {tab === 'msgs' && msgs.map(m => (
-            <div key={m.id} className="jade-text-msg"><Sprite name={PEOPLE[m.from]?.face ?? 'face-kee'} h={40} w={40} /><p><b>{PEOPLE[m.from]?.name ?? m.from}</b> <small>night {m.night}</small><br />{m.text}</p></div>
+            <div key={m.id} className="jade-text-msg"><Sprite name={PEOPLE[m.from]?.face ?? 'face-kee'} h={40} w={40} /><p><b>{PEOPLE[m.from]?.name ?? m.from}</b> <small>night {m.night}</small><br />{m.text}</p>
+              {m.job && offered(w.s).some(x => x.id === m.job) && !w.run && <Btn kind="gold" testid={`msg-route-${m.job}`} onClick={() => { const pl = w.c.places[MISSION[m.job!].at]; if (pl) { w.waypoint = [pl.x, pl.y]; w.routeT = 0; w.updateRoute(); play.bump(); onClose(); } }}>Route me</Btn>}</div>
           ))}
           {tab === 'fines' && <FinesList play={play} />}
           {tab === 'taxi' && <TaxiApp play={play} onClose={onClose} />}
@@ -120,8 +130,9 @@ export function switchStation(play: Play, snd: JadeSound | null) {
 }
 
 // ── the jobs book
-export function JobsBook({ play, onReplay }: { play: Play; onReplay: (id: string) => void }) {
-  const s = play.w.s; // ch 0 is the Hawker Tales tab; 1 to CHAPTERS.length are the chapters
+export function JobsBook({ play, onReplay, onRoute }: { play: Play; onReplay: (id: string) => void; onRoute?: () => void }) {
+  const s = play.w.s, w = play.w, on = offered(s).map(m => m.id);
+  const route = (id: string) => { const pl = w.c.places[MISSION[id].at]; if (!pl) return; w.waypoint = [pl.x, pl.y]; w.routeT = 0; w.updateRoute(); play.bump(); onRoute?.(); }; // ch 0 is the Hawker Tales tab; 1 to CHAPTERS.length are the chapters
   const [ch, setCh] = useState(() => Math.max(1, Math.min(CHAPTERS.length, MISSIONS.find(m => !s.done.includes(m.id))?.ch ?? CHAPTERS.length)));
   const n = jobCounts(s);
   const list = ch === 0 ? SIDE : MISSIONS.filter(m => m.ch === ch);
@@ -139,12 +150,14 @@ export function JobsBook({ play, onReplay }: { play: Play; onReplay: (id: string
             <li key={m.id} data-testid={`jade-job-${m.id}`} className={done ? 'done' : ''}>
               <Sprite name={done ? MEDAL_SPRITE[md?.m ?? 0] : 'ui-medal-none'} h={44} w={44} title={done ? MEDAL_NAME[md?.m ?? 0] : 'Not done yet'} />
               <div className="jade-book-job">
-                <b>{done || (m.side ? s.done.includes(m.side) : n.story >= MISSIONS.indexOf(m)) ? m.title : '???'}</b>
+                <b>{done || on.includes(m.id) || (m.side ? s.done.includes(m.side) : n.story >= MISSIONS.indexOf(m)) ? m.title : '???'}</b>
+                {on.includes(m.id) && !done && <small className="jade-book-where">On offer now · {p?.name ?? m.giver}, {placeName(w, m.at)}</small>}
                 {m.side && !done && !s.done.includes(m.side) && <small>Opens after “{MISSIONS.find(x => x.id === m.side)?.title}”</small>}
                 <small>{p?.name ?? m.giver}{md?.t ? ` · best ${fmtTime(md.t)}` : ''}{md ? ` · played ${md.plays}×` : ''}</small>
                 <span className="jade-goals">{goals(m).map(g => <em key={g}>{g}</em>)}</span>
               </div>
               {done && <Btn kind="jade" testid={`jade-replay-${m.id}`} disabled={!!play.w.run} onClick={() => onReplay(m.id)}>Replay</Btn>}
+              {!done && on.includes(m.id) && <Btn kind="gold" testid={`jade-route-${m.id}`} disabled={!!play.w.run} onClick={() => route(m.id)}>Route me</Btn>}
             </li>
           );
         })}

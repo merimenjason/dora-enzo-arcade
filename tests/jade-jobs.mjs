@@ -176,14 +176,14 @@ test('the detective: the right question gives a clue, a wrong one costs time; no
   const { w: wt } = at('m26', i); idle(wt, 400); assert.ok(wt.failed && /time/i.test(wt.failed.reason));
 });
 
-test('traps: lay the nets and the bait, then F springs the net with one on it; too early wastes a net; being seen scares them', () => {
+test('traps: lay the nets and the bait, then F springs the net with one on it; too early does nothing; being seen scares them', () => {
   const i = stepOf('m27', 'trap'); const { w, run, st } = at('m27', i);
   for (let k = 0; k < st.need; k++) { w.placePlayer(run.items[k].x, run.items[k].y + 20); idle(w, 0.1); assert.equal(jobNear(run, w.p.x, w.p.y)?.id, `set:${k}`); act(w); idle(w, 1.1); }
   assert.equal(run.js.ph, 1); w.placePlayer(...run.spot(st.bait)); idle(w, 0.1); act(w); idle(w, 1); assert.equal(run.js.ph, 2);
   w.placePlayer(...run.spot(st.wait)); idle(w, 0.1);
-  assert.match(tagOption(w)?.label ?? '', /net/i);
-  // too early: a net spent, a warning
-  w.step({ ...NO_INPUT, tag: true }, DT); assert.equal(run.js.sprung.length, 1); assert.equal(run.js.caught, 0);
+  // too early: F is not a net yet (the playtest found stray presses spending nets), and nothing is spent
+  assert.doesNotMatch(tagOption(w)?.label ?? '', /Spring/i);
+  w.step({ ...NO_INPUT, tag: true }, DT); assert.equal(run.js.sprung.length, 0); assert.equal(run.js.caught, 0);
   // wait for one on a live net, then spring
   let caught = 0;
   for (let k = 0; k < 60 * 60 && !w.failed && run.i === i; k++) {
