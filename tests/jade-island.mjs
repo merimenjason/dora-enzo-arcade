@@ -222,6 +222,8 @@ test('the job givers stand in the world: painted, solid, waving with a job, talk
   w.talk = null; w.quitJob();
   // after the job he keeps standing there and has a word for you
   const s2 = newSave(4); s2.started = true; s2.story.intro = true; s2.done = MISSIONS.map(m => m.id).concat(SIDE.map(m => m.id)); const w2 = new World(s2, 4); w2.quiet = true; w2.step(NO_INPUT, DT);
+  // (the story done, contracts are open: keep Uncle Kee out of tonight's offers so he just chats; tests/jade-proc.mjs covers a giver with a contract)
+  s2.contracts.night = s2.night; s2.contracts.offers = [0, 1, 2].map(i => ({ seed: 900 + i, tier: 0, stars: 1, open: [...w2.open], avoid: ['kee'] })); w2.event = null; w2.castK = ''; w2.step(NO_INPUT, DT);
   const k2 = w2.cast.find(c => c.id === 'kee'); assert.ok(k2 && !k2.job, 'still there after his jobs');
   assert.ok(new Set(w2.cast.map(c => c.d)).size >= 7, 'givers stand in every district');
   w2.p.b.x = k2.x; w2.p.b.y = k2.y + 40; w2.p.ride = null; w2.findNear(); assert.equal(w2.near?.kind, 'giver'); assert.equal(w2.near.label, 'Talk to Uncle Kee');

@@ -7,7 +7,7 @@
 // job-step counts: photos, heists, traps and the rest) and version 8 saves (no partner setting, no lure, partner-help
 // or kopi-bribe counts) and version 9 saves (no Little India, Kampong Glam or Sentosa: no cable car, ferry or
 // festival counts, no chapter-seven ending) and version 10 saves (no empire: no damage, jagas, boosts, ranks or empire
-// counts) migrate forward, keeping every bit of progress, medals included.
+// counts) and version 11 saves (no contracts) migrate forward, keeping every bit of progress, medals included.
 import { DISTRICTS, type District } from './jade-city.js';
 import { emptyCargo, GOODS, type Cargo, type Tip } from './jade-trade.js';
 import { MISSIONS, SIDE, MISSION, CHAPTER_OPENS, FINALE, RESORT_OPENS } from './jade-story.js';
@@ -17,9 +17,9 @@ import { BIZ, STALL_IDS, newBiz, rankOf, type BizState } from './jade-biz.js';
 import { EMPIRE_JOB_IDS } from './jade-empjobs.js';
 import { newGear, giveGadget, clipOf, ammoCap, GEAR_GIFT, GADGET_IDS, type GearState, type GadgetId } from './jade-gear.js';
 
-export const SAVE_KEY = 'jade-street-v11';
-export const OLD_KEYS = ['jade-street-v10', 'jade-street-v9', 'jade-street-v8', 'jade-street-v7', 'jade-street-v6', 'jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2', 'jade-street-v1'];
-export const SAVE_VERSION = 11;
+export const SAVE_KEY = 'jade-street-v12';
+export const OLD_KEYS = ['jade-street-v11', 'jade-street-v10', 'jade-street-v9', 'jade-street-v8', 'jade-street-v7', 'jade-street-v6', 'jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2', 'jade-street-v1'];
+export const SAVE_VERSION = 12;
 export type Hero = 'dora' | 'enzo';
 /** `keys`: remapped keyboard actions (action -> KeyboardEvent.code); `bigText`: larger HUD text; `cbMarks`: colour-blind-safe
  * markers (shapes and patterns, not only colour) */
@@ -45,6 +45,20 @@ export type Stats = { walked: number; driven: number; boated: number; missions: 
  * night each was last done (one a night) */
 export type Empire = { rank: number; jobs: Record<string, number>; last: Record<string, number> };
 export const newEmpire = (): Empire => ({ rank: 0, jobs: {}, last: {} });
+/** the eleventh pass's contracts (lib/jade-contracts.ts): a rival gang muscling in on a district since `night` */
+export type Contest = { d: District; gang: 'crow' | 'mac' | 'otter' | 'liz' | 'myna'; night: number };
+/** a contract offer as the generator's reference (lib/jade-proc.ts CRef): it rebuilds the same contract every time */
+export type OfferRef = { seed: number; tier: number; stars: 1 | 2 | 3; open: District[]; giver?: string; kind?: string; avoid?: string[] };
+export type Contracts = {
+  /** the three offers on the phone, the night they were dealt, the counter that seeds the next one */
+  offers: OfferRef[]; night: number; n: number;
+  /** contracts finished (and by kind), retakes won, the contract last routed to */
+  done: number; kinds: Record<string, number>; retaken: number; pin: string;
+  /** the contract of the day: its date, the best time that day (seconds, 0 for none), runs, whether it has paid */
+  day: string; dayBest: number; dayRuns: number; dayPaid: boolean;
+  contest: Contest | null;
+};
+export const newContracts = (): Contracts => ({ offers: [], night: 0, n: 0, done: 0, kinds: {}, retaken: 0, pin: '', day: '', dayBest: 0, dayRuns: 0, dayPaid: false, contest: null });
 export type Save = {
   v: number; seed: number; hero: Hero; started: boolean;
   cash: number; night: number; clock: number; cargo: Cargo; stash: Cargo;
@@ -80,6 +94,8 @@ export type Save = {
   lingo: string[];
   /** the tenth pass: the empire's rank and its jobs */
   empire: Empire;
+  /** the eleventh pass: the contracts on the phone, the contract of the day and the rivals' pushback */
+  contracts: Contracts;
 };
 export type Bag = { tissue: number; seed: number; banana: number; gum: number; junk: number };
 export type FineRec = { kind: string; amt: number; night: number };
@@ -121,7 +137,7 @@ export function newSave(seed = 1): Save {
     stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0, tolls: 0, junk: 0, kopi: 0, chope: 0, mrt: 0, taxi: 0, photos: 0, heists: 0, quiet: 0, defends: 0, disguises: 0, clues: 0, traps: 0, swaps: 0, lures: 0, palHelps: 0, bribes: 0, cable: 0, ferry: 0, lamps: 0, kuih: 0, mynahs: 0, raidsWon: 0, raidsMissed: 0, repairs: 0, rounds: 0, empJobs: 0, gradeA: 0 },
     settings: { sound: true, music: true, assist: true, diff: 'easy', touch: 'auto', shake: true, calm: false, keys: {}, bigText: false, cbMarks: false, partner: 'auto' },
     medals: {}, story: { intro: false, ch: 0, ending: false, isle: false, lights: false }, learned: [], msgs: [], radio: 0, helped: 0,
-    biz: Object.fromEntries(BIZ.map(b => [b.id, newBiz()])), bizLog: [], gear: newGear(), bag: newBag(), fines: newFines(), lingo: [], empire: newEmpire(),
+    biz: Object.fromEntries(BIZ.map(b => [b.id, newBiz()])), bizLog: [], gear: newGear(), bag: newBag(), fines: newFines(), lingo: [], empire: newEmpire(), contracts: newContracts(),
   };
 }
 
@@ -144,6 +160,7 @@ export function loadSave(raw: string | null): Save {
   if (o.v === 8) o = migrate8(o);
   if (o.v === 9) o = migrate9(o);
   if (o.v === 10) o = migrate10(o);
+  if (o.v === 11) o = migrate11(o);
   const s = newSave(Math.floor(num(o.seed, 1, 1, 2 ** 31)));
   s.hero = o.hero === 'enzo' ? 'enzo' : 'dora';
   s.started = o.started === true;
@@ -198,6 +215,7 @@ export function loadSave(raw: string | null): Save {
   s.lingo = strs(o.lingo).slice(0, 40);
   const em = (o.empire ?? {}) as Record<string, unknown>; const nums = (v: unknown) => Object.fromEntries(Object.entries((v && typeof v === 'object' ? v : {}) as Record<string, unknown>).filter(([k, x]) => /^[a-z0-9-]{1,24}$/.test(k) && typeof x === 'number' && isFinite(x)).map(([k, x]) => [k, Math.max(0, Math.floor(x as number))]));
   s.empire = { rank: Math.floor(num(em.rank, 0, 0, 4)), jobs: nums(em.jobs), last: nums(em.last) };
+  s.contracts = contractsOf(o.contracts);
   s.bizLog = Array.isArray(o.bizLog) ? (o.bizLog as unknown[]).filter((v): v is number => typeof v === 'number' && isFinite(v)).map(v => Math.max(0, Math.round(v))).slice(-10) : [];
   return s;
 }
@@ -271,6 +289,23 @@ function migrate10(o: Record<string, unknown>): Record<string, unknown> {
   const tmp = newSave(1); const bz = (o.biz ?? {}) as Record<string, Record<string, unknown>>;
   for (const b of BIZ) tmp.biz[b.id].lvl = Math.floor(num(bz[b.id]?.lvl, 0, 0, 3));
   return { ...o, v: 11, stats: { ...st, raidsWon: 0, raidsMissed: 0, repairs: 0, rounds: 0, empJobs: 0, gradeA: 0 }, empire: { rank: rankOf(tmp), jobs: {}, last: {} } };
+}
+/** version 11 (the tenth release): everything kept; contracts are new, so none are done and no district is contested */
+function migrate11(o: Record<string, unknown>): Record<string, unknown> { return { ...o, v: 12, contracts: newContracts() }; }
+const GANGS = ['crow', 'mac', 'otter', 'liz', 'myna'];
+/** the contracts, repaired: offers with a known shape (a bad one is simply dealt again), counts in range */
+function contractsOf(v: unknown): Contracts {
+  const c = newContracts(), o = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
+  const n = (x: unknown, hi = 1e9) => typeof x === 'number' && isFinite(x) ? Math.max(0, Math.min(hi, Math.floor(x))) : 0;
+  c.offers = (Array.isArray(o.offers) ? o.offers as Record<string, unknown>[] : []).filter(r => r && typeof r.seed === 'number' && [1, 2, 3].includes(r.stars as number) && Array.isArray(r.open)).slice(0, 3).map(r => ({
+    seed: n(r.seed, 2 ** 32), tier: n(r.tier, 6), stars: r.stars as 1 | 2 | 3, open: (r.open as unknown[]).filter((d): d is District => DISTRICTS.includes(d as District)),
+    ...(typeof r.giver === 'string' ? { giver: r.giver } : {}), ...(typeof r.kind === 'string' ? { kind: r.kind } : {}), ...(Array.isArray(r.avoid) ? { avoid: strs(r.avoid) } : {}) }));
+  c.night = n(o.night); c.n = n(o.n); c.done = n(o.done); c.retaken = n(o.retaken); c.pin = typeof o.pin === 'string' ? o.pin.slice(0, 8) : '';
+  c.kinds = Object.fromEntries(Object.entries((o.kinds && typeof o.kinds === 'object' ? o.kinds : {}) as Record<string, unknown>).filter(([k, x]) => /^[a-z]{1,16}$/.test(k) && typeof x === 'number').map(([k, x]) => [k, n(x)]));
+  c.day = typeof o.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(o.day) ? o.day : ''; c.dayBest = n(o.dayBest, 1e5); c.dayRuns = n(o.dayRuns); c.dayPaid = o.dayPaid === true;
+  const ct = o.contest as Record<string, unknown> | null;
+  c.contest = ct && DISTRICTS.includes(ct.d as District) && GANGS.includes(ct.gang as string) ? { d: ct.d as District, gang: ct.gang as Contest['gang'], night: n(ct.night) } : null;
+  return c;
 }
 function keysOf(v: unknown): Record<string, string> {
   const out: Record<string, string> = {}; const used = new Set<string>();
@@ -391,6 +426,10 @@ export const TROPHIES: { id: string; name: string; desc: string; test: (s: Save)
   { id: 'night-watch', name: 'Night Watch', desc: 'See off ten raids on your properties.', test: s => s.stats.raidsWon >= 10 },
   { id: 'grade-a', name: 'Grade A', desc: 'Pass a health inspection with an A.', test: s => s.stats.gradeA >= 1 },
   { id: 'emp-jobs', name: 'Towkay', desc: 'Finish every kind of empire job.', test: s => EMPIRE_JOB_IDS.every(id => (s.empire?.jobs[id] ?? 0) > 0) },
+  // the eleventh pass: contracts, the contract of the day and the rivals' pushback
+  { id: 'contractor', name: 'Contractor', desc: 'Finish ten contracts.', test: s => (s.contracts?.done ?? 0) >= 10 },
+  { id: 'cotd', name: 'Job of the Day', desc: 'Finish a contract of the day.', test: s => (s.contracts?.dayRuns ?? 0) >= 1 },
+  { id: 'turf', name: 'Turf Holder', desc: 'Win back three contested districts.', test: s => (s.contracts?.retaken ?? 0) >= 3 },
   { id: 'defender', name: 'Till Keeper', desc: 'Chase off three crow raids.', test: s => Object.values(s.biz).reduce((a, b) => a + b.defended, 0) >= 3 },
 ];
 /** award any trophies newly earned; returns their names */

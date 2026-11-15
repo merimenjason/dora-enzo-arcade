@@ -1,0 +1,23 @@
+/* Jade Street, the eleventh pass: the phone's Contracts tab (offer cards, the contract of the day, the retake) and the
+   HUD's next-contract plaque */
+.jade-shell .jade-cons { display: grid; gap: 8px; }
+.jade-shell .jade-con-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.jade-shell .jade-con { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 12px; border-radius: 12px; background: rgba(31, 154, 106, .14); box-shadow: inset 0 0 0 2px rgba(31, 154, 106, .4); }
+.jade-shell .jade-con.day { background: linear-gradient(90deg, rgba(242, 193, 78, .22), rgba(31, 154, 106, .12)); box-shadow: inset 0 0 0 2px rgba(242, 193, 78, .6); }
+.jade-shell .jade-con.push { background: rgba(216, 68, 58, .2); box-shadow: inset 0 0 0 2px var(--red); }
+.jade-shell .jade-con.pinned { box-shadow: inset 0 0 0 3px var(--gold); }
+.jade-shell .jade-con-body p { margin: 2px 0; }
+.jade-shell .jade-con-body b { font: 700 16px var(--display); color: var(--gold); display: block; }
+.jade-shell .jade-con-body small { display: block; opacity: .92; }
+.jade-shell .jade-con-tag { display: inline-block; font-size: 12px; font-weight: 800; padding: 1px 8px; border-radius: 10px; margin-bottom: 2px; }
+.jade-shell .jade-con-tag.day { background: var(--gold); color: #2a1a00; }
+.jade-shell .jade-con-tag.push { background: var(--red); color: #fff; }
+.jade-shell .jade-con-stars { color: var(--gold); letter-spacing: 1px; }
+.jade-shell .jade-con-stars i { font-style: normal; opacity: .3; }
+.jade-shell .jade-con-mods { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0; }
+.jade-shell .jade-con-mods em { font-style: normal; font-size: 12px; font-weight: 800; padding: 1px 8px; border-radius: 10px; background: rgba(0, 0, 0, .35); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25); }
+.jade-shell .jade-con-pay { display: flex !important; align-items: center; gap: 4px; }
+.jade-shell .jade-con-warn { margin: 0; padding: 6px 10px; border-radius: 10px; background: rgba(216, 68, 58, .22); box-shadow: inset 0 0 0 2px var(--red); }
+.jade-shell .jade-nextcon { display: flex; gap: 8px; align-items: center; }
+.jade-shell .jade-nextcon small { opacity: .9; }
+@media (max-width: 520px) { .jade-shell .jade-con { grid-template-columns: 52px minmax(0, 1fr); } .jade-shell .jade-con button { grid-column: 1 / -1; } }

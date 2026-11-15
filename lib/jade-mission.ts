@@ -84,6 +84,11 @@ export class Run {
   }
   begin() {
     if (this.m.tip) this.addTip();
+    // a contract's modifiers (lib/jade-proc.ts): a storm, the graveyard shift, the partner busy at the giver's
+    const mods = this.m.mods ?? [], w = this.w;
+    if (mods.includes('rain')) w.rainForce = 0.9;
+    if (mods.includes('night')) w.dark = true;
+    if (mods.includes('solo') && !w.two) { const pl = w.c.places[this.m.at]; postMate(this, 'stay', pl ? [pl.x + 40, pl.y + 30] : [w.mate.x, w.mate.y]); }
     this.snap = this.snapshot(0);
     this.enter(0);
   }
@@ -126,7 +131,7 @@ export class Run {
     this.actors = []; this.items = []; this.marks = []; this.loot = null; this.fare = null; this.timer = null; this.meter = null; this.meter2 = null; this.progress = '';
     this.js = null; this.notes = []; this.hint = null; this.w.p.disguise = false;
     this.sets = []; this.signs = []; this.float = null; this.warning = null;
-    if (all) { releaseMate(this); this.w.p.carry = null; if (this.m.tip) this.w.s.tips = this.w.s.tips.filter(t => !(t.market === this.m.tip!.market && t.good === this.m.tip!.good)); }
+    if (all) { if (this.m.mods?.length) { if (this.m.mods.includes('rain')) this.w.rainForce = null; this.w.dark = false; } releaseMate(this); this.w.p.carry = null; if (this.m.tip) this.w.s.tips = this.w.s.tips.filter(t => !(t.market === this.m.tip!.market && t.good === this.m.tip!.good)); }
   }
   next() { this.enter(this.i + 1); }
   enter(i: number) {
@@ -175,7 +180,7 @@ export class Run {
       case 'tail': {
         const [x, y] = this.spot(st.from);
         const [sx, sy] = nearestFree(w.c, 'foot', x, y, w.open, 6);
-        this.actors.push(this.actor('pip', sx, sy, 'foot', this.path(st.route, 'foot'), 72));
+        this.actors.push(this.actor('pip', sx, sy, 'foot', this.path(st.route, 'foot'), 72)); if (st.skin) this.actors[0].skin = st.skin;
         this.meter = { name: 'Suspicion', v: 0 }; this.starter = w.p.who;
         if (st.relay) postMate(this, 'post', this.spot(st.relay.spot));
         break;
@@ -240,10 +245,16 @@ export class Run {
     return { id: this.w.nextId++, kind, b: { x, y, h: 0, speed: 0, r: v ? v.r : cls === 'small' ? 17 : 12, len: v ? v.len : cls === 'small' ? 50 : 0, cls }, route, wp: 0, speed, t: 0, stun: 0, look: 0, lookCd: 5, face: 0, gone: false, hits: 0 };
   }
   /** follow the actor's route with the right flow field; returns true at the last point */
+  private stall = new WeakMap<Actor, { wp: number; d: number; t: number }>();
   walk(a: Actor, dt: number, speed: number, loop: boolean): boolean {
     const w = this.w; if (!a.route.length) return true;
     const [gx, gy] = a.route[a.wp];
-    if (dist(a.b.x, a.b.y, gx, gy) < (a.b.cls === 'foot' ? 22 : 48)) {
+    // pinned against a prop short of a waypoint (a generated contract's route, lib/jade-proc.ts) for over a second
+    // and a half: count the waypoint as reached rather than stand there for ever
+    const gd = dist(a.b.x, a.b.y, gx, gy), sk = this.stall.get(a);
+    if (!sk || sk.wp !== a.wp || gd < sk.d - 6) this.stall.set(a, { wp: a.wp, d: gd, t: 0 }); else sk.t += dt;
+    const st = this.stall.get(a)?.t ?? 0, pinned = !loop && ((gd < T * 3 && st > 1.5) || st > 3);
+    if (gd < (a.b.cls === 'foot' ? 22 : 48) || pinned) {
       if (a.wp === a.route.length - 1) { if (!loop) { a.b.speed = 0; return true; } a.wp = 0; } else a.wp++;
     }
     const [tx, ty] = a.route[a.wp];
@@ -510,13 +521,13 @@ export class Run {
     mind.st = m.v > 0.85 ? 'alert' : m.v > 0.45 ? 'look' : a.look > 0 ? 'sus' : 'patrol'; mind.seen = sees;
     if (m.v > 0.6 && this.warned < 1) { this.warned = 1; this.warn('Pip is getting suspicious! Drop back, sneak or hide!'); }
     if (m.v < 0.25 && this.warned === 1) this.warned = 0;
-    if (m.v >= 1) return this.fail('Pip spotted you! Keep further back, sneak, or hide when he looks round.');
+    if (m.v >= 1) return this.fail(`${this.actors[0]?.skin ? 'The runner' : 'Pip'} spotted you! Keep further back, sneak, or hide when ${this.actors[0]?.skin ? 'it' : 'he'} looks round.`);
     // the other way to fail is falling too far behind: a second meter shows how close he is to slipping away
     const dm = st.relay ? Math.min(d, dist(a.b.x, a.b.y, w.mate.x, w.mate.y)) : d;
     this.lost = dm > (this.assist ? 680 : 540) ? this.lost + dt : Math.max(0, this.lost - dt * 2);
     this.meter2 = this.lost > 0 ? { name: 'Losing him', v: Math.min(1, this.lost / 6), bad: this.lost > 3 } : null;
     if (this.lost > 3 && this.warned !== 2) { this.warned = 2; this.warn('Pip is slipping away! Keep him in sight!'); }
-    if (this.lost > 6) this.fail('You lost him. Keep him in sight.');
+    if (this.lost > 6) this.fail(`You lost ${this.actors[0]?.skin ? 'the runner' : 'him'}. Keep ${this.actors[0]?.skin ? 'it' : 'him'} in sight.`);
   }
   escort(st: Extract<Step, { t: 'escort' }>, dt: number, pb: Body) {
     const w = this.w, lion = this.actors[0]; if (!lion) return;

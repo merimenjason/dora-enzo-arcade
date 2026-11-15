@@ -63,7 +63,7 @@ function guardWalk(run: Run, a: Actor, dt: number, look: boolean) {
   }
   const wp = a.wp; run.walk(a, dt, a.speed, true); if (a.wp !== wp) a.extra = run.assist ? 1.6 : 1.3;
 }
-export const sightRange = (run: Run) => (run.assist ? 170 : 215) * run.w.diff.look;
+export const sightRange = (run: Run) => (run.assist ? 170 : 215) * run.w.diff.look * (run.w.dark ? 0.88 : 1);
 const cone = (run: Run) => run.assist ? 0.45 : 0.55;
 function sees(run: Run, a: Actor, h: Player, range: number, half: number, eyeY = 0) {
   if (h.hide || h.ride || blind(a)) return false;

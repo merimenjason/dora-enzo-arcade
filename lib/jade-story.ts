@@ -33,7 +33,7 @@ export type Step =
   | { t: 'float'; label: string; rope?: Spot; cp?: boolean }
   | { t: 'raid'; at: Spot; n: number; label: string; cp?: boolean }
   /** `relay`: from waypoint `at` on, the hero who started is easy for Pip to spot; the partner waits at `spot` */
-  | { t: 'tail'; from: Spot; route: Spot[]; label: string; relay?: { at: number; spot: Spot }; cp?: boolean; /** under 1: the one you tail notices you more slowly */ calm?: number }
+  | { t: 'tail'; from: Spot; route: Spot[]; label: string; relay?: { at: number; spot: Spot }; cp?: boolean; /** under 1: the one you tail notices you more slowly */ calm?: number; /** a rival gang's runner (contracts) */ skin?: 'otter' | 'mac' | 'liz' | 'myna' }
   /** `flanks`: crows come in pairs from both sides and the partner guards the far flank */
   | { t: 'escort'; from: Spot; route: Spot[]; label: string; crows: number; flanks?: boolean; skin?: 'otter'; cp?: boolean }
   /** `relay`: the marks from this one on count only for the partner waiting there (a hand-off) */
@@ -94,7 +94,9 @@ export type Intel = 'door' | 'rota' | 'cam' | 'safe';
 export type Witness = { at: Spot; sp: string; name: string; ask: [string, string, string]; right: number; clue: string; tag: string; junk: [string, string, string] };
 export type MiniKind = 'lock' | 'wires' | 'wok' | 'dumpling' | 'haggle' | 'kopi' | 'safe';
 /** `side`: a Hawker Tales side job, offered once that story job is done (lib/jade-save.ts sideJobs) */
-export type Mission = { id: string; side?: string; ch: number; title: string; giver: string; at: string; blurb: string; reward: number; rep: number; steps: Step[]; tip?: { market: District; good: Good; mult: number } };
+export type Mission = { id: string; side?: string; ch: number; title: string; giver: string; at: string; blurb: string; reward: number; rep: number; steps: Step[]; tip?: { market: District; good: Good; mult: number };
+  /** the eleventh pass's contracts (lib/jade-proc.ts): modifiers the runner applies, and the giver's barks when it fails */
+  mods?: ('night' | 'rain' | 'timer' | 'foot' | 'solo' | 'wardens')[]; fails?: string[] };
 
 export const PEOPLE: Record<string, { name: string; face: string; who: string }> = {
   kee: { name: 'Uncle Kee', face: 'face-kee', who: 'tortoise grocer' },
@@ -719,7 +721,7 @@ export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id,
 
 /** every count of jobs shown to the player, derived from MISSIONS and SIDE (never written in by hand): story jobs and
  *  Hawker Tales done and in all, the medal marks (three a story job) earned and possible, and gold medals */
-export function jobCounts(s: { done: string[]; medals: Record<string, { m: number } | undefined>; empire?: { jobs: Record<string, number> } }) {
+export function jobCounts(s: { done: string[]; medals: Record<string, { m: number } | undefined>; empire?: { jobs: Record<string, number> }; contracts?: { done: number; retaken: number; kinds: Record<string, number> } }) {
   const empire = EMPIRE_JOBS.filter(j => (s.empire?.jobs[j.id] ?? 0) > 0).length;
   const story = MISSIONS.filter(m => s.done.includes(m.id)).length, tales = SIDE.filter(m => s.done.includes(m.id)).length;
   return {
@@ -728,5 +730,7 @@ export function jobCounts(s: { done: string[]; medals: Record<string, { m: numbe
     gold: MISSIONS.filter(m => s.medals[m.id]?.m === 3).length,
     /** the tenth pass: kinds of empire job finished at least once, and how many kinds there are */
     empire, empireAll: EMPIRE_JOBS.length,
+    /** the eleventh pass: contracts finished (from the save; they are made, not listed), retakes won, kinds tried */
+    contracts: s.contracts?.done ?? 0, retaken: s.contracts?.retaken ?? 0, contractKinds: Object.keys(s.contracts?.kinds ?? {}).length,
   };
 }
