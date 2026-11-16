@@ -4,7 +4,8 @@
 // Code draws only light and effects: lamp glows, the route line, torch beams, the blimp's spotlight, fog over locked
 // districts, dust and sparkles; game feel (shake, hit-stop, debris, speed lines) is in lib/jade-juice.ts and the set
 // pieces, the finale and the business stalls are drawn by lib/jade-setdraw.ts. Every picture is a Codex painting from the atlases in public/art/jade-street/.
-import { FRAMES, ATLASES, ATLAS_SIZE, TEXTURES } from './jade-art.js';
+import { FRAMES, ATLASES, VER } from './jade-art.js';
+import { EAGER, ART_BUDGET, decodedBytes } from './jade-load.js';
 import { T, W, H, G, OW, CT_H, EAST_X0, EAST_SPLIT, FAR_X0, FAR_SPLIT, CHANGI_X0, GROUND_NAMES, F_ROOF, districtAt, type City, type District } from './jade-city.js';
 import { F_XWAY } from './jade-island.js';
 import { VEHICLES } from './jade-move.js';
@@ -30,52 +31,116 @@ import { castFrame, castPose, type CastMember } from './jade-cast.js';
 
 export const ART = '/art/jade-street/';
 const CH = 8; // tiles per chunk
-const images: Record<string, HTMLImageElement | HTMLCanvasElement> = {};
-let loaded = false;
+/** a decoded painting: an ImageBitmap (closed when let go, so its pixels are freed at once), or an image element where
+ *  the browser has no createImageBitmap */
+type Pic = ImageBitmap | HTMLImageElement;
+const images: Record<string, Pic> = {};
 
-/** Little India, Kampong Glam and Sentosa open late in the story, so their atlases and ground textures load in the
- *  background once the game is running (the loading bar waits only for the rest); `lazyGen` counts them in, and the
- *  scene repaints its ground chunks when it changes */
-export const LAZY = (n: string) => /^atlas-(east|east2|resort|far|far2)$/.test(n) || /^tex-(india|glam|sand|resort|lagoon|fort|katong|orchard|tarmac|cycle|jewel|changi)$/.test(n);
-export let lazyGen = 0;
-export let lazyDone = false;
-/** one file at a time, so the decoding and the repaint each one brings are spread out instead of landing together */
-function loadLazy(base: string, names: string[]) {
-  const next = (i: number) => {
-    if (i >= names.length) { lazyDone = true; lazyGen++; return; }
-    const n = names[i];
-    const old = images[n] as HTMLImageElement | undefined; if (old && old.complete && old.naturalWidth) return next(i + 1);
-    const im = new Image(); im.decoding = 'async';
-    im.onload = () => { (im.decode ? im.decode() : Promise.resolve()).catch(() => undefined).then(() => { lazyGen++; setTimeout(() => next(i + 1), 250); }); };
-    im.onerror = () => { delete images[n]; next(i + 1); };
-    im.src = `${base}${n}.webp`; images[n] = im;
+// ── loading (which file when is lib/jade-load.ts). Each atlas and ground texture is loaded and decoded on its own,
+// by the loading bar (`ensureArt`), when the world needs it now (`ensureArt` again, from the page's controller), or in
+// the background (`streamArt`: a couple at a time, decoded, then the rest fetched into the browser's cache only). A
+// file nothing has drawn from for a while is let go (`releaseArt`), so its decoded pixels can be freed. `artGen`
+// counts arrivals: the scene repaints any ground chunk that was painted while one of its pictures was missing.
+/** a file's URL: the content hash from the packer as a query, so the art can be cached for a year (public/_headers) */
+export const artUrl = (n: string, base = ART) => `${base}${n}.webp${VER[n] ? '?v=' + VER[n] : ''}`;
+type Slot = { im: Pic | null; ok: boolean; p: Promise<boolean> };
+const slots = new Map<string, Slot>();
+export let artGen = 0;
+/** when each file was last drawn from (performance.now, ms): atlases by index, refreshed once a frame for speed */
+const usedAt = new Map<string, number>(); const usedAtlas = new Float64Array(ATLASES.length); let drawClock = 0;
+/** files a draw asked for that were not in; the controller loads them at once */
+export const artMissing = new Set<string>();
+/** set by src() and pattern() when a picture was missing, so a chunk painted without it is repainted later */
+let missed = false;
+/** the maps paint the whole island: a picture missing there is not asked for (it would pull in every district) */
+let quietMiss = false;
+/** was a picture missing since the last call (for a canvas painted outside the scene, such as the painted map) */
+export const takeMissed = () => { const m = missed; missed = false; return m; };
+const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+function loadOne(n: string, base = ART): Promise<boolean> {
+  const have = slots.get(n); if (have) return have.p;
+  const slot: Slot = { im: null, ok: false, p: Promise.resolve(false) };
+  const done = (im: Pic | null) => {
+    if (slots.get(n) !== slot) { if (im && 'close' in im) im.close(); return false; } // let go while it was on its way
+    if (!im) { slots.delete(n); return false; }
+    slot.im = im; slot.ok = true; images[n] = im; usedAt.set(n, now()); artMissing.delete(n); artGen++; return true;
   };
-  next(0);
+  const url = artUrl(n, base);
+  if (typeof createImageBitmap === 'function' && typeof fetch === 'function') {
+    slot.p = fetch(url).then(r => { if (!r.ok) throw new Error(String(r.status)); return r.blob(); }).then(b => createImageBitmap(b).then(im => { void b.size; return im; })).then(done, () => done(null)); // (the blob is held until the bitmap is made: WebKit loads it by URL)
+  } else {
+    slot.p = new Promise<boolean>(res => {
+      const im = new Image(); im.decoding = 'async';
+      im.onload = () => { (im.decode ? im.decode() : Promise.resolve()).catch(() => undefined).then(() => res(done(im))); };
+      im.onerror = () => res(done(null));
+      im.src = url;
+    });
+  }
+  slots.set(n, slot);
+  return slot.p;
 }
-/** load and decode every atlas and ground texture; `progress` gets (done, total); rejects with the files that failed */
+/** the decoded bytes held now and on their way (the background queue keeps this under ART_BUDGET) */
+const residentBytes = () => { let b = 0; for (const n of slots.keys()) b += decodedBytes(n); return b; };
+export const artReady = (n: string) => !!slots.get(n)?.ok;
+/** load and decode these files (each at most once at a time); `progress` gets (done, total); rejects with the files
+ *  that failed */
+export function ensureArt(names: string[], progress?: (done: number, total: number) => void, base = ART): Promise<void> {
+  let done = names.filter(artReady).length; const failed: string[] = [];
+  progress?.(done, names.length);
+  return Promise.all(names.filter(n => !artReady(n)).map(n => loadOne(n, base).then(ok => { if (!ok) failed.push(n); done++; progress?.(done, names.length); })))
+    .then(() => { if (failed.length) throw new Error('Could not load: ' + failed.join(', ')); });
+}
+/** the eager set: everything the title and a night in Chinatown draw (the loading bar waits for this) */
 export function loadArt(base = ART, progress?: (done: number, total: number) => void): Promise<void> {
-  const every = [...ATLASES.map(a => a as string), ...TEXTURES.map(t => 'tex-' + t)];
-  const names = every.filter(n => !LAZY(n)), later = every.filter(LAZY);
-  let done = 0; const failed: string[] = [];
-  progress?.(0, names.length);
-  return Promise.all(names.map(n => new Promise<void>(res => {
-    const ok = () => { done++; progress?.(done, names.length); res(); };
-    const old = images[n] as HTMLImageElement | undefined;
-    if (old && old.complete && old.naturalWidth) return ok();
-    const im = new Image(); im.decoding = 'async';
-    im.onload = () => { (im.decode ? im.decode() : Promise.resolve()).catch(() => undefined).then(ok); };
-    im.onerror = () => { delete images[n]; failed.push(n); done++; progress?.(done, names.length); res(); };
-    im.src = `${base}${n}.webp${old ? '?r=' + Date.now() : ''}`; images[n] = im;
-  }))).then(() => { if (failed.length) throw new Error('Could not load: ' + failed.join(', ')); loaded = true; loadLazy(base, later); });
+  return ensureArt(EAGER, progress, base);
 }
-export const artLoaded = () => loaded;
+export const artLoaded = () => EAGER.every(artReady);
+/** the background queue: decode `decode` two at a time, then fetch `prefetch` into the HTTP cache one at a time */
+let queue: { n: string; decode: boolean }[] = []; let busy = 0; const fetched = new Set<string>();
+export function streamArt(decode: string[], prefetch: string[]) {
+  queue = [...decode.filter(n => !slots.has(n)).map(n => ({ n, decode: true })), ...prefetch.filter(n => !slots.has(n) && !fetched.has(n)).map(n => ({ n, decode: false }))];
+  pump();
+}
+function pump() {
+  while (busy < 2 && queue.length) {
+    const { n, decode } = queue.shift()!;
+    if (decode ? slots.has(n) : fetched.has(n) || slots.has(n)) continue;
+    // past the budget a nearby zone is only fetched: it is decoded when the heroes get there
+    if (decode && residentBytes() + decodedBytes(n) > ART_BUDGET) { if (!fetched.has(n)) queue.unshift({ n, decode: false }); continue; }
+    busy++;
+    const next = () => { busy--; setTimeout(pump, 120); };
+    if (decode) loadOne(n).then(next);
+    else { fetched.add(n); (typeof fetch === 'function' ? fetch(artUrl(n)).then(r => r.arrayBuffer()) : Promise.resolve()).catch(() => fetched.delete(n)).then(next); }
+  }
+}
+/** files decoded now, with the seconds since each was last drawn from */
+export const artResident = () => { const t = now(); return [...slots.entries()].filter(([, s]) => s.ok).map(([n]) => { const ai = (ATLASES as readonly string[]).indexOf(n); return { n, idle: (t - Math.max(usedAt.get(n) ?? 0, ai >= 0 ? usedAtlas[ai] : 0)) / 1000 }; }); };
+/** let decoded files go: their pixels can be freed, and recoloured copies cut from them too */
+export function releaseArt(names: string[]) {
+  for (const n of names) {
+    const s = slots.get(n); if (!s) continue;
+    slots.delete(n); delete images[n];
+    if (s.im && 'close' in s.im) s.im.close(); else if (s.im) { s.im.onload = s.im.onerror = null; s.im.removeAttribute('src'); }
+    const ai = (ATLASES as readonly string[]).indexOf(n);
+    if (ai >= 0) for (const k of [...recolored.keys()]) { const f = FRAMES[k.split('|')[0]]; if (f && f[0] === ai) { const c = recolored.get(k)!; c.width = c.height = 0; recolored.delete(k); } }
+  }
+}
+/** empty a canvas, so its pixels are freed now rather than whenever it is collected */
+const freeCanvas = (c: HTMLCanvasElement) => { c.width = 0; c.height = 0; };
+/** a canvas's 2D context, or null when the browser will not make one (WebKit refuses past its canvas memory cap) */
+export function ctx2d(c: HTMLCanvasElement, o?: CanvasRenderingContext2DSettings): CanvasRenderingContext2D | null {
+  try { return c.getContext('2d', o) as CanvasRenderingContext2D | null; } catch { return null; }
+}
 
 // ── sprite drawing
 type Frame = [number, number, number, number, number];
 const recolored = new Map<string, HTMLCanvasElement>();
-function hueShift(src: HTMLImageElement | HTMLCanvasElement, f: Frame, test: (h: number, s: number, v: number) => boolean, deg: number): HTMLCanvasElement {
+const RECOLOR_MAX = 360;
+export const recoloredCount = () => recolored.size;
+function hueShift(src: Pic | HTMLCanvasElement, f: Frame, test: (h: number, s: number, v: number) => boolean, deg: number): HTMLCanvasElement | null {
   const c = document.createElement('canvas'); c.width = f[3]; c.height = f[4];
-  const x = c.getContext('2d')!; x.drawImage(src, f[1], f[2], f[3], f[4], 0, 0, f[3], f[4]);
+  const x = ctx2d(c, { willReadFrequently: true }); if (!x) return null;
+  x.drawImage(src, f[1], f[2], f[3], f[4], 0, 0, f[3], f[4]);
   if (!deg) return c;
   const d = x.getImageData(0, 0, c.width, c.height); const p = d.data;
   for (let i = 0; i < p.length; i += 4) {
@@ -97,18 +162,26 @@ function hueShift(src: HTMLImageElement | HTMLCanvasElement, f: Frame, test: (h:
 const OUTFIT_HUE: Record<string, number> = { classic: 0, midnight: 1, temple: 2, canal: 3, harbour: 4, neon: 5 };
 const DORA_TO = [0, 75, -100, 30, 140, 170], ENZO_TO = [0, 220, 40, 175, 270, 305];
 /** the image and source rect for a frame, recoloured for outfits (hero jackets) and paint (rides) */
-function src(name: string, variant = ''): [HTMLImageElement | HTMLCanvasElement, number, number, number, number] | null {
+function src(name: string, variant = ''): [Pic | HTMLCanvasElement, number, number, number, number] | null {
   const f = FRAMES[name] as Frame | undefined; if (!f) return null;
-  const im = images[ATLASES[f[0]]] as HTMLImageElement | undefined; if (!im || !im.complete || !im.naturalWidth) return null;
+  const an = ATLASES[f[0]], im = images[an];
+  if (!im) { missed = true; if (!quietMiss) artMissing.add(an); return null; }
+  usedAtlas[f[0]] = drawClock;
   if (!variant) return [im, f[1], f[2], f[3], f[4]];
+  const [kind, v] = variant.split(':');
+  const deg = kind === 'dora' ? (DORA_TO[+v] + 360) % 360 : kind === 'enzo' ? (ENZO_TO[+v] + 360) % 360 : +v;
+  if (!deg) return [im, f[1], f[2], f[3], f[4]]; // the classic jacket and an unpainted ride are the painting itself
   const key = name + '|' + variant;
   let c = recolored.get(key);
-  if (!c) {
-    const [kind, v] = variant.split(':');
-    if (kind === 'dora') c = hueShift(im, f, (h, s, val) => h > 95 && h < 185 && s > 0.25 && val > 0.12, (DORA_TO[+v] + 360) % 360);
-    else if (kind === 'enzo') c = hueShift(im, f, (h, s, val) => (h < 18 || h > 345) && s > 0.55 && val > 0.3, (ENZO_TO[+v] + 360) % 360);
-    else c = hueShift(im, f, (h, s) => s > 0.35 && !(h > 30 && h < 60 && s < 0.5), +v);
-    recolored.set(key, c);
+  if (c) { recolored.delete(key); recolored.set(key, c); } // most recently used last
+  else {
+    const made = kind === 'dora' ? hueShift(im, f, (h, s, val) => h > 95 && h < 185 && s > 0.25 && val > 0.12, deg)
+      : kind === 'enzo' ? hueShift(im, f, (h, s, val) => (h < 18 || h > 345) && s > 0.55 && val > 0.3, deg)
+      : hueShift(im, f, (h, s) => s > 0.35 && !(h > 30 && h < 60 && s < 0.5), deg);
+    if (!made) return [im, f[1], f[2], f[3], f[4]];
+    c = made; recolored.set(key, c);
+    // at most RECOLOR_MAX recoloured frames (a few dozen MB at most): the least recently drawn go first
+    while (recolored.size > RECOLOR_MAX) { const [k0, c0] = recolored.entries().next().value!; freeCanvas(c0); recolored.delete(k0); }
   }
   return [c, 0, 0, f[3], f[4]];
 }
@@ -212,19 +285,32 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
   }
 }
 
-const GLOWS = new Map<string, HTMLCanvasElement>();
-/** a 64 px radial gradient from `col` at the centre to clear at the rim (cached per colour, and per inner stop) */
+const GLOWS = new Map<string, HTMLCanvasElement>(), GLOWS_MAX = 64;
+/** a 64 px radial gradient from `col` at the centre to clear at the rim (cached per colour, and per inner stop; the
+ *  cache keeps the 64 last used, so a caller that passes a new colour every frame cannot grow it without end) */
 export function glowSprite(col: string, mid?: [number, string]): HTMLCanvasElement {
   const key = mid ? col + '|' + mid[0] + mid[1] : col; let c = GLOWS.get(key);
-  if (!c) {
-    c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d')!;
-    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, col); if (mid) gr.addColorStop(mid[0], mid[1]); gr.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = gr; g.fillRect(0, 0, 64, 64); GLOWS.set(key, c);
-  }
+  if (c) { GLOWS.delete(key); GLOWS.set(key, c); return c; }
+  c = document.createElement('canvas'); c.width = c.height = 64; const g = ctx2d(c); if (!g) return c;
+  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, col); if (mid) gr.addColorStop(mid[0], mid[1]); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64); GLOWS.set(key, c);
+  while (GLOWS.size > GLOWS_MAX) { const [k0, c0] = GLOWS.entries().next().value!; freeCanvas(c0); GLOWS.delete(k0); }
   return c;
 }
+export const glowCount = () => GLOWS.size;
+/** `rgba(r,g,b,a)` split into the opaque colour and its alpha, so a glow that fades (a new alpha every frame) stamps
+ *  one cached sprite at globalAlpha instead of painting a new one per alpha (it was a canvas a frame, never freed) */
+const RGBA = /^rgba\(\s*([\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+)\s*,\s*([-+\d.eE]+)\s*\)$/;
+export function splitAlpha(col: string): [string, number] {
+  const m = RGBA.exec(col); if (!m) return [col, 1];
+  const a = Number(m[2]); return Number.isFinite(a) ? ['rgba(' + m[1].replace(/\s+/g, '') + ',1)', Math.max(0, Math.min(1, a))] : [col, 1];
+}
 export type Cam = { x: number; y: number; k: number; w: number; h: number };
-type Chunk = { c: HTMLCanvasElement; s: number; used: number };
+/** a ground chunk: its canvas, the scale it was painted at, the frame it was last drawn and whether a picture was missing */
+type Chunk = { c: HTMLCanvasElement; s: number; used: number; miss: boolean };
+/** the ground chunks' pixel budget (about 96 MB): WebKit caps the memory all canvases may hold, and a Retina screen's
+ *  chunks are up to 820 px square */
+const CHUNK_PX = 24e6;
 
 export class Scene {
   x: CanvasRenderingContext2D; w = 0; h = 0; dpr = 1;
@@ -264,8 +350,8 @@ export class Scene {
   private patterns: Record<string, CanvasPattern | null> = {};
   pattern(x: CanvasRenderingContext2D, n: string) {
     if (this.patterns[n] !== undefined) return this.patterns[n];
-    const im = images['tex-' + n] as HTMLImageElement | undefined;
-    if (!im || !im.complete || !im.naturalWidth) return null; // not loaded yet: don't cache the miss
+    const im = images['tex-' + n];
+    if (!im) { missed = true; if (!quietMiss) artMissing.add('tex-' + n); return null; } // not loaded yet: don't cache the miss
     this.patterns[n] = x.createPattern(im, 'repeat'); return this.patterns[n];
   }
   chunk(cx: number, cy: number, s: number): HTMLCanvasElement {
@@ -273,15 +359,27 @@ export class Scene {
     if (old && Math.abs(old.s - s) < 0.2) { old.used = this.frame; return old.c; }
     const c = old?.c ?? document.createElement('canvas');
     const size = Math.ceil(CH * T * s); c.width = size; c.height = size;
-    const x = c.getContext('2d')!;
-    x.setTransform(s, 0, 0, s, -cx * CH * T * s, -cy * CH * T * s);
-    this.paintGround(x, cx * CH, cy * CH, CH, CH);
-    this.chunks.set(key, { c, s, used: this.frame });
-    if (this.chunks.size > 44) { let lo = Infinity, lk = -1; for (const [k, v] of this.chunks) if (v.used < lo) { lo = v.used; lk = k; } this.chunks.delete(lk); }
+    const x = ctx2d(c);
+    missed = false;
+    if (x) { x.setTransform(s, 0, 0, s, -cx * CH * T * s, -cy * CH * T * s); this.paintGround(x, cx * CH, cy * CH, CH, CH); } else missed = true;
+    this.chunks.set(key, { c, s, used: this.frame, miss: missed });
+    // the least recently drawn chunks go once there are more than 44 or they hold more pixels than the budget
+    let px = 0; for (const v of this.chunks.values()) px += v.c.width * v.c.height;
+    while (this.chunks.size > 44 || (px > CHUNK_PX && this.chunks.size > 12)) {
+      let lo = Infinity, lk = -1; for (const [k, v] of this.chunks) if (v.used < lo && k !== key) { lo = v.used; lk = k; }
+      const v = this.chunks.get(lk); if (!v) break; px -= v.c.width * v.c.height; this.dropChunk(lk);
+    }
     return c;
   }
+  dropChunk(k: number) { const v = this.chunks.get(k); if (v) { freeCanvas(v.c); this.chunks.delete(k); } }
+  /** forget every ground chunk and the minimap's map (their canvases freed) */
+  dropAll() { for (const k of [...this.chunks.keys()]) this.dropChunk(k); this.dropMap(); }
+  dropMap() { if (this.map) freeCanvas(this.map); for (const st of this.mapStrips) freeCanvas(st.c); this.map = null; this.mapStrips = []; this.mapStripsOf = null; }
   /** paint tiles (tx0..tx0+n) of the city's ground layer into x (already transformed to world units) */
   paintGround(x: CanvasRenderingContext2D, tx0: number, ty0: number, nw: number, nh: number, simple = false) {
+    quietMiss = simple; try { this.paintGround1(x, tx0, ty0, nw, nh, simple); } finally { quietMiss = false; }
+  }
+  private paintGround1(x: CanvasRenderingContext2D, tx0: number, ty0: number, nw: number, nh: number, simple: boolean) {
     const c = this.c;
     // under a building: the district's own paving (Little India, Kampong Glam and Sentosa have theirs); bridges are
     // concrete outside Chinatown (the Sentosa Gateway too) and planks over the Singapore River
@@ -366,26 +464,27 @@ export class Scene {
   }
 
   // ── the whole-city map (minimap and the full map screen use it)
+  mapMiss = false; mapT = 0;
   buildMap(): HTMLCanvasElement {
     if (this.map) return this.map;
     const k = this.mapK; const c = document.createElement('canvas'); c.width = W * k; c.height = H * k;
-    const x = c.getContext('2d')!; x.setTransform(k / T, 0, 0, k / T, 0, 0);
-    this.paintGround(x, 0, 0, W, H, true);
+    const x = ctx2d(c); missed = false;
+    if (x) { x.setTransform(k / T, 0, 0, k / T, 0, 0); this.paintGround(x, 0, 0, W, H, true); }
+    this.mapMiss = missed || !x; this.mapT = this.t;
     this.map = c; return c;
   }
 
   // ── a frame
-  lazySeen = 0;
+  artSeen = 0;
   draw(w: World, dt: number) {
-    const x = this.x; this.frame++; this.t += dt;
-    // a late district atlas just arrived: repaint the ground chunks and the minimap with it
-    if (this.lazySeen !== lazyGen) {
-      // a late painting came in: repaint the ground in the new districts (the rest never uses it) as each one lands
-      this.lazySeen = lazyGen;
-      for (const k of [...this.chunks.keys()]) { const tx = (k % 1000) * CH, ty = Math.floor(k / 1000) * CH; if (tx + CH >= EAST_X0 - 4 || ty + CH >= CT_H) this.chunks.delete(k); }
-      for (const n of Object.keys(this.patterns)) if (LAZY('tex-' + n) || LAZY(n)) delete this.patterns[n];
-      if (lazyDone) { this.chunks.clear(); this.map = null; } // (and everything once at the end, for any late prop drawn outside them)
+    const x = this.x; this.frame++; this.t += dt; drawClock = now();
+    // a painting just arrived: repaint the ground chunks painted without one of theirs (a few a frame, below), and the
+    // minimap's map at most every few seconds while pictures are still coming in
+    if (this.artSeen !== artGen) {
+      this.artSeen = artGen;
+      for (const v of this.chunks.values()) if (v.miss) v.s = -9; // repainted in place (drawn as it was until then)
     }
+    if (this.map && this.mapMiss && this.t - this.mapT > 4 && this.artSeen === artGen) this.dropMap();
     const p = w.p; const ride = p.ride;
     this.juice.tick(dt);
     if (ride) this.juice.trail(dt, p.boostT > 0, ride.b.x, ride.b.y, ride.b.h, 'v-' + ride.kind);
@@ -429,7 +528,7 @@ export class Scene {
       const key = cx + cy * 1000, have = this.chunks.get(key);
       const stale = have ? chunkStale(have.s, cs, this.zoomStill) : 'now';
       if (stale === 'now') { if (made >= 3 && have) { x.drawImage(have.c, cx * CH * T, cy * CH * T, CH * T, CH * T); have.used = this.frame; continue; } made++; }
-      else if (stale === 'later' && exact < 1 && made < 2) { exact++; made++; this.chunks.delete(key); }
+      else if (stale === 'later' && exact < 1 && made < 2) { exact++; made++; have!.s = -9; }
       const c = this.chunk(cx, cy, cs);
       x.drawImage(c, cx * CH * T, cy * CH * T, CH * T, CH * T);
     }
@@ -522,7 +621,9 @@ export class Scene {
     const { col, a: A } = foldTints(tints);
     const key = `${vw}x${vh}|${col}|${A}`;
     if (this.vig && this.vigKey === key) return this.vig;
-    const c = this.vig && this.vig.width === vw && this.vig.height === vh ? this.vig : document.createElement('canvas'); c.width = vw; c.height = vh; const g = c.getContext('2d')!;
+    if (this.vig && (this.vig.width !== vw || this.vig.height !== vh)) { freeCanvas(this.vig); this.vig = null; }
+    const c = this.vig ?? document.createElement('canvas'); c.width = vw; c.height = vh; const g = ctx2d(c);
+    if (!g) return c;
     g.clearRect(0, 0, vw, vh);
     if (A > 0) { g.fillStyle = `rgba(${col},${A})`; g.fillRect(0, 0, vw, vh); }
     const gr = g.createRadialGradient(vw / 2, vh / 2, Math.min(vw, vh) * 0.45, vw / 2, vh / 2, Math.max(vw, vh) * 0.75);
@@ -644,9 +745,10 @@ export class Scene {
   /** a soft additive glow. Painted once per colour into a small gradient canvas and stamped with drawImage (a radial
    *  gradient filled every call, with a save and restore round it, was a fifth of the frame on the bigger map) */
   glow(x: CanvasRenderingContext2D, px: number, py: number, r: number, col: string) {
-    const prev = x.globalCompositeOperation; x.globalCompositeOperation = 'lighter';
-    x.drawImage(glowSprite(col), px - r, py - r, r * 2, r * 2);
-    x.globalCompositeOperation = prev;
+    const [c, a] = splitAlpha(col); if (a <= 0) return;
+    const prev = x.globalCompositeOperation, a0 = x.globalAlpha; x.globalCompositeOperation = 'lighter'; x.globalAlpha = a0 * a;
+    x.drawImage(glowSprite(c), px - r, py - r, r * 2, r * 2);
+    x.globalCompositeOperation = prev; x.globalAlpha = a0;
   }
   sparkle(x: CanvasRenderingContext2D, px: number, py: number) { x.save(); x.fillStyle = 'rgba(255,250,210,.9)'; x.translate(px, py); x.rotate(this.t * 2); x.fillRect(-1, -6, 2, 12); x.fillRect(-6, -1, 12, 2); x.restore(); }
   stars(x: CanvasRenderingContext2D, px: number, py: number) { for (let i = 0; i < 3; i++) { const a = this.t * 5 + i * 2.1; this.sparkle(x, px + Math.cos(a) * 16, py + Math.sin(a) * 6); } }
@@ -802,7 +904,7 @@ export class Scene {
     const map = this.buildMap(); const k = this.mapK / T;
     if (this.mapStripsOf !== map) {
       this.mapStripsOf = map; this.mapStrips = [];
-      for (let x0 = 0; x0 < map.width; x0 += 840) { const c = document.createElement('canvas'); c.width = Math.min(848, map.width - x0); c.height = map.height; c.getContext('2d')!.drawImage(map, -x0, 0); this.mapStrips.push({ c, x0 }); }
+      for (let x0 = 0; x0 < map.width; x0 += 840) { const c = document.createElement('canvas'); c.width = Math.min(848, map.width - x0); c.height = map.height; ctx2d(c)?.drawImage(map, -x0, 0); this.mapStrips.push({ c, x0 }); }
     }
     const zoom = 0.9; // map px per minimap px
     const px = w.p.x * k, py = w.p.y * k;
@@ -815,12 +917,12 @@ export class Scene {
     if (!this.mm || this.mm.width !== D) {
       this.mm = document.createElement('canvas'); this.mm.width = this.mm.height = D; this.mmAt = [NaN, NaN];
       this.mmMask = document.createElement('canvas'); this.mmMask.width = this.mmMask.height = D;
-      const mg = this.mmMask.getContext('2d')!; mg.fillStyle = '#fff'; mg.beginPath(); mg.arc(D / 2, D / 2, D / 2, 0, Math.PI * 2); mg.fill();
+      const mg = ctx2d(this.mmMask); if (!mg) return; mg.fillStyle = '#fff'; mg.beginPath(); mg.arc(D / 2, D / 2, D / 2, 0, Math.PI * 2); mg.fill();
     }
     const moved = Math.hypot(px * sc - this.mmAt[0], py * sc - this.mmAt[1]);
     if (!(moved < 2.5) || this.frame % 2 === 0) {
       this.mmAt = [px * sc, py * sc];
-      const g = this.mm.getContext('2d')!;
+      const g = ctx2d(this.mm); if (!g) return;
       g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.fillStyle = '#0d1530'; g.fillRect(0, 0, D, D);
       g.setTransform(dpr, 0, 0, dpr, -(m.x - m.r) * dpr, -(m.y - m.r) * dpr);
       const sx = px - m.r / sc, sy = py - m.r / sc, sw = m.r * 2 / sc, sh = m.r * 2 / sc;

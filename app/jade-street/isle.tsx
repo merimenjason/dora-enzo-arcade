@@ -5,7 +5,7 @@
 import { useEffect, useRef } from 'react';
 import type { Play } from './controller';
 import { Panel } from './panels';
-import { Sprite, ART } from './ui';
+import { Sprite, artUrl } from './ui';
 import { destinations, mrtTo, FARE, RIDE_VIEW, routeToStation } from '@/lib/jade-mrt';
 import { dropOffs, taxiGo, hail, cantHail, TAXI_APP } from '@/lib/jade-taxi';
 import { DISTRICT_NAME, districtAt, T } from '@/lib/jade-city';
@@ -69,7 +69,7 @@ export function RideView({ play, from, to, via, onDone }: { play: Play; from: st
   }, []);
   return (
     <div className="jade-ride-view" data-testid="ride-view" onClick={onDone}>
-      <img src={`${ART}bg-${via === 'cable' ? 'cable' : 'mrt'}-ride.webp`} alt="" draggable={false} />
+      <img src={artUrl(`bg-${via === 'cable' ? 'cable' : 'mrt'}-ride`)} alt="" draggable={false} />
       <canvas ref={cv} className="jade-ride-streaks" />
       <div className="jade-ride-sign"><Sprite name={via === 'cable' ? 'i-cable' : 'i-mrt'} h={40} w={40} /><span>{from} <b>›</b> {to}</span><small>Press any key to skip</small></div>
     </div>

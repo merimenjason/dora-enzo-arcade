@@ -485,30 +485,51 @@ if (SRC / 'map-frame.png').exists():
 
 # ── atlases
 NEW_BLD = tuple(f'shop-{i}' for i in range(7, 13)) + tuple(f'roof-{i}' for i in range(7, 13)) + ('bld-pavilion', 'bld-incense', 'bld-callig', 'bld-boathouse', 'bld-flowers', 'bld-wheel', 'bld-fish', 'bld-rope', 'bld-chandler', 'bld-hotel', 'bld-robot', 'bld-boba')
-GROUPS = [('dora', lambda n: n.startswith('dora-')), ('enzo', lambda n: n.startswith('enzo-')),
+# Atlases are grouped by when the game needs them (lib/jade-load.ts gives each a tier): the heroes' everyday poses,
+# the interface, townsfolk and traffic load first; Chinatown's buildings, props, givers and stalls before play; the
+# heroes' rarer poses, job pieces and Chinatown's dialogue faces right after; each later district's paintings (and its
+# givers and faces) when the heroes get near it; the mini-games' pieces when one opens.
+HERO_CORE = ('walk-', 'run-', 'idle-', 'sneak', 'dash-', 'hop-', 'land', 'leap', 'skid', 'tumble', 'bump', 'talk', 'wave', 'cheer', 'carry-', 'pickup', 'ride-', 'pass', 'fire-', 'hide', 'caught', 'swap', 'door', 'climb-', 'lookup', 'duck', 'hail-', 'sleep', 'umbrella', 'phone')
+ZONE_PEOPLE = {'isle': ('kamal', 'vanda', 'lepak', 'kaw'), 'east': ('raju', 'malar', 'kancil', 'wangi', 'bising', 'nine'),
+               'resort': ('duyung', 'helang'), 'far': ('rosie', 'bala', 'tiara', 'faiz', 'ubin', 'ciku')}
+def mood_face(n): return n.startswith('face-') and n.count('-') >= 2 and n.split('-')[-1] in ('happy', 'worried', 'cross', 'smug')
+def person(n): return n.split('-')[1] if n.count('-') >= 1 else ''
+def zone_group(kind, z): return (f'{kind}-{z}', lambda n: (mood_face(n) if kind == 'faces' else n.startswith('npc-')) and person(n) in ZONE_PEOPLE[z])
+GROUPS = [('dora', lambda n: n.startswith('dora-') and n[5:].startswith(HERO_CORE)), ('enzo', lambda n: n.startswith('enzo-') and n[5:].startswith(HERO_CORE)),
+          ('dora2', lambda n: n.startswith('dora-')), ('enzo2', lambda n: n.startswith('enzo-')),
           # the tenth pass's empire: the new properties, the damage and props, the raiders and Pak Duri, the rank badges
-          ('empire', lambda n: n.startswith(('emp-', 'duri-', 'rank-') + EMP_BIZ) or n.endswith(('-till-0', '-till-1', '-kick', '-gloat'))),
+          # (what the streets show from the first night: each property and stall at level 0 and the for-sale board)
+          ('empire', lambda n: n == 'emp-forsale' or (n.startswith(EMP_BIZ) and n.endswith('-0'))),
+          ('empire2', lambda n: n.startswith(('emp-', 'duri-', 'rank-') + EMP_BIZ) or n.endswith(('-till-0', '-till-1', '-kick', '-gloat'))),
           ('city2', lambda n: n in NEW_BLD),
           # the twelfth pass's districts: lazy like the ninth's
           ('far', lambda n: n.startswith(('orchard-', 'katong-', 'changi-', 'safe-orchard', 'safe-katong', 'safe-changi'))),
           ('far2', lambda n: n.startswith(('bat-', 'ciku-', 'folk-robin', 'folk-pigeon', 'folk-egret', 'laksa-cart', 'kamcheng', 'bird-cages', 'kueh-stall', 'bike-rack', 'bbq-pit', 'kite', 'casuarina', 'xmas-', 'gifts', 'bauble', 'reindeer', 'shop-bags', 'hide-bat', 'plane-', 'baggage-tug', 'trolley', 'suitcase', 'glass-', 'forest-', 'runway-light', 'windsock', 'nasi-lemak', 'sea-bench', 'gift-lights', 'fallen-stars', 'vortex', 'canopy-bridge'))),
           # the ninth pass's districts: loaded in the background after the game starts (lib/jade-scene.ts LAZY)
           ('east', lambda n: n.startswith(('india-', 'glam-'))), ('resort', lambda n: n.startswith('resort-')),
+          ('resort2', lambda n: n.startswith(('cable-', 'cannon', 'carousel', 'beach-', 'deck-chair', 'lifeguard', 'sandcastle', 'ferry-boat', 'surfboard'))),
           ('east2', lambda n: n.startswith(('myna-', 'nine-', 'folk-deer', 'folk-loris', 'folk-turtle', 'garland', 'flower-baskets', 'spice-sacks', 'kolam', 'carpet-stall', 'textile-stall', 'cafe-tables', 'deepavali-arch', 'diya', 'bazaar-', 'pelita', 'hide-myna', 'cable-', 'cannon', 'carousel', 'beach-', 'deck-chair', 'lifeguard', 'sandcastle', 'ferry-boat', 'kuih', 'firebox', 'ketupat', 'perfume', 'surfboard', 'kecoh-flock'))),
           ('isle', lambda n: n.startswith(('hdb-', 'bay-'))),
           ('isle2', lambda n: n.startswith(('liz-', 'kamal-', 'vanda-', 'lepak-', 'kaw-', 'mynahs', 'piglet', 'crowd', 'crow-sales', 'folk-tapir', 'folk-mousedeer', 'folk-civet', 'mrt-', 'v-taxi', 'wscoot', 'rail', 'psd', 'fare-gate', 'hide-', 'crow-nest', 'playground', 'void-table', 'letterbox', 'bicycles', 'laundry', 'exercise', 'bus-stop', 'taxi-stand', 'durian-stall', 'bougain', 'prom-', 'xw-barrier', 'cones', 'spin-top', 'light-crate', 'carpet', 'statuette', 'jetty-sign', 'stn-pillar', 'mooncakes', 'balloons', 'stools'))), ('land', lambda n: n.startswith('lm2-')),
-          ('cast', lambda n: n.startswith('npc-')),
+          *[zone_group('cast', z) for z in ZONE_PEOPLE], ('cast-town', lambda n: n.startswith('npc-')),
           ('city', lambda n: n.startswith(('shop-', 'roof-', 'flat-', 'bld-', 'lm-', 'safe-', 'stn-entrance'))),
           ('rides', lambda n: n.startswith(('v-', 'car-', 'crow-cart', 'crow-boat', 'boss-', 'warden-bike'))),
-          ('gear', lambda n: n.startswith(('g-', 'crate-', 'shot-', 'net-open', 'satchel', 'sp-', 'crow-netted', 'cart-netted', 'warden-slip', 'warden-paint', 'warden-dazed', 'crow-drop', 'awning-splat', 'glint-netted', 'lever-', 'sluice-', 'shutter-', 'pulley', 'boost-spot', 'window-', 'loot-bag', 'gadget-stall'))),
+          ('gear', lambda n: n.startswith(('g-', 'crate-', 'shot-', 'net-open', 'satchel', 'sp-', 'crow-netted', 'cart-netted', 'warden-slip', 'warden-paint', 'warden-dazed', 'crow-drop', 'awning-splat', 'glint-netted', 'lever-', 'sluice-', 'shutter-', 'pulley', 'boost-spot', 'window-', 'loot-bag'))),
           ('jobs', lambda n: n.startswith(('guard-', 'intern-', 'job-', 'card-', 'mac-netted'))),
           ('aware', lambda n: n.startswith(('clue-', 'spot-', 'bub-', 'stall-dmg-', 'puff-', 'mac-sneak', 'otter-sneak', 'mac-grab', 'otter-grab', 'crow-grab', 'mac-peer', 'otter-peer', 'crow-peer', 'mac-caught', 'otter-caught', 'crow-sneak', 'crow-search', 'crow-call', 'crow-grumble', 'liz-look', 'liz-search', 'liz-call', 'warden-listen', 'warden-look', 'warden-search', 'warden-grumble'))),
-          ('faces', lambda n: n.startswith('face-') and n.count('-') >= 2 and n.split('-')[-1] in ('happy', 'worried', 'cross', 'smug')),
-          ('set', lambda n: n.startswith(('stall-smash', 'drum-', 'warn-bell', 'bridge-', 'crane-load', 'gate-', 'neon-', 'float', 'decoy-', 'bunting', 'ramp', 'db-', 'glint-', 'biz-'))),
+          *[zone_group('faces', z) for z in ZONE_PEOPLE], ('faces-town', lambda n: mood_face(n) and person(n) not in ('dora', 'enzo')),  # the heroes' own go with the townsfolk (first to load)
+          ('set', lambda n: n == 'stall-smash-0' or (n.startswith('biz-') and n.endswith('-0'))),
+          ('set2', lambda n: n.startswith(('stall-smash', 'biz-', 'drum-', 'warn-bell', 'bridge-', 'crane-load', 'gate-', 'neon-', 'float', 'decoy-', 'bunting', 'ramp', 'db-', 'glint-'))),
           ('folk', lambda n: n.startswith(('folk-', 'crow-', 'warden-', 'blimp', 'block-', 'cone', 'face-'))),
           ('ui', lambda n: n.startswith(('ui-', 'c-', 'pin-', 'mi-', 'fog-', 'i-'))),
-          ('sg', lambda n: n.startswith(('otter-', 'mac-', 'sleek-', 'pigeon', 'drink-', 'tin-', 'jar-', 'bucket-', 'auntie-', 'goh-', 'ong-', 'lily-', 'liondance', 'kid-lantern', 'drummer', 'sg-', 'shop-sg'))),
+          ('sg', lambda n: n.startswith(('pigeon', 'auntie-', 'goh-', 'ong-', 'lily-', 'liondance', 'kid-lantern', 'drummer', 'sg-', 'shop-sg'))),
+          ('sg2', lambda n: n.startswith(('otter-', 'mac-', 'sleek-', 'drink-', 'tin-', 'jar-', 'bucket-'))),
+          ('mg', lambda n: n.startswith('mg-')),
+          # the festival, fireworks, heirlooms, the lost ducklings and the busker: street events and finales, not the first steps
+          ('props2', lambda n: n.startswith(('fest-', 'fw-', 'duck-', 'h-', 'busk', 'lion-', 'sky-lantern', 'confetti', 'stink-cloud', 'smoke', 'loot-sack', 'van-broken'))),
           ('props', lambda n: True)]
+# quality 80 (was 86): about 15% smaller, with no difference to see at the game's scale (crops compared side by side)
+ATLAS_Q = 80
 meta = {}; assigned = {}; SIZES = {}
 for n in FRAMES:
     for gi, (g, f) in enumerate(GROUPS):
@@ -522,7 +543,7 @@ for gi, (g, _) in enumerate(GROUPS):
         place[n] = (x, y); x += im.width + 2; rowh = max(rowh, im.height)
     atlas = Image.new('RGBA', (MAXW, max(1, y + rowh)), (0, 0, 0, 0))
     for n in names: atlas.paste(FRAMES[n], place[n])
-    atlas.save(OUT / f'atlas-{g}.webp', 'WEBP', quality=86, method=6); SIZES[g] = atlas.size
+    atlas.save(OUT / f'atlas-{g}.webp', 'WEBP', quality=ATLAS_Q, method=6); SIZES[g] = atlas.size
     for n in names: meta[n] = [gi, place[n][0], place[n][1], FRAMES[n].width, FRAMES[n].height]
     print(g, len(names), atlas.size, (OUT / f'atlas-{g}.webp').stat().st_size // 1024, 'KB')
 
@@ -539,5 +560,18 @@ lines += ['};', '/** share of each frame\'s pixels that are painted (not transpa
 lines += [f"  '{n}': {fill[n]}," for n in sorted(fill)]
 lines += ['};', 'export const TEXTURES = [' + ', '.join(f"'{n}'" for n in TEX) + '] as const;',
           'export const PLAIN: Record<string, [number, number]> = {' + ', '.join(f"'{n}': [{w}, {h}]" for n, (w, h) in PLAIN.items()) + '};']
+# an atlas from an older grouping is removed, and every file gets a content hash (VER): the game asks for
+# name.webp?v=<hash>, so the art can be cached for a year (public/_headers) and a repaint is fetched fresh
+import hashlib
+for f in OUT.glob('atlas-*.webp'):
+    if f.stem[6:] not in SIZES: f.unlink()
+VER = {f.stem: hashlib.sha256(f.read_bytes()).hexdigest()[:10] for f in sorted(OUT.glob('*.webp'))}
+lines += ['/** a content hash of every file in public/art/jade-street/, sent as ?v= so the art can be cached for a year */',
+          'export const VER: Record<string, string> = {' + ', '.join(f"'{n}': '{h}'" for n, h in VER.items()) + '};']
 TS.write_text('\n'.join(lines) + '\n')
+# the stylesheets name a few paintings directly (plaques, buttons, the map's paper and frame): give them the hash too
+import re as _re
+for css in (ROOT / 'app' / 'jade-street').glob('*.css'):
+    t0 = css.read_text(); t1 = _re.sub(r'/art/jade-street/([\w-]+)\.webp(\?v=\w+)?', lambda m: f'/art/jade-street/{m[1]}.webp?v={VER[m[1]]}', t0)
+    if t1 != t0: css.write_text(t1)
 print(len(meta), 'frames;', len(TEX), 'textures;', 'missing:', MISSING)

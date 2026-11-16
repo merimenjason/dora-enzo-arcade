@@ -115,17 +115,23 @@ async function viewport(name, w, h, touch) {
     if (!r) return false; w.placePlayer(r.b.x + 34, r.b.y); w.cars = []; w.findNear(); return w.near?.kind === 'ride';
   }, want);
 
-  // ── the painted loading screen: a failed painting offers Try again; nothing draws before every painting decodes
+  // ── the title opens at once; starting before the eager paintings are in shows the painted loading screen, and a
+  // failed painting there offers Try again (lib/jade-load.ts)
   let block = true; blocking = true;
   await p.route('**/art/jade-street/atlas-props.webp*', r => block ? r.abort() : r.continue());
   await p.goto(base, { waitUntil: 'domcontentloaded', timeout: 120000 });
-  check(await appear('jade-loading'), `${name}: the painted loading screen shows first`);
+  check(await p.waitForSelector('main[data-screen="title"]', { timeout: 60000 }).then(() => true, () => false), `${name}: the title opens before the paintings are in`);
+  await p.waitForSelector('main[data-ready="true"]', { timeout: 60000 });
+  await W(() => { for (const k of ['jade-street-v13', 'jade-street-v12', 'jade-street-v11', 'jade-street-v10', 'jade-street-v9', 'jade-street-v8', 'jade-street-v7', 'jade-street-v6', 'jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2']) localStorage.removeItem(k); });
+  await press('new'); await press('pick-enzo');
+  check(await appear('jade-loading'), `${name}: starting before the paintings are in shows the painted loading screen`);
   check(await p.waitForSelector('[data-testid="jade-loading-retry"]', { timeout: 30000 }).then(() => true, () => false), `${name}: a failed painting offers Try again`);
   await look('loading error');
   block = false; await press('jade-loading-retry');
-  check(await p.waitForSelector('main[data-screen="title"]', { timeout: 60000 }).then(() => true, () => false), `${name}: Try again loads the rest and opens the title`);
+  check(await p.waitForSelector('main[data-screen="game"]', { timeout: 60000 }).then(() => true, () => false), `${name}: Try again loads the rest and starts the game`);
   await p.unroute('**/art/jade-street/atlas-props.webp*'); blocking = false;
-  await p.waitForSelector('main[data-ready="true"]', { timeout: 60000 });
+  // (leave the game first: it saves as the page unloads, which would leave a Continue behind)
+  await p.reload(); await p.waitForSelector('main[data-ready="true"]', { timeout: 60000 });
   await W(() => { for (const k of ['jade-street-v13', 'jade-street-v12', 'jade-street-v11', 'jade-street-v10', 'jade-street-v9', 'jade-street-v8', 'jade-street-v7', 'jade-street-v6', 'jade-street-v5', 'jade-street-v4', 'jade-street-v3', 'jade-street-v2']) localStorage.removeItem(k); }); await p.reload(); await p.waitForSelector('main[data-screen="title"]', { timeout: 60000 });
 
   // ── the title: a new player, the hero pick
@@ -143,6 +149,9 @@ async function viewport(name, w, h, touch) {
   check(await appear('jade-chapter-card'), `${name}: the chapter card follows`); await wait(300); await look('chapter card');
   await press('jade-story-skip'); check(!(await exists('jade-chapter-card')) && !(await W(() => window.__jade.play.paused)), `${name}: Skip closes the chapter card and the city runs`);
   check(await W(() => window.__jade.world().s.story.intro), `${name}: the opening is remembered`);
+  // the checks below teleport the heroes across the city in a step; with every painting decoded and kept, the world
+  // never holds under the lanterns mid-check (the holds and the loader are checked above, and in tests/jade-load.mjs)
+  await W(() => window.__jade.artAll());
   // PASS=5 runs only the fifth pass's checks after the opening (a quick loop while working on it)
   if (process.env.PASS === '5') { await W(() => { window.__jade.world().s.settings.partner = 'tag'; }); await fifth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '6') { await W(() => { window.__jade.world().s.settings.partner = 'tag'; }); await sixth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
@@ -281,7 +290,7 @@ async function viewport(name, w, h, touch) {
   const locked = await byRide({ kind: 'scooter', locked: true });
   if (!locked) await W(() => { const w = window.__jade.world(); const r = w.rides.find(r => r.parked && r.kind === 'scooter' && r.b.x < 46 * 64 && r.b.y > 36 * 64); r.locked = true; w.placePlayer(r.b.x + 34, r.b.y); w.findNear(); });
   await wait(150); await act(); await until(() => !!document.querySelector('[data-testid="mini-wires"]'), null, 2000);
-  check(await exists('mini-wires'), `${name}: a locked scooter asks to be jump-started (${JSON.stringify(await W(() => { const w = window.__jade.world(); return [w.near?.kind, w.p.act?.n, w.ui?.kind, w.p.ride?.kind]; }))})`); await wait(500); await look('wires');
+  check(await exists('mini-wires'), `${name}: a locked scooter asks to be jump-started (${JSON.stringify(await W(() => { const w = window.__jade.world(); return [w.near?.kind, w.p.act?.n, w.ui?.kind, w.p.ride?.kind, window.__jade.artWait(), window.__jade.play.paused]; }))})`); await wait(500); await look('wires');
   if (touch || name === 'desktop') {
     const order = await W(() => window.__jadeMini.g().right);
     for (let l = 0; l < 4; l++) {

@@ -1,15 +1,17 @@
 // Jade Street UI helpers: atlas sprites as CSS backgrounds, painted round buttons, and localStorage wrapped in try/catch.
 import type { CSSProperties, ReactNode } from 'react';
-import { FRAMES, ATLASES, ATLAS_SIZE } from '@/lib/jade-art';
+import { FRAMES, ATLASES, ATLAS_SIZE, VER } from '@/lib/jade-art';
 
 export const ART = '/art/jade-street/';
+/** a painting's URL, with its content hash so it can be cached for a year (public/_headers) */
+export const artUrl = (n: string) => `${ART}${n}.webp${VER[n] ? '?v=' + VER[n] : ''}`;
 
 export function spriteStyle(name: string, h: number, w?: number): CSSProperties | null {
   const f = FRAMES[name]; if (!f) return null;
   const atlas = ATLASES[f[0]]; const [aw, ah] = ATLAS_SIZE[atlas] ?? [2048, 2048];
   const k = w ? Math.min(w / f[3], h / f[4]) : h / f[4];
   return {
-    width: `${f[3] * k}px`, height: `${f[4] * k}px`, backgroundImage: `url(${ART}${atlas}.webp)`,
+    width: `${f[3] * k}px`, height: `${f[4] * k}px`, backgroundImage: `url(${artUrl(atlas)})`,
     backgroundSize: `${aw * k}px ${ah * k}px`, backgroundPosition: `${-f[1] * k}px ${-f[2] * k}px`,
   };
 }

@@ -10,7 +10,8 @@
 // the arrow keys with / dash, . hop, , action, ; fire, ' gadget and Right Shift sneak, or a gamepad.
 import { World, DT, NO_INPUT, type Input } from '@/lib/jade-game';
 import { ymd } from '@/lib/jade-calendar';
-import { Scene, loadArt, artLoaded } from '@/lib/jade-scene';
+import { Scene, ensureArt, streamArt, releaseArt, artReady, artResident, artMissing, recoloredCount, glowCount } from '@/lib/jade-scene';
+import { ZONE_OF, zonesNear, needFor, streamPlan, toRelease, decodedBytes, ART_FILES, type Zone } from '@/lib/jade-load';
 import { spawn, EVENT_KINDS, type EventKind } from '@/lib/jade-events';
 import { nearestFree } from '@/lib/jade-nav';
 import { city, T, districtAt } from '@/lib/jade-city';
@@ -54,7 +55,6 @@ export class Play {
     this.w.event = dailyEvent(dayKey(new Date()));
     this.scene = new Scene(cv, city());
     this.scene.minimap.on = true;
-    if (!artLoaded()) loadArt().then(() => { this.scene.chunks.clear(); this.scene.map = null; }).catch(() => undefined);
     this.resize();
     const host = cv.parentElement;
     if (host && typeof ResizeObserver !== 'undefined') { this.ro = new ResizeObserver(() => this.resize()); this.ro.observe(host); }
@@ -65,8 +65,40 @@ export class Play {
     this.raf = requestAnimationFrame(this.frame);
     this.hooks();
   }
+  // ── the paintings this spot needs (lib/jade-load.ts): the world holds, under the painted loading screen, until the
+  // zone each hero stands in (and a job's or a mini-game's pieces) are decoded; the zones near the heroes stream in
+  // behind, the ones the save has open are fetched into the cache, and far ones nothing has drawn from lately are let go
+  /** waiting for paintings: how many of how many are in, and for how long (the page shows the lanterns after a moment) */
+  artWait: { done: number; total: number; t: number } | null = null;
+  artT = 0; artRetry = 0; artPlan = ''; artFreeT = 0;
+  artTick(dt: number) {
+    const w = this.w; if (this.artWait) this.artWait.t += dt;
+    this.artT -= dt; this.artRetry -= dt; this.artFreeT -= dt; if (this.artT > 0) return; this.artT = 0.25;
+    const tile = (x: number, y: number): [number, number] => [Math.floor(x / T), Math.floor(y / T)];
+    const [px, py] = tile(w.p.x, w.p.y), [mx, my] = tile(w.mate.x, w.mate.y);
+    const here: Zone[] = [...new Set([ZONE_OF[districtAt(px, py)], ZONE_OF[districtAt(mx, my)]])];
+    const near: Zone[] = [...new Set([...here, ...zonesNear(px, py), ...zonesNear(mx, my)])];
+    const mini = w.ui?.kind === 'mini';
+    const who = w.talk?.lines[w.talk.i]?.[0];
+    const need = needFor({ here, job: !!w.run, mini, talk: !!who && !['hero', 'mate', 'dora', 'enzo'].includes(who) });
+    // a picture asked for by a draw (a giver waiting outside their own district, a face): fetched at once, not waited for
+    if (artMissing.size) { void ensureArt([...artMissing]).catch(() => undefined); artMissing.clear(); }
+    if (!this.artWait && this.artRetry <= 0 && need.some(n => !artReady(n))) {
+      const wait = { done: 0, total: need.length, t: 0 }; this.artWait = wait;
+      ensureArt(need, (d, n) => { wait.done = d; wait.total = n; }).catch(() => { this.artRetry = 3; })
+        .finally(() => { if (this.artWait === wait) { this.artWait = null; this.bump(); } });
+    }
+    const open: Zone[] = [...new Set([...w.open].map(d => ZONE_OF[d]))];
+    const job = !!w.run, key = near.join() + '|' + open.join() + '|' + job;
+    if (key !== this.artPlan) { this.artPlan = key; const pl = streamPlan({ near, open }); streamArt(pl.decode, pl.prefetch); }
+    if (this.artFreeT <= 0) { this.artFreeT = 2; releaseArt(toRelease(artResident(), { here, near, mini, job })); }
+  }
+  /** what is decoded now (for the memory test): the files, their decoded megabytes, the ground chunks and recoloured frames */
+  artStats() { const r = artResident(); const sc = this.scene; let cpx = 0; for (const v of sc.chunks.values()) cpx += v.c.width * v.c.height;
+    return { files: r.map(x => x.n), decodedMB: Math.round(r.reduce((a, x) => a + decodedBytes(x.n), 0) / 1048576), chunks: sc.chunks.size, chunkMB: Math.round(cpx * 4 / 1048576), recolored: recoloredCount(), glows: glowCount(), map: !!sc.map }; }
   destroy() {
     this.alive = false; cancelAnimationFrame(this.raf); this.ro?.disconnect();
+    this.scene.dropAll(); // the ground chunks and maps hold up to ~120 MB of canvas: freed now, not at the next collection
     window.removeEventListener('keydown', this.kd); window.removeEventListener('keyup', this.ku); window.removeEventListener('blur', this.blur);
     document.removeEventListener('visibilitychange', this.vis);
     this.cv.removeEventListener('pointermove', this.pm); this.cv.removeEventListener('pointerdown', this.pd); window.removeEventListener('pointerup', this.pu); this.cv.removeEventListener('wheel', this.wh); this.cv.removeEventListener('contextmenu', this.cm);
@@ -264,7 +296,8 @@ export class Play {
     this.padJoin();
     if (this.mouse.down) this.mouse.held += dt;
     const aim = this.aimWorld(); this.scene.aim = aim && !w.talk && !w.ui && w.s.gear.own.length ? { x: aim[0], y: aim[1], on: true } : null;
-    if (!this.paused) {
+    this.artTick(dt);
+    if (!this.paused && !this.artWait) {
       this.acc += dt * this.scene.juice.rate();
       let n = 0;
       while (this.acc >= DT && n < 6) {
@@ -278,7 +311,7 @@ export class Play {
     }
     const fx = w.drain();
     if (fx.length) this.events(fx);
-    if (artLoaded()) this.scene.draw(w, this.paused ? 0 : dt);
+    this.scene.draw(w, this.paused || this.artWait ? 0 : dt);
     // HUD refresh: at once on a modal change, else ~10 Hz
     const key = `${!!w.talk}|${w.talk?.i}|${w.ui?.kind}|${!!w.failed}|${w.banner?.text}|${w.near?.label}|${w.run?.i}|${w.run?.label}|${!!w.p.ride}|${w.p.roof}|${w.p.hide}|${w.p.who}|${w.two}`;
     this.notifyT -= dt;
@@ -327,7 +360,9 @@ export class Play {
     const g = window as unknown as Record<string, unknown>;
     g.__jade = {
       play: this, world: () => this.w, save: () => this.w.s,
-      fps: () => this.fps, fpsLog: () => this.fpsLog.slice(),
+      fps: () => this.fps, fpsLog: () => this.fpsLog.slice(), art: () => this.artStats(), artWait: () => this.artWait ? { ...this.artWait } : null,
+      /** tests: decode every painting and keep them all (no letting go), so a teleport never holds the world */
+      artAll: () => { this.artFreeT = 1e12; return ensureArt(ART_FILES); },
       state: () => { const w = this.w; return { x: w.p.x / T, y: w.p.y / T, ride: w.p.ride?.kind ?? null, roof: w.p.roof, hide: w.p.hide, cash: w.s.cash, heat: w.heat, run: w.run ? { id: w.run.m.id, step: w.run.i, t: w.run.cur?.t, label: w.run.label } : null, talk: !!w.talk, ui: w.ui?.kind ?? null, failed: w.failed?.reason ?? null, near: w.near ? { kind: w.near.kind, label: w.near.label } : null, open: [...w.open], done: w.s.done.slice(), anim: w.p.anim, paused: this.paused }; },
       teleport: (tx: number, ty: number) => { this.w.placePlayer(tx * T + T / 2, ty * T + T / 2); if (this.w.p.ride) { this.w.p.ride.b.x = this.w.p.b.x; this.w.p.ride.b.y = this.w.p.b.y; } },
       teleportTo: (place: string) => { const p = this.w.c.places[place]; if (p) this.w.placePlayer(p.x, p.y + T * 0.6); },

@@ -38,8 +38,8 @@ export async function ninth(h) {
     await W(pl => window.__jade.teleportTo(pl), pl); await wait(700);
     check(await W(d => { const w = window.__jade.world(); return window.__jade.district(Math.floor(w.p.x / 64), Math.floor(w.p.y / 64)) === d; }, d), `${name}: ${what} is in ${d}`); await look(what);
   }
-  // the late districts' paintings arrived in the background
-  check(await until(() => [...document.images].length >= 0 && window.__jade.play.scene.lazySeen > 0, null, 15000), `${name}: the new districts' paintings load after the game starts`);
+  // the districts' paintings arrived as the heroes went there (lib/jade-load.ts)
+  check(await until(() => window.__jade.art().files.includes('atlas-resort') && !window.__jade.artWait(), null, 15000), `${name}: the new districts' paintings load as the heroes get there`);
   // a market with its own stall painting, and a safe house for sale
   await W(() => window.__jade.teleportTo('mk-india')); await wait(300);
   const nm = await near(); check(nm?.kind === 'market', `${name}: Tekka Market offers "${nm?.label}"`);

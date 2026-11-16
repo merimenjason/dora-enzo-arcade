@@ -17,6 +17,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Jade Street**: loads in seconds. The title opens straight away while Chinatown's paintings load behind it (about 8 MB, down from 22 MB before the title), and every later district loads as you head towards it, with the lanterns showing for a moment if you outrun it. On a 10 Mbps connection the title now opens in about a second (was 19 s) and Chinatown is playable in about 9 s (was 19 s); on 3 Mbps, 2 s and 27 s (was 64 s). The paintings are kept by the browser for a year, so a second visit is playable in under a second.
 - **Jade Street**: real names everywhere: the MRT, Grab, Marina Bay Sands, the Float @ Marina Bay, the Esplanade, the Singapore Flyer, Supertree Grove, Mustafa Centre, Universal Studios Singapore, SkyHelix Sentosa, S.E.A. Aquarium and Shangri-La Rasa Sentosa (the people and the gangs stay invented).
 - **Jade Street**: Deepavali, the Hari Raya bazaar and the Orchard Road light-up now follow your device's calendar instead of taking turns night by night.
 - **Jade Street**: Ah Huat, Inspector Siew and Towkay Hoot now wait outside your property while they have a job for you (press E to take it), and Pak Duri stands guard where you hired him. The back lanes of Little India and Kampong Glam have benches and clutter, and the ferry is repainted.
@@ -26,6 +27,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Jade Street**: no more crashes on long sessions, especially in Safari. A fading glow made a new picture every frame and never threw the old ones away, so memory climbed by about 200 MB a minute just standing in the street; now each glow colour is painted once. Also, the game keeps only the nearby districts' paintings in memory and lets far ones go, caps its ground and recoloured-outfit caches, and carries on if the browser refuses a new canvas.
 - **Jade Street**: smoother frame rate in every district (cached glows, batched water and rain, one screen tint, ground drawn pixel for pixel).
 - **Jade Street**: a tail or chase no longer calls the crow or courier you follow "Pip".
 - **Jade Street**: a lion dance, a tailed runner or another job actor pinned against a prop short of a waypoint no longer stands there for ever.

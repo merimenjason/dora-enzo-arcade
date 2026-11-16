@@ -1,0 +1,8 @@
+# Jade Street's paintings are requested with a content hash (?v=, written by scripts/jade-art.py into lib/jade-art.ts),
+# so they can be kept for a year. vinext writes this file only when public/ has none, so its own rule for the
+# content-hashed JS chunks is repeated here
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/art/jade-street/*
+  Cache-Control: public, max-age=31536000, immutable

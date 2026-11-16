@@ -12,7 +12,7 @@ import { MISSIONS, SIDE, HEIRLOOMS, CHAPTERS, jobCounts } from '@/lib/jade-story
 import { lanterns } from '@/lib/jade-heat';
 import { KEY_ACTIONS, bind, boundTo, keyName, type KeyAction } from '@/lib/jade-keys';
 import type { Play } from './controller';
-import { Sprite, Icon, Btn, fmt, GOOD_ICON, ART } from './ui';
+import { Sprite, Icon, Btn, fmt, GOOD_ICON, artUrl } from './ui';
 import type { JadeSound } from './sound';
 import { JobsBook, Controls } from './extras';
 import { learn } from '@/lib/jade-tutor';
@@ -63,7 +63,7 @@ export function Market({ play, d, snd, onClose }: { play: Play; d: District; snd
       <div className="jade-market-grid">
         <div className="jade-stall-col">
           <figure className="jade-stall" data-testid={`stall-${d}`}>
-            <img src={`${ART}bg-stall-${d}.webp`} alt={`${KEEPER[d]} behind the counter at the ${MARKET_NAME[d]}`} />
+            <img src={artUrl(`bg-stall-${d}`)} alt={`${KEEPER[d]} behind the counter at the ${MARKET_NAME[d]}`} />
             <figcaption><b>{KEEPER[d]}</b> · rep {Math.floor(s.rep[d])}</figcaption>
           </figure>
           <div className="jade-haggle">
