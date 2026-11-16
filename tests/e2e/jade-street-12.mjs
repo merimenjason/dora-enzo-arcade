@@ -23,10 +23,10 @@ export async function twelfth(h) {
   const n0 = await W(() => {
     const J = window.__jade, w = J.world(); J.finishAll(); J.talesAll(); w.s.done = w.s.done.filter(id => !/^m(4[5-9]|5\d)$/.test(id)); w.s.story.ch = 7; w.s.story.lights = true; w.s.story.coast = false;
     w.open = new Set(['market', 'temple', 'canal', 'docks', 'arcade', 'heartland', 'bay', 'india', 'glam', 'resort']); w.fieldCache.clear(); J.play.scene.map = null; w.quitJob(); w.talk = null; w.ui = null;
-    const n = w.s.msgs.length; J.start('m45'); w.talk = null; w.finishMission(w.run.m); w.run = null; w.talk = null; w.ui = null; w.fx = w.fx.filter(f => f.t !== 'finale'); J.play.endingT = 0; J.play.paused = false; J.play.bump(); return n;
+    const n = Math.max(0, ...w.s.msgs.map(m => m.id)); J.start('m45'); w.talk = null; w.finishMission(w.run.m); w.run = null; w.talk = null; w.ui = null; w.fx = w.fx.filter(f => f.t !== 'finale'); J.play.endingT = 0; J.play.paused = false; J.play.bump(); return n;
   });
   check(await W(() => { const o = window.__jade.world().open; return o.has('orchard') && o.has('katong') && !o.has('changi'); }), `${name}: the Island Lights opens Orchard Road and Katong (Changi later)`);
-  check(await W(n => window.__jade.world().s.msgs.slice(n).some(m => /Geylang River|Orchard|Katong/.test(m.text)), n0), `${name}: a text says the coast is open`);
+  check(await W(n => window.__jade.world().s.msgs.some(m => m.id > n && /Geylang River|Orchard|Katong/.test(m.text)), n0), `${name}: a text says the coast is open`);
   check(await appear('jade-chapter-card'), `${name}: chapter eight's card`);
   check(/Christmas Star/.test(await loc('jade-chapter-card').innerText()), `${name}: the card names Christmas Star`); await wait(300); await look('chapter eight');
   await press('jade-story-skip'); await settle();
@@ -67,9 +67,9 @@ export async function twelfth(h) {
   await free();
 
   // ── the Atas Bats: a raid in Katong, Datin Ciku's text, E shoos a bat
-  const m0 = await W(() => { const w = window.__jade.world(), pl = w.c.places.rosie; w.placePlayer(pl.x, pl.y + 90); return w.s.msgs.length; });
+  const m0 = await W(() => { const w = window.__jade.world(), pl = w.c.places.rosie; w.placePlayer(pl.x, pl.y + 90); return Math.max(0, ...w.s.msgs.map(m => m.id)); });
   check(await W(() => window.__jade.gang('bats')), `${name}: the Atas Bats raid Katong`);
-  check(await W(n => window.__jade.world().s.msgs.slice(n).some(m => m.from === 'ciku'), m0), `${name}: Datin Ciku texts`);
+  check(await W(n => window.__jade.world().s.msgs.some(m => m.id > n && m.from === 'ciku'), m0), `${name}: Datin Ciku texts`);
   await wait(900); await look('the atas bats');
   const sh = await W(() => { const w = window.__jade.world(), m = w.gangs.ev.mobs[0]; m.fly = undefined; m.st = 'run'; m.has = true; w.placePlayer(m.b.x + 30, m.b.y); w.p.act = null; return [m.b.x, m.b.y]; });
   await wait(120); const nsh = await W(() => window.__jade.world().near); check(nsh?.kind === 'gang' && /bat/i.test(nsh.label), `${name}: the shoo prompt: "${nsh?.label}"`);

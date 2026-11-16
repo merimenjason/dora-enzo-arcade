@@ -48,7 +48,7 @@ for (const d of DISTRICTS) {
       rode = phase % 2 === 1;
       await p.evaluate(([d, k, rode]) => {
         const w = window.__jade.world(); w.talk = null; w.ui = null; if (w.run) w.quitJob(); if (w.p.ride) w.exit();
-        const spots = []; const CW = w.c.w ?? 280, CH = w.c.ground.length / CW; for (let ty = 1; ty < CH - 1; ty++) for (let tx = 1; tx < CW - 1; tx++) if (w.c.ground[ty * CW + tx] === 2 && w.c.solid[ty * CW + tx] === 0) spots.push([tx, ty]);
+        const spots = []; const CH = 128, CW = w.c.ground.length / CH; /* the city is 128 rows tall; W grows with each pass */ for (let ty = 1; ty < CH - 1; ty++) for (let tx = 1; tx < CW - 1; tx++) if (w.c.ground[ty * CW + tx] === 2 && w.c.solid[ty * CW + tx] === 0) spots.push([tx, ty]);
         const mine = spots.filter(([tx, ty]) => window.__jade.district(tx, ty) === d);
         const [tx, ty] = mine[(k * 7919) % mine.length];
         window.__jade.teleport(tx, ty);
