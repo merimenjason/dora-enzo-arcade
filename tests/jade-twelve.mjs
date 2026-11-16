@@ -240,3 +240,5 @@ test('save v13: a v12 save keeps every job, medal, coin, property and contract; 
 });
 
 console.log(`jade (twelfth pass): ${n} tests ok`);
+// the loading tiers, content hashes and cache rule (lib/jade-load.ts)
+await import('./jade-load.mjs');

@@ -21,10 +21,31 @@ import { FinesList, Glossary } from './sg';
 import { MEDAL_NAME, MEDAL_SPRITE, goals, fmtTime } from '@/lib/jade-medals';
 import type { Play } from './controller';
 import type { JadeSound } from './sound';
-import { Sprite, Btn, ART } from './ui';
+import { Sprite, Btn, ART, artUrl } from './ui';
 import './extras.css';
 
-// ── loading
+// ── loading: the eager paintings before the title (lib/jade-load.ts), then the same lanterns over the street whenever
+// the world waits for a district's paintings (a ride across the island, a job, a mini-game)
+function LoaderCard({ pct, err, onRetry, testid = 'jade-loading', over }: { pct: number; err?: string; onRetry?: () => void; testid?: string; over?: boolean }) {
+  const lit = Math.round(pct * 10);
+  return (
+    <section className={'jade-loading' + (over ? ' over' : '')} data-testid={testid} style={{ backgroundImage: `url(${artUrl('bg-loading')})` }}>
+      <div className="jade-loading-card">
+        <h1>Jade Street</h1>
+        {!err && <>
+          <div className="jade-loading-lanterns" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct * 100)} aria-label="Loading the paintings">
+            {Array.from({ length: 10 }, (_, i) => <img key={i} src={artUrl(`ui-lantern-${i < lit ? 'on' : 'off'}`)} alt="" />)}
+          </div>
+          <p>Lighting the lanterns… {Math.round(pct * 100)}%</p>
+        </>}
+        {err && <div className="jade-loading-err" data-testid="jade-loading-error">
+          <p>Some of the paintings did not arrive. Check your connection and try again.</p>
+          <Btn kind="gold" testid="jade-loading-retry" onClick={onRetry}>Try again</Btn>
+        </div>}
+      </div>
+    </section>
+  );
+}
 export function Loader({ onReady }: { onReady: () => void }) {
   const [pct, setPct] = useState(0); const [err, setErr] = useState(''); const [tries, setTries] = useState(0);
   useEffect(() => {
@@ -32,24 +53,12 @@ export function Loader({ onReady }: { onReady: () => void }) {
     loadArt(ART, (d, n) => { if (live) setPct(n ? d / n : 1); }).then(() => { if (live) onReady(); }).catch((e: Error) => { if (live) setErr(e.message); });
     return () => { live = false; };
   }, [tries, onReady]);
-  const lit = Math.round(pct * 10);
-  return (
-    <section className="jade-loading" data-testid="jade-loading" style={{ backgroundImage: `url(${ART}bg-loading.webp)` }}>
-      <div className="jade-loading-card">
-        <h1>Jade Street</h1>
-        {!err && <>
-          <div className="jade-loading-lanterns" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct * 100)} aria-label="Loading the paintings">
-            {Array.from({ length: 10 }, (_, i) => <img key={i} src={`${ART}ui-lantern-${i < lit ? 'on' : 'off'}.webp`} alt="" />)}
-          </div>
-          <p>Lighting the lanterns… {Math.round(pct * 100)}%</p>
-        </>}
-        {err && <div className="jade-loading-err" data-testid="jade-loading-error">
-          <p>Some of the paintings did not arrive. Check your connection and try again.</p>
-          <Btn kind="gold" testid="jade-loading-retry" onClick={() => setTries(t => t + 1)}>Try again</Btn>
-        </div>}
-      </div>
-    </section>
-  );
+  return <LoaderCard pct={pct} err={err} onRetry={() => setTries(t => t + 1)} />;
+}
+/** the street waiting for a district's paintings: the lanterns over it after a quarter of a second */
+export function ArtWait({ play }: { play: Play }) {
+  const a = play.artWait; if (!a || a.t < 0.25) return null;
+  return <LoaderCard pct={a.total ? a.done / a.total : 1} testid="jade-art-wait" over />;
 }
 
 // ── a key cap or a touch button, for hints and the controls page

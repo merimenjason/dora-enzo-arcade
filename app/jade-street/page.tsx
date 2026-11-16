@@ -1,6 +1,6 @@
 'use client';
 // Jade Street: the page. Holds the save (localStorage 'jade-street-v9', migrating v8 back to v1), the painted loading
-// screen (nothing draws until every painting has decoded), the title screen with continue / new game (confirmed in
+// screen (the title waits for the eager paintings only: lib/jade-load.ts), the title screen with continue / new game (confirmed in
 // the page) and the hero pick, the storybook opening, chapter cards, the ending and credits (./story.tsx), then the
 // running game: the canvas (./controller.ts and lib/jade-scene.ts), the HUD (./hud.tsx), lesson hints, the phone and
 // the radio (./extras.tsx), the panels (./panels.tsx), the painted map (./map.tsx) and the mini-games (./minis.tsx).
@@ -14,7 +14,9 @@ import { BizPanel } from './biz';
 import { DuoBar, TagPrompt, GearHud, GearStall } from './duo';
 import { PaintedMap } from './map';
 import { Storybook, ChapterCard, Ending, Credits } from './story';
-import { Loader, Hint, PhoneHud, PhoneView, RadioHud, switchStation } from './extras';
+import { loadArt, artLoaded, streamArt } from '@/lib/jade-scene';
+import { filesOf } from '@/lib/jade-load';
+import { Loader, ArtWait, Hint, PhoneHud, PhoneView, RadioHud, switchStation } from './extras';
 import { chapterOf } from '@/lib/jade-save';
 import { learn } from '@/lib/jade-tutor';
 import { jobCounts } from '@/lib/jade-story';
@@ -25,7 +27,7 @@ import { HeistPanel, BranchPanel, AskPanel } from './jobs';
 import './jobs.css';
 import './isle.css';
 import './sg.css';
-import { store, Sprite, ART } from './ui';
+import { store, Sprite, artUrl } from './ui';
 import './jade.css';
 import './duo.css';
 
@@ -34,7 +36,7 @@ type Story = null | 'intro' | 'chapter' | 'ending' | 'credits';
 
 export default function JadeStreetPage() {
   const [save, setSave] = useState<Save>(() => newSave());
-  const [screen, setScreen] = useState<Screen>('loading');
+  const [screen, setScreen] = useState<Screen>('title');
   const [story, setStory] = useState<Story>(null); const storyRef = useRef<Story>(null); storyRef.current = story;
   const [phone, setPhone] = useState(false); const mapRef = useRef(false);
   const [ready, setReady] = useState(false);
@@ -55,6 +57,9 @@ export default function JadeStreetPage() {
     if (!raw) for (const k of OLD_KEYS) { raw = store(k); if (raw) break; }
     const s = loadSave(raw);
     setSave(s); setReady(true);
+    // the title shows at once; the eager paintings (lib/jade-load.ts) load behind it, and starting before they are in
+    // shows the painted loading screen until they are
+    void loadArt().then(() => { if (!playRef.current) streamArt(filesOf(['job']), []); }).catch(() => undefined);
     const snd = new JadeSound(); sndRef.current = snd; snd.sfxOn = s.settings.sound; snd.musicOn = s.settings.music;
     const first = () => { snd.start(); if (!playRef.current) snd.play('menu'); };
     window.addEventListener('pointerdown', first, { once: true }); window.addEventListener('keydown', first, { once: true });
@@ -117,7 +122,7 @@ export default function JadeStreetPage() {
     if (!next) { p.paused = false; sndRef.current?.play('street'); }
   };
   void pw;
-  const begin = (s: Save) => { setSave(s); saveRef.current = s; setPaused(false); setMapOpen(false); setScreen('game'); };
+  const begin = (s: Save) => { setSave(s); saveRef.current = s; setPaused(false); setMapOpen(false); setScreen(artLoaded() ? 'game' : 'loading'); };
   const newGame = (hero: Hero) => {
     const old = saveRef.current; const s = newSave(Math.floor(Math.random() * 1e9) + 1);
     s.hero = hero; s.settings = { ...old.settings };
@@ -131,17 +136,17 @@ export default function JadeStreetPage() {
   const closeUi = () => { if (w) { w.ui = null; play!.bump(); } };
   const resume = () => { if (play) play.paused = false; setPaused(false); setMapOpen(false); setPhone(false); };
   const replay = (id: string) => { if (!w) return; const r = w.replay(id); if (r) play!.toast(r, 'bad'); else { resume(); play!.bump(); } };
-  const ready2 = useCallback(() => setScreen('title'), []);
+  const ready2 = useCallback(() => setScreen('game'), []);
 
   return (
     <main className="jade-shell" data-ready={ready ? 'true' : 'false'} data-screen={screen} data-touch={touch ? 'true' : 'false'} data-big={(w?.s ?? save).settings.bigText ? 'true' : 'false'} data-cb={(w?.s ?? save).settings.cbMarks ? 'true' : 'false'}>
       {screen === 'loading' && <Loader onReady={ready2} />}
       {screen === 'title' && (
-        <section className="jade-title" style={{ backgroundImage: `url(${ART}bg-title.webp)` }}>
+        <section className="jade-title" style={{ backgroundImage: `url(${artUrl('bg-title')})` }}>
           <div className="jade-title-card">
             <h1>Jade Street</h1>
             <p className="jade-tag">A night-time caper in Singapore’s Chinatown and out across the island. Win back five lucky heirlooms from the Kaypoh Crows, then stop Director Kaw on the bay front, and mind the fines.</p>
-            {!confirm && !pick && (
+            {ready && !confirm && !pick && (
               <div className="jade-title-btns">
                 {save.started && <button type="button" className="jade-btn jade big" data-testid="continue" onClick={() => begin(saveRef.current)}>Continue · night {save.night}, {jobCounts(save).done}/{jobCounts(save).all} jobs</button>}
                 <button type="button" className={'jade-btn big ' + (save.started ? 'plain' : 'jade')} data-testid="new" onClick={() => save.started ? setConfirm(true) : setPick(true)}>New game</button>
@@ -206,6 +211,7 @@ export default function JadeStreetPage() {
               {story === 'chapter' && <ChapterCard ch={Math.min(8, chapterOf(w.s))} onDone={() => storyDone()} />}
               {story === 'ending' && <Ending hero={w.s.hero} isle={play.endingKind === 'isle'} lights={play.endingKind === 'lights'} coast={play.endingKind === 'coast'} onDone={() => { sndRef.current?.fx([{ t: 'chapter' }]); setStory('credits'); }} />}
               {story === 'credits' && <Credits onDone={() => storyDone()} />}
+              <ArtWait play={play} />
             </>
           )}
         </section>

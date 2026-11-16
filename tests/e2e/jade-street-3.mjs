@@ -65,9 +65,12 @@ export async function third(h) {
   await W(() => { const J = window.__jade; J.enterStep(J.stepOf('float')); const w = J.world(); if (w.p.ride) { w.p.ride.parked = true; w.p.ride = null; } w.p.roof = true; w.p.b.x = 103 * 64 + 32; w.p.b.y = 34 * 64 + 12; w.p.lastRoof = [w.p.b.x, w.p.b.y]; });
   // the float only swings in once the partner hauls the bunting rope: F sends them
   // (the partner may still be catching up after the boss chase: bring them alongside if the offer hasn't come)
-  if (!(await until(() => window.__jade.duo().tag === 'hold', null, 3000))) await W(() => { const w = window.__jade.world(); w.mate.b.x = w.p.b.x + 40; w.mate.b.y = w.p.b.y; w.mate.roof = w.p.roof; });
-  check(await until(() => window.__jade.duo().tag === 'hold', null, 3000), `${name}: F offers the bunting rope`);
-  await p.keyboard.press('f'); await wait(150);
+  // (the offer can be brief: a partner who reaches the rope on their own takes it, and then F is not needed)
+  await until(() => !window.__jade.artWait(), null, 20000); // (the paintings for where the float is, if they were not in)
+  let rope = await until(() => window.__jade.duo().tag === 'hold', null, 3000);
+  if (!rope) { await W(() => { const w = window.__jade.world(); w.mate.b.x = w.p.b.x + 40; w.mate.b.y = w.p.b.y; w.mate.roof = w.p.roof; }); rope = await until(() => window.__jade.duo().tag === 'hold', null, 3000); }
+  check(rope, `${name}: F offers the bunting rope` + (rope ? '' : ' ' + await W(() => JSON.stringify({ duo: window.__jade.duo(), wait: window.__jade.artWait(), paused: window.__jade.play.paused }))));
+  if (!(await W(() => window.__jade.duo().holding))) { await p.keyboard.press('f'); await wait(150); }
   check(await until(() => window.__jade.duo().holding, null, 15000), `${name}: the partner hauls the rope`);
   check(await until(() => window.__jade.run().float?.moving, null, 3000), `${name}: phase 3: the float rolls`); await look('boss float');
   check(await until(() => window.__jade.world().near?.kind === 'leap' && /onto/.test(window.__jade.world().near.label), null, 20000), `${name}: the flag says leap when the float is below ${await W(() => { const J = window.__jade, w = J.world(), f = w.run?.float; return JSON.stringify({ near: w.near, f: f && { x: Math.round(f.x / 64), m: f.moving, d: f.done }, p: [Math.round(w.p.x), Math.round(w.p.y), w.p.roof, w.p.ride?.kind], paused: J.play.paused, ui: w.ui?.kind, talk: !!w.talk, t: w.run?.cur?.t, failed: w.failed?.reason }); })}`);

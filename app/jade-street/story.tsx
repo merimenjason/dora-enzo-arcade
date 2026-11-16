@@ -8,7 +8,7 @@ import { CHAPTERS, CHAPTER_OPENS, HEIRLOOMS, PEOPLE } from '@/lib/jade-story';
 import { DISTRICT_NAME } from '@/lib/jade-city';
 import './story.css';
 
-const ART = '/art/jade-street/';
+import { artUrl } from './ui';
 type Panel = { img: string; title: string; text: string; focus?: string };
 
 const OPENING: Panel[] = [
@@ -79,7 +79,7 @@ function Pages({ panels, onDone, testid, last }: { panels: Panel[]; onDone: () =
     <div className="jade-sbook" data-testid={testid} data-page={i} onClick={next} role="dialog" aria-label={p.title}>
       {panels.map((q, k) => (
         <div key={q.img} className={'jade-story-art' + (k === i ? ' on' : '')} aria-hidden={k !== i}>
-          <img src={`${ART}${q.img}.webp`} alt="" style={{ objectPosition: q.focus }} draggable={false} />
+          <img src={artUrl(q.img)} alt="" style={{ objectPosition: q.focus }} draggable={false} />
         </div>
       ))}
       <Glow />
@@ -116,7 +116,7 @@ export function ChapterCard({ ch, onDone }: { ch: number; onDone: () => void }) 
   const heir = HEIRLOOMS.find(h => h.ch === c);
   return (
     <div className="jade-sbook jade-chapter" data-testid="jade-chapter-card" onClick={finish} role="dialog" aria-label={`Chapter ${c}`}>
-      <div className="jade-story-art on"><img src={`${ART}bg-chapter-${c}.webp`} alt="" draggable={false} /></div>
+      <div className="jade-story-art on"><img src={artUrl(`bg-chapter-${c}`)} alt="" draggable={false} /></div>
       <Glow n={10} />
       <div className="jade-chapter-cap">
         <div className="jade-chapter-n">Chapter {c}</div>
@@ -155,7 +155,7 @@ export function Credits({ onDone }: { onDone: () => void }) {
   }, [finish]);
   return (
     <div className="jade-sbook jade-credits" data-testid="jade-credits" role="dialog" aria-label="Credits" onClick={() => setEnd(true)}>
-      <div className="jade-story-art on dark"><img src={`${ART}bg-end-2.webp`} alt="" draggable={false} /></div>
+      <div className="jade-story-art on dark"><img src={artUrl('bg-end-2')} alt="" draggable={false} /></div>
       <Glow n={18} />
       <div className={'jade-credits-roll' + (end ? ' end' : '')}>
         <div className="jade-credits-inner">

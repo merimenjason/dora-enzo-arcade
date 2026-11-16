@@ -153,9 +153,10 @@ export class Juice {
       // painted once per screen size at full strength and stamped at the heat's alpha (a full-screen gradient a frame)
       const vw = Math.max(1, Math.round(W / 2)), vh = Math.max(1, Math.round(H / 2));
       if (!this.heatVig || this.heatVig.width !== vw || this.heatVig.height !== vh) {
-        const c = document.createElement('canvas'); c.width = vw; c.height = vh; const g = c.getContext('2d')!;
-        const gr = g.createRadialGradient(vw / 2, vh / 2, Math.min(vw, vh) * 0.35, vw / 2, vh / 2, Math.max(vw, vh) * 0.72);
-        gr.addColorStop(0, 'rgba(255,20,40,0)'); gr.addColorStop(1, 'rgba(255,20,40,1)'); g.fillStyle = gr; g.fillRect(0, 0, vw, vh); this.heatVig = c;
+        const c = document.createElement('canvas'); c.width = vw; c.height = vh; const g = c.getContext('2d'); // (null past WebKit's canvas cap: no vignette)
+        if (g) { const gr = g.createRadialGradient(vw / 2, vh / 2, Math.min(vw, vh) * 0.35, vw / 2, vh / 2, Math.max(vw, vh) * 0.72);
+          gr.addColorStop(0, 'rgba(255,20,40,0)'); gr.addColorStop(1, 'rgba(255,20,40,1)'); g.fillStyle = gr; g.fillRect(0, 0, vw, vh); }
+        this.heatVig = c;
       }
       const a0 = x.globalAlpha; x.globalAlpha = a0 * Math.min(1, hv); x.drawImage(this.heatVig, 0, 0, W, H); x.globalAlpha = a0;
     }

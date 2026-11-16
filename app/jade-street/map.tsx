@@ -10,9 +10,9 @@ import { DISTRICTS, DISTRICT_NAME, T, W, H, districtAt, type District } from '@/
 import { offered, safeOpen } from '@/lib/jade-save';
 import { BIZ, bizPos } from '@/lib/jade-biz';
 import { PEOPLE } from '@/lib/jade-story';
-import { spr, artLoaded, type Scene } from '@/lib/jade-scene';
+import { spr, takeMissed, artGen, ctx2d, type Scene } from '@/lib/jade-scene';
 import type { Play } from './controller';
-import { Sprite, Btn, ART } from './ui';
+import { Sprite, Btn, artUrl } from './ui';
 import './map.css';
 
 type PinKind = 'job' | 'market' | 'safe' | 'garage' | 'gig' | 'cat' | 'mural' | 'pin' | 'spot' | 'stn' | 'cable' | 'ferry' | 'prop' | 'own' | 'raid';
@@ -29,13 +29,15 @@ const dName = (d: District) => DISTRICT_NAME[d].replace(/^the /, 'The ');
 const MW = W * T, MH = H * T;
 
 // ── the painted city at 16 px a tile, the district tint and the district borders: built once per scene
-const PAPER = new WeakMap<Scene, HTMLCanvasElement>();
+// (one at a time: a 6,016 × 2,048 canvas, about 49 MB, reused for the next game's scene rather than left for collection)
+let PAPER: { scene: Scene; c: HTMLCanvasElement; miss: boolean; gen: number; t: number } | null = null;
 function paperMap(scene: Scene): HTMLCanvasElement {
-  const have = PAPER.get(scene); if (have) return have;
-  const k = 16, c = document.createElement('canvas'); c.width = W * k; c.height = H * k;
-  const x = c.getContext('2d')!; x.setTransform(k / T, 0, 0, k / T, 0, 0);
-  scene.paintGround(x, 0, 0, W, H, true);
-  if (artLoaded()) PAPER.set(scene, c); // not loaded yet: build again next time rather than keep flat blocks
+  // painted again (into the same canvas) when it was painted with a picture missing and more have come in since
+  const have = PAPER; if (have && have.scene === scene && (!have.miss || have.gen === artGen || performance.now() - have.t < 3000)) return have.c;
+  const k = 16, c = have?.c ?? document.createElement('canvas'); c.width = W * k; c.height = H * k;
+  const x = ctx2d(c); takeMissed();
+  if (x) { x.setTransform(k / T, 0, 0, k / T, 0, 0); scene.paintGround(x, 0, 0, W, H, true); }
+  PAPER = { scene, c, miss: takeMissed() || !x, gen: artGen, t: performance.now() };
   return c;
 }
 let TINTS: HTMLCanvasElement | null = null;
@@ -58,7 +60,7 @@ function borders() {
   BORDERS = out; return out;
 }
 let PAPER_IMG: HTMLImageElement | null = null;
-function paperImg() { if (!PAPER_IMG && typeof Image !== 'undefined') { PAPER_IMG = new Image(); PAPER_IMG.src = `${ART}bg-map-paper.webp`; } return PAPER_IMG; }
+function paperImg() { if (!PAPER_IMG && typeof Image !== 'undefined') { PAPER_IMG = new Image(); PAPER_IMG.src = artUrl('bg-map-paper'); } return PAPER_IMG; }
 
 /** painted landmark icons and where they stand */
 function landmarks(play: Play): [string, number, number][] {

@@ -4,9 +4,10 @@
 // same few actions (pick a pin and hold / release, pick a wire then a socket, slide and toss, press on the beat).
 import { useEffect, useRef, useState } from 'react';
 import { makeMini, LockGame, WireGame, WokGame, DumplingGame, SafeGame, WIRE_COLS, FOODS, type AnyMini } from '@/lib/jade-mini';
-import { spr, loadArt } from '@/lib/jade-scene';
+import { spr, ensureArt } from '@/lib/jade-scene';
+import { filesOf } from '@/lib/jade-load';
 import type { JadeSound } from './sound';
-import { ART, Sprite } from './ui';
+import { artUrl, Sprite } from './ui';
 
 const BG: Record<string, string> = { lock: 'bg-mg-lock', wires: 'bg-mg-wire', wok: 'bg-mg-wok', dumpling: 'bg-mg-board', safe: 'bg-mg-safe' };
 // the part of each backdrop that must stay on screen (image pixels, 1280×853)
@@ -37,8 +38,8 @@ export function MiniGame({ kind, level, assist, seed, snd, onDone }: { kind: str
 
   useEffect(() => {
     const c = cv.current!; const x = c.getContext('2d')!;
-    const bg = new Image(); bg.src = `${ART}${BG[kind]}.webp`;
-    void loadArt();
+    const bg = new Image(); bg.src = artUrl(BG[kind]);
+    void ensureArt(filesOf(['mini'])).catch(() => undefined);
     let raf = 0, last = 0, hud = 0, ended = false, endT = 0;
     const fit = () => {
       const r = c.getBoundingClientRect(); const dpr = Math.min(2, window.devicePixelRatio || 1);

@@ -9,7 +9,7 @@ import { KopiGame, KOPI_FIELDS, kopiName, kopiSprite, type KopiOrder } from '@/l
 import type { Play } from './controller';
 import type { JadeSound } from './sound';
 import { Panel } from './panels';
-import { Btn, Icon, Sprite, ART, fmt } from './ui';
+import { Btn, Icon, Sprite, artUrl, fmt } from './ui';
 
 /** the ticket a warden is holding out: the offence, the amount, the quip, and how long before it counts as fleeing */
 export function TicketCard({ play }: { play: Play }) {
@@ -113,7 +113,7 @@ export function KopiMini({ level, assist, seed, snd, onDone }: { level: number; 
   }, [g, row]);
   const o: KopiOrder | undefined = g.order;
   return (
-    <div className="jade-mini jade-kopi" data-testid="mini-kopi" data-done={end === null ? undefined : String(end)} style={{ backgroundImage: `url(${ART}bg-mg-kopi.webp)` }}>
+    <div className="jade-mini jade-kopi" data-testid="mini-kopi" data-done={end === null ? undefined : String(end)} style={{ backgroundImage: `url(${artUrl('bg-mg-kopi')})` }}>
       <div className="jade-mini-head">
         <b>Uncle Teo’s kopi counter</b><span>Make each drink the way he calls it, then serve.</span>
         <span className={'jade-timer' + (g.time < 10 ? ' low' : '')}>{Math.ceil(g.time)}s</span>
