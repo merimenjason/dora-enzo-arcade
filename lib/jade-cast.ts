@@ -3,7 +3,7 @@
 // Glint at the Chinatown station, Big Kow under the rain tree) waits beside that spot while it is offered. They breathe
 // and fidget when idle, wave when they have a job for you and you are near, and talk while their lines are on screen.
 // Everyone here is solid: a round obstacle you walk up to, never through. Drawing is in jade-scene.ts (npc-* frames).
-import { T, districtAt, type District } from './jade-city.js';
+import { T, W, S, districtAt, type District } from './jade-city.js';
 import { nearestFree } from './jade-nav.js';
 import { PEOPLE } from './jade-story.js';
 import { offered } from './jade-save.js';
@@ -61,14 +61,18 @@ export function castOf(w: World): CastMember[] {
   if (!w.run) for (const b of owned(w.s)) {
     if (!w.open.has(b.d)) continue;
     const [bx, by] = bizPos(b);
+    // beside the stand, not in front of it (the stand's own E prompt and its customers keep the front)
+    const spot = () => { for (const [dx, dy] of SIDE_SPOTS) { const x = bx + dx, y = by + dy; if (w.c.solid[Math.floor(y / T) * W + Math.floor(x / T)] === S.OPEN && !out.some(c => dist(c.x, c.y, x, y) < 48)) return [x, y]; } return null; };
     for (const j of jobsAt(w, b.id)) {
       if (!EMP_FOLK.has(j.giver) || out.some(c => c.id === j.giver)) continue;
-      out.push(member(w, j.giver, bx - 44 + out.length % 3 * 8, by + 64, false, `emp:${j.id}:${b.id}`));
+      const at = spot(); if (at) out.push(member(w, j.giver, at[0], at[1], false, `emp:${j.id}:${b.id}`));
     }
-    if (w.s.biz[b.id]?.jaga && !out.some(c => c.id === 'duri' && dist(c.x, c.y, bx, by) < 200)) out.push(member(w, 'duri', bx + 52, by + 60, false, null));
+    if (w.s.biz[b.id]?.jaga && !out.some(c => c.id === 'duri' && dist(c.x, c.y, bx, by) < 200)) { const at = spot(); if (at) out.push(member(w, 'duri', at[0], at[1], false, null)); }
   }
   return out;
 }
+/** where the empire's people stand round a property's stand (offsets from its pavement point, nearest first) */
+const SIDE_SPOTS: [number, number][] = [[-110, 30], [110, 30], [-110, 90], [110, 90], [-160, 40], [160, 40], [0, 130]];
 /** the empire's people who stand outside a property with a job for you */
 const EMP_FOLK = new Set(['huat', 'siew', 'hoot']);
 /** a key that changes whenever castOf could: what is offered, whether a job runs, which districts are open */

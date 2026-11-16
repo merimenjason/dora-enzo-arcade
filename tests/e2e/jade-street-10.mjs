@@ -46,7 +46,7 @@ export async function tenth(h) {
 
   // ── the phone's Empire tab: rank, ledger, Route me
   await press('jade-phone'); await press('phone-empire'); check(await appear('emp-page'), `${name}: the phone's Empire tab`);
-  check(/Street Stall/.test(await loc('emp-rank-name').innerText()), `${name}: the rank`); check(/own\s*1\s*of 26/.test(await loc('emp-ledger').innerText()), `${name}: the ledger`); await look('phone: empire');
+  check(/Street Stall/.test(await loc('emp-rank-name').innerText()), `${name}: the rank`); check(/own\s*1\s*of 32/.test(await loc('emp-ledger').innerText()), `${name}: the ledger`); await look('phone: empire');
   await press('emp-route-prata'); check(!(await exists('jade-phone-msgs')) && await W(() => !!window.__jade.world().waypoint), `${name}: Route me from the Empire tab`);
   await W(() => { const w = window.__jade.world(); w.waypoint = null; w.route = []; }); await free();
 

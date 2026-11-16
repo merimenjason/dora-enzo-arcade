@@ -62,7 +62,7 @@ export async function ninth(h) {
   check(!(await exists('map')) && await W(hb => { const wp = window.__jade.world().waypoint; return !!wp && Math.hypot(wp[0] - hb[0], wp[1] - hb[1]) < 200; }, hb), `${name}: a click on the cable car pin routes there`);
   // the phone's MRT tab: the new stations, the cable car and the ferry with Route me
   await press('jade-phone'); await press('phone-mrt');
-  check(await p.locator('[data-testid^="mrt-route-"]').count() === 7, `${name}: seven MRT stations on the phone`);
+  check(await p.locator('[data-testid^="mrt-route-"]').count() === 10, `${name}: ten MRT stations on the phone`);
   check(await p.locator('[data-testid^="link-route-"]').count() === 4, `${name}: the cable car and ferry stops listed`); await look('phone: links');
   await press('link-route-ferry-bay'); check(!(await exists('jade-phone-msgs')) && await W(() => !!window.__jade.world().waypoint), `${name}: Route me to the ferry pier`);
   await W(() => { const w = window.__jade.world(); w.waypoint = null; w.route = []; }); await free();
@@ -87,13 +87,13 @@ export async function ninth(h) {
   check((await near())?.label === 'Skip to the pier', `${name}: E skips the crossing`); await key('e', 300);
   check(await until(() => !window.__jade.world().ferry, null, 2000) && (await st()).ferry === f0.ferry + 1, `${name}: off at Marina Bay`); await free();
 
-  // ── the festivals: Deepavali on even nights, the bazaar on odd ones
-  await W(() => { const w = window.__jade.world(); w.s.night = 2; window.__jade.step(2); });
+  // ── the festivals follow the calendar (the twelfth pass): a date in Deepavali's season, then one in the bazaar's
+  await W(() => { const w = window.__jade.world(); w.today = '2026-11-01'; w.s.night = 2; window.__jade.step(2); });
   const lamp = await W(() => window.__jade.world().c.east.lamps[0]); await at(lamp[0], lamp[1] + 20); await wait(250);
   check(/Deepavali lamp/.test((await near())?.label ?? ''), `${name}: "Light a Deepavali lamp"`); await look('deepavali: lamps and arch');
   await E(); check(await until(() => window.__jade.world().p.act?.n === 'light-lamp', null, 1500), `${name}: E lights the lamp`); await wait(400); await look('deepavali: lighting');
   check(await until(() => window.__jade.world().east.lit.has(0), null, 3000), `${name}: the lamp is lit`);
-  await W(() => { const w = window.__jade.world(); w.s.night = 3; window.__jade.step(2); }); await free();
+  await W(() => { const w = window.__jade.world(); w.today = '2027-03-01'; w.s.night = 3; window.__jade.step(2); }); await free();
   const baz = await W(() => window.__jade.world().c.east.bazaar[0]); await at(baz[0], baz[1] + 70); await wait(250);
   check(/kuih/.test((await near())?.label ?? ''), `${name}: "Buy a kuih at the bazaar"`); await look('hari raya bazaar');
   const k0 = await st(); await E(); check(await until(() => window.__jade.world().p.act?.n === 'kuih', null, 1500), `${name}: E buys a kuih and eats it`); await wait(400); await look('bazaar: kuih');
