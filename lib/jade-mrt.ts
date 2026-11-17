@@ -4,7 +4,7 @@
 // from the clock, so the trains overhead are where the timetable says. Fast travel: E at a station entrance, pick a
 // station, pay the fare, and a short ride view plays (skippable) while you and your partner travel. A durian on the
 // train is a fine, and the wardens lose you underground. No DOM; deterministic.
-import { T, districtAt } from './jade-city.js';
+import { T, districtAt, SOUTH_Y0 } from './jade-city.js';
 import type { Isle, Station } from './jade-island.js';
 import { nearestFree } from './jade-nav.js';
 import { dist } from './jade-rng.js';
@@ -110,10 +110,19 @@ export const TRAVEL_FOOT = 235 / 1.3;
 export const RIDE_SECS = { mrt: 8, cable: 9, ferry: 6 } as const;
 /** shorter than this (seconds on foot) the plan is always to walk; a ride must save at least this share of the time */
 export const TRAVEL_MIN = 25, TRAVEL_SAVE = 0.35;
+/** the south shore (Jurong, Tiong Bahru, Clarke Quay) is reached on foot only over the two long bridges from Kampong
+ * Glam (columns 224 and 244), so a walk across the water is measured round by the nearer bridge, not straight over it */
+const SOUTH_D = new Set(['tiong', 'quay', 'jurong']), BRIDGES = [226, 246], BRIDGE_N = 81;
+const isSouth = (x: number, y: number) => SOUTH_D.has(districtAt(Math.floor(x / T), Math.floor(y / T))) && y >= (SOUTH_Y0 - 1) * T;
+export function walkDist(x: number, y: number, tx: number, ty: number): number {
+  const a = isSouth(x, y), b = isSouth(tx, ty); if (a === b) return dist(x, y, tx, ty);
+  const [nx, ny, sx, sy] = a ? [tx, ty, x, y] : [x, y, tx, ty];
+  return Math.min(...BRIDGES.map(bx => dist(nx, ny, bx * T, BRIDGE_N * T) + (SOUTH_Y0 - BRIDGE_N) * T + dist(bx * T, SOUTH_Y0 * T, sx, sy)));
+}
 /** the quickest way from (x, y) to (tx, ty): a ride when it saves enough time, else null (walk) */
 export function travelPlan(w: World, tx: number, ty: number, x = w.p.x, y = w.p.y): Travel | null {
   const open = (sx: number, sy: number) => w.open.has(districtAt(Math.floor(sx / T), Math.floor(sy / T)));
-  const direct = dist(x, y, tx, ty) / TRAVEL_FOOT; if (direct < TRAVEL_MIN) return null;
+  const direct = walkDist(x, y, tx, ty) / TRAVEL_FOOT; if (direct < TRAVEL_MIN) return null;
   let best: Travel | null = null;
   const consider = (via: Travel['via'], a: Travel['from'], b: Travel['to'], ride: number) => {
     if (a.id === b.id) return;
@@ -135,7 +144,7 @@ const short = (n: string) => n.replace(/ (station|stop|pier)$/i, '');
 export const travelText = (t: Travel) => `${t.via === 'mrt' ? 'MRT' : t.via === 'cable' ? 'Cable car' : 'Ferry'}: ${short(t.from.name)} → ${short(t.to.name)}`;
 /** a rough travel time for a card: "about 40 s by MRT", "about 2 min on foot" */
 export function travelHint(w: World, tx: number, ty: number): string {
-  const t = travelPlan(w, tx, ty), s = t ? t.secs : dist(w.p.x, w.p.y, tx, ty) / TRAVEL_FOOT;
+  const t = travelPlan(w, tx, ty), s = t ? t.secs : walkDist(w.p.x, w.p.y, tx, ty) / TRAVEL_FOOT;
   // (a ride is never "close by", however quick: it is still a ride away)
   const when = s < 15 && !t ? 'close by' : s < 90 ? `about ${Math.max(10, Math.round(s / 10) * 10)} s` : `about ${Math.round(s / 60)} min`;
   return s < 15 && !t ? when : `${when} ${t ? (t.via === 'mrt' ? 'by MRT' : t.via === 'cable' ? 'by cable car' : 'by ferry') : 'on foot'}`;

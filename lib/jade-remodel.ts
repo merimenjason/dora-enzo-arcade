@@ -49,7 +49,7 @@ export function remodel(c: City) {
     c.solid[at(Math.floor(x / T), Math.floor(y / T))] = solid === 'low' ? S.LOW : solid === 'tall' ? S.TALL : c.solid[at(Math.floor(x / T), Math.floor(y / T))];
     const p: Prop = { x, y, sprite, r, solid, layer, w }; c.props.push(p); return p;
   };
-  const PG: Record<District, number> = { market: G.PLAZA, temple: G.TEMPLE, canal: G.COBBLE, docks: G.DOCK, arcade: G.NEON, heartland: G.HDB, bay: G.GRANITE, india: G.INDIA, glam: G.GLAM, resort: G.RESORT, orchard: G.ORCHARD, katong: G.KATONG, changi: G.CHANGI };
+  const PG: Record<District, number> = { market: G.PLAZA, temple: G.TEMPLE, canal: G.COBBLE, docks: G.DOCK, arcade: G.NEON, heartland: G.HDB, bay: G.GRANITE, india: G.INDIA, glam: G.GLAM, resort: G.RESORT, orchard: G.ORCHARD, katong: G.KATONG, changi: G.CHANGI, tiong: G.TIONG, quay: G.QUAY, jurong: G.JURONG };
   let k = 0;
   for (const d of PLAZAS) {
     const g = take(d); if (!g) continue;

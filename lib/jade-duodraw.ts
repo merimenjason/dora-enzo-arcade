@@ -3,6 +3,7 @@
 // supply crates, splattered awnings, netted carts, painted wardens, the job props the two of you work with (levers,
 // the canal lock, the yard shutter, the bunting pulley, boost crates, the window lookout, the loot-bag crow), Tock's
 // stall, the aim line and the ring under the hero you control. All painted sprites; code adds only light and shadow.
+import { slingLift } from './jade-southdraw.js';
 import { T } from './jade-city.js';
 import { VEHICLES } from './jade-move.js';
 import { OUTFITS } from './jade-save.js';
@@ -83,8 +84,8 @@ export function drawHero(sc: Scene, x: X, w: World, p: Player, active: boolean) 
   const variant = of > 0 ? `${h}:${of}` : '';
   if (p.seat) return; // drawn with the ride
   if (p.ride) { sc.ride(x, w, p.ride, active); driver(sc, x, w, p, p.ride, variant); passenger(sc, x, w, p.ride); return; }
-  const hop = p.anim === 'umbrella' ? Math.abs(Math.sin(p.animT * 7)) * 2 : p.anim === 'hop' ? Math.sin(Math.min(1, 1 - p.hopT / 0.42) * Math.PI) * 26 : p.anim === 'climb' ? Math.sin(p.act ? p.act.t * 12 : 0) * 6 + 10 : p.anim === 'boost-rise' && p.act ? Math.sin(Math.min(1, p.act.t / p.act.dur) * Math.PI * 0.5) * 40 : 0;
-  x.fillStyle = 'rgba(0,0,0,.35)'; sc.shadow(x, p.b.x, p.b.y + 2, 16 - hop * 0.2, 7 - hop * 0.08);
+  const hop = p.anim === 'umbrella' ? Math.abs(Math.sin(p.animT * 7)) * 2 : p.anim === 'hop' ? Math.sin(Math.min(1, 1 - p.hopT / 0.42) * Math.PI) * 26 : p.anim === 'climb' ? Math.sin(p.act ? p.act.t * 12 : 0) * 6 + 10 : p.anim === 'boost-rise' && p.act ? Math.sin(Math.min(1, p.act.t / p.act.dur) * Math.PI * 0.5) * 40 : p.anim === 'sling' && p.act ? slingLift(p.act.t) : 0;
+  x.fillStyle = 'rgba(0,0,0,.35)'; sc.shadow(x, p.b.x, p.b.y + 2, Math.max(3, 16 - hop * 0.2), Math.max(1.5, 7 - hop * 0.08));
   // the hero you control stands on a soft ring of light (gold for Dora, blue for Enzo) so you always know who you are
   if (active && (w.two || dist2(w.p, w.mate) < 400 * 400)) ring(x, p.b.x, p.b.y + 2, p.who === 'dora' ? '255,210,120' : '140,200,255', w.two ? 0.5 : 0.32);
   if (p.anim === 'dash' || p.anim === 'pounce') sc.puff(p.b.x - Math.cos(p.b.h) * 14, p.b.y + 4, '#d8d0e8');

@@ -27,7 +27,14 @@ export const FAR_FOLK: Record<'orchard' | 'katong' | 'changi', string[]> = {
   katong: ['robin', 'robin', 'robin', 'pigeon', 'tapir', 'sunbear', 'goose', 'deer'],
   changi: ['egret', 'egret', 'egret', 'egret', 'turtle', 'robin', 'tapir', 'rooster'],
 };
-const folkAt = (tx: number, ty: number) => { const d = districtAt(tx, ty); return d === 'india' || d === 'glam' || d === 'resort' ? EAST_FOLK[d] : d === 'orchard' || d === 'katong' || d === 'changi' ? FAR_FOLK[d] : tx >= OW ? ISLE_FOLK : FOLK; };
+/** the fourteenth pass's districts: a tabby neighbour with a tote of books in Tiong Bahru, a bullfrog out for the night
+ *  at Clarke Quay, a squirrel schoolchild with a toy rocket in Jurong */
+export const SOUTH_FOLK: Record<'tiong' | 'quay' | 'jurong', string[]> = {
+  tiong: ['tabby', 'tabby', 'tabby', 'robin', 'goose', 'cat', 'tapir', 'turtle'],
+  quay: ['frog', 'frog', 'frog', 'pigeon', 'civet', 'egret', 'cat', 'mousedeer'],
+  jurong: ['squirrel', 'squirrel', 'squirrel', 'deer', 'turtle', 'sunbear', 'egret', 'goose'],
+};
+const folkAt = (tx: number, ty: number) => { const d = districtAt(tx, ty); return d === 'india' || d === 'glam' || d === 'resort' ? EAST_FOLK[d] : d === 'orchard' || d === 'katong' || d === 'changi' ? FAR_FOLK[d] : d === 'tiong' || d === 'quay' || d === 'jurong' ? SOUTH_FOLK[d] : tx >= OW ? ISLE_FOLK : FOLK; };
 export type Ped = {
   id: number; sp: string; x: number; y: number; h: number; tx: number; ty: number; hop: number; hx: number; hy: number; scare: number; wait: number; walk: number;
   dest: number; sit: number; roadT: number; watch: boolean;

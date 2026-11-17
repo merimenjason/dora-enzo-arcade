@@ -127,6 +127,8 @@ export const CABLE_HINT = 'Sentosa is open! Ride the cable car from HarbourFront
 export const EAST_TEXT = 'The MRT runs on over the Rochor River: Bugis for Kampong Glam, and Little India. Walk over the bridges on Syed Alwi Road or Arab Street, or take a taxi.';
 export const FAR_TEXT = 'The MRT runs on over the Geylang River: Katong Park for Joo Chiat and East Coast Park, and Orchard for the Christmas light-up. Walk over the bridges, or take a taxi.';
 export const CHANGI_TEXT = 'Changi is open! The MRT runs to Changi Airport station: Jewel, the Rain Vortex, the airport and Changi Village. Hire a bike at East Coast Park and ride along the coast.';
+export const SOUTH_TEXT = 'The MRT runs on south over the water: Tiong Bahru for the market and the bird corner, and Clarke Quay for the river. Or cross the long bridge at the end of North Bridge Road.';
+export const JURONG_TEXT = 'Jurong is open! The MRT runs to Jurong East station: the Science Centre, Snow City and the Chinese Garden on Jurong Lake. Or cross the bridge at the end of Beach Road.';
 export const RESORT_TEXT = 'Sentosa is open! The cable car leaves from HarbourFront at the docks (4 coins), the boardwalk runs beside the Sentosa Gateway, the MRT stops at Beach station, and the ferry crosses from Marina Bay (3 coins).';
 export function routeToStop(w: World, id: string): boolean {
   const s = linkById(w, id); if (!s || !openStop(w, s.stop)) return false;

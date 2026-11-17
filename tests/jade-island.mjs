@@ -63,7 +63,7 @@ test('expressways: flagged lanes, gantries and crash barriers; island avenues ge
 
 test('the MRT: a fixed timetable, the trains on the viaduct, fares, the ride view, a durian fine, no rides mid-job', () => {
   const w = world(); const isle = w.c.isle;
-  assert.equal(isle.stations.length, 10); assert.deepEqual(isle.stations.map(s => s.d), ['changi', 'katong', 'orchard', 'resort', 'canal', 'bay', 'bay', 'glam', 'india', 'heartland']);
+  assert.equal(isle.stations.length, 13); assert.deepEqual(isle.stations.map(s => s.d), ['jurong', 'tiong', 'quay', 'changi', 'katong', 'orchard', 'resort', 'canal', 'bay', 'bay', 'glam', 'india', 'heartland']);
   let seen = false, under = false;
   for (let t = 0; t < 400; t += 1.7) for (let k = 0; k < TRAINS; k++) { const a = trainAt(isle, t, k), b = trainAt(isle, t, k); assert.deepEqual(a, b); if (a.visible) seen = true; else under = true; }
   assert.ok(seen && under, 'trains run underground and up on the viaduct');
@@ -133,7 +133,7 @@ test('chapter six: ten jobs, offered in order after the festival, both heroes ta
   assert.ok(MISSION.m30.steps.some(s => s.t === 'chase' && s.route.some(([x, y]) => y === 80 || x === 124)), 'the expressway chase rides the expressways');
   const s = newSave(); s.done = allDone.slice(0, 25); assert.equal(chapterOf(s), 6); assert.deepEqual(available(s).map(m => m.id), ['m26', 'm27']);
   s.done = allDone.slice(0, 34); assert.deepEqual(available(s).map(m => m.id), ['m35'], 'the finale waits for the rest');
-  s.done = allDone.slice(0, 35); assert.equal(chapterOf(s), 7); s.done = allDone.filter(id => MISSION[id].ch <= 7); assert.equal(chapterOf(s), 8); s.done = allDone; assert.equal(chapterOf(s), 9);
+  s.done = allDone.slice(0, 35); assert.equal(chapterOf(s), 7); s.done = allDone.filter(id => MISSION[id].ch <= 7); assert.equal(chapterOf(s), 8); s.done = allDone; assert.equal(chapterOf(s), 10);
 });
 
 test('chapter six: the solver finishes all ten, a forced failure restarts at the checkpoint, the island ending plays once', () => {

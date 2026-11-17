@@ -9,12 +9,12 @@
 import { ATLASES, ATLAS_SIZE, TEXTURES } from './jade-art.js';
 import { districtAt, W, H, type District } from './jade-city.js';
 
-export type Zone = 'town' | 'isle' | 'east' | 'resort' | 'far';
+export type Zone = 'town' | 'isle' | 'east' | 'resort' | 'far' | 'south';
 export type Tier = 'core' | 'job' | 'mini' | Zone;
-export const ZONES: Zone[] = ['town', 'isle', 'east', 'resort', 'far'];
+export const ZONES: Zone[] = ['town', 'isle', 'east', 'resort', 'far', 'south'];
 export const ZONE_OF: Record<District, Zone> = {
   market: 'town', temple: 'town', canal: 'town', docks: 'town', arcade: 'town', heartland: 'isle', bay: 'isle',
-  india: 'east', glam: 'east', resort: 'resort', orchard: 'far', katong: 'far', changi: 'far',
+  india: 'east', glam: 'east', resort: 'resort', orchard: 'far', katong: 'far', changi: 'far', tiong: 'south', quay: 'south', jurong: 'south',
 };
 
 const ATLAS_TIER: Record<string, Tier> = {
@@ -26,12 +26,14 @@ const ATLAS_TIER: Record<string, Tier> = {
   'atlas-east': 'east', 'atlas-east2': 'east', 'atlas-cast-east': 'east', 'atlas-faces-east': 'east',
   'atlas-resort': 'resort', 'atlas-resort2': 'resort', 'atlas-cast-resort': 'resort', 'atlas-faces-resort': 'resort',
   'atlas-far': 'far', 'atlas-far2': 'far', 'atlas-cast-far': 'far', 'atlas-faces-far': 'far',
+  'atlas-south': 'south', 'atlas-south2': 'south', 'atlas-cast-south': 'south', 'atlas-faces-south': 'south',
 };
 const TEX_TIER: Record<string, Tier> = {
   road: 'core', walk: 'core', plaza: 'core', grass: 'core', canal: 'core', plank: 'core', temple: 'core', sea: 'core', dock: 'core', neon: 'core', path: 'core', cobble: 'core',
   xway: 'isle', hdb: 'isle', rubber: 'isle', granite: 'isle', deck: 'isle', bay: 'isle',
   india: 'east', glam: 'east', sand: 'resort', resort: 'resort', lagoon: 'resort', fort: 'resort',
   katong: 'far', orchard: 'far', tarmac: 'far', cycle: 'far', jewel: 'far', changi: 'far',
+  tiong: 'south', quay: 'south', jurong: 'south', garden: 'south',
 };
 /** the tier of an atlas ('atlas-x') or ground texture ('tex-x'); anything unlisted waits for its zone like a job's art */
 export function tierOf(file: string): Tier {

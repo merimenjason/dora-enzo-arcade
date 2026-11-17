@@ -337,7 +337,7 @@ export class Play {
       else if (f.t === 'trophy' && f.name) this.toast(`Trophy: ${f.name}`, 'gold');
       else if (f.t === 'caught') this.toast(f.msg ?? 'Caught! The wardens fined you and sent you to a safe house.', 'bad');
       else if (f.t === 'heat-up' && f.k) this.toast(f.k === 1 ? 'A warden spotted you! Break line of sight, hide, or swap jackets at a safe house.' : `${f.k} lanterns of heat!`, 'bad');
-      else if (f.t === 'finale') { this.endingT = 3; this.endingKind = f.kind === 'isle' || f.kind === 'lights' || f.kind === 'coast' ? f.kind : ''; }
+      else if (f.t === 'finale') { this.endingT = 3; this.endingKind = f.kind === 'isle' || f.kind === 'lights' || f.kind === 'coast' || f.kind === 'lake' ? f.kind : ''; }
       else if (f.t === 'learned') this.snd?.fx([{ t: 'lesson' }]);
       else if (f.t === 'raid-dmg') this.toast(`The ${f.name} was smashed up. Repair it to take anything.`, 'bad');
       else if (f.t === 'raid-lost') this.toast(`The gang got away with ${f.k} coins from the ${f.name}.`, 'bad');

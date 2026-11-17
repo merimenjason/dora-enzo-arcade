@@ -97,7 +97,7 @@ export function haul(w: World, p: Player, m: Player, i: number) {
 
 // ── pounce together: the partner dives at the crow; dash into it too within a moment for a double pounce
 /** who a pounce is on, for the prompt (pass 13: it always said "the crow") */
-const SKIN_WHO: Record<string, string> = { otter: 'the otter', mac: 'the macaque', liz: 'the lizard', kaw: 'Director Kaw', myna: 'the mynah', nine: 'Crow Number Nine', bat: 'the bat', ciku: 'Datin Ciku' };
+const SKIN_WHO: Record<string, string> = { otter: 'the otter', mac: 'the macaque', liz: 'the lizard', kaw: 'Director Kaw', myna: 'the mynah', nine: 'Crow Number Nine', bat: 'the bat', ciku: 'Datin Ciku', hoot: 'Towkay Hoot' };
 export function pounceWho(w: World, id: number): string {
   if (id === -1) return 'the crow';
   const a = w.run?.actors.find(x => x.id === id); if (!a) return 'them';

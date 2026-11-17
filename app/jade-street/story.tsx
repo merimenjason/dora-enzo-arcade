@@ -48,6 +48,12 @@ const COAST_END: Panel[] = [
   { img: 'bg-end-6', title: 'Lights on, coast to coast', focus: '50% 35%',
     text: 'Ms Tiara counts down, Datin Ciku flicks the switch, and the star lights up Orchard Road all the way to the sea. Even the bats get a bowl of laksa.' },
 ];
+const LAKE_END: Panel[] = [
+  { img: 'bg-chapter-9', title: 'Lights by the Lake', focus: '50% 40%',
+    text: 'Towkay Hoot hands back the Moon Lantern, and every lantern he bought up besides. Uncle Seng steams chwee kueh for the whole garden, and Kak Melati sings from the red bridge.' },
+  { img: 'bg-end-7', title: 'The moon over Jurong Lake', focus: '50% 35%',
+    text: 'Sifu Musang lights the Moon Lantern, Dr Suria finds the real one in her telescope, and a hundred lotus lanterns drift out over the water. Even Towkay Hoot lights one of his own.' },
+];
 /** keyboard and timing for a run of painted panels */
 function usePages(n: number, onDone: () => void) {
   const [i, setI] = useState(0);
@@ -127,6 +133,7 @@ export function ChapterCard({ ch, onDone }: { ch: number; onDone: () => void }) 
         {c === 6 && <><p>Toa Payoh and Marina Bay are open: take the MRT from Chinatown station.</p><p>Stop Director Kaw.</p></>}
         {c === 7 && <><p>Little India and Kampong Glam are open: take the MRT to Little India or Bugis.</p><p>Find out who is copying voices.</p></>}
         {c === 8 && <><p>Katong and Orchard Road are open: take the MRT to Katong Park or Orchard.</p><p>Save the Christmas Star.</p></>}
+        {c === 9 && <><p>Tiong Bahru and Clarke Quay are open: take the MRT to Tiong Bahru or Clarke Quay.</p><p>Find out who is buying up the lanterns.</p></>}
         <div className="jade-chapter-bar"><span /></div>
       </div>
       <button type="button" className="jade-btn plain jade-story-skip" data-testid="jade-story-skip" onClick={e => { e.stopPropagation(); finish(); }}>Skip ›</button>
@@ -135,9 +142,9 @@ export function ChapterCard({ ch, onDone }: { ch: number; onDone: () => void }) 
 }
 
 /** the ending panels; hero picks who is named first */
-export function Ending({ hero, isle = false, lights = false, coast = false, onDone }: { hero: 'dora' | 'enzo'; isle?: boolean; lights?: boolean; coast?: boolean; onDone: () => void }) {
+export function Ending({ hero, isle = false, lights = false, coast = false, lake = false, onDone }: { hero: 'dora' | 'enzo'; isle?: boolean; lights?: boolean; coast?: boolean; lake?: boolean; onDone: () => void }) {
   const a = hero === 'enzo' ? 'Enzo' : 'Dora', b = hero === 'enzo' ? 'Dora' : 'Enzo';
-  const panels = (coast ? COAST_END : lights ? LIGHTS_END : isle ? ISLE_END : ENDING).map((p, k) => k === 0 ? { ...p, text: `${a} and ${b} did it. ` + p.text } : p);
+  const panels = (lake ? LAKE_END : coast ? COAST_END : lights ? LIGHTS_END : isle ? ISLE_END : ENDING).map((p, k) => k === 0 ? { ...p, text: `${a} and ${b} did it. ` + p.text } : p);
   return <Pages panels={panels} onDone={onDone} testid="jade-ending" last="Credits ›" />;
 }
 

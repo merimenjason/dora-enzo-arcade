@@ -126,7 +126,8 @@ export async function fifth(h) {
   await W(() => window.__jade.teleportTo('mk-market')); await wait(300);
   check(await W(() => window.__jade.gang('macaques')), `${name}: the Bukit Bunch snatch some bags`);
   await wait(400); await look('macaques');
-  await W(() => { const w = window.__jade.world(); const m = w.gangs.ev.mobs[0]; w.placePlayer(m.b.x + 60, m.b.y); w.findNear(); });
+  // (pass 14: the gang can turn up beside a property for sale, whose prompt would win; stand on whichever side of the macaque is clear of it)
+  await W(() => { const w = window.__jade.world(); const m = w.gangs.ev.mobs[0]; for (const [dx, dy] of [[60, 0], [-60, 0], [0, 60], [0, -60]]) { w.placePlayer(m.b.x + dx, m.b.y + dy); w.findNear(); if (w.near?.kind === 'gang') break; } });
   const nb = await near(); check(nb?.kind === 'gang', `${name}: "${nb?.label}"`);
   const ban = (await sg()).bag.banana; await E(); await wait(300);
   check((await sg()).bag.banana === ban - 1 && await W(() => window.__jade.world().gangs.ev.mobs.some(m => m.st === 'munch')), `${name}: E tosses a banana and the macaque sits down to munch`);

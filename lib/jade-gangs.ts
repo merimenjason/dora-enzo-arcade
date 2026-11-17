@@ -31,9 +31,9 @@ import type { World, Near } from './jade-game.js';
 
 export type GangKind = 'otters' | 'macaques' | 'lizards' | 'mynahs' | 'bats';
 export const GANG = {
-  otters: { name: 'the Riverside Romp', boss: 'sleek', turf: ['canal', 'docks', 'bay'] as District[], loot: 'crate', lines: ['Hehe! Finders keepers!', 'Wheee, into the river!', 'Mama Sleek says hi!'], caught: ['Aww, no fair!', 'Okay okay, take it back lah.'] },
-  macaques: { name: 'the Bukit Bunch', boss: 'kow', turf: ['market', 'temple', 'heartland'] as District[], loot: 'bag', lines: ['Ooh ooh! Mine now!', 'Bun! Bun! Bun!', 'Big Kow will be so proud!'], caught: ['Ooh. Paiseh.', 'Fine lah, have it back.'] },
-  lizards: { name: 'the Longkang Lizards', boss: 'lepak', turf: ['heartland', 'bay'] as District[], loot: 'snack', lines: ['Sssnacks!', 'Lepak time, hehe.', 'Back to the longkang!'], caught: ['Aiyah. So tiring.', 'Okay, okay. Can lie down now?'] },
+  otters: { name: 'the Riverside Romp', boss: 'sleek', turf: ['canal', 'docks', 'bay', 'quay'] as District[], loot: 'crate', lines: ['Hehe! Finders keepers!', 'Wheee, into the river!', 'Mama Sleek says hi!'], caught: ['Aww, no fair!', 'Okay okay, take it back lah.'] },
+  macaques: { name: 'the Bukit Bunch', boss: 'kow', turf: ['market', 'temple', 'heartland', 'tiong'] as District[], loot: 'bag', lines: ['Ooh ooh! Mine now!', 'Bun! Bun! Bun!', 'Big Kow will be so proud!'], caught: ['Ooh. Paiseh.', 'Fine lah, have it back.'] },
+  lizards: { name: 'the Longkang Lizards', boss: 'lepak', turf: ['heartland', 'bay', 'jurong'] as District[], loot: 'snack', lines: ['Sssnacks!', 'Lepak time, hehe.', 'Back to the longkang!'], caught: ['Aiyah. So tiring.', 'Okay, okay. Can lie down now?'] },
   mynahs: { name: 'the Kecoh Mynahs', boss: 'bising', turf: ['india', 'glam', 'resort'] as District[], loot: 'kuih', lines: ['Kecoh! Kecoh!', 'Ring ring! Hello? Hehe!', 'Mine, mine, mine!'], caught: ['Oops. Paiseh.', 'Okay lah. Here, take back.'] },
   bats: { name: 'the Atas Bats', boss: 'ciku', turf: ['orchard', 'katong', 'changi'] as District[], loot: 'shop-bags', lines: ['Darling, this is MINE now.', 'So atas, so mine!', 'Mwah! Ciao!'], caught: ['How embarrassing. Don’t tell Datin.', 'Fine, fine. Not my colour anyway.'] },
 };
