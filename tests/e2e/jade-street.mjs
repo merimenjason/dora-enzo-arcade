@@ -22,6 +22,7 @@ import { ninth } from './jade-street-9.mjs';
 import { tenth } from './jade-street-10.mjs';
 import { eleventh } from './jade-street-11.mjs';
 import { twelfth } from './jade-street-12.mjs';
+import { thirteenth } from './jade-street-13.mjs';
 const require = createRequire(import.meta.url);
 let chromium;
 try { ({ chromium } = require('playwright')); } catch { ({ chromium } = createRequire(process.cwd() + '/')('playwright')); }
@@ -156,6 +157,8 @@ async function viewport(name, w, h, touch) {
   if (process.env.PASS === '5') { await W(() => { window.__jade.world().s.settings.partner = 'tag'; }); await fifth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '6') { await W(() => { window.__jade.world().s.settings.partner = 'tag'; }); await sixth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '7') { await W(() => { window.__jade.world().s.settings.partner = 'tag'; }); if (!touch) await seventh({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
+  if (process.env.PASS === '3') { if (!touch) await third({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
+  if (process.env.PASS === '13') { if (!touch) await thirteenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '12') { if (!touch) await twelfth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '11') { if (!touch) await eleventh({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '10') { if (!touch) await tenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
@@ -443,6 +446,7 @@ async function viewport(name, w, h, touch) {
   if (!touch) await tenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
   if (!touch) await eleventh({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
   if (!touch) await twelfth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
+  if (!touch) await thirteenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
   await W(() => { window.__jade.world().s.done = ['m1', 'm2']; window.__jade.world().open = new Set(['market', 'temple']); });
 
   // ── back to the title, Continue, and both answers to starting over

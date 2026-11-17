@@ -57,7 +57,8 @@ function usePages(n: number, onDone: () => void) {
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); finish(); }
-      else if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); next(); }
+      // (E too, as the hint says: pass 13)
+      else if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight' || e.key === 'e' || e.key === 'E') { e.preventDefault(); e.stopPropagation(); next(); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); setI(v => Math.max(0, v - 1)); }
     };
     window.addEventListener('keydown', k, true); return () => window.removeEventListener('keydown', k, true);

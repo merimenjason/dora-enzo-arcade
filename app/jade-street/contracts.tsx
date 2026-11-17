@@ -3,6 +3,7 @@
 // middling one, a hard one), the contract of the day (the same for everyone, with today's best time) and, when the
 // rivals are muscling in on one of your districts, the retake. Each card has the giver, the stars, the modifiers, the
 // pay and a Route me button; the contract itself starts in person, at the giver. Rules in lib/jade-contracts.ts.
+import { travelHint } from '@/lib/jade-mrt';
 import { useState } from 'react';
 import { listContracts, routeContract, contractsOpen, tierOf, territory, dayRecord, dayPaid, contestFactor, type Listed } from '@/lib/jade-contracts';
 import { MOD_NAME, MOD_TEXT, KIND_NAME, GANG } from '@/lib/jade-proc';
@@ -26,7 +27,7 @@ function Card({ play, l, onClose }: { play: Play; l: Listed; onClose?: () => voi
         {l.tag === 'day' && <span className="jade-con-tag day">Contract of the day</span>}
         {l.tag === 'push' && <span className="jade-con-tag push">Retake · {GANG[c.gang].name}</span>}
         <b>{c.title}</b>
-        <small>{p?.name ?? c.giver} · {dName(c.d)} · {KIND_NAME[c.kind]} · <span className="jade-con-stars" aria-label={`${c.stars} of 3 stars`}>{'★'.repeat(c.stars)}<i>{'★'.repeat(3 - c.stars)}</i></span></small>
+        <small>{p?.name ?? c.giver} · {dName(c.d)}{w.c.places[c.at] && <span data-testid={`con-far-${l.which}`}> ({travelHint(w, w.c.places[c.at].x, w.c.places[c.at].y)})</span>} · {KIND_NAME[c.kind]} · <span className="jade-con-stars" aria-label={`${c.stars} of 3 stars`}>{'★'.repeat(c.stars)}<i>{'★'.repeat(3 - c.stars)}</i></span></small>
         <p>{c.blurb}</p>
         {!!c.mods.length && <span className="jade-con-mods">{c.mods.map(m => <em key={m} title={MOD_TEXT[m]} data-testid={`con-mod-${m}`}>{MOD_NAME[m]}</em>)}</span>}
         <small className="jade-con-pay"><Sprite name="ui-coin" h={16} w={16} /> {fmt(pay)} coins{l.tag === 'day' && dayPaid(w) ? ' (paid today: replays pay a quarter)' : ''}{rec?.best ? ` · today’s best ${secs(rec.best)} (${rec.runs} run${rec.runs === 1 ? '' : 's'})` : ''}</small>
@@ -37,15 +38,18 @@ function Card({ play, l, onClose }: { play: Play; l: Listed; onClose?: () => voi
   );
 }
 
+const ORDER: Record<string, number> = { day: 0, push: 1, offer: 2 };
 export function ContractsTab({ play, onClose }: { play: Play; onClose?: () => void }) {
   const w = play.w, s = w.s;
   if (!contractsOpen(s)) return <p data-testid="con-locked">Contracts open once the Phoenix Drum is home (the end of chapter six). After that, your contacts send you jobs of their own, every night, for good.</p>;
   const ls = listContracts(w), cs = s.contracts, ct = cs.contest;
   return (
     <div className="jade-cons" data-testid="con-tab">
-      <p className="small">Three jobs from your contacts, dealt fresh every night, and a new one as soon as you finish one. Walk up to the giver to start. Tier {tierOf(s)} of 6 (your rank, your {territory(s)} district{territory(s) === 1 ? '' : 's'} and {cs.done} contract{cs.done === 1 ? '' : 's'} done): higher tiers pay more and bite harder.</p>
+      <p className="small">Three jobs from your contacts, dealt fresh every night, and a new one as soon as you finish one. Walk up to the giver to start.</p>
+      <p className="small" data-testid="con-tier"><b>Tier {tierOf(s)} of 6.</b> Higher tiers pay more and bite harder. The tier rises with your empire rank, the districts you run ({territory(s)} so far) and the contracts you finish ({cs.done} so far).</p>
       {ct && <p className="jade-con-warn" data-testid="con-contest">The {GANG[ct.gang].name} are muscling in on {DISTRICT_NAME[ct.d]}: its tills take ×{contestFactor(s, ct.d)} until you win the retake.</p>}
-      <ol className="jade-con-list">{ls.map(l => <Card key={l.which + l.c.id} play={play} l={l} onClose={onClose} />)}</ol>
+      {/* (pass 13: the contract of the day and a retake first, so they are not below the fold) */}
+      <ol className="jade-con-list">{[...ls].sort((a, b) => ORDER[a.tag] - ORDER[b.tag]).map(l => <Card key={l.which + l.c.id} play={play} l={l} onClose={onClose} />)}</ol>
     </div>
   );
 }

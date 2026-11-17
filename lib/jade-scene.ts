@@ -56,6 +56,8 @@ let missed = false;
 let quietMiss = false;
 /** was a picture missing since the last call (for a canvas painted outside the scene, such as the painted map) */
 export const takeMissed = () => { const m = missed; missed = false; return m; };
+/** the minimap's map: strip width (px), columns painted at a time, and ms of painting a frame */
+const MAP_STRIP = 840, MAP_COLS = 6, MAP_BUDGET = 2.5;
 const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 function loadOne(n: string, base = ART): Promise<boolean> {
   const have = slots.get(n); if (have) return have.p;
@@ -82,6 +84,10 @@ function loadOne(n: string, base = ART): Promise<boolean> {
 /** the decoded bytes held now and on their way (the background queue keeps this under ART_BUDGET) */
 const residentBytes = () => { let b = 0; for (const n of slots.keys()) b += decodedBytes(n); return b; };
 export const artReady = (n: string) => !!slots.get(n)?.ok;
+/** a file being fetched for the canvas right now (its promise), or null: an interface sprite from it waits for that
+ * download rather than starting a second one as a CSS background, which the browser aborted (ERR_ABORTED) and fetched
+ * again whenever the hero pick unmounted mid-load (pass 13) */
+export const artPending = (n: string): Promise<boolean> | null => { const sl = slots.get(n); return sl && !sl.ok ? sl.p : null; };
 /** load and decode these files (each at most once at a time); `progress` gets (done, total); rejects with the files
  *  that failed */
 export function ensureArt(names: string[], progress?: (done: number, total: number) => void, base = ART): Promise<void> {
@@ -95,6 +101,24 @@ export function loadArt(base = ART, progress?: (done: number, total: number) => 
   return ensureArt(EAGER, progress, base);
 }
 export const artLoaded = () => EAGER.every(artReady);
+/** a full-screen painting shown as an <img> or a CSS background (the title, the opening storybook): fetched and decoded
+ * ahead of time, and the Image kept so the browser keeps it decoded (pass 13: the opening's first panel stayed black
+ * for seconds on a slow connection, because nothing had asked for it) */
+const pics = new Map<string, { im: HTMLImageElement; ok: boolean; p: Promise<boolean> }>();
+export function preloadPic(n: string, base = ART): Promise<boolean> {
+  const have = pics.get(n); if (have) return have.p;
+  if (typeof Image === 'undefined') return Promise.resolve(false);
+  const im = new Image(); im.decoding = 'async';
+  const e = { im, ok: false, p: Promise.resolve(false) };
+  e.p = new Promise<boolean>(res => {
+    im.onload = () => { (im.decode ? im.decode() : Promise.resolve()).catch(() => undefined).then(() => { e.ok = true; res(true); }); };
+    im.onerror = () => { pics.delete(n); res(false); };
+  });
+  im.src = artUrl(n, base); pics.set(n, e); return e.p;
+}
+export const picReady = (n: string) => !!pics.get(n)?.ok;
+/** the opening storybook's first painting: a new game waits for it with the eager set */
+export const STORY_FIRST = 'bg-story-1';
 /** the background queue: decode `decode` two at a time, then fetch `prefetch` into the HTTP cache one at a time */
 let queue: { n: string; decode: boolean }[] = []; let busy = 0; const fetched = new Set<string>();
 export function streamArt(decode: string[], prefetch: string[]) {
@@ -319,9 +343,13 @@ export class Scene {
   /** the last frame's world scale and how long it has held (see the chunks in draw) */
   lastS = 0; zoomStill = 0;
   overBuckets: Map<number, number[]> = new Map();
-  map: HTMLCanvasElement | null = null; mapK = 8;
-  /** the minimap's copy of the map in strips under 1,024 px wide: the island-wide map canvas is too wide to draw from cheaply every frame */
-  mapStrips: { c: HTMLCanvasElement; x0: number }[] = []; mapStripsOf: HTMLCanvasElement | null = null;
+  mapK = 8;
+  /** the minimap's map in strips under 1,024 px wide (an island-wide canvas is too wide to draw from cheaply every frame) */
+  mapStrips: { c: HTMLCanvasElement; x0: number }[] = [];
+  /** the next map, painted a few columns a frame (pass 13: painting the whole island in one frame took 50 to 85 ms, and
+   * it was repainted every few seconds while paintings were still arriving: the worst of the half-second dips); the
+   * old map stays on the dial until the new one is complete */
+  mapNext: { strips: { c: HTMLCanvasElement; x0: number }[]; col: number; miss: boolean } | null = null;
   dust: { x: number; y: number; t: number; vx: number; vy: number; c: string; s: number }[] = [];
   juice = new Juice(); lookX = 0; lookY = 0; zoomRide = 1;
   /** the camera's focus eases between heroes on a switch and frames both with a second player; the mouse aim */
@@ -374,7 +402,7 @@ export class Scene {
   dropChunk(k: number) { const v = this.chunks.get(k); if (v) { freeCanvas(v.c); this.chunks.delete(k); } }
   /** forget every ground chunk and the minimap's map (their canvases freed) */
   dropAll() { for (const k of [...this.chunks.keys()]) this.dropChunk(k); this.dropMap(); }
-  dropMap() { if (this.map) freeCanvas(this.map); for (const st of this.mapStrips) freeCanvas(st.c); this.map = null; this.mapStrips = []; this.mapStripsOf = null; }
+  dropMap() { for (const st of this.mapStrips) freeCanvas(st.c); this.mapStrips = []; if (this.mapNext) for (const st of this.mapNext.strips) freeCanvas(st.c); this.mapNext = null; }
   /** paint tiles (tx0..tx0+n) of the city's ground layer into x (already transformed to world units) */
   paintGround(x: CanvasRenderingContext2D, tx0: number, ty0: number, nw: number, nh: number, simple = false) {
     quietMiss = simple; try { this.paintGround1(x, tx0, ty0, nw, nh, simple); } finally { quietMiss = false; }
@@ -465,13 +493,26 @@ export class Scene {
 
   // ── the whole-city map (minimap and the full map screen use it)
   mapMiss = false; mapT = 0;
-  buildMap(): HTMLCanvasElement {
-    if (this.map) return this.map;
-    const k = this.mapK; const c = document.createElement('canvas'); c.width = W * k; c.height = H * k;
-    const x = ctx2d(c); missed = false;
-    if (x) { x.setTransform(k / T, 0, 0, k / T, 0, 0); this.paintGround(x, 0, 0, W, H, true); }
-    this.mapMiss = missed || !x; this.mapT = this.t;
-    this.map = c; return c;
+  /** paint the next few columns of the map (about MAP_BUDGET ms a frame); swaps it in once complete. True when ready */
+  mapWork(): boolean {
+    const k = this.mapK;
+    if (!this.mapNext && this.mapStrips.length) return true;
+    if (!this.mapNext) this.mapNext = { strips: [], col: 0, miss: false };
+    const nb = this.mapNext, t0 = now(), SW = Math.floor(MAP_STRIP / k); // tiles a strip
+    while (nb.col < W && now() - t0 < MAP_BUDGET) {
+      const si = Math.floor(nb.col / SW);
+      if (!nb.strips[si]) { const c = document.createElement('canvas'); c.width = Math.min(SW + 1, W - si * SW) * k; c.height = H * k; nb.strips[si] = { c, x0: si * SW * k }; }
+      const st = nb.strips[si], x = ctx2d(st.c), n = Math.min(MAP_COLS, (si + 1) * SW - nb.col, W - nb.col);
+      // each strip also paints one column past its end, so neighbouring strips meet without a seam
+      const n1 = nb.col + n === (si + 1) * SW && nb.col + n < W ? n + 1 : n;
+      missed = false;
+      if (x) { x.setTransform(k / T, 0, 0, k / T, -st.x0, 0); this.paintGround(x, nb.col, 0, n1, H, true); } else missed = true;
+      nb.miss = nb.miss || missed; nb.col += n;
+    }
+    if (nb.col < W) return this.mapStrips.length > 0;
+    for (const st of this.mapStrips) freeCanvas(st.c);
+    this.mapStrips = nb.strips; this.mapMiss = nb.miss; this.mapT = this.t; this.mapNext = null;
+    return true;
   }
 
   // ── a frame
@@ -484,7 +525,8 @@ export class Scene {
       this.artSeen = artGen;
       for (const v of this.chunks.values()) if (v.miss) v.s = -9; // repainted in place (drawn as it was until then)
     }
-    if (this.map && this.mapMiss && this.t - this.mapT > 4 && this.artSeen === artGen) this.dropMap();
+    // (the old map stays up while the new one is painted)
+    if (this.mapStrips.length && this.mapMiss && !this.mapNext && this.t - this.mapT > 4 && this.artSeen === artGen) this.mapNext = { strips: [], col: 0, miss: false };
     const p = w.p; const ride = p.ride;
     this.juice.tick(dt);
     if (ride) this.juice.trail(dt, p.boostT > 0, ride.b.x, ride.b.y, ride.b.h, 'v-' + ride.kind);
@@ -901,11 +943,8 @@ export class Scene {
   // ── the minimap: the painted city map, clipped to a circle, with pins
   drawMinimap(x: CanvasRenderingContext2D, w: World) {
     const m = this.minimap; if (!m.r) return;
-    const map = this.buildMap(); const k = this.mapK / T;
-    if (this.mapStripsOf !== map) {
-      this.mapStripsOf = map; this.mapStrips = [];
-      for (let x0 = 0; x0 < map.width; x0 += 840) { const c = document.createElement('canvas'); c.width = Math.min(848, map.width - x0); c.height = map.height; ctx2d(c)?.drawImage(map, -x0, 0); this.mapStrips.push({ c, x0 }); }
-    }
+    const k = this.mapK / T;
+    if (!this.mapWork()) return;
     const zoom = 0.9; // map px per minimap px
     const px = w.p.x * k, py = w.p.y * k;
     const sc = 1.6 / zoom;

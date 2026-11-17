@@ -138,13 +138,16 @@ export function giverAt(w: World, c: Contract): [number, number] | null {
   const cm = w.cast.find(x => x.id === c.giver && x.home); if (cm) return [cm.x, cm.y];
   const pl = w.c.places[c.at]; return pl && w.open.has(pl.d) ? [pl.x, pl.y] : null;
 }
-export function contractNear(w: World, cand: (n: Near, r: number) => void) {
+export function contractNear(w: World, cand: (n: Near, r: number, bias?: number) => void) {
   if (w.run || !contractsOpen(w.s)) return;
   const story = new Set(busy(w.s));
   for (const l of listContracts(w)) {
-    if (story.has(l.c.giver)) continue;
+    // (pass 13: the contract you routed to is offered even when the giver also has a Hawker Tale or a story job, and
+    // its prompt wins at their side; the other job is still there once it is done)
+    const pinned = w.s.contracts.pin === l.which;
+    if (story.has(l.c.giver) && !pinned) continue;
     const at = giverAt(w, l.c); if (!at) continue;
-    cand({ kind: 'contract', label: `${PEOPLE[l.c.giver]?.name ?? l.c.giver}: ${l.tag === 'day' ? 'contract of the day' : l.tag === 'push' ? 'retake' : 'contract'} “${l.c.title}”`, x: at[0], y: at[1], id: l.which }, 76);
+    cand({ kind: 'contract', label: `${PEOPLE[l.c.giver]?.name ?? l.c.giver}: ${l.tag === 'day' ? 'contract of the day' : l.tag === 'push' ? 'retake' : 'contract'} “${l.c.title}”`, x: at[0], y: at[1], id: l.which }, 76, pinned ? 40 : 0);
   }
 }
 /** where the gold line goes when no story job is on offer: the pinned contract's giver, else the nearest */
@@ -154,7 +157,7 @@ export function contractTarget(w: World): [number, number] | null {
   const pin = ls.find(l => l.which === w.s.contracts.pin);
   const story = new Set(busy(w.s)); let best: [number, number] | null = null, bd = 1e18;
   for (const l of pin ? [pin] : ls.filter(x => x.tag !== 'day' || !dayPaid(w))) {
-    if (story.has(l.c.giver)) continue;
+    if (story.has(l.c.giver) && l !== pin) continue;
     const at = giverAt(w, l.c); if (!at) continue; const d = dist(at[0], at[1], w.p.x, w.p.y); if (d < bd) { bd = d; best = at; }
   }
   return best;

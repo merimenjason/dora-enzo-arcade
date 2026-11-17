@@ -18,6 +18,7 @@ export function mateStatus(play: Play): string {
   const w = play.w, m = w.mate, ai = m.ai;
   if (w.two) return 'Player 2';
   if (m.seat) return 'Riding behind you';
+  if (w.ferry) return 'On the ferry with you';
   if (m.hide) return 'Hiding with you';
   if (ai.mode === 'hold') return ai.holding ? (m.anim === 'haul' ? 'Hauling the rope' : 'Holding the lever') : 'Running to the lever';
   if (ai.mode === 'distract') return 'Distracting!';

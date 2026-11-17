@@ -95,7 +95,7 @@ export class Play {
   }
   /** what is decoded now (for the memory test): the files, their decoded megabytes, the ground chunks and recoloured frames */
   artStats() { const r = artResident(); const sc = this.scene; let cpx = 0; for (const v of sc.chunks.values()) cpx += v.c.width * v.c.height;
-    return { files: r.map(x => x.n), decodedMB: Math.round(r.reduce((a, x) => a + decodedBytes(x.n), 0) / 1048576), chunks: sc.chunks.size, chunkMB: Math.round(cpx * 4 / 1048576), recolored: recoloredCount(), glows: glowCount(), map: !!sc.map }; }
+    return { files: r.map(x => x.n), decodedMB: Math.round(r.reduce((a, x) => a + decodedBytes(x.n), 0) / 1048576), chunks: sc.chunks.size, chunkMB: Math.round(cpx * 4 / 1048576), recolored: recoloredCount(), glows: glowCount(), map: sc.mapStrips.length > 0 }; }
   destroy() {
     this.alive = false; cancelAnimationFrame(this.raf); this.ro?.disconnect();
     this.scene.dropAll(); // the ground chunks and maps hold up to ~120 MB of canvas: freed now, not at the next collection
@@ -265,10 +265,13 @@ export class Play {
   /** Space, E or a tap: show the whole line if it is still typing, otherwise the next line */
   advance() {
     if (!this.w.talk) return;
-    const l = this.line(); if (l && this.typed < l[1].length) { this.typed = l[1].length; this.fill(); this.bump(); return; }
+    const l = this.line(); if (l && this.shown() < l[1].length) { const t = this.w.talk!; this.typeKey = `${t.i}|${l[1]}`; this.typed = l[1].length; this.fill(); this.bump(); return; }
     this.w.advanceTalk(); this.snd?.talk(this.w.talk?.i ?? 0); this.bump();
   }
-  fill() { const l = this.line(); if (this.typeEl && l) this.typeEl.textContent = l[1].slice(0, Math.floor(this.typed)); }
+  fill() { const l = this.line(); if (this.typeEl && l) this.typeEl.textContent = l[1].slice(0, Math.floor(this.shown())); }
+  /** how much of the current line shows: none of a line the typewriter has not reached yet (pass 13: a new line's first
+   * frame used to show as many letters as the line before had, so a short line flashed up whole) */
+  shown() { const l = this.line(), t = this.w.talk; return l && t && this.typeKey === `${t.i}|${l[1]}` ? this.typed : 0; }
   /** type out the line, one babble syllable every other letter */
   typeStep(dt: number) {
     const l = this.line(); if (!l) { this.typeKey = ''; return; }
@@ -330,7 +333,7 @@ export class Play {
     this.scene.consume(this.w, fx);
     this.snd?.fx(fx);
     for (const f of fx) {
-      if (f.t === 'toast' && f.msg) this.toast(f.msg, f.kind ?? '');
+      if (f.t === 'toast' && f.msg) { if (f.over) this.notices.drop(f.over); this.toast(f.msg, f.kind ?? ''); }
       else if (f.t === 'trophy' && f.name) this.toast(`Trophy: ${f.name}`, 'gold');
       else if (f.t === 'caught') this.toast(f.msg ?? 'Caught! The wardens fined you and sent you to a safe house.', 'bad');
       else if (f.t === 'heat-up' && f.k) this.toast(f.k === 1 ? 'A warden spotted you! Break line of sight, hide, or swap jackets at a safe house.' : `${f.k} lanterns of heat!`, 'bad');
@@ -367,7 +370,7 @@ export class Play {
       teleport: (tx: number, ty: number) => { this.w.placePlayer(tx * T + T / 2, ty * T + T / 2); if (this.w.p.ride) { this.w.p.ride.b.x = this.w.p.b.x; this.w.p.ride.b.y = this.w.p.b.y; } },
       teleportTo: (place: string) => { const p = this.w.c.places[place]; if (p) this.w.placePlayer(p.x, p.y + T * 0.6); },
       /** mark every job before `id` done and stand next to its contact */
-      jumpTo: (id: string) => { const i = MISSIONS.findIndex(m => m.id === id); this.w.s.done = MISSIONS.slice(0, Math.max(0, i)).map(m => m.id); this.w.s.story.intro = true; this.w.s.story.ch = chapterOf(this.w.s); this.w.quitJob(); this.w.open = new Set(openDistricts(this.w.s)); this.w.fieldCache.clear(); const pl = this.w.c.places[MISSION[id].at]; this.w.placePlayer(pl.x, pl.y + T * 0.8); this.scene.map = null; },
+      jumpTo: (id: string) => { const i = MISSIONS.findIndex(m => m.id === id); this.w.s.done = MISSIONS.slice(0, Math.max(0, i)).map(m => m.id); this.w.s.story.intro = true; this.w.s.story.ch = chapterOf(this.w.s); this.w.quitJob(); this.w.open = new Set(openDistricts(this.w.s)); this.w.fieldCache.clear(); const pl = this.w.c.places[MISSION[id].at]; this.w.placePlayer(pl.x, pl.y + T * 0.8); this.scene.dropMap(); },
       step: (n = 60, inp?: Partial<Input>) => { for (let i = 0; i < n; i++) this.w.step({ ...NO_INPUT, ...inp }, DT); },
       heat: (n: number) => { this.w.heat = n; },
       /** the Singapore streets: start a gang's street event here, a festival tonight, a storm flash; a ticket warden
@@ -394,7 +397,7 @@ export class Play {
       street: () => { const e = this.w.street; return e ? { kind: e.kind, phase: e.phase, x: e.x / T, y: e.y / T } : null; },
       rain: (v: number | null) => { this.w.rainForce = v; },
       ending: () => { this.endingT = 0.01; },
-      finishAll: () => { this.w.s.done = MISSIONS.map(m => m.id); this.w.open = new Set(openDistricts(this.w.s)); this.w.fieldCache.clear(); this.scene.map = null; },
+      finishAll: () => { this.w.s.done = MISSIONS.map(m => m.id); this.w.open = new Set(openDistricts(this.w.s)); this.w.fieldCache.clear(); this.scene.dropMap(); },
       medals: () => ({ ...this.w.s.medals }),
       lights: () => this.w.time,
       /** the third pass: set pieces, Glint's phases, the float, businesses, raids, voices and game feel */
@@ -426,7 +429,7 @@ export class Play {
       conMods: (mods: Mod[], seed = 4242) => { const w = this.w; w.quitJob(); w.talk = null; const c = contractOf({ seed, tier: 2, stars: 2, open: [...w.open] }); const pl = w.c.places[c.at]; w.placePlayer(pl.x, pl.y + T); w.startMission(contractMission({ ...c, mods }, w.assist), { key: 'con:test:' + seed, reward: c.pay, d: c.d }); this.bump(); return w.run?.m.id ?? null; },
       conWin: () => { const w = this.w, r = w.run; if (!r) return false; w.talk = null; r.cleanup(); w.finishMission(r.m, r.gig); this.bump(); return true; },
       contest: () => { const w = this.w, b = owned(w.s)[0]; if (!b) return null; w.s.contracts.contest = { d: b.d, gang: w.s.contracts.contest?.gang ?? 'crow', night: w.s.night }; this.bump(); return b.d; },
-      typed: () => ({ typed: Math.floor(this.typed), len: this.line()?.[1].length ?? 0, mood: this.line()?.[2] ?? null, who: this.line()?.[0] ?? null }),
+      typed: () => ({ typed: Math.floor(this.shown()), len: this.line()?.[1].length ?? 0, mood: this.line()?.[2] ?? null, who: this.line()?.[0] ?? null }),
       juice: () => { const j = this.scene.juice; return { debris: j.debris.length, pops: j.pops.length, trauma: j.trauma, slow: j.slow, stop: j.stop, opt: { ...j.opt } }; },
       theme: () => this.theme(),
       /** the fourth pass: both heroes, tag-team moves, gadgets and the second player */

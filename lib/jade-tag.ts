@@ -42,7 +42,7 @@ export function tagOption(w: World): TagOpt | null {
   const d = dist(p.x, p.y, m.x, m.y);
   if (!p.roof && !m.roof && d < 200) { const b = boostNear(w, p); if (b >= 0) return { kind: 'boost', label: `${n} gives you a boost onto the roof`, go: () => boost(w, p, m, b) }; }
   if (p.roof && !m.roof) { const b = boostNear(w, p, true, 90); if (b >= 0) return { kind: 'haul', label: `Haul ${n} up onto the roof`, go: () => haul(w, p, m, b) }; }
-  const pt = pounceNear(w, m, p); if (pt) return { kind: 'pounce', label: 'Pounce on the crow together!', go: () => pounce(w, pt.id) };
+  const pt = pounceNear(w, m, p); if (pt) return { kind: 'pounce', label: `Pounce on ${pounceWho(w, pt.id)} together!`, go: () => pounce(w, pt.id) };
   if (w.heat >= 1 && !p.roof && !m.roof) { const wd = w.wardens.find(x => !x.leave && x.stun <= 0 && dist(x.b.x, x.b.y, m.x, m.y) < 560); if (wd) return { kind: 'distract', label: `${n} distracts the warden`, go: () => distract(w, wd.b.x, wd.b.y, 5) }; }
   if (m.ai.mode === 'follow') return { kind: 'wait', label: `${n} waits here`, go: () => { m.ai = { ...m.ai, mode: 'stay', at: [m.x, m.y], story: false }; w.fx.push({ t: 'tag-wait', x: m.x, y: m.y }); } };
   if (!m.ai.story) return { kind: 'call', label: `Call ${n} over`, go: () => { m.ai = { ...m.ai, mode: 'follow', story: false }; w.fx.push({ t: 'tag-call', x: m.x, y: m.y }); } };
@@ -96,6 +96,16 @@ export function haul(w: World, p: Player, m: Player, i: number) {
 }
 
 // ── pounce together: the partner dives at the crow; dash into it too within a moment for a double pounce
+/** who a pounce is on, for the prompt (pass 13: it always said "the crow") */
+const SKIN_WHO: Record<string, string> = { otter: 'the otter', mac: 'the macaque', liz: 'the lizard', kaw: 'Director Kaw', myna: 'the mynah', nine: 'Crow Number Nine', bat: 'the bat', ciku: 'Datin Ciku' };
+export function pounceWho(w: World, id: number): string {
+  if (id === -1) return 'the crow';
+  const a = w.run?.actors.find(x => x.id === id); if (!a) return 'them';
+  if (a.kind === 'boss') return a.skin ? SKIN_WHO[a.skin] ?? 'the boss' : 'Madame Glint';
+  if (a.skin) return SKIN_WHO[a.skin] ?? 'them';
+  const st = w.run?.cur as { name?: string } | undefined;
+  return st?.name ?? (a.kind === 'bagbird' || a.kind === 'decoy' ? 'the crow' : 'Pip');
+}
 export function pounceNear(w: World, m: Player, p: Player): { id: number } | null {
   if (m.roof || p.ride || m.seat) return null;
   if (w.run) { const a = w.run.actors.find(a => !a.gone && a.stun <= 0 && ['runner', 'raider', 'decoy', 'bagbird', 'boss'].includes(a.kind) && (a.b.cls === 'foot' || a.kind === 'bagbird') && dist(a.b.x, a.b.y, m.x, m.y) < 340 && (a.kind !== 'bagbird' || (a.extra ?? 0) > 0)); if (a) return { id: a.id }; }

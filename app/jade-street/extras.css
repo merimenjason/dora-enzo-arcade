@@ -21,7 +21,8 @@
 .jade-shell .jade-panel.phone { width: min(520px, 100%); }
 .jade-shell .jade-text-msg { display: flex; gap: 10px; align-items: flex-start; background: #fff3d6; color: #2a1606; border-radius: 14px; padding: 6px 10px; margin-bottom: 8px; }
 .jade-shell .jade-text-msg p { margin: 0; } .jade-shell .jade-text-msg small { color: #6a4a2a; }
-.jade-shell .jade-radio { position: absolute; right: 76px; top: 232px; display: inline-flex; gap: 6px; align-items: center; background: rgba(17, 12, 34, .94); border: 2px solid var(--jade); border-radius: 999px; padding: 3px 12px 3px 4px; font-weight: 900; font-size: 13px; z-index: 2; }
+/* pass 13: under the phone button, clear of it and of the minimap ring (it overlapped both) */
+.jade-shell .jade-radio { position: absolute; right: 20px; top: 286px; display: inline-flex; gap: 6px; align-items: center; background: rgba(17, 12, 34, .94); border: 2px solid var(--jade); border-radius: 999px; padding: 3px 12px 3px 4px; font-weight: 900; font-size: 13px; z-index: 2; }
 
 .jade-shell .jade-book-sum { display: flex; gap: 6px; align-items: center; font-weight: 800; }
 .jade-shell .jade-book-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }

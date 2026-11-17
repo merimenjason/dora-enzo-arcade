@@ -296,7 +296,7 @@ test('the MRT is easy to find: a phone text and a hint when the island opens, th
   w.fx = []; for (let k = 0; k < 30; k++) { w.step(NO_INPUT, DT); if (w.talk) w.talk = null; w.ui = null; }
   assert.equal(w.tutor.cur, 'mrt', 'the MRT hint'); assert.equal(lesson('mrt').text, MRT_HINT); assert.match(MRT_HINT, /Chinatown station is in Boat Quay.*press E to ride \(2 coins\)/);
   const stn = stationById(w, 'stn-chinatown'); assert.deepEqual(w.waypoint, [stn.x, stn.y], 'routed to the station'); assert.ok(w.route.length > 1);
-  // it gives up after 20 s and takes its route line with it, and does not come back
+  // it gives up after 12 s (pass 13) and takes its route line with it, and does not come back
   for (let k = 0; k < 21 * 60; k++) { w.step(NO_INPUT, DT); if (w.talk) w.talk = null; w.ui = null; }
   assert.notEqual(w.tutor.cur, 'mrt'); assert.equal(w.waypoint, null); assert.ok(w.s.learned.includes('mrt'));
   for (let k = 0; k < 60; k++) w.step(NO_INPUT, DT); assert.notEqual(w.tutor.cur, 'mrt', 'once only');

@@ -17,6 +17,8 @@ export const newFar = (): FarState => ({ night: -1, baubles: new Set(), once: ne
 /** is the Orchard Road light-up on: in season, or while chapter eight's story is still being played */
 export const lightUp = (w: World) => (w.today ? isChristmas(w.today) : true) || (w.s.done.includes('m45') && !w.s.done.includes('m55'));
 /** the plane overhead now (world units, heading), or null between planes */
+/** seconds until the next plane comes in (0 while one is overhead): the prompt counts it down (pass 13) */
+export const planeIn = (w: World) => { const ph = w.time % PLANE_EVERY; return ph <= PLANE_FLY ? 0 : PLANE_EVERY - ph; };
 export function planeNow(w: World): { x: number; y: number; h: number; k: number } | null {
   const F = w.c.far; if (!F) return null;
   const ph = w.time % PLANE_EVERY; if (ph > PLANE_FLY) return null;
@@ -34,7 +36,7 @@ export function farNear(w: World, cand: (n: Near, r: number) => void) {
   for (const id of ['laksa', 'hawker-ecp']) { const pl = w.c.places[id]; if (pl && open(w, pl.x, pl.y)) cand({ kind: 'far', id: 'laksa', label: `Slurp a bowl of laksa (${LAKSA} coins)`, x: pl.x, y: pl.y + 30 }, 70); }
   if (lightUp(w)) F.trees.forEach(([x, y], i) => { if (!f.baubles.has(i) && open(w, x, y)) cand({ kind: 'far', id: 'bauble:' + i, label: 'Hang a bauble on the Christmas tree', x, y: y + 30 }, 70); });
   for (const [x, y] of F.kites) if (open(w, x, y) && !f.once.has(`kite:${x}`)) cand({ kind: 'far', id: `kite:${x}`, label: 'Fly a kite', x, y }, 70);
-  for (const [x, y] of F.spots) if (open(w, x, y)) cand({ kind: 'far', id: 'plane', label: planeNow(w) ? 'Wave at the plane coming in!' : 'Watch for planes', x, y }, 64);
+  for (const [x, y] of F.spots) if (open(w, x, y)) cand({ kind: 'far', id: 'plane', label: planeNow(w) ? 'Wave at the plane coming in!' : `Watch for planes (next in ${Math.ceil(planeIn(w))} s)`, x, y }, 64);
   const t = w.c.places.terminal; if (t && open(w, t.x, t.y) && !f.once.has('suitcase')) cand({ kind: 'far', id: 'suitcase', label: 'Help a traveller with her suitcase', x: t.x, y: t.y + 20 }, 70);
 }
 export function farAct(w: World, id: string) {
@@ -61,7 +63,7 @@ export function farAct(w: World, id: string) {
   }
   if (id === 'plane') {
     const pl = planeNow(w); p.face = 'up';
-    p.act = { n: 'plane', t: 0, dur: 1.6, then: () => { if (pl) { s.stats.planes++; w.say(`Plane spotted! (${s.stats.planes} so far)`, 'good'); } else w.say('Nothing yet. They come in every half a minute or so.', ''); } };
+    p.act = { n: 'plane', t: 0, dur: 1.6, then: () => { if (pl) { s.stats.planes++; w.say(`Plane spotted! (${s.stats.planes} so far)`, 'good'); } else w.say(`Nothing yet. The next one comes in about ${Math.ceil(planeIn(w))} s.`, ''); } };
     return;
   }
   if (id === 'suitcase') {

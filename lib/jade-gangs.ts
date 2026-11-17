@@ -40,7 +40,12 @@ export const GANG = {
 export type MobState = 'run' | 'play' | 'munch' | 'leap' | 'dizzy' | 'netted' | 'swim' | 'lepak' | 'preen' | 'gone';
 export type Mob = { id: number; b: Body; has: boolean; st: MobState; t: number; goal: [number, number] | null; anim: number; slip?: number;
   /** a mynah: seconds left of a hop-flight (it flies straight over whatever is in the way), and of a mimicked sound */
-  fly?: number; sing?: number };
+  fly?: number; sing?: number;
+  /** a bat's flight (pass 13: bats no longer hop like mynahs): where it flies from (it veers away from you when you
+   * startle it), which way its curve bends, and how long it has been up */
+  flee?: [number, number]; bend?: number; up?: number };
+/** the bats' own flight: rarer, longer, slower glides that weave, and a startled bat swerves away from you in an arc */
+export const BAT_FLIGHT = { scare: 240, scareRate: 0.6, roamRate: 0.12, time: 1.6, speed: 210, weave: 0.55, curve: 0.9 };
 export type GangEvent = { kind: GangKind; d: District; t: number; mobs: Mob[]; drops: { x: number; y: number }[]; got: number; done: boolean };
 export type GangState = { ev: GangEvent | null; wait: number };
 export const newGangs = (): GangState => ({ ev: null, wait: 70 });
@@ -198,7 +203,21 @@ function mynaStep(w: World, ev: GangEvent, m: Mob, dt: number): boolean {
   const close = dist(m.b.x, m.b.y, p.x, p.y);
   // far from you, it flies home with the loot
   if (close > 1500) { m.st = 'gone'; w.say(ev.kind === 'bats' ? 'A bat flew off home with its shopping!' : 'A mynah flew off home with its kuih!', 'bad'); return true; }
-  if (m.fly === undefined && w.R() < dt * (close < 220 ? 0.9 : 0.25)) m.fly = 0.9;
+  const bat = ev.kind === 'bats', BF = BAT_FLIGHT;
+  if (m.fly === undefined && w.R() < dt * (bat ? (close < BF.scare ? BF.scareRate : BF.roamRate) : (close < 220 ? 0.9 : 0.25))) {
+    m.fly = bat ? BF.time : 0.9;
+    if (bat) { m.flee = close < BF.scare ? [p.x, p.y] : undefined; m.bend = w.R() < 0.5 ? 1 : -1; m.up = 0; }
+  }
+  if (m.fly !== undefined && bat) {
+    // a bat glides: away from where you startled it, bending round in an arc, or on toward its goal, weaving as it goes
+    m.fly -= dt; if (m.fly <= 0) m.fly = undefined; m.up = (m.up ?? 0) + dt;
+    const g = m.goal ?? [m.b.x, m.b.y];
+    const base = m.flee ? Math.atan2(m.b.y - m.flee[1], m.b.x - m.flee[0]) + (m.bend ?? 1) * BF.curve * Math.min(1, m.up / BF.time) : Math.atan2(g[1] - m.b.y, g[0] - m.b.x);
+    const h = base + Math.sin(m.up * 5) * BF.weave, sp = BF.speed * (w.assist ? 0.8 : 1);
+    m.b.h = h; m.b.speed = sp; m.b.x += Math.cos(h) * sp * dt; m.b.y += Math.sin(h) * sp * dt;
+    if (m.fly === undefined) { m.flee = undefined; const [fx, fy] = nearestFree(w.c, 'walk', m.b.x, m.b.y, w.open, 3); m.b.x = fx; m.b.y = fy; }
+    return true;
+  }
   if (m.fly !== undefined) {
     m.fly -= dt; if (m.fly <= 0) m.fly = undefined;
     const g = m.goal ?? [m.b.x, m.b.y], dx = g[0] - m.b.x, dy = g[1] - m.b.y, l = Math.hypot(dx, dy) || 1;

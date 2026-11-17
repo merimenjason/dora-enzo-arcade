@@ -3,7 +3,7 @@
 // retry), the lesson hints with the right key or button, the little phone with texts from contacts, the ride radio,
 // the jobs book (every story job by chapter, and the Hawker Tales, with medals, goals and replay) and the controls page.
 import { useEffect, useState } from 'react';
-import { loadArt } from '@/lib/jade-scene';
+import { loadArt, preloadPic, picReady, STORY_FIRST } from '@/lib/jade-scene';
 import { lesson } from '@/lib/jade-tutor';
 import { tagOption } from '@/lib/jade-tag';
 import { TaxiApp, JadeLineTab } from './isle';
@@ -46,13 +46,17 @@ function LoaderCard({ pct, err, onRetry, testid = 'jade-loading', over }: { pct:
     </section>
   );
 }
-export function Loader({ onReady }: { onReady: () => void }) {
+export function Loader({ onReady, story = false }: { onReady: () => void; story?: boolean }) {
   const [pct, setPct] = useState(0); const [err, setErr] = useState(''); const [tries, setTries] = useState(0);
   useEffect(() => {
     let live = true; setErr('');
-    loadArt(ART, (d, n) => { if (live) setPct(n ? d / n : 1); }).then(() => { if (live) onReady(); }).catch((e: Error) => { if (live) setErr(e.message); });
+    // a new game also waits for the opening storybook's first painting (pass 13: it showed black for seconds)
+    let pic = !story || picReady(STORY_FIRST), dn = 0, nn = 1;
+    const show = () => { if (live) setPct((dn + (pic ? 1 : 0)) / (nn + 1)); };
+    const first = story ? preloadPic(STORY_FIRST).then(ok => { pic = true; show(); if (!ok) throw new Error('Could not load: ' + STORY_FIRST); }) : Promise.resolve();
+    Promise.all([loadArt(ART, (d, n) => { dn = d; nn = n || 1; show(); }), first]).then(() => { if (live) onReady(); }).catch((e: Error) => { if (live) setErr(e.message); });
     return () => { live = false; };
-  }, [tries, onReady]);
+  }, [tries, onReady, story]);
   return <LoaderCard pct={pct} err={err} onRetry={() => setTries(t => t + 1)} />;
 }
 /** the street waiting for a district's paintings: the lanterns over it after a quarter of a second */

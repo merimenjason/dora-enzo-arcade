@@ -18,6 +18,9 @@ export const LINK_R = 110;
 export const CABINS = 8, CABIN_SPEED = 150;
 /** the ferry's speed, and how long it waits at each pier */
 export const FERRY_SPEED = 300, FERRY_DWELL = 8;
+/** your crossing runs this much faster than the ferry seen from the shore (pass 13: 2.2, was 1.4: thirteen seconds of
+ * open water is now about eight) */
+export const FERRY_RIDE = 2.2;
 /** the cable car's ride view (seconds; any key skips it) */
 export const CABLE_VIEW = 3.6;
 
@@ -106,7 +109,7 @@ function arriveAt(w: World, to: LinkStop) {
 export type FerryRide = { s: number; dir: 1 | -1; to: string; t: number };
 export function ferryStep(w: World, dt: number) {
   const f = w.ferry, l = w.c.east?.ferry; if (!f || !l) return;
-  f.t += dt; f.s += f.dir * FERRY_SPEED * 1.4 * dt;
+  f.t += dt; f.s += f.dir * FERRY_SPEED * FERRY_RIDE * dt;
   const [x, y] = linkAt(l, f.s);
   w.p.b.x = x; w.p.b.y = y; w.mate.b.x = x; w.mate.b.y = y;
   if (f.s <= 0 || f.s >= total(l)) ferryLand(w);

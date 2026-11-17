@@ -683,7 +683,7 @@ export const MISSIONS: Mission[] = [
       { t: 'goto', at: 'village', label: 'Go into Changi Village', ride: 'foot', cp: true },
       { t: 'trap', spots: [[340, 58], [344, 58], [348, 58], [352, 58]], need: 3, bait: [355, 58], wait: [348, 61], path: [[332, 58], [336, 58], [340, 58], [344, 58], [348, 58], [352, 58], [355, 58]], gang: 'bat', n: 3, catch: 2, label: 'Lay three nets along the village street (E)', cp: true },
       { t: 'talk', lines: [['hero', 'Two in the nets. And one with a luggage tag in its claws, flying low.', 'smug'], ['mate', 'Let it lead us. I’ll wait by the station: switch to me there.', 'smug']] },
-      { t: 'tail', name: 'the courier', skin: 'bat', from: [345, 56], route: [[345, 50], [345, 44], [346, 36], [349, 30], [354, 24]], relay: { at: 3, spot: [348, 32] }, calm: 0.55, label: 'Follow the courier to the airport; switch to {mate} by the baggage hall (Tab)', cp: true },
+      { t: 'tail', name: 'the courier', skin: 'bat', from: [345, 56], route: [[345, 50], [345, 44], [346, 36], [349, 30], [354, 24]], relay: { at: 3, spot: [352, 37] }, calm: 0.55, label: 'Follow the courier to the airport; switch to {mate} by the baggage hall (Tab)', cp: true },
       { t: 'talk', lines: [['hero', 'The baggage hall. Datin Ciku’s luggage is going through tonight.', 'cross'], ['ubin', 'Captain Faiz flies the morning plane. He will help you. Tell him Ubin sent you.', 'happy']] },
     ] },
   { id: 'm54', ch: 8, title: 'Lost Luggage', giver: 'faiz', at: 'faiz', reward: 620, rep: 18, blurb: 'A bat in a porter’s cap is wheeling Datin Ciku’s suitcase across the apron to her plane. Captain Faiz says stop it before it’s loaded.',

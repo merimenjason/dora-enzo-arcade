@@ -2,6 +2,13 @@
 .jade-mrt-line, .jade-taxi-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 .jade-mrt-line .jade-btn, .jade-taxi-list .jade-btn { display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left; }
 .jade-mrt-line small, .jade-taxi-list small { margin-left: auto; opacity: .75; font-size: .8em; }
+/* pass 13: the district names clear the buttons' gold end caps, and a red line beside the list joins the stops like a
+   line diagram (a dot per stop) */
+.jade-shell .jade-mrt-line { position: relative; padding-left: 22px; }
+.jade-shell .jade-mrt-line .jade-btn { position: relative; padding-left: 26px; padding-right: 44px; }
+.jade-mrt-line::before { content: ''; position: absolute; left: 6px; top: 20px; bottom: 20px; width: 6px; border-radius: 3px; background: #c8323c; pointer-events: none; }
+.jade-mrt-line .jade-btn::before { content: ''; position: absolute; left: -40px; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 50%; background: #fff; border: 3px solid #c8323c; box-sizing: border-box; }
+.jade-mrt-line .jade-btn[data-plan] { outline: 3px solid var(--gold); outline-offset: 1px; }
 .jade-taxi-list { max-height: 50vh; overflow-y: auto; }
 .jade-ride-view { position: absolute; inset: 0; z-index: 60; background: #0b0820; cursor: pointer; overflow: hidden; }
 .jade-ride-view img { width: 100%; height: 100%; object-fit: cover; animation: jade-ride-sway 1.1s ease-in-out infinite alternate; }

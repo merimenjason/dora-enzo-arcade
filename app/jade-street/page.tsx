@@ -14,7 +14,7 @@ import { BizPanel } from './biz';
 import { DuoBar, TagPrompt, GearHud, GearStall } from './duo';
 import { PaintedMap } from './map';
 import { Storybook, ChapterCard, Ending, Credits } from './story';
-import { loadArt, artLoaded, streamArt } from '@/lib/jade-scene';
+import { loadArt, artLoaded, streamArt, preloadPic, picReady, STORY_FIRST } from '@/lib/jade-scene';
 import { filesOf } from '@/lib/jade-load';
 import { Loader, ArtWait, Hint, PhoneHud, PhoneView, RadioHud, switchStation } from './extras';
 import { chapterOf } from '@/lib/jade-save';
@@ -59,7 +59,14 @@ export default function JadeStreetPage() {
     setSave(s); setReady(true);
     // the title shows at once; the eager paintings (lib/jade-load.ts) load behind it, and starting before they are in
     // shows the painted loading screen until they are
-    void loadArt().then(() => { if (!playRef.current) streamArt(filesOf(['job']), []); }).catch(() => undefined);
+    // (pass 13: the title's own painting first, so it does not arrive half-drawn behind the eager set; then the eager
+    // set while the title is idle, and the opening storybook's paintings for a save that has not seen it)
+    const title = Promise.race([preloadPic('bg-title'), new Promise(r => setTimeout(r, 1500))]);
+    void title.then(() => loadArt()).then(() => {
+      void preloadPic('bg-empire'); // (the phone's Empire tab: its banner was blank on first open)
+      if (!s.story.intro) void preloadPic(STORY_FIRST).then(() => Promise.all(['bg-story-2', 'bg-story-3', 'bg-story-4'].map(n => preloadPic(n))));
+      if (!playRef.current) streamArt(filesOf(['job']), []);
+    }).catch(() => undefined);
     const snd = new JadeSound(); sndRef.current = snd; snd.sfxOn = s.settings.sound; snd.musicOn = s.settings.music;
     const first = () => { snd.start(); if (!playRef.current) snd.play('menu'); };
     window.addEventListener('pointerdown', first, { once: true }); window.addEventListener('keydown', first, { once: true });
@@ -122,7 +129,7 @@ export default function JadeStreetPage() {
     if (!next) { p.paused = false; sndRef.current?.play('street'); }
   };
   void pw;
-  const begin = (s: Save) => { setSave(s); saveRef.current = s; setPaused(false); setMapOpen(false); setScreen(artLoaded() ? 'game' : 'loading'); };
+  const begin = (s: Save) => { setSave(s); saveRef.current = s; setPaused(false); setMapOpen(false); setScreen(artLoaded() && (s.story.intro || picReady(STORY_FIRST)) ? 'game' : 'loading'); };
   const newGame = (hero: Hero) => {
     const old = saveRef.current; const s = newSave(Math.floor(Math.random() * 1e9) + 1);
     s.hero = hero; s.settings = { ...old.settings };
@@ -140,7 +147,7 @@ export default function JadeStreetPage() {
 
   return (
     <main className="jade-shell" data-ready={ready ? 'true' : 'false'} data-screen={screen} data-touch={touch ? 'true' : 'false'} data-big={(w?.s ?? save).settings.bigText ? 'true' : 'false'} data-cb={(w?.s ?? save).settings.cbMarks ? 'true' : 'false'}>
-      {screen === 'loading' && <Loader onReady={ready2} />}
+      {screen === 'loading' && <Loader onReady={ready2} story={!(w?.s ?? save).story.intro} />}
       {screen === 'title' && (
         <section className="jade-title" style={{ backgroundImage: `url(${artUrl('bg-title')})` }}>
           <div className="jade-title-card">
@@ -202,8 +209,8 @@ export default function JadeStreetPage() {
               {w.ui?.kind === 'branch' && <BranchPanel play={play} />}
               {w.ui?.kind === 'ask' && <AskPanel play={play} />}
               {!w.ui && !w.talk && <TicketCard play={play} />}
-              {w.ui?.kind === 'mini' && w.ui.mini === 'kopi' && <KopiMini key={`kopi-${w.s.stats.minis}`} level={w.ui.level} assist={w.assist} seed={w.s.seed + w.s.stats.minis * 7 + w.tick} snd={sndRef.current} onDone={ok => { w.miniDone(ok); persist(w.s); play.bump(); }} />}
-              {w.ui?.kind === 'mini' && w.ui.mini !== 'kopi' && <MiniGame key={`${w.ui.mini}-${w.s.stats.minis}`} kind={w.ui.mini} level={w.ui.level} assist={w.assist} seed={w.s.seed + w.s.stats.minis * 7 + w.tick} snd={sndRef.current} onDone={ok => { w.miniDone(ok); persist(w.s); play.bump(); }} />}
+              {w.ui?.kind === 'mini' && w.ui.mini === 'kopi' && <KopiMini key={`kopi-${w.s.stats.minis}`} head={w.run && w.run.m.giver === 'raju' ? ['The teh tarik stall at Tekka', 'Make each teh the way Mr Raju’s cousin calls it, then serve.'] : undefined} level={w.ui.level} assist={w.assist} seed={w.s.seed + w.s.stats.minis * 7 + w.tick} snd={sndRef.current} onDone={ok => { w.miniDone(ok); persist(w.s); play.bump(); }} />}
+              {w.ui?.kind === 'mini' && w.ui.mini !== 'kopi' && <MiniGame key={`${w.ui.mini}-${w.s.stats.minis}`} lights={w.ui.from === 'mission' && w.run?.cur?.t === 'mini' && /light/i.test(w.run.cur.label)} kind={w.ui.mini} level={w.ui.level} assist={w.assist} seed={w.s.seed + w.s.stats.minis * 7 + w.tick} snd={sndRef.current} onDone={ok => { w.miniDone(ok); persist(w.s); play.bump(); }} />}
               {mapOpen && <PaintedMap play={play} onClose={resume} />}
               {phone && <PhoneView play={play} onClose={resume} />}
               {paused && <Pause play={play} snd={sndRef.current} touch={touch} onReplay={replay} onClose={resume} onQuit={toTitle} onSave={() => persist(w.s)} onNew={() => { setPaused(false); setScreen('title'); setPick(true); }} />}

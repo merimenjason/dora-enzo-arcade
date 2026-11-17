@@ -554,10 +554,14 @@ function fallback(ctx: GenCtx, ref: CRef): Contract {
 }
 
 // ── the job the runner plays
+/** how much sharper a Hard contract is than a Normal one (Normal: timers 0.9, chases 1.04, rival pace +0.03); pass 13
+ * tuned these so the Hard bot's first tries land near 80 to 85% (they were 89%, against Normal's 92%) */
+export const HARD_CON = { timer: 0.8, chase: 1.1, pace: 0.07, swap: 0.85, calm: 1.25, getaway: 1, getawayStars: 2 };
 /** the contract as a Mission for lib/jade-mission.ts: a few numbers bend to Assist the way the empire's jobs do */
 export function contractMission(c: Contract, assist: boolean, hard = false): Mission {
-  // the twelfth pass: Hard sharpens a contract a little more than Normal (the gap was two first tries in 150)
-  const tk = hard ? 0.86 : 0.9, ck = hard ? 1.07 : 1.04, pk = hard ? 0.05 : 0.03;
+  // the twelfth pass: Hard sharpens a contract a little more than Normal (the gap was two first tries in 150); the
+  // thirteenth adds a getaway to the middling and hard offers and sharper tails (HARD_CON)
+  const H = HARD_CON, tk = hard ? H.timer : 0.9, ck = hard ? H.chase : 1.04, pk = hard ? H.pace : 0.03;
   const steps = c.steps.map(s => {
     // without assist a contract is a notch sharper than its story counterpart: you have done all this before
     if (!assist) {
@@ -566,7 +570,8 @@ export function contractMission(c: Contract, assist: boolean, hard = false): Mis
       if (s.t === 'chase') return { ...s, speed: Math.round(s.speed * ck) };
       if (s.t === 'escort') return { ...s, crows: s.crows + 1 };
       if (s.t === 'race' && s.pace) return { ...s, pace: Math.min(1, s.pace + pk) };
-      if (hard && s.t === 'swap') return { ...s, time: Math.round(s.time * 0.9) };
+      if (hard && s.t === 'swap') return { ...s, time: Math.round(s.time * H.swap) };
+      if (hard && (s.t === 'tail' || s.t === 'stealth')) return { ...s, calm: (s.calm ?? 1) * H.calm };
       return s;
     }
     if (s.t === 'defend') return { ...s, per: Math.max(1, s.per - 1) };
@@ -574,6 +579,14 @@ export function contractMission(c: Contract, assist: boolean, hard = false): Mis
     if (s.t === 'swap') return { ...s, time: Math.round(s.time * 1.2) };
     return s;
   });
+  // Hard: the wardens saw the whole thing. A two- or three-star contract without a getaway gets one after its last piece of
+  // work (before the walk back), so it ends with a chase you have to shake; (tighter clocks alone barely moved
+  // the bots, and squeezing a delivery further walled the blend contracts, whose delivery is on foot)
+  if (hard && !assist && c.stars >= H.getawayStars && !steps.some(s => s.t === 'heat')) {
+    let i = steps.length; while (i > 0 && steps[i - 1].t === 'talk') i--;
+    if (i > 0 && steps[i - 1].t === 'goto') i--;
+    if (i > 1) steps.splice(i, 0, { t: 'heat', level: H.getaway, label: 'The wardens saw the whole thing! Lose them (out of sight, or hide)' });
+  }
   return { id: c.id, ch: 0, title: c.title, giver: c.giver, at: c.at, blurb: c.blurb, reward: c.pay, rep: c.rep, steps, mods: c.mods, fails: c.fails };
 }
 void dist; void (null as unknown as Mood);

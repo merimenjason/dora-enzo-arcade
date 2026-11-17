@@ -77,7 +77,7 @@ const FIELD_ICON: Record<string, string[]> = {
   base: ['drink-kopi', 'drink-teh'], milk: ['tin-condensed', '', 'tin-evap'], sugar: ['jar-sugar', 'jar-sugar', '', 'jar-sugar'], temp: ['', 'bucket-ice'],
 };
 /** Uncle Teo's counter: read the order, set the cup, serve. Keys: 1-4 pick a row, ← → change it, Enter serves */
-export function KopiMini({ level, assist, seed, snd, onDone }: { level: number; assist: boolean; seed: number; snd: JadeSound | null; onDone: (ok: boolean) => void }) {
+export function KopiMini({ level, assist, seed, snd, onDone, head }: { level: number; assist: boolean; seed: number; snd: JadeSound | null; onDone: (ok: boolean) => void; /** a job's own counter (pass 13: Teh Tarik Time opened as Uncle Teo's) */ head?: [string, string] }) {
   const g = useRef(new KopiGame({ level, assist, seed })).current;
   const [, tick] = useState(0); const [row, setRow] = useState(0); const [help, setHelp] = useState(false);
   const [end, setEnd] = useState<null | boolean>(null);
@@ -115,7 +115,7 @@ export function KopiMini({ level, assist, seed, snd, onDone }: { level: number; 
   return (
     <div className="jade-mini jade-kopi" data-testid="mini-kopi" data-done={end === null ? undefined : String(end)} style={{ backgroundImage: `url(${artUrl('bg-mg-kopi')})` }}>
       <div className="jade-mini-head">
-        <b>Uncle Teo’s kopi counter</b><span>Make each drink the way he calls it, then serve.</span>
+        <b data-testid="kopi-title">{head?.[0] ?? 'Uncle Teo’s kopi counter'}</b><span>{head?.[1] ?? 'Make each drink the way he calls it, then serve.'}</span>
         <span className={'jade-timer' + (g.time < 10 ? ' low' : '')}>{Math.ceil(g.time)}s</span>
       </div>
       <div className="jade-kopi-body">

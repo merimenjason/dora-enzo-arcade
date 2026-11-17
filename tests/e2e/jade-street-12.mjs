@@ -71,9 +71,12 @@ export async function twelfth(h) {
   check(await W(() => window.__jade.gang('bats')), `${name}: the Atas Bats raid Katong`);
   check(await W(n => window.__jade.world().s.msgs.some(m => m.id > n && m.from === 'ciku'), m0), `${name}: Datin Ciku texts`);
   await wait(900); await look('the atas bats');
-  const sh = await W(() => { const w = window.__jade.world(), m = w.gangs.ev.mobs[0]; m.fly = undefined; m.st = 'run'; m.has = true; w.placePlayer(m.b.x + 30, m.b.y); w.p.act = null; return [m.b.x, m.b.y]; });
+  // (pass 13: a bat startled within 240 now glides off in an arc; held on the ground until E, so the prompt and the
+  // key press find it where it was)
+  const sh = await W(() => { const w = window.__jade.world(), m = w.gangs.ev.mobs[0]; m.fly = undefined; m.st = 'run'; m.has = true; w.placePlayer(m.b.x + 30, m.b.y); w.p.act = null;
+    const x = m.b.x, y = m.b.y; window.__pin12 = true; const hold = () => { if (!window.__pin12) return; if (m.st === 'run') { m.b.x = x; m.b.y = y; m.b.speed = 0; m.fly = undefined; } requestAnimationFrame(hold); }; hold(); return [x, y]; });
   await wait(120); const nsh = await W(() => window.__jade.world().near); check(nsh?.kind === 'gang' && /bat/i.test(nsh.label), `${name}: the shoo prompt: "${nsh?.label}"`);
-  void sh; await key('e', 400); check(await until(() => window.__seen12.has('shoo'), null, 2000), `${name}: E shoos the bat`); await look('shoo a bat');
+  void sh; await key('e', 400); check(await until(() => window.__seen12.has('shoo'), null, 2000), `${name}: E shoos the bat`); await W(() => { window.__pin12 = false; }); await look('shoo a bat');
   await free();
 
   // ── a chapter-eight job (Pedal to the Park, on a bike) and a new Hawker Tale start

@@ -10,15 +10,25 @@ import { tagOption } from './jade-tag.js';
 import { MRT_HINT } from './jade-mrt.js';
 import { CABLE_HINT } from './jade-cable.js';
 
-export type Lesson = { id: string; text: string; kbText?: string; keys: string[]; touch: string; when: (w: World) => boolean; done: (w: World, fx: string[]) => boolean; max?: number };
+/** how long the one-time MRT and cable car hints stay up (seconds on screen) */
+export const MRT_HINT_S = 12;
+/** the job the MRT hint is about (Madame Glint's, at Chinatown station) and the cable car's first job */
+export const MRT_JOB = 'm26', CABLE_JOB = 'm42';
+/** the MRT hint only makes sense while Madame Glint's job at the gates is still to do */
+const mrtNext = (w: World) => !w.s.done.includes(MRT_JOB);
+/** `once`: a one-time notice rather than a control to practise. It counts as learned (and is saved) the moment it
+ * first shows, steps off as soon as it no longer applies (a job, a ride), and never comes back (pass 13: the MRT hint
+ * used to reappear after every job and ride, and so lingered across Katong, Orchard and Changi) */
+export type Lesson = { id: string; text: string; kbText?: string; keys: string[]; touch: string; when: (w: World) => boolean; done: (w: World, fx: string[]) => boolean; max?: number; once?: boolean };
 const onFoot = (w: World) => !w.p.ride && !w.p.roof;
 const learned = (w: World, id: string) => w.s.learned.includes(id);
 export const LESSONS: Lesson[] = [
-  // contextual lessons first: they win when they apply. The MRT first of all, once, when the island opens: shown
-  // until you ride (or for 20 s), with the gold route line to Chinatown station while it shows
-  { id: 'mrt', text: MRT_HINT, keys: ['E'], touch: 'Action', when: w => !!w.c.isle && w.open.has('heartland') && !w.run && !w.p.ride, done: (_w, fx) => fx.includes('mrt'), max: 20 },
-  // the cable car, once, when Sentosa opens: shown until you ride it (or the ferry), or for 20 s
-  { id: 'cable', text: CABLE_HINT, keys: ['E'], touch: 'Action', when: w => !!w.c.east && w.open.has('resort') && !w.run && !w.p.ride, done: (_w, fx) => fx.includes('cable') || fx.includes('ferry-go'), max: 20 },
+  // contextual lessons first: they win when they apply. The MRT first of all, once, when the island opens and Madame
+  // Glint's job at Chinatown station is on offer (what the hint says): shown until you ride (or for 12 s), with the gold
+  // route line to Chinatown station while it shows
+  { id: 'mrt', text: MRT_HINT, keys: ['E'], touch: 'Action', when: w => !!w.c.isle && w.open.has('heartland') && mrtNext(w) && !w.run && !w.p.ride, done: (_w, fx) => fx.includes('mrt'), max: MRT_HINT_S, once: true },
+  // the cable car, once, when Sentosa opens (and Up the Cable Car is not yet done): until you ride it (or the ferry), or 12 s
+  { id: 'cable', text: CABLE_HINT, keys: ['E'], touch: 'Action', when: w => !!w.c.east && w.open.has('resort') && !w.s.done.includes(CABLE_JOB) && !w.run && !w.p.ride, done: (_w, fx) => fx.includes('cable') || fx.includes('ferry-go'), max: MRT_HINT_S, once: true },
   { id: 'heat', text: 'Lanterns lit: the wardens are after you. Break their line of sight to put them out.', keys: [], touch: '', when: w => w.heat >= 1, done: w => w.heat < 1, max: 9 },
   { id: 'hide', text: 'Duck into a bead curtain or a basket to hide: lanterns go out twice as fast.', keys: ['E'], touch: 'Action', when: w => w.heat >= 1 && learned(w, 'heat') && onFoot(w) && w.c.hides.some(h => dist(h.x, h.y, w.p.x, w.p.y) < 420), done: w => w.p.hide, max: 14 },
   { id: 'sneak', text: 'Sneak to stay quiet: walk slowly and you are much harder to notice.', keys: ['Shift'], touch: 'Sneak', when: w => onFoot(w) && !!w.run && (w.run.cur?.t === 'tail' || w.run.cur?.t === 'stealth'), done: w => w.p.sneak && w.p.b.speed > 20 },
@@ -37,6 +47,11 @@ export const LESSONS: Lesson[] = [
   { id: 'dash', text: 'Dash for a quick burst: it knocks thieves over and dodges crows.', keys: ['Space'], touch: 'Dash', when: w => onFoot(w) && learned(w, 'run'), done: (_w, fx) => fx.includes('dash'), max: 14 },
   { id: 'hop', text: 'Hop over crates, benches and hedges.', keys: ['Q'], touch: 'Hop', when: w => onFoot(w) && learned(w, 'dash'), done: (_w, fx) => fx.includes('hop'), max: 14 },
 ];
+/** a save that has already ridden or skipped past the first ride never sees the hint: mark it learned on load */
+export function settleLessons(s: { done: string[]; learned: string[]; stats?: { mrt?: number } }) {
+  if ((s.done.includes(MRT_JOB) || (s.stats?.mrt ?? 0) > 0) && !s.learned.includes('mrt')) s.learned.push('mrt');
+  if (s.done.includes(CABLE_JOB) && !s.learned.includes('cable')) s.learned.push('cable');
+}
 export type TutorState = { moved: number; ran: number; shownT: number; cur: string | null };
 export const newTutor = (): TutorState => ({ moved: 0, ran: 0, shownT: 0, cur: null });
 
@@ -51,11 +66,13 @@ export function tutorStep(w: World, dt: number, fx: string[]) {
     if (!w.hush) t.shownT += dt;
     if (cur.done(w, fx)) { learn(w, cur.id); w.fx.push({ t: 'learned', name: cur.id }); t.cur = null; return; }
     if (cur.max && t.shownT > cur.max) { learn(w, cur.id); t.cur = null; return; }
+    // a one-time notice goes the moment it no longer applies (it is already learned, so it never returns)
+    if (cur.once && !cur.when(w)) { t.cur = null; return; }
     if (cur.when(w)) { const better = LESSONS.find(l => !learned(w, l.id) && l.when(w)); if (!better || LESSONS.indexOf(better) >= LESSONS.indexOf(cur)) return; }
     else if (t.shownT < 2) return;
   }
   const next = LESSONS.find(l => !learned(w, l.id) && l.when(w)) ?? null;
-  if (next?.id !== t.cur) { t.cur = next?.id ?? null; t.shownT = 0; if (next?.id === 'move') t.moved = 0; if (next?.id === 'run') t.ran = 0; }
+  if (next?.id !== t.cur) { t.cur = next?.id ?? null; t.shownT = 0; if (next?.id === 'move') t.moved = 0; if (next?.id === 'run') t.ran = 0; if (next?.once) learn(w, next.id), t.cur = next.id; }
 }
 /** the page tells the tutor about things it sees (the map opened, the market opened) */
 export function learn(w: World, id: string) { if (!w.s.learned.includes(id)) w.s.learned.push(id); if (w.tutor.cur === id) w.tutor.cur = null; }
