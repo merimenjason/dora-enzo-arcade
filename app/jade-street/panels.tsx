@@ -221,6 +221,12 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
   const s = play.w.s;
   const set = (f: (x: Save['settings']) => void) => { f(s.settings); if (snd) { snd.sfxOn = s.settings.sound; snd.setMusic(s.settings.music); } onSave(); force(n => n + 1); play.bump(); };
   const st = s.stats;
+  // (pass 13: Escape in a sub-tab or the start-over check goes back one level, not out of the whole menu)
+  useEffect(() => {
+    if (tab === 'menu' && !confirm) return;
+    const k = (e: KeyboardEvent) => { if (e.key !== 'Escape' || remapWaiting) return; e.preventDefault(); e.stopImmediatePropagation(); if (confirm) setConfirm(false); else setTab('menu'); };
+    window.addEventListener('keydown', k, true); return () => window.removeEventListener('keydown', k, true);
+  }, [tab, confirm]);
   return (
     <Panel title={tab === 'menu' ? 'Paused' : tab === 'jobs' ? 'Jobs book' : tab[0].toUpperCase() + tab.slice(1)} onClose={tab === 'menu' ? onClose : () => setTab('menu')} cls="pause" testid="pause">
       {tab === 'menu' && !confirm && (
@@ -295,18 +301,20 @@ export function Pause({ play, onClose, onQuit, onNew, onSave, snd, onReplay, tou
 }
 void DAILY_NEED;
 
+/** a key remap is waiting for a key (its Esc cancels the remap, not the tab) */
+let remapWaiting = false;
 /** player 1's keys: click an action, then press the key you want for it (Esc cancels); a key in use swaps over */
 function KeyRemap({ play, onSave }: { play: Play; onSave: () => void }) {
   const keys = play.w.s.settings.keys; const [wait, setWait] = useState<KeyAction | null>(null); const [msg, setMsg] = useState(''); const [, force] = useState(0);
   useEffect(() => {
-    if (!wait) return;
+    remapWaiting = !!wait; if (!wait) return;
     const kd = (e: KeyboardEvent) => {
       e.preventDefault(); e.stopImmediatePropagation();
       if (e.key === 'Escape') { setWait(null); return; }
       const n = keyName(e.key.length === 1 ? e.key.toLowerCase() : e.key);
       const r = bind(keys, wait, n); setMsg(r ?? ''); setWait(null); onSave(); force(x => x + 1); play.bump();
     };
-    window.addEventListener('keydown', kd, true); return () => window.removeEventListener('keydown', kd, true);
+    window.addEventListener('keydown', kd, true); return () => { remapWaiting = false; window.removeEventListener('keydown', kd, true); };
   }, [wait, keys, onSave, play]);
   return (
     <div className="jade-remap" data-testid="remap">

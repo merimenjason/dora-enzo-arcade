@@ -1,5 +1,6 @@
 // Jade Street UI helpers: atlas sprites as CSS backgrounds, painted round buttons, and localStorage wrapped in try/catch.
-import type { CSSProperties, ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { artPending } from '@/lib/jade-scene';
 import { FRAMES, ATLASES, ATLAS_SIZE, VER } from '@/lib/jade-art';
 
 export const ART = '/art/jade-street/';
@@ -17,7 +18,10 @@ export function spriteStyle(name: string, h: number, w?: number): CSSProperties 
 }
 type SprProps = { name: string; h: number; w?: number; cls?: string; style?: CSSProperties; title?: string; flip?: boolean };
 export function Sprite({ name, h, w, cls = '', style, title, flip }: SprProps) {
-  const st = spriteStyle(name, h, w);
+  const f = FRAMES[name], wait = f ? artPending(ATLASES[f[0]]) : null;
+  const [, arrived] = useState(0);
+  useEffect(() => { if (wait) void wait.then(() => arrived(n => n + 1)); }, [wait]);
+  const st0 = spriteStyle(name, h, w), st = st0 && wait ? { ...st0, backgroundImage: 'none' } : st0;
   return <span className={'jade-spr ' + cls} data-spr={name} data-missing={st ? undefined : name} title={title} aria-hidden={title ? undefined : true} style={{ ...(st ?? { width: h, height: h }), ...(flip ? { transform: 'scaleX(-1)' } : null), ...style }} />;
 }
 export const Icon = ({ name, size = 24, cls = '' }: { name: string; size?: number; cls?: string }) => <Sprite name={name} h={size} w={size} cls={'jade-ico ' + cls} />;

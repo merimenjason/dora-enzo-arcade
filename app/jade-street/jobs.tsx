@@ -5,7 +5,7 @@
 import { useEffect } from 'react';
 import type { Play } from './controller';
 import { Panel } from './panels';
-import { Sprite } from './ui';
+import { Sprite, fmt } from './ui';
 import { INTEL, BRANCHES, type BranchPick } from '@/lib/jade-jobs';
 import type { Intel } from '@/lib/jade-story';
 
@@ -71,14 +71,15 @@ export function BranchPanel({ play }: { play: Play }) {
   if (!two) return null;
   const mate = w.mate.who === 'dora' ? 'Dora' : 'Enzo';
   return (
-    <Panel title="Which way?" onClose={() => { w.ui = null; play.bump(); }} cls="heist" testid="branch">
+    // (pass 13: the step cannot go on without a choice, so × takes the first way rather than closing a card that reopened)
+    <Panel title="Which way?" onClose={() => pick(two[0])} cls="heist" testid="branch">
       <div className="jade-heist-cards">
         {two.map((k, i) => (
           <button key={k} type="button" className={'jade-heist-card ' + (i ? 'loud' : 'quiet')} data-testid={`branch-${k}`} onClick={() => pick(k)}>
             <Sprite name={`card-${k}`} h={250} w={182} />
             <b>{CARDS[k].title} <kbd>{i + 1}</kbd></b>
             <span>{CARDS[k].text(mate)}</span>
-            <small>{CARDS[k].small(mate)}{k === 'bribe' ? ` You have ${w.s.cash} coins.` : ''}</small>
+            <small>{CARDS[k].small(mate)}{k === 'bribe' ? ` You have ${fmt(w.s.cash)} coins.` : ''}</small>
           </button>
         ))}
       </div>

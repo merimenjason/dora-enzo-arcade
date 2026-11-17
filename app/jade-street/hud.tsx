@@ -4,6 +4,7 @@
 // (portraits with a mood per line, the line typing out; a tap shows it all), the failure card,
 // and the touch controls (a floating stick on the left, Action / Dash / Hop / Sneak on the right). React draws only
 // this layer; the city is on the canvas underneath.
+import { travelText } from '@/lib/jade-mrt';
 import { useEffect, useRef } from 'react';
 import { FRAMES } from '@/lib/jade-art';
 import { districtAt, DISTRICT_NAME, T, streetAt } from '@/lib/jade-city';
@@ -71,10 +72,10 @@ export function TopHud({ play, onMap, onPause }: { play: Play; onMap: () => void
         // between jobs: what to do next and where (the gold line leads there on Assist)
         const m = w.nextJob(), pl = m && w.c.places[m.at]; if (!m || !pl) return null;
         const px = Math.floor(pl.x / T), py = Math.floor(pl.y / T), where = streetAt(px, py) ?? DISTRICT_NAME[districtAt(px, py)].replace(/^the /, 'The ');
-        return <div className="jade-job small" data-testid="next-job"><div className="jade-job-title">{m.side ? 'Hawker Tales' : `Chapter ${m.ch}`} · Next job</div><div className="jade-job-label">{m.title} · {PEOPLE[m.giver]?.name ?? 'a friend'}, {where}</div></div>;
+        return <div className="jade-job small" data-testid="next-job"><div className="jade-job-title">{m.side ? 'Hawker Tales' : `Chapter ${m.ch}`} · Next job</div><div className="jade-job-label">{m.title} · {PEOPLE[m.giver]?.name ?? 'a friend'}, {where}</div><TravelLine play={play} /></div>;
       })()}
       <RaidHud play={play} />
-      {!run && w.waypoint && <div className="jade-job small"><div className="jade-job-label" data-testid="route-label">{w.c.isle?.stations.find(s => s.x === w.waypoint![0] && s.y === w.waypoint![1])?.name.replace(/^/, 'To ') ?? conRoute(play) ?? 'Following your map pin'}</div></div>}
+      {!run && w.waypoint && <div className="jade-job small"><div className="jade-job-label" data-testid="route-label">{w.c.isle?.stations.find(s => s.x === w.waypoint![0] && s.y === w.waypoint![1])?.name.replace(/^/, 'To ') ?? conRoute(play) ?? 'Following your map pin'}</div><TravelLine play={play} /></div>}
       {!run && !w.waypoint && <NextContract play={play} />}
     </>
   );
@@ -86,13 +87,18 @@ function conRoute(play: Play) {
   const l = findListed(w, pin); return l ? `To ${PEOPLE[l.c.giver]?.name ?? l.c.giver} for “${l.c.title}”` : null;
 }
 /** between jobs, with the story's jobs all done for now: the next contract, whose giver the gold line leads to */
+/** pass 13: when a ride is clearly quicker, the plaque's second line says which (the gold line goes to its station) */
+function TravelLine({ play }: { play: Play }) {
+  const t = play.w.travel; if (!t || play.w.run) return null;
+  return <div className="jade-job-title" data-testid="travel-label">Quicker by {t.via === 'mrt' ? 'train' : t.via === 'cable' ? 'cable car' : 'ferry'} · {travelText(t)}</div>;
+}
 function NextContract({ play }: { play: Play }) {
   const w = play.w; if (offered(w.s).length) return null;
   const l = nextContract(w); if (!l) return null;
   return (
     <div className="jade-job small jade-nextcon" data-testid="next-contract">
       <Sprite name={PEOPLE[l.c.giver]?.face ?? 'face-kee'} h={34} w={34} />
-      <div><div className="jade-job-title">{l.tag === 'day' ? 'Contract of the day' : l.tag === 'push' ? 'Retake' : 'Next contract'} · {'★'.repeat(l.c.stars)}</div><div className="jade-job-label">{PEOPLE[l.c.giver]?.name ?? l.c.giver}: {l.c.title}</div></div>
+      <div><div className="jade-job-title">{l.tag === 'day' ? 'Contract of the day' : l.tag === 'push' ? 'Retake' : 'Next contract'} · {'★'.repeat(l.c.stars)}</div><div className="jade-job-label">{PEOPLE[l.c.giver]?.name ?? l.c.giver}: {l.c.title}</div><TravelLine play={play} /></div>
     </div>
   );
 }
@@ -124,14 +130,14 @@ export function Dialogue({ play }: { play: Play }) {
   const w = play.w, t = w.talk; if (!t) return null;
   const [who, text, mood = 'calm'] = t.lines[t.i] ?? ['', ''];
   const hero = who === w.s.hero;
-  const typing = play.typed < text.length;
+  const typing = play.shown() < text.length;
   return (
     <div className="jade-talk-wrap" onClick={() => play.advance()} data-testid="dialogue">
       <div className={'jade-talk' + (hero ? ' hero' : '')}>
         <span className={'jade-talk-face mood-' + mood} data-testid="talk-face" data-mood={mood}><Sprite name={moodFace(who, w.s.hero, mood)} h={96} w={96} /></span>
         <div className="jade-talk-body">
           <div className="jade-talk-name">{nameOf(who)}</div>
-          <p key={t.i} aria-label={text} data-testid="talk-text" ref={el => { play.typeEl = el; if (el) el.textContent = text.slice(0, Math.floor(play.typed)); }} />
+          <p key={t.i} aria-label={text} data-testid="talk-text" ref={el => { play.typeEl = el; if (el) el.textContent = text.slice(0, Math.floor(play.shown())); }} />
           <div className="jade-talk-next">{t.i + 1}/{t.lines.length} · {typing ? 'tap, Space or E to show it all' : 'tap, Space or E to continue'}</div>
         </div>
       </div>

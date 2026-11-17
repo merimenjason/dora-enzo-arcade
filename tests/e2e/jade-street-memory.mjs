@@ -42,6 +42,9 @@ const cdp = kind === 'chromium' && process.env.PRESSURE ? await p.context().newC
  *  long before it shows in the memory) */
 const dom = kind === 'chromium' ? await p.context().newCDPSession(p) : null;
 const nodes = async () => dom ? (await dom.send('Memory.getDOMCounters').catch(() => ({ nodes: null }))).nodes : null;
+/** pass 13 (playtest P10: the node count climbed from 245 to about 1,650 in ten minutes): the same count after a full
+ *  garbage collection, so nodes only waiting for the collector are told apart from nodes something still holds */
+const liveNodes = async () => { if (!dom) return null; await dom.send('HeapProfiler.collectGarbage').catch(() => undefined); return nodes(); };
 const pressed = async () => {
   if (!cdp) return null;
   await cdp.send('Memory.simulatePressureNotification', { level: 'critical' }).catch(() => undefined);
@@ -61,7 +64,7 @@ const DISTRICTS = ['market', 'heartland', 'india', 'temple', 'bay', 'resort', 'o
 const samples = []; const t0 = Date.now(); let k = 0, lastSample = -1e9, held = null;
 const sample = async (d) => {
   const g = await p.evaluate(() => ({ art: window.__jade.art ? window.__jade.art() : { decodedMB: null, files: [], chunks: window.__jade.play.scene.chunks.size, chunkMB: null, recolored: null }, heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null, fps: Math.round(window.__jade.fps()) }));
-  const s = { t: Math.round((Date.now() - t0) / 1000), d, rss: rss(), rssPressed: await pressed(), heap: g.heap, fps: g.fps, decodedMB: g.art.decodedMB, files: g.art.files.length, chunks: g.art.chunks, chunkMB: g.art.chunkMB, recolored: g.art.recolored, glows: g.art.glows ?? null, nodes: await nodes() };
+  const s = { t: Math.round((Date.now() - t0) / 1000), d, rss: rss(), rssPressed: await pressed(), heap: g.heap, fps: g.fps, decodedMB: g.art.decodedMB, files: g.art.files.length, chunks: g.art.chunks, chunkMB: g.art.chunkMB, recolored: g.art.recolored, glows: g.art.glows ?? null, nodes: await nodes(), live: await liveNodes() };
   samples.push(s); console.log(JSON.stringify(s));
 };
 while (Date.now() - t0 < MS && !crashed) {
@@ -101,6 +104,10 @@ if (max(s => s.decodedMB) > DECODED_MB) fails.push(`decoded paintings reached ${
 if (max(s => s.chunkMB) > 100) fails.push(`ground chunks reached ${max(s => s.chunkMB)} MB`);
 if (max(s => s.recolored) > 360) fails.push(`recoloured frames reached ${max(s => s.recolored)}`);
 if (max(s => s.glows) > 64) fails.push(`glow sprites reached ${max(s => s.glows)}`);
+// the nodes still held after a collection: these must stay flat (a few hundred for the page, plus the canvases in use)
+{ const n = samples.map(s => s.live).filter(v => v !== null && v !== undefined), k = Math.floor(n.length / 3);
+  if (n.length > 6 && Math.max(...n.slice(2 * k)) > 1.5 * Math.max(...n.slice(0, k)) + 300) fails.push(`DOM nodes still held after a collection kept growing: ${Math.max(...n.slice(0, k))} in the first third, ${Math.max(...n.slice(2 * k))} in the last`);
+  if (n.length) console.log(`DOM nodes after a collection: ${n.join(' ')}`); }
 { const n = samples.map(s => s.nodes).filter(v => v !== null), k = Math.floor(n.length / 3);
   if (n.length > 6 && Math.max(...n.slice(2 * k)) > 3 * Math.max(...n.slice(0, k)) + 5000) fails.push(`DOM nodes kept growing: ${Math.max(...n.slice(0, k))} in the first third, ${Math.max(...n.slice(2 * k))} in the last`); }
 const third = Math.floor(samples.length / 3), avg = a => a.reduce((x, s) => x + s.rss, 0) / Math.max(1, a.length);

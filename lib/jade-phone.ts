@@ -27,7 +27,8 @@ export function firstPerson(blurb: string, name: string) {
 }
 /** job offers: text once for each job that becomes available (not the very first, Uncle Kee is right there) */
 export function phoneStep(w: World) {
-  if (w.tick % 30 !== 0 || !w.s.story.intro) return;
+  // (pass 13: nothing until Opening Night is done: Chef Mo's text competed with the first job)
+  if (w.tick % 30 !== 0 || !w.s.story.intro || !w.s.done.includes('m1')) return;
   const ids = offered(w.s).map(m => m.id);
   for (const m of offered(w.s)) {
     if (w.offered.has(m.id)) continue;

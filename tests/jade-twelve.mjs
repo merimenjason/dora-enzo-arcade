@@ -82,7 +82,7 @@ test('the Atas Bats: on their turf, swooping and hanging upside down; every gadg
   const w = world(); at(w, 'rosie', 1.4);
   const ev = startGang(w, 'bats'); assert.ok(ev, 'a raid starts in Katong'); assert.equal(ev.mobs.length, 3);
   assert.ok(w.s.msgs.some(m => m.from === 'ciku'), 'Datin Ciku texts');
-  let flew = false; for (let k = 0; k < 60 * 20 && !flew; k++) { w.step(NO_INPUT, DT); for (const m of ev.mobs) if (m.fly !== undefined) flew = true; }
+  let flew = false; for (let k = 0; k < 60 * 45 && !flew; k++) /* (45 s: since pass 13 a bat left alone takes off about every 8 s, not 4) */ { w.step(NO_INPUT, DT); for (const m of ev.mobs) if (m.fly !== undefined) flew = true; }
   assert.ok(flew, 'they swoop');
   const effects = {};
   for (const g of ['bubble', 'paint', 'net', 'sling', 'popper']) {
@@ -242,3 +242,5 @@ test('save v13: a v12 save keeps every job, medal, coin, property and contract; 
 console.log(`jade (twelfth pass): ${n} tests ok`);
 // the loading tiers, content hashes and cache rule (lib/jade-load.ts)
 await import('./jade-load.mjs');
+// the thirteenth pass: polish (tests/jade-thirteen.mjs)
+await import('./jade-thirteen.mjs');

@@ -4,6 +4,7 @@
 // in progress with Route me and Send partner, the partner's round of the tills, and every property by district with
 // its level, takings, damage, jaga and a Route me button. The property panel's empire row (repair, hire a jaga, the
 // empire jobs on offer there tonight), and the HUD's raid clock. The rules are in lib/jade-empire.ts and lib/jade-biz.ts.
+import { travelHint } from '@/lib/jade-mrt';
 import { useState } from 'react';
 import { BIZ, BIZ_OF, bizPos, bizSprite, RANKS, rankOf, empireValue, EMPIRE_COST, DISTRICTS_WITH_PROPS, type BizId } from '@/lib/jade-biz';
 import { EMP, ledger, sendRound, sendDefend, canSend, repairBiz, hireJaga, repairCost, jagaCost, jobsAt, startEmpireJob, RAID_WHAT } from '@/lib/jade-empire';
@@ -34,7 +35,7 @@ export function RankCard({ play }: { play: Play }) {
         <b className="jade-rank-name" data-testid="emp-rank-name">{RANKS[r].name}</b>
         {r > 0 && <small>{RANKS[r].perk}</small>}
         <div className="jade-meter" aria-label={next ? `${pct}% of the way to ${next.name}` : 'The top rank'}><span style={{ width: `${pct}%` }} /></div>
-        <small>{next ? <>Next, <b>{next.name}</b>: put {fmt(Math.max(0, next.need - v))} more coins into properties{r === 3 ? ', with a property in every district' : ''}. Perk: {next.perk.replace(/^./, c => c.toLowerCase())}.</> : <>The top rank. Everything you own takes 10% more.</>}</small>
+        <small>{next ? <>Next, <b>{next.name}</b>: {v <= 0 ? <>buy your first property (any stall or shop with a gold pin)</> : <>put {fmt(Math.max(0, next.need - v))} more coin{Math.max(0, next.need - v) === 1 ? '' : 's'} into properties</>}{r === 3 ? ', with a property in every district' : ''}. Perk: {next.perk.replace(/^./, c => c.toLowerCase())}.</> : <>The top rank. Everything you own takes 10% more.</>}</small>
         <small>Empire value {fmt(v)} of {fmt(EMPIRE_COST)} coins.</small>
       </div>
     </div>
@@ -51,7 +52,7 @@ export function RaidCard({ play, onClose }: { play: Play; onClose?: () => void }
       <Icon name="pin-raid" size={34} />
       <div>
         <b>Raid on the {b.name}!</b>
-        <small>The {GANG_NAME[rd.gang]} are at it in {dName(b.d)}. {RAID_WHAT[rd.kind]}. {rd.sent ? 'Your partner is on the way.' : <>Get there in <b data-testid="emp-raid-t">{secs(rd.t)}</b>.</>}</small>
+        <small>The {GANG_NAME[rd.gang]} are at it in {dName(b.d)} (<span data-testid="emp-raid-far">{travelHint(w, ...bizPos(b))}</span>). {RAID_WHAT[rd.kind]}. {rd.sent ? 'Your partner is on the way.' : <>Get there in <b data-testid="emp-raid-t">{secs(rd.t)}</b>.</>}</small>
         {msg && <small className="jade-msg">{msg}</small>}
         {!rd.sent && <div className="jade-card-btns">
           <Btn kind="red" testid="emp-raid-route" onClick={() => { routeTo(play, rd.id); onClose?.(); }}>Route me there</Btn>

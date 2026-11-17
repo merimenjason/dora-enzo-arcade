@@ -62,13 +62,13 @@ export async function third(h) {
   check(await until(() => window.__jade.run().decoys > 0, null, 8000), `${name}: phase 1 throws decoys`); await look('boss decoys');
   await W(() => { const J = window.__jade; J.enterStep(J.stepOf('chase', '2')); });
   check(await until(() => window.__jade.run().signs > 0 && window.__jade.run().phase === 2, null, 8000), `${name}: phase 2 drops neon signs`); await wait(400); await look('boss signs');
-  await W(() => { const J = window.__jade; J.enterStep(J.stepOf('float')); const w = J.world(); if (w.p.ride) { w.p.ride.parked = true; w.p.ride = null; } w.p.roof = true; w.p.b.x = 103 * 64 + 32; w.p.b.y = 34 * 64 + 12; w.p.lastRoof = [w.p.b.x, w.p.b.y]; });
-  // the float only swings in once the partner hauls the bunting rope: F sends them
-  // (the partner may still be catching up after the boss chase: bring them alongside if the offer hasn't come)
-  // (the offer can be brief: a partner who reaches the rope on their own takes it, and then F is not needed)
+  // (pass 13: deterministic. After the boss chase the partner could still be in the scooter's seat or mid-animation
+  // (climbing off, cheering) and the hero still knocked about by a sign, and any of those hides every F move, so the
+  // offer sometimes never came. Both heroes now start the step on the roof together with nothing in hand)
   await until(() => !window.__jade.artWait(), null, 20000); // (the paintings for where the float is, if they were not in)
-  let rope = await until(() => window.__jade.duo().tag === 'hold', null, 3000);
-  if (!rope) { await W(() => { const w = window.__jade.world(); w.mate.b.x = w.p.b.x + 40; w.mate.b.y = w.p.b.y; w.mate.roof = w.p.roof; }); rope = await until(() => window.__jade.duo().tag === 'hold', null, 3000); }
+  await W(() => { const J = window.__jade; J.enterStep(J.stepOf('float')); const w = J.world(); if (w.p.ride) { w.p.ride.parked = true; w.p.ride = null; } w.two = false; w.p.act = null; w.p.hide = false; w.p.stunT = 0; w.p.roof = true; w.p.b.x = 103 * 64 + 32; w.p.b.y = 34 * 64 + 12; w.p.lastRoof = [w.p.b.x, w.p.b.y]; w.regroup(); w.mate.b.x = w.p.b.x + 40; w.mate.b.y = w.p.b.y; w.mate.lastRoof = [w.mate.b.x, w.mate.b.y]; w.talk = null; w.ui = null; });
+  // the float only swings in once the partner hauls the bunting rope: F sends them
+  const rope = await until(() => window.__jade.duo().tag === 'hold', null, 3000);
   check(rope, `${name}: F offers the bunting rope` + (rope ? '' : ' ' + await W(() => JSON.stringify({ duo: window.__jade.duo(), wait: window.__jade.artWait(), paused: window.__jade.play.paused }))));
   if (!(await W(() => window.__jade.duo().holding))) { await p.keyboard.press('f'); await wait(150); }
   check(await until(() => window.__jade.duo().holding, null, 15000), `${name}: the partner hauls the rope`);

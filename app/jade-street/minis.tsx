@@ -27,7 +27,9 @@ const pinTop = (h: number) => 520 - h * 200;
 const FOOD_SPR: Record<string, string> = { noodles: 'mg-noodles', prawn: 'mg-prawn', bokchoy: 'mg-bokchoy', egg: 'mg-egg', chilli: 'mg-chilli' };
 const FOOD_NAME: Record<string, string> = { noodles: 'Noodles', prawn: 'Prawn', bokchoy: 'Bok choy', egg: 'Egg', chilli: 'Chilli' };
 
-export function MiniGame({ kind, level, assist, seed, snd, onDone }: { kind: string; level: number; assist: boolean; seed: number; snd: JadeSound | null; onDone: (ok: boolean) => void }) {
+/** pass 13: a job that rewires lights (a switch box, the stage lights) gets the switch box, not the scooter's ignition */
+const LIGHTS_TITLE: [string, string, string] = ['Rewire the switch box', 'Join each wire to the socket of the same colour, then turn the switch key.', TITLE.wires[2].replace('for the key', 'for the switch key')];
+export function MiniGame({ kind, level, assist, seed, snd, onDone, lights = false }: { kind: string; level: number; assist: boolean; seed: number; snd: JadeSound | null; onDone: (ok: boolean) => void; lights?: boolean }) {
   const cv = useRef<HTMLCanvasElement>(null);
   const game = useRef<AnyMini>(makeMini(kind, { level, assist, seed }));
   const [, setTick] = useState(0);
@@ -38,7 +40,7 @@ export function MiniGame({ kind, level, assist, seed, snd, onDone }: { kind: str
 
   useEffect(() => {
     const c = cv.current!; const x = c.getContext('2d')!;
-    const bg = new Image(); bg.src = artUrl(BG[kind]);
+    const bg = new Image(); bg.src = artUrl(lights && kind === 'wires' ? 'bg-mg-switch' : BG[kind]);
     void ensureArt(filesOf(['mini'])).catch(() => undefined);
     let raf = 0, last = 0, hud = 0, ended = false, endT = 0;
     const fit = () => {
@@ -127,7 +129,7 @@ export function MiniGame({ kind, level, assist, seed, snd, onDone }: { kind: str
   };
 
   const g = game.current;
-  const [title, how, keysTxt] = TITLE[kind];
+  const [title, how, keysTxt] = lights && kind === 'wires' ? LIGHTS_TITLE : TITLE[kind];
   const time = 'time' in g && (g instanceof LockGame || g instanceof WireGame || g instanceof SafeGame) ? Math.ceil(g.time) : null;
   return (
     <div className="jade-mini" data-testid={`mini-${kind}`} data-done={end === null ? undefined : String(end)}>
@@ -153,7 +155,7 @@ export function MiniGame({ kind, level, assist, seed, snd, onDone }: { kind: str
         {g instanceof DumplingGame && <button type="button" className="jade-btn jade" data-testid="fold" onPointerDown={e => { e.preventDefault(); g.press(); }}>Pinch!</button>}
         <button type="button" className="jade-btn plain" data-testid="mini-quit" onClick={() => { g.failed = true; g.ev.push({ t: 'fail' }); }}>Give up</button>
       </div>
-      {end !== null && <div className={'jade-mini-end ' + (end ? 'ok' : 'bad')}>{end ? (kind === 'lock' ? 'Click! It’s open.' : kind === 'wires' ? 'Vroom! It starts.' : kind === 'wok' ? 'Order up!' : kind === 'safe' ? 'Clunk! The door swings open.' : 'Into the steamer!') : 'Oh no!'}</div>}
+      {end !== null && <div className={'jade-mini-end ' + (end ? 'ok' : 'bad')}>{end ? (kind === 'lock' ? 'Click! It’s open.' : kind === 'wires' ? (lights ? 'Lights on!' : 'Vroom! It starts.') : kind === 'wok' ? 'Order up!' : kind === 'safe' ? 'Clunk! The door swings open.' : 'Into the steamer!') : 'Oh no!'}</div>}
     </div>
   );
 }

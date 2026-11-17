@@ -2,6 +2,28 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 17-11-2026
+
+### Added
+
+- **Jade Street**: Route me takes the train. When the MRT, the cable car or the ferry is clearly quicker, the gold line leads to the station first, the route plaque says which ride to take, the MRT gates mark your stop, and every contract and raid card says roughly how far it is ("about 30 s by MRT").
+- **Jade Street**: a painted street-light switch box for the jobs that rewire the lights, and Teh Tarik Time opens its own teh tarik stall.
+
+### Changed
+
+- **Jade Street**: Hard contracts are now clearly harder than Normal ones: shorter clocks, quicker chases and races, touchier tails, and a getaway from the wardens at the end of the two- and three-star ones. Casual and Normal are unchanged.
+- **Jade Street**: the Atas Bats fly their own way: rarer, longer gliding swoops that weave, and a startled bat arcs away from you.
+- **Jade Street**: your partner's round of the tills takes about a minute instead of several; the ferry crossing is quicker; plane spotting counts down to the next plane; the MRT gates show the line with a dot per stop.
+- **Jade Street**: a quicker first visit: the title preloads the opening storybook, so its first page is never black, and no picture is downloaded twice.
+- **Jade Street**: the contract of the day comes first in the Contracts tab, with a plainer line about tiers; coins have thousands separators.
+
+### Fixed
+
+- **Jade Street**: the MRT and cable car hints show once, briefly, and never in a game that is past them; the stray "To Chinatown station" plaque in Katong, Orchard Road and Changi is gone.
+- **Jade Street**: Changi Village Stakeout is fair: your partner no longer waits on the courier's path.
+- **Jade Street**: smoother frames when a district's paintings arrive (the minimap is now painted a little at a time).
+- **Jade Street**: the pounce prompt names who you pounce on; a routed contract is offered even when its giver has a Hawker Tale; E turns the opening comic; the × on "Which way?" no longer reopens the cards; a new game no longer starts on the safe house's prompt, and Chef Mo waits until Opening Night is done to text; the Empire tab's banner shows on first open; one taxi message at a time; the radio chip no longer covers the phone button; the partner chip no longer says "Hiding with you" on the ferry; the rank line with no properties makes sense; Escape in a pause tab goes back one step.
+
 ## 16-11-2026
 
 ### Added

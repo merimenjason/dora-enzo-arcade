@@ -21,7 +21,7 @@ import { heatStep, addHeat, caught, type Warden, type Roadblock } from './jade-h
 import { sgStep, sgNear, sgAct, sgGates, newSg, cheer, type SgState, type Bark } from './jade-sg.js';
 import { finesStep, payTicket, offence, FINE, type Patrol, type Ticket } from './jade-fines.js';
 import { gangsStep, gangNear, gangAct, newGangs, type GangState } from './jade-gangs.js';
-import { stationNear, mrtTo, cantRide, routeToStation, stationById, MRT_TEXT } from './jade-mrt.js';
+import { stationNear, mrtTo, cantRide, routeToStation, stationById, MRT_TEXT, travelPlan, type Travel } from './jade-mrt.js';
 import { hail, taxiStep, skipRide, type Taxi } from './jade-taxi.js';
 import { eastStep, eastNear, eastAct, newEast, type EastState } from './jade-eastfest.js';
 import { farStep, farNear, farAct, newFar, type FarState } from './jade-farfest.js';
@@ -36,7 +36,9 @@ export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop
   hail?: boolean };
 export const NO_INPUT: Input = { mx: 0, my: 0, sneak: false, dash: false, hop: false, act: false };
 export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; locked: boolean; tint: number; mission?: boolean; seen?: number; broken?: boolean };
-export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string };
+/** `over`: a toast that replaces any showing or waiting toast containing this text (pass 13: "Your taxi is here" sat
+ * beside "a taxi is on its way") */
+export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string; over?: string };
 export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry' | 'east' | 'empire' | 'contract' | 'far'; label: string; x: number; y: number; id?: string; ride?: Ride };
 export type Snatcher = { x: number; y: number; h: number; t: number; out: boolean; took: number; wing: number; good?: string; dizzy?: number };
 export type Act = { n: string; t: number; dur: number; then?: () => void };
@@ -128,6 +130,7 @@ export class World {
 
   constructor(save: Save, seed = save.seed) {
     this.c = getCityOnce(); this.obs = obstacleGrid(this.c); this.s = save; this.R = rng(seed * 7919 + save.night);
+    settleLessons(save);
     this.open = new Set(openDistricts(save));
     this.tripCost = { jade: 0, mooncake: 0, tea: 0, bowl: 0, fan: 0, mango: 0 };
     for (const g of GOODS) this.tripCost[g] = save.cargo[g] * GOOD[g].base;
@@ -139,7 +142,8 @@ export class World {
     this.p = new Player(save.hero); this.mate = new Player(save.hero === 'dora' ? 'enzo' : 'dora');
     this.crates = makeCrates(this);
     const home = this.c.places[save.safe] ?? this.c.places['safe-market'];
-    this.placePlayer(home.x, home.y + T * 0.6);
+    // (pass 13: a step clear of the safe house's door, so the first E is not the safe house by accident)
+    this.placePlayer(home.x, home.y + T * 1.5);
     // the game was closed mid-job: say so, and lead back to its giver to start it again
     const lost = save.jobOpen ? MISSION[save.jobOpen] : null;
     if (lost) { save.jobOpen = undefined; const pl = this.c.places[lost.at]; if (pl && this.open.has(pl.d)) this.waypoint = [pl.x, pl.y]; this.say(`“${lost.title}” stopped when you left. Talk to ${PEOPLE[lost.giver]?.name ?? 'them'} to start it again (the gold line leads there).`, 'gold'); }
@@ -159,7 +163,7 @@ export class World {
     const r: Ride = { id: this.nextId++, kind, b: { x, y, h, speed: 0, r: v.r, len: v.len, cls: v.cls }, parked: true, locked, tint, mission };
     this.rides.push(r); return r;
   }
-  say(msg: string, kind = '') { this.fx.push({ t: 'toast', msg, kind }); }
+  say(msg: string, kind = '', over?: string) { this.fx.push({ t: 'toast', msg, kind, over }); }
   ctx(roof = false, air = false, gates = true): Ctx { return { c: this.c, roof, air, obstacles: this.obs, blocked: gates && this.gates.size ? (tx, ty) => !this.open.has(districtAt(tx, ty)) || this.gates.has(ty * W + tx) : (tx, ty) => !this.open.has(districtAt(tx, ty)) }; }
   fieldTo(cls: 'foot' | 'walk' | 'small' | 'big' | 'boat', x: number, y: number): Field {
     const tx = Math.floor(x / T), ty = Math.floor(y / T); const key = `${cls}:${tx}:${ty}:${[...this.open].join()}`;
@@ -467,7 +471,8 @@ export class World {
   // ── interaction: what's in reach, and pressing the action button
   findNear() {
     const p = this.p, x = p.x, y = p.y; let best: Near | null = null, bd = 1e9;
-    const cand = (n: Near, r: number) => { const d = dist(n.x, n.y, x, y); if (d < r && d < bd) { bd = d; best = n; } };
+    // (`bias`: a prompt that should win over others at the same spot, such as the contract you routed to)
+    const cand = (n: Near, r: number, bias = 0) => { const d = dist(n.x, n.y, x, y); if (d < r && d - bias < bd) { bd = d - bias; best = n; } };
     if (this.taxi?.st === 'ride') { this.near = { kind: 'taxi', label: 'Skip to the drop-off', x, y }; return; }
     if (this.ferry) { this.near = { kind: 'ferry', label: 'Skip to the pier', x, y }; return; }
     if (p.hide) { this.near = { kind: 'unhide', label: 'Come out', x, y }; return; }
@@ -672,8 +677,16 @@ export class World {
   waypoint: [number, number] | null = null;
   /** the first-ride hint set the route to Chinatown station (and clears it when the hint goes) */
   mrtGuide = false;
+  /** the ride on the way (pass 13): set while the gold line leads to a station or pier first, null when walking */
+  travel: Travel | null = null;
+  /** where the gold line leads: the goal, or (free roam, far away) the station or pier to ride there from */
   objective(): [number, number] | null {
-    if (this.run) return this.run.target();
+    if (this.run) { this.travel = null; return this.run.target(); }
+    const o = this.goal(); this.travel = o && !this.p.roof ? travelPlan(this, o[0], o[1]) : null;
+    return this.travel ? [this.travel.from.x, this.travel.from.y] : o;
+  }
+  /** the free-roam goal itself: your pin, an empire alert, the next giver, a street event, a contract */
+  goal(): [number, number] | null {
     if (this.waypoint && dist(this.waypoint[0], this.waypoint[1], this.p.x, this.p.y) < 110) { this.waypoint = null; this.fx.push({ t: 'arrive' }); }
     if (this.waypoint) return this.waypoint;
     const er = empireTarget(this); if (er) return er;
@@ -801,7 +814,7 @@ const LEAN_AVG = 0.85;
 import { gigBoards, startGig } from './jade-gigs.js';
 import { eventsStep, eventNear, eventAct, eventTarget, type StreetEvent } from './jade-events.js';
 import { phoneStep, nightTip } from './jade-phone.js';
-import { tutorStep, newTutor, type TutorState } from './jade-tutor.js';
+import { tutorStep, newTutor, settleLessons, type TutorState } from './jade-tutor.js';
 import { rainAt } from './jade-weather.js';
 import { medalOf, MEDAL_NAME } from './jade-medals.js';
 import { closedTiles } from './jade-setpiece.js';

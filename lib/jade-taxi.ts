@@ -43,7 +43,7 @@ export function hail(w: World, app = false): boolean {
   w.taxi = { b: { x, y, h, speed: 0, r: 22, len: 76, cls: 'big' }, st: 'come', t: 0, to: null, sprite: w.R() < 0.6 ? 'v-taxi' : 'v-taxi-b', fare: 0, wait: 0 };
   w.p.act = { n: app ? 'phone' : 'hail', t: 0, dur: 0.9 }; w.p.face = app ? 'down' : 'side';
   w.fx.push({ t: 'hail', x: px, y: py });
-  w.say(app ? `${TAXI_APP}: a taxi is on its way` : 'Taxi!', 'good');
+  w.say(app ? `${TAXI_APP}: a taxi is on its way` : 'Taxi! A taxi is on its way', 'good');
   return true;
 }
 /** the places a taxi drops off at: safe houses, markets, contacts, stations and sights in open districts */
@@ -86,7 +86,7 @@ export function taxiStep(w: World, dt: number) {
   if (tx.st === 'come' && (w.run || w.heat >= 1)) { tx.st = 'gone'; tx.t = 0; return; }
   const d = dist(tx.b.x, tx.b.y, goal[0], goal[1]);
   if (d < (tx.st === 'ride' ? 110 : 90)) {
-    if (tx.st === 'come') { tx.st = 'wait'; tx.wait = 0; tx.b.speed = 0; w.fx.push({ t: 'taxi-stop', x: tx.b.x, y: tx.b.y }); if (!w.p.act) { w.p.act = { n: 'point', t: 0, dur: 0.9 }; w.p.face = 'side'; } w.say('Your taxi is here: E to get in', 'good'); }
+    if (tx.st === 'come') { tx.st = 'wait'; tx.wait = 0; tx.b.speed = 0; w.fx.push({ t: 'taxi-stop', x: tx.b.x, y: tx.b.y }); if (!w.p.act) { w.p.act = { n: 'point', t: 0, dur: 0.9 }; w.p.face = 'side'; } w.say('Your taxi is here: E to get in', 'good', 'taxi is on its way'); }
     else arrive(w);
     return;
   }

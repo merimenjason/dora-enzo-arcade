@@ -100,3 +100,43 @@ export function routeToStation(w: World, id: string): boolean {
   const s = stationById(w, id); if (!s || !w.open.has(s.d)) return false;
   w.waypoint = [s.x, s.y]; w.routeT = 0; w.updateRoute(); return true;
 }
+
+// ── getting far (pass 13): Route me and the gold line take the MRT, the cable car or the ferry when it is quicker
+/** a far trip by train or link: walk to `from`, ride to `to`, walk on; `secs` is the rough time, `direct` on foot */
+export type Travel = { via: 'mrt' | 'cable' | 'ferry'; from: { id: string; name: string; x: number; y: number }; to: { id: string; name: string; x: number; y: number }; secs: number; direct: number };
+/** on foot about this fast over the ground, streets and corners included (units a second) */
+export const TRAVEL_FOOT = 235 / 1.3;
+/** a ride's cost in seconds: the gates, the ride view and the walk out (the ferry also crosses in real time) */
+export const RIDE_SECS = { mrt: 8, cable: 9, ferry: 6 } as const;
+/** shorter than this (seconds on foot) the plan is always to walk; a ride must save at least this share of the time */
+export const TRAVEL_MIN = 25, TRAVEL_SAVE = 0.35;
+/** the quickest way from (x, y) to (tx, ty): a ride when it saves enough time, else null (walk) */
+export function travelPlan(w: World, tx: number, ty: number, x = w.p.x, y = w.p.y): Travel | null {
+  const open = (sx: number, sy: number) => w.open.has(districtAt(Math.floor(sx / T), Math.floor(sy / T)));
+  const direct = dist(x, y, tx, ty) / TRAVEL_FOOT; if (direct < TRAVEL_MIN) return null;
+  let best: Travel | null = null;
+  const consider = (via: Travel['via'], a: Travel['from'], b: Travel['to'], ride: number) => {
+    if (a.id === b.id) return;
+    const secs = (dist(x, y, a.x, a.y) + dist(b.x, b.y, tx, ty)) / TRAVEL_FOOT + ride;
+    if (secs < direct * (1 - TRAVEL_SAVE) && (!best || secs < best.secs)) best = { via, from: a, to: b, secs, direct };
+  };
+  const near = <S extends { x: number; y: number }>(list: S[], px: number, py: number) => list.reduce<S | null>((m, s) => !m || dist(s.x, s.y, px, py) < dist(m.x, m.y, px, py) ? s : m, null);
+  const stns = (w.c.isle?.stations ?? []).filter(s => w.open.has(s.d));
+  if (stns.length > 1 && w.s.cash >= FARE) { const a = near(stns, x, y)!, b = near(stns, tx, ty)!; consider('mrt', a, b, RIDE_SECS.mrt); }
+  for (const l of w.c.east ? [w.c.east.cable, w.c.east.ferry] : []) {
+    if (!l.stops.every(s => open(s.x, s.y))) continue;
+    const ride = RIDE_SECS[l.id] + (l.id === 'ferry' ? l.len[l.len.length - 1] / 660 : 0);
+    consider(l.id, l.stops[0], l.stops[1], ride); consider(l.id, l.stops[1], l.stops[0], ride);
+  }
+  return best;
+}
+/** "by MRT from Chinatown to Changi Airport" */
+const short = (n: string) => n.replace(/ (station|stop|pier)$/i, '');
+export const travelText = (t: Travel) => `${t.via === 'mrt' ? 'MRT' : t.via === 'cable' ? 'Cable car' : 'Ferry'}: ${short(t.from.name)} → ${short(t.to.name)}`;
+/** a rough travel time for a card: "about 40 s by MRT", "about 2 min on foot" */
+export function travelHint(w: World, tx: number, ty: number): string {
+  const t = travelPlan(w, tx, ty), s = t ? t.secs : dist(w.p.x, w.p.y, tx, ty) / TRAVEL_FOOT;
+  // (a ride is never "close by", however quick: it is still a ride away)
+  const when = s < 15 && !t ? 'close by' : s < 90 ? `about ${Math.max(10, Math.round(s / 10) * 10)} s` : `about ${Math.round(s / 60)} min`;
+  return s < 15 && !t ? when : `${when} ${t ? (t.via === 'mrt' ? 'by MRT' : t.via === 'cable' ? 'by cable car' : 'by ferry') : 'on foot'}`;
+}

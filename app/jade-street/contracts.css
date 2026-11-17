@@ -11,7 +11,7 @@
 .jade-shell .jade-con-body small { display: block; opacity: .92; }
 .jade-shell .jade-con-tag { display: inline-block; font-size: 12px; font-weight: 800; padding: 1px 8px; border-radius: 10px; margin-bottom: 2px; }
 .jade-shell .jade-con-tag.day { background: var(--gold); color: #2a1a00; }
-.jade-shell .jade-con-tag.push { background: var(--red); color: #fff; }
+.jade-shell .jade-con-tag.push { background: #a3202c; color: #fff; } /* (pass 13: darker than --red so white text reads at 4.5:1; the retake now sits near the top) */
 .jade-shell .jade-con-stars { color: var(--gold); letter-spacing: 1px; }
 .jade-shell .jade-con-stars i { font-style: normal; opacity: .3; }
 .jade-shell .jade-con-mods { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0; }

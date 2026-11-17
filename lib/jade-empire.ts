@@ -39,7 +39,11 @@ export type Gang = 'crow' | 'mac' | 'otter' | 'liz' | 'myna' | 'bat';
 export type Raid = { id: BizId; gang: Gang; kind: RaidKind; t: number; total: number; sent: boolean };
 /** the partner's errand: a round of the tills (collect) or a raid to see off (defend); `queue` the properties still to
  * visit, `got` the coins in their bag, `t` seconds out */
-export type Round = { kind: 'collect' | 'defend'; queue: BizId[]; got: number; t: number; at: BizId | null; done: number; won?: boolean };
+export type Round = { kind: 'collect' | 'defend'; queue: BizId[]; got: number; t: number; at: BizId | null; done: number; won?: boolean;
+  /** seconds the partner has been travelling out of sight toward the next till (or back to you): pass 13 */ away?: number };
+/** pass 13: out of sight, the partner on a round travels like a Grab ride (ROUND_SPEED a second, straight there), so
+ * a round of the whole empire takes a minute or so rather than four of walking every street; on screen they walk */
+export const ROUND_SPEED = 900, ROUND_OFF = 1000;
 export type EmpState = { raid: Raid | null; round: Round | null; jaga: Actor | null; hinted: boolean; lastRank: number; /** no raids at the raid hours (the browser tests of other features) */ off?: boolean };
 export const newEmp = (): EmpState => ({ raid: null, round: null, jaga: null, hinted: false, lastRank: -1 });
 
@@ -208,10 +212,25 @@ function handOver(w: World, early = false) {
   if (w.mate.ai.story) w.mate.ai = { ...w.mate.ai, mode: 'follow', at: null, story: false };
   if (!w.mate.act && !w.mate.ride && !w.mate.seat && !early) w.mate.act = { n: 'bag', t: 0, dur: 1.1 };
 }
+/** out of sight, the partner covers ground at ROUND_SPEED (a jump along the straight line each second, onto a walkable
+ * tile); they never jump into view, so the last bit to a till you can see, or back to you, is walked */
+function roundTravel(w: World, rd: Round, dt: number) {
+  const m = w.mate, p = w.p, seen = (x: number, y: number) => dist(x, y, p.x, p.y) <= ROUND_OFF;
+  if (m.act || m.seat || m.ride || seen(m.x, m.y)) { rd.away = 0; return; }
+  rd.away = (rd.away ?? 0) + dt; if (rd.away < 1) return;
+  const tgt: [number, number] | null = rd.at ? m.ai.at : [p.x, p.y]; if (!tgt) return;
+  const d = dist(m.x, m.y, tgt[0], tgt[1]), step = Math.min(d, rd.away * ROUND_SPEED); rd.away = 0; if (d < 60) return;
+  let x = m.x, y = m.y; const n = Math.ceil(step / 32);
+  for (let i = 1; i <= n; i++) { const f = step * i / n / d, nx = m.x + (tgt[0] - m.x) * f, ny = m.y + (tgt[1] - m.y) * f; if (seen(nx, ny)) break; x = nx; y = ny; }
+  if (x === m.x && y === m.y) return;
+  const [fx, fy] = nearestFree(w.c, 'walk', x, y, w.open, 4); if (seen(fx, fy)) return;
+  m.b.x = fx; m.b.y = fy; m.b.speed = 0; m.ai = { ...m.ai, stuck: 0, best: 1e9, offT: 0 };
+}
 function roundStep(w: World, dt: number) {
   const rd = w.emp.round!, m = w.mate; rd.t += dt;
   // a job, two players or a switch of hero ends the errand: what they have so far is yours
   if (w.run || w.two || m.ai.mode === 'follow' && rd.at) { handOver(w, true); return; }
+  roundTravel(w, rd, dt);
   if (!rd.at) { if (dist(m.x, m.y, w.p.x, w.p.y) < 170 || rd.t > 240) handOver(w); return; }
   const b = BIZ_OF[rd.at], [bx, by] = bizPos(b);
   // there: by the counter, or at the spot they were sent to (it can be a tile or two off the counter)

@@ -117,14 +117,24 @@ export async function ninth(h) {
   check(/Shoo the mynah/.test(mob?.near ?? ''), `${name}: "Shoo the mynah!" (${JSON.stringify(mob)})`); await key('e', 300);
   check(await until(() => window.__jade.world().p.act?.n === 'shoo', null, 1500), `${name}: E shoos it`); await wait(500);
   // a paint shot with the mouse
-  const tgt = await W(() => { const w = window.__jade.world(), m = w.gangs.ev?.mobs.find(m => m.has && m.st === 'run'); if (!m) return null; m.b.speed = 0; m.fly = undefined; w.placePlayer(m.b.x - 200, m.b.y); w.s.settings.assist = true; return window.__jade.screenOf(m.b.x / 64, m.b.y / 64); });
-  // (a mynah hops about: hold it still and aim again, up to three shots, so a hop between aim and click doesn't miss)
+  // (pass 13: deterministic. A mynah within 220 of you hops into the air at random (and the camera was still easing
+  // after the hero was placed), so the click could land where the bird had been. The target is now held on the
+  // ground every frame, the hero stands 300 away, and the click waits for the camera to settle on the bird)
+  const tgt = await W(() => {
+    // (any bird still about, set running with its loot: the shooed one may have been the only one running)
+    const w = window.__jade.world(), m = w.gangs.ev?.mobs.find(m => m.has && m.st === 'run') ?? w.gangs.ev?.mobs.find(m => m.st !== 'gone'); if (!m) return null;
+    m.st = 'run'; m.has = true; m.t = 0; window.__pin9m = m; m.fly = undefined; m.b.speed = 0; m.sing = undefined; const x = m.b.x, y = m.b.y; w.placePlayer(x - 300, y); w.s.settings.assist = true;
+    window.__pin9 = true; const hold = () => { if (!window.__pin9) return; if (m.st === 'run') { m.b.x = x; m.b.y = y; m.b.speed = 0; m.fly = undefined; } requestAnimationFrame(hold); }; hold();
+    return true;
+  });
+  const steady = async () => { let a = null; for (let i = 0; i < 20; i++) { const b = await W(() => { const m = window.__pin9m; return m && m.st === 'run' ? window.__jade.screenOf(m.b.x / 64, m.b.y / 64).map(Math.round) : null; }); if (a && b && Math.abs(a[0] - b[0]) < 2 && Math.abs(a[1] - b[1]) < 2) return b; a = b; await wait(100); } return a; };
   for (let k = 0; tgt && k < 3 && !(await W(() => window.__seen9.has('mob:preen'))); k++) {
-    await wait(300); const t2 = await W(() => { const w = window.__jade.world(), m = w.gangs.ev?.mobs.find(m => m.has && m.st === 'run'); if (!m) return null; m.b.speed = 0; m.fly = undefined; w.placePlayer(m.b.x - 200, m.b.y); return window.__jade.screenOf(m.b.x / 64, m.b.y / 64); });
+    const t2 = await steady();
     if (t2) { await p.mouse.move(t2[0], t2[1]); await p.mouse.down(); await wait(60); await p.mouse.up(); }
     await until(() => window.__seen9.has('mob:preen'), null, 1500);
   }
-  check(await until(() => window.__seen9.has('mob:preen'), null, 2500), `${name}: a paint shot: the mynah stops to preen`); await look('mynah: preening');
+  check(await until(() => window.__seen9.has('mob:preen'), null, 2500), `${name}: a paint shot: the mynah stops to preen${tgt ? '' : ' (no mynah left to aim at)'}`); await look('mynah: preening');
+  await W(() => { window.__pin9 = false; });
   // one sings nearby: paws over the ears
   // (a mynah sings now and then at random: keep the flock close by until one does)
   await W(() => { const w = window.__jade.world(); window.__jade.gang('mynahs'); w.p.act = null; const t0 = performance.now(); const hold = () => { const ev = w.gangs.ev; if (!ev || performance.now() - t0 > 8000 || window.__seen9.has('ears')) return; ev.mobs.forEach((m, i) => { if (m.st === 'run') { m.b.x = w.p.x + 110 + i * 20; m.b.y = w.p.y + 10; m.fly = undefined; } }); requestAnimationFrame(hold); }; hold(); });
