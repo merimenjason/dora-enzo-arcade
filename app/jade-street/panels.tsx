@@ -22,7 +22,7 @@ import { EmpirePage } from './empire';
 const dName = (d: District) => DISTRICT_NAME[d].replace(/^the /, 'The ');
 export { MARKET_NAME } from '@/lib/jade-trade';
 import { MARKET_NAME } from '@/lib/jade-trade';
-export const KEEPER: Record<District, string> = { market: 'Uncle Kee', temple: 'Auntie Pang', canal: 'Kiri', docks: 'Big Bo', arcade: 'Gizmo', heartland: 'Mr Kamal', bay: 'Ms Vanda', india: 'Mr Raju', glam: 'Abang Kancil', resort: 'Kapten Duyung', orchard: 'Ms Tiara', katong: 'Nyonya Rosie', changi: 'Pak Ubin' };
+export const KEEPER: Record<District, string> = { market: 'Uncle Kee', temple: 'Auntie Pang', canal: 'Kiri', docks: 'Big Bo', arcade: 'Gizmo', heartland: 'Mr Kamal', bay: 'Ms Vanda', india: 'Mr Raju', glam: 'Abang Kancil', resort: 'Kapten Duyung', orchard: 'Ms Tiara', katong: 'Nyonya Rosie', changi: 'Pak Ubin', tiong: 'Uncle Seng', quay: 'Kak Melati', jurong: 'Sifu Musang' };
 
 export function Panel({ title, onClose, children, cls = '', testid }: { title: string; onClose: () => void; children: React.ReactNode; cls?: string; testid?: string }) {
   return (

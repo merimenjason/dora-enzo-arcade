@@ -6,7 +6,7 @@
 // pieces, the finale and the business stalls are drawn by lib/jade-setdraw.ts. Every picture is a Codex painting from the atlases in public/art/jade-street/.
 import { FRAMES, ATLASES, VER } from './jade-art.js';
 import { EAGER, ART_BUDGET, decodedBytes } from './jade-load.js';
-import { T, W, H, G, OW, CT_H, EAST_X0, EAST_SPLIT, FAR_X0, FAR_SPLIT, CHANGI_X0, GROUND_NAMES, F_ROOF, districtAt, type City, type District } from './jade-city.js';
+import { T, W, H, G, OW, CT_H, EAST_X0, EAST_SPLIT, FAR_X0, FAR_SPLIT, CHANGI_X0, SOUTH_X0, SOUTH_X1, TIONG_X0, QUAY_X0, GROUND_NAMES, F_ROOF, districtAt, type City, type District } from './jade-city.js';
 import { F_XWAY } from './jade-island.js';
 import { VEHICLES } from './jade-move.js';
 import { tagOption, grabTarget } from './jade-tag.js';
@@ -23,6 +23,7 @@ import { shooterFor } from './jade-gear.js';
 import { isleSorted, isleOver, isleActor, isleGround } from './jade-isledraw.js';
 import { eastGround, eastSorted, eastOver } from './jade-eastdraw.js';
 import { farSorted, farOver } from './jade-fardraw.js';
+import { southSorted, southOver } from './jade-southdraw.js';
 import { snapScale, foldTints, chunkStale } from './jade-perf.js';
 import { empSorted, empOver, jagaActor } from './jade-empdraw.js';
 import { BIZ, BIZ_OF, bizPos } from './jade-biz.js';
@@ -298,6 +299,13 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     case 'kite': return `${h}-kite-${cyc(2, 1.5)}`;
     case 'plane': return `${h}-plane-${cyc(2, 3)}`;
     case 'suitcase': return `${h}-suitcase-${cyc(2, 2.5)}`;
+    // the south shore: chwee kueh, the songbirds, the Slingshot, the koi, the telescope, the lantern walk
+    case 'chwee': return `${h}-chwee-${cyc(2, 3)}`;
+    case 'birdsong': return `${h}-birdsong-${cyc(2, 1.2)}`;
+    case 'sling': return `${h}-sling-${t < 0.5 ? 0 : 1}`;
+    case 'koi': return `${h}-koi-${cyc(2, 2)}`;
+    case 'stars': return `${h}-stars-${t < 1.6 ? 0 : 1}`;
+    case 'lantern-walk': return `${h}-lwalk-${cyc(2, 5)}`;
     // the empire: mending a raided shop, a handshake hiring the jaga, sending the partner off, the partner's coin bag
     // handed over, counting a big till
     case 'repair': return `${h}-repair-${cyc(2, 5)}`;
@@ -411,7 +419,7 @@ export class Scene {
     const c = this.c;
     // under a building: the district's own paving (Little India, Kampong Glam and Sentosa have theirs); bridges are
     // concrete outside Chinatown (the Sentosa Gateway too) and planks over the Singapore River
-    const bldTex = (i: number) => { const tx = i % W, ty = Math.floor(i / W); return ty >= CT_H ? 'resort' : tx >= FAR_X0 - 4 ? (tx >= CHANGI_X0 ? 'changi' : ty < FAR_SPLIT ? 'orchard' : 'katong') : tx >= EAST_X0 - 4 ? (ty < EAST_SPLIT ? 'india' : 'glam') : tx >= OW ? (ty < 38 ? 'hdb' : 'granite') : 'plaza'; };
+    const bldTex = (i: number) => { const tx = i % W, ty = Math.floor(i / W); return ty >= CT_H ? (tx >= SOUTH_X0 - 4 && tx <= SOUTH_X1 + 1 ? (tx >= QUAY_X0 ? 'quay' : tx >= TIONG_X0 ? 'tiong' : 'jurong') : 'resort') : tx >= FAR_X0 - 4 ? (tx >= CHANGI_X0 ? 'changi' : ty < FAR_SPLIT ? 'orchard' : 'katong') : tx >= EAST_X0 - 4 ? (ty < EAST_SPLIT ? 'india' : 'glam') : tx >= OW ? (ty < 38 ? 'hdb' : 'granite') : 'plaza'; };
     const texOf = (g: number, i: number) => g === G.ROAD && (c.flags[i] & F_XWAY) ? 'xway' : g === G.BRIDGE ? (i % W >= OW || Math.floor(i / W) >= 80 ? 'xway' : 'canal') : g === G.STAIRS ? 'temple' : g === G.BLD ? bldTex(i) : GROUND_NAMES[g];
     const byTex = new Map<string, number[]>();
     for (let ty = ty0; ty < ty0 + nh; ty++) for (let tx = tx0; tx < tx0 + nw; tx++) {
@@ -605,7 +613,7 @@ export class Scene {
     sgSorted(this, x, w, list, vis);
     gearSorted(this, x, w, list, vis);
     isleSorted(this, x, w, list, vis);
-    eastSorted(this, x, w, list, vis); farSorted(this, x, w, list, vis);
+    eastSorted(this, x, w, list, vis); farSorted(this, x, w, list, vis); southSorted(this, x, w, list, vis);
     if (!p.roof) list.push([p.y + 1, () => this.hero(x, w)]);
     if (!m.roof && !m.seat && vis(m.x, m.y)) list.push([m.y + 0.5, () => drawHero(this, x, w, m, w.two)]);
     list.sort((a, b) => a[0] - b[0]);
@@ -623,7 +631,7 @@ export class Scene {
     gearOver(this, x, w, vis);
     sgOver(this, x, w, vis);
     isleOver(this, x, w, vis);
-    eastOver(this, x, w, vis); farOver(this, x, w, vis); empOver(this, x, w);
+    eastOver(this, x, w, vis); farOver(this, x, w, vis); southOver(this, x, w, vis); empOver(this, x, w);
     // what F would grab right now gets a pulsing gold ring, so it stands out behind cables and heroes
     if (w.run && !w.talk) { const o = tagOption(w); if (o?.kind === 'snatch') { const g = grabTarget(w), p = w.p;
       const t = g?.kind === 'actor' ? [g.a.b.x, g.a.b.y] : w.run.items.filter(i => !i.got).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];

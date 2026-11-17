@@ -60,7 +60,7 @@ export function MiniGame({ kind, level, assist, seed, snd, onDone, lights = fals
       for (const e of g.ev.splice(0)) snd?.mini(e.t);
       if ((g.done || g.failed) && !ended) { ended = true; endT = 0; setEnd(g.done); }
       if (ended) { endT += dt; if (endT > 1.1) { cancelAnimationFrame(raf); doneRef.current(g.done); return; } }
-      draw(x, c, g, bg, view.current, pointer.current, now / 1000);
+      draw(x, c, g, bg, view.current, pointer.current, now / 1000, lights);
       hud += dt; if (hud > 0.1) { hud = 0; setTick(t => t + 1); }
     };
     raf = requestAnimationFrame(loop);
@@ -148,10 +148,10 @@ export function MiniGame({ kind, level, assist, seed, snd, onDone, lights = fals
           <button type="button" className="jade-btn jade" data-testid="safe-right" onPointerDown={e => { e.preventDefault(); g.hold(1); }} onPointerUp={() => g.hold(0)} onPointerLeave={() => g.hold(0)}>Turn ›</button>
           <button type="button" className="jade-btn gold" data-testid="safe-set" onClick={() => g.set()}>Set it</button>
         </>}
-        {g instanceof WireGame && <div className="jade-order">{g.wired ? 'All wired: turn the key!' : `Wires joined ${g.links.filter(l => l !== null).length}/4`}</div>}
+        {g instanceof WireGame && <div className="jade-order">{g.wired ? (lights ? 'All wired: turn the switch key!' : 'All wired: turn the key!') : `Wires joined ${g.links.filter(l => l !== null).length}/4`}</div>}
         <span className="jade-mini-keys">{keysTxt}</span>
         {g instanceof WokGame && <button type="button" className="jade-btn red" data-testid="wok-toss" onPointerDown={e => { e.preventDefault(); g.toss(); }}>Toss!</button>}
-        {g instanceof WireGame && <button type="button" className="jade-btn gold" data-testid="wire-key" disabled={!g.wired} onClick={() => g.turnKey()}>Turn the key</button>}
+        {g instanceof WireGame && <button type="button" className="jade-btn gold" data-testid="wire-key" disabled={!g.wired} onClick={() => g.turnKey()}>{lights ? 'Turn the switch key' : 'Turn the key'}</button>}
         {g instanceof DumplingGame && <button type="button" className="jade-btn jade" data-testid="fold" onPointerDown={e => { e.preventDefault(); g.press(); }}>Pinch!</button>}
         <button type="button" className="jade-btn plain" data-testid="mini-quit" onClick={() => { g.failed = true; g.ev.push({ t: 'fail' }); }}>Give up</button>
       </div>
@@ -160,7 +160,7 @@ export function MiniGame({ kind, level, assist, seed, snd, onDone, lights = fals
   );
 }
 
-function draw(x: CanvasRenderingContext2D, c: HTMLCanvasElement, g: AnyMini, bg: HTMLImageElement, v: { s: number; ox: number; oy: number }, ptr: { x: number; y: number; down: boolean }, t: number) {
+function draw(x: CanvasRenderingContext2D, c: HTMLCanvasElement, g: AnyMini, bg: HTMLImageElement, v: { s: number; ox: number; oy: number }, ptr: { x: number; y: number; down: boolean }, t: number, lights = false) {
   x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#140f24'; x.fillRect(0, 0, c.width, c.height);
   x.setTransform(v.s, 0, 0, v.s, v.ox, v.oy);
   if (bg.complete && bg.naturalWidth) x.drawImage(bg, 0, 0, 1280, 853);
@@ -198,7 +198,7 @@ function draw(x: CanvasRenderingContext2D, c: HTMLCanvasElement, g: AnyMini, bg:
     // the keyboard / gamepad cursor: a gold bracket on both sides of its row
     x.strokeStyle = 'rgba(255,215,90,.9)'; x.lineWidth = 5; x.strokeRect(340, WY[g.cur] - 46, 140, 92); x.strokeRect(812, WY[g.cur] - 46, 140, 92);
     if (g.buzz > 0) { spr(x, 'mg-spark', 640 + Math.sin(t * 50) * 30, 440, { h: 120, anchor: 'center' }); }
-    spr(x, 'mg-key', 640, 690, { h: 120, anchor: 'center', rot: g.started ? Math.PI / 2 : 0 });
+    spr(x, lights ? 'mg-switch-key' : 'mg-key', 640, 690, { h: 120, anchor: 'center', rot: g.started ? Math.PI / 2 : 0 });
     if (g.wired) glow(640, 690, 110, `rgba(255,220,100,${0.35 + 0.2 * Math.sin(t * 6)})`);
   } else if (g instanceof WokGame) {
     const wx = 200 + g.x * 880, wy = 700;

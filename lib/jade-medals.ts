@@ -13,6 +13,8 @@ export const PAR: Record<string, number> = {
   m1: 30, m2: 55, m3: 65, m4: 120, m5: 45, m6: 65, m7: 55, m8: 105, m9: 70, m10: 50,
   m11: 80, m12: 90, m13: 60, m14: 85, m15: 75, m16: 70, m17: 150, m18: 80, m19: 60, m20: 60,
   m21: 105, m22: 85, m23: 110, m24: 170, m25: 105,
+  // Lights by the Lake (chapter nine) and its Hawker Tales, about 1.7 times the solver's time
+  m56: 85, m57: 180, m58: 200, m59: 205, m60: 255, m61: 215, m62: 195, m63: 185, m64: 210, m65: 165, k17: 165, k18: 190, k19: 165,
 };
 export const MEDAL_NAME = ['Finished', 'Bronze', 'Silver', 'Gold'] as const;
 export const MEDAL_SPRITE = ['ui-medal-none', 'ui-medal-bronze', 'ui-medal-silver', 'ui-medal-gold'] as const;

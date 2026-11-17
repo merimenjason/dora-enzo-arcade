@@ -18,7 +18,7 @@ const base = (process.env.BASE_URL ?? 'http://localhost:3000') + '/jade-street';
 const kind = process.env.BROWSER ?? 'chromium';
 const MS = (+(process.env.MINUTES ?? 10)) * 60000;
 const DECODED_MB = +(process.env.DECODED_MB ?? 320);
-const b = await pw[kind].launch();
+const b = await pw[kind].launch(kind === 'chromium' ? { args: ['--mute-audio'] } : {});
 const p = await b.newPage({ viewport: { width: 1280, height: 800 } });
 const errs = []; let crashed = false;
 p.on('pageerror', e => errs.push(e.message)); p.on('crash', () => { crashed = true; });
@@ -54,13 +54,13 @@ const pressed = async () => {
 
 await p.goto(base, { waitUntil: 'domcontentloaded', timeout: 300000 });
 await p.waitForSelector('main[data-ready="true"]', { timeout: 300000 });
-await p.evaluate(() => localStorage.setItem('jade-street-v2', JSON.stringify({ v: 2, seed: 77, started: true, hero: 'dora', cash: 3000, done: Array.from({ length: 54 }, (_, i) => 'm' + (i + 1)), settings: { music: false } })));
+await p.evaluate(() => localStorage.setItem('jade-street-v2', JSON.stringify({ v: 2, seed: 77, started: true, hero: 'dora', cash: 3000, done: Array.from({ length: 64 }, (_, i) => 'm' + (i + 1)), settings: { music: false, sound: false } })));
 await p.reload(); await p.waitForSelector('[data-testid="continue"]', { timeout: 300000 });
 await p.click('[data-testid="continue"]');
 await p.waitForFunction(() => !!window.__jade, null, { timeout: 300000 });
 await p.evaluate(() => { const w = window.__jade.world(); w.talk = null; window.__jade.give(); const s = w.s; for (const g of s.gear.own) s.gear.ammo[g] = 999; window.__jade.play.paused = false; });
 
-const DISTRICTS = ['market', 'heartland', 'india', 'temple', 'bay', 'resort', 'orchard', 'canal', 'glam', 'katong', 'docks', 'changi', 'arcade'];
+const DISTRICTS = ['market', 'heartland', 'india', 'temple', 'bay', 'resort', 'orchard', 'canal', 'glam', 'katong', 'docks', 'changi', 'arcade', 'tiong', 'quay', 'jurong'];
 const samples = []; const t0 = Date.now(); let k = 0, lastSample = -1e9, held = null;
 const sample = async (d) => {
   const g = await p.evaluate(() => ({ art: window.__jade.art ? window.__jade.art() : { decodedMB: null, files: [], chunks: window.__jade.play.scene.chunks.size, chunkMB: null, recolored: null }, heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null, fps: Math.round(window.__jade.fps()) }));

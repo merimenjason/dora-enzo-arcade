@@ -62,7 +62,7 @@ export async function ninth(h) {
   check(!(await exists('map')) && await W(hb => { const wp = window.__jade.world().waypoint; return !!wp && Math.hypot(wp[0] - hb[0], wp[1] - hb[1]) < 200; }, hb), `${name}: a click on the cable car pin routes there`);
   // the phone's MRT tab: the new stations, the cable car and the ferry with Route me
   await press('jade-phone'); await press('phone-mrt');
-  check(await p.locator('[data-testid^="mrt-route-"]').count() === 10, `${name}: ten MRT stations on the phone`);
+  check(await p.locator('[data-testid^="mrt-route-"]').count() === 13, `${name}: thirteen MRT stations on the phone`);
   check(await p.locator('[data-testid^="link-route-"]').count() === 4, `${name}: the cable car and ferry stops listed`); await look('phone: links');
   await press('link-route-ferry-bay'); check(!(await exists('jade-phone-msgs')) && await W(() => !!window.__jade.world().waypoint), `${name}: Route me to the ferry pier`);
   await W(() => { const w = window.__jade.world(); w.waypoint = null; w.route = []; }); await free();

@@ -19,7 +19,7 @@ import { playMission } from './jade-bot.mjs';
 let n = 0;
 const test = (name, fn) => { try { fn(); n++; } catch (e) { console.error('FAILED:', name); throw e; } };
 const c = city();
-const ALL = ['market', 'temple', 'canal', 'docks', 'arcade', 'heartland', 'bay', 'india', 'glam', 'resort', 'orchard', 'katong', 'changi'];
+const ALL = ['market', 'temple', 'canal', 'docks', 'arcade', 'heartland', 'bay', 'india', 'glam', 'resort', 'orchard', 'katong', 'changi', 'tiong', 'quay', 'jurong'];
 /** a save that has finished the story, with reputation everywhere and coins to spend */
 function rich(seed = 5, o = {}) {
   const s = newSave(seed); s.started = true; s.story.intro = true; s.done = [...MISSIONS.map(m => m.id), ...SIDE.map(m => m.id)];
@@ -29,8 +29,8 @@ function rich(seed = 5, o = {}) {
 const world = (s, seed = 9) => { const w = new World(s, seed); w.quiet = true; return w; };
 const idle = (w, sec) => { for (let i = 0; i < sec * 60; i++) w.step(NO_INPUT, DT); };
 
-test('thirty-two properties in every district: on clear pavement, reachable on foot, apart, and painted at four levels', () => {
-  assert.equal(BIZ.length, 32); assert.equal(PROPS.length, 21);
+test('thirty-eight properties in every district: on clear pavement, reachable on foot, apart, and painted at four levels', () => {
+  assert.equal(BIZ.length, 38); assert.equal(PROPS.length, 27);
   const ids = new Set(BIZ.map(b => b.id)); assert.equal(ids.size, BIZ.length, 'ids are unique');
   for (const d of ALL) assert.ok(BIZ.some(b => b.d === d), `a property in ${d}`);
   const sm = c.places['safe-market']; const f = field(c, 'foot', Math.floor(sm.x / T), Math.floor(sm.y / T), new Set(ALL));
@@ -53,7 +53,7 @@ test('buying, upgrading and takings: three levels, a till that fills through the
   const r = bizRate(s, 'kopitiam', [...w.open]).rate; assert.ok(r > BIZ_OF.kopitiam.income[3] * 0.8, 'level 3 takings');
   const rn = bizRate(s, 'kopitiam', [...w.open], { daily: w.event, festival: w.festival }).rate; accrue(w, 360); assert.ok(Math.abs(s.biz.kopitiam.bank - rn / 2) < 2, 'half a night, half the takings');
   closeNight(s); assert.equal(s.biz.kopitiam.hist.length, 1);
-  const L = ledger(w); assert.equal(L.mine, 1); assert.equal(L.all, 32); assert.ok(L.till > 0 && L.tonight > 0);
+  const L = ledger(w); assert.equal(L.mine, 1); assert.equal(L.all, 38); assert.ok(L.till > 0 && L.tonight > 0);
   assert.ok(w.collectBiz('kopitiam') >= Math.floor(rn / 2) - 1);
   // reputation gates the sale; fog gates the district
   const s2 = rich(6, { rep: 0 }); const w2 = world(s2); assert.match(w2.buyBiz('taxi') ?? '', /reputation/);
@@ -189,7 +189,7 @@ test('save v11: a v10 save keeps every job, medal, stall, safe house and till; t
   const v3 = loadSave(JSON.stringify({ v: 3, seed: 2, cash: 50, done: ['m1'], rep: { market: 5 } })); assert.equal(v3.v, SAVE_VERSION); assert.deepEqual(v3.done, ['m1']); assert.equal(v3.empire.rank, 0);
 });
 
-test('pacing: a careful player who reinvests owns everything in three to five hours of play (the coast’s six included)', () => {
+test('pacing: a careful player who reinvests owns everything in three to five hours of play (the coast’s six and the south shore’s six included)', () => {
   // a careful player: about 45 coins a minute from jobs, gigs and trading, a night every 14 minutes on Assist, every
   // till collected each night, reputation around 50 (×1.0), one night's takings in ten lost to raids; buys whatever
   // pays back soonest as soon as they can
@@ -205,7 +205,7 @@ test('pacing: a careful player who reinvests owns everything in three to five ho
   };
   const night = 720 / 0.85 / 60;
   for (const [A, lo, hi] of [[45, 180, 300], [30, 180, 300], [60, 170, 300]]) { const m = sim(A, night); assert.ok(m >= lo && m <= hi, `${A} coins a minute: everything in ${(m / 60).toFixed(1)} h`); }
-  assert.ok(EMPIRE_COST > 120000 && EMPIRE_COST < 160000, `the whole empire costs ${EMPIRE_COST}`);
+  assert.ok(EMPIRE_COST > 120000 && EMPIRE_COST < 190000, `the whole empire costs ${EMPIRE_COST}`);
 });
 
 test('discoverability: properties for sale say their price at the door; a hint once one is affordable; the empire tab’s pins', () => {

@@ -13,7 +13,7 @@ const base = (process.env.BASE_URL ?? 'http://localhost:3000') + '/jade-street';
 const kind = process.env.BROWSER ?? 'chromium';
 const speeds = kind === 'chromium' ? (process.env.MBPS ?? '10,3').split(',').map(Number) : [0];
 const LIMIT = +(process.env.LIMIT_S ?? 600) * 1000;
-const b = await pw[kind].launch();
+const b = await pw[kind].launch(kind === 'chromium' ? { args: ['--mute-audio'] } : {});
 let failed = false;
 const fmtMB = n => (n / 1048576).toFixed(1) + ' MB';
 
@@ -46,6 +46,8 @@ async function visit(ctx, mbps, label) {
 
 for (const mbps of speeds) {
   const ctx = await b.newContext();
+  // silent: a not-yet-started save with sound and music off (a new game keeps the settings), so nothing plays out loud
+  await ctx.addInitScript(() => { try { if (!localStorage.getItem('jade-street-v13')) localStorage.setItem('jade-street-v13', JSON.stringify({ v: 13, started: false, settings: { sound: false, music: false } })); } catch { /* no storage */ } });
   await visit(ctx, mbps, 'first visit');
   await visit(ctx, mbps, 'repeat visit');
   await ctx.close();

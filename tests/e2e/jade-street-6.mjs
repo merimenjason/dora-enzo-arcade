@@ -109,7 +109,7 @@ export async function sixth(h) {
   // these seven just chat; the eleventh pass's suite covers a giver with a contract)
   await W(() => { const w = window.__jade.world(), cs = w.s.contracts; if (cs) { cs.night = w.s.night; cs.contest = null; cs.offers = [0, 1, 2].map(i => ({ seed: 700 + i, tier: 0, stars: 1, open: [...w.open], avoid: ['kee', 'heron', 'kiri', 'bo', 'gizmo', 'kamal', 'vanda'] })); window.__ev6 = w.event; w.event = null; } });
   await W(() => { const w = window.__jade.world(); w.talk = null; w.ui = null; w.heat = 0; w.wardens = []; window.__jade.play.paused = false; });
-  for (const [who, d] of [['kee', 'Smith Street'], ['heron', 'Temple Street'], ['kiri', 'Boat Quay'], ['bo', 'the docks'], ['gizmo', 'Clarke Quay'], ['kamal', 'Toa Payoh'], ['vanda', 'Marina Bay']]) {
+  for (const [who, d] of [['kee', 'Smith Street'], ['heron', 'Temple Street'], ['kiri', 'Boat Quay'], ['bo', 'the docks'], ['gizmo', 'Club Street'], ['kamal', 'Toa Payoh'], ['vanda', 'Marina Bay']]) {
     const g = await W(who => { const w = window.__jade.world(); w.refreshCast(); const c = w.cast.find(c => c.id === who && c.home); if (!c) return null; w.talk = null; w.ui = null; if (w.p.ride) w.exit(); w.p.act = null; w.mate.act = null; w.placePlayer(c.x, c.y + 150); return { x: c.x, y: c.y, job: c.job }; }, who);
     check(!!g, `${name}: ${who} stands in ${d}`); if (!g) continue;
     await wait(250); await p.keyboard.down('w');

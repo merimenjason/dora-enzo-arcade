@@ -128,7 +128,7 @@ test('the partner’s round of every till takes about a minute, and they never p
 test('the Atas Bats fly their own way: rarer, longer weaving glides, and a startled bat swerves away from you', () => {
   const s = missionSave('m53', {}); s.learned = BASICS.slice(); s.safe = 'safe-katong';
   const flights = { bats: [], mynahs: [] };
-  for (const kind of ['bats', 'mynahs']) for (let seed = 1; seed <= 6; seed++) {
+  for (const kind of ['bats', 'mynahs']) for (let seed = 1; seed <= 9; seed++) {
     const sv = kind === 'mynahs' ? (() => { const x = missionSave('m45', {}); x.learned = BASICS.slice(); x.safe = 'safe-india'; return x; })() : s;
     const w = new World(sv, seed); w.quiet = true; w.gangs.wait = 1e9; w.gangs.ev = null;
     { const h = w.c.places[sv.safe]; w.placePlayer(h.x, h.y + T * 0.6); } // (the open pavement in front of the safe house; a new game now starts a step further out)
@@ -231,3 +231,4 @@ test('P1: the taxi arriving replaces "on its way"; P2: the ferry crossing is qui
 });
 
 console.log(`jade (thirteenth pass): ${n} tests ok`);
+await import('./jade-fourteen.mjs');

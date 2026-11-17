@@ -39,7 +39,7 @@ const tile = (x, y) => [Math.floor(x / T), Math.floor(y / T)];
 
 test('the map grows east over the Geylang River: Orchard Road north, Katong south, Changi at the far end', () => {
   assert.equal(W, 376); assert.ok(W * H < 65536, 'the nav heap still fits');
-  assert.deepEqual(DISTRICTS.slice(-3), FAR);
+  assert.deepEqual(DISTRICTS.slice(10, 13), FAR);
   assert.equal(DISTRICT_NAME.orchard, 'Orchard Road'); assert.equal(DISTRICT_NAME.katong, 'Katong'); assert.equal(DISTRICT_NAME.changi, 'Changi');
   assert.equal(districtAt(300, 10), 'orchard'); assert.equal(districtAt(300, 60), 'katong'); assert.equal(districtAt(340, 30), 'changi'); assert.equal(districtAt(250, 10), 'india');
   for (let x = 272; x <= 275; x++) assert.equal(c.ground[20 * W + x], G.CANAL, 'the Geylang River');
@@ -72,7 +72,7 @@ test('real names on the new streets and landmarks; the district opens with the s
 });
 
 test('the MRT runs on: Changi Airport, Katong Park and Orchard at the top of the line', () => {
-  const isle = c.isle; assert.deepEqual(isle.stations.slice(0, 3).map(s => s.id), ['stn-changi', 'stn-katong', 'stn-orchard']);
+  const isle = c.isle; assert.deepEqual(isle.stations.slice(3, 6).map(s => s.id), ['stn-changi', 'stn-katong', 'stn-orchard']);
   for (let i = 1; i < isle.stations.length; i++) assert.ok(isle.stations[i].s > isle.stations[i - 1].s, 'stations in order along the line');
 });
 
@@ -139,10 +139,10 @@ test('chapter eight: ten jobs, every district, a mix of steps, no more than two 
     const boat = st.ride === 'boat';
     for (const s of [...(st.route ?? []), ...(st.marks ?? []), ...(st.items ?? []), ...(st.crates ?? []), ...(st.path ?? []), st.goal, st.exit, st.rack, st.bait, st.wait, st.front, st.back, st.safe].filter(Array.isArray)) assert.equal(c.solid[s[1] * W + s[0]], boat ? S.WATER : S.OPEN, `${m.id} ${st.t} ${s}`);
   }
-  assert.deepEqual(SIDE.slice(-3).map(m => m.id), ['k14', 'k15', 'k16']);
+  assert.deepEqual(SIDE.slice(13, 16).map(m => m.id), ['k14', 'k15', 'k16']);
   for (const id of ['k14', 'k15', 'k16']) assert.ok(FAR.includes(c.places[MISSION[id].at].d), `${id} in a new district`);
-  const s = newSave(); s.done = allDone.filter(id => MISSION[id].ch <= 7); assert.equal(chapterOf(s), 8); s.done = allDone; assert.equal(chapterOf(s), 9);
-  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 55); assert.equal(jc.talesAll, 16);
+  const s = newSave(); s.done = allDone.filter(id => MISSION[id].ch <= 7); assert.equal(chapterOf(s), 8); s.done = allDone; assert.equal(chapterOf(s), 10);
+  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 65); assert.equal(jc.talesAll, 19);
 });
 
 test('the solver finishes every chapter-eight job and the new Hawker Tales; the casual bot finishes the finale', () => {

@@ -32,6 +32,10 @@ export const LEAN: Record<District, Record<Good, number>> = {
   orchard: { jade: 1.4, mooncake: 1.16, tea: 1.1, bowl: 1.0, fan: 1.32, mango: 1.2 },
   katong: { jade: 1.02, mooncake: 0.7, tea: 0.96, bowl: 0.72, fan: 1.12, mango: 1.1 },
   changi: { jade: 0.88, mooncake: 1.22, tea: 1.36, bowl: 1.14, fan: 0.82, mango: 0.78 },
+  // the fourteenth pass: Tiong Bahru sells tea and mangoes cheap, Clarke Quay pays for fans and jade, Jurong wants mooncakes
+  tiong: { jade: 1.06, mooncake: 1.08, tea: 0.72, bowl: 1.1, fan: 0.98, mango: 0.74 },
+  quay: { jade: 1.3, mooncake: 0.94, tea: 1.14, bowl: 0.86, fan: 1.36, mango: 1.16 },
+  jurong: { jade: 0.84, mooncake: 1.4, tea: 1.2, bowl: 1.26, fan: 0.8, mango: 1.04 },
 };
 export type Tip = { night: number; market: District; good: Good; mult: number; from: string; text: string };
 export type Cargo = Record<Good, number>;
@@ -103,4 +107,4 @@ export function bestRoute(seed: number, night: number, open: District[], tips: T
 }
 
 /** each market's name, the same on its E prompt and its panel */
-export const MARKET_NAME: Record<District, string> = { market: 'Smith Street Market', temple: 'Temple Street Bazaar', canal: 'Boat Quay Market', docks: 'Tanjong Pagar Market', arcade: 'Clarke Quay Neon Market', heartland: 'Toa Payoh Provision Shop', bay: 'Promenade Kiosk', india: 'Tekka Market', glam: 'Arab Street Market', resort: 'Siloso Beach Kiosk', orchard: 'Orchard Road Christmas Market', katong: 'Joo Chiat Market', changi: 'Changi Village Market' };
+export const MARKET_NAME: Record<District, string> = { market: 'Smith Street Market', temple: 'Temple Street Bazaar', canal: 'Boat Quay Market', docks: 'Tanjong Pagar Market', arcade: 'Club Street Neon Market', heartland: 'Toa Payoh Provision Shop', bay: 'Promenade Kiosk', india: 'Tekka Market', glam: 'Arab Street Market', resort: 'Siloso Beach Kiosk', orchard: 'Orchard Road Christmas Market', katong: 'Joo Chiat Market', changi: 'Changi Village Market', tiong: 'Tiong Bahru Market', quay: 'Clarke Quay Night Market', jurong: 'Jurong Lake Night Market' };

@@ -18,7 +18,7 @@ export type Line = [string, string, Mood?];
  * crane's swinging container and the yard gate (lib/jade-setpiece.ts); `wp` is the route leg that triggers it */
 /** a chase or tail target's painted body other than Pip's: a gang member (otter, macaque, lizard, mynah, bat) or a boss
  * (Director Kaw, Crow Number Nine, Datin Ciku) */
-export type Skin = 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine' | 'bat' | 'ciku';
+export type Skin = 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine' | 'bat' | 'ciku' | 'hoot';
 export type SetDef = { k: 'stall' | 'drums' | 'bridge' | 'crane' | 'gate'; at: [number, number]; wp: number };
 export type Step =
   | { t: 'talk'; lines: Line[]; cp?: boolean }
@@ -141,10 +141,15 @@ export const PEOPLE: Record<string, { name: string; face: string; who: string }>
   faiz: { name: 'Captain Faiz', face: 'face-faiz', who: 'airline pilot at Changi (a stork-billed kingfisher)' },
   ubin: { name: 'Pak Ubin', face: 'face-ubin', who: 'Changi Village bumboat man (a sambar deer)' },
   ciku: { name: 'Datin Ciku', face: 'face-ciku', who: 'Atas Bats boss (a fruit bat)' },
+  // the fourteenth pass: Tiong Bahru, Clarke Quay and Jurong
+  seng: { name: 'Uncle Seng', face: 'face-seng', who: 'Tiong Bahru chwee kueh uncle (a dusky langur)' },
+  melati: { name: 'Kak Melati', face: 'face-melati', who: 'Clarke Quay jazz singer (a Singapura cat)' },
+  suria: { name: 'Dr Suria', face: 'face-suria', who: 'Science Centre astronomer (a slow loris)' },
+  musang: { name: 'Sifu Musang', face: 'face-musang', who: 'Chinese Garden lantern maker (a palm civet)' },
   // the tenth pass: the empire's supplier, the health inspector, the rival towkay and the jaga you can hire
   huat: { name: 'Ah Huat', face: 'face-huat', who: 'wholesale supplier (a wild boar)' },
   siew: { name: 'Inspector Siew', face: 'face-siew', who: 'health inspector (a milky stork)' },
-  hoot: { name: 'Towkay Hoot', face: 'face-hoot', who: 'rival towkay (a buffy fish owl)' },
+  hoot: { name: 'Towkay Hoot', face: 'face-hoot', who: 'rival towkay, and chapter nine’s lantern collector (a buffy fish owl)' },
   duri: { name: 'Pak Duri', face: 'face-duri', who: 'night watchman, a jaga (a porcupine)' },
   glint: { name: 'Madame Glint', face: 'face-glint', who: 'Kaypoh Crows boss' },
   pip: { name: 'Pip', face: 'face-pip', who: 'Kaypoh Crows rookie' },
@@ -160,13 +165,15 @@ export const HEIRLOOMS = [
 ] as const;
 /** which district each chapter's finale opens (chapter 1 is played in Smith Street) */
 export const CHAPTER_OPENS: District[] = ['temple', 'canal', 'docks', 'arcade'];
-export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Clarke Quay', 'The Island', 'Island Lights', 'Christmas Star'];
+export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Club Street', 'The Island', 'Island Lights', 'Christmas Star', 'Lights by the Lake'];
 /** the last job of each chapter (its finale) */
-export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55'];
+export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55', 'm65'];
 /** the story job that opens Sentosa (half way through chapter seven) */
 export const RESORT_OPENS = 'm40';
 /** the story job that opens Changi (half way through chapter eight) */
 export const CHANGI_OPENS = 'm52';
+/** the story job that opens Jurong (half way through chapter nine) */
+export const JURONG_OPENS = 'm61';
 
 // road crossings by name: X(v, h) is the lane tile where vertical road v meets horizontal road h
 const V = { a: 10, b: 26, c: 42, d: 60, e: 71, f: 90, g: 106 } as const;
@@ -348,9 +355,9 @@ export const MISSIONS: Mission[] = [
       { t: 'chase', who: 'cart', from: X('d', 'd'), route: [X('e', 'd'), X('f', 'd'), [92, 78], X('f', 'd'), [74, 78], X('d', 'd')], bumps: 3, loot: 'h-koi', speed: 275, finish: 'net', label: 'Bump the cart twice, then net it (click) or ride alongside for {mate}’s grab (F)', sets: [{ k: 'crane', at: [92, 71], wp: 2 }, { k: 'gate', at: [92, 74], wp: 2 }], cp: true },
       { t: 'pickup', at: 'loot', item: 'h-koi', label: 'Catch the Silver Koi' },
       { t: 'goto', at: 'bo', label: 'Bring it to Big Bo' },
-      { t: 'talk', lines: [['bo', 'Shiny! Now the last one. The Phoenix Drum is in Madame Glint’s roost, up Clarke Quay.', 'happy'], ['bo', 'The neon lights are on for you.', 'smug']] },
+      { t: 'talk', lines: [['bo', 'Shiny! Now the last one. The Phoenix Drum is in Madame Glint’s roost, up Club Street.', 'happy'], ['bo', 'The neon lights are on for you.', 'smug']] },
     ] },
-  // ── Chapter 5: Clarke Quay (Phoenix Drum)
+  // ── Chapter 5: Club Street (Phoenix Drum)
   { id: 'm21', ch: 5, title: 'Neon Night Race', giver: 'gizmo', at: 'gizmo', reward: 180, rep: 14, blurb: 'Beat a crow racer round the Strip on a scooter.',
     steps: [
       { t: 'talk', lines: [['gizmo', 'Yo yo! A crow racer says no chinchilla can beat him round the Strip.', 'smug'], ['gizmo', 'Prove him wrong and I’ll tell you how to get into the Roost.', 'calm']] },
@@ -705,6 +712,110 @@ export const MISSIONS: Mission[] = [
       { t: 'pickup', at: 'loot', item: 'xmas-star', label: 'Catch the Christmas Star' },
       { t: 'talk', lines: [['ciku', 'I only wanted something nobody else had.', 'worried'], ['tiara', 'Then come and switch it on with us, Datin. Everybody gets to have it. That’s the point.', 'happy'], ['rosie', 'And laksa after. My treat.', 'happy'], ['hero', 'Best Christmas ever.', 'happy'], ['mate', 'Best island ever. All of it, coast to coast.', 'happy']] },
     ] },
+  // ── Chapter 9: Lights by the Lake. South over the water the MRT runs on to Tiong Bahru, Clarke Quay and Jurong East.
+  // The Mid-Autumn lanterns are going up round Jurong Lake, and Towkay Hoot, the rival towkay, a buffy fish owl who
+  // thinks everything has a price, is buying up (and, where nobody will sell, helping himself to) every lantern on the
+  // island for a gala of his own, with the otters and the lizards on his payroll
+  { id: 'm56', ch: 9, title: 'Breakfast at Tiong Bahru', giver: 'kamal', at: 'kamal', reward: 620, rep: 18, blurb: 'The MRT runs on south over the water. Uncle Seng at Tiong Bahru Market has a queue round the block for his chwee kueh and no rice flour: somebody bought every sack in the estate.',
+    steps: [
+      { t: 'talk', lines: [['kamal', 'More news! The line runs on south: Clarke Quay, Tiong Bahru, and Jurong East when the last bit of track is checked.', 'happy'], ['kamal', 'And Uncle Seng at Tiong Bahru Market is asking for you two. By name!', 'calm'], ['mate', 'Famous for helping. Tiong Bahru station, then.', 'smug']] },
+      { t: 'train', to: 'stn-tiong', label: 'Take the MRT to Tiong Bahru (E at the station gates)', cp: true },
+      { t: 'goto', at: 'seng', label: 'Find Uncle Seng at his chwee kueh cart outside Tiong Bahru Market', ride: 'foot' },
+      { t: 'talk', lines: [['seng', 'Forty years I steam chwee kueh here. Today, no rice flour! Somebody bought every sack in Tiong Bahru. Cash. Before sunrise.', 'worried'], ['seng', 'The kopitiam on Seng Poh Road keeps one sack for me under the counter. Go, go, my queue is to the bird corner already.', 'cross'], ['hero', 'One sack, no spills.', 'calm']] },
+      { t: 'pickup', at: 'tbkopi', item: 'parcel', label: 'Pick up the sack of rice flour at the Seng Poh Road kopitiam', cp: true },
+      { t: 'deliver', to: 'chweekueh', item: 'parcel', time: 70, fragile: 6, label: 'Carry the flour to Uncle Seng’s cart before the steamers go cold (bumps spill it)' },
+      { t: 'mini', kind: 'wok', level: 2, label: 'Fry the chai poh topping with Uncle Seng' },
+      { t: 'talk', lines: [['seng', 'Shiok. Soft cake, salty chai poh. Now Tiong Bahru smells like morning again.', 'happy'], ['seng', 'The one who bought my flour left a card. A gold owl on it. “Towkay Hoot: everything has a price.”', 'cross'], ['mate', 'Hoot. The rival towkay. What does an owl want with rice flour?', 'worried']] },
+    ] },
+  { id: 'm57', ch: 9, title: 'The Silent Corner', giver: 'seng', at: 'seng', reward: 640, rep: 18, blurb: 'Sifu Musang sent the bird corner the first rabbit lantern of the Mid-Autumn festival. It has vanished, and the songbirds have stopped singing. Ask round the estate, then search where every clue points.',
+    steps: [
+      { t: 'talk', lines: [['seng', 'Every year Sifu Musang from the Chinese Garden sends our bird corner the first rabbit lantern. This morning: gone. And the birds, not one note.', 'worried'], ['seng', 'Tiong Bahru people see everything from their balconies. Ask them.', 'calm'], ['hero', 'We ask, then we look where the clues point.', 'calm']] },
+      { t: 'goto', at: 'birdcorner', label: 'Go to the Tiong Bahru bird corner', ride: 'foot', cp: true },
+      { t: 'detective', item: 'rabbit-lantern', time: 150, witnesses: [
+        { at: [256, 111], sp: 'tabby', name: 'neighbour with the tote bag', ask: ['Did you hear anything?', 'What did the thief look like?', 'Which way did they go?'], right: 2, clue: 'Down, not up. Something low and wet slipped away under the tables, towards the shade.', tag: 'low', junk: ['Only the coffee machine. It is a very loud coffee machine.', 'I was reading. A good book hides the whole world.', ''] },
+        { at: [268, 112], sp: 'robin', name: 'bird uncle with the empty hook', ask: ['Why did the birds stop?', 'Was it one of the cats?', 'What time was it?'], right: 0, clue: 'They smelled the river. Fishy! My merbok hates a fishy smell. It was by the old books, I tell you.', tag: 'books', junk: ['', 'The cats here are gentlemen. Never.', 'Kopi time. Before the second kopi.'] },
+        { at: [280, 113], sp: 'goose', name: 'auntie sweeping the temple step', ask: ['Did anyone drop anything?', 'Did you see a van?', 'Were they in a hurry?'], right: 0, clue: 'Wet paw prints, small ones, round the back where the awning keeps the rain off.', tag: 'shade', junk: ['', 'No van. Only a trishaw, and he is my cousin.', 'Everybody is in a hurry now. Not like last time.'] },
+      ], spots: [
+        { at: [275, 113], tags: ['low', 'books', 'shade'], what: 'under the book cart’s awning' },
+        { at: [258, 112], tags: ['low'], what: 'under the bakery’s tables' },
+        { at: [270, 111], tags: ['books'], what: 'the bookshop’s window box' },
+        { at: [282, 112], tags: ['shade'], what: 'the temple’s side porch' },
+        { at: [262, 113], tags: ['low', 'shade'], what: 'the bench under the frangipani' },
+      ], label: 'Ask round the bird corner (E), then search where every clue points', cp: true },
+      { t: 'talk', lines: [['hero', 'The rabbit lantern! A bit damp, and an otter’s whisker stuck in the paper.', 'smug'], ['mate', 'Otters. In Tiong Bahru. Somebody is paying them.', 'cross']] },
+      { t: 'deliver', to: 'birdcorner', item: 'rabbit-lantern', time: 60, fragile: 4, label: 'Carry the rabbit lantern back to the bird corner (gently: it is paper)', cp: true },
+      { t: 'talk', lines: [['seng', 'Listen! The merbok first, then all of them. Tiong Bahru is singing again.', 'happy'], ['hoot', 'A charming little lantern. I offered a fair price for it, you know. I always offer first.', 'calm'], ['seng', 'That is Towkay Hoot. He is buying every lantern on the island. The otters bring him what people will not sell. Kak Melati at Clarke Quay knows more.', 'cross']] },
+    ] },
+  { id: 'm58', ch: 9, title: 'Canopy Lights', giver: 'melati', at: 'melati', reward: 660, rep: 18, blurb: 'The otters pulled the wires out of the Clarke Quay canopy lights and tipped the river’s lotus lanterns all over the quay. Rewire the switch box and gather them up.',
+    steps: [
+      { t: 'talk', lines: [['melati', 'Kak Melati. I sing here every night, darling, and tonight I am singing in the dark.', 'worried'], ['melati', 'Otters. They pulled the canopy’s wires and scattered the lotus lanterns we float on the river for Mid-Autumn.', 'cross'], ['mate', 'Wires first, then lanterns. Then we ask the otters who is paying.', 'smug']] },
+      { t: 'goto', at: [303, 101], label: 'To the switch box under the canopy by the Slingshot', ride: 'foot', cp: true },
+      { t: 'mini', kind: 'wires', level: 3, label: 'Rewire the canopy light switch box' },
+      { t: 'collect', items: [[292, 101], [316, 101], [327, 108], [294, 107]], item: 'lotus-lantern', time: 95, label: 'Gather the four lotus lanterns the otters tipped out along the quay (Read Bridge crosses the river)', cp: true },
+      { t: 'goto', at: 'stage-quay', label: 'Bring the lanterns to Kak Melati’s stage', ride: 'foot' },
+      { t: 'talk', lines: [['melati', 'Lights! Oh, look at the canopy. Pink, blue, the whole river is blushing.', 'happy'], ['melati', 'But my band cannot play. The otters took the instruments down the river on a bumboat.', 'worried'], ['hero', 'Then we take a bumboat too.', 'calm']] },
+    ] },
+  { id: 'm59', ch: 9, title: 'River Run', giver: 'melati', at: 'melati', reward: 660, rep: 18, blurb: 'The Riverside Romp are showing off down the Singapore River with the band’s instruments on their bumboat. Take the bumboat at the steps and beat them round every marker.',
+    steps: [
+      { t: 'talk', lines: [['melati', 'There! The otters, with my double bass standing up in their bumboat like a mast!', 'cross'], ['melati', 'They always race round the markers to show off. Beat them and they must hand everything back. Otter rules.', 'calm'], ['mate', 'Otter rules. I like otter rules.', 'happy']] },
+      { t: 'ride', kind: 'boat', near: [303, 103], label: 'Jump in the bumboat at the steps by Read Bridge', cp: true },
+      { t: 'race', ride: 'boat', rival: 'boat', pace: 0.85, time: 95, marks: [[316, 105], [331, 104], [334, 94], [318, 93], [334, 99], [322, 104]], label: 'Steer round every river marker before the otters’ boat', cp: true },
+      { t: 'goto', at: 'melati', label: 'Back to Kak Melati at the stage', ride: 'foot', r: 140 },
+      { t: 'talk', lines: [['melati', 'My bass! Not a scratch. And the otters are bowing. Such manners, for thieves.', 'happy'], ['melati', 'They say an owl pays them in fish. Tonight he wants my stage, for his own gala.', 'worried']] },
+    ] },
+  { id: 'm60', ch: 9, title: 'Hold the Stage', giver: 'melati', at: 'melati', reward: 680, rep: 18, blurb: 'Towkay Hoot wants the Clarke Quay stage cleared for his gala. The otters will not cross Kak Melati twice, so he has sent paid crows for the speakers, the lights and the lanterns. Hold the stage.',
+    steps: [
+      { t: 'talk', lines: [['melati', 'The show starts in a minute, and look up: crows, all along the godown roofs. That owl pays in shiny things.', 'worried'], ['mate', 'Then we hold the stage. Knock them back before they grab.', 'smug']] },
+      { t: 'goto', at: 'stage-quay', label: 'Get to the Clarke Quay stage', cp: true },
+      { t: 'defend', at: 'stage-quay', time: 66, waves: 3, per: 2, gang: 'crow', what: 'Stage', label: 'Guard the stage: knock the crows back before they grab ({mate} helps on their own)', cp: true },
+      { t: 'talk', lines: [['melati', 'Not a single lantern lost! Listen to that crowd.', 'happy'], ['hoot', 'Bravo. Keep your little stage. I have all the lanterns that matter, safe in Godown Number Nine.', 'happy'], ['hero', 'Godown Number Nine. He just told us.', 'smug']] },
+    ] },
+  { id: 'm61', ch: 9, title: 'Godown No. 9', giver: 'melati', at: 'melati', reward: 700, rep: 19, blurb: 'Towkay Hoot keeps the lanterns he has bought and “borrowed” in Godown No. 9, south of Eu Tong Sen Street. Case the place, then take them back: quiet or loud.',
+    steps: [
+      { t: 'talk', lines: [['melati', 'Godown Number Nine, behind the night market. Lizards on the door. He hires everybody, that owl.', 'worried'], ['mate', 'Look first. Doors, guards, cameras, the safe.', 'smug']] },
+      { t: 'goto', at: [312, 118], label: 'Cross Coleman Bridge to Godown No. 9', ride: 'foot', cp: true },
+      { t: 'case', spots: [{ at: [321, 122], kind: 'door' }, { at: [319, 124], kind: 'rota' }, { at: [316, 124], kind: 'cam' }, { at: [312, 120], kind: 'safe' }], need: 3, guards: [[[312, 124], [321, 124]], [[313, 118], [321, 118]]], label: 'Photograph three things (E): the side door, the guard rota, the camera, the strongroom' },
+      { t: 'talk', lines: [['mate', 'Quiet or loud? Either way, the lanterns come home.', 'smug']] },
+      { t: 'heist', front: [317, 123], back: [321, 122], safe: [312, 120], drop: 'safe-quay', guards: [[[312, 124], [321, 124]], [[313, 118], [321, 118]]], cams: [[314, 124, 0], [320, 118, 180]], time: 65, loot: 'lantern-crate', level: 3, label: 'Crack the strongroom of Godown No. 9', cp: true },
+      { t: 'talk', lines: [['hero', 'Crates of lanterns! But not the big one. Just a delivery note: “Moon Lantern. Jurong. Handle with claws.”', 'worried'], ['hoot', 'You found my small change. The Moon Lantern of the Chinese Garden is already mine, little ones.', 'happy'], ['melati', 'Jurong! Mr Kamal says the track is checked. The line runs to Jurong East tonight. Go!', 'cross']] },
+    ] },
+  { id: 'm62', ch: 9, title: 'Science Night', giver: 'suria', at: 'suria', reward: 700, rep: 19, blurb: 'Dr Suria of the Science Centre Observatory has seen lizards carrying crates past her telescope every night. Net them on Jurong Gateway Road, then follow the one that gets away.',
+    steps: [
+      { t: 'talk', lines: [['suria', 'Oh! Hello. Dr Suria. I look at the sky, mostly. But lately I look at the road.', 'calm'], ['suria', 'Every night at the same minute, three monitor lizards carry crates past my observatory. I have a graph.', 'worried'], ['mate', 'Nets on their path, a snack for bait. Then we follow the one that gets away.', 'smug']] },
+      { t: 'goto', at: 'science', label: 'Go to the front of the Science Centre', ride: 'foot', cp: true },
+      { t: 'trap', spots: [[202, 103], [206, 103], [210, 103], [214, 103]], need: 3, bait: [218, 103], wait: [212, 101], path: [[199, 103], [202, 103], [206, 103], [210, 103], [214, 103], [218, 103]], gang: 'liz', n: 3, catch: 2, label: 'Lay three nets along the road outside the Science Centre (E)', cp: true },
+      { t: 'talk', lines: [['hero', 'Two in the nets. The third has a crate with a gold owl stamped on it.', 'smug'], ['mate', 'Let it lead us. I’ll wait down the road: switch to me there.', 'smug']] },
+      { t: 'tail', name: 'the lizard', skin: 'liz', from: [221, 103], route: [[228, 104], [228, 110], [228, 116], [229, 121], [236, 121]], relay: { at: 3, spot: [240, 118] }, calm: 0.55, label: 'Follow the lizard down Jurong Town Hall Road; switch to {mate} by the night market (Tab)', cp: true },
+      { t: 'talk', lines: [['hero', 'A warehouse behind the night market. Full of lanterns, by the glow.', 'cross'], ['suria', 'Then that is where the Moon Lantern’s frame went. Sifu Musang has been so sad. I have a plan. It involves a school trip.', 'happy']] },
+    ] },
+  { id: 'm63', ch: 9, title: 'School Trip', giver: 'suria', at: 'suria', reward: 720, rep: 19, blurb: 'A Science Centre school trip walks past Towkay Hoot’s warehouse tonight. Walk in with the children, then swap his lantern crates for crates of model rockets while the lizards doze.',
+    steps: [
+      { t: 'talk', lines: [['suria', 'Forty children, one teacher, and a walk to the night market for rocket ice cream. Nobody looks twice at a school trip.', 'happy'], ['suria', 'Take backpacks from the rack by the station. Walk slowly. Look bored.', 'calm'], ['mate', 'Bored. I can do bored.', 'smug']] },
+      { t: 'blend', rack: [228, 112], route: [[228, 113], [228, 118], [232, 118], [236, 118]], goal: [236, 121], lookouts: [[230, 113, 90], [233, 118, 180], [241, 119, 180]], crowd: 9, folk: 'town', label: 'Walk with the school trip to the night market behind the station (keep to a walk)', cp: true },
+      { t: 'talk', lines: [['hero', 'Crates everywhere. And lizards everywhere, pretending to be asleep.', 'worried'], ['mate', 'Swap each crate for one of Dr Suria’s rocket crates. Same size, same rattle.', 'smug']] },
+      { t: 'swap', crates: [[229, 121], [232, 121], [239, 121], [241, 123]], guards: [[[228, 120], [241, 120]], [[238, 124], [241, 124]]], time: 90, decoy: 'decoy', skin: 'liz', label: 'Slip a rocket crate in for each lantern crate (E) while the lizards look away', cp: true },
+      { t: 'goto', at: 'musang', label: 'Take the lanterns to Sifu Musang at the Chinese Garden gate' },
+      { t: 'talk', lines: [['musang', 'My lanterns. Every rabbit, every lotus. Thank you, young ones.', 'happy'], ['musang', 'But the Moon Lantern, the big one for the lake: Hoot has it on the pagoda already, for his gala. Tickets only.', 'worried'], ['hero', 'Then we make a new plan.', 'calm']] },
+    ] },
+  { id: 'm64', ch: 9, title: 'The Lantern Lions', giver: 'musang', at: 'musang', reward: 720, rep: 19, blurb: 'The lion dance leads the lantern procession from the garden gate round the lake to the tea house before the festival opens, and Towkay Hoot has paid the crows to break it up.',
+    steps: [
+      { t: 'talk', lines: [['musang', 'Lights by the Lake opens tonight, Moon Lantern or no Moon Lantern. The lion dance leads the lanterns round the east shore to the tea house.', 'calm'], ['musang', 'Crows on the gate roof. Paid crows. They will dive for the lion’s red envelopes and scatter the procession.', 'worried'], ['mate', 'I take the far side. Nothing touches the lions.', 'smug']] },
+      { t: 'goto', at: 'garden', label: 'Meet the lion dance at the Chinese Garden gate', ride: 'foot', cp: true },
+      { t: 'escort', from: [220, 112], route: [[220, 113], [220, 118], [221, 124], [212, 125], [208, 125]], crows: 5, flanks: true, label: 'Keep the crows off the lion dance round the lake ({mate} guards the far side)', cp: true },
+      { t: 'talk', lines: [['musang', 'Every lantern lit, and the lake is full of moons. Almost.', 'happy'], ['hoot', 'Very pretty. Mine is bigger. Gala at the pagoda, midnight. You are not invited.', 'happy'], ['hero', 'We’ll see you at midnight, Towkay.', 'cross']] },
+    ] },
+  { id: 'm65', ch: 9, title: 'Lights by the Lake', giver: 'musang', at: 'musang', reward: 1400, rep: 26, blurb: 'Towkay Hoot is unveiling the stolen Moon Lantern at the seven-storey pagoda. Slip past his lookouts, run him down round Jurong Lake, and bring the moon back to the festival.',
+    steps: [
+      { t: 'talk', lines: [['musang', 'The garden is closed for his gala. Only the pagoda, the lake and his lookouts.', 'calm'], ['suria', 'I have timed them. They stop and stare at the moon every few steps. Everybody does.', 'happy'], ['mate', 'Then I keep the gate busy. You go in quiet along the north shore.', 'smug']] },
+      { t: 'goto', at: [216, 112], label: 'Go in past the stone lions', ride: 'foot', cp: true },
+      { t: 'stealth', lookouts: [[[214, 107], [217, 107]], [[211, 107], [211, 109]], [[207, 107], [201, 107]]], goal: 'pagoda', exit: [216, 112], calm: 0.55, pause: 1.5, label: 'Reach the seven-storey pagoda unseen past the lookouts, then get out', cp: true },
+      { t: 'talk', lines: [['hoot', 'Gate-crashers. I did offer to buy you two, once. You were not for sale. Most irritating.', 'cross'], ['hero', 'The Moon Lantern, Towkay. It belongs to the lake.', 'calm'], ['hoot', 'Everything has a price. Yours is: catch me first!', 'happy']] },
+      { t: 'chase', who: 'runner', name: 'Towkay Hoot', skin: 'hoot', from: [206, 112], route: [[213, 111], [219, 112], [220, 116], [220, 123], [212, 125], [220, 123], [220, 116], [214, 111]], bumps: 2, loot: '', speed: 200, finish: 'pounce', label: 'Pounce on Towkay Hoot together: F sends {mate} in, then dash', cp: true },
+      { t: 'talk', lines: [['hoot', 'My jacket! My dignity! Fine. FINE. Crow! Take the lantern up where they cannot reach!', 'cross'], ['mate', 'A crow has the Moon Lantern! It’s going up over the lake!', 'cross']] },
+      { t: 'bag', at: 'here', loot: 'moon-lantern', time: 60, label: 'Knock the Moon Lantern out of the crow’s claws (shoot it, or dash when it swoops low)', cp: true },
+      { t: 'pickup', at: 'loot', item: 'moon-lantern', label: 'Catch the Moon Lantern' },
+      { t: 'talk', lines: [['hoot', 'I only wanted the best party on the island. For once, I wanted them to come to mine.', 'worried'], ['musang', 'Then come to ours, Towkay. A lantern costs nothing to carry.', 'happy'], ['seng', 'And chwee kueh after. I brought the steamer.', 'happy'], ['hero', 'Happy Mid-Autumn, everybody.', 'happy'], ['mate', 'Best moon ever. The whole island under it.', 'happy']] },
+    ] },
 ];
 // ── Hawker Tales: the Singapore side jobs. They sit outside the five chapters (ch 0), open once their story job is
 // done, and pay like a story job; the townsfolk they help are in PEOPLE.
@@ -854,6 +965,30 @@ export const SIDE: Mission[] = [
       { t: 'race', ride: 'boat', rival: 'boat', pace: 0.88, time: 80, marks: [[360, 96], [346, 101], [332, 96], [346, 92], [362, 92]], label: 'Steer round every channel marker before the otter’s boat', cp: true },
       { t: 'goto', at: 'ubin', label: 'Back to Pak Ubin at the jetty', ride: 'foot', r: 140 },
       { t: 'talk', lines: [['ubin', 'Hah! Old boat, old captain, still the fastest. Come, kopi on me.', 'happy']] },
+    ] },
+  // the fourteenth pass's Hawker Tales: Tiong Bahru, Clarke Quay and Jurong
+  { id: 'k17', side: 'm57', ch: 0, title: 'Cages before Dawn', giver: 'seng', at: 'seng', reward: 230, rep: 12, blurb: 'The bird uncles’ spare cages are locked in the storeroom behind the Monkey God Temple, and the key is lost. Pick the lock, then carry the cages to the bird corner before the morning song.',
+    steps: [
+      { t: 'talk', lines: [['seng', 'The singing contest is at sunrise and the spare cages are locked up. The key? In somebody’s other trousers.', 'worried'], ['mate', 'A lock. We know locks.', 'smug']] },
+      { t: 'goto', at: 'monkeygod', label: 'Go to the storeroom beside the Monkey God Temple', ride: 'foot', cp: true },
+      { t: 'mini', kind: 'lock', level: 2, label: 'Pick the storeroom lock' },
+      { t: 'pickup', at: 'monkeygod', item: 'bird-pole', label: 'Take the songbird cages' },
+      { t: 'deliver', to: 'birdcorner', item: 'bird-pole', time: 55, fragile: 5, label: 'Carry the cages to the bird corner (gently: bumps bend the bamboo)', cp: true },
+      { t: 'talk', lines: [['seng', 'Just in time. Hear that? My merbok is warming up. He will win, you watch.', 'happy']] },
+    ] },
+  { id: 'k18', side: 'm61', ch: 0, title: 'Encore', giver: 'melati', at: 'melati', reward: 240, rep: 12, blurb: 'A gust off the river took Kak Melati’s song sheets down both banks of Clarke Quay. Gather them before the encore.',
+    steps: [
+      { t: 'talk', lines: [['melati', 'My song sheets! The wind took them off the stand, over the river, everywhere. And the crowd wants one more.', 'worried'], ['hero', 'Four sheets. Both banks. Back before the applause stops.', 'calm']] },
+      { t: 'collect', items: [[291, 101], [312, 107], [328, 107], [306, 113]], item: 'recipe', time: 85, label: 'Gather the four song sheets along both banks (Read Bridge and Coleman Bridge cross the river)', cp: true },
+      { t: 'goto', at: 'melati', label: 'Bring the sheets back to Kak Melati', ride: 'foot' },
+      { t: 'talk', lines: [['melati', 'Every page! This one is for you two, darlings. Front row.', 'happy']] },
+    ] },
+  { id: 'k19', side: 'm63', ch: 0, title: 'Rocket Day', giver: 'suria', at: 'suria', reward: 250, rep: 12, blurb: 'The school trip launched their model rockets all at once, and they came down all over Jurong. Find them before the bus leaves.',
+    steps: [
+      { t: 'talk', lines: [['suria', 'Four rockets, four excellent launches, and no idea where any of them landed. I did tell them about wind.', 'worried'], ['mate', 'We’ll find them. Rockets are easy. They’re the pointy things.', 'smug']] },
+      { t: 'collect', items: [[200, 102], [222, 103], [238, 103], [232, 113]], item: 'rocket', time: 90, label: 'Find the four model rockets round the Science Centre and Jem', cp: true },
+      { t: 'goto', at: 'suria', label: 'Bring the rockets back to Dr Suria' },
+      { t: 'talk', lines: [['suria', 'All four, and only one bent fin. The children say you are the best ground crew in Singapore.', 'happy']] },
     ] },
 ];
 export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id, m])) as Record<string, Mission>;

@@ -90,6 +90,13 @@ export function isleActor(sc: Scene, x: X, a: Actor): boolean {
     if (a.stun > 0) sc.stars(x, b.x, b.y - 38); else spr(x, 'loot-bag', b.x, b.y - 40, { w: 18 });
     return true;
   }
+  if (a.skin === 'hoot' && a.kind === 'runner') {
+    const fl = Math.floor(sc.t * 9) % 2, b = a.b, left = Math.cos(b.h) < 0;
+    const f = a.stun > 0 ? 'hoot-dizzy' : b.speed < 5 ? 'hoot-stand' : `hoot-run-${fl}`;
+    x.fillStyle = 'rgba(0,0,0,.3)'; sc.shadow(x, b.x, b.y + 2, 20, 8);
+    spr(x, f, b.x, b.y + 6, { flip: left && b.speed >= 5 });
+    return true;
+  }
   if (a.skin === 'ciku' && a.kind === 'runner') {
     // Datin Ciku, the Atas Bats' boss, cape flying, clutching her tiara
     x.fillStyle = 'rgba(0,0,0,.3)'; sc.shadow(x, b.x, b.y + 2, 16, 6);

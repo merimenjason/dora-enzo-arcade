@@ -12,6 +12,7 @@ import { sgCity, type SgCity } from './jade-sgcity.js';
 import { island, type Isle } from './jade-island.js';
 import { east, backLanes, type East } from './jade-east.js';
 import { far, type Far } from './jade-far.js';
+import { south, type South } from './jade-south.js';
 
 export const T = 64;
 export const W = 376, H = 128;
@@ -26,6 +27,9 @@ export const EAST_SPLIT = 42;
 /** the twelfth pass: past the Geylang River (columns 272 to 275), Orchard Road (north) and Katong (south) up to column
  * 323, and Changi from column 324 to the east edge; roads run to column 371 */
 export const FAR_X0 = 276, FAR_SPLIT = 38, CHANGI_X0 = 324, FAR_X1 = 371;
+/** the fourteenth pass: south of Kampong Glam over the water, rows 96 to 125: Jurong (columns 198 to 241), Tiong Bahru
+ * (242 to 287) and Clarke Quay (288 to 329) */
+export const SOUTH_X0 = 198, SOUTH_X1 = 329, SOUTH_Y0 = 96, SOUTH_Y1 = 125, TIONG_X0 = 242, QUAY_X0 = 288;
 export const WORLD_W = W * T, WORLD_H = H * T;
 
 export const G = { SEA: 0, CANAL: 1, ROAD: 2, WALK: 3, PLAZA: 4, GRASS: 5, DOCK: 6, PLANK: 7, TEMPLE: 8, NEON: 9, PATH: 10, COBBLE: 11, BRIDGE: 12, STAIRS: 13, BLD: 14,
@@ -36,25 +40,27 @@ export const G = { SEA: 0, CANAL: 1, ROAD: 2, WALK: 3, PLAZA: 4, GRASS: 5, DOCK:
   INDIA: 21, GLAM: 22, SAND: 23, RESORT: 24, LAGOON: 25, FORT: 26,
   /** the twelfth pass: Katong's Peranakan tiles, Orchard Road's granite, the airport's tarmac, East Coast Park's red
    * cycling track, the Jewel's garden floor and Changi Village's pavers */
-  KATONG: 27, ORCHARD: 28, TARMAC: 29, CYCLE: 30, JEWEL: 31, CHANGI: 32 } as const;
+  KATONG: 27, ORCHARD: 28, TARMAC: 29, CYCLE: 30, JEWEL: 31, CHANGI: 32,
+  /** the fourteenth pass: Tiong Bahru's terrazzo, Clarke Quay's granite setts, Jurong's pavers, the Chinese Garden's pebbles */
+  TIONG: 33, QUAY: 34, JURONG: 35, GARDEN: 36 } as const;
 export type G = (typeof G)[keyof typeof G];
-export const GROUND_NAMES = ['sea', 'canal', 'road', 'walk', 'plaza', 'grass', 'dock', 'plank', 'temple', 'neon', 'path', 'cobble', 'bridge', 'stairs', 'bld', 'xway', 'hdb', 'rubber', 'granite', 'deck', 'bay', 'india', 'glam', 'sand', 'resort', 'lagoon', 'fort', 'katong', 'orchard', 'tarmac', 'cycle', 'jewel', 'changi'] as const;
+export const GROUND_NAMES = ['sea', 'canal', 'road', 'walk', 'plaza', 'grass', 'dock', 'plank', 'temple', 'neon', 'path', 'cobble', 'bridge', 'stairs', 'bld', 'xway', 'hdb', 'rubber', 'granite', 'deck', 'bay', 'india', 'glam', 'sand', 'resort', 'lagoon', 'fort', 'katong', 'orchard', 'tarmac', 'cycle', 'jewel', 'changi', 'tiong', 'quay', 'jurong', 'garden'] as const;
 /** solid: 0 open, 1 building, 2 water, 3 tall prop (stall, container), 4 low prop (hop over on foot) */
 export const S = { OPEN: 0, BUILDING: 1, WATER: 2, TALL: 3, LOW: 4 } as const;
 export type S = (typeof S)[keyof typeof S];
 /** flags */
 export const F_ALLEY = 1, F_STAIRS = 2, F_ROOF = 4, F_BRIDGE = 8, F_PARK = 16;
 
-export type District = 'market' | 'temple' | 'canal' | 'docks' | 'arcade' | 'heartland' | 'bay' | 'india' | 'glam' | 'resort' | 'orchard' | 'katong' | 'changi';
+export type District = 'market' | 'temple' | 'canal' | 'docks' | 'arcade' | 'heartland' | 'bay' | 'india' | 'glam' | 'resort' | 'orchard' | 'katong' | 'changi' | 'tiong' | 'quay' | 'jurong';
 /** Chinatown's five districts (the first plan), then the island's two, the ninth pass's three and the twelfth's three */
 export const CT_DISTRICTS: District[] = ['market', 'temple', 'canal', 'docks', 'arcade'];
-export const DISTRICTS: District[] = [...CT_DISTRICTS, 'heartland', 'bay', 'india', 'glam', 'resort', 'orchard', 'katong', 'changi'];
-export const DISTRICT_NAME: Record<District, string> = { market: 'Smith Street', temple: 'Temple Street', canal: 'Boat Quay', docks: 'the Tanjong Pagar Docks', arcade: 'Clarke Quay', heartland: 'Toa Payoh', bay: 'Marina Bay', india: 'Little India', glam: 'Kampong Glam', resort: 'Sentosa', orchard: 'Orchard Road', katong: 'Katong', changi: 'Changi' };
+export const DISTRICTS: District[] = [...CT_DISTRICTS, 'heartland', 'bay', 'india', 'glam', 'resort', 'orchard', 'katong', 'changi', 'tiong', 'quay', 'jurong'];
+export const DISTRICT_NAME: Record<District, string> = { market: 'Smith Street', temple: 'Temple Street', canal: 'Boat Quay', docks: 'the Tanjong Pagar Docks', arcade: 'Club Street', heartland: 'Toa Payoh', bay: 'Marina Bay', india: 'Little India', glam: 'Kampong Glam', resort: 'Sentosa', orchard: 'Orchard Road', katong: 'Katong', changi: 'Changi', tiong: 'Tiong Bahru', quay: 'Clarke Quay', jurong: 'Jurong' };
 /** the row where the heartlands end and the bay front begins (the Pan Island Expressway runs along it) */
 export const ISLE_SPLIT = 38;
 export function districtAt(tx: number, ty: number): District {
   // Sentosa and the harbour round it are the south; Little India and Kampong Glam the far side of the Rochor River
-  if (ty >= CT_H) return 'resort';
+  if (ty >= CT_H) return tx >= SOUTH_X0 - 4 && tx <= SOUTH_X1 + 1 ? (tx >= QUAY_X0 ? 'quay' : tx >= TIONG_X0 ? 'tiong' : 'jurong') : 'resort';
   // past the Geylang River: Orchard Road north, Katong south, Changi to the east
   if (tx >= FAR_X0 - 4) return tx >= CHANGI_X0 ? 'changi' : ty < FAR_SPLIT ? 'orchard' : 'katong';
   if (tx >= EAST_X0 - 4) return ty < EAST_SPLIT ? 'india' : 'glam';
@@ -83,6 +89,8 @@ export type City = {
   east?: East;
   /** the twelfth pass (lib/jade-far.ts): the Christmas light-up, the Jewel's waterfall, the cycling track, the bats' roost */
   far?: Far;
+  /** the fourteenth pass (lib/jade-south.ts): Clarke Quay's canopy and Slingshot, the bird corner, Jurong Lake's lanterns */
+  south?: South;
 };
 
 // the street plan: horizontal and vertical roads, 4 tiles wide (kerb, lane, lane, kerb). Chinatown's twelve come first
@@ -113,6 +121,11 @@ export const ROADS: Road[] = [
   // Changi Village Road; 32: the East Coast Parkway along the coast from Katong to Changi
   { axis: 'v', at: 290, from: 0, to: 75 }, { axis: 'v', at: 310, from: 0, to: 75 }, { axis: 'v', at: 340, from: 12, to: 75 }, { axis: 'v', at: 360, from: 12, to: 75 },
   { axis: 'h', at: 72, from: 272, to: FAR_X1 },
+  // 33-39 (fourteenth pass): Jurong Town Hall Road's cross street (then Tiong Bahru Road, ending at the Singapore
+  // River), Boon Lay Way (then Seng Poh Road and Eu Tong Sen Street); north-south: Jurong Town Hall Road and Kim Tian
+  // Road, each over the water on a bridge from Kampong Glam, Eng Hoon Street, Zion Road and Clemenceau Avenue
+  { axis: 'h', at: 103, from: SOUTH_X0, to: QUAY_X0 + 1 }, { axis: 'h', at: 114, from: 224, to: SOUTH_X1 },
+  { axis: 'v', at: 224, from: 82, to: SOUTH_Y1 }, { axis: 'v', at: 244, from: 82, to: SOUTH_Y1 }, { axis: 'v', at: 266, from: SOUTH_Y0, to: SOUTH_Y1 }, { axis: 'v', at: 286, from: SOUTH_Y0, to: SOUTH_Y1 }, { axis: 'v', at: 308, from: SOUTH_Y0, to: SOUTH_Y1 },
 ];
 const ALL_ROADS = ROADS;
 /** expressways: faster lanes, no townsfolk, no lights, gantries */
@@ -122,7 +135,10 @@ export const STREET_NAME = ['Pagoda Street', 'Trengganu Street', 'Smith Street',
   'Neil Road', 'Temple Street', 'South Bridge Road', 'New Bridge Road', 'Boat Quay', 'Merchant Road', 'Hill Street',
   'Central Expressway', 'Pan Island Expressway', 'East Coast Parkway', 'Shenton Way', 'Marina Way', 'Bayfront Avenue',
   'Race Course Road', 'Serangoon Road', 'Jalan Besar', 'Siloso Road', 'Siloso Beach Walk', 'Imbiah Road',
-  'Orchard Boulevard', 'Orchard Road', 'East Coast Road', 'Marine Parade Road', 'Joo Chiat Road', 'Tanjong Katong Road', 'Netheravon Road', 'Changi Village Road', 'East Coast Parkway'];
+  'Orchard Boulevard', 'Orchard Road', 'East Coast Road', 'Marine Parade Road', 'Joo Chiat Road', 'Tanjong Katong Road', 'Netheravon Road', 'Changi Village Road', 'East Coast Parkway',
+  'Jurong Gateway Road', 'Boon Lay Way', 'Jurong Town Hall Road', 'Kim Tian Road', 'Eng Hoon Street', 'Zion Road', 'Clemenceau Avenue'];
+/** the fourteenth pass's cross streets change name by district (by column): [road, from column, name] */
+const SOUTH_STREET: [number, number, string][] = [[33, TIONG_X0, 'Tiong Bahru Road'], [34, QUAY_X0, 'Eu Tong Sen Street'], [34, TIONG_X0, 'Seng Poh Road']];
 /** the twelfth pass's roads that change name: in Changi (by column) and north in Orchard (by row) */
 const FAR_EAST: Record<number, string> = { 24: 'Airport Boulevard', 26: 'Upper Changi Road', 27: 'Loyang Avenue' };
 const FAR_NORTH: Record<number, string> = { 28: 'Scotts Road', 29: 'Emerald Hill Road' };
@@ -142,6 +158,7 @@ export function streetAt(tx: number, ty: number): string | null {
       if (GLAM_SOUTH[i] && ty >= EAST_SPLIT) return GLAM_SOUTH[i];
       if (i === 10 && ty >= 82) return 'Sentosa Gateway';
       if (FAR_EAST[i] && tx >= CHANGI_X0) return FAR_EAST[i];
+      for (const [k, from, name] of SOUTH_STREET) if (k === i && tx >= from) return name;
       if (FAR_NORTH[i] && ty < FAR_SPLIT) return FAR_NORTH[i];
       return STREET_NAME[i];
     }
@@ -156,21 +173,21 @@ export function xwayAt(tx: number, ty: number): boolean {
 const CANAL_X0 = 66, CANAL_X1 = 68, SEA_Y = 82;
 
 let CACHE: City | null = null;
-export function city(): City { if (!CACHE) { CACHE = build(); remodel(CACHE); dressBuildings(CACHE); sgCity(CACHE); island(CACHE); east(CACHE); far(CACHE); backLanes(CACHE); } return CACHE; }
+export function city(): City { if (!CACHE) { CACHE = build(); remodel(CACHE); dressBuildings(CACHE); sgCity(CACHE); island(CACHE); east(CACHE); far(CACHE); backLanes(CACHE); south(CACHE); } return CACHE; }
 
-const SIDEWALK: Record<District, G> = { market: G.WALK, temple: G.TEMPLE, canal: G.COBBLE, docks: G.DOCK, arcade: G.NEON, heartland: G.HDB, bay: G.GRANITE, india: G.INDIA, glam: G.GLAM, resort: G.RESORT, orchard: G.ORCHARD, katong: G.KATONG, changi: G.CHANGI };
+const SIDEWALK: Record<District, G> = { market: G.WALK, temple: G.TEMPLE, canal: G.COBBLE, docks: G.DOCK, arcade: G.NEON, heartland: G.HDB, bay: G.GRANITE, india: G.INDIA, glam: G.GLAM, resort: G.RESORT, orchard: G.ORCHARD, katong: G.KATONG, changi: G.CHANGI, tiong: G.TIONG, quay: G.QUAY, jurong: G.JURONG };
 const FRONTS: Record<District, string[]> = {
   market: ['shop-1', 'shop-2', 'shop-3', 'shop-4', 'shop-5', 'shop-6', 'shop-7', 'shop-8', 'shop-9', 'shop-10', 'shop-11', 'shop-12'],
   temple: ['bld-hill', 'bld-pavilion', 'bld-incense', 'bld-callig', 'shop-2', 'shop-5', 'shop-9'],
   canal: ['bld-canal', 'bld-tea', 'bld-boathouse', 'bld-flowers', 'bld-wheel', 'shop-3', 'shop-7'],
   docks: ['bld-office', 'bld-fish', 'bld-rope', 'bld-chandler', 'shop-4'],
   arcade: ['bld-noodle', 'bld-karaoke', 'bld-hotel', 'bld-robot', 'bld-boba', 'shop-10', 'shop-12'],
-  heartland: ['shop-sg1', 'shop-sg2'], bay: ['shop-sg1', 'shop-sg2'], india: ['shop-sg1'], glam: ['shop-sg2'], resort: ['shop-sg1'], orchard: ['shop-sg1'], katong: ['shop-sg2'], changi: ['shop-sg1'],
+  heartland: ['shop-sg1', 'shop-sg2'], bay: ['shop-sg1', 'shop-sg2'], india: ['shop-sg1'], glam: ['shop-sg2'], resort: ['shop-sg1'], orchard: ['shop-sg1'], katong: ['shop-sg2'], changi: ['shop-sg1'], tiong: ['shop-sg2'], quay: ['shop-sg1'], jurong: ['shop-sg1'],
 };
 const ROOFS: Record<District, string[]> = {
   market: ['roof-1', 'roof-2', 'roof-3', 'roof-4', 'roof-7', 'roof-8', 'roof-10', 'roof-11'], temple: ['roof-5', 'roof-6', 'roof-1', 'roof-9', 'roof-11'],
   canal: ['roof-2', 'roof-3', 'roof-6', 'roof-7', 'roof-9'], docks: ['roof-4', 'roof-3', 'roof-8', 'roof-10'], arcade: ['roof-4', 'roof-1', 'roof-5', 'roof-12', 'roof-8'],
-  heartland: ['roof-4'], bay: ['roof-4'], india: ['roof-4'], glam: ['roof-4'], resort: ['roof-4'], orchard: ['roof-4'], katong: ['roof-4'], changi: ['roof-4'],
+  heartland: ['roof-4'], bay: ['roof-4'], india: ['roof-4'], glam: ['roof-4'], resort: ['roof-4'], orchard: ['roof-4'], katong: ['roof-4'], changi: ['roof-4'], tiong: ['roof-4'], quay: ['roof-4'], jurong: ['roof-4'],
 };
 
 function build(): City {

@@ -394,10 +394,10 @@ fit('emp-ui', ['pin-prop', 'pin-prop-own', 'pin-raid', 'i-empire', 'i-ledger', '
 # Vortex, the Atas Bats and Datin Ciku, the new cast's portraits, three townsfolk, the heroes' coast poses, the
 # repainted harbour ferry, the icons and the ground
 rect('katong-bld', ['katong-terrace-a', 'katong-terrace-b', 'katong-laksa', 'katong-mansion', 'katong-shops', 'katong-corner'], 3, 2, {'katong-terrace-a': (9, 3), 'katong-terrace-b': (8, 4), 'katong-laksa': (6, 4), 'katong-mansion': (6, 4), 'katong-shops': (8, 4), 'katong-corner': (4, 4)}, green=True)
-rect('katong-bld2', ['katong-hawker', 'katong-bike', 'katong-seafood', 'katong-mall', 'katong-stn', 'katong-pavilion'], 3, 2, {'katong-hawker': (10, 4), 'katong-bike': (5, 3), 'katong-seafood': (8, 4), 'katong-mall': (10, 5), 'katong-stn': (8, 4), 'katong-pavilion': (5, 3)}, green=True)
+rect('katong-bld2', ['katong-hawker', 'katong-bike', 'katong-seafood', 'katong-mall', None, 'katong-pavilion'], 3, 2, {'katong-hawker': (10, 4), 'katong-bike': (5, 3), 'katong-seafood': (8, 4), 'katong-mall': (10, 5), 'katong-stn': (8, 4), 'katong-pavilion': (5, 3)}, green=True)
 rect('orchard-bld', ['orchard-ion', 'orchard-ngee', 'orchard-lux', 'orchard-lucky', 'orchard-tangs', 'orchard-stn'], 3, 2, {'orchard-ion': (12, 6), 'orchard-ngee': (10, 6), 'orchard-lux': (6, 4), 'orchard-lucky': (6, 4), 'orchard-tangs': (5, 5), 'orchard-stn': (8, 4)}, green=True)
 rect('orchard-bld2', ['orchard-emerald', 'orchard-bar', 'orchard-hotel', 'orchard-xmas', 'orchard-glass', 'orchard-cafe'], 3, 2, {'orchard-emerald': (9, 3), 'orchard-bar': (5, 3), 'orchard-hotel': (4, 4), 'orchard-xmas': (8, 4), 'orchard-glass': (6, 4), 'orchard-cafe': (4, 4)}, green=True)
-rect('changi-bld', ['changi-terminal', 'changi-tower', 'changi-hangar', 'changi-hawker', 'changi-shops', 'changi-stn'], 3, 2, {'changi-terminal': (12, 5), 'changi-tower': (4, 4), 'changi-hangar': (9, 6), 'changi-hawker': (10, 5), 'changi-shops': (8, 4), 'changi-stn': (8, 4)}, green=True)
+rect('changi-bld', ['changi-terminal', 'changi-tower', 'changi-hangar', 'changi-hawker', 'changi-shops', None], 3, 2, {'changi-terminal': (12, 5), 'changi-tower': (4, 4), 'changi-hangar': (9, 6), 'changi-hawker': (10, 5), 'changi-shops': (8, 4), 'changi-stn': (8, 4)}, green=True)
 rect('changi-bld2', ['changi-ferry', 'safe-katong', 'safe-orchard', 'safe-changi', 'changi-hotel', None], 3, 2, {'changi-ferry': (6, 3), 'safe-katong': (3, 3), 'safe-orchard': (3, 3), 'safe-changi': (3, 3), 'changi-hotel': (6, 4)}, green=True)
 each('props12a', ['laksa-cart', 'kamcheng', 'bird-cages', 'kueh-stall', 'bike-rack', 'bbq-pit', 'kite', 'casuarina', 'xmas-tree', 'xmas-arch', 'xmas-star', 'gifts', 'bauble', 'reindeer', 'shop-bags', 'hide-bat'], 4, 4,
      {'laksa-cart': 72, 'kamcheng': 40, 'bird-cages': 84, 'kueh-stall': 76, 'bike-rack': 84, 'bbq-pit': 60, 'kite': 56, 'casuarina': 120, 'xmas-tree': 110, 'xmas-arch': 352, 'xmas-star': 40, 'gifts': 70, 'bauble': 30, 'reindeer': 80, 'shop-bags': 50, 'hide-bat': 160})
@@ -416,15 +416,36 @@ grid('folk7', [f'folk-{s}-{k}' for s in ('robin', 'pigeon', 'egret') for k in ('
 for h in ('dora', 'enzo'):
     grid(f'{h}-act14', [f'{h}-{a}' for a in ('ride-bike-0', 'ride-bike-1', 'laksa-0', 'laksa-1', 'bauble-0', 'bauble-1', 'kite-0', 'kite-1', 'plane-0', 'plane-1', 'suitcase-0', 'suitcase-1')], 4, 3, 58, ref=f'{h}-laksa-0', fix=cream if h == 'dora' else None)
 fit('ui12', ['i-bike', 'pin-bat', 'mi-jewel', 'mi-mall', 'mi-terrace', 'mi-airport', 'i-xmas', 'mi-beach'], 4, 2, 128)
+# ── the fourteenth pass (jobs14): Katong Park and Changi Airport stations repainted in the game's 3/4 view (the first
+# ones were flat front views on a slab), then Tiong Bahru, Clarke Quay and Jurong
+rect('stn14', ['katong-stn', 'changi-stn', 'tiong-stn', 'quay-stn', 'jurong-stn', 'jurong-obs'], 3, 2, {'katong-stn': (8, 4), 'changi-stn': (8, 4), 'tiong-stn': (8, 4), 'quay-stn': (8, 4), 'jurong-stn': (8, 4), 'jurong-obs': (3, 3)}, green=True)
+rect('tiong-bld', ['tiong-market', 'tiong-flats-a', 'tiong-flats-b', 'tiong-bakery', 'tiong-books', 'tiong-temple'], 3, 2, {'tiong-market': (9, 6), 'tiong-flats-a': (12, 4), 'tiong-flats-b': (8, 4), 'tiong-bakery': (6, 4), 'tiong-books': (4, 4), 'tiong-temple': (6, 4)}, green=True)
+rect('quay-bld', ['quay-godown-a', 'quay-godown-b', 'quay-police', 'quay-central', 'quay-seafood', 'quay-bar'], 3, 2, {'quay-godown-a': (12, 4), 'quay-godown-b': (8, 4), 'quay-police': (6, 4), 'quay-central': (6, 4), 'quay-seafood': (8, 4), 'quay-bar': (6, 4)}, green=True)
+rect('jurong-bld', ['jurong-science', 'jurong-pagoda', 'jurong-twin', 'jurong-mall', 'jurong-snow', 'jurong-factory'], 3, 2, {'jurong-science': (10, 5), 'jurong-pagoda': (3, 3), 'jurong-twin': (6, 3), 'jurong-mall': (10, 5), 'jurong-snow': (8, 5), 'jurong-factory': (8, 4)}, green=True)
+rect('south-bld', ['safe-tiong', 'safe-quay', 'safe-jurong', 'jurong-gate', 'jurong-tea', 'tiong-kopi'], 3, 2, {'safe-tiong': (3, 3), 'safe-quay': (3, 3), 'safe-jurong': (3, 3), 'jurong-gate': (4, 2), 'jurong-tea': (5, 3), 'tiong-kopi': (6, 4)}, green=True)
+each('props14a', ['kueh-cart', 'bird-pole', 'bistro-table', 'book-cart', 'tb-lamp', 'tb-cat', 'tb-fountain', 'tb-pot', 'sling-tower', 'sling-capsule', 'q-canopy', 'satay-grill', 'q-stage', 'bumboat', 'cat-statue', 'barrel-table'], 4, 4,
+     {'kueh-cart': 72, 'bird-pole': 96, 'bistro-table': 60, 'book-cart': 60, 'tb-lamp': 40, 'tb-cat': 34, 'tb-fountain': 60, 'tb-pot': 44, 'sling-tower': 150, 'sling-capsule': 64, 'q-canopy': 218, 'satay-grill': 70, 'q-stage': 90, 'bumboat': 80, 'cat-statue': 36, 'barrel-table': 54})
+each('props14b', ['stone-lion', 'stone-lantern', 'bonsai', 'lotus-patch', 'red-bridge', 'koi-fish', 'turtle-rock', 'willow', 'telescope', 'atom', 'rocket', 'snowman', 'rabbit-lantern', 'moon-lantern', 'lotus-lantern', 'lantern-crate'], 4, 4,
+     {'stone-lion': 44, 'stone-lantern': 34, 'bonsai': 44, 'lotus-patch': 70, 'red-bridge': 205, 'koi-fish': 60, 'turtle-rock': 40, 'willow': 120, 'telescope': 46, 'atom': 70, 'rocket': 40, 'snowman': 46, 'rabbit-lantern': 72, 'moon-lantern': 84, 'lotus-lantern': 30, 'lantern-crate': 50})
+each('hoot', ['hoot-stand', 'hoot-run-0', 'hoot-run-1', 'hoot-dizzy', 'hoot-caught', 'hoot-fly-0', 'hoot-fly-1', 'hoot-laugh'], 4, 2,
+     {'hoot-stand': 66, 'hoot-run-0': 66, 'hoot-run-1': 66, 'hoot-dizzy': 60, 'hoot-caught': 60, 'hoot-fly-0': 58, 'hoot-fly-1': 58, 'hoot-laugh': 66}, dim='h')
+fit('faces14', [f'face-{w}{m}' for w in ('seng', 'melati', 'suria', 'musang') for m in ('', '-happy', '-worried', '-cross')], 4, 4, 256)
+grid('folk8', [f'folk-{s}-{k}' for s in ('tabby', 'frog', 'squirrel') for k in ('down', 'up', 'side-0', 'side-1', 'hop')], 5, 3, 50)
+for h in ('dora', 'enzo'):
+    grid(f'{h}-act15', [f'{h}-{a}' for a in ('chwee-0', 'chwee-1', 'birdsong-0', 'birdsong-1', 'sling-0', 'sling-1', 'koi-0', 'koi-1', 'stars-0', 'stars-1', 'lwalk-0', 'lwalk-1')], 4, 3, 58, ref=f'{h}-chwee-0', fix=cream if h == 'dora' else None)
+fit('ui14', ['mi-artdeco', 'mi-godown', 'mi-pagoda', 'mi-dome', 'pin-owl', 'i-rabbit', 'i-bird', 'i-koi'], 4, 2, 128)
+# the street-light switch box's own key (the wires mini-game used the scooter's)
+each('mg-swkey', ['mg-switch-key'], 1, 1, {'mg-switch-key': 60})
 # ── the job givers standing in the world (jobs7): six frames each, facing the street; each row scaled from its own idle
 CAST_H = {'kee': 52, 'mo': 60, 'pang': 56, 'heron': 70, 'ren': 58, 'kiri': 58, 'lim': 54, 'bo': 72, 'bristle': 62, 'gizmo': 58, 'glint': 64,
           'pip': 50, 'hoon': 58, 'teo': 66, 'beng': 60, 'ong': 56, 'lily': 70, 'goh': 56, 'sleek': 58, 'kow': 62, 'kamal': 58, 'vanda': 66,
           'lepak': 66, 'kaw': 64, 'tock': 52, 'raju': 58, 'malar': 56, 'kancil': 58, 'wangi': 62, 'duyung': 72, 'helang': 66, 'bising': 56, 'nine': 60,
-          'huat': 68, 'siew': 74, 'hoot': 62, 'duri': 60, 'rosie': 58, 'bala': 56, 'tiara': 62, 'faiz': 70, 'ubin': 70, 'ciku': 64}
+          'huat': 68, 'siew': 74, 'hoot': 62, 'duri': 60, 'rosie': 58, 'bala': 56, 'tiara': 62, 'faiz': 70, 'ubin': 70, 'ciku': 64,
+          'seng': 58, 'melati': 60, 'suria': 54, 'musang': 58}
 CAST_POSES = ('idle-0', 'idle-1', 'wave-0', 'wave-1', 'talk-0', 'talk-1')
 for f, who in (('cast1', ['kee', 'mo', 'pang', 'heron']), ('cast2', ['ren', 'kiri', 'lim', 'bo']), ('cast3', ['bristle', 'gizmo', 'glint', 'pip']),
                ('cast4', ['hoon', 'teo', 'beng', 'ong']), ('cast5', ['lily', 'goh', 'sleek', 'kow']), ('cast6', ['kamal', 'vanda', 'lepak', 'kaw']), ('cast7', ['tock']),
-               ('cast8', ['raju', 'malar', 'kancil', 'wangi']), ('cast9', ['duyung', 'helang', 'bising', 'nine']), ('cast10', ['huat', 'siew', 'hoot', 'duri']), ('cast11', ['rosie', 'bala', 'tiara', 'faiz']), ('cast12', ['ubin', 'ciku'])):
+               ('cast8', ['raju', 'malar', 'kancil', 'wangi']), ('cast9', ['duyung', 'helang', 'bising', 'nine']), ('cast10', ['huat', 'siew', 'hoot', 'duri']), ('cast11', ['rosie', 'bala', 'tiara', 'faiz']), ('cast12', ['ubin', 'ciku']), ('cast13', ['seng', 'melati', 'suria', 'musang'])):
     gx, gy = (3, 2) if len(who) == 1 else (6, len(who))
     for r, n in enumerate(who):
         names = [f'npc-{n}-{p}' for p in CAST_POSES] if len(who) == 1 else [f'npc-{n}-{p}' if j // 6 == r else None for j, p in enumerate(CAST_POSES * len(who))]
@@ -440,7 +461,9 @@ def seamless(arr):
     m = np.minimum(np.minimum(xx, w - 1 - xx) / (w * 0.5), np.minimum(yy, h - 1 - yy) / (h * 0.5))
     m = np.clip(m * 2.2, 0, 1)[..., None]
     return (arr * m + rolled * (1 - m)).astype(np.uint8)
-for f, names in (('ground', ['road', 'walk', 'plaza', 'grass', 'canal', 'plank']), ('ground2', ['temple', 'sea', 'dock', 'neon', 'path', 'cobble']), ('ground3', ['xway', 'hdb', 'rubber', 'granite', 'deck', 'bay']), ('ground4', ['india', 'glam', 'sand', 'resort', 'lagoon', 'fort']), ('ground5', ['katong', 'orchard', 'tarmac', 'cycle', 'jewel', 'changi'])):
+for f, names in (('ground', ['road', 'walk', 'plaza', 'grass', 'canal', 'plank']), ('ground2', ['temple', 'sea', 'dock', 'neon', 'path', 'cobble']), ('ground3', ['xway', 'hdb', 'rubber', 'granite', 'deck', 'bay']), ('ground4', ['india', 'glam', 'sand', 'resort', 'lagoon', 'fort']), ('ground5', ['katong', 'orchard', 'tarmac', 'cycle', 'jewel', 'changi']),
+                 # the fourteenth pass: calmer Katong and Kampong Glam (these replace ground5's and ground4's), then the south shore
+                 ('ground6', ['katong', 'glam', 'tiong', 'quay', 'jurong', 'garden'])):
     p = SRC / f'{f}.png'
     if not p.exists(): MISSING.append(f); continue
     a = np.asarray(Image.open(p).convert('RGB'))
@@ -461,6 +484,7 @@ PLAIN = {}
 BIG = ['loading'] + [f'stall-{d}' for d in ('market', 'temple', 'canal', 'docks', 'arcade')] + [f'story-{i}' for i in range(1, 5)] + [f'chapter-{i}' for i in range(1, 6)] + [f'end-{i}' for i in range(1, 4)] + ['gadget-shop', 'chapter-6', 'end-4', 'mrt-ride', 'stall-heartland', 'stall-bay', 'chapter-7', 'end-5', 'cable-ride', 'stall-india', 'stall-glam', 'stall-resort']
 BIG += ['empire']  # the tenth pass: the Empire page's banner
 BIG += ['chapter-8', 'end-6', 'stall-katong', 'stall-orchard', 'stall-changi']  # the twelfth pass
+BIG += ['chapter-9', 'end-7', 'stall-tiong', 'stall-quay', 'stall-jurong']  # the fourteenth pass
 for n, size in (('title', (1536, 1024)), ('mg-lock', (1280, 853)), ('mg-wire', (1280, 853)), ('mg-switch', (1280, 853)), ('mg-wok', (1280, 853)), ('mg-board', (1280, 853)), ('mg-haggle', (1280, 853)), ('mg-kopi', (1280, 853)), ('mg-safe', (1280, 853)), ('map-paper', (1024, 683))) + tuple((b, (1280, 853)) for b in BIG):
     p = SRC / f'{n}-crow.png' if (SRC / f'{n}-crow.png').exists() else SRC / f'{n}.png'
     if not p.exists(): MISSING.append(n); continue
@@ -491,12 +515,16 @@ NEW_BLD = tuple(f'shop-{i}' for i in range(7, 13)) + tuple(f'roof-{i}' for i in 
 # givers and faces) when the heroes get near it; the mini-games' pieces when one opens.
 HERO_CORE = ('walk-', 'run-', 'idle-', 'sneak', 'dash-', 'hop-', 'land', 'leap', 'skid', 'tumble', 'bump', 'talk', 'wave', 'cheer', 'carry-', 'pickup', 'ride-', 'pass', 'fire-', 'hide', 'caught', 'swap', 'door', 'climb-', 'lookup', 'duck', 'hail-', 'sleep', 'umbrella', 'phone')
 ZONE_PEOPLE = {'isle': ('kamal', 'vanda', 'lepak', 'kaw'), 'east': ('raju', 'malar', 'kancil', 'wangi', 'bising', 'nine'),
-               'resort': ('duyung', 'helang'), 'far': ('rosie', 'bala', 'tiara', 'faiz', 'ubin', 'ciku')}
+               'resort': ('duyung', 'helang'), 'far': ('rosie', 'bala', 'tiara', 'faiz', 'ubin', 'ciku'),
+               'south': ('seng', 'melati', 'suria', 'musang')}
 def mood_face(n): return n.startswith('face-') and n.count('-') >= 2 and n.split('-')[-1] in ('happy', 'worried', 'cross', 'smug')
 def person(n): return n.split('-')[1] if n.count('-') >= 1 else ''
 def zone_group(kind, z): return (f'{kind}-{z}', lambda n: (mood_face(n) if kind == 'faces' else n.startswith('npc-')) and person(n) in ZONE_PEOPLE[z])
 GROUPS = [('dora', lambda n: n.startswith('dora-') and n[5:].startswith(HERO_CORE)), ('enzo', lambda n: n.startswith('enzo-') and n[5:].startswith(HERO_CORE)),
           ('dora2', lambda n: n.startswith('dora-')), ('enzo2', lambda n: n.startswith('enzo-')),
+          # the fourteenth pass's districts: lazy like the twelfth's (first, so no older prefix claims a frame)
+          ('south', lambda n: n.startswith(('tiong-', 'quay-', 'jurong-', 'safe-tiong', 'safe-quay', 'safe-jurong'))),
+          ('south2', lambda n: n.startswith(('hoot-', 'folk-tabby', 'folk-frog', 'folk-squirrel', 'kueh-cart', 'bird-pole', 'bistro-table', 'book-cart', 'tb-', 'sling-', 'q-canopy', 'q-stage', 'satay-grill', 'bumboat', 'cat-statue', 'barrel-table', 'stone-', 'bonsai', 'lotus-', 'red-bridge', 'koi-fish', 'turtle-rock', 'willow', 'telescope', 'atom', 'rocket', 'snowman', 'rabbit-lantern', 'moon-lantern', 'lantern-crate'))),
           # the tenth pass's empire: the new properties, the damage and props, the raiders and Pak Duri, the rank badges
           # (what the streets show from the first night: each property and stall at level 0 and the for-sale board)
           ('empire', lambda n: n == 'emp-forsale' or (n.startswith(EMP_BIZ) and n.endswith('-0'))),

@@ -17,7 +17,7 @@ try { ({ chromium } = require('playwright')); } catch { ({ chromium } = createRe
 const base = (process.env.BASE_URL ?? 'http://localhost:3000') + '/jade-street';
 const MS = (+(process.env.MINUTES ?? 2)) * 60000;
 const SHOTS = process.env.SHOTS; // a screenshot of each district, on foot and riding, when set
-const b = await chromium.launch();
+const b = await chromium.launch({ args: ['--mute-audio'] });
 const p = await b.newPage({ viewport: { width: 1280, height: 800 } });
 const errs = [];
 p.on('pageerror', e => errs.push(e.message));
@@ -35,7 +35,7 @@ await p.evaluate(() => { const s = window.__jade.world().s; for (const id of Obj
 await p.evaluate(() => { window.__jade.give(); const s = window.__jade.world().s; for (const g of s.gear.own) { s.gear.ammo[g] = 999; s.gear.lvl[g] = 2; } });
 
 // GUARDS_ONLY=1 skips the districts and times only the eighth pass's crowd of guards
-const DISTRICTS = process.env.GUARDS_ONLY ? [] : ['market', 'temple', 'canal', 'docks', 'arcade', 'heartland', 'bay', 'india', 'glam', 'resort', 'orchard', 'katong', 'changi'];
+const DISTRICTS = process.env.GUARDS_ONLY ? [] : ['market', 'temple', 'canal', 'docks', 'arcade', 'heartland', 'bay', 'india', 'glam', 'resort', 'orchard', 'katong', 'changi', 'tiong', 'quay', 'jurong'];
 const keys = ['w', 'a', 's', 'd'];
 const rows = [];
 for (const d of DISTRICTS) {

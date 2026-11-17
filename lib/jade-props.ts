@@ -30,7 +30,7 @@ export const PROPS: PropDef[] = [
   P('shophouse', 'Pagoda Street Shophouse', 'kee', 'market', [22, 50], 1050, 1, 18, 'shophouse'),
   P('zichar', 'Harbour Zi Char Kitchen', 'bo', 'docks', [70, 80], 1700, 1.15, 20, 'food'),
   P('bumboat', 'Boat Quay Bumboat Service', 'kiri', 'canal', [64, 40], 1300, 0.8, 20, 'bumboat'),
-  P('karaoke', 'Clarke Quay Karaoke Lounge', 'lily', 'arcade', [105, 29], 1500, 1.2, 22, 'karaoke'),
+  P('karaoke', 'Club Street Karaoke Lounge', 'lily', 'arcade', [105, 29], 1500, 1.2, 22, 'karaoke'),
   P('kopitiam', 'Toa Payoh Kopitiam', 'teo', 'heartland', [121, 26], 1200, 1.2, 12, 'food'),
   P('taxi', 'ComfortDelGro Taxi Depot', 'kamal', 'heartland', [165, 35], 2600, 1.3, 18, 'taxi'),
   P('provision', 'Void Deck Provision Shop', 'goh', 'heartland', [149, 11], 950, 1, 10, 'shop'),
@@ -49,9 +49,16 @@ export const PROPS: PropDef[] = [
   P('joochiat', 'Joo Chiat Shophouse', 'rosie', 'katong', [323, 56], 2000, 1, 12, 'shophouse', 'spice'),
   P('nasilemak', 'Changi Village Nasi Lemak', 'ubin', 'changi', [328, 55], 1400, 1.15, 12, 'food', 'kopitiam'),
   P('sunset', 'Changi Village Sunset Bar', 'ubin', 'changi', [335, 69], 2800, 0.75, 15, 'bar', 'beachbar'),
+  // the fourteenth pass: two in Tiong Bahru (raided by the crows), two at Clarke Quay (the otters), two in Jurong (the lizards)
+  P('chweekueh', 'Tiong Bahru Chwee Kueh Stall', 'seng', 'tiong', [257, 124], 1500, 1.15, 10, 'food', 'kopitiam'),
+  P('yongsiak', 'Yong Siak Street Bookshop Café', 'seng', 'tiong', [279, 101], 2100, 1, 12, 'food', 'cafe'),
+  P('riversatay', 'Clarke Quay Riverside Satay', 'melati', 'quay', [306, 123], 1700, 1.15, 12, 'food', 'prata'),
+  P('jazzbar', 'Clarke Quay Jazz Lounge', 'melati', 'quay', [326, 118], 3300, 0.8, 15, 'bar', 'rooftop'),
+  P('lakeshop', 'Jurong Lakeside Lantern Shop', 'musang', 'jurong', [236, 113], 2200, 1, 12, 'shophouse', 'spice'),
+  P('laketea', 'Jurong Lake Tea Garden', 'musang', 'jurong', [240, 102], 1800, 1.1, 12, 'food', 'cafe'),
 ];
 /** the first eleven, kept as they were placed, with the kind of trade each is */
 export const STALL_KIND: Record<string, PropKind> = { noodle: 'food', cake: 'food', tea: 'food', fan: 'shop', jade: 'shop', claw: 'shop', ckt: 'food', chicken: 'food', satay: 'food', laksa: 'food', kopi: 'food' };
 /** the rival gang that raids each district's properties (lib/jade-gangs.ts and the Longkang Lizards of the island) */
-export const RAID_GANG: Record<District, 'crow' | 'mac' | 'otter' | 'liz' | 'myna' | 'bat'> = { market: 'mac', temple: 'mac', canal: 'otter', docks: 'otter', arcade: 'crow', heartland: 'liz', bay: 'liz', india: 'myna', glam: 'myna', resort: 'myna', orchard: 'bat', katong: 'bat', changi: 'bat' };
+export const RAID_GANG: Record<District, 'crow' | 'mac' | 'otter' | 'liz' | 'myna' | 'bat'> = { market: 'mac', temple: 'mac', canal: 'otter', docks: 'otter', arcade: 'crow', heartland: 'liz', bay: 'liz', india: 'myna', glam: 'myna', resort: 'myna', orchard: 'bat', katong: 'bat', changi: 'bat', tiong: 'crow', quay: 'otter', jurong: 'liz' };
 export const GANG_NAME: Record<string, string> = { crow: 'Kaypoh Crows', mac: 'Bukit Bunch macaques', otter: 'Riverside Romp otters', liz: 'Longkang Lizards', myna: 'Kecoh Mynahs', bat: 'Atas Bats' };

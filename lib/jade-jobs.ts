@@ -592,7 +592,8 @@ function trapStep(run: Run, st: St<'trap'>, dt: number) {
   const spare = st.n - st.catch;
   run.progress = chase ? `Caught ${js.caught}/${st.catch}` : `Caught ${js.caught}/${st.catch} · nets left ${js.set.length - js.sprung.length}`;
   run.meter = { name: 'Got away', v: clamp(js.escaped / (spare + 1), 0, 1), bad: js.escaped >= spare };
-  for (const i of js.set) if (!js.sprung.includes(i)) run.items[i].sprite = run.actors.some(a => a.kind === 'lured' && a.extra === 0 && dist(a.b.x, a.b.y, run.items[i].x, run.items[i].y) < R) ? 'trap-ready' : 'trap-set';
+  // (the chase way clears the net markers, and a net laid before a retry may outlive them: nothing to repaint then)
+  for (const i of js.set) if (!js.sprung.includes(i) && run.items[i]) run.items[i].sprite = run.actors.some(a => a.kind === 'lured' && a.extra === 0 && dist(a.b.x, a.b.y, run.items[i].x, run.items[i].y) < R) ? 'trap-ready' : 'trap-set';
   if (js.caught >= st.catch) { js.t = Math.min(js.t, 0); js.ph = 3; w.fx.push({ t: 'win' }); if (w.s.stats) w.s.stats.traps = (w.s.stats.traps ?? 0) + 1; return run.next(); }
   if (js.escaped > spare) return run.fail(chase ? `The ${GANG[st.gang]} got away! Dash into each one before it reaches the end of its path.` : `The ${GANG[st.gang]} got away! Spring a net while one of them is right on it, and keep out of sight.`);
   const walking = run.actors.filter(a => a.kind === 'lured' && a.extra === 0).length + js.queue;

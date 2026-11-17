@@ -25,7 +25,8 @@ import { stationNear, mrtTo, cantRide, routeToStation, stationById, MRT_TEXT, tr
 import { hail, taxiStep, skipRide, type Taxi } from './jade-taxi.js';
 import { eastStep, eastNear, eastAct, newEast, type EastState } from './jade-eastfest.js';
 import { farStep, farNear, farAct, newFar, type FarState } from './jade-farfest.js';
-import { linkNear, linkGo, ferryStep, ferryLand, FARES, EAST_TEXT, RESORT_TEXT, FAR_TEXT, CHANGI_TEXT, type FerryRide } from './jade-cable.js';
+import { southStep, southNear, southAct, newSouth, type SouthState } from './jade-southfest.js';
+import { linkNear, linkGo, ferryStep, ferryLand, FARES, EAST_TEXT, RESORT_TEXT, FAR_TEXT, CHANGI_TEXT, SOUTH_TEXT, JURONG_TEXT, type FerryRide } from './jade-cable.js';
 
 export const DT = 1 / 60;
 export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop: boolean; act: boolean;
@@ -39,7 +40,7 @@ export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; lo
 /** `over`: a toast that replaces any showing or waiting toast containing this text (pass 13: "Your taxi is here" sat
  * beside "a taxi is on its way") */
 export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string; over?: string };
-export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry' | 'east' | 'empire' | 'contract' | 'far'; label: string; x: number; y: number; id?: string; ride?: Ride };
+export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry' | 'east' | 'empire' | 'contract' | 'far' | 'south'; label: string; x: number; y: number; id?: string; ride?: Ride };
 export type Snatcher = { x: number; y: number; h: number; t: number; out: boolean; took: number; wing: number; good?: string; dizzy?: number };
 export type Act = { n: string; t: number; dur: number; then?: () => void };
 export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' | 'sg' } | { kind: 'map' } | { kind: 'biz'; id: BizId } | { kind: 'gear' } | { kind: 'mama' } | { kind: 'glossary' }
@@ -108,7 +109,7 @@ export class World {
   /** the island: a hailed taxi (lib/jade-taxi.ts), the station the last train ride arrived at (lib/jade-mrt.ts) */
   taxi: Taxi | null = null; lastMrt = '';
   /** the ninth pass: the ferry crossing you are on, and the last cable car or ferry stop you stepped off at */
-  ferry: FerryRide | null = null; lastLink = ''; east: EastState = newEast(); far: FarState = newFar();
+  ferry: FerryRide | null = null; lastLink = ''; east: EastState = newEast(); far: FarState = newFar(); south: SouthState = newSouth();
   /** today's date from the device ('yyyy-mm-dd', set by the page) for the festivals; null in the Node tests */
   today: string | null = null;
   /** the partner thinking for themselves (lib/jade-pal.ts) */
@@ -235,7 +236,7 @@ export class World {
     this.collectStep();
     trafficStep(this, dt); pedStep(this, dt);
     heatStep(this, dt);
-    finesStep(this, dt); sgStep(this, dt); gangsStep(this, dt); eastStep(this); farStep(this); empireStep(this, dt);
+    finesStep(this, dt); sgStep(this, dt); gangsStep(this, dt); eastStep(this); farStep(this); southStep(this); empireStep(this, dt);
     if (this.run) this.run.step(dt, inp);
     this.snatchStep(dt);
     eventsStep(this, dt);
@@ -508,7 +509,7 @@ export class World {
     if (!this.run) empireNear(this, cand);
     if (!this.run) contractNear(this, cand);
     const en = eventNear(this); if (en) cand(en, 80);
-    if (!this.run) { sgNear(this, cand); gangNear(this, cand); eastNear(this, cand); farNear(this, cand); }
+    if (!this.run) { sgNear(this, cand); gangNear(this, cand); eastNear(this, cand); farNear(this, cand); southNear(this, cand); }
     if (this.festival) for (const f of this.c.festival) if (f.kind !== 'arch') cand({ kind: 'festival', label: f.kind === 'stage' ? 'Dance on the festival stage' : 'Let a sky lantern go', x: f.x, y: f.y, id: f.kind }, 80);
     for (const pr of this.tables()) cand({ kind: 'eat', label: 'Grab a bowl of noodles (3 coins)', x: pr.x, y: pr.y + 20 }, 56);
     for (const l of this.c.ladders) cand({ kind: 'ladder-up', label: 'Climb the ladder', x: l.x * T + T / 2, y: l.y * T + T / 2 }, 60);
@@ -570,6 +571,7 @@ export class World {
       case 'gang': gangAct(this, n.id!); break;
       case 'east': eastAct(this, n.id!); break;
       case 'far': farAct(this, n.id!); break;
+      case 'south': southAct(this, n.id!); break;
       case 'empire': empireAct(this, n.id!); break;
       case 'contract': contractAct(this, n.id!); break;
       case 'fine': payTicket(this); break;
@@ -628,12 +630,14 @@ export class World {
     else if (this.replaying) this.s.cash += Math.round(m.reward / 4);
     this.replaying = false;
     if (m.tip) this.s.tips = this.s.tips.filter(t => !(t.market === m.tip!.market && t.good === m.tip!.good));
-    const before = this.open.size, hadIsle = this.open.has('heartland'), hadEast = this.open.has('india'), hadResort = this.open.has('resort'), hadFar = this.open.has('katong'), hadChangi = this.open.has('changi'); this.open = new Set(openDistricts(this.s));
+    const before = this.open.size, hadIsle = this.open.has('heartland'), hadEast = this.open.has('india'), hadResort = this.open.has('resort'), hadFar = this.open.has('katong'), hadChangi = this.open.has('changi'), hadSouth = this.open.has('tiong'), hadJurong = this.open.has('jurong'); this.open = new Set(openDistricts(this.s));
     if (!hadIsle && this.open.has('heartland')) text(this, 'kamal', MRT_TEXT);
     if (!hadEast && this.open.has('india')) text(this, 'kamal', EAST_TEXT);
     if (!hadResort && this.open.has('resort')) text(this, 'helang', RESORT_TEXT);
     if (!hadFar && this.open.has('katong')) text(this, 'kamal', FAR_TEXT);
     if (!hadChangi && this.open.has('changi')) text(this, 'tiara', CHANGI_TEXT);
+    if (!hadSouth && this.open.has('tiong')) text(this, 'kamal', SOUTH_TEXT);
+    if (!hadJurong && this.open.has('jurong')) text(this, 'melati', JURONG_TEXT);
     this.fieldCache.clear();
     this.fx.push({ t: 'mission-done', name: m.title, k: m.reward });
     this.banner = { text: 'Job done!', sub: `${m.title} · ${MEDAL_NAME[medal]}${medal ? ' medal' : ''}`, t: 3 };
@@ -641,7 +645,7 @@ export class World {
     if (this.p.ride) this.p.act = null;
     this.cheer();
     for (const g of GEAR_GIFT[m.id] ?? []) if (giveGadget(this.s, g)) { this.fx.push({ t: 'gadget-gift', kind: g }); this.say(`New gadget: the ${GADGETS[g].name.toLowerCase()}! ${GADGETS[g].blurb}`, 'good'); }
-    if (this.open.size > before) { const d = [...this.open][this.open.size - 1]; this.fx.push({ t: 'district', name: DISTRICT_NAME[d] }); this.banner = this.open.size - before > 1 ? (this.open.has('katong') && !hadFar ? { text: 'Over the Geylang River!', sub: 'Katong and Orchard Road: take the MRT to Katong Park or Orchard', t: 4.5 } : this.open.has('india') && !hadEast ? { text: 'Over the Rochor River!', sub: 'Little India and Kampong Glam: take the MRT to Bugis or Little India', t: 4.5 } : { text: 'The island opens!', sub: 'Toa Payoh and Marina Bay: take the MRT from Chinatown station', t: 4.5 }) : { text: `${DISTRICT_NAME[d][0].toUpperCase()}${DISTRICT_NAME[d].slice(1)} opens!`, sub: 'The fog lifts', t: 4 }; }
+    if (this.open.size > before) { const d = [...this.open][this.open.size - 1]; this.fx.push({ t: 'district', name: DISTRICT_NAME[d] }); this.banner = this.open.size - before > 1 ? (this.open.has('tiong') && !hadSouth ? { text: 'Over the water!', sub: 'Tiong Bahru and Clarke Quay: take the MRT to Tiong Bahru or Clarke Quay', t: 4.5 } : this.open.has('katong') && !hadFar ? { text: 'Over the Geylang River!', sub: 'Katong and Orchard Road: take the MRT to Katong Park or Orchard', t: 4.5 } : this.open.has('india') && !hadEast ? { text: 'Over the Rochor River!', sub: 'Little India and Kampong Glam: take the MRT to Bugis or Little India', t: 4.5 } : { text: 'The island opens!', sub: 'Toa Payoh and Marina Bay: take the MRT from Chinatown station', t: 4.5 }) : { text: `${DISTRICT_NAME[d][0].toUpperCase()}${DISTRICT_NAME[d].slice(1)} opens!`, sub: 'The fog lifts', t: 4 }; }
     // the ending and credits play once, the first time Glint is beaten; a replay of the last job just ends
     if (m.id === 'm25' && !this.s.story.ending) this.fx.push({ t: 'finale' });
     // the island's ending plays once, the first time Director Kaw is stopped
@@ -650,6 +654,7 @@ export class World {
     if (m.id === 'm45' && !this.s.story.lights) this.fx.push({ t: 'finale', kind: 'lights' });
     // and chapter eight's, the first time Datin Ciku is stopped at the Rain Vortex
     if (m.id === 'm55' && !this.s.story.coast) this.fx.push({ t: 'finale', kind: 'coast' });
+    if (m.id === 'm65' && !this.s.story.lake) this.fx.push({ t: 'finale', kind: 'lake' });
   }
   /** the partner cheers (a job done, a catch) */
   cheer() { const m = this.mate; if (m.seat) m.cheerT = 1.2; else if (!m.act && !m.ride && !m.hide) m.act = { n: 'celebrate', t: 0, dur: 1.1 }; }

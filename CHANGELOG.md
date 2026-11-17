@@ -2,6 +2,23 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 18-11-2026
+
+### Added
+
+- **Jade Street**: three more districts south over the water, reached by MRT or over two long bridges from Kampong Glam. Tiong Bahru (the art-deco flats, Tiong Bahru Market, the bakery, the bookshop, the Monkey God Temple and the bird corner), Clarke Quay (the painted godowns under their canopy on the Singapore River, Read Bridge, the Slingshot, the Old Hill Street Police Station) and, later in the chapter, Jurong (the Science Centre and its observatory, Snow City, Jem, and the Chinese Garden's pagodas on Jurong Lake). Each has its own painted ground, buildings, townsfolk, market, safe house, MRT station, givers and two properties.
+- **Jade Street**: chapter nine, *Lights by the Lake*: ten jobs and three Hawker Tales against Towkay Hoot, who is buying up every Mid-Autumn lantern on the island, ending in a chase round Jurong Lake and a fourth new ending. Four new people give the jobs: Uncle Seng, Kak Melati, Dr Suria and Sifu Musang. Five more trophies (55).
+- **Jade Street**: six new things to do, each with its own animation: a plate of chwee kueh, the songbirds at the bird corner, a go on the Slingshot, feeding the koi, the stars through the observatory's telescope, and a lantern walk round Jurong Lake while the Mid-Autumn lanterns are lit (by the calendar, and all through chapter nine).
+
+### Changed
+
+- **Jade Street**: the old neon quarter of Chinatown is now called Club Street, so that Clarke Quay can be the real riverside district. Existing saves carry on as they are.
+- **Jade Street**: Route me knows the south shore is over the water: a walk there is measured round by the bridges, so the plaque offers the MRT when it is quicker and names the stations you would really use.
+
+### Fixed
+
+- **Jade Street**: Katong Park and Changi Airport stations are repainted from above like every other building (they were flat front views standing on a slab), the ground in Katong and Kampong Glam is calmer under the people and buildings, and the street-light switch box has its own key (it had borrowed the scooter's).
+
 ## 17-11-2026
 
 ### Added
