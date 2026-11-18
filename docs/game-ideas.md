@@ -4,6 +4,82 @@ Ideas for future games that haven't been built yet, newest first. Each comes wit
 
 Painted mock-ups (Codex) are in [`ideas/`](ideas/). There is a page with all of them and their interfaces at https://claude.ai/artifact/4jSWyhexvhzJtC67u7UUzM (private to the owner).
 
+## Idle roguelites (19-11-2026)
+
+Games that play themselves while you do something else. You make a choice or two when you check in, the run goes on without you, and you come back to see how it went. Each run ends, and what it leaves behind carries over. Pixel art. Shared rules: a check-in takes a minute or two and asks at most one thing at a time; nothing is lost by being away (a run waits at a fork, and after an hour assist picks); the run is simulated from a seed and the clock, so it catches up at once in a closed tab; no notifications, timers or streaks. The third pitch, Tembusu, is built (game 106).
+
+### Daysleep (recommended)
+
+Mock-ups: `ideas/daysleep-bed.webp`, `ideas/daysleep-dream.webp`.
+
+Real chinchillas sleep through the day and wake at dusk, so the game's clock matches the player's. In the morning you tuck Dora and Enzo in. While they sleep, they dream their way down through a dream on their own, fighting worries with a wooden spoon. At dusk they wake and tell you how far they got, and whatever they brought back from the dream is now really in the burrow.
+
+- **Morning (1 minute):** pick a snack, a bedtime story and a toy to hug. The snack sets the dream's flavour, the story sets where it leads and what waits at the bottom, and the toy is the build (a knitted fox makes Dora's hits chain; a blanket gives more calm).
+- **The day (0 minutes):** they walk down through the dream one scene at a time. Worries (small wool creatures with clock faces, unpaid bills, a sock with no pair) lower their calm. Doors offer forks; one waits for you if you peek, otherwise assist picks. When calm runs out they wake early.
+- **Dusk (2 minutes):** they tell the dream as a short comic strip made from the run's best moments. Souvenirs become real: a moon pebble goes on the shelf, a new story book unlocks a deeper dream, a new snack changes the next one.
+- **Dora** leads and bops worries with her spoon; her moves come from the toy she hugs. **Enzo** carries the lantern that holds their calm, finds the doors and picks up the souvenirs.
+- Seven dreams make a week, and the seventh night's story ends at a bigger worry that the week's souvenirs prepare you for. A "nap now" button runs a 10-minute dream to watch.
+- **First release:** 3 stories, 20 worries, 24 souvenirs. **Rough cost:** 0.6–1M agent tokens, 30–40 Codex images. **Main risk:** a run nobody watches has to be worth hearing about; the dusk comic strip carries the game.
+
+### Kelong
+
+Mock-up: `ideas/kelong.webp`.
+
+A fishing platform on stilts, alone at sea, through one northeast monsoon. Its lamps draw anchovies into the nets every night without you. Each real hour is a night.
+
+- **Check in:** the catch buys one of three cards: braces for the stilts, more lamps, bigger nets, a drying rack, a rain cover. Enzo's logbook shows the weather two nights ahead.
+- **While away:** the lamps fish, and Dora hauls the net in the sampan and brings in what drifts by (a crate, a lost buoy, once a turtle that needs help). Storms knock out stilts.
+- **The end:** when enough stilts go, the kelong collapses and the run ends. The season's catch builds up the village on shore, which unlocks new kelong parts and new kinds of fish.
+- **First release:** one season, 30 cards, 8 fish. **Rough cost:** 0.6–0.9M agent tokens, about 30 images. **Main risk:** closest to a standard idle economy; it needs the drifting finds to keep it from being only numbers.
+
+## Magnum opus shortlist (19-11-2026)
+
+Four candidates for a long, many-pass build, each a new kind of game for the arcade and set in Singapore and nearby. Blk 57 is recommended: each pass adds a decade to the same corridor, so more passes make a better game, not just a bigger map.
+
+### Blk 57 (recommended)
+
+Mock-ups: `ideas/blk57-1973.webp`, `ideas/blk57-2019.webp`.
+
+Dora and Enzo get the keys to #07-114 in Toa Payoh on Chinese New Year eve, 1973. You play ten days in their block, years apart, until the 99-year lease runs out in 2072. Each day is one event in the block's life, with favours for the neighbours, one big activity and, at the end, one thing to keep. Nothing resets and there is no fail state; what you did shows in who turns up later.
+
+- **The block:** a dollhouse cutaway, one strip per floor, joined by a lift that stops only at some floors until the 2019 upgrading. Floor 7 is open from the start; other floors open as you meet the people who live there.
+- **The day's main event,** a full game mode with direct controls: moving in (1973), a kite fight at the dragon playground (1979), racing to ride the first MRT train (1987), serving a void-deck wedding (1994), a quiet SARS-year cooking day (2003), Ah Mah Koh's 100th birthday (2011), the grandkits' first visit (2019), a monsoon storm night (2034), the rooftop harvest (2051) and the last day (2072). Four to six favours (carry, fix, cook, find, mind the kids) sit around it.
+- **Enzo's camera:** a roll of film per day. The photos fill the album, become the loading screens, and can turn into keepsakes later.
+- **Keep one thing:** each night Enzo lays out what the day left behind and you keep one; it gets a place in the flat, and later chapters use it. Ten keepsakes out of about thirty.
+- **Neighbours:** Ah Mah Koh (tortoise), the Rahmans (otters, whose kids grow up through the game), the Pillais (civets), Uncle Lim at the provision shop (pangolin) and, from 2034, the grandkits, who take over as heroes.
+- **Dora** is the doer: carrying, climbing, cooking, playing with the kids. **Enzo** has the camera and the keys, fixes things, remembers names and chooses the keepsakes. Tab swaps; the other follows.
+- **Length:** about 40–60 minutes a day, 7–10 hours in all. **First release:** 1973, 1987 and 2019. **Rough cost:** pass 1 is 1.5–2M agent tokens and 70–90 Codex images; each later pass 0.5–0.8M and 30–40 images. **Main risk:** ten small days can feel like a mini-game collection, so each needs one strong central activity.
+
+### Seventh Month
+
+Mock-up: `ideas/seventh-month.webp`.
+
+During the Hungry Ghost month, Dora and Enzo's getai troupe plays a different HDB carpark every night. The front row is left empty for the spirits, and here you can see them. Each ghost has an unfinished song; play it well and they let go and drift off.
+
+- Before the show, read the front row: each ghost's clothes and things hint at the era and song they want. Between nights, sew costumes, buy songs and deal with the carpark's committee and the neighbours. Ghosts at peace leave a story fragment.
+- **Dora** sings and dances: a four-lane rhythm game. **Enzo** is the emcee and keyboardist: lights, smoke and a song switch change what each ghost hears. Two people can share one keyboard.
+- **First release:** 10 nights, 12 songs, 15 ghosts. **Rough cost:** about 1M agent tokens, 40–50 images. **Main risk:** the music; Codex paints but cannot compose.
+
+### Golden Mile
+
+Mock-up: `ideas/golden-mile.webp`.
+
+The last week before Golden Mile Complex closes: sixteen floors of travel agents for Hat Yai, Thai grocers, karaoke lounges and coach bays. Every tenant has one last thing they need done before the movers come, and the building itself is the puzzle.
+
+- Every tenant keeps a timetable for the week. Wishes can be solved more than one way (the karaoke owner's old LaserDisc: by key, by vent, or by trading with the coach driver), and they overlap, so how you finish one changes another. Time moves only while you act.
+- **Dora** works the outside: the stepped terraces, roofs and ledges. **Enzo** is the caretaker's stand-in inside, with the key ring, the lift controls, the PA and the CCTV room. Each can unlock routes for the other.
+- **First release:** 8 floors, 2 days, 12 wishes. **Rough cost:** 2M+ agent tokens, about 50 images. **Main risk:** the hardest build of the four; NPC timetables and multiple solutions need a proper simulation and many test bots.
+
+### Keretapi
+
+Mock-up: `ideas/keretapi.webp`.
+
+The night train from Tanjong Pagar to Bangkok, about 1,900 km. The train is your base, and every stop is a short window in a real town.
+
+- Passengers board with somewhere to be and something to carry. Freight pays, sleepers keep people happy, the dining car feeds everyone. At each stop (Kuala Lumpur, Ipoh, Butterworth, Hat Yai) Dora has a few minutes to buy, deliver and find people before the whistle; a late departure costs the timetable.
+- **Dora** is the runner on platforms and carriage roofs. **Enzo** is the conductor: he couples and orders the carriages, and carriage order sets what can be reached in time. One player switches, or two play together.
+- **First release:** Singapore to Butterworth, 6 stops. **Rough cost:** 1–1.5M agent tokens, about 50 images. **Main risk:** Satchel Road and Shellback in this backlog are also journeys, though neither has a timetable or a base you rebuild.
+
 ## Expansions (07-11-2026)
 
 ### The Foundry Below (a second Bellspire expansion)

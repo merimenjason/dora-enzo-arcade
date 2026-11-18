@@ -115,6 +115,8 @@ export type Seed = { trait: TraitId; lineage: TraitId[] };
 export type TreeRecord = { n: number; start: number; fell: number; cause: 'age' | 'storm'; animals: AnimalId[]; traits: TraitId[] };
 export type Save = {
   v: 1;
+  /** false until the player plants the first seed from the title */
+  begun: boolean;
   sound: boolean;
   speed: 'normal' | 'slow';
   lastNow: number;
@@ -511,7 +513,7 @@ export function newTree(n: number, seed: number, start: number, tz: number, spee
 }
 
 export function newSave(now: number, seed: number, tz = 0): Save {
-  return { v: 1, sound: true, speed: 'normal', lastNow: now, tree: newTree(1, seed, now, tz, 'normal', []), kept: null, journal: { seeds: [], traits: [], animals: [], trees: [] } };
+  return { v: 1, begun: false, sound: true, speed: 'normal', lastNow: now, tree: newTree(1, seed, now, tz, 'normal', []), kept: null, journal: { seeds: [], traits: [], animals: [], trees: [] } };
 }
 
 /** the device clock may go backwards; the tree never does */
@@ -654,7 +656,7 @@ export function parseSave(raw: string | null, now: number, seed: number, tz: num
     };
     const j = o.journal ?? {};
     return {
-      v: 1, sound: o.sound !== false, speed: o.speed === 'slow' ? 'slow' : 'normal', lastNow: Number(o.lastNow) || tree.start, tree,
+      v: 1, begun: o.begun !== false, sound: o.sound !== false, speed: o.speed === 'slow' ? 'slow' : 'normal', lastNow: Number(o.lastNow) || tree.start, tree,
       kept: Array.isArray(o.kept) ? o.kept.filter((i: unknown) => Number.isInteger(i)).slice(0, KEEP) : null,
       journal: {
         seeds: Array.isArray(j.seeds) ? j.seeds.filter((s: Seed) => s && (s.trait in TRAIT)).map((s: Seed) => ({ trait: s.trait, lineage: traits(s.lineage).slice(0, 2) })).slice(-JOURNAL_SEEDS) : [],

@@ -55,7 +55,7 @@ FACTOR = {'log': 5, 'young': 6, 'sapling': 6, 'stump': 7, 'home': 7, 'ladder': 7
 for a, f in {'hornbill': 6, 'colugo': 7, 'squirrel': 8, 'sunbird': 10, 'koel': 7, 'robin': 8, 'bat': 8, 'monitor': 7, 'bees': 8,
              'birdwing': 9, 'kingfisher': 8, 'loris': 7}.items():
     FACTOR[f'{a}-0'] = FACTOR[f'{a}-1'] = f
-PAGES = {'ui': (['panel', 'journal'], 2)}
+PAGES = {'ui': (['panel', '_ribbon-journal'], 2), 'journal2': (['journal'], 4)}
 HILLS = ['hill-dawn', 'hill-day', 'hill-dusk', 'hill-night', 'hill-storm', 'hill-dry']
 
 
@@ -239,6 +239,8 @@ for sheet, (names, f) in PAGES.items():
         print('missing', sheet); continue
     im = key(Image.open(p))
     for name, box in zip(names, items(im, len(names))):
+        if name.startswith('_'):
+            continue  # the first journal had a ribbon over the right page; journal2 replaced it
         s = shrink(im.crop(box), f if name == 'journal' else 4)
         rgb = s.convert('RGB').quantize(48, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE).convert('RGB').convert('RGBA')
         rgb.putalpha(s.getchannel('A'))
