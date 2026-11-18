@@ -601,6 +601,7 @@ export function ageWord(s: TreeState): string {
   return f < 0.08 ? 'a seedling' : f < 0.25 ? 'a sapling' : f < 0.5 ? 'young' : f < 0.8 ? 'grown' : 'old';
 }
 
+const GROWN: Record<Bud, string> = { wide: 'a wide branch', tall: 'a tall leader', flower: 'a flower', root: 'a deep root', hollow: 'a hollow', bark: 'thick bark' };
 /** one short line for the latest happening */
 export function describe(e: LogEntry, s?: TreeState): string {
   const a = e.animal ? ANIMAL[e.animal].name : '';
@@ -609,7 +610,7 @@ export function describe(e: LogEntry, s?: TreeState): string {
     case 'plant': return 'Enzo planted a seed.';
     case 'fork': return 'A branch reached a fork.';
     case 'pick': return `${BUD_INFO[e.bud!].name} chosen.`;
-    case 'assist': return `The tree grew a ${BUD_INFO[e.bud!].name.toLowerCase()} on its own.`;
+    case 'assist': return `The tree grew ${GROWN[e.bud!]} on its own.`;
     case 'storm': return 'A storm passed over the hill.';
     case 'dry': return 'A dry spell.';
     case 'lightning': return 'Lightning struck the tree.';

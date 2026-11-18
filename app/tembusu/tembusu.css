@@ -1,0 +1,70 @@
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&display=swap');
+
+/* Tembusu: the hill fills the window, the sky's colour runs out past the edges of the picture, and a few small
+   square-edged panels (the Codex-painted wooden frame, cream paper inside) sit in the corners. Pixelify Sans for
+   everything; every picture scaled up nearest-neighbour. Calm: no counters, no floating numbers. */
+.tb-shell{--ink:#3b2716;--dim:#7a5a3c;--paper:#fbe6c4;--wood:#8a4a22;--glow:#ffe08a;--leaf:#5f7d2e;
+  position:fixed;inset:0;overflow:hidden;color:var(--ink);transition:background 3s linear;
+  font-family:'Pixelify Sans',monospace;font-size:clamp(12px,1.25vw,17px);line-height:1.25;user-select:none;-webkit-user-select:none}
+.tb-shell *{box-sizing:border-box}
+.tb-shell p{color:inherit;font-size:inherit;line-height:inherit;margin:.25em 0}
+.tb-shell h1,.tb-shell h2{margin:0;font-weight:700;line-height:1.1}
+.tb-shell button,.tb-shell a{font:inherit;color:var(--ink)}
+.tb-shell button{cursor:pointer;border:2px solid #4a2a14;border-radius:0;background:#f3d6a6;padding:.3em .8em;box-shadow:inset -2px -2px 0 rgba(0,0,0,.18),2px 2px 0 #4a2a14}
+.tb-shell button:hover:not(:disabled){background:#ffe6b8}
+.tb-shell button:active:not(:disabled){transform:translate(1px,1px);box-shadow:inset -2px -2px 0 rgba(0,0,0,.18),1px 1px 0 #4a2a14}
+.tb-shell button:disabled{opacity:.5;cursor:default}
+.tb-shell button:focus-visible,.tb-shell a:focus-visible{outline:3px solid var(--glow);outline-offset:2px}
+
+.tb-stage{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:1152px;height:768px;container-type:size}
+.tb-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+.tb-canvas.on-bud{cursor:pointer}
+.tb-spr{display:inline-block;flex:none;background-image:url('/art/tembusu/atlas.png');background-repeat:no-repeat;image-rendering:pixelated;vertical-align:middle}
+.tb-spr.dim{filter:brightness(0) opacity(.22)}
+
+/* the panels: the painted frame as a border, cream paper inside */
+.tb-panel{position:absolute;background:var(--paper);border:12px solid transparent;border-image:url('/art/tembusu/panel.png') 7 fill / 12px stretch;image-rendering:pixelated;padding:.25em .6em;box-shadow:3px 3px 0 rgba(40,20,10,.25)}
+.tb-status{left:1.2cqw;top:1.6cqh;max-width:34cqw}
+.tb-status b{font-weight:700}
+.tb-age{color:var(--dim)}
+.tb-status p{font-size:.9em}
+.tb-menu{right:1.2cqw;top:1.6cqh;display:flex;gap:.4em;padding:.15em .3em}
+.tb-menu button{font-size:.85em;padding:.15em .55em}
+.tb-decide{right:1.2cqw;bottom:2cqh;width:min(34cqw,420px);display:flex;flex-direction:column;gap:.35em}
+.tb-decide h2{font-size:1.05em;margin-bottom:.1em}
+.tb-bud,.tb-seed{display:flex;align-items:center;gap:.6em;text-align:left;width:100%}
+.tb-bud span,.tb-seed span{display:flex;flex-direction:column}
+.tb-bud small,.tb-seed small{color:var(--dim);font-size:.82em}
+.tb-bud kbd{font-family:inherit;font-weight:700;color:var(--wood);min-width:1em}
+.tb-bud.hot,.tb-seed.on{background:var(--glow) !important}
+.tb-seed.on{box-shadow:inset 0 0 0 2px var(--wood),2px 2px 0 #4a2a14}
+.tb-shell .tb-go{align-self:flex-end;background:#c9e08f;font-weight:700}
+.tb-shell .tb-go:hover:not(:disabled){background:#dcef9f}
+.tb-note{color:var(--dim);font-size:.85em}
+.tb-recap{left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:.6em;padding:.6em 1em;max-width:70cqw}
+.tb-recap-row{display:flex;flex-wrap:wrap;gap:.35em;justify-content:center;align-items:flex-end}
+
+.tb-overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(40,25,15,.25)}
+.tb-journal{position:relative;width:min(86cqw,1000px);aspect-ratio:355/237;background:url('/art/tembusu/journal.png') center/100% 100% no-repeat;image-rendering:pixelated;display:grid;grid-template-columns:1fr 1fr;gap:6%;padding:4% 6% 6% 5%}
+.tb-page{overflow:auto;min-height:0;font-size:.9em}
+.tb-page h2{font-size:1.15em;margin:.2em 0 .3em;color:var(--wood)}
+.tb-animals{display:grid;grid-template-columns:1fr;gap:.15em}
+.tb-animal{display:flex;gap:.5em;align-items:center}
+.tb-animal .tb-spr{transform:scale(.6);transform-origin:center;margin:-.6em -.4em}
+.tb-animal span{display:flex;flex-direction:column}
+.tb-animal small{color:var(--dim);font-size:.78em}
+.tb-animal.unseen b{color:#b49a7a}
+.tb-held{list-style:none;margin:0 0 .5em;padding:0;display:flex;flex-wrap:wrap;gap:.3em .9em}
+.tb-held .tb-seed{width:auto;padding:.1em .5em}
+.tb-traits{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:.1em .8em;font-size:.92em}
+.tb-traits .unseen{color:#c4ab8a}
+.tb-shell .tb-close{position:absolute;right:2%;top:2%;padding:0 .45em;font-size:1.2em;line-height:1.2}
+.tb-settings{position:relative;display:flex;flex-direction:column;gap:.5em;min-width:min(380px,60cqw);padding:.6em 1em}
+.tb-settings .tb-close{right:.3em;top:.3em}
+.tb-shell .tb-danger{background:#e8b8a0}
+.tb-home{color:var(--wood);text-decoration:underline}
+
+.tb-title{position:absolute;inset:0;background:url('/art/tembusu/title.png') center/cover no-repeat;image-rendering:pixelated}
+.tb-titlecard{left:2.5cqw;top:4cqh;width:min(40cqw,460px);display:flex;flex-direction:column;gap:.4em;padding:.6em 1em}
+.tb-titlecard h1{font-size:2.4em;color:var(--leaf)}
+.tb-titlecard .tb-go{align-self:flex-start;font-size:1.1em}
