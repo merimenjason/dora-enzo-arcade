@@ -2,6 +2,16 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 19-11-2026
+
+### Added
+
+- **Tembusu** (game 106): a calm pixel-art idle roguelite about one tembusu tree on a hill, from seed to fall, growing in real time even while you're away. Pick one of three buds at each fork (or let the tree pick after an hour), watch twelve Singapore animals move in as the tree takes shape, weather storms and dry spells, and keep its seeds for the next tree. The first tree is a 15-minute tutorial; later ones live about 12 hours, or 24 on the slow speed. Earlier trees stay on the hill.
+
+### Documentation
+
+- **Game ideas**: six new unbuilt pitches with mock-ups: the idle roguelites Daysleep and Kelong, and the Singapore shortlist Blk 57, Seventh Month, Golden Mile and Keretapi.
+
 ## 18-11-2026
 
 ### Added

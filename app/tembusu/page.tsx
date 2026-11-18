@@ -69,7 +69,7 @@ export default function TembusuPage() {
     const raw = (() => { try { return localStorage.getItem(G.SAVE_KEY); } catch { return null; } })();
     const s = G.parseSave(raw, Date.now(), (Date.now() ^ (Math.random() * 1e9)) >>> 0, tz());
     saveRef.current = s; setSave(s);
-    if (raw) setStarted(true);
+    if (s.begun) setStarted(true);
     reduced.current = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     soundRef.current = new TembusuSound(s.sound);
     refresh(true);
@@ -153,6 +153,7 @@ export default function TembusuPage() {
   useEffect(() => {
     (window as unknown as { __tembusu: unknown }).__tembusu = {
       skip: (ms: number) => { skipRef.current += ms; refresh(true); },
+      engine: G,
       state: () => ({ save: saveRef.current, tree: treeRef.current && { ...treeRef.current, log: treeRef.current.log.length }, decision: saveRef.current && treeRef.current && G.decision(saveRef.current, treeRef.current), scene: sceneRef.current?.last, buds: sceneRef.current?.buds, overlay: overlayRef.current, now: now(), started }),
     };
   }, [refresh, started]);
@@ -181,7 +182,7 @@ export default function TembusuPage() {
   const reset = () => {
     if (!confirmReset) { setConfirmReset(true); return; }
     const s = G.newSave(now(), (Date.now() ^ (Math.random() * 1e9)) >>> 0, tz());
-    s.sound = saveRef.current?.sound ?? true;
+    s.sound = saveRef.current?.sound ?? true; s.begun = true;
     skipRef.current = 0; persist({ ...s, lastNow: Date.now() }); setConfirmReset(false); setOverlay(null); setRecapDone(false); setChosen([]); refresh(true);
   };
 
@@ -189,7 +190,7 @@ export default function TembusuPage() {
   const begin = () => {
     soundRef.current?.unlock();
     const s = saveRef.current;
-    if (s && s.tree.n === 1 && !s.tree.picks.length && !s.journal.trees.length) persist({ ...G.newSave(now(), s.tree.seed, tz()), sound: s.sound });
+    if (s && !s.begun) persist({ ...G.newSave(now(), s.tree.seed, tz()), sound: s.sound, speed: s.speed, begun: true });
     setStarted(true); refresh(true);
   };
 
@@ -269,9 +270,9 @@ export default function TembusuPage() {
                   {G.ANIMALS.map((a) => {
                     const seen = save.journal.animals.includes(a.id) || tree.seen.includes(a.id);
                     return (
-                      <div key={a.id} className={`tb-animal${seen ? '' : ' unseen'}`}>
-                        <Spr n={`${a.id}-0`} s={1} dim={!seen} />
-                        <span><b>{seen ? a.name : '?'}</b>{seen && <small>Needs {a.needs}. {a.effect[0].toUpperCase() + a.effect.slice(1)}.</small>}</span>
+                      <div key={a.id} className={`tb-animal${seen ? '' : ' unseen'}`} title={seen ? `${a.name}: needs ${a.needs}; ${a.effect}.` : 'Not seen yet'}>
+                        <span className="tb-pic"><Spr n={`${a.id}-0`} s={1} dim={!seen} /></span>
+                        <span><b>{seen ? a.name : '?'}</b>{seen && <small>Needs {a.needs}.</small>}</span>
                       </div>
                     );
                   })}

@@ -265,13 +265,13 @@ export class TembusuScene {
     const t = v.tree, time = v.time;
     const live = this.tipCache.filter((q) => !q.b.broken);
     // her home sits on the lowest strong branch once the tree has one, and moves if that branch breaks
-    const homeB = [...live].sort((a, b) => a.b.tier - b.b.tier || a.b.id - b.b.id)[0];
+    const homeB = [...live].sort((a, b) => b.b.side - a.b.side || a.b.tier - b.b.tier || a.b.id - b.b.id)[0];
     const recent = (kinds: string[], ms: number) => t.log.some((e) => kinds.includes(e.kind) && v.now - e.at < ms && v.now >= e.at);
     let action = 'idle', dx = 0, dy = 0, flip = false;
     let base: { x: number; y: number };
     if (t.phase === 'fallen' || !homeB || this.height < 92) {
       // no home yet: she tends the young tree from the ground
-      base = { x: TX + 40, y: groundY(TX + 40) + 3 };
+      base = { x: TX + 54, y: groundY(TX + 54) + 3 };
       flip = true;
     } else {
       const hx = TX + homeB.b.side * 30, hy = this.attach(homeB.b, this.gy, this.height, this.halfAt).y + 2;

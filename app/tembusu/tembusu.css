@@ -30,7 +30,7 @@
 .tb-status p{font-size:.9em}
 .tb-menu{right:1.2cqw;top:1.6cqh;display:flex;gap:.4em;padding:.15em .3em}
 .tb-menu button{font-size:.85em;padding:.15em .55em}
-.tb-decide{right:1.2cqw;bottom:2cqh;width:min(34cqw,420px);display:flex;flex-direction:column;gap:.35em}
+.tb-decide{right:1.2cqw;bottom:2cqh;width:min(31cqw,400px);font-size:.92em;display:flex;flex-direction:column;gap:.35em}
 .tb-decide h2{font-size:1.05em;margin-bottom:.1em}
 .tb-bud,.tb-seed{display:flex;align-items:center;gap:.6em;text-align:left;width:100%}
 .tb-bud span,.tb-seed span{display:flex;flex-direction:column}
@@ -45,18 +45,20 @@
 .tb-recap-row{display:flex;flex-wrap:wrap;gap:.35em;justify-content:center;align-items:flex-end}
 
 .tb-overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(40,25,15,.25)}
-.tb-journal{position:relative;width:min(86cqw,1000px);aspect-ratio:355/237;background:url('/art/tembusu/journal.png') center/100% 100% no-repeat;image-rendering:pixelated;display:grid;grid-template-columns:1fr 1fr;gap:6%;padding:4% 6% 6% 5%}
-.tb-page{overflow:auto;min-height:0;font-size:.9em}
-.tb-page h2{font-size:1.15em;margin:.2em 0 .3em;color:var(--wood)}
-.tb-animals{display:grid;grid-template-columns:1fr;gap:.15em}
-.tb-animal{display:flex;gap:.5em;align-items:center}
-.tb-animal .tb-spr{transform:scale(.6);transform-origin:center;margin:-.6em -.4em}
-.tb-animal span{display:flex;flex-direction:column}
-.tb-animal small{color:var(--dim);font-size:.78em}
+.tb-journal{position:relative;width:min(88cqw,128cqh);aspect-ratio:3/2;background:url('/art/tembusu/journal.png') center/100% 100% no-repeat;image-rendering:pixelated;display:grid;grid-template-columns:1fr 1fr;gap:7%;padding:5.5% 7% 8% 7%;font-size:min(1.6cqw,2.4cqh)}
+.tb-page{overflow:hidden;min-height:0}
+.tb-page h2{font-size:1.25em;margin:0 0 .35em;color:var(--wood)}
+.tb-animals{display:grid;grid-template-columns:1fr 1fr;gap:.35em .6em}
+.tb-animal{display:flex;gap:.4em;align-items:center;min-width:0}
+.tb-pic{flex:none;width:2.6em;height:2.6em;display:grid;place-items:center;overflow:hidden}
+.tb-pic .tb-spr{transform:scale(.8)}
+.tb-animal span{display:flex;flex-direction:column;min-width:0}
+.tb-animal b{font-size:.85em;line-height:1.1}
+.tb-animal small{color:var(--dim);font-size:.72em;line-height:1.1}
 .tb-animal.unseen b{color:#b49a7a}
-.tb-held{list-style:none;margin:0 0 .5em;padding:0;display:flex;flex-wrap:wrap;gap:.3em .9em}
+.tb-held{list-style:none;margin:0 0 .6em;padding:0;display:flex;flex-wrap:wrap;gap:.3em .8em;font-size:.9em}
 .tb-held .tb-seed{width:auto;padding:.1em .5em}
-.tb-traits{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:.1em .8em;font-size:.92em}
+.tb-traits{list-style:none;margin:0 0 .5em;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:.1em .8em;font-size:.88em}
 .tb-traits .unseen{color:#c4ab8a}
 .tb-shell .tb-close{position:absolute;right:2%;top:2%;padding:0 .45em;font-size:1.2em;line-height:1.2}
 .tb-settings{position:relative;display:flex;flex-direction:column;gap:.5em;min-width:min(380px,60cqw);padding:.6em 1em}
