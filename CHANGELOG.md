@@ -12,6 +12,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Game ideas**: six new unbuilt pitches with mock-ups: the idle roguelites Daysleep and Kelong, and the Singapore shortlist Blk 57, Seventh Month, Golden Mile and Keretapi.
 
+### Fixed
+
+- **Jade Street**: on a hired bike from Uncle Bala's rack, the partner now rides a second hired bike a length behind you instead of vanishing.
+
 ## 18-11-2026
 
 ### Added
