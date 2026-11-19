@@ -31,7 +31,7 @@ export async function fourth(h) {
   await press('duo-switch'); await wait(300); check((await duo()).who === who0, `${name}: clicking the partner's portrait switches back`);
 
   // ── boost onto a roof, then haul the partner up (a Clarke Quay wall at tile 93,39)
-  await W(() => { window.__jade.teleport(93, 39); const w = window.__jade.world(); w.p.b.x = 93 * 64 + 32; w.p.b.y = 39 * 64 + 32; w.mate.b.x = w.p.b.x - 40; w.mate.b.y = w.p.b.y + 20; });
+  await W(() => { window.__jade.teleport(...window.__jade.layout.mvT(93, 39)); const w = window.__jade.world(); [w.p.b.x, w.p.b.y] = window.__jade.layout.mvP(93 * 64 + 32, 39 * 64 + 32); w.mate.b.x = w.p.b.x - 40; w.mate.b.y = w.p.b.y + 20; });
   await wait(200);
   check(await until(() => window.__jade.duo().tag === 'boost', null, 3000), `${name}: F offers a boost at the wall`);
   check(await exists('tag-prompt'), `${name}: the green F prompt shows the move`); await look('tag prompt boost');
@@ -63,7 +63,7 @@ export async function fourth(h) {
   await W(() => { const w = window.__jade.world(); w.heat = 0; w.wardens = []; });
 
   // ── gadgets: aim with the mouse and click to fire
-  await W(() => { window.__jade.teleport(20, 47); window.__jade.give(); window.__jade.world().s.settings.assist = false; }); await wait(400);
+  await W(() => { window.__jade.teleport(...window.__jade.layout.mvT(20, 47)); window.__jade.give(); window.__jade.world().s.settings.assist = false; }); await wait(400);
   check(await exists('gear-hud'), `${name}: the gadget hands show`);
   const box = await p.locator('[data-testid="world"]').boundingBox();
   const shots = () => W(() => window.__jade.world().s.stats.shots ?? 0);
@@ -125,7 +125,7 @@ export async function fourth(h) {
   await key('e', 600);
 
   // ── hold the lock lever (job 15)
-  await W(() => { window.__jade.start('m15'); const i = window.__jade.world().run.m.steps.findIndex(s => s.t === 'hold'); window.__jade.enterStep(i); window.__jade.world().s.settings.assist = false; window.__jade.teleport(64, 27); });
+  await W(() => { window.__jade.start('m15'); const i = window.__jade.world().run.m.steps.findIndex(s => s.t === 'hold'); window.__jade.enterStep(i); window.__jade.world().s.settings.assist = false; window.__jade.teleport(...window.__jade.layout.mvT(64, 27)); });
   await settle(); await wait(300);
   check(await W(() => window.__jade.gates()) > 0, `${name}: the lock gate is shut`);
   check(await until(() => window.__jade.duo().tag === 'hold', null, 3000), `${name}: F sends the partner to the lever`);

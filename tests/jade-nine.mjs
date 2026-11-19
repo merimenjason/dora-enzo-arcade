@@ -4,6 +4,9 @@
 import assert from 'node:assert/strict';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
 import { T, W, H, CT_H, EAST_X0, G, S, DISTRICTS, DISTRICT_NAME, districtAt, streetAt, city } from '../.checks/jade-city.js';
+import { mvT, OLD_W, OLD_H } from '../.checks/jade-layout.js';
+/** an old-frame tile's index in the live map (the city's literal tiles below are in the old frame, see lib/jade-layout.ts) */
+const oi = (x, y) => { const [tx, ty] = mvT(x, y); return ty * W + tx; };
 import { MISSIONS, MISSION, SIDE, PEOPLE, CHAPTERS, FINALE, RESORT_OPENS } from '../.checks/jade-story.js';
 import { newSave, loadSave, SAVE_VERSION, SAVE_KEY, OLD_KEYS, openDistricts, chapterOf, checkTrophies, TROPHIES, SAFE_HOUSES } from '../.checks/jade-save.js';
 import { linkNear, linkGo, cabins, ferryAt, FARES, linkById, cantLink } from '../.checks/jade-cable.js';
@@ -39,14 +42,14 @@ function inJob(id, t, o = {}) {
 }
 
 test('the map grows east and south; Chinatown, Toa Payoh and Marina Bay keep every tile', () => {
-  assert.equal(W, 376); assert.equal(H, 128); assert.equal(CT_H, 92);
+  assert.equal(OLD_W, 376); assert.equal(OLD_H, 128); assert.equal(CT_H, 92);
   assert.deepEqual(DISTRICTS.slice(7, 10), ['india', 'glam', 'resort']);
   assert.equal(DISTRICT_NAME.india, 'Little India'); assert.equal(DISTRICT_NAME.glam, 'Kampong Glam'); assert.equal(DISTRICT_NAME.resort, 'Sentosa');
-  assert.equal(districtAt(240, 10), 'india'); assert.equal(districtAt(240, 60), 'glam'); assert.equal(districtAt(70, 110), 'resort');
-  for (let y = 0; y < CT_H; y += 5) for (let x = 0; x < EAST_X0 - 4; x += 5) assert.ok(!['india', 'glam', 'resort'].includes(districtAt(x, y)), `${x},${y} keeps its district`);
+  assert.equal(districtAt(...mvT(240, 10)), 'india'); assert.equal(districtAt(...mvT(240, 60)), 'glam'); assert.equal(districtAt(...mvT(70, 110)), 'resort');
+  for (let y = 0; y < CT_H; y += 5) for (let x = 0; x < EAST_X0 - 4; x += 5) assert.ok(!['india', 'glam', 'resort'].includes(districtAt(...mvT(x, y))), `${x},${y} keeps its district`);
   // the Rochor River between the island and the new districts, bridged by the main roads
   const c = city();
-  assert.equal(c.ground[20 * W + 209], G.CANAL); assert.ok([12, 46].some(y => c.ground[(y + 1) * W + 209] === G.BRIDGE), 'a bridge over the Rochor River');
+  assert.equal(c.ground[oi(209, 20)], G.CANAL); assert.ok([12, 46].some(y => c.ground[oi(209, y + 1)] === G.BRIDGE), 'a bridge over the Rochor River');
 });
 
 test('Little India and Kampong Glam: their landmarks, markets, safe houses, contacts and real street names', () => {
@@ -58,7 +61,7 @@ test('Little India and Kampong Glam: their landmarks, markets, safe houses, cont
     assert.ok(SAFE_HOUSES.some(h => h.d === d), `${d} has a safe house for sale`);
   }
   assert.equal(P['stn-littleindia'].d, 'india'); assert.equal(P['stn-bugis'].d, 'glam'); assert.equal(P['stn-beach'].d, 'resort');
-  for (const [x, y, name] of [[225, 20, 'Race Course Road'], [245, 20, 'Serangoon Road'], [230, 47, 'Arab Street'], [245, 60, 'North Bridge Road'], [265, 50, 'Kandahar Street']]) assert.equal(streetAt(x, y), name, `${x},${y}`);
+  for (const [x, y, name] of [[225, 20, 'Race Course Road'], [245, 20, 'Serangoon Road'], [230, 47, 'Arab Street'], [245, 60, 'North Bridge Road'], [265, 50, 'Kandahar Street']]) assert.equal(streetAt(...mvT(x, y)), name, `${x},${y}`);
   assert.ok(Object.values(EAST_NAMES).every(v => typeof v === 'string' && v.length > 3));
   // every new place can be walked to from Little India's safe house (over the bridges and the boardwalk to Sentosa)
   const s0 = P['safe-india'], f = field(c, 'foot', Math.floor(s0.x / T), Math.floor(s0.y / T) + 1, ALL);

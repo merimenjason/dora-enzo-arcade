@@ -6,10 +6,12 @@ import { T, W, S, G, districtAt, DISTRICT_NAME, type District } from './jade-cit
 import { rng, hashStr, dist } from './jade-rng.js';
 import type { World, Near } from './jade-game.js';
 import type { Mission, Step } from './jade-story.js';
+import { mvT, mvTs, unmvT } from './jade-layout.js';
 import { safeOpen } from './jade-save.js';
 
 export type GigDef = { id: string; title: string; at: [number, number] | string; d: District; giver: string; kind: string };
-export const GIG_DEFS: GigDef[] = [
+/** `at` tiles are written in the old frame and moved once through the layout table (lib/jade-layout.ts) */
+export const GIG_DEFS: GigDef[] = ([
   { id: 'delivery-market', title: 'Delivery run', at: [20, 62], d: 'market', giver: 'kee', kind: 'delivery' },
   { id: 'delivery-temple', title: 'Delivery run', at: [34, 25], d: 'temple', giver: 'pang', kind: 'delivery' },
   { id: 'delivery-canal', title: 'Delivery run', at: [57, 40], d: 'canal', giver: 'lim', kind: 'delivery' },
@@ -23,7 +25,7 @@ export const GIG_DEFS: GigDef[] = [
   { id: 'cook', title: 'Wok shift', at: 'wok-stall', d: 'market', giver: 'mo', kind: 'cook' },
   { id: 'dumplings', title: 'Dumpling shift', at: [50, 38], d: 'canal', giver: 'lim', kind: 'dumpling' },
   { id: 'locks', title: 'Crate cracking', at: [96, 64], d: 'docks', giver: 'bo', kind: 'locks' },
-];
+] as GigDef[]).map(g => typeof g.at === 'string' ? g : { ...g, at: mvT(g.at[0], g.at[1]) });
 const where = (w: World, at: GigDef['at']): [number, number] => typeof at === 'string' ? [w.c.places[at].x, w.c.places[at].y] : [at[0] * T + T / 2, at[1] * T + T / 2];
 
 /** gigs on offer: their district must be open (story job not running); the story's first chapter must be under way */
@@ -38,7 +40,8 @@ function dropSpot(w: World, R: () => number, x: number, y: number, lo: number, h
   for (let k = 0; k < 400; k++) {
     const a = R() * Math.PI * 2, d = (lo + R() * (hi - lo)) * T;
     const tx = Math.floor((x + Math.cos(a) * d) / T), ty = Math.floor((y + Math.sin(a) * d) / T);
-    if (tx < 1 || ty < 1 || tx > 118 || ty > 90) continue;
+    // inside Chinatown (old-frame columns 1 to 118, rows 1 to 90)
+    const o = unmvT(tx, ty); if (!o || o[0] < 1 || o[1] < 1 || o[0] > 118 || o[1] > 90) continue;
     const i = ty * W + tx;
     if (w.c.solid[i] !== S.OPEN || w.c.ground[i] === G.ROAD || !w.open.has(districtAt(tx, ty))) continue;
     if (![[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => w.c.ground[(ty + dy) * W + tx + dx] === G.ROAD)) continue;
@@ -62,9 +65,9 @@ export function gigMission(w: World, id: string): { m: Mission; reward: number; 
       reward = 30 + Math.round(d * 2.2); break;
     }
     case 'taxi': steps = [{ t: 'ride', kind: 'tuktuk', near: home, label: 'Get in the tuk-tuk' }, { t: 'fares', n: 2, label: 'Drive two fares' }]; reward = 50; break;
-    case 'race': steps = [{ t: 'ride', kind: 'scooter', near: home, label: 'Get on a scooter' }, { t: 'race', ride: 'scooter', rival: 'scooter', marks: [[28, 32], [28, 64], [12, 64], [12, 48], [44, 48], [44, 32], [35, 32]], label: 'Win the street race' }]; reward = 90; break;
-    case 'roof-market': steps = [{ t: 'race', ride: 'foot', roof: true, time: 45, marks: [[6, 80], [2, 79], [2, 75], [6, 75], [6, 71], [2, 71], [2, 67], [6, 67]], label: 'Climb the ladder and hop across every roof marker' }]; reward = 70; break;
-    case 'roof-arcade': steps = [{ t: 'race', ride: 'foot', roof: true, time: 50, marks: [[95, 43], [95, 39], [99, 39], [99, 35], [103, 35], [103, 39], [103, 43]], label: 'Climb the ladder and hop across every roof marker' }]; reward = 80; break;
+    case 'race': steps = [{ t: 'ride', kind: 'scooter', near: home, label: 'Get on a scooter' }, { t: 'race', ride: 'scooter', rival: 'scooter', marks: mvTs([[28, 32], [28, 64], [12, 64], [12, 48], [44, 48], [44, 32], [35, 32]]), label: 'Win the street race' }]; reward = 90; break;
+    case 'roof-market': steps = [{ t: 'race', ride: 'foot', roof: true, time: 45, marks: mvTs([[6, 80], [2, 79], [2, 75], [6, 75], [6, 71], [2, 71], [2, 67], [6, 67]]), label: 'Climb the ladder and hop across every roof marker' }]; reward = 70; break;
+    case 'roof-arcade': steps = [{ t: 'race', ride: 'foot', roof: true, time: 50, marks: mvTs([[95, 43], [95, 39], [99, 39], [99, 35], [103, 35], [103, 39], [103, 43]]), label: 'Climb the ladder and hop across every roof marker' }]; reward = 80; break;
     case 'cook': steps = [{ t: 'mini', kind: 'wok', level: 2, label: 'Cook the orders' }]; reward = 45; break;
     case 'dumpling': steps = [{ t: 'mini', kind: 'dumpling', level: 2, label: 'Fold the dumplings' }]; reward = 45; break;
     case 'locks': steps = [{ t: 'mini', kind: 'lock', level: 2, label: 'Crack the crate lock' }]; reward = 60; break;

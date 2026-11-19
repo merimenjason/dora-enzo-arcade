@@ -26,6 +26,7 @@ import { downhill } from '../.checks/jade-nav.js';
 import { rainAt } from '../.checks/jade-weather.js';
 import { medalOf, goals } from '../.checks/jade-medals.js';
 import { DIFF } from '../.checks/jade-diff.js';
+import { mvP, OLD_W, OLD_H } from '../.checks/jade-layout.js';
 
 let n = 0;
 const test = (name, f) => { try { f(); n++; } catch (e) { console.error('FAILED:', name); throw e; } };
@@ -43,7 +44,7 @@ test('a seed replays the world exactly', () => {
 });
 
 test('the city: five districts, the plan, and the counts the docs quote', () => {
-  assert.equal(W, 376); assert.equal(H, 128); assert.equal(OW, 120);
+  assert.equal(OLD_W, 376); assert.equal(OLD_H, 128); assert.equal(OW, 120);
   for (const d of DISTRICTS) assert.ok(c.places && Object.values(c.places).some(p => p.d === d), `${d} has places`);
   assert.equal(c.cats.length, 50, '50 lucky cats');
   assert.ok(c.murals.length >= 12, 'murals to restore');
@@ -127,7 +128,7 @@ test('getting on and off every kind of ride, and riding it about', () => {
     // a boat steps off at the bank; bring it back to its mooring first
     if (kind === 'boat') { r.b.x = r.b.x; }
     const ok = w.exit();
-    if (kind === 'boat' && !ok) { const m = w.rides.find(x => x === r); m.b.x = 66.5 * T; m.b.y = 24.5 * T; assert.ok(w.exit(), 'step off a boat at the jetty'); }
+    if (kind === 'boat' && !ok) { const m = w.rides.find(x => x === r); [m.b.x, m.b.y] = mvP(66.5 * T, 24.5 * T); assert.ok(w.exit(), 'step off a boat at the jetty'); }
     else assert.ok(ok, `get off the ${kind}`);
     assert.equal(w.p.ride, null);
     assert.equal(c.solid[Math.floor(w.p.y / T) * W + Math.floor(w.p.x / T)], S.OPEN, `standing on open ground after the ${kind}`);
@@ -138,7 +139,7 @@ test('getting on and off every kind of ride, and riding it about', () => {
 });
 
 test('on foot: walk, run, sneak, dash and hop all move at their speeds and play their animations', () => {
-  const w = world(); w.placePlayer(20 * T + 32, 47 * T + 32);
+  const w = world(); w.placePlayer(...mvP(20 * T + 32, 47 * T + 32));
   const speedOf = (inp, n = 40) => { for (let i = 0; i < n; i++) w.step({ ...NO_INPUT, mx: 1, ...inp }, DT); return w.p.b.speed; };
   assert.ok(Math.abs(speedOf({}) - FOOT.run) < 5, 'run');
   assert.equal(w.p.anim, 'run');
@@ -162,7 +163,7 @@ test('climbing the ladder to the rooftops and back down, and falling back onto t
 
 test('heat: lanterns bring wardens, roadblocks and the blimp; losing them, hiding and swapping jackets clear it', () => {
   const w = world({ done: allDone }); w.s.settings.diff = 'normal'; w.s.settings.assist = false;
-  w.placePlayer(20 * T + 32, 47 * T + 32);
+  w.placePlayer(...mvP(20 * T + 32, 47 * T + 32));
   addHeat(w, 1.1, 'test'); assert.equal(lanterns(w), 1);
   for (let i = 0; i < 120; i++) w.step(NO_INPUT, DT);
   assert.ok(w.wardens.length >= 1, 'a warden comes');
@@ -175,15 +176,15 @@ test('heat: lanterns bring wardens, roadblocks and the blimp; losing them, hidin
   addHeat(w, 4.1, 'test'); for (let i = 0; i < 2; i++) w.step(NO_INPUT, DT);
   w.swapJacket(); assert.equal(w.heat, 0); assert.equal(w.wardens.length, 0); assert.equal(w.blimp.on, false);
   // out of sight long enough and a lantern goes out
-  const w2 = world({ done: allDone }); w2.placePlayer(20 * T + 32, 47 * T + 32); addHeat(w2, 1.2, 'test'); w2.wardens = []; w2.lastSeen = [0, 0];
+  const w2 = world({ done: allDone }); w2.placePlayer(...mvP(20 * T + 32, 47 * T + 32)); addHeat(w2, 1.2, 'test'); w2.wardens = []; w2.lastSeen = [0, 0];
   w2.p.hide = true; let t = 0; while (lanterns(w2) > 0 && t < 30) { w2.step(NO_INPUT, DT); t += DT; }
   assert.equal(lanterns(w2), 0, `a hidden player loses one lantern (${t.toFixed(1)}s)`);
   // caught: a small fine and a trip to the safe house
-  const w3 = world({ done: allDone }); w3.s.cash = 1000; w3.placePlayer(60 * T, 33 * T); w3.caughtNow();
+  const w3 = world({ done: allDone }); w3.s.cash = 1000; w3.placePlayer(...mvP(60 * T, 33 * T)); w3.caughtNow();
   assert.equal(w3.s.cash, 950); assert.equal(w3.s.stats.caught, 1); assert.equal(w3.heat, 0);
   assert.ok(Object.values(c.places).some(p => p.kind === 'safe' && Math.hypot(p.x - w3.p.x, p.y - w3.p.y) < 3 * T), 'at a safe house');
   // on the roofs nobody adds heat, and line of sight is blocked by buildings
-  assert.equal(los(c, 1 * T, 57 * T, 1 * T, 70 * T), false);
+  assert.equal(los(c, ...mvP(1 * T, 57 * T), ...mvP(1 * T, 70 * T)), false);
 });
 
 test('trading: prices, spreads, rep, tips, haggling, capacity, buying, selling and the stash', () => {
@@ -210,7 +211,7 @@ test('trading: prices, spreads, rep, tips, haggling, capacity, buying, selling a
 });
 
 test('crows snatch cargo from a slow rider and miss one who dashes', () => {
-  const w = world({ done: allDone }); w.placePlayer(20 * T + 32, 47 * T + 32); w.s.cargo.jade = 4;
+  const w = world({ done: allDone }); w.placePlayer(...mvP(20 * T + 32, 47 * T + 32)); w.s.cargo.jade = 4;
   w.snatchers.push({ x: w.p.x + 200, y: w.p.y, h: Math.PI, t: 0, out: false, took: 0, wing: 0 });
   for (let i = 0; i < 120; i++) w.step(NO_INPUT, DT);
   assert.equal(w.s.cargo.jade, 2, 'two bangles gone');
@@ -361,7 +362,7 @@ test('traffic lights: green, amber and red in turn, never green both ways, and c
   }
   const seen = new Set(); for (let t = 0; t < CYCLE; t += 0.1) seen.add(lightOf({ time: t }, 0, 'h')); assert.equal(seen.size, 3);
   // a long run: no car ever drives into a crossing while its light is red
-  const w = world({ done: allDone }); w.placePlayer(42 * T, 46 * T);
+  const w = world({ done: allDone }); w.placePlayer(...mvP(42 * T, 46 * T));
   let checked = 0, greens = 0, waited = 0;
   for (let i = 0; i < 60 * 90; i++) {
     const before = w.cars.map(car => ({ car, x: car.x, y: car.y }));
@@ -382,7 +383,7 @@ test('traffic lights: green, amber and red in turn, never green both ways, and c
 });
 
 test('townsfolk walk to doors, stalls and seats, cross only at zebras, and never stand in the road for long', () => {
-  const w = world({ done: allDone }); w.placePlayer(20 * T, 60 * T);
+  const w = world({ done: allDone }); w.placePlayer(...mvP(20 * T, 60 * T));
   const onRoad = new Map(); let maxRoad = 0, sat = 0, crossed = 0, arrived = 0;
   for (let i = 0; i < 60 * 120; i++) {
     w.step(NO_INPUT, DT);
@@ -403,8 +404,8 @@ test('townsfolk walk to doors, stalls and seats, cross only at zebras, and never
 
 test('street events: each kind starts in free roam and can be finished, and a job clears it', () => {
   for (const kind of EVENT_KINDS) {
-    const w = world({ done: allDone }); w.placePlayer(30 * T, 46 * T);
-    let e = null; for (let k = 0; k < 8 && !e; k++) { w.placePlayer((10 + k * 12) * T, 46 * T); e = spawn(w, kind); }
+    const w = world({ done: allDone }); w.placePlayer(...mvP(30 * T, 46 * T));
+    let e = null; for (let k = 0; k < 8 && !e; k++) { w.placePlayer(...mvP((10 + k * 12) * T, 46 * T)); e = spawn(w, kind); }
     assert.ok(e, `${kind} spawned`); assert.equal(w.street.kind, kind);
     const cash = w.s.cash;
     if (kind === 'crow') { for (let i = 0; i < 60 * 30 && e.phase === 'on'; i++) { const b = e.b; const dx = b.x - w.p.x, dy = b.y - w.p.y, l = Math.hypot(dx, dy) || 1; w.step({ ...NO_INPUT, mx: dx / l, my: dy / l, dash: i % 20 === 0 && l < 90 }, DT); } }
@@ -421,7 +422,7 @@ test('street events: each kind starts in free roam and can be finished, and a jo
     if (kind === 'busker') { w.s.cash = 50; w.placePlayer(e.x, e.y + 30); w.step(NO_INPUT, DT); eventAct(w); assert.ok(e.tipped); assert.ok(w.s.tips.some(t => t.from === 'the busker')); e.phase = 'done'; }
     assert.ok(e.phase === 'done', `${kind} finished (${e.phase})`);
     if (kind !== 'busker') assert.ok(w.s.cash > cash, `${kind} paid`);
-    const w2 = world({ done: ['m1'] }); w2.placePlayer(20 * T, 60 * T); spawn(w2, 'busker'); w2.startMission(MISSION.m2); assert.equal(w2.street, null, 'a job clears the event');
+    const w2 = world({ done: ['m1'] }); w2.placePlayer(...mvP(20 * T, 60 * T)); spawn(w2, 'busker'); w2.startMission(MISSION.m2); assert.equal(w2.street, null, 'a job clears the event');
   }
 });
 
@@ -432,7 +433,7 @@ test('rain: passing showers are seeded, between 0 and 1, and some nights stay dr
     if (any) wet++; else dry++;
   }
   assert.ok(wet >= 8 && dry >= 8, `wet ${wet} dry ${dry}`);
-  const w = world({ done: allDone }); w.rainForce = 0.8; w.placePlayer(20 * T, 60 * T); for (let i = 0; i < 120; i++) w.step({ ...NO_INPUT, mx: 0.5 }, DT);
+  const w = world({ done: allDone }); w.rainForce = 0.8; w.placePlayer(...mvP(20 * T, 60 * T)); for (let i = 0; i < 120; i++) w.step({ ...NO_INPUT, mx: 0.5 }, DT);
   assert.equal(w.p.anim, 'umbrella');
 });
 

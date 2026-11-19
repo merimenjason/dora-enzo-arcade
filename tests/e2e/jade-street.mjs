@@ -113,7 +113,7 @@ async function viewport(name, w, h, touch) {
   // stand beside a parked ride that matches, out of the traffic, and look for the Get on prompt
   const byRide = (want) => W(want => {
     const J = window.__jade, w = J.world();
-    const r = w.rides.find(r => r.parked && r.kind === want.kind && !!r.locked === want.locked && w.open.has(w.districtAt ? w.districtAt(r.b.x, r.b.y) : 'market') && r.b.x < 46 * 64 && r.b.y > 36 * 64);
+    const r = w.rides.find(r => r.parked && r.kind === want.kind && !!r.locked === want.locked && w.open.has(w.districtAt ? w.districtAt(r.b.x, r.b.y) : 'market') && (([x, y]) => x < 46 * 64 && y > 36 * 64)(window.__jade.layout.unmvP(r.b.x, r.b.y) ?? [1e9, 0]));
     if (!r) return false; w.placePlayer(r.b.x + 34, r.b.y); w.cars = []; w.findNear(); return w.near?.kind === 'ride';
   }, want);
 
@@ -177,7 +177,7 @@ async function viewport(name, w, h, touch) {
   check(await exists(touch ? 'stick' : 'hud'), `${name}: ${touch ? 'the touch stick shows' : 'the HUD stays'}`);
   check(await appear('jade-hint') && (await p.locator('[data-testid="jade-hint"]').getAttribute('data-lesson')) === 'move', `${name}: the first lesson teaches moving`); await look('lesson');
   check(await W(() => window.__jade.play.scene.cam.k) >= (Math.min(w, h) < 520 ? 0.9 : 0.6), `${name}: the camera is close enough to see the hero (${(await W(() => window.__jade.play.scene.cam.k)).toFixed(2)})`);
-  await W(() => window.__jade.teleport(20, 47));
+  await W(() => window.__jade.teleport(...window.__jade.layout.mvT(20, 47)));
   await wait(200);
 
   // ── moving on foot
@@ -293,7 +293,7 @@ async function viewport(name, w, h, touch) {
 
   // ── a locked scooter: jump-start it in the wires mini-game
   const locked = await byRide({ kind: 'scooter', locked: true });
-  if (!locked) await W(() => { const w = window.__jade.world(); const r = w.rides.find(r => r.parked && r.kind === 'scooter' && r.b.x < 46 * 64 && r.b.y > 36 * 64); r.locked = true; w.placePlayer(r.b.x + 34, r.b.y); w.findNear(); });
+  if (!locked) await W(() => { const w = window.__jade.world(); const r = w.rides.find(r => r.parked && r.kind === 'scooter' && (([x, y]) => x < 46 * 64 && y > 36 * 64)(window.__jade.layout.unmvP(r.b.x, r.b.y) ?? [1e9, 0])); r.locked = true; w.placePlayer(r.b.x + 34, r.b.y); w.findNear(); });
   await wait(150); await act(); await until(() => !!document.querySelector('[data-testid="mini-wires"]'), null, 2000);
   check(await exists('mini-wires'), `${name}: a locked scooter asks to be jump-started (${JSON.stringify(await W(() => { const w = window.__jade.world(); return [w.near?.kind, w.p.act?.n, w.ui?.kind, w.p.ride?.kind, window.__jade.artWait(), window.__jade.play.paused]; }))})`); await wait(500); await look('wires');
   if (touch || name === 'desktop') {
@@ -394,7 +394,7 @@ async function viewport(name, w, h, touch) {
 
   // ── street events, texts on the phone, rain
   for (const k of ['crow', 'duckling', 'van', 'busker']) {
-    await W(() => window.__jade.teleport(20, 60));
+    await W(() => window.__jade.teleport(...window.__jade.layout.mvT(20, 60)));
     const got = await W(k => window.__jade.event(k), k);
     check(got === k && (await W(() => window.__jade.street()?.kind)) === k, `${name}: street event ${k} (${got})`);
     await wait(250); if (k === 'busker' || k === 'crow') await look(`event ${k}`);

@@ -9,6 +9,7 @@
 //       Leap too soon or too late and you tumble back onto the roof; if the float rolls out of the Strip, it's gone.
 // The getaway meter (lib/jade-mission.ts) and the float's progress are the readable ways to fail.
 import { T } from './jade-city.js';
+import { mvT, mvTs, mvP } from './jade-layout.js';
 import { dist } from './jade-rng.js';
 import { nearestFree } from './jade-nav.js';
 import type { Step } from './jade-story.js';
@@ -19,9 +20,10 @@ import { telegraph } from './jade-setpiece.js';
 export type Sign = { x: number; y: number; t: number; ph: 'warn' | 'fall' | 'wreck'; warn: number; hit: boolean };
 export type Float = { x: number; y: number; speed: number; moving: boolean; done: boolean; t: number };
 /** the fire ladder up to the roofs beside the road, the three flags on the roof edge, and where the float runs */
-export const LADDER: [number, number] = [105, 33];
-export const LEAP_SPOTS: [number, number][] = [[103, 34], [99, 34], [95, 34]];
-export const FLOAT_START = 118.5 * T, FLOAT_END = 86 * T, FLOAT_Y = 32.5 * T;
+/** (tiles and world units written in the old frame, moved through the layout table) */
+export const LADDER: [number, number] = mvT(105, 33);
+export const LEAP_SPOTS: [number, number][] = mvTs([[103, 34], [99, 34], [95, 34]]);
+export const [FLOAT_START, FLOAT_Y] = mvP(118.5 * T, 32.5 * T), FLOAT_END = mvP(86 * T, 32.5 * T)[0];
 export const leapSpot = (i: number): [number, number] => [LEAP_SPOTS[i][0] * T + T / 2, LEAP_SPOTS[i][1] * T + 12];
 
 type Chase = Extract<Step, { t: 'chase' }>;

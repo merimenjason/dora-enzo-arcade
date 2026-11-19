@@ -7,6 +7,7 @@
 import { linksOf, FARES } from '@/lib/jade-cable';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DISTRICTS, DISTRICT_NAME, T, W, H, districtAt, type District } from '@/lib/jade-city';
+import { mvT, mvP } from '@/lib/jade-layout';
 import { offered, safeOpen } from '@/lib/jade-save';
 import { BIZ, bizPos } from '@/lib/jade-biz';
 import { PEOPLE } from '@/lib/jade-story';
@@ -24,7 +25,9 @@ const PIN_SPRITE: Record<PinKind, string> = {
 };
 const LEGEND: [PinKind, string][] = [['job', 'Job'], ['prop', 'Property for sale'], ['own', 'Your property'], ['raid', 'A raid! Get there fast'], ['market', 'Market'], ['safe', 'Safe house'], ['garage', 'Garage'], ['gig', 'Side gig'], ['cat', 'Lucky cat found'], ['mural', 'Mural painted'], ['stn', 'MRT station (click to route)'], ['cable', 'Cable car (click to route)'], ['ferry', 'Ferry pier (click to route)'], ['pin', 'Your pin']];
 const TINT: Record<District, [number, number, number]> = { market: [255, 128, 70], temple: [90, 200, 120], canal: [60, 200, 215], arcade: [225, 90, 220], docks: [80, 125, 255], india: [255, 110, 170], glam: [150, 120, 255], resort: [70, 215, 245], heartland: [240, 200, 70], bay: [70, 225, 175], orchard: [255, 215, 120], katong: [255, 150, 200], changi: [120, 210, 255], tiong: [170, 230, 190], quay: [255, 130, 150], jurong: [255, 200, 90] };
+/** each district's label tile (old-frame tiles, moved through the layout table below) */
 const CENTRE: Record<District, [number, number]> = { market: [22, 58], temple: [23, 16], canal: [58, 31], arcade: [97, 34], docks: [84, 76], heartland: [168, 20], bay: [170, 56], india: [242, 22], glam: [242, 62], resort: [76, 110], orchard: [300, 18], katong: [300, 60], changi: [350, 40], tiong: [265, 110], quay: [309, 110], jurong: [220, 110] };
+for (const d of Object.keys(CENTRE) as District[]) CENTRE[d] = mvT(...CENTRE[d]);
 const dName = (d: District) => DISTRICT_NAME[d].replace(/^the /, 'The ');
 const MW = W * T, MH = H * T;
 
@@ -70,7 +73,7 @@ function landmarks(play: Play): [string, number, number][] {
   const crane = c.props.find(p => p.sprite === 'crane'); if (crane) out.push(['mi-crane', crane.x, crane.y]); else at('mi-crane', 'mk-docks', 3 * T, 0);
   at('mi-arcade', 'gizmo', 0, -2 * T);
   const br = c.decals.find(d => d.sprite === 'd-bridge-stone'); if (br) out.push(['mi-bridge', br.x, br.y]);
-  out.push(['mi-lighthouse', 115.5 * T, 85.5 * T]);
+  out.push(['mi-lighthouse', ...mvP(115.5 * T, 85.5 * T)]);
   if (P.ferry) at('mi-ferry', 'ferry'); else at('mi-ferry', 'pier-end');
   const hall = c.buildings.find(b => b.sprite === 'lm2-hall'); if (hall) out.push(['mi-hall', (hall.x + hall.w / 2) * T, (hall.y + hall.h / 2) * T]);
   // over the Rochor River and on Sentosa: the temple's gopuram, the mosque's golden dome, the fort and the coaster

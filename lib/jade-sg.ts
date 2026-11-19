@@ -6,6 +6,7 @@
 // river; and most nights bring one festival: a Hungry Ghost getai show in the docks car park, a lion dance procession
 // that closes a street, or a mooncake lantern walk through the temple park. No DOM; all randomness is seeded.
 import { T, W, districtAt } from './jade-city.js';
+import { mvP } from './jade-layout.js';
 import { drive, type Body } from './jade-move.js';
 import { downhill } from './jade-nav.js';
 import { rng, hashStr, dist, clamp } from './jade-rng.js';
@@ -103,7 +104,9 @@ export function stormAt(seed: number, night: number, clock: number): number {
   }
   return 0;
 }
-const LION_ROAD = { y: 47.5 * T, x0: 2 * T, x1: 44 * T, from: 150, to: 420 };
+/** the lion dance's run down Smith Street (old-frame world units, moved by its start through the layout table) */
+const LION_AT = mvP(2 * T, 47.5 * T);
+const LION_ROAD = { y: LION_AT[1], x0: LION_AT[0], x1: LION_AT[0] + 42 * T, from: 150, to: 420 };
 
 /** set the night up: tables, junk, gum, litter, the festival */
 function newNightSg(w: World) {
@@ -321,7 +324,8 @@ export function mamaBuy(w: World, id: string): string | null {
 export function sgGates(w: World, gates: Set<number>) {
   const L = w.sg.lion; if (!L.on || w.run) return;
   const tx = Math.floor(L.x / T);
-  for (let y = 46; y <= 49; y++) for (let x = tx - 1; x <= tx + 1; x++) if (x >= 0 && x < W) gates.add(y * W + x);
+  const y0 = Math.floor(LION_ROAD.y / T) - 1;
+  for (let y = y0; y <= y0 + 3; y++) for (let x = tx - 1; x <= tx + 1; x++) if (x >= 0 && x < W) gates.add(y * W + x);
 }
 /** something cars must stop for (the lion dance) */
 export const sgBlockers = (w: World): [number, number, number][] => w.sg.lion.on ? [[w.sg.lion.x, w.sg.lion.y, 70]] : [];

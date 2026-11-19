@@ -15,6 +15,7 @@ import { ZONE_OF, zonesNear, needFor, streamPlan, toRelease, decodedBytes, ART_F
 import { spawn, EVENT_KINDS, type EventKind } from '@/lib/jade-events';
 import { nearestFree } from '@/lib/jade-nav';
 import { city, T, districtAt } from '@/lib/jade-city';
+import { mvT, mvP, unmvT, unmvP, NW, NH, LAYOUT_MODE } from '@/lib/jade-layout';
 import { translate, PAD } from '@/lib/jade-keys';
 import { startGang, type GangKind } from '@/lib/jade-gangs';
 import { dailyEvent, dayKey, openDistricts, chapterOf, type Save } from '@/lib/jade-save';
@@ -363,6 +364,8 @@ export class Play {
     const g = window as unknown as Record<string, unknown>;
     g.__jade = {
       play: this, world: () => this.w, save: () => this.w.s,
+      /** tests: the layout table (lib/jade-layout.ts), so a test that names a tile in the old frame can move it */
+      layout: { mvT, mvP, unmvT, unmvP, NW, NH, mode: LAYOUT_MODE },
       fps: () => this.fps, fpsLog: () => this.fpsLog.slice(), art: () => this.artStats(), artWait: () => this.artWait ? { ...this.artWait } : null,
       /** tests: decode every painting and keep them all (no letting go), so a teleport never holds the world */
       artAll: () => { this.artFreeT = 1e12; return ensureArt(ART_FILES); },

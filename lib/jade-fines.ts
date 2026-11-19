@@ -8,6 +8,7 @@
 // wardens ride little scooters along the roads (more of them on the island): they see further, pull riders over for
 // speeding, red lights and riding along the five-foot way, and chase a rider who drives off with a ticket.
 import { T, W, H, G, OW, districtAt } from './jade-city.js';
+import { unmvP } from './jade-layout.js';
 import { drive, type Body } from './jade-move.js';
 import { los, downhill, nearestFree } from './jade-nav.js';
 import { dist, clamp, angDiff } from './jade-rng.js';
@@ -122,7 +123,7 @@ export function finesStep(w: World, dt: number) {
     if (dist(sx, sy, px, py) > 520 && pedTile(w.c, tx, ty) && w.open.has(districtAt(tx, ty))) w.patrols.push({ id: w.nextId++, b: { x: sx, y: sy, h: 0, speed: 0, r: 13, len: 0, cls: 'walk' }, goal: null, pace: 0, write: 0, spot: 0 });
   }
   // a scooter warden on the roads nearby (one in Chinatown, two on the island's longer roads)
-  const isle = Math.floor(px / T) >= OW, rides = w.patrols.filter(pt => pt.ride).length;
+  const isle = Math.floor((unmvP(px, py)?.[0] ?? OW * T) / T) >= OW, rides = w.patrols.filter(pt => pt.ride).length;
   if (w.s.done.length >= 3 && (!w.run || strict) && rides < (isle ? 2 : 1) && w.tick % 45 === 20) {
     const a = w.R() * Math.PI * 2, d = 800 + w.R() * 400;
     const [sx, sy] = nearestFree(w.c, 'small', px + Math.cos(a) * d, py + Math.sin(a) * d, w.open, 6);

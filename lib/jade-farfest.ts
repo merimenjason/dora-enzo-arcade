@@ -4,6 +4,7 @@
 // in over Changi waved at from the viewing spots, and a hand with a traveller's suitcase at the terminal. Each has its
 // own animation, and none needs a job. The hired bikes are ordinary rides (lib/jade-move.ts). No DOM; deterministic.
 import { T, districtAt } from './jade-city.js';
+import { mvPLine } from './jade-layout.js';
 import { addRep } from './jade-save.js';
 import { isChristmas } from './jade-calendar.js';
 import type { World, Near } from './jade-game.js';
@@ -19,12 +20,15 @@ export const lightUp = (w: World) => (w.today ? isChristmas(w.today) : true) || 
 /** the plane overhead now (world units, heading), or null between planes */
 /** seconds until the next plane comes in (0 while one is overhead): the prompt counts it down (pass 13) */
 export const planeIn = (w: World) => { const ph = w.time % PLANE_EVERY; return ph <= PLANE_FLY ? 0 : PLANE_EVERY - ph; };
+/** the two approach lanes, [runway end, out at sea] (old-frame world units, moved by the runway end so the plane always
+ * lands on the runway) */
+const LANES = [0, 1].map(lane => mvPLine([[362 * T, (lane ? 10 : 24) * T], [380 * T, (lane ? 60 : 96) * T]]));
 export function planeNow(w: World): { x: number; y: number; h: number; k: number } | null {
   const F = w.c.far; if (!F) return null;
   const ph = w.time % PLANE_EVERY; if (ph > PLANE_FLY) return null;
   const k = ph / PLANE_FLY, lane = Math.floor(w.time / PLANE_EVERY) % 2;
   // in over the sea from the south-east, down to the runway
-  const x0 = 380 * T, y0 = (lane ? 60 : 96) * T, x1 = 362 * T, y1 = (lane ? 10 : 24) * T;
+  const [[x1, y1], [x0, y0]] = LANES[lane];
   return { x: x0 + (x1 - x0) * k, y: y0 + (y1 - y0) * k, h: Math.atan2(y1 - y0, x1 - x0), k };
 }
 const open = (w: World, x: number, y: number) => w.open.has(districtAt(Math.floor(x / T), Math.floor(y / T)));

@@ -7,6 +7,9 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
 import { T, W, H, G, S, FAR_X0, CHANGI_X0, DISTRICTS, DISTRICT_NAME, districtAt, streetAt, city } from '../.checks/jade-city.js';
+import { mvT, mvP, unmvP, OLD_W } from '../.checks/jade-layout.js';
+/** an old-frame tile's index in the live map (the city's literal tiles below are in the old frame, see lib/jade-layout.ts) */
+const oi = (x, y) => { const [tx, ty] = mvT(x, y); return ty * W + tx; };
 import { MISSIONS, MISSION, SIDE, PEOPLE, CHAPTERS, FINALE, CHANGI_OPENS, jobCounts } from '../.checks/jade-story.js';
 import { newSave, loadSave, SAVE_VERSION, SAVE_KEY, OLD_KEYS, openDistricts, chapterOf, checkTrophies, TROPHIES, SAFE_HOUSES } from '../.checks/jade-save.js';
 import { startGang, gangHit, GANG, mobSprite } from '../.checks/jade-gangs.js';
@@ -38,11 +41,11 @@ const at = (w, id, dy = 0.6) => { const p = w.c.places[id]; w.placePlayer(p.x, p
 const tile = (x, y) => [Math.floor(x / T), Math.floor(y / T)];
 
 test('the map grows east over the Geylang River: Orchard Road north, Katong south, Changi at the far end', () => {
-  assert.equal(W, 376); assert.ok(W * H < 65536, 'the nav heap still fits');
+  assert.equal(OLD_W, 376); assert.ok(W * H < 65536, 'the nav heap still fits');
   assert.deepEqual(DISTRICTS.slice(10, 13), FAR);
   assert.equal(DISTRICT_NAME.orchard, 'Orchard Road'); assert.equal(DISTRICT_NAME.katong, 'Katong'); assert.equal(DISTRICT_NAME.changi, 'Changi');
-  assert.equal(districtAt(300, 10), 'orchard'); assert.equal(districtAt(300, 60), 'katong'); assert.equal(districtAt(340, 30), 'changi'); assert.equal(districtAt(250, 10), 'india');
-  for (let x = 272; x <= 275; x++) assert.equal(c.ground[20 * W + x], G.CANAL, 'the Geylang River');
+  assert.equal(districtAt(...mvT(300, 10)), 'orchard'); assert.equal(districtAt(...mvT(300, 60)), 'katong'); assert.equal(districtAt(...mvT(340, 30)), 'changi'); assert.equal(districtAt(...mvT(250, 10)), 'india');
+  for (let x = 272; x <= 275; x++) assert.equal(c.ground[oi(x, 20)], G.CANAL, 'the Geylang River');
   // each district: a market, a safe house, a station, a giver, painted ground of its own
   for (const [d, mk, safe, stn] of [['orchard', 'mk-orchard', 'safe-orchard', 'stn-orchard'], ['katong', 'mk-katong', 'safe-katong', 'stn-katong'], ['changi', 'mk-changi', 'safe-changi', 'stn-changi']]) {
     assert.equal(c.places[mk]?.d, d, mk); assert.equal(c.places[mk].kind, 'market');
@@ -52,19 +55,19 @@ test('the map grows east over the Geylang River: Orchard Road north, Katong sout
   }
   for (const g of ['KATONG', 'ORCHARD', 'TARMAC', 'CYCLE', 'JEWEL', 'CHANGI']) assert.ok(c.ground.includes(G[g]), g);
   // roads link in: the expressway along the coast, and every new road crossing the river by a bridge
-  assert.ok([12, 46, 62, 72].every(y => c.ground[(y + 1) * W + 273] === G.BRIDGE), 'bridges over the Geylang River');
-  assert.ok(c.props.some(p => p.sprite === 'gantry' && p.x / T > FAR_X0), 'a gantry on the new expressway');
+  assert.ok([12, 46, 62, 72].every(y => c.ground[oi(273, y + 1)] === G.BRIDGE), 'bridges over the Geylang River');
+  assert.ok(c.props.some(p => p.sprite === 'gantry' && (unmvP(p.x, p.y) ?? [0])[0] / T > FAR_X0), 'a gantry on the new expressway');
   // the cycling track along East Coast Park, the beach and the sea
-  assert.ok(c.ground[81 * W + 300] === G.CYCLE && c.ground[86 * W + 300] === G.SAND);
+  assert.ok(c.ground[oi(300, 81)] === G.CYCLE && c.ground[oi(300, 86)] === G.SAND);
   // Jewel's Rain Vortex: a pool you walk round, inside glass walls with three doors
   const [vx, vy] = c.far.vortex; const [tx, ty] = tile(vx, vy); assert.notEqual(c.solid[ty * W + tx], S.OPEN, 'the pool');
-  assert.equal(c.solid[44 * W + 331], S.OPEN, 'the south doors'); assert.notEqual(c.solid[44 * W + 326], S.OPEN, 'the glass wall');
+  assert.equal(c.solid[oi(331, 44)], S.OPEN, 'the south doors'); assert.notEqual(c.solid[oi(326, 44)], S.OPEN, 'the glass wall');
 });
 
 test('real names on the new streets and landmarks; the district opens with the story', () => {
   assert.match(FAR_NAMES.ion, /ION Orchard/); assert.match(FAR_NAMES.vortex, /Rain Vortex/); assert.match(FAR_NAMES.jewel, /Jewel/);
   assert.equal(c.places.laksa.name, '328 Katong Laksa');
-  const st = new Set(); for (let y = 0; y < 92; y += 3) for (let x = FAR_X0; x < W; x += 3) { const s = streetAt(x, y); if (s) st.add(s); }
+  const st = new Set(); for (let y = 0; y < 92; y += 3) for (let x = FAR_X0; x < OLD_W; x += 3) { const s = streetAt(...mvT(x, y)); if (s) st.add(s); }
   for (const s of ['Orchard Road', 'East Coast Road']) assert.ok([...st].some(n => n.includes(s)), `${s} in ${[...st].join(', ')}`);
   const s = newSave(); s.done = allDone.filter(id => MISSION[id].ch <= 7 && id !== 'm45'); assert.ok(!openDistricts(s).includes('katong'));
   s.done.push('m45'); assert.ok(openDistricts(s).includes('katong') && openDistricts(s).includes('orchard') && !openDistricts(s).includes('changi'));
@@ -114,7 +117,7 @@ test('the hired bikes: parked by the racks, quiet, quicker on the cycling track;
   const before = w.s.stats.bikes; w.placePlayer(r.b.x + 30, r.b.y); w.p.act = null; w.findNear(); assert.equal(w.near?.kind, 'ride'); w.interact();
   for (let k = 0; k < 40; k++) w.step(NO_INPUT, DT); assert.equal(w.p.ride, r); assert.equal(w.s.stats.bikes, before + 1);
   // flat out along the track against flat out on the promenade
-  const top = y => { r.b.x = 300 * T; r.b.y = y * T + T / 2; r.b.h = 0; r.b.speed = 0; for (let k = 0; k < 120; k++) w.step({ ...NO_INPUT, mx: 1 }, DT); return r.b.speed; };
+  const top = y => { [r.b.x, r.b.y] = mvP(300 * T, y * T + T / 2); r.b.h = 0; r.b.speed = 0; for (let k = 0; k < 120; k++) w.step({ ...NO_INPUT, mx: 1 }, DT); return r.b.speed; };
   assert.ok(top(81) > top(80) * 1.1, 'quicker on the track');
 });
 

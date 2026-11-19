@@ -3,7 +3,8 @@
 // lanterns and a warden blimp's spotlight from four. Break their line of sight for a few seconds (alleys, buildings,
 // a bead curtain, the rooftops) and a lantern goes out; a jacket swap at a safe house clears them all. Getting caught
 // costs a little cash and puts you at the nearest safe house. No combat: you bump, dodge and hide.
-import { T, S, districtAt } from './jade-city.js';
+import { T, S, districtAt, idx, OLD_W } from './jade-city.js';
+import { mvT, unmvT } from './jade-layout.js';
 import { VEHICLES, drive, shove, type Body } from './jade-move.js';
 import { los, downhill, nearestFree } from './jade-nav.js';
 import { dist, clamp } from './jade-rng.js';
@@ -98,7 +99,11 @@ export function heatStep(w: World, dt: number) {
     for (const d of [9, 11, 13]) {
       const x = px + Math.cos(h) * d * T, y = py + Math.sin(h) * d * T;
       const tx = Math.floor(x / T), ty = Math.floor(y / T);
-      if (tx < 1 || ty < 1 || tx > 118 || ty > 90 || w.c.ground[ty * 120 + tx] !== 2 || !w.open.has(districtAt(tx, ty))) continue;
+      // Chinatown only (old-frame columns 1 to 118, rows 1 to 90). The road test reads index oty * 120 + otx of the old
+      // frame, a width left from when the city was 120 tiles wide (so it looks at some other tile); kept exactly as it
+      // was by reading that same old tile through the layout table
+      const o = unmvT(tx, ty); if (!o) continue; const [otx, oty] = o;
+      if (otx < 1 || oty < 1 || otx > 118 || oty > 90 || w.c.ground[idx(...mvT((oty * 120 + otx) % OLD_W, Math.floor((oty * 120 + otx) / OLD_W)))] !== 2 || !w.open.has(districtAt(tx, ty))) continue;
       w.blocks.push({ id: w.nextId++, x: tx * T + T / 2, y: ty * T + T / 2, r: 26, h: h + Math.PI / 2, sprite: w.R() < 0.5 ? 'block-oranges' : 'block-melons', knocked: 0 });
       w.fx.push({ t: 'roadblock' }); break;
     }

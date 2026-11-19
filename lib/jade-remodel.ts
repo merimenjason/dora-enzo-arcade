@@ -5,7 +5,7 @@
 // the harbour, lays curving painted footpaths through the park and plazas, and plans the festival dressing (arches,
 // giant lanterns, the stage and the sky-lantern poles) that appears once the story is won. Every change only opens
 // ground or swaps a picture, so every road and place stays reachable (tests/jade.mjs proves it).
-import { T, W, H, OW, S, G, districtAt, type City, type District, type Prop } from './jade-city.js';
+import { T, OLD_W as W, OLD_H as H, OW, S, G, districtAtOld as districtAt, type City, type District, type Prop } from './jade-city.js';
 
 export type Path = { pts: [number, number][]; w: number; tex: string };
 export type FestivalSpot = { x: number; y: number; kind: 'stage' | 'lantern' | 'arch' | 'giant'; sprite: string; rot?: number; w?: number };

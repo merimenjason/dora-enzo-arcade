@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto';
 import { FRAMES, ATLASES, TEXTURES, VER } from '../.checks/jade-art.js';
 import { tierOf, ART_FILES, EAGER, filesOf, zonesNear, needFor, streamPlan, releasable, toRelease, ART_BUDGET, decodedBytes, ZONE_OF, ZONES } from '../.checks/jade-load.js';
 import { DISTRICTS, districtAt, OW, CT_H, EAST_X0, FAR_X0 } from '../.checks/jade-city.js';
+import { mvT } from '../.checks/jade-layout.js';
 
 let n = 0;
 const t = (name, f) => { f(); n++; };
@@ -62,12 +63,12 @@ t('each later district\'s buildings, givers and faces go with its zone', () => {
 });
 
 t('zones near a spot, what the world waits for, and what streams behind', () => {
-  assert.deepEqual(zonesNear(20, 20), ['town']);
-  assert.ok(zonesNear(OW - 5, 20).includes('isle'));
-  assert.equal(zonesNear(EAST_X0 + 20, 20)[0], 'east');
-  assert.ok(zonesNear(60, CT_H - 10).includes('resort'));
-  assert.equal(zonesNear(FAR_X0 + 40, 20)[0], 'far');
-  assert.equal(ZONE_OF[districtAt(FAR_X0 + 40, 20)], 'far');
+  assert.deepEqual(zonesNear(...mvT(20, 20)), ['town']);
+  assert.ok(zonesNear(...mvT(OW - 5, 20)).includes('isle'));
+  assert.equal(zonesNear(...mvT(EAST_X0 + 20, 20))[0], 'east');
+  assert.ok(zonesNear(...mvT(60, CT_H - 10)).includes('resort'));
+  assert.equal(zonesNear(...mvT(FAR_X0 + 40, 20))[0], 'far');
+  assert.equal(ZONE_OF[districtAt(...mvT(FAR_X0 + 40, 20))], 'far');
   const need = needFor({ here: ['town'], job: false, mini: false });
   assert.ok(filesOf(['core']).every(f => need.includes(f)) && need.includes('atlas-city') && !need.includes('atlas-gear') && !need.includes('atlas-isle'));
   assert.ok(needFor({ here: ['far'], job: true, mini: false }).includes('atlas-gear'));

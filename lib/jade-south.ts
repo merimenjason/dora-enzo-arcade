@@ -8,7 +8,7 @@
 // Slingshot, the seafood restaurants, the Old Hill Street Police Station with its rainbow shutters, the river's
 // bumboats). Real place, road and landmark names (owner, 16-11); the people and Towkay Hoot's schemes are invented.
 // Pure data: lib/jade-southdraw.ts paints the extras and lib/jade-southfest.ts holds the things to do.
-import { T, W, H, G, S, F_BRIDGE, F_PARK, ROADS, SOUTH_X0, SOUTH_X1, SOUTH_Y0, SOUTH_Y1, TIONG_X0, QUAY_X0, districtAt, type City, type Prop } from './jade-city.js';
+import { T, OLD_W as W, OLD_H as H, G, S, F_BRIDGE, F_PARK, OLD_ROADS as ROADS, SOUTH_X0, SOUTH_X1, SOUTH_Y0, SOUTH_Y1, TIONG_X0, QUAY_X0, districtAtOld as districtAt, type City, type Prop } from './jade-city.js';
 import type { Station } from './jade-island.js';
 
 export type South = {

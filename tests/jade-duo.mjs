@@ -21,6 +21,7 @@ import { tagOption, tag, BOOSTS, boostXY } from '../.checks/jade-tag.js';
 import { OFFSCREEN, LEASH, applyTwo } from '../.checks/jade-duo.js';
 import { GADGETS, GADGET_IDS, GEAR_GIFT, giveGadget, carried, clipOf, ammoCap, fire, hit, buyGadget, buyAmmo, upgradeGadget, carry, stallOpen } from '../.checks/jade-gear.js';
 import { missionSave, playMission } from './jade-bot.mjs';
+import { mvP } from '../.checks/jade-layout.js';
 
 let n = 0;
 const test = (name, f) => { try { f(); n++; } catch (e) { console.error('FAILED:', name); throw e; } };
@@ -49,12 +50,12 @@ test('the partner follows over long random walks in every district: never stuck,
     assert.ok(d2(w.p, w.mate) < 400, `${d}: at your side at the end (${Math.round(d2(w.p, w.mate))})`);
   }
   // dropped far away (a respawn, a teleport): caught up at once
-  const w2 = world(); w2.placePlayer(20 * T, 47 * T); w2.mate.b.x = 100 * T; w2.mate.b.y = 20 * T; steps(w2, 60);
+  const w2 = world(); w2.placePlayer(...mvP(20 * T, 47 * T)); [w2.mate.b.x, w2.mate.b.y] = mvP(100 * T, 20 * T); steps(w2, 60);
   assert.ok(d2(w2.p, w2.mate) < 300, 'a lost partner catches up off screen');
 });
 
 test('switch heroes: Tab swaps who you play, the camera hero and the save; the one you leave keeps their job', () => {
-  const w = world(); w.placePlayer(20 * T + 32, 47 * T + 32); steps(w, 30);
+  const w = world(); w.placePlayer(...mvP(20 * T + 32, 47 * T + 32)); steps(w, 30);
   const a = w.p, b = w.mate;
   steps(w, 1, { ...NO_INPUT, swap: true });
   assert.equal(w.p, b); assert.equal(w.mate, a); assert.equal(w.s.hero, b.who); assert.equal(w.mate.ai.mode, 'follow');
@@ -104,14 +105,14 @@ test('tag-team moves: boost onto a roof, haul the partner up, pounce together, d
   assert.equal(tagOption(w)?.kind, 'haul'); steps(w, 1, { ...NO_INPUT, tag: true }); assert.equal(w.p.act?.n, 'haul'); steps(w, 70); assert.ok(w.mate.roof, 'hauled up');
   assert.ok(BOOSTS.length >= 6);
   // pounce on the street crow
-  const w2 = world({ seed: 8 }); w2.placePlayer(20 * T + 32, 47 * T + 32); steps(w2, 20);
+  const w2 = world({ seed: 8 }); w2.placePlayer(...mvP(20 * T + 32, 47 * T + 32)); steps(w2, 20);
   let e = null; for (let k = 0; k < 20 && !e; k++) { e = spawn(w2, 'crow'); if (!e) w2.placePlayer(w2.p.x + T * 3, w2.p.y); }
   assert.ok(e, 'a crow event'); w2.street = e; e.b.x = w2.mate.x + 150; e.b.y = w2.mate.y;
   assert.equal(tagOption(w2)?.kind, 'pounce'); steps(w2, 1, { ...NO_INPUT, tag: true }); assert.equal(w2.mate.ai.mode, 'pounce');
   let caught = false; for (let i = 0; i < 120 && !caught; i++) { w2.step(NO_INPUT, DT); caught = !!e.caught || w2.street !== e; }
   assert.ok(caught, 'the partner pounces on the crow');
   // distract
-  const w3 = world(); w3.s.settings.assist = false; w3.placePlayer(20 * T + 32, 47 * T + 32); addHeat(w3, 1.2, 'test'); steps(w3, 150);
+  const w3 = world(); w3.s.settings.assist = false; w3.placePlayer(...mvP(20 * T + 32, 47 * T + 32)); addHeat(w3, 1.2, 'test'); steps(w3, 150);
   assert.ok(w3.wardens.length, 'a warden'); const wd = w3.wardens[0]; wd.b.x = w3.mate.x + 260; wd.b.y = w3.mate.y;
   assert.equal(tagOption(w3)?.kind, 'distract'); steps(w3, 1, { ...NO_INPUT, tag: true }); assert.equal(w3.mate.ai.mode, 'distract');
   let stared = false; for (let i = 0; i < 240 && !stared; i++) { w3.step(NO_INPUT, DT); stared = w3.wardens.some(x => (x.stare ?? 0) > 0); }
@@ -130,11 +131,11 @@ test('the jobs that need both: at least ten, each with a partner step, and each 
   assert.ok(team.length >= 10, `${team.length} team jobs`);
   // the lock gate stays shut until the partner holds the lever
   const { w, run } = playOnto('m15', 'hold', { assist: false });
-  w.placePlayer(65 * T + 32, 27 * T + 32); w.mate.b.x = w.p.x - 60; w.mate.b.y = w.p.y; steps(w, 30);
+  w.placePlayer(...mvP(65 * T + 32, 27 * T + 32)); w.mate.b.x = w.p.x - 60; w.mate.b.y = w.p.y; steps(w, 30);
   assert.ok(w.gates.size > 0, `the gate is shut (${w.mate.ai.mode})`);
   // try the gate without the partner: still at the hold step after a while
   steps(w, 300, { ...NO_INPUT, my: 1 }); assert.equal(run.cur.t, 'hold', 'no way through alone');
-  w.placePlayer(65 * T + 32, 27 * T + 32); steps(w, 2);
+  w.placePlayer(...mvP(65 * T + 32, 27 * T + 32)); steps(w, 2);
   assert.match(tagOption(w)?.label ?? '', /lever/i); steps(w, 1, { ...NO_INPUT, tag: true });
   let open = false; for (let i = 0; i < 900 && !open; i++) { w.step(NO_INPUT, DT); open = w.gates.size === 0; }
   assert.ok(open, 'held open'); void run;
@@ -150,7 +151,7 @@ test('jobs stay finishable with no gadgets on Assist', () => {
 
 test('gadgets: a hit crow gets dizzy and drops its loot; each toy has its own effect on wardens, townsfolk and stalls', () => {
   for (const g of GADGET_IDS) {
-    const w = world(); w.placePlayer(20 * T + 32, 47 * T + 32); stocked(w); steps(w, 5);
+    const w = world(); w.placePlayer(...mvP(20 * T + 32, 47 * T + 32)); stocked(w); steps(w, 5);
     w.s.cargo.jade = 2; const m = { x: w.p.x + 150, y: w.p.y, h: Math.PI, t: 0, out: false, took: 1, wing: 0, good: 'jade' };
     assert.ok(hit(w, { kind: 'snatcher', x: m.x, y: m.y, r: 20, fair: true, ref: m }, g, 1, m.x, m.y), `${g} hits`);
     assert.ok(m.out && m.dizzy > 0, `${g}: the crow is dizzy`); assert.equal(w.s.cargo.jade, 3, `${g}: the loot drops back`);
@@ -158,21 +159,21 @@ test('gadgets: a hit crow gets dizzy and drops its loot; each toy has its own ef
   // wardens: stunned, with a hit pose, and more heat
   const stun = {};
   for (const g of GADGET_IDS) {
-    const w = world(); w.s.settings.assist = false; w.placePlayer(20 * T + 32, 47 * T + 32); addHeat(w, 1.1, 'test'); steps(w, 150);
+    const w = world(); w.s.settings.assist = false; w.placePlayer(...mvP(20 * T + 32, 47 * T + 32)); addHeat(w, 1.1, 'test'); steps(w, 150);
     const wd = w.wardens[0]; const h0 = w.heat;
     hit(w, { kind: 'warden', x: wd.b.x, y: wd.b.y, r: 20, fair: false, ref: wd }, g, 1, wd.b.x, wd.b.y);
     assert.ok(wd.stun > 0 && wd.hitKind, `${g} stuns a warden`); assert.ok(w.heat > h0, `${g} on a warden raises heat`); stun[g] = wd.stun;
   }
   assert.ok(stun.net > stun.sling && stun.paint > stun.confetti, 'each toy stuns for its own time');
   // townsfolk and stalls
-  const w = world(); w.placePlayer(20 * T + 32, 47 * T + 32); steps(w, 30);
+  const w = world(); w.placePlayer(...mvP(20 * T + 32, 47 * T + 32)); steps(w, 30);
   const pd = w.peds[0]; const h0 = w.heat; hit(w, { kind: 'ped', x: pd.x, y: pd.y, r: 16, fair: false, ref: pd }, 'paint', 1, pd.x, pd.y);
   assert.ok(pd.splat && pd.splatT > 0 && w.heat > h0, 'a splattered passer-by, and heat');
   const before = w.heat; hit(w, { kind: 'ped', x: pd.x, y: pd.y, r: 16, fair: false, ref: pd }, 'confetti', 1, pd.x, pd.y); assert.equal(w.heat, before, 'confetti only makes folk cheer');
 });
 
 test('gadgets in flight: shots fly, splat, puddle, burst a flock and tangle a getaway cart', () => {
-  const w = world(); w.placePlayer(20 * T + 32, 47 * T + 32); stocked(w); steps(w, 5);
+  const w = world(); w.placePlayer(...mvP(20 * T + 32, 47 * T + 32)); stocked(w); steps(w, 5);
   // confetti scatters a whole flock at once
   w.s.gear.carry[w.p.who] = ['confetti', 'popper']; w.s.gear.slot[w.p.who] = 0;
   for (let k = 0; k < 3; k++) w.snatchers.push({ x: w.p.x + 200 + k * 20, y: w.p.y + (k - 1) * 30, h: Math.PI, t: 0, out: false, took: 0, wing: 0 });
@@ -183,7 +184,7 @@ test('gadgets in flight: shots fly, splat, puddle, burst a flock and tangle a ge
   for (const wd of w.wardens) { wd.b.x = w.p.x + 260; wd.b.y = w.p.y; wd.stun = 0; }
   if (w.wardens.length) { w.p.fireCd = 0; fire(w, w.p, w.p.x + 260, w.p.y); steps(w, 40); assert.ok(w.wardens.every(x => x.hitKind), 'a popper dazes everyone in its burst'); }
   // a bubble shot leaves a soapy puddle, and a sling shot a rice splat
-  const w2 = world(); w2.placePlayer(20 * T + 32, 47 * T + 32); stocked(w2); steps(w2, 5);
+  const w2 = world(); w2.placePlayer(...mvP(20 * T + 32, 47 * T + 32)); stocked(w2); steps(w2, 5);
   w2.s.gear.carry[w2.p.who] = ['bubble', 'sling']; w2.s.gear.slot[w2.p.who] = 0; fire(w2, w2.p, w2.p.x + 200, w2.p.y); steps(w2, 60);
   assert.ok(w2.splats.some(s => s.puddle), 'a puddle'); assert.equal(w2.shots.length, 0);
   // the net on a getaway cart in a net-finish chase
@@ -195,7 +196,7 @@ test('gadgets in flight: shots fly, splat, puddle, burst a flock and tangle a ge
 });
 
 test('ammo and money: clips, reloads, empty satchels, crates, Tock’s stall and carrying', () => {
-  const w = world(); w.placePlayer(20 * T + 32, 47 * T + 32); giveGadget(w.s, 'sling'); steps(w, 5);
+  const w = world(); w.placePlayer(...mvP(20 * T + 32, 47 * T + 32)); giveGadget(w.s, 'sling'); steps(w, 5);
   const sh = w.s.hero === w.p.who && w.s.gear.carry[w.p.who].includes('sling') ? w.p : w.mate;
   if (sh !== w.p) w.switchHero();
   w.s.gear.slot[w.p.who] = w.s.gear.carry[w.p.who].indexOf('sling');
@@ -219,14 +220,14 @@ test('ammo and money: clips, reloads, empty satchels, crates, Tock’s stall and
 });
 
 test('two players: P2 steers the partner, the leash keeps both on one screen, and leaving hands the partner back to the AI', () => {
-  const w = world(); w.placePlayer(20 * T + 32, 47 * T + 32); steps(w, 30);
+  const w = world(); w.placePlayer(...mvP(20 * T + 32, 47 * T + 32)); steps(w, 30);
   applyTwo(w, true); assert.equal(w.two, true); assert.ok(w.fx.some(f => f.t === 'p2-join'));
   assert.equal(w.switchHero(), false, 'no switching with two players');
   let worst = 0;
   for (let i = 0; i < 60 * 8; i++) { w.step({ ...NO_INPUT, mx: -1 }, DT, { ...NO_INPUT, mx: 1 }); if (w.talk) w.talk = null; worst = Math.max(worst, Math.abs(w.mate.x - w.p.x)); }
   assert.ok(worst <= LEASH.x + 40, `leashed (${Math.round(worst)} px apart at most)`); assert.ok(worst > 600, 'but free to spread out');
   assert.ok(!inWall(w, w.p) && !inWall(w, w.mate)); assert.ok(!overlapping(w.ctx(false), w.mate.b));
-  const x0 = w.mate.x; steps(w, 60, NO_INPUT, { ...NO_INPUT, my: 1 }); assert.ok(Math.abs(w.mate.y - 47 * T) > 10 || w.mate.x !== x0, 'P2 moves the partner');
+  const x0 = w.mate.x; steps(w, 60, NO_INPUT, { ...NO_INPUT, my: 1 }); assert.ok(Math.abs(w.mate.y - mvP(0, 47 * T)[1]) > 10 || w.mate.x !== x0, 'P2 moves the partner');
   applyTwo(w, false); assert.equal(w.two, false); steps(w, 600); assert.ok(d2(w.p, w.mate) < 400, 'the AI partner rejoins you');
 });
 
@@ -261,7 +262,7 @@ test('the fourth batch of paintings: every gadget, shot, splat, pose, passenger 
 
 test('lessons never hang about: each basic one gives up after a while, and the festival ending plays once', () => {
   const s = newSave(9); s.started = true; s.story.intro = true; s.done = ['m1']; const w = new World(s, 9); w.quiet = true; w.talk = null;
-  w.placePlayer(20 * T + 32, 47 * T + 32);
+  w.placePlayer(...mvP(20 * T + 32, 47 * T + 32));
   let shown = null, since = 0, longest = 0;
   for (let i = 0; i < 60 * 90; i++) { w.step(NO_INPUT, DT); if (w.talk) w.talk = null; const c = w.tutor.cur; if (c !== shown) { shown = c; since = 0; } else if (c) since += DT; if (c) longest = Math.max(longest, since); }
   assert.ok(longest < 31, `no lesson stays up more than its limit (${longest.toFixed(1)}s)`);

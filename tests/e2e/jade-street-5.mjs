@@ -22,7 +22,7 @@ export async function fifth(h) {
   await W(() => window.__jade.teleportTo('hoon')); await wait(900);
   check(await W(() => !!window.__jade.world().c.sg && window.__jade.world().c.sg.tables.length === 6), `${name}: the hawker centre has six tables`);
   await look('hawker centre');
-  const ff = await W(() => { const c = window.__jade.world().c.sg, CW = c.fivefoot.length / 128; const i = c.fivefoot.findIndex((v, k) => v && k % CW < 44 && Math.floor(k / CW) > 40); return [(i % CW) * 64 + 32, Math.floor(i / CW) * 64 + 32]; });
+  const ff = await W(() => { const c = window.__jade.world().c.sg, CW = c.fivefoot.length / window.__jade.layout.NH; const i = c.fivefoot.findIndex((v, k) => v && k % CW < 44 && Math.floor(k / CW) > 40); return [(i % CW) * 64 + 32, Math.floor(i / CW) * 64 + 32]; });
   await at(ff[0], ff[1]); await wait(300);
   check(await W(() => window.__jade.world().p.shade), `${name}: under a five-foot way you stand in the shade`);
   await look('five-foot way');
@@ -96,7 +96,7 @@ export async function fifth(h) {
 
   // ── the fine city on Normal: a warden sees you jaywalk, the ticket pops up, E pays it; the next one you run from
   await W(() => { const w = window.__jade.world(); w.s.settings.diff = 'normal'; w.s.settings.assist = false; w.warned.clear(); });
-  const road = await W(() => { const w = window.__jade.world(); const z = w.c.decals.filter(d => d.sprite === 'd-zebra'); for (let ty = 44; ty < 52; ty++) for (let tx = 14; tx < 40; tx++) { const i = ty * (w.c.ground.length / 128) + tx; if (w.c.ground[i] === 2 && !z.some(d => Math.abs(d.x / 64 - tx) < 5 && Math.abs(d.y / 64 - ty) < 5)) return [tx * 64 + 32, ty * 64 + 32 - 128]; } return null; });
+  const road = await W(() => { const w = window.__jade.world(); const z = w.c.decals.filter(d => d.sprite === 'd-zebra'); const L = window.__jade.layout; for (let oy = 44; oy < 52; oy++) for (let ox = 14; ox < 40; ox++) { const [tx, ty] = L.mvT(ox, oy), i = ty * (w.c.ground.length / L.NH) + tx; if (w.c.ground[i] === 2 && !z.some(d => Math.abs(d.x / 64 - tx) < 5 && Math.abs(d.y / 64 - ty) < 5)) return [tx * 64 + 32, ty * 64 + 32 - 128]; } return null; });
   check(!!road, `${name}: a stretch of road away from the zebras`);
   await at(road[0], road[1]); await W(() => { window.__jade.warden(160, 0); const w = window.__jade.world(); w.lastTile = -1; w.cars = []; window.__wd5 = { id: w.patrols[0].id, x: w.patrols[0].b.x, y: w.patrols[0].b.y }; });
   // (since the eighth pass a warden on foot sees little behind them and walks a beat, so this one is kept beside you, facing you)
@@ -110,7 +110,7 @@ export async function fifth(h) {
   await W(() => { const w = window.__jade.world(); w.fineCd.clear(); window.__jade.warden(100, 0); });
   await W(() => { const w = window.__jade.world(); window.__jade.play.w.step && 0; });
   await W(() => { const w = window.__jade.world(); const pt = w.patrols[0]; w.ticket = { kind: 'litter', amt: 30, t: 0, pid: pt.id, x: w.p.x, y: w.p.y }; });
-  await W(() => window.__jade.teleport(80, 40)); await until(() => !window.__jade.world().ticket, null, 6000);
+  await W(() => window.__jade.teleport(...window.__jade.layout.mvT(80, 40))); await until(() => !window.__jade.world().ticket, null, 6000);
   check((await sg()).fines.fled === f0.fled + 1 && await W(() => window.__jade.world().heat >= 1), `${name}: running from a ticket starts a chase`);
   await W(() => { const w = window.__jade.world(); w.heat = 0; w.wardens = []; w.patrols = []; w.s.settings.diff = 'easy'; w.s.settings.assist = true; });
 
@@ -133,7 +133,7 @@ export async function fifth(h) {
   check((await sg()).bag.banana === ban - 1 && await W(() => window.__jade.world().gangs.ev.mobs.some(m => m.st === 'munch')), `${name}: E tosses a banana and the macaque sits down to munch`);
   check(await W(() => window.__seen5.has('toss')), `${name}: with the toss pose`);
   await W(() => { const w = window.__jade.world(); w.gangs.ev = null; });
-  await W(() => window.__jade.teleport(60, 40)); await wait(200);
+  await W(() => window.__jade.teleport(...window.__jade.layout.mvT(60, 40))); await wait(200);
   check(await W(() => window.__jade.gang('otters')), `${name}: the Riverside Romp smuggle crates on the quay`);
   await W(() => { const w = window.__jade.world(); const g = w.s.gear; g.carry[w.p.who] = ['bubble']; g.slot[w.p.who] = 0; g.clip.bubble = 6; g.ammo.bubble = 20; if (!g.own.includes('bubble')) g.own.push('bubble'); const m = w.gangs.ev.mobs[0]; m.b.speed = 0; m.st = 'run'; w.placePlayer(m.b.x - 140, m.b.y); w.cars = []; });
   await wait(300);

@@ -4,6 +4,7 @@
 // on that road to be held at red, elsewhere for a gap in the cars. At a table they sit and eat; at a door or stall they
 // browse a moment and choose again. Anything fast coming at them still makes them hop aside, and a honk scatters them.
 import { T, W, H, S, G, F_BRIDGE, F_ALLEY, ROADS, OW, districtAt, type City } from './jade-city.js';
+import { unmvT } from './jade-layout.js';
 import { dist } from './jade-rng.js';
 import type { World } from './jade-game.js';
 import { lightOf, LIGHT_AT } from './jade-traffic.js';
@@ -34,7 +35,7 @@ export const SOUTH_FOLK: Record<'tiong' | 'quay' | 'jurong', string[]> = {
   quay: ['frog', 'frog', 'frog', 'pigeon', 'civet', 'egret', 'cat', 'mousedeer'],
   jurong: ['squirrel', 'squirrel', 'squirrel', 'deer', 'turtle', 'sunbear', 'egret', 'goose'],
 };
-const folkAt = (tx: number, ty: number) => { const d = districtAt(tx, ty); return d === 'india' || d === 'glam' || d === 'resort' ? EAST_FOLK[d] : d === 'orchard' || d === 'katong' || d === 'changi' ? FAR_FOLK[d] : d === 'tiong' || d === 'quay' || d === 'jurong' ? SOUTH_FOLK[d] : tx >= OW ? ISLE_FOLK : FOLK; };
+const folkAt = (tx: number, ty: number) => { const d = districtAt(tx, ty); return d === 'india' || d === 'glam' || d === 'resort' ? EAST_FOLK[d] : d === 'orchard' || d === 'katong' || d === 'changi' ? FAR_FOLK[d] : d === 'tiong' || d === 'quay' || d === 'jurong' ? SOUTH_FOLK[d] : (unmvT(tx, ty)?.[0] ?? OW) >= OW ? ISLE_FOLK : FOLK; };
 export type Ped = {
   id: number; sp: string; x: number; y: number; h: number; tx: number; ty: number; hop: number; hx: number; hy: number; scare: number; wait: number; walk: number;
   dest: number; sit: number; roadT: number; watch: boolean;

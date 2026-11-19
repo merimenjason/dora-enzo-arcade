@@ -7,6 +7,9 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
 import { T, W, H, G, S, F_BRIDGE, SOUTH_X0, SOUTH_X1, SOUTH_Y0, SOUTH_Y1, TIONG_X0, QUAY_X0, DISTRICTS, DISTRICT_NAME, ROADS, districtAt, streetAt, city } from '../.checks/jade-city.js';
+import { mvT, unmvT, unmvP } from '../.checks/jade-layout.js';
+/** an old-frame tile's index in the live map (the city's literal tiles below are in the old frame, see lib/jade-layout.ts) */
+const oi = (x, y) => { const [tx, ty] = mvT(x, y); return ty * W + tx; };
 import { MISSIONS, MISSION, SIDE, PEOPLE, CHAPTERS, FINALE, JURONG_OPENS, jobCounts } from '../.checks/jade-story.js';
 import { newSave, loadSave, SAVE_VERSION, SAVE_KEY, openDistricts, chapterOf, checkTrophies, TROPHIES, SAFE_HOUSES } from '../.checks/jade-save.js';
 import { stationById, travelPlan } from '../.checks/jade-mrt.js';
@@ -43,23 +46,23 @@ function act(w, x, y, id) { w.placePlayer(x, y); w.p.act = null; w.step(NO_INPUT
 
 test('the map grows south over the water: Jurong, Tiong Bahru and Clarke Quay, with their own ground, river and lake', () => {
   assert.deepEqual(DISTRICTS.slice(-3), SOUTH); assert.equal(DISTRICTS.length, 16);
-  assert.equal(districtAt(210, 110), 'jurong'); assert.equal(districtAt(260, 110), 'tiong'); assert.equal(districtAt(310, 110), 'quay');
-  assert.equal(districtAt(80, 110), 'resort', 'Sentosa is still Sentosa'); assert.equal(districtAt(332, 96), 'resort', 'the sea off Changi keeps its district (the bumboat race)');
+  assert.equal(districtAt(...mvT(210, 110)), 'jurong'); assert.equal(districtAt(...mvT(260, 110)), 'tiong'); assert.equal(districtAt(...mvT(310, 110)), 'quay');
+  assert.equal(districtAt(...mvT(80, 110)), 'resort', 'Sentosa is still Sentosa'); assert.equal(districtAt(...mvT(332, 96)), 'resort', 'the sea off Changi keeps its district (the bumboat race)');
   assert.equal(DISTRICT_NAME.tiong, 'Tiong Bahru'); assert.equal(DISTRICT_NAME.quay, 'Clarke Quay'); assert.equal(DISTRICT_NAME.jurong, 'Jurong');
   assert.equal(DISTRICT_NAME.arcade, 'Club Street', 'only one district is called Clarke Quay');
   assert.equal(new Set(Object.values(DISTRICT_NAME)).size, DISTRICTS.length);
-  assert.equal(c.ground[112 * W + 236], G.JURONG); assert.equal(c.ground[113 * W + 256], G.TIONG); assert.equal(c.ground[101 * W + 294], G.QUAY); assert.equal(c.ground[111 * W + 215], G.GARDEN);
+  assert.equal(c.ground[oi(236, 112)], G.JURONG); assert.equal(c.ground[oi(256, 113)], G.TIONG); assert.equal(c.ground[oi(294, 101)], G.QUAY); assert.equal(c.ground[oi(215, 111)], G.GARDEN);
   // the Singapore River runs through Clarke Quay to the sea, crossed by Coleman Bridge (a road) and two footbridges
-  for (let x = 292; x <= 329; x++) { const i = (RIVER_Y + 1) * W + x; assert.ok(c.solid[i] === S.WATER || (c.flags[i] & F_BRIDGE), `river at ${x}`); }
-  assert.ok(c.flags[(RIVER_Y + 1) * W + 309] & F_BRIDGE); assert.ok(c.flags[(RIVER_Y + 1) * W + 299] & F_BRIDGE); assert.ok(c.flags[(RIVER_Y + 1) * W + 320] & F_BRIDGE);
-  assert.equal(streetAt(309, 105), 'Clemenceau Avenue');
+  for (let x = 292; x <= 329; x++) { const i = oi(x, RIVER_Y + 1); assert.ok(c.solid[i] === S.WATER || (c.flags[i] & F_BRIDGE), `river at ${x}`); }
+  assert.ok(c.flags[oi(309, RIVER_Y + 1)] & F_BRIDGE); assert.ok(c.flags[oi(299, RIVER_Y + 1)] & F_BRIDGE); assert.ok(c.flags[oi(320, RIVER_Y + 1)] & F_BRIDGE);
+  assert.equal(streetAt(...mvT(309, 105)), 'Clemenceau Avenue');
   // Jurong Lake, and the red bridge over the stream that feeds it
-  assert.equal(solidAt(205, 117), S.WATER); assert.equal(solidAt(209, 117), S.WATER); assert.equal(solidAt(208, 109), S.WATER); assert.ok(c.flags[111 * W + 209] & F_BRIDGE); assert.equal(solidAt(209, 111), S.OPEN);
+  assert.equal(solidAt(...mvT(205, 117)), S.WATER); assert.equal(solidAt(...mvT(209, 117)), S.WATER); assert.equal(solidAt(...mvT(208, 109)), S.WATER); assert.ok(c.flags[oi(209, 111)] & F_BRIDGE); assert.equal(solidAt(...mvT(209, 111)), S.OPEN);
   // two long bridges from Kampong Glam, real street names
-  for (const x of [225, 245]) for (let y = 82; y < SOUTH_Y0; y++) assert.ok(c.flags[y * W + x + 1] & F_BRIDGE, `bridge ${x},${y}`);
-  assert.equal(streetAt(225, 110), 'Jurong Town Hall Road'); assert.equal(streetAt(260, 104), 'Tiong Bahru Road'); assert.equal(streetAt(300, 115), 'Eu Tong Sen Street'); assert.equal(streetAt(260, 115), 'Seng Poh Road');
+  for (const x of [225, 245]) for (let y = 82; y < SOUTH_Y0; y++) assert.ok(c.flags[oi(x + 1, y)] & F_BRIDGE, `bridge ${x},${y}`);
+  assert.equal(streetAt(...mvT(225, 110)), 'Jurong Town Hall Road'); assert.equal(streetAt(...mvT(260, 104)), 'Tiong Bahru Road'); assert.equal(streetAt(...mvT(300, 115)), 'Eu Tong Sen Street'); assert.equal(streetAt(...mvT(260, 115)), 'Seng Poh Road');
   // nothing older moved: Chinatown, the island, the east and the coast keep their places
-  assert.equal(districtAt(300, 20), 'orchard'); assert.equal(c.places['stn-changi'].name, 'Changi Airport station'); assert.equal(districtAt(60, 100), 'resort');
+  assert.equal(districtAt(...mvT(300, 20)), 'orchard'); assert.equal(c.places['stn-changi'].name, 'Changi Airport station'); assert.equal(districtAt(...mvT(60, 100)), 'resort');
   // every new place stands on open ground, in its own district, and can be walked to from the bridges
   const f = field(c, 'foot', Math.floor(c.places['stn-tiong'].x / T), Math.floor(c.places['stn-tiong'].y / T), new Set(DISTRICTS)); const reach = i => f.dist[i] >= 0 && f.dist[i] < 1e8;
   for (const [id, pl] of Object.entries(c.places)) { if (!SOUTH.includes(pl.d)) continue; const tx = Math.floor(pl.x / T), ty = Math.floor(pl.y / T); assert.equal(solidAt(tx, ty), S.OPEN, `${id} on open ground`); assert.ok(reach(ty * W + tx), `${id} reachable on foot`); }
@@ -101,7 +104,7 @@ test('the opening order: Tiong Bahru and Clarke Quay with the Christmas Star, Ju
   assert.equal(JURONG_OPENS, 'm61'); s.done.push('m56', 'm57', 'm58', 'm59', 'm60', 'm61'); assert.ok(openDistricts(s).includes('jurong'));
   // no job before Jurong opens leaves Tiong Bahru and Clarke Quay (m56 starts with Mr Kamal)
   for (const id of ['m57', 'm58', 'm59', 'm60', 'm61']) { const m = MISSION[id]; assert.ok(['tiong', 'quay'].includes(c.places[m.at].d), id);
-    for (const st of m.steps) for (const sp of [...(st.route ?? []), ...(st.marks ?? []), ...(st.items ?? []), ...(st.crates ?? [])].filter(Array.isArray)) assert.ok(sp[0] >= TIONG_X0 - 4, `${id} ${st.t} ${sp} stays out of Jurong`); }
+    for (const st of m.steps) for (const sp of [...(st.route ?? []), ...(st.marks ?? []), ...(st.items ?? []), ...(st.crates ?? [])].filter(Array.isArray)) assert.ok((unmvT(sp[0], sp[1]) ?? [0])[0] >= TIONG_X0 - 4, `${id} ${st.t} ${sp} stays out of Jurong`); }
   // finishing m55 sends the text and the banner
   const w = world({ done: allDone.filter(id => MISSION[id].ch <= 8 && id !== 'm55') }); w.s.story.coast = true; w.finishMission(MISSION.m55);
   assert.ok(w.open.has('tiong') && w.open.has('quay')); assert.equal(w.banner.text, 'Over the water!'); assert.ok(w.s.msgs.some(m => /Tiong Bahru/.test(m.text) && /Clarke Quay/.test(m.text)));
@@ -207,7 +210,7 @@ test('the new paintings stream in by zone: none of the district art is in the ea
   for (const p of ['bg-chapter-9', 'bg-end-7', 'bg-stall-tiong', 'bg-stall-quay', 'bg-stall-jurong']) { assert.ok(PLAIN[p], p); assert.ok(existsSync(new URL(`../public/art/jade-street/${p}.webp`, import.meta.url)), p); }
   // every building and prop the builder places is painted
   for (const b of c.buildings) if (SOUTH.includes(districtAt(b.x, b.y))) assert.ok(FRAMES[b.sprite], `building ${b.sprite}`);
-  for (const p of c.props) if (p.y / T >= SOUTH_Y0 && p.x / T >= SOUTH_X0 - 4 && p.x / T <= SOUTH_X1 + 1) assert.ok(FRAMES[p.sprite], `prop ${p.sprite}`);
+  for (const p of c.props) if ((([x, y]) => y / T >= SOUTH_Y0 && x / T >= SOUTH_X0 - 4 && x / T <= SOUTH_X1 + 1)(unmvP(p.x, p.y) ?? [0, 0])) assert.ok(FRAMES[p.sprite], `prop ${p.sprite}`);
   for (const d of SOUTH) for (const sp of SOUTH_FOLK[d]) assert.ok(FRAMES[`folk-${sp}-down`], `folk-${sp}`);
   for (const i of ['mi-artdeco', 'mi-godown', 'mi-pagoda', 'mi-dome', 'i-rabbit']) assert.ok(FRAMES[i], i);
   // the eager set stays about 8 MB

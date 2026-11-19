@@ -8,6 +8,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
 import { T, W, H, OW, S, G, ROADS, XWAYS, DISTRICTS, districtAt, DISTRICT_NAME, streetAt } from '../.checks/jade-city.js';
+import { mvT, unmvT, unmvP, OLD_W, OLD_H } from '../.checks/jade-layout.js';
+import { OLD_ROADS } from '../.checks/jade-city.js';
+/** the old-frame column of a tile / of a world position (the frame OW and the other district edges are in) */
+const oi = (x, y) => { const [tx, ty] = mvT(x, y); return ty * W + tx; };
+const oldTX = (tx, ty) => (unmvT(tx, ty) ?? [0, 0])[0], oldX = (x, y) => (unmvP(x, y) ?? [0, 0])[0];
 import { F_XWAY, ISLE_NAMES } from '../.checks/jade-island.js';
 import { MISSIONS, MISSION, SIDE, PEOPLE, FINALE, CHAPTERS, jobCounts } from '../.checks/jade-story.js';
 import { newSave, loadSave, SAVE_VERSION, SAVE_KEY, OLD_KEYS, offered, available, chapterOf, openDistricts, safeOpen, buySafe } from '../.checks/jade-save.js';
@@ -32,9 +37,9 @@ const at = (w, id) => { const p = w.c.places[id]; const [x, y] = nearestFree(w.c
 
 test('the island: two new districts east of Chinatown, each with a market, a safe house, contacts and real place names', () => {
   const w = world(); const c = w.c;
-  assert.equal(W, 376); assert.equal(OW, 120); assert.deepEqual(DISTRICTS.slice(5, 7), ['heartland', 'bay']);
+  assert.equal(OLD_W, 376); assert.equal(OW, 120); assert.deepEqual(DISTRICTS.slice(5, 7), ['heartland', 'bay']);
   assert.equal(DISTRICT_NAME.heartland, 'Toa Payoh'); assert.equal(DISTRICT_NAME.bay, 'Marina Bay');
-  for (let y = 0; y < H; y += 7) for (let x = 0; x < OW; x += 7) assert.ok(!['heartland', 'bay'].includes(districtAt(x, y)), 'Chinatown keeps its districts');
+  for (let y = 0; y < OLD_H; y += 7) for (let x = 0; x < OW; x += 7) assert.ok(!['heartland', 'bay'].includes(districtAt(...mvT(x, y))), 'Chinatown keeps its districts');
   for (const d of ['heartland', 'bay']) {
     for (const k of ['market', 'safe', 'contact', 'station']) assert.ok(Object.values(c.places).some(p => p.d === d && p.kind === k), `${d} has a ${k}`);
     assert.ok(c.buildings.filter(b => districtAt(b.x, b.y) === d).length >= 8, `${d} is built up`);
@@ -42,21 +47,21 @@ test('the island: two new districts east of Chinatown, each with a market, a saf
   const sprites = new Set(c.buildings.map(b => b.sprite));
   for (const b of ['hdb-slab-a', 'hdb-point-a', 'hdb-mscp', 'hdb-nc', 'hdb-market', 'hdb-kopitiam', 'hdb-hawker', 'hdb-stn', 'bay-tower-a', 'bay-resort', 'bay-domes', 'bay-wheel', 'bay-grove', 'bay-mall']) assert.ok(sprites.has(b), b);
   assert.ok(c.props.some(p => p.sprite === 'playground') && c.props.some(p => p.sprite === 'void-table'), 'playgrounds and void decks');
-  assert.equal(streetAt(150, 37), 'Pan Island Expressway'); assert.equal(streetAt(123, 50), 'Central Expressway');
+  assert.equal(streetAt(...mvT(150, 37)), 'Pan Island Expressway'); assert.equal(streetAt(...mvT(123, 50)), 'Central Expressway');
   for (const v of Object.values(ISLE_NAMES)) assert.ok(typeof v === 'string' && v.length > 2);
   // every island place stands where you can walk to it from the island's safe house
   const s0 = c.places['safe-heartland']; const f = field(c, 'foot', Math.floor(s0.x / T), Math.floor(s0.y / T) + 1, new Set(DISTRICTS));
-  for (const [id, p] of Object.entries(c.places)) if (p.x >= OW * T && id !== 'holt') { const [fx, fy] = nearestFree(c, 'foot', p.x, p.y, new Set(DISTRICTS), 2); assert.ok(f.dist[Math.floor(fy / T) * W + Math.floor(fx / T)] >= 0, `walk to ${id}`); }
+  for (const [id, p] of Object.entries(c.places)) if (oldX(p.x, p.y) >= OW * T && id !== 'holt') { const [fx, fy] = nearestFree(c, 'foot', p.x, p.y, new Set(DISTRICTS), 2); assert.ok(f.dist[Math.floor(fy / T) * W + Math.floor(fx / T)] >= 0, `walk to ${id}`); }
 });
 
 test('expressways: flagged lanes, gantries and crash barriers; island avenues get traffic lights', () => {
   const w = world(); const c = w.c;
-  for (const i of XWAYS) { const r = ROADS[i]; const x = r.axis === 'h' ? (r.to < 170 || r.from > 170 ? Math.floor((r.from + r.to) / 2) : 170) : r.at + 1, y = r.axis === 'h' ? r.at + 1 : 50; assert.ok(c.flags[y * W + x] & F_XWAY, `${i} is an expressway`); }
-  assert.ok(c.sg.gantries.filter(g => g.tx >= OW || g.ty >= 0 && g.tx === 122).length >= 5, 'island gantries');
+  for (const i of XWAYS) { const r = OLD_ROADS[i]; const x = r.axis === 'h' ? (r.to < 170 || r.from > 170 ? Math.floor((r.from + r.to) / 2) : 170) : r.at + 1, y = r.axis === 'h' ? r.at + 1 : 50; assert.ok(c.flags[oi(x, y)] & F_XWAY, `${i} is an expressway`); }
+  assert.ok(c.sg.gantries.filter(g => oldTX(g.tx, g.ty) >= OW || g.ty >= 0 && oldTX(g.tx, g.ty) === 122).length >= 5, 'island gantries');
   assert.ok(c.props.filter(p => p.sprite === 'xw-barrier').length > 20, 'crash barriers');
-  assert.ok(LIGHTS.filter(L => L.tx >= OW).length >= 6, 'island crossings have lights');
+  assert.ok(LIGHTS.filter(L => oldTX(L.tx, L.ty) >= OW).length >= 6, 'island crossings have lights');
   // the bay is water with a bridge over its mouth; the floating stage stands on a deck
-  assert.equal(c.ground[72 * W + 170], G.BAY); assert.equal(c.ground[79 * W + 170], G.BRIDGE); assert.equal(c.ground[72 * W + 153], G.DECK);
+  assert.equal(c.ground[oi(170, 72)], G.BAY); assert.equal(c.ground[oi(170, 79)], G.BRIDGE); assert.equal(c.ground[oi(153, 72)], G.DECK);
   assert.deepEqual(openDistricts({ ...newSave(), done: allDone.slice(0, 24) }).includes('heartland'), false);
   assert.ok(openDistricts({ ...newSave(), done: allDone.slice(0, 25) }).includes('bay'), 'the island opens after chapter five');
 });
@@ -97,7 +102,7 @@ test('taxis: hail one (G or the app), get in, pick a drop-off, ride there, pay b
 test('island traffic, scooter wardens and the five-foot-way fine', () => {
   const w = world({ safe: 'safe-bay' });
   steps(w, 60 * 25);
-  assert.ok(w.cars.some(c => c.x >= OW * T), 'cars on the island roads');
+  assert.ok(w.cars.some(c => oldX(c.x, c.y) >= OW * T), 'cars on the island roads');
   assert.ok(w.patrols.some(p => p.ride), 'a scooter warden on the roads');
   assert.ok(OFFENCES.includes('pavement') && FINE.pavement.amt > 0);
   const pt = w.patrols.find(p => p.ride); w.ticket = null; w.s.settings.diff = 'normal';
@@ -130,7 +135,7 @@ test('chapter six: ten jobs, offered in order after the festival, both heroes ta
   for (const k of ['train', 'beat', 'chase', 'tail', 'escort', 'stealth', 'collect', 'fares', 'bag', 'mini', 'detective', 'trap', 'swap', 'blend']) assert.ok(kinds.has(k), `a ${k} step`);
   const skins = new Set(six.flatMap(m => m.steps.map(s => s.skin ?? s.gang).filter(Boolean)));
   for (const k of ['mac', 'liz', 'kaw', 'otter']) assert.ok(skins.has(k), `${k} in a job`);
-  assert.ok(MISSION.m30.steps.some(s => s.t === 'chase' && s.route.some(([x, y]) => y === 80 || x === 124)), 'the expressway chase rides the expressways');
+  assert.ok(MISSION.m30.steps.some(s => s.t === 'chase' && s.route.some(([x, y]) => { const [ox, oy] = unmvT(x, y) ?? [0, 0]; return oy === 80 || ox === 124; })), 'the expressway chase rides the expressways');
   const s = newSave(); s.done = allDone.slice(0, 25); assert.equal(chapterOf(s), 6); assert.deepEqual(available(s).map(m => m.id), ['m26', 'm27']);
   s.done = allDone.slice(0, 34); assert.deepEqual(available(s).map(m => m.id), ['m35'], 'the finale waits for the rest');
   s.done = allDone.slice(0, 35); assert.equal(chapterOf(s), 7); s.done = allDone.filter(id => MISSION[id].ch <= 7); assert.equal(chapterOf(s), 8); s.done = allDone; assert.equal(chapterOf(s), 10);

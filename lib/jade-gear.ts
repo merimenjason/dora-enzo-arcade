@@ -10,6 +10,7 @@
 import { noise } from './jade-aware.js';
 import { palFair } from './jade-pal.js';
 import { T, W, S, F_ROOF, districtAt } from './jade-city.js';
+import { mvP } from './jade-layout.js';
 import { nearestFree } from './jade-nav.js';
 import { dist, angDiff, clamp } from './jade-rng.js';
 import { addHeat } from './jade-heat.js';
@@ -37,7 +38,7 @@ export const STALL_OPENS = 'm2';
 export const stallOpen = (s: Save) => s.done.includes(STALL_OPENS);
 /** Tock's toy stall: on the pavement at Smith Street's west end (a free walk tile near tile 24,57, beside the market square) */
 let STALL: [number, number] | null = null;
-export function stallPos(w: World): [number, number] { if (!STALL) STALL = nearestFree(w.c, 'walk', 24 * T + T / 2, 57 * T + T / 2, new Set(['market']), 4); return STALL; }
+export function stallPos(w: World): [number, number] { if (!STALL) STALL = nearestFree(w.c, 'walk', ...mvP(24 * T + T / 2, 57 * T + T / 2), new Set(['market']), 4); return STALL; }
 export type GearState = { own: GadgetId[]; ammo: Record<GadgetId, number>; clip: Record<GadgetId, number>; lvl: Record<GadgetId, number>; carry: Record<Hero, GadgetId[]>; slot: Record<Hero, number> };
 const zero = (): Record<GadgetId, number> => ({ sling: 0, paint: 0, popper: 0, net: 0, bubble: 0, confetti: 0 });
 export const newGear = (): GearState => ({ own: [], ammo: zero(), clip: zero(), lvl: zero(), carry: { dora: [], enzo: [] }, slot: { dora: 0, enzo: 0 } });

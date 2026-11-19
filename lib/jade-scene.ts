@@ -7,6 +7,7 @@
 import { FRAMES, ATLASES, VER } from './jade-art.js';
 import { EAGER, ART_BUDGET, decodedBytes } from './jade-load.js';
 import { T, W, H, G, OW, CT_H, EAST_X0, EAST_SPLIT, FAR_X0, FAR_SPLIT, CHANGI_X0, SOUTH_X0, SOUTH_X1, TIONG_X0, QUAY_X0, GROUND_NAMES, F_ROOF, districtAt, type City, type District } from './jade-city.js';
+import { unmvT } from './jade-layout.js';
 import { F_XWAY } from './jade-island.js';
 import { VEHICLES } from './jade-move.js';
 import { tagOption, grabTarget } from './jade-tag.js';
@@ -419,8 +420,10 @@ export class Scene {
     const c = this.c;
     // under a building: the district's own paving (Little India, Kampong Glam and Sentosa have theirs); bridges are
     // concrete outside Chinatown (the Sentosa Gateway too) and planks over the Singapore River
-    const bldTex = (i: number) => { const tx = i % W, ty = Math.floor(i / W); return ty >= CT_H ? (tx >= SOUTH_X0 - 4 && tx <= SOUTH_X1 + 1 ? (tx >= QUAY_X0 ? 'quay' : tx >= TIONG_X0 ? 'tiong' : 'jurong') : 'resort') : tx >= FAR_X0 - 4 ? (tx >= CHANGI_X0 ? 'changi' : ty < FAR_SPLIT ? 'orchard' : 'katong') : tx >= EAST_X0 - 4 ? (ty < EAST_SPLIT ? 'india' : 'glam') : tx >= OW ? (ty < 38 ? 'hdb' : 'granite') : 'plaza'; };
-    const texOf = (g: number, i: number) => g === G.ROAD && (c.flags[i] & F_XWAY) ? 'xway' : g === G.BRIDGE ? (i % W >= OW || Math.floor(i / W) >= 80 ? 'xway' : 'canal') : g === G.STAIRS ? 'temple' : g === G.BLD ? bldTex(i) : GROUND_NAMES[g];
+    // (read in the old frame: the tile the layout table moved here; filler shows no building or bridge)
+    const oldOf = (i: number) => unmvT(i % W, Math.floor(i / W)) ?? [0, 0];
+    const bldTex = (i: number) => { const [tx, ty] = oldOf(i); return ty >= CT_H ? (tx >= SOUTH_X0 - 4 && tx <= SOUTH_X1 + 1 ? (tx >= QUAY_X0 ? 'quay' : tx >= TIONG_X0 ? 'tiong' : 'jurong') : 'resort') : tx >= FAR_X0 - 4 ? (tx >= CHANGI_X0 ? 'changi' : ty < FAR_SPLIT ? 'orchard' : 'katong') : tx >= EAST_X0 - 4 ? (ty < EAST_SPLIT ? 'india' : 'glam') : tx >= OW ? (ty < 38 ? 'hdb' : 'granite') : 'plaza'; };
+    const texOf = (g: number, i: number) => g === G.ROAD && (c.flags[i] & F_XWAY) ? 'xway' : g === G.BRIDGE ? (oldOf(i)[0] >= OW || oldOf(i)[1] >= 80 ? 'xway' : 'canal') : g === G.STAIRS ? 'temple' : g === G.BLD ? bldTex(i) : GROUND_NAMES[g];
     const byTex = new Map<string, number[]>();
     for (let ty = ty0; ty < ty0 + nh; ty++) for (let tx = tx0; tx < tx0 + nw; tx++) {
       if (tx < 0 || ty < 0 || tx >= W || ty >= H) continue;
