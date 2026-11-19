@@ -63,7 +63,8 @@ t('each later district\'s buildings, givers and faces go with its zone', () => {
 });
 
 t('zones near a spot, what the world waits for, and what streams behind', () => {
-  assert.deepEqual(zonesNear(...mvT(20, 20)), ['town']);
+  // (Smith Street's north-west corner: Orchard Road and Clarke Quay are a park's width west, so their art streams too)
+  assert.deepEqual(zonesNear(...mvT(20, 20)), ['town', 'far', 'south']);
   assert.ok(zonesNear(...mvT(OW - 5, 20)).includes('isle'));
   assert.equal(zonesNear(...mvT(EAST_X0 + 20, 20))[0], 'east');
   assert.ok(zonesNear(...mvT(60, CT_H - 10)).includes('resort'));

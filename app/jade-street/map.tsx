@@ -32,7 +32,7 @@ const dName = (d: District) => DISTRICT_NAME[d].replace(/^the /, 'The ');
 const MW = W * T, MH = H * T;
 
 // ── the painted city at 16 px a tile, the district tint and the district borders: built once per scene
-// (one at a time: a 6,016 × 2,048 canvas, about 49 MB, reused for the next game's scene rather than left for collection)
+// (one at a time: a 7,616 × 2,048 canvas, about 62 MB, reused for the next game's scene rather than left for collection)
 let PAPER: { scene: Scene; c: HTMLCanvasElement; miss: boolean; gen: number; t: number } | null = null;
 function paperMap(scene: Scene): HTMLCanvasElement {
   // painted again (into the same canvas) when it was painted with a picture missing and more have come in since
@@ -78,9 +78,9 @@ function landmarks(play: Play): [string, number, number][] {
   const hall = c.buildings.find(b => b.sprite === 'lm2-hall'); if (hall) out.push(['mi-hall', (hall.x + hall.w / 2) * T, (hall.y + hall.h / 2) * T]);
   // over the Rochor River and on Sentosa: the temple's gopuram, the mosque's golden dome, the fort and the coaster
   at('mi-gopuram', 'temple-li', 0, -3 * T); at('mi-mosque', 'mosque', 0, -4 * T); at('mi-fort', 'fort', 0, -3 * T); at('mi-coaster', 'park', 2 * T, -3 * T);
-  // over the Geylang River: the malls of Orchard Road, Katong's Peranakan terraces, East Coast beach, Changi Airport and Jewel
+  // Orchard Road (north-west) and over the Geylang River (east): the malls of Orchard Road, Katong's Peranakan terraces, East Coast beach, Changi Airport and Jewel
   at('mi-mall', 'ion', 0, -3 * T); at('mi-terrace', 'joochiat', 0, -3 * T); at('mi-beach', 'ecp', 0, 0); at('mi-airport', 'terminal', 0, -3 * T); at('mi-jewel', 'jewel', 0, -6 * T);
-  // the south shore: Tiong Bahru's flats, Clarke Quay's godowns, the Chinese Garden's pagoda, the Science Centre's dome
+  // west of Chinatown: Tiong Bahru's flats, Clarke Quay's godowns, the Chinese Garden's pagoda, the Science Centre's dome
   at('mi-artdeco', 'flats', 0, -3 * T); at('mi-godown', 'godowns', 0, -3 * T); at('mi-pagoda', 'pagoda', 0, -3 * T); at('mi-dome', 'science', 0, -4 * T);
   return out;
 }

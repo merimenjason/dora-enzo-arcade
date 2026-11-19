@@ -35,7 +35,8 @@ export async function sixth(h) {
   check(await appear('ride-view'), `${name}: the ride view plays`); await wait(500); await look('ride view');
   await until(() => !document.querySelector('[data-testid="ride-view"]'), null, 6000);
   const s1 = await st(); check(!(await exists('ride-view')) && s1.mrt === s0.mrt + 1 && s1.cash === s0.cash - 2, `${name}: the ride ends by itself, 2 coins paid`);
-  check(Math.hypot(s1.x - 152, s1.y - 31) < 4, `${name}: out at Toa Payoh station (${s1.x.toFixed(0)},${s1.y.toFixed(0)})`); await look('toa payoh station');
+  const tp = await W(() => window.__jade.layout.mvP(152 * 64, 31 * 64).map(v => v / 64)); // (Toa Payoh moves with its block)
+  check(Math.hypot(s1.x - tp[0], s1.y - tp[1]) < 4, `${name}: out at Toa Payoh station (${s1.x.toFixed(0)},${s1.y.toFixed(0)})`); await look('toa payoh station');
   // a key skips the ride view; a durian on the train is a fine (Normal)
   await W(() => { const w = window.__jade.world(); w.s.settings.diff = 'normal'; w.p.carry = 'durian'; w.ticket = null; });
   await E(); await appear('mrt'); await press('mrt-stn-raffles'); check(await appear('ride-view'), `${name}: a second ride`);

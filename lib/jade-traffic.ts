@@ -2,8 +2,7 @@
 // crossing, U-turn at a road's end, slow for anything ahead, and stop at the line when the traffic lights at the
 // twelve main crossings are against them (green, amber, then red, the two roads taking turns). They are spawned in a
 // ring around the player and dropped far away, so only a couple of dozen exist at once. Townsfolk: lib/jade-folk.ts.
-import { T, ROADS, OLD_ROADS, XWAYS, OW, districtAt } from './jade-city.js';
-import { unmvP } from './jade-layout.js';
+import { T, ROADS, OLD_ROADS, XWAY_ROADS, OW, CT_DISTRICTS, districtAt } from './jade-city.js';
 import { shove } from './jade-move.js';
 import { dist } from './jade-rng.js';
 import type { World } from './jade-game.js';
@@ -18,19 +17,22 @@ export const MAX_CARS = 22;
 export type Light = { h: number; v: number; tx: number; ty: number; off: number };
 export const LIGHTS: Light[] = [];
 export const LIGHT_AT = new Map<string, number>();
-// (which roads cross, and each light's phase, are read off the old-frame road plan OLD_ROADS; the light's tile off the
-// moved plan ROADS, which keeps the same index for every road)
+// (Chinatown's are read off the old-frame road plan OLD_ROADS, which keeps the same index in ROADS, so their numbers and
+// phases hold; the light's tile off the moved plan ROADS)
 OLD_ROADS.forEach((r, i) => { if (r.axis !== 'h' || ![30, 46, 62].includes(r.at)) return; OLD_ROADS.forEach((r2, j) => {
   if (r2.axis !== 'v' || ![26, 42, 60, 90].includes(r2.at) || r2.from > r.at || r2.to < r.at + 3 || r.from > r2.at || r.to < r2.at + 3) return;
   LIGHT_AT.set(`${i}:${j}`, LIGHTS.length); LIGHTS.push({ h: i, v: j, tx: ROADS[j].at, ty: ROADS[i].at, off: (r2.at * 7 + r.at * 3) % 15 });
 }); });
-// the island's avenue crossings (Toa Payoh and the bay front), after Chinatown's so its lights keep their numbers
-OLD_ROADS.forEach((r, i) => { if (r.axis !== 'h' || XWAYS.includes(i)) return; OLD_ROADS.forEach((r2, j) => {
-  if (r2.axis !== 'v' || r2.at < OW || XWAYS.includes(j) || r2.from > r.at || r2.to < r.at + 3 || r.to < r2.at + 3 || r.from > r2.at) return;
-  LIGHT_AT.set(`${i}:${j}`, LIGHTS.length); LIGHTS.push({ h: i, v: j, tx: ROADS[j].at, ty: ROADS[i].at, off: (r2.at * 7 + r.at * 3) % 15 });
+// every other avenue crossing outside Chinatown, after Chinatown's so its lights keep their numbers: read off the world's
+// road plan ROADS (the relayout split some roads and added the seam's), not counting the expressways or Sentosa's lanes
+// (a road built west of Chinatown's east edge); the phase from the old frame where the road has one
+const XW = new Set(XWAY_ROADS);
+const builtAt = (i: number) => i < OLD_ROADS.length ? OLD_ROADS[i].at : ROADS[i].at + 1000;
+ROADS.forEach((r, i) => { if (r.axis !== 'h' || XW.has(i)) return; ROADS.forEach((r2, j) => {
+  if (r2.axis !== 'v' || builtAt(j) < OW || XW.has(j) || r2.from > r.at || r2.to < r.at + 3 || r.to < r2.at + 3 || r.from > r2.at) return;
+  LIGHT_AT.set(`${i}:${j}`, LIGHTS.length); LIGHTS.push({ h: i, v: j, tx: r2.at, ty: r.at, off: (builtAt(j) * 7 + (i < OLD_ROADS.length ? OLD_ROADS[i].at : r.at) * 3) % 15 });
 }); });
-/** cars on an expressway cruise faster */
-const XW = new Set(XWAYS);
+/** (cars on an expressway, XW above, cruise faster) */
 /** Chinatown's roads come first in ROADS */
 const CT_ROADS = OLD_ROADS.findIndex(r => (r.axis === 'v' ? r.at : r.from) >= OW);
 /** how far a road passes from (x, y), in world units */
@@ -61,7 +63,7 @@ export function trafficStep(w: World, dt: number) {
   if (w.cars.length < MAX_CARS && w.tick % 9 === 0) {
     // in Chinatown any of its twelve roads, as before (so its traffic is as busy as it was); on the island a road that
     // passes near you (it has many more roads than you can see)
-    const near = (unmvP(px, py)?.[0] ?? 0) < OW * T ? [] : ROADS.map((_, i) => i).filter(i => roadDist(ROADS[i], px, py) < 1500);
+    const near = CT_DISTRICTS.includes(districtAt(Math.floor(px / T), Math.floor(py / T))) ? [] : ROADS.map((_, i) => i).filter(i => roadDist(ROADS[i], px, py) < 1500);
     const ri = near.length ? near[Math.floor(w.R() * near.length)] : Math.floor(w.R() * CT_ROADS), r = ROADS[ri];
     const d: 1 | -1 = w.R() < 0.5 ? 1 : -1;
     const lo = (r.from + 1) * T, hi = (r.to) * T;

@@ -1,6 +1,6 @@
 // Jade Street, the fourteenth pass: Tiong Bahru, Clarke Quay and Jurong south over the water (their landmarks, markets,
 // safe houses, givers, MRT stations, empire properties, the Singapore River and Jurong Lake), chapter nine (Lights by
-// the Lake, Towkay Hoot) and three Hawker Tales, the south shore's small pleasures, an older save carried over without
+// the Lake, Towkay Hoot) and three Hawker Tales, the west side's small pleasures, an older save carried over without
 // a version bump, the load tiers of the new paintings, and the art fixes (the repainted Katong Park and Changi Airport
 // stations, the calmer Katong and Kampong Glam ground, the switch box's own key).
 import assert from 'node:assert/strict';
@@ -44,7 +44,7 @@ const run = (w, t) => { for (let i = 0; i < t / DT; i++) w.step(NO_INPUT, DT); }
 const near = (w, kind, id) => w.near && w.near.kind === kind && (id === undefined || w.near.id === id);
 function act(w, x, y, id) { w.placePlayer(x, y); w.p.act = null; w.step(NO_INPUT, DT); assert.ok(near(w, 'south', id), `prompt for ${id}: ${JSON.stringify(w.near)}`); w.interact(); }
 
-test('the map grows south over the water: Jurong, Tiong Bahru and Clarke Quay, with their own ground, river and lake', () => {
+test('the map grows west over land: Jurong, Tiong Bahru and Clarke Quay, with their own ground, river and lake', () => {
   assert.deepEqual(DISTRICTS.slice(-3), SOUTH); assert.equal(DISTRICTS.length, 16);
   assert.equal(districtAt(...mvT(210, 110)), 'jurong'); assert.equal(districtAt(...mvT(260, 110)), 'tiong'); assert.equal(districtAt(...mvT(310, 110)), 'quay');
   assert.equal(districtAt(...mvT(80, 110)), 'resort', 'Sentosa is still Sentosa'); assert.equal(districtAt(...mvT(332, 96)), 'resort', 'the sea off Changi keeps its district (the bumboat race)');
@@ -58,15 +58,16 @@ test('the map grows south over the water: Jurong, Tiong Bahru and Clarke Quay, w
   assert.equal(streetAt(...mvT(309, 105)), 'Clemenceau Avenue');
   // Jurong Lake, and the red bridge over the stream that feeds it
   assert.equal(solidAt(...mvT(205, 117)), S.WATER); assert.equal(solidAt(...mvT(209, 117)), S.WATER); assert.equal(solidAt(...mvT(208, 109)), S.WATER); assert.ok(c.flags[oi(209, 111)] & F_BRIDGE); assert.equal(solidAt(...mvT(209, 111)), S.OPEN);
-  // two long bridges from Kampong Glam, real street names
-  for (const x of [225, 245]) for (let y = 82; y < SOUTH_Y0; y++) assert.ok(c.flags[oi(x + 1, y)] & F_BRIDGE, `bridge ${x},${y}`);
+  // no bridges from Kampong Glam over the strait any more (the districts are west of Chinatown, joined over land): the
+  // strait is open sea; real street names
+  for (const x of [225, 245]) for (let y = 82; y < SOUTH_Y0; y++) assert.equal(c.solid[oi(x + 1, y)], S.WATER, `strait ${x},${y}`);
   assert.equal(streetAt(...mvT(225, 110)), 'Jurong Town Hall Road'); assert.equal(streetAt(...mvT(260, 104)), 'Tiong Bahru Road'); assert.equal(streetAt(...mvT(300, 115)), 'Eu Tong Sen Street'); assert.equal(streetAt(...mvT(260, 115)), 'Seng Poh Road');
   // nothing older moved: Chinatown, the island, the east and the coast keep their places
   assert.equal(districtAt(...mvT(300, 20)), 'orchard'); assert.equal(c.places['stn-changi'].name, 'Changi Airport station'); assert.equal(districtAt(...mvT(60, 100)), 'resort');
-  // every new place stands on open ground, in its own district, and can be walked to from the bridges
+  // every new place stands on open ground, in its own district, and can be walked to from Kampong Glam
   const f = field(c, 'foot', Math.floor(c.places['stn-tiong'].x / T), Math.floor(c.places['stn-tiong'].y / T), new Set(DISTRICTS)); const reach = i => f.dist[i] >= 0 && f.dist[i] < 1e8;
   for (const [id, pl] of Object.entries(c.places)) { if (!SOUTH.includes(pl.d)) continue; const tx = Math.floor(pl.x / T), ty = Math.floor(pl.y / T); assert.equal(solidAt(tx, ty), S.OPEN, `${id} on open ground`); assert.ok(reach(ty * W + tx), `${id} reachable on foot`); }
-  const kg = c.places['safe-glam']; assert.ok(reach(Math.floor(kg.y / T) * W + Math.floor(kg.x / T)), 'Kampong Glam is a walk away over the bridge');
+  const kg = c.places['safe-glam']; assert.ok(reach(Math.floor(kg.y / T) * W + Math.floor(kg.x / T)), 'Kampong Glam is a walk away, through Chinatown');
 });
 
 test('each district has a market, a safe house, a station, a giver, folk, a keeper and its own prices; real names', () => {
@@ -88,12 +89,15 @@ test('each district has a market, a safe house, a station, a giver, folk, a keep
 test('the MRT runs on: Jurong East, Tiong Bahru and Clarke Quay head the line, and a far pin plans a ride there', () => {
   const st = c.isle.stations; assert.deepEqual(st.slice(0, 4).map(s => s.id), ['stn-jurong', 'stn-tiong', 'stn-quay', 'stn-changi']);
   for (let i = 1; i < st.length; i++) assert.ok(st[i].s > st[i - 1].s, 'stations in line order');
-  const w = world(); assert.equal(stationById(w, 'stn-quay').name, 'Clarke Quay station'); const ct = c.places['safe-market']; w.placePlayer(ct.x, ct.y + T);
+  const w = world(); assert.equal(stationById(w, 'stn-quay').name, 'Clarke Quay station'); const kt = c.places['safe-katong']; w.placePlayer(kt.x, kt.y + T);
   const g = c.places.garden; const plan = travelPlan(w, g.x, g.y);
-  assert.ok(plan && plan.via === 'mrt', 'Chinatown to the Chinese Garden goes by MRT'); assert.equal(plan.to.id, 'stn-jurong');
-  // the objective's plaque names the right stations: a job at the bird corner from Chinatown is Chinatown → Tiong Bahru
+  assert.ok(plan && plan.via === 'mrt', 'Katong to the Chinese Garden goes by MRT'); assert.equal(plan.to.id, 'stn-jurong');
+  // the objective's plaque names the right stations: a job at the bird corner from Katong is Katong Park → Tiong Bahru
   const b = c.places.birdcorner; const p2 = travelPlan(w, b.x, b.y); assert.equal(p2.to.id, 'stn-tiong'); assert.notEqual(p2.from.id, 'stn-tiong');
   const m = c.places['central-quay']; const p3 = travelPlan(w, m.x, m.y); assert.equal(p3.to.id, 'stn-quay');
+  // from Chinatown the three are next door, west over Outram Road: a walk
+  const ct = c.places['safe-market']; w.placePlayer(ct.x, ct.y + T);
+  for (const t of [g, b, m]) assert.equal(travelPlan(w, t.x, t.y), null, `${t.name} is a walk from Chinatown`);
   // standing in a new district, a pin in the same district is a walk (no station named at all)
   w.placePlayer(c.places['stn-quay'].x, c.places['stn-quay'].y + T); assert.equal(travelPlan(w, m.x, m.y), null);
 });
@@ -107,7 +111,7 @@ test('the opening order: Tiong Bahru and Clarke Quay with the Christmas Star, Ju
     for (const st of m.steps) for (const sp of [...(st.route ?? []), ...(st.marks ?? []), ...(st.items ?? []), ...(st.crates ?? [])].filter(Array.isArray)) assert.ok((unmvT(sp[0], sp[1]) ?? [0])[0] >= TIONG_X0 - 4, `${id} ${st.t} ${sp} stays out of Jurong`); }
   // finishing m55 sends the text and the banner
   const w = world({ done: allDone.filter(id => MISSION[id].ch <= 8 && id !== 'm55') }); w.s.story.coast = true; w.finishMission(MISSION.m55);
-  assert.ok(w.open.has('tiong') && w.open.has('quay')); assert.equal(w.banner.text, 'Over the water!'); assert.ok(w.s.msgs.some(m => /Tiong Bahru/.test(m.text) && /Clarke Quay/.test(m.text)));
+  assert.ok(w.open.has('tiong') && w.open.has('quay')); assert.equal(w.banner.text, 'West of Chinatown!'); assert.ok(w.s.msgs.some(m => /Tiong Bahru/.test(m.text) && /Clarke Quay/.test(m.text)));
   w.s.done.push('m56', 'm57', 'm58', 'm59', 'm60'); w.finishMission(MISSION.m61); assert.ok(w.open.has('jurong')); assert.ok(w.s.msgs.some(m => /Jurong East/.test(m.text)));
 });
 
@@ -164,7 +168,7 @@ test('the new people: painted faces and bodies, a place, a word, a contract voic
   for (const f of ['hoot-stand', 'hoot-run-0', 'hoot-run-1', 'hoot-dizzy']) assert.ok(FRAMES[f], f);
 });
 
-test('the south shore’s small pleasures: each with its prompt, its price, its pose and its count', () => {
+test('the west side’s small pleasures: each with its prompt, its price, its pose and its count', () => {
   const w = world({ cash: 100 }); const So = c.south;
   act(w, So.kueh[0], So.kueh[1] + 60, 'chwee'); assert.equal(w.p.act.n, 'chwee'); assert.equal(w.s.cash, 100 - CHWEE); run(w, 2.2); assert.equal(w.s.stats.chwee, 1);
   act(w, So.birds[0] + 32, So.birds[1] + 70, 'birds'); assert.equal(w.p.act.n, 'birdsong'); run(w, 2.8); assert.equal(w.s.stats.songs, 1);

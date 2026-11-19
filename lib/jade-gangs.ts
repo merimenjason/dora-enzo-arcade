@@ -14,7 +14,7 @@
 // whatever is in the way, and copy every sound they hear (a phone, a whistle, your partner's voice), which makes you
 // cover your ears. A soap bubble sets one bobbing after it, paint makes it stop to preen, a rice ball is lunch, a
 // popper scatters the flock (they drop what they took), and E shoos one in reach. Caught, a mynah just looks
-// embarrassed. Past the Geylang River a fifth works Orchard Road, Katong and Changi: the Atas Bats, Datin Ciku's lesser
+// embarrassed. A fifth works Orchard Road, and Katong and Changi past the Geylang River: the Atas Bats, Datin Ciku's lesser
 // dog-faced fruit bats in bow ties and pearls. They swoop on shopping bags and fruit, flit over whatever is in the way,
 // and hang upside down from a branch for a rest when you are far off (a dash knocks the bag loose). A soap bubble sets
 // one batting after it, paint makes it preen, a net catches it, a popper scatters them, and a rice ball or a banana is

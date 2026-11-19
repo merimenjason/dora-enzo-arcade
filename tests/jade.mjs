@@ -496,7 +496,7 @@ test('save: the live v2 format migrates with medals, story, lessons and messages
 test('lessons: a new player is taught to move, run, dash and hop in turn, and a ride teaches boost and honk', () => {
   const s = newSave(9); s.started = true; s.story.intro = true; const w = new World(s, 9); w.quiet = true; w.talk = null;
   // somewhere in Smith Street with no ride parked nearby, so the ride lesson waits
-  for (let k = 0; k < 400; k++) { const x = (4 + (k * 7) % 40) * T + T / 2, y = (32 + (k * 3) % 56) * T + T / 2; if (passable(c, 'walk', Math.floor(x / T), Math.floor(y / T)) && passable(c, 'walk', Math.floor(x / T) + 2, Math.floor(y / T)) && passable(c, 'walk', Math.floor(x / T) - 2, Math.floor(y / T)) && !w.rides.some(r => Math.hypot(r.b.x - x, r.b.y - y) < 500)) { w.placePlayer(x, y); break; } }
+  for (let k = 0; k < 400; k++) { const [x, y] = mvP((4 + (k * 7) % 40) * T + T / 2, (32 + (k * 3) % 56) * T + T / 2); if (passable(c, 'walk', Math.floor(x / T), Math.floor(y / T)) && passable(c, 'walk', Math.floor(x / T) + 2, Math.floor(y / T)) && passable(c, 'walk', Math.floor(x / T) - 2, Math.floor(y / T)) && !w.rides.some(r => Math.hypot(r.b.x - x, r.b.y - y) < 500)) { w.placePlayer(x, y); break; } }
   w.step(NO_INPUT, DT); assert.equal(w.tutor.cur, 'move');
   for (let i = 0; i < 60 * 3; i++) w.step({ ...NO_INPUT, mx: i % 120 < 60 ? 1 : -1 }, DT);
   assert.ok(w.s.learned.includes('move'));

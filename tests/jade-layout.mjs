@@ -1,16 +1,21 @@
-// Jade Street: the layout table (lib/jade-layout.ts). With the live table (the identity) the world is byte for byte
-// the world before the table existed: a hash of the ground, solid and flag layers and the places matches the one taken
-// from origin/main (a779a06f) before the change. Then the same facts are gathered again in a child process under the
-// test shift (tests/jade-shift.mjs: every block +7 tiles east and +3 south), and every one must have moved by exactly
-// that much and kept its ground and district: each place, parked ride, cast member, story and side-job target, gig,
-// business, boost wall and the boss's ladder, and the whole map read back through the table.
+// Jade Street: the layout table (lib/jade-layout.ts). The world is built in the old frame and each district's block is
+// copied to where it is in Singapore. Three runs, two of them child processes (the table is read once, when the
+// modules load):
+// - the identity (tests/jade-zero.mjs): the old frame, left where it was built. Its hash pins the build;
+// - the test shift (tests/jade-shift.mjs: every block +7 tiles east and +3 south): every place, parked ride, cast
+//   member, story and side-job target, gig, business, boost wall, light and the boss's ladder moved by exactly that
+//   much and kept its ground and district, and the whole map reads back through the table;
+// - the real table (this process): block by block, every tile of every block is the identity's tile (ground, solid
+//   and flags), and every placed thing moved with its block. The filler between the blocks (the seams: parkland, the
+//   sea, the river's way to the harbour, the roads that join the districts) is checked too: every road's lanes are
+//   road or bridge, and every light stands where its two roads cross.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
-import { city, T, W, H, OLD_W, OLD_H, idx, districtAt, districtAtOld, ROADS, OLD_ROADS } from '../.checks/jade-city.js';
-import { LAYOUT_MODE, NW, NH, mvT, unmvT, blockNew, UNIFORM } from '../.checks/jade-layout.js';
+import { city, T, W, H, OLD_W, OLD_H, idx, districtAt, districtAtOld, ROADS, OLD_ROADS, CT_DISTRICTS, G } from '../.checks/jade-city.js';
+import { LAYOUT_MODE, LAYOUT, NW, NH, mvT, mvP, unmvT, blockNew, blockOld, UNIFORM } from '../.checks/jade-layout.js';
 import { MISSIONS, SIDE } from '../.checks/jade-story.js';
 import { newSave } from '../.checks/jade-save.js';
 import { castOf } from '../.checks/jade-cast.js';
@@ -20,8 +25,11 @@ import { BOOSTS } from '../.checks/jade-tag.js';
 import { LADDER, LEAP_SPOTS } from '../.checks/jade-boss.js';
 import { LIGHTS } from '../.checks/jade-traffic.js';
 
-/** sha256 over ground, solid and flags and the places' JSON, taken on origin/main a779a06f before the table existed */
-const MAIN_HASH = 'd4fb60f13b6f26c211e019112112d94360a2e648ea6ae6e720f707b3907bbf69';
+/** sha256 over the identity world's ground, solid and flags and the places' JSON. It was d4fb60f1 on origin/main
+ * a779a06f, before the table existed; the real layout (19-11-2026) took out the two bridges from Kampong Glam over the
+ * strait to Jurong and Tiong Bahru (the districts now join over land) and the Singapore River's mouth past Clarke
+ * Quay's east edge (the river runs on through the seam), and those are the only changes to the build */
+const ZERO_HASH = '2bf5685ff040fe63fa685be3ac2cac207210a9f176e532281dea76c7d905626c';
 
 const c = city();
 const ti = (x, y) => [Math.floor(x / T), Math.floor(y / T)];
@@ -60,25 +68,40 @@ function facts() {
     boss: [LADDER, ...LEAP_SPOTS].map(p => at(...p)),
     lights: LIGHTS.map(l => at(l.tx, l.ty)),
     roads: ROADS.map((r, i) => ({ ...r, old: OLD_ROADS[i] })),
+    layers: process.argv.includes('--layers') ? { ground: Buffer.from(c.ground).toString('base64'), solid: Buffer.from(c.solid).toString('base64'), flags: Buffer.from(c.flags).toString('base64') } : null,
   };
 }
 
 const self = fileURLToPath(import.meta.url);
-if (LAYOUT_MODE === 'zero') {
-  const z = facts();
-  // the identity table: the world is the world before the table, and every frame is the same frame
-  assert.equal(z.hash, MAIN_HASH, 'zero layout: ground, solid, flags and places as on origin/main');
-  assert.equal(W, OLD_W); assert.equal(H, OLD_H); assert.equal(NW, 376); assert.equal(NH, 128);
-  for (let y = 0; y < H; y += 3) for (let x = 0; x < W; x += 3) { assert.deepEqual(mvT(x, y), [x, y]); assert.deepEqual(unmvT(x, y), [x, y]); assert.equal(districtAt(x, y), districtAtOld(x, y)); }
-  // the shifted world, in a child process (the table is read once, when the modules load)
-  const out = execFileSync(process.execPath, ['--import', fileURLToPath(new URL('./jade-shift.mjs', import.meta.url)), self, '--child'], { maxBuffer: 1 << 28 }).toString();
-  const sh = JSON.parse(out);
-  assert.equal(sh.mode, 'shift');
-  assert.notEqual(sh.hash, MAIN_HASH, 'the shift moves the world');
+/** the facts of a child process run under a preload that picks the table */
+const child = (preload, ...args) => JSON.parse(execFileSync(process.execPath, ['--import', fileURLToPath(new URL(preload, import.meta.url)), self, '--child', ...args], { maxBuffer: 1 << 28 }).toString());
+const KEYS = ['parking', 'rides', 'cast', 'gigs', 'biz', 'boss'];
+
+if (process.argv.includes('--child')) {
+  // a child: the identity or the shifted world. The checks that need no parent first, then the facts for the parent
+  for (let y = 0; y < OLD_H; y++) for (let x = 0; x < OLD_W; x++) {
+    const [nx, ny] = mvT(x, y);
+    assert.deepEqual(unmvT(nx, ny), [x, y], `round trip ${x},${y}`);
+    assert.equal(districtAt(nx, ny), districtAtOld(x, y), `district at ${x},${y}`);
+  }
+  if (LAYOUT_MODE === 'zero') { assert.equal(W, OLD_W); assert.equal(H, OLD_H); assert.equal(NW, 376); assert.equal(NH, 128); }
+  else {
+    assert.equal(LAYOUT_MODE, 'shift'); assert.ok(UNIFORM);
+    // the filler strip the shift opens on the west and north is open sea, off every block
+    for (let y = 0; y < H; y++) for (let x = 0; x < 7; x++) { assert.equal(blockNew(x, y), null); assert.equal(unmvT(x, y), null); }
+    for (let x = 0; x < W; x++) for (let y = 0; y < 3; y++) assert.equal(blockNew(x, y), null);
+  }
+  process.stdout.write(JSON.stringify(facts()));
+} else {
+  assert.equal(LAYOUT_MODE, 'real');
+  const z = child('./jade-zero.mjs', '--layers'), sh = child('./jade-shift.mjs');
+  assert.equal(z.mode, 'zero'); assert.equal(sh.mode, 'shift');
+  assert.equal(z.hash, ZERO_HASH, 'identity layout: ground, solid, flags and places as pinned');
+
+  // ── the shift: everything moved by exactly +7, +3 and kept its ground and district
+  assert.notEqual(sh.hash, z.hash, 'the shift moves the world');
   assert.equal(sh.W, OLD_W + 7); assert.equal(sh.H, OLD_H + 3);
-  // the whole map, read back through the table, is the same map
   assert.deepEqual(sh.back, z.back, 'shift: every old tile keeps its ground, solid and flags');
-  // every placed thing moved by exactly the shift and stands on the same ground in the same district
   let n = 0;
   const same = (a, b, what) => {
     assert.ok(a && b, `${what}: present in both`);
@@ -88,27 +111,60 @@ if (LAYOUT_MODE === 'zero') {
   };
   for (const id of Object.keys(z.places)) same(z.places[id], sh.places[id], `place ${id}`);
   assert.equal(Object.keys(sh.places).length, Object.keys(z.places).length);
-  for (const k of ['parking', 'rides', 'cast', 'gigs', 'biz', 'boss', 'lights']) {
+  for (const k of [...KEYS, 'lights']) {
     assert.equal(sh[k].length, z[k].length, `${k}: same count`);
     z[k].forEach((a, i) => same(a, sh[k][i], `${k} ${a.id ?? a.kind ?? i}`));
   }
   z.boosts.forEach((b, i) => { same(b[0], sh.boosts[i][0], `boost ${i} street`); same(b[1], sh.boosts[i][1], `boost ${i} roof`); });
   assert.deepEqual(Object.keys(sh.story), Object.keys(z.story), 'story: the same targets');
   for (const k of Object.keys(z.story)) same(z.story[k], sh.story[k], `story ${k}`);
-  // roads keep their index; each moves by the shift along its own axis
   z.roads.forEach((r, i) => { const s = sh.roads[i]; assert.equal(s.axis, r.axis); assert.equal(s.at - r.at, r.axis === 'h' ? 3 : 7, `road ${i}`); assert.equal(s.from - r.from, r.axis === 'h' ? 7 : 3, `road ${i} from`); });
-  console.log(`jade layout: zero table matches origin/main (${MAIN_HASH.slice(0, 12)}); shift moved ${n} targets, ${Object.keys(z.story).length} of them story spots, and kept every tile`);
-} else {
-  // the child: the shifted world. Checks that need no parent first, then the facts for the parent to compare
-  assert.ok(UNIFORM);
+
+  // ── the real table, block by block: every tile of every block is the identity's tile
+  const zl = Object.fromEntries(Object.entries(z.layers).map(([k, v]) => [k, Buffer.from(v, 'base64')]));
+  const blocks = Object.fromEntries(LAYOUT.blocks.map(b => [b.id, 0]));
   for (let y = 0; y < OLD_H; y++) for (let x = 0; x < OLD_W; x++) {
-    const [nx, ny] = mvT(x, y);
-    assert.deepEqual(unmvT(nx, ny), [x, y], `round trip ${x},${y}`);
-    assert.equal(districtAt(nx, ny), districtAtOld(x, y), `district at ${x},${y}`);
+    const b = blockOld(x, y), [nx, ny] = mvT(x, y), o = y * OLD_W + x, i = idx(nx, ny);
+    if (nx - x !== b.nx - b.x0 || ny - y !== b.ny - b.y0 || blockNew(nx, ny) !== b) assert.fail(`${x},${y} does not move with block ${b.id}`);
+    if (c.ground[i] !== zl.ground[o] || c.solid[i] !== zl.solid[o] || c.flags[i] !== zl.flags[o]) assert.fail(`block ${b.id}: old ${x},${y} (new ${nx},${ny}) is not the identity's tile`);
+    blocks[b.id]++;
   }
-  // the filler strip the shift opens on the west and north is open sea, off every block
-  for (let y = 0; y < H; y++) for (let x = 0; x < 7; x++) { assert.equal(blockNew(x, y), null); assert.equal(unmvT(x, y), null); }
-  for (let x = 0; x < W; x++) for (let y = 0; y < 3; y++) assert.equal(blockNew(x, y), null);
-  if (process.argv.includes('--child')) process.stdout.write(JSON.stringify(facts()));
-  else console.log('jade layout (shifted run): every old tile round-trips through the table and keeps its district');
+  // every old tile lands on a new tile of its own (no block covers another); the rest of the new frame is seam
+  let seam = 0; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!unmvT(x, y)) seam++;
+  assert.equal(seam, W * H - OLD_W * OLD_H, 'the blocks tile the old frame once over');
+  // a placed thing moved with its block onto the same ground; its district is the identity's, but for the main block's
+  // tiles that were Orchard Road's or the south strip's (now Katong's estates and Sentosa's sea)
+  const REMAP = { orchard: 'katong', jurong: 'resort', tiong: 'resort', quay: 'resort' };
+  let m = 0;
+  const moved = (a, b, what) => {
+    assert.ok(a && b, `${what}: present in both`);
+    assert.deepEqual([b.tx, b.ty], mvT(a.tx, a.ty), `${what}: moved with its block`);
+    if (a.x !== undefined) assert.deepEqual([b.x, b.y], mvP(a.x, a.y), `${what}: x, y`);
+    assert.equal(b.g, a.g, `${what}: same ground`);
+    assert.ok(b.d === a.d || (blockOld(a.tx, a.ty).id === 'main' && b.d === REMAP[a.d]), `${what}: district ${a.d} -> ${b.d}`); m++;
+  };
+  const r = facts();
+  for (const id of Object.keys(z.places)) moved(z.places[id], r.places[id], `place ${id}`);
+  for (const k of KEYS) {
+    z[k].forEach((a, i) => moved(a, r[k][i], `${k} ${a.id ?? a.kind ?? i}`));
+    // the seams' own kerbside parking (and the rides parked there) come after the build's, on seam tiles
+    if (k === 'parking' || k === 'rides') r[k].slice(z[k].length).forEach((b, i) => assert.equal(unmvT(b.tx, b.ty), null, `${k} ${z[k].length + i} on a seam`));
+    else assert.equal(r[k].length, z[k].length, `${k}: same count`);
+  }
+  z.boosts.forEach((b, i) => { moved(b[0], r.boosts[i][0], `boost ${i} street`); moved(b[1], r.boosts[i][1], `boost ${i} roof`); });
+  assert.deepEqual(Object.keys(r.story), Object.keys(z.story), 'story: the same targets');
+  for (const k of Object.keys(z.story)) moved(z.story[k], r.story[k], `story ${k}`);
+  // Chinatown's lights keep their numbers and tiles (the others are read off the world's roads)
+  z.lights.forEach((a, i) => { if (CT_DISTRICTS.includes(a.d)) moved(a, r.lights[i], `light ${i}`); });
+
+  // ── the seams: every road's lanes are lanes (road, or a bridge over water), every light stands at the corner where its
+  // two roads' lanes cross
+  const lane = new Set([G.ROAD, G.BRIDGE]);
+  ROADS.forEach((rd, i) => { for (let s = rd.from; s <= rd.to; s++) for (const k of [1, 2]) {
+    const [x, y] = rd.axis === 'h' ? [s, rd.at + k] : [rd.at + k, s];
+    if (!lane.has(c.ground[idx(x, y)])) assert.fail(`road ${i}: lane tile ${x},${y} is ground ${c.ground[idx(x, y)]}`);
+  } });
+  const on = (rd, x, y) => rd.axis === 'h' ? y >= rd.at && y < rd.at + 4 && x >= rd.from && x <= rd.to : x >= rd.at && x < rd.at + 4 && y >= rd.from && y <= rd.to;
+  LIGHTS.forEach((l, i) => { assert.ok(on(ROADS[l.h], l.tx, l.ty) && on(ROADS[l.v], l.tx, l.ty), `light ${i} on roads ${l.h} and ${l.v}`); assert.equal(c.ground[idx(l.tx + 1, l.ty + 1)], G.ROAD, `light ${i}: a crossing of lanes`); });
+  console.log(`jade layout: identity pinned (${z.hash.slice(0, 12)}); shift moved ${n} targets and kept every tile; real table: ${Object.entries(blocks).map(([k, v]) => `${k} ${v}`).join(', ')} tiles as built, ${m} targets moved with their blocks, ${seam} seam tiles, ${ROADS.length} roads laid, ${LIGHTS.length} lights on crossings`);
 }

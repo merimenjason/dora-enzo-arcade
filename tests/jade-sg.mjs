@@ -61,7 +61,7 @@ test('five-foot ways: in their shade the wardens see you from only about 60% as 
   w.placePlayer(px(tx), px(ty)); steps(w, 2);
   assert.equal(w.p.shade, true, 'in the shade');
   w.rain = 1; steps(w, 2); assert.notEqual(w.p.anim, 'umbrella', 'no umbrella under the five-foot way');
-  w.placePlayer(px(20), px(48)); steps(w, 2); assert.equal(w.p.shade, false);
+  w.placePlayer(...mvT(20, 48).map(px)); steps(w, 2); assert.equal(w.p.shade, false);
 });
 
 test('gantries: a coin when the lanterns are dark; with heat the camera calls the wardens', () => {
@@ -86,7 +86,7 @@ test('chope: a tissue packet on a free table, makan at it; aunties have choped t
 });
 
 test('the chope rush: three tables before the aunties pays 30 coins', () => {
-  const w = world(); const c = w.c.sg; w.placePlayer(px(20), px(70)); steps(w, 2);
+  const w = world(); const c = w.c.sg; w.placePlayer(...mvT(20, 70).map(px)); steps(w, 2);
   w.sg.rushT = 0; steps(w, 2); assert.ok(w.sg.rush, 'the rush starts near the hawker centre');
   w.s.bag.tissue = 9; const cash = w.s.cash;
   for (let k = 0, got = 0; k < c.tables.length && got < 3; k++) if (w.sg.chope[k] === 0) { sgAct(w, 'chope:' + k); steps(w, 45); got++; }
@@ -105,7 +105,7 @@ test('karang guni: pick up newspapers, sell them to Mr Ong; the mama shop sells 
 
 test('the fine city: a warden who sees you jaywalk writes a ticket; pay it, or run and it is a chase', () => {
   const w = world({ diff: 'normal', assist: false }); steps(w, 2);
-  w.placePlayer(px(20), px(48)); w.patrols = [{ id: 999, b: { x: w.p.x + 120, y: w.p.y, h: Math.PI, speed: 0, r: 13, len: 0, cls: 'walk' }, goal: null, pace: 0, write: 0, spot: 0 }];
+  w.placePlayer(...mvT(20, 48).map(px)); w.patrols = [{ id: 999, b: { x: w.p.x + 120, y: w.p.y, h: Math.PI, speed: 0, r: 13, len: 0, cls: 'walk' }, goal: null, pace: 0, write: 0, spot: 0 }];
   offence(w, 'jaywalk', w.p.x, w.p.y); assert.ok(w.ticket, 'a ticket'); assert.equal(w.ticket.amt, 20);
   const cash = w.s.cash; payTicket(w); assert.equal(w.s.cash, cash - 20); assert.equal(w.s.fines.n, 1); assert.equal(w.s.fines.paid, 20);
   assert.equal(fineAmount('jaywalk', 1), 30, 'repeat offences cost half again'); assert.equal(fineAmount('jaywalk', 9), 60, 'at most three times');
@@ -133,12 +133,12 @@ test('the walk across a zebra crossing is fine; crossing away from one in sight 
 });
 
 test('the otters and the macaques: each gadget acts its own way; getting it all back is a good deed', () => {
-  const w = world(); w.placePlayer(px(60), px(40)); steps(w, 2);
+  const w = world(); w.placePlayer(...mvT(60, 40).map(px)); steps(w, 2);
   const ev = startGang(w, 'otters'); assert.ok(ev, 'otters on the quay'); assert.equal(ev.mobs.length, 3);
   assert.ok(gangHit(w, ev.mobs[0], 'bubble')); assert.equal(ev.mobs[0].st, 'play', 'an otter plays with a bubble'); assert.equal(ev.drops.length, 1);
   assert.ok(gangHit(w, ev.mobs[1], 'paint')); assert.equal(ev.mobs[1].has, true, 'too slippery for paint');
   assert.ok(gangHit(w, ev.mobs[1], 'net')); assert.equal(ev.mobs[1].st, 'netted');
-  w.gangs.ev = null; w.placePlayer(px(20), px(55)); steps(w, 2);
+  w.gangs.ev = null; w.placePlayer(...mvT(20, 55).map(px)); steps(w, 2);
   const mv = startGang(w, 'macaques'); assert.ok(mv, 'macaques at the market');
   assert.ok(gangHit(w, mv.mobs[0], 'sling')); assert.equal(mv.mobs[0].st, 'munch', 'a rice ball makes a macaque sit and munch');
   assert.ok(gangHit(w, mv.mobs[1], 'confetti')); assert.equal(mv.mobs[1].st, 'leap', 'confetti makes it leap and drop the bag');

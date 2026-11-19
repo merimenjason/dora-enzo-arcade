@@ -1,4 +1,4 @@
-// Jade Street (fourteenth pass): the small pleasures of the south shore. A plate of chwee kueh at Uncle Seng's cart in
+// Jade Street (fourteenth pass): the small pleasures of the west side. A plate of chwee kueh at Uncle Seng's cart in
 // Tiong Bahru Market, the songbirds at the Tiong Bahru bird corner, a go on the Slingshot at Clarke Quay, feeding the
 // koi in Jurong Lake, the stars through the Science Centre Observatory's telescope, and a lantern walk round the
 // Chinese Garden while Lights by the Lake is on (in season by the device calendar, and all through chapter nine).

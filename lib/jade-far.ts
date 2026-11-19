@@ -2,7 +2,7 @@
 // ninth pass's districts), so nothing built before moves. Past the Geylang River, east of Little India and Kampong Glam:
 // Orchard Road in the north (the malls: ION Orchard, Ngee Ann City with Takashimaya, Paragon, Lucky Plaza, Tangs and
 // Orchard Central; Emerald Hill's heritage terraces; the Christmas light-up arching over Orchard Road and a Christmas
-// market), Katong and Joo Chiat in the south (Peranakan terraces, a laksa shop, kueh and songbird cages, Parkway Parade,
+// market; in the world its block is moved north-west of Chinatown, past Fort Canning Park: lib/jade-layout.ts), Katong and Joo Chiat in the south (Peranakan terraces, a laksa shop, kueh and songbird cages, Parkway Parade,
 // Katong Park station) with East Coast Park along the shore (the red cycling track, the bike hire, the hawker centre,
 // the seafood centre, barbecue pits, kites and the beach), and Changi to the east (the airport terminal, the control
 // tower, the apron and the runway; Jewel, a glass dome of terraced forest round the Rain Vortex, an indoor waterfall;

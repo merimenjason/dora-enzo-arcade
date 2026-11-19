@@ -22,7 +22,7 @@ export async function fifth(h) {
   await W(() => window.__jade.teleportTo('hoon')); await wait(900);
   check(await W(() => !!window.__jade.world().c.sg && window.__jade.world().c.sg.tables.length === 6), `${name}: the hawker centre has six tables`);
   await look('hawker centre');
-  const ff = await W(() => { const c = window.__jade.world().c.sg, CW = c.fivefoot.length / window.__jade.layout.NH; const i = c.fivefoot.findIndex((v, k) => v && k % CW < 44 && Math.floor(k / CW) > 40); return [(i % CW) * 64 + 32, Math.floor(i / CW) * 64 + 32]; });
+  const ff = await W(() => { const c = window.__jade.world().c.sg, CW = c.fivefoot.length / window.__jade.layout.NH; const L = window.__jade.layout, i = c.fivefoot.findIndex((v, k) => { if (!v) return false; const o = L.unmvT(k % CW, Math.floor(k / CW)); return !!o && o[0] < 44 && o[1] > 40; }); return [(i % CW) * 64 + 32, Math.floor(i / CW) * 64 + 32]; });
   await at(ff[0], ff[1]); await wait(300);
   check(await W(() => window.__jade.world().p.shade), `${name}: under a five-foot way you stand in the shade`);
   await look('five-foot way');
