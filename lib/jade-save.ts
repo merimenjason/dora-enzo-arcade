@@ -351,10 +351,10 @@ export function openDistricts(s: Save): District[] {
   // chapter seven: Little India and Kampong Glam over the Rochor River once Island Night is won, Sentosa half way through
   if (s.done.includes('m35')) out.push('india', 'glam');
   if (s.done.includes(RESORT_OPENS)) out.push('resort');
-  // chapter eight: Orchard Road and Katong over the Geylang River once Siloso is won, Changi half way through
+  // chapter eight: Orchard Road (north-west) and Katong (over the Geylang River) once Siloso is won, Changi half way through
   if (s.done.includes('m45')) out.push('orchard', 'katong');
   if (s.done.includes(CHANGI_OPENS)) out.push('changi');
-  // chapter nine: Tiong Bahru and Clarke Quay over the water once the Christmas Star is home, Jurong half way through
+  // chapter nine: Tiong Bahru and Clarke Quay, west of Chinatown, once the Christmas Star is home, Jurong half way through
   if (s.done.includes('m55')) out.push('tiong', 'quay');
   if (s.done.includes(JURONG_OPENS)) out.push('jurong');
   return out;

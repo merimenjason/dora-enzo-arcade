@@ -653,7 +653,7 @@ export const MISSIONS: Mission[] = mvMissions([
       { t: 'pickup', at: 'loot', item: 'firebox', label: 'Catch the firing box' },
       { t: 'talk', lines: [['nine', 'I just wanted… one night that was mine.', 'worried'], ['kaw', 'Nine. Come home. You can run the lantern stall. Your own stall.', 'calm'], ['helang', 'And the island’s lights go up on Siloso Beach. Fire!', 'happy'], ['hero', 'Best fireworks ever.', 'happy'], ['mate', 'Best island ever. All of it.', 'happy']] },
     ] },
-  // ── Chapter 8: Christmas Star. Past the Geylang River the MRT runs on to Katong, Orchard Road and Changi Airport. Datin
+  // ── Chapter 8: Christmas Star. The MRT runs on to Katong and Changi Airport past the Geylang River, and to Orchard Road. Datin
   // Ciku, the Atas Bats' boss, a fruit bat in pearls who only likes the nicest things, wants the great star off the top of
   // the Orchard Road light-up for her Emerald Hill townhouse, and her bats help themselves to everything else on the way
   { id: 'm46', ch: 8, title: 'The Laksa Line', giver: 'kamal', at: 'kamal', reward: 500, rep: 16, blurb: 'The MRT runs on past the Geylang River. Nyonya Rosie in Katong is out of cockles on the busiest laksa night of the year, and bats keep pinching her prawns.',
@@ -756,13 +756,13 @@ export const MISSIONS: Mission[] = mvMissions([
       { t: 'pickup', at: 'loot', item: 'xmas-star', label: 'Catch the Christmas Star' },
       { t: 'talk', lines: [['ciku', 'I only wanted something nobody else had.', 'worried'], ['tiara', 'Then come and switch it on with us, Datin. Everybody gets to have it. That’s the point.', 'happy'], ['rosie', 'And laksa after. My treat.', 'happy'], ['hero', 'Best Christmas ever.', 'happy'], ['mate', 'Best island ever. All of it, coast to coast.', 'happy']] },
     ] },
-  // ── Chapter 9: Lights by the Lake. South over the water the MRT runs on to Tiong Bahru, Clarke Quay and Jurong East.
+  // ── Chapter 9: Lights by the Lake. West of Chinatown the MRT runs on to Clarke Quay, Tiong Bahru and Jurong East.
   // The Mid-Autumn lanterns are going up round Jurong Lake, and Towkay Hoot, the rival towkay, a buffy fish owl who
   // thinks everything has a price, is buying up (and, where nobody will sell, helping himself to) every lantern on the
   // island for a gala of his own, with the otters and the lizards on his payroll
-  { id: 'm56', ch: 9, title: 'Breakfast at Tiong Bahru', giver: 'kamal', at: 'kamal', reward: 620, rep: 18, blurb: 'The MRT runs on south over the water. Uncle Seng at Tiong Bahru Market has a queue round the block for his chwee kueh and no rice flour: somebody bought every sack in the estate.',
+  { id: 'm56', ch: 9, title: 'Breakfast at Tiong Bahru', giver: 'kamal', at: 'kamal', reward: 620, rep: 18, blurb: 'The MRT runs on west of Chinatown. Uncle Seng at Tiong Bahru Market has a queue round the block for his chwee kueh and no rice flour: somebody bought every sack in the estate.',
     steps: [
-      { t: 'talk', lines: [['kamal', 'More news! The line runs on south: Clarke Quay, Tiong Bahru, and Jurong East when the last bit of track is checked.', 'happy'], ['kamal', 'And Uncle Seng at Tiong Bahru Market is asking for you two. By name!', 'calm'], ['mate', 'Famous for helping. Tiong Bahru station, then.', 'smug']] },
+      { t: 'talk', lines: [['kamal', 'More news! The line runs on west: Clarke Quay, Tiong Bahru, and Jurong East when the last bit of track is checked.', 'happy'], ['kamal', 'And Uncle Seng at Tiong Bahru Market is asking for you two. By name!', 'calm'], ['mate', 'Famous for helping. Tiong Bahru station, then.', 'smug']] },
       { t: 'train', to: 'stn-tiong', label: 'Take the MRT to Tiong Bahru (E at the station gates)', cp: true },
       { t: 'goto', at: 'seng', label: 'Find Uncle Seng at his chwee kueh cart outside Tiong Bahru Market', ride: 'foot' },
       { t: 'talk', lines: [['seng', 'Forty years I steam chwee kueh here. Today, no rice flour! Somebody bought every sack in Tiong Bahru. Cash. Before sunrise.', 'worried'], ['seng', 'The kopitiam on Seng Poh Road keeps one sack for me under the counter. Go, go, my queue is to the bird corner already.', 'cross'], ['hero', 'One sack, no spills.', 'calm']] },
@@ -803,7 +803,7 @@ export const MISSIONS: Mission[] = mvMissions([
     steps: [
       { t: 'talk', lines: [['melati', 'There! The otters, with my double bass standing up in their bumboat like a mast!', 'cross'], ['melati', 'They always race round the markers to show off. Beat them and they must hand everything back. Otter rules.', 'calm'], ['mate', 'Otter rules. I like otter rules.', 'happy']] },
       { t: 'ride', kind: 'boat', near: [303, 103], label: 'Jump in the bumboat at the steps by Read Bridge', cp: true },
-      { t: 'race', ride: 'boat', rival: 'boat', pace: 0.85, time: 95, marks: [[316, 105], [331, 104], [334, 94], [318, 93], [334, 99], [322, 104]], label: 'Steer round every river marker before the otters’ boat', cp: true },
+      { t: 'race', ride: 'boat', rival: 'boat', pace: 0.85, time: 95, marks: [[316, 105], [327, 104], [305, 103], [293, 105], [314, 106], [324, 104]], label: 'Steer round every river marker before the otters’ boat', cp: true },
       { t: 'goto', at: 'melati', label: 'Back to Kak Melati at the stage', ride: 'foot', r: 140 },
       { t: 'talk', lines: [['melati', 'My bass! Not a scratch. And the otters are bowing. Such manners, for thieves.', 'happy'], ['melati', 'They say an owl pays them in fish. Tonight he wants my stage, for his own gala.', 'worried']] },
     ] },

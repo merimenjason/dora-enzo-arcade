@@ -8,6 +8,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Tembusu** (game 106): a calm pixel-art idle roguelite about one tembusu tree on a hill, from seed to fall, growing in real time even while you're away. Pick one of three buds at each fork (or let the tree pick after an hour), watch twelve Singapore animals move in as the tree takes shape, weather storms and dry spells, and keep its seeds for the next tree. The first tree is a 15-minute tutorial; later ones live about 12 hours, or 24 on the slow speed. Earlier trees stay on the hill.
 
+### Changed
+
+- **Jade Street**: the districts now stand where they are in Singapore. Orchard Road, Clarke Quay and Tiong Bahru are west of Chinatown, from north to south, with Fort Canning Park between Orchard Road and Chinatown. Jurong is at the far west, with parkland, a beach and the sea on the south-west coast. Little India, Kampong Glam, Katong, Changi, Toa Payoh, Marina Bay and Sentosa keep their places east and south of Chinatown. New roads join the districts over land: Outram Road runs down Chinatown's west side, Bukit Timah Road runs under Orchard Road, Clemenceau Avenue runs from Orchard Road to Clarke Quay, and the Ayer Rajah Expressway runs from Jurong to Outram Road. The Singapore River runs on past Clarke Quay to the harbour. The long bridges from Kampong Glam over the sea are gone, and HDB blocks fill Orchard Road's old place so that Little India and Katong stay joined. The City map, the minimap, the MRT, the phone's travel tips and the story's directions all follow the new layout. The River Run race now stays on the river, and a bumboat that was moored on dry land at the Tanjong Pagar docks is back in the water.
+
 ### Documentation
 
 - **Game ideas**: six new unbuilt pitches with mock-ups: the idle roguelites Daysleep and Kelong, and the Singapore shortlist Blk 57, Seventh Month, Golden Mile and Keretapi.

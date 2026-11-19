@@ -125,9 +125,9 @@ export function ferryLand(w: World) {
 /** the one-time hints and the phone text when Sentosa opens */
 export const CABLE_HINT = 'Sentosa is open! Ride the cable car from HarbourFront at the docks (E at the station, 4 coins), walk the boardwalk, or take the MRT to Beach station.';
 export const EAST_TEXT = 'The MRT runs on over the Rochor River: Bugis for Kampong Glam, and Little India. Walk over the bridges on Syed Alwi Road or Arab Street, or take a taxi.';
-export const FAR_TEXT = 'The MRT runs on over the Geylang River: Katong Park for Joo Chiat and East Coast Park, and Orchard for the Christmas light-up. Walk over the bridges, or take a taxi.';
+export const FAR_TEXT = 'The MRT runs on: Katong Park for Joo Chiat and East Coast Park, over the Geylang River east of Kampong Glam, and Orchard for the Christmas light-up, past Fort Canning Park north-west of Chinatown. Walk, or take a taxi.';
 export const CHANGI_TEXT = 'Changi is open! The MRT runs to Changi Airport station: Jewel, the Rain Vortex, the airport and Changi Village. Hire a bike at East Coast Park and ride along the coast.';
-export const SOUTH_TEXT = 'The MRT runs on south over the water: Tiong Bahru for the market and the bird corner, and Clarke Quay for the river. Or cross the long bridge at the end of North Bridge Road.';
+export const SOUTH_TEXT = 'The MRT runs on west of Chinatown: Tiong Bahru for the market and the bird corner, and Clarke Quay for the river. Or walk: Outram Road runs down Chinatown’s west side to Clarke Quay, and on to Tiong Bahru under the Ayer Rajah Expressway.';
 export const JURONG_TEXT = 'Jurong is open! The MRT runs to Jurong East station: the Science Centre, Snow City and the Chinese Garden on Jurong Lake. Or cross the bridge at the end of Beach Road.';
 export const RESORT_TEXT = 'Sentosa is open! The cable car leaves from HarbourFront at the docks (4 coins), the boardwalk runs beside the Sentosa Gateway, the MRT stops at Beach station, and the ferry crosses from Marina Bay (3 coins).';
 export function routeToStop(w: World, id: string): boolean {

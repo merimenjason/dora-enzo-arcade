@@ -1,4 +1,4 @@
-// Jade Street (twelfth pass): the small pleasures over the Geylang River. A bowl of laksa at 328 Katong Laksa or the
+// Jade Street (twelfth pass): the small pleasures of Katong, Changi and Orchard Road. A bowl of laksa at 328 Katong Laksa or the
 // East Coast Lagoon hawker centre, a bauble hung on an Orchard Road Christmas tree (while the light-up is on: in
 // season by the device calendar, and all through chapter eight), a kite flown on the East Coast beach, the planes coming
 // in over Changi waved at from the viewing spots, and a hand with a traveller's suitcase at the terminal. Each has its

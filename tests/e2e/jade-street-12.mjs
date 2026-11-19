@@ -101,7 +101,7 @@ export async function twelfth(h) {
 
   // ── the Controls page, the save, every new pose
   await press('pause-btn'); await press('tab-controls');
-  check(/Geylang River/.test(await loc('jade-controls').innerText()), `${name}: the Controls page has the coast`);
+  check(/Katong, Changi and Orchard Road/.test(await loc('jade-controls').innerText()), `${name}: the Controls page has the coast`);
   await press('close'); if (await exists('resume')) await press('resume');
   await W(() => window.__jade.play.persist(window.__jade.world().s));
   check(await until(() => !!localStorage.getItem('jade-street-v13') && JSON.parse(localStorage.getItem('jade-street-v13')).v === 13, null, 6000), `${name}: saved as v13`);

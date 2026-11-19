@@ -1,4 +1,4 @@
-// Jade Street, the twelfth pass: Orchard Road, Katong and Changi over the Geylang River (their landmarks, markets, safe
+// Jade Street, the twelfth pass: Orchard Road, and Katong and Changi over the Geylang River (their landmarks, markets, safe
 // houses, givers, MRT stations, empire properties, the cycling track and the hired bikes, Jewel's Rain Vortex), the
 // Atas Bats and Datin Ciku, chapter eight (Christmas Star) and three Hawker Tales, the real names, the calendar
 // festivals and the coast's small pleasures, the empire's people in the street, the fairer Hard raid and the wider

@@ -189,7 +189,7 @@ test('save v11: a v10 save keeps every job, medal, stall, safe house and till; t
   const v3 = loadSave(JSON.stringify({ v: 3, seed: 2, cash: 50, done: ['m1'], rep: { market: 5 } })); assert.equal(v3.v, SAVE_VERSION); assert.deepEqual(v3.done, ['m1']); assert.equal(v3.empire.rank, 0);
 });
 
-test('pacing: a careful player who reinvests owns everything in three to five hours of play (the coast’s six and the south shore’s six included)', () => {
+test('pacing: a careful player who reinvests owns everything in three to five hours of play (the coast’s six and the west side’s six included)', () => {
   // a careful player: about 45 coins a minute from jobs, gigs and trading, a night every 14 minutes on Assist, every
   // till collected each night, reputation around 50 (×1.0), one night's takings in ten lost to raids; buys whatever
   // pays back soonest as soon as they can

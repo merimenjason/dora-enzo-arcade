@@ -293,14 +293,14 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     case 'sniff': return `${h}-sniff-${t < 0.7 ? 0 : 1}`;
     case 'lounge': return `${h}-lounge-${cyc(2, 1)}`;
     case 'castle': return `${h}-castle-${cyc(2, 3)}`;
-    // over the Geylang River: a bowl of laksa, a bauble on the tree, a kite on the beach, waving at a plane, a
+    // Katong, Changi and Orchard Road: a bowl of laksa, a bauble on the tree, a kite on the beach, waving at a plane, a
     // traveller's suitcase; riding a hired bike has its own pair (lib/jade-duodraw.ts)
     case 'laksa': return `${h}-laksa-${cyc(2, 3)}`;
     case 'bauble': return `${h}-bauble-${t < 0.7 ? 0 : 1}`;
     case 'kite': return `${h}-kite-${cyc(2, 1.5)}`;
     case 'plane': return `${h}-plane-${cyc(2, 3)}`;
     case 'suitcase': return `${h}-suitcase-${cyc(2, 2.5)}`;
-    // the south shore: chwee kueh, the songbirds, the Slingshot, the koi, the telescope, the lantern walk
+    // the west side: chwee kueh, the songbirds, the Slingshot, the koi, the telescope, the lantern walk
     case 'chwee': return `${h}-chwee-${cyc(2, 3)}`;
     case 'birdsong': return `${h}-birdsong-${cyc(2, 1.2)}`;
     case 'sling': return `${h}-sling-${t < 0.5 ? 0 : 1}`;
@@ -420,10 +420,11 @@ export class Scene {
     const c = this.c;
     // under a building: the district's own paving (Little India, Kampong Glam and Sentosa have theirs); bridges are
     // concrete outside Chinatown (the Sentosa Gateway too) and planks over the Singapore River
-    // (read in the old frame: the tile the layout table moved here; filler shows no building or bridge)
-    const oldOf = (i: number) => unmvT(i % W, Math.floor(i / W)) ?? [0, 0];
-    const bldTex = (i: number) => { const [tx, ty] = oldOf(i); return ty >= CT_H ? (tx >= SOUTH_X0 - 4 && tx <= SOUTH_X1 + 1 ? (tx >= QUAY_X0 ? 'quay' : tx >= TIONG_X0 ? 'tiong' : 'jurong') : 'resort') : tx >= FAR_X0 - 4 ? (tx >= CHANGI_X0 ? 'changi' : ty < FAR_SPLIT ? 'orchard' : 'katong') : tx >= EAST_X0 - 4 ? (ty < EAST_SPLIT ? 'india' : 'glam') : tx >= OW ? (ty < 38 ? 'hdb' : 'granite') : 'plaza'; };
-    const texOf = (g: number, i: number) => g === G.ROAD && (c.flags[i] & F_XWAY) ? 'xway' : g === G.BRIDGE ? (oldOf(i)[0] >= OW || oldOf(i)[1] >= 80 ? 'xway' : 'canal') : g === G.STAIRS ? 'temple' : g === G.BLD ? bldTex(i) : GROUND_NAMES[g];
+    // (read in the old frame: the tile the layout table moved here; filler, laid in the new frame, has HDB blocks and
+    // concrete bridges)
+    const oldOf = (i: number) => unmvT(i % W, Math.floor(i / W));
+    const bldTex = (i: number) => { const o = oldOf(i); if (!o) return 'hdb'; const [tx, ty] = o; return ty >= CT_H ? (tx >= SOUTH_X0 - 4 && tx <= SOUTH_X1 + 1 ? (tx >= QUAY_X0 ? 'quay' : tx >= TIONG_X0 ? 'tiong' : 'jurong') : 'resort') : tx >= FAR_X0 - 4 ? (tx >= CHANGI_X0 ? 'changi' : ty < FAR_SPLIT ? 'orchard' : 'katong') : tx >= EAST_X0 - 4 ? (ty < EAST_SPLIT ? 'india' : 'glam') : tx >= OW ? (ty < 38 ? 'hdb' : 'granite') : 'plaza'; };
+    const texOf = (g: number, i: number) => g === G.ROAD && (c.flags[i] & F_XWAY) ? 'xway' : g === G.BRIDGE ? ((oldOf(i)?.[0] ?? OW) >= OW || (oldOf(i)?.[1] ?? 0) >= 80 ? 'xway' : 'canal') : g === G.STAIRS ? 'temple' : g === G.BLD ? bldTex(i) : GROUND_NAMES[g];
     const byTex = new Map<string, number[]>();
     for (let ty = ty0; ty < ty0 + nh; ty++) for (let tx = tx0; tx < tx0 + nw; tx++) {
       if (tx < 0 || ty < 0 || tx >= W || ty >= H) continue;

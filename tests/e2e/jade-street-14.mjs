@@ -34,10 +34,11 @@ export async function fourteenth(h) {
   await press('jade-story-skip'); await settle();
   check(await W(() => window.__jade.world().s.story.ch === 9), `${name}: chapter nine is under way`);
 
-  // ── the plaque names the right stations: from Chinatown the next giver (Mr Kamal's job is done here) is by MRT
+  // ── the plaque names the right stations: from Chinatown the next giver (Mr Kamal's job is done here) is a walk west
+  // (Tiong Bahru is next door since 19-11-2026); from Katong it is by MRT
   await W(() => { const J = window.__jade, w = J.world(); w.s.done.push('m56'); J.play.notices.queue = []; J.play.notices.shown = []; const pl = w.c.places['safe-market']; w.placePlayer(pl.x, pl.y + 64); w.waypoint = null; J.play.bump(); }); await free(); await wait(900);
   const tl = await loc('travel-label').innerText().catch(() => '');
-  check(/Tiong Bahru/i.test(tl) && /MRT/i.test(tl) && /Chinatown/i.test(tl), `${name}: from Chinatown the plaque sends you by MRT to Tiong Bahru ("${tl}")`); await look('plaque: chinatown to tiong bahru');
+  check(!/MRT/i.test(tl), `${name}: from Chinatown the plaque sends you on foot, west ("${tl}")`); await look('plaque: chinatown to tiong bahru');
   // standing in Tiong Bahru with the next job in Tiong Bahru: no station named, least of all Chinatown's
   await at('stn-tiong'); await wait(900);
   const tl2 = await loc('travel-label').innerText().catch(() => ''), ob2 = await loc('objective').innerText().catch(() => '');
@@ -178,7 +179,7 @@ export async function fourteenth(h) {
   await press('pause-btn'); await press('tab-jobs'); if (await exists('jade-jobs-ch9')) await press('jade-jobs-ch9');
   check(await exists('jade-jobs-ch9') && /Breakfast at Tiong Bahru/.test(await loc('pause').innerText()) && /Lights by the Lake/.test(await loc('pause').innerText()), `${name}: the jobs book's chapter nine`); await look('jobs book chapter nine');
   await key('Escape'); await press('tab-controls');
-  check(/south shore/i.test(await loc('jade-controls').innerText()), `${name}: the Controls page has the south shore`);
+  check(/West of Chinatown/.test(await loc('jade-controls').innerText()), `${name}: the Controls page has the west side`);
   await press('close'); if (await exists('resume')) await press('resume');
   await W(() => window.__jade.play.persist(window.__jade.world().s));
   check(await until(() => { const r = localStorage.getItem('jade-street-v13'); if (!r) return false; const s = JSON.parse(r); return s.v === 13 && s.story.lake === true && s.stats.slings >= 1 && 'tiong' in s.rep; }, null, 6000), `${name}: saved as v13 with the new counts`);

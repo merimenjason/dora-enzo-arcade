@@ -1,5 +1,6 @@
 // Jade Street: the fourteenth pass's three districts. Runs last on the finished city (after everything else, back lanes
-// included), so nothing built before moves. South of Kampong Glam, over the water on two long bridges: Jurong in the
+// included), so nothing built before moves. Built in a strip south of Kampong Glam (each district's block is then moved
+// west of Chinatown, where it is in Singapore: lib/jade-layout.ts): Jurong in the
 // west (the Science Centre and its observatory, Snow City, Jem, Jurong East station on its viaduct, and the Chinese
 // Garden on Jurong Lake with its seven-storey pagoda, twin pagodas, stone lions, the red bridge over the stream, a tea house and the
 // Mid-Autumn lanterns of Lights by the Lake), Tiong Bahru in the middle (the art-deco estate: Tiong Bahru Market, the
@@ -32,7 +33,8 @@ export const SOUTH_NAMES = {
 };
 /** the three districts' roads in ROADS (lib/jade-city.ts) */
 export const SOUTH_ROADS = [33, 34, 35, 36, 37, 38, 39];
-/** the Singapore River through Clarke Quay: rows RIVER_Y to RIVER_Y + 3, from column RIVER_X0 out to the sea */
+/** the Singapore River through Clarke Quay: rows RIVER_Y to RIVER_Y + 3, from column RIVER_X0 to Clarke Quay's east
+ * edge (in the world it runs on from there, past Outram Road, to the harbour: lib/jade-city.ts seams) */
 export const RIVER_Y = 103, RIVER_X0 = 291;
 
 export function south(c: City) {
@@ -60,7 +62,7 @@ export function south(c: City) {
   rect(X0, Y0, TIONG_X0 - X0, Y1 - Y0 + 1, G.JURONG);
   rect(TIONG_X0, Y0, QUAY_X0 - TIONG_X0, Y1 - Y0 + 1, G.TIONG);
   rect(QUAY_X0, Y0, X1 - QUAY_X0 + 1, Y1 - Y0 + 1, G.QUAY);
-  rect(RIVER_X0, RIVER_Y, X1 + 5 - RIVER_X0, 4, G.CANAL, S.WATER);
+  rect(RIVER_X0, RIVER_Y, X1 + 1 - RIVER_X0, 4, G.CANAL, S.WATER);
   // the Chinese Garden: everything west of Jurong Town Hall Road and south of the first cross street
   const GX0 = X0, GX1 = 222, GY0 = 107;
   // (lawns, with pebble paths: a walk round the lake's shore, the avenue in from the gate, the south terrace)
@@ -75,7 +77,7 @@ export function south(c: City) {
   for (let y = 108; y <= 112; y++) for (const x of [208, 209]) setT(x, y, G.CANAL, S.WATER);
   for (const y of [111, 112]) for (const x of [208, 209]) setT(x, y, G.DECK, S.OPEN, F_BRIDGE);
 
-  // ── roads: kerbs in the district's own paving, two lanes, bridges over the strait and the river
+  // ── roads: kerbs in the district's own paving, two lanes
   type Seg = { axis: 'h' | 'v'; at: number; a: number; b: number };
   const segs: Seg[] = SOUTH_ROADS.map(i => { const r = ROADS[i]; return { axis: r.axis, at: r.at, a: r.from, b: r.to }; });
   const kerbG = (x: number) => x >= QUAY_X0 ? G.QUAY : x >= TIONG_X0 ? G.TIONG : G.JURONG;
@@ -122,7 +124,7 @@ export function south(c: City) {
   // Towkay Hoot's lantern warehouse at the south end of the road
   bld(230, 122, 8, 4, 'jurong-factory'); place('warehouse', 237, 121, 'spot', 'Towkay Hoot’s warehouse');
   // the Chinese Garden: the gate on the road, the seven-storey pagoda north of the lake, the Twin Pagodas and the tea
-  // house on the south shore, stone lions, lanterns, bonsai, willows, koi and terrapins
+  // house on the west side, stone lions, lanterns, bonsai, willows, koi and terrapins
   bld(218, 108, 4, 2, 'jurong-gate'); place('garden', 220, 111, 'spot', N.garden); place('musang', 217, 111, 'contact', 'Sifu Musang');
   for (const x of [217, 222]) prop(x, 110, 'stone-lion', 12, 'tall', 'over', 44);
   bld(203, 108, 3, 3, 'jurong-pagoda'); place('pagoda', 204, 111, 'spot', N.pagoda);

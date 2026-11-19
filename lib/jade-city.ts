@@ -1,8 +1,13 @@
-// Jade Street: the city. A 376×128 tile island (64 world units a tile) built once, deterministically. Chinatown, the
-// home turf, is the 120×92 north-west of it, built from a hand-laid plan exactly as before (lib/jade-island.ts adds the
-// Toa Payoh heartlands, the Marina Bay front, the expressways and the MRT line east of it afterwards, and
-// lib/jade-east.ts Little India, Kampong Glam past the Rochor River, and Sentosa out in the harbour to the south, and
-// lib/jade-far.ts Orchard Road, Katong and Changi past the Geylang River). Chinatown's plan: five districts, a grid of two-lane streets (traffic keeps left), back alleys, a canal with bridges,
+// Jade Street: the city. Built once, deterministically, in a 376×128 tile frame (64 world units a tile), then moved
+// block by block into the 476×128 world you play in, where the districts sit as they do in Singapore (lib/jade-layout.ts).
+// The build frame: Chinatown, the home turf, is its 120×92 north-west, built from a hand-laid plan exactly as before
+// (lib/jade-island.ts adds the Toa Payoh heartlands, the Marina Bay front, the expressways and the MRT line east of it
+// afterwards, lib/jade-east.ts Little India, Kampong Glam past the Rochor River, and Sentosa out in the harbour to the
+// south, lib/jade-far.ts Orchard Road, Katong and Changi past the Geylang River, and lib/jade-south.ts Jurong, Tiong
+// Bahru and Clarke Quay in a strip south of Kampong Glam). The world you play in: Chinatown with Sentosa south of it,
+// Toa Payoh and Marina Bay, Little India and Kampong Glam, Katong and Changi east of it as built; Orchard Road, Clarke
+// Quay and Tiong Bahru west of Chinatown (north to south), Jurong at the west edge; filler (seams()) lays the roads and
+// the river between them, parkland, and HDB estates where Orchard Road was built. Chinatown's plan: five districts, a grid of two-lane streets (traffic keeps left), back alleys, a canal with bridges,
 // the temple park, the docks and piers, flat-roof terraces you can run across, and every named place the story uses.
 // Ground (what is painted), solid (what blocks you) and flags (alley, stairs, roof, bridge) are separate layers.
 // Pure data and queries: no drawing here (lib/jade-scene.ts paints it).
@@ -11,10 +16,10 @@
 // ROADS, districtAt, streetAt and every City position). Runtime code never compares a position with an old-frame
 // constant: it asks districtAt / unmvT, or moves the constant with mvT.
 import { rng } from './jade-rng.js';
-import { OLD_W, OLD_H, NW, NH, LAYOUT, blockNew, mvT, mvP, mvTRect, mvPLine, mvPP } from './jade-layout.js';
+import { OLD_W, OLD_H, NW, NH, LAYOUT, LAYOUT_MODE, blockNew, mvT, mvP, mvTRect, mvPLine, mvPP } from './jade-layout.js';
 import { remodel, type Path, type FestivalSpot } from './jade-remodel.js';
 import { sgCity, type SgCity } from './jade-sgcity.js';
-import { island, type Isle } from './jade-island.js';
+import { island, F_XWAY, type Isle } from './jade-island.js';
 import { east, backLanes, type East } from './jade-east.js';
 import { far, type Far } from './jade-far.js';
 import { south, type South } from './jade-south.js';
@@ -35,8 +40,8 @@ export const EAST_SPLIT = 42;
 /** the twelfth pass: past the Geylang River (columns 272 to 275), Orchard Road (north) and Katong (south) up to column
  * 323, and Changi from column 324 to the east edge; roads run to column 371 */
 export const FAR_X0 = 276, FAR_SPLIT = 38, CHANGI_X0 = 324, FAR_X1 = 371;
-/** the fourteenth pass: south of Kampong Glam over the water, rows 96 to 125: Jurong (columns 198 to 241), Tiong Bahru
- * (242 to 287) and Clarke Quay (288 to 329) */
+/** the fourteenth pass (in the build frame): a strip south of Kampong Glam, rows 96 to 125: Jurong (columns 198 to
+ * 241), Tiong Bahru (242 to 287) and Clarke Quay (288 to 329). In the world each is its own block west of Chinatown */
 export const SOUTH_X0 = 198, SOUTH_X1 = 329, SOUTH_Y0 = 96, SOUTH_Y1 = 125, TIONG_X0 = 242, QUAY_X0 = 288;
 /** the world you play in, in world units (the new frame) */
 export const WORLD_W = W * T, WORLD_H = H * T;
@@ -68,11 +73,41 @@ export const DISTRICT_NAME: Record<District, string> = { market: 'Smith Street',
 /** the row where the heartlands end and the bay front begins (the Pan Island Expressway runs along it) */
 export const ISLE_SPLIT = 38;
 const MAIN = LAYOUT.blocks[LAYOUT.blocks.length - 1];
-/** the district at a new-frame tile (filler tiles take the main block's) */
+/** the district at a new-frame tile, read off a map made once (see districtMap) */
 export function districtAt(tx: number, ty: number): District {
-  const b = blockNew(tx, ty) ?? MAIN;
-  return districtAtOld(tx - b.nx + b.x0, ty - b.ny + b.y0);
+  const m = DMAP ?? districtMap();
+  return DISTRICTS[m[Math.max(0, Math.min(H - 1, ty)) * W + Math.max(0, Math.min(W - 1, tx))]];
 }
+let DMAP: Uint8Array | null = null;
+/** every new-frame tile's district (an index into DISTRICTS). A block tile has its old tile's; the main block's tiles
+ * the moved blocks left behind (the Geylang River beside Orchard's old place, the sea round the south strip's) take
+ * the district that is there now (Katong; Sentosa's sea). Filler takes the nearest block tile's district: west of
+ * Chinatown the nearest moved block's (so a link road opens with the later of the districts it joins, never early with
+ * Chinatown), elsewhere the main block's; Orchard's old place is Katong's (it opens with it) */
+function districtMap(): Uint8Array {
+  const N = W * H, m = new Uint8Array(N), set = new Uint8Array(N), q: number[] = [];
+  const di = (d: District) => DISTRICTS.indexOf(d);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const b = blockNew(x, y); if (!b) continue;
+    let d = districtAtOld(x - b.nx + b.x0, y - b.ny + b.y0);
+    if (b === MAIN && LAYOUT_MODE === 'real') d = d === 'orchard' ? 'katong' : d === 'jurong' || d === 'tiong' || d === 'quay' ? 'resort' : d;
+    m[y * W + x] = di(d); set[y * W + x] = 1; q.push(y * W + x);
+  }
+  // breadth first from every block tile; a filler tile west of the main block only from the moved blocks
+  const westOf = MAIN.nx - MAIN.x0;
+  for (let k = 0; k < q.length; k++) {
+    const i = q[k], x = i % W, y = (i - x) / W, fromMain = blockNew(x, y) === MAIN;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+      const j = ny * W + nx; if (set[j] || (fromMain && nx < westOf)) continue;
+      set[j] = 1; m[j] = m[i]; q.push(j);
+    }
+  }
+  if (LAYOUT_MODE === 'real') for (let y = HOLE[1]; y <= HOLE[3]; y++) for (let x = HOLE[0]; x <= HOLE[2]; x++) m[y * W + x] = di('katong');
+  DMAP = m; return m;
+}
+/** Orchard Road's old place in the world (the real layout): new HDB estates between Little India and Changi */
+const HOLE = [376, 0, 423, 37] as const;
 /** the district at an old-frame tile (the build passes) */
 export function districtAtOld(tx: number, ty: number): District {
   // Sentosa and the harbour round it are the south; Little India and Kampong Glam the far side of the Rochor River
@@ -139,24 +174,62 @@ export const OLD_ROADS: Road[] = [
   { axis: 'v', at: 290, from: 0, to: 75 }, { axis: 'v', at: 310, from: 0, to: 75 }, { axis: 'v', at: 340, from: 12, to: 75 }, { axis: 'v', at: 360, from: 12, to: 75 },
   { axis: 'h', at: 72, from: 272, to: FAR_X1 },
   // 33-39 (fourteenth pass): Jurong Town Hall Road's cross street (then Tiong Bahru Road, ending at the Singapore
-  // River), Boon Lay Way (then Seng Poh Road and Eu Tong Sen Street); north-south: Jurong Town Hall Road and Kim Tian
-  // Road, each over the water on a bridge from Kampong Glam, Eng Hoon Street, Zion Road and Clemenceau Avenue
+  // River), Boon Lay Way (then Seng Poh Road and Eu Tong Sen Street); north-south: Jurong Town Hall Road, Kim Tian
+  // Road, Eng Hoon Street, Zion Road and Clemenceau Avenue (the strip's own roads: in the world each district is its
+  // own block, joined to the others by the seam roads below)
   { axis: 'h', at: 103, from: SOUTH_X0, to: QUAY_X0 + 1 }, { axis: 'h', at: 114, from: 224, to: SOUTH_X1 },
-  { axis: 'v', at: 224, from: 82, to: SOUTH_Y1 }, { axis: 'v', at: 244, from: 82, to: SOUTH_Y1 }, { axis: 'v', at: 266, from: SOUTH_Y0, to: SOUTH_Y1 }, { axis: 'v', at: 286, from: SOUTH_Y0, to: SOUTH_Y1 }, { axis: 'v', at: 308, from: SOUTH_Y0, to: SOUTH_Y1 },
+  { axis: 'v', at: 224, from: SOUTH_Y0, to: SOUTH_Y1 }, { axis: 'v', at: 244, from: SOUTH_Y0, to: SOUTH_Y1 }, { axis: 'v', at: 266, from: SOUTH_Y0, to: SOUTH_Y1 }, { axis: 'v', at: 286, from: SOUTH_Y0, to: SOUTH_Y1 }, { axis: 'v', at: 308, from: SOUTH_Y0, to: SOUTH_Y1 },
 ];
 const ALL_ROADS = OLD_ROADS;
-/** a road moves with the block its start is in; one that would tear across blocks moving by different amounts can't be
- * a single road any more (the relayout has to split it, and renumber XWAYS, the lights and the street names) */
+/** a road moves with the block it is in; one whose tiles would tear across blocks moving by different amounts can't be
+ * a single road any more (the real layout's split roads are written out in SEAM_ROAD below) */
 function mvRoad(r: Road, i: number): Road {
-  const [fx, fy] = r.axis === 'h' ? [r.from, r.at] : [r.at, r.from], [tx, ty] = r.axis === 'h' ? [r.to, r.at + 3] : [r.at + 3, r.to];
-  const [nfx, nfy] = mvT(fx, fy), [ntx, nty] = mvT(tx, ty);
-  if (ntx - tx !== nfx - fx || nty - ty !== nfy - fy) throw new Error(`jade-layout: road ${i} spans blocks that move apart`);
+  const [fx, fy] = r.axis === 'h' ? [r.from, r.at] : [r.at, r.from];
+  const [nfx, nfy] = mvT(fx, fy);
+  for (let s = r.from; s <= r.to; s++) for (let k = 0; k < 4; k++) {
+    const x = r.axis === 'h' ? s : r.at + k, y = r.axis === 'h' ? r.at + k : s, [nx, ny] = mvT(x, y);
+    if (nx - x !== nfx - fx || ny - y !== nfy - fy) throw new Error(`jade-layout: road ${i} spans blocks that move apart`);
+  }
   return r.axis === 'h' ? { axis: 'h', at: nfy, from: nfx, to: r.to + nfx - fx } : { axis: 'v', at: nfx, from: nfy, to: r.to + nfy - fy };
 }
+/** the real layout's split roads, in the new frame. A road the relayout cut keeps its index for one piece, which runs
+ * on over the filler (as named here) to meet the next road; its other pieces, and the seam's own roads, are added
+ * after the old list (SEAM_EXTRA), so every old index (the lights, the expressways, the street names) still holds */
+const SEAM_ROAD: Record<number, [Road, string]> = {
+  // Orchard's old place: its four roads stay with Little India and Katong and cross the new estates to Changi
+  24: [{ axis: 'h', at: 12, from: 372, to: 471 }, 'Sims Avenue'], 25: [{ axis: 'h', at: 22, from: 372, to: 423 }, 'Geylang Road'],
+  28: [{ axis: 'v', at: 390, from: 0, to: 75 }, 'Aljunied Road'], 29: [{ axis: 'v', at: 410, from: 0, to: 75 }, 'Paya Lebar Road'],
+  // Jurong's two cross streets: the first ends at Clarke Quay's riverside, the second runs on through Clarke Quay (as
+  // Eu Tong Sen Street) over the Singapore River and Outram Road into Chinatown's Keong Saik Road
+  33: [{ axis: 'h', at: 51, from: 4, to: 51 }, 'Jurong Gateway Road'], 34: [{ axis: 'h', at: 62, from: 30, to: 99 }, 'Havelock Road'],
+  // Jurong Town Hall Road from Bukit Timah Road down to the Ayer Rajah Expressway; Tiong Bahru's three up to it; Clemenceau
+  // Avenue up from Clarke Quay through Orchard Road (as Emerald Hill Road there) to the top of the map
+  35: [{ axis: 'v', at: 30, from: 38, to: 77 }, 'Jurong Town Hall Road'], 36: [{ axis: 'v', at: 46, from: 74, to: 107 }, 'Kim Tian Road'],
+  37: [{ axis: 'v', at: 68, from: 74, to: 107 }, 'Eng Hoon Street'], 38: [{ axis: 'v', at: 88, from: 74, to: 107 }, 'Zion Road'],
+  39: [{ axis: 'v', at: 70, from: 0, to: 73 }, 'Clemenceau Avenue'],
+};
+const SEAM_EXTRA: [Road, string][] = [
+  // 40-42: Orchard's pieces of Orchard Boulevard and Orchard Road (both on through Fort Canning Park to Outram Road;
+  // the boulevard meets Pagoda Street) and Scotts Road (down to Bukit Timah Road); 43-44: Tiong Bahru Road and Seng Poh Road
+  [{ axis: 'h', at: 12, from: 36, to: 99 }, 'Orchard Boulevard'], [{ axis: 'h', at: 22, from: 36, to: 99 }, 'Orchard Road'],
+  [{ axis: 'v', at: 50, from: 0, to: 41 }, 'Scotts Road'],
+  [{ axis: 'h', at: 85, from: 44, to: 91 }, 'Tiong Bahru Road'], [{ axis: 'h', at: 96, from: 44, to: 91 }, 'Seng Poh Road'],
+  // 45-47: the seam's own: Bukit Timah Road under Orchard, Outram Road down Chinatown's west side, the Ayer Rajah
+  // Expressway from Jurong to Outram Road
+  [{ axis: 'h', at: 38, from: 30, to: 99 }, 'Bukit Timah Road'], [{ axis: 'v', at: 96, from: 12, to: 77 }, 'Outram Road'],
+  [{ axis: 'h', at: 74, from: 30, to: 99 }, 'Ayer Rajah Expressway'],
+];
+const REAL_ROADS = LAYOUT_MODE === 'real';
 /** the road plan in the new frame (what traffic, the map, the street names and the townsfolk use) */
-export const ROADS: Road[] = OLD_ROADS.map(mvRoad);
-/** expressways: faster lanes, no townsfolk, no lights, gantries */
+export const ROADS: Road[] = REAL_ROADS ? [...OLD_ROADS.map((r, i) => SEAM_ROAD[i]?.[0] ?? mvRoad(r, i)), ...SEAM_EXTRA.map(e => e[0])] : OLD_ROADS.map(mvRoad);
+/** what a road is called where it runs over filler (the street names read off the old frame cover the rest) */
+const SEAM_NAME: (string | null)[] = ROADS.map((_, i) => !REAL_ROADS ? null : i < OLD_ROADS.length ? SEAM_ROAD[i]?.[1] ?? null : SEAM_EXTRA[i - OLD_ROADS.length][1]);
+/** the Ayer Rajah Expressway's index in ROADS (the real layout only) */
+export const AYE = REAL_ROADS ? ROADS.length - 1 : -1;
+/** expressways in OLD_ROADS (the build passes): faster lanes, no townsfolk, no lights, gantries */
 export const XWAYS = [12, 13, 14, 32];
+/** the same in ROADS (what runs in the world): the build's, and the Ayer Rajah Expressway */
+export const XWAY_ROADS = REAL_ROADS ? [...XWAYS, AYE] : XWAYS;
 /** real public street names of Singapore's Chinatown and the river, one per road above (no brands) */
 export const STREET_NAME = ['Pagoda Street', 'Trengganu Street', 'Smith Street', 'Keong Saik Road', 'River Valley Road',
   'Neil Road', 'Temple Street', 'South Bridge Road', 'New Bridge Road', 'Boat Quay', 'Merchant Road', 'Hill Street',
@@ -175,11 +248,18 @@ const ISLE_STREET: [number, number, string][] = [[0, EAST_X0 - 4, 'Syed Alwi Roa
 const ISLE_NORTH: Record<number, string> = { 15: 'Lorong 4 Toa Payoh', 16: 'Toa Payoh East', 17: 'Lorong 8 Toa Payoh' };
 /** Kampong Glam's names for the roads that run on south out of Little India (real public road names) */
 const GLAM_SOUTH: Record<number, string> = { 18: 'Beach Road', 19: 'North Bridge Road', 20: 'Kandahar Street' };
-/** the street a new-frame tile is on (null off the roads and on filler) */
+/** the street a new-frame tile is on (null off the roads) */
 export function streetAt(tx: number, ty: number): string | null {
   const b = blockNew(tx, ty);
-  return b ? streetAtOld(tx - b.nx + b.x0, ty - b.ny + b.y0) : null;
+  // (west of where Orchard Road was built, the main block's pieces of its two roads take their new names: they lead
+  // on to Sims Avenue and Geylang Road now, not into Orchard Road)
+  if (b && REAL_ROADS && b.id === 'main' && tx - b.nx + b.x0 < FAR_X0) for (const k of [24, 25]) if (onRoad(ROADS[k], tx, ty)) return SEAM_NAME[k];
+  if (b) return streetAtOld(tx - b.nx + b.x0, ty - b.ny + b.y0);
+  // filler: the seam's roads (the expressway first, where it crosses another)
+  for (let k = ROADS.length - 1; k >= 0; k--) if (SEAM_NAME[k] && onRoad(ROADS[k], tx, ty)) return SEAM_NAME[k];
+  return null;
 }
+const onRoad = (r: Road, tx: number, ty: number) => r.axis === 'h' ? ty >= r.at && ty < r.at + 4 && tx >= r.from && tx <= r.to : tx >= r.at && tx < r.at + 4 && ty >= r.from && ty <= r.to;
 function streetAtOld(tx: number, ty: number): string | null {
   for (let i = 0; i < OLD_ROADS.length; i++) {
     const r = OLD_ROADS[i];
@@ -199,7 +279,7 @@ function streetAtOld(tx: number, ty: number): string | null {
 /** is new-frame tile (tx,ty) on an expressway (lanes or verge) */
 export function xwayAt(tx: number, ty: number): boolean {
   const b = blockNew(tx, ty);
-  if (!b) return false;
+  if (!b) return XWAY_ROADS.some(i => onRoad(ROADS[i], tx, ty));
   tx = tx - b.nx + b.x0; ty = ty - b.ny + b.y0;
   for (const i of XWAYS) { const r = OLD_ROADS[i]; if (r.axis === 'h' ? ty >= r.at && ty < r.at + 4 && tx >= r.from && tx <= r.to : tx >= r.at && tx < r.at + 4 && ty >= r.from && ty <= r.to) return true; }
   return false;
@@ -366,8 +446,9 @@ function build(): City {
     }
   }
   // boats at the canal jetties and the ferry
-  // (moored against the bank or a pier, so you can step aboard from dry land)
-  for (const [x, y, rot] of [[66, 24, 1], [66, 44, 1], [66, 60, 1], [66, 77, 1], [12, 88, 0], [9, 85, 1], [99, 85, 1], [104, 86, 1]] as const) parking.push({ x: x * T + T / 2, y: y * T + T / 2, d: districtAtOld(x, y), kind: 'boat', rot: rot * Math.PI / 2 });
+  // (moored against the bank or a pier, so you can step aboard from dry land; the last one in the water off the east
+  // side's pier, which was later laid over its old mooring)
+  for (const [x, y, rot] of [[66, 24, 1], [66, 44, 1], [66, 60, 1], [66, 77, 1], [12, 88, 0], [9, 85, 1], [99, 85, 1], [104, 88, 1]] as const) parking.push({ x: x * T + T / 2, y: y * T + T / 2, d: districtAtOld(x, y), kind: 'boat', rot: rot * Math.PI / 2 });
 
   // ── street dressing: lamps on the kerbs, lantern strings over the market streets, zebra crossings, manholes
   for (const r of ROADS) for (let s = r.from + 2; s <= r.to - 2; s += 5) for (const k of [0, 3]) {
@@ -556,9 +637,13 @@ function relayout(c: City): City {
       pigeons: g.pigeons.map(mvPP), bins: g.bins.map(mvPP), gum: g.gum.map(mvPP), round: mvPLine(g.round), junk: g.junk.map(mvPP),
       chess: mvPP(g.chess), mama: mvPP(g.mama), getai: mvPP(g.getai), jetties: g.jetties.map(mvPP), silver: g.silver.map(mvTRect) }; }
   if (c.isle) { const i = c.isle, h = i.hideouts;
-    // the MRT line is abstract (trains run along it between stations) but its points are world positions; lineLen and
-    // visFrom are distances along it and stay
-    n.isle = { ...i, rail: mvPLine(i.rail), line: i.line.map(mvPP), stations: i.stations.map(mvXY), taxiStands: i.taxiStands.map(mvPP),
+    // the MRT line is abstract (trains run along it between stations) but its points are world positions: each point
+    // moves with its block, so the distances along it (lineLen, each station's s, visFrom) are measured again, a
+    // distance inside a leg keeping its share of that leg
+    const line = i.line.map(mvPP), L0 = i.lineLen, L1 = [0];
+    for (let k = 1; k < line.length; k++) L1.push(L1[k - 1] + Math.hypot(line[k][0] - line[k - 1][0], line[k][1] - line[k - 1][1]));
+    const along = (s: number) => { let k = 1; while (k < L0.length - 1 && L0[k] < s) k++; const f = (s - L0[k - 1]) / Math.max(1e-9, L0[k] - L0[k - 1]); return L1[k - 1] + f * (L1[k] - L1[k - 1]); };
+    n.isle = { ...i, rail: mvPLine(i.rail), line, lineLen: L1, visFrom: along(i.visFrom), stations: i.stations.map(st => ({ ...mvXY(st), s: along(st.s) })), taxiStands: i.taxiStands.map(mvPP),
       hideouts: Object.fromEntries(Object.entries(h).map(([k, v]) => [k, mvPP(v)])) as typeof h, stage: mvTRect(i.stage) }; }
   if (c.east) { const e = c.east;
     const link = (l: typeof e.cable): typeof e.cable => ({ ...l, stops: [mvXY(l.stops[0]), mvXY(l.stops[1])], path: mvPLine(l.path) });
@@ -572,7 +657,90 @@ function relayout(c: City): City {
     n.south = { ...o, canopy: o.canopy.map(mvPP), sling: mvPP(o.sling), stage: mvPP(o.stage), birds: mvPP(o.birds), kueh: mvPP(o.kueh),
       lake: [lx, ly, o.lake[2], o.lake[3]], koi: o.koi.map(mvPP), scope: mvPP(o.scope), lanterns: o.lanterns.map(mvPP), lotus: o.lotus.map(mvPP),
       walk: [mvPP(o.walk[0]), mvPP(o.walk[1])] }; }
+  if (LAYOUT_MODE === 'real') seams(n);
   return n;
+}
+
+// ── the seams (the real layout only): the filler between the moved blocks, laid in the new frame. Nothing here touches
+// a block's tile (tests/jade-layout.mjs checks every block against the build, tile by tile)
+/** west of Chinatown: the sea off the west coast and south of the land, the beach above it, the Singapore River's way
+ * from Clarke Quay down beside Outram Road to the harbour */
+const WEST_X1 = 99, COAST_Y = 110, RIVER_X = 92;
+function seams(c: City) {
+  const free = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && !blockNew(x, y);
+  const setT = (x: number, y: number, g: G, s: S = S.OPEN, f = 0) => { if (!free(x, y)) return; const i = y * W + x; c.ground[i] = g; c.solid[i] = s; c.flags[i] = f; };
+  const water = (x: number, y: number) => c.solid[y * W + x] === S.WATER;
+  const px = (t: number) => t * T + T / 2;
+  const R = rng(20261119);
+  const prop = (x: number, y: number, sprite: string, r: number, solid: Prop['solid'], layer: Prop['layer'] = 'over', w?: number) => { if (solid === 'low') c.solid[y * W + x] = S.LOW; c.props.push({ x: px(x), y: px(y), sprite, r, solid, layer, w }); };
+  const bld = (x: number, y: number, w: number, h: number, sprite: string) => {
+    for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) setT(xx, yy, G.BLD, S.BUILDING);
+    c.buildings.push({ x, y, w, h, sprite, front: true });
+  };
+
+  // ── the ground. West: parkland (Bukit Timah's green north of Jurong, Fort Canning Park between Orchard Road and
+  // Chinatown, West Coast Park south of Jurong), the beach and the sea; the river. Orchard's old place: HDB concrete
+  for (let y = 0; y < H; y++) for (let x = 0; x <= WEST_X1; x++) {
+    if (!free(x, y)) continue;
+    const sea = x <= 3 || y >= COAST_Y || (x >= RIVER_X && y >= 78), sand = !sea && (y >= COAST_Y - 4 || (x >= 44 && y >= 108));
+    setT(x, y, sea ? G.SEA : sand ? G.SAND : G.GRASS, sea ? S.WATER : S.OPEN, sea || sand ? 0 : F_PARK);
+  }
+  for (let y = 51; y < 78; y++) for (let x = RIVER_X; x < RIVER_X + 4; x++) setT(x, y, G.CANAL, S.WATER);
+  for (let y = HOLE[1]; y <= HOLE[3]; y++) for (let x = HOLE[0]; x <= HOLE[2]; x++) setT(x, y, G.HDB);
+
+  // ── roads over the filler: kerbs in the district's paving (the expressway's are grass verges), then the lanes over
+  // them so crossings join up; over water they are bridges
+  const xw = new Set(XWAY_ROADS), kerbG = (x: number, y: number) => x >= HOLE[0] ? G.HDB : SIDEWALK[districtAt(x, y)];
+  const tiles = (r: Road, ks: number[], f: (x: number, y: number, s: number, k: number) => void) => { for (let s = r.from; s <= r.to; s++) for (const k of ks) { const x = r.axis === 'h' ? s : r.at + k, y = r.axis === 'h' ? r.at + k : s; if (free(x, y)) f(x, y, s, k); } };
+  ROADS.forEach((r, i) => tiles(r, [0, 3], (x, y) => {
+    if (c.ground[y * W + x] === G.ROAD) return;
+    if (water(x, y) || (c.flags[y * W + x] & F_BRIDGE)) setT(x, y, G.BRIDGE, S.OPEN, F_BRIDGE); else setT(x, y, xw.has(i) ? G.GRASS : kerbG(x, y));
+  }));
+  ROADS.forEach((r, i) => tiles(r, [1, 2], (x, y) => {
+    const br = c.ground[y * W + x] === G.BRIDGE || water(x, y);
+    setT(x, y, br ? G.BRIDGE : G.ROAD, S.OPEN, (br ? F_BRIDGE : 0) | (xw.has(i) ? F_XWAY : 0));
+  }));
+  const cross = (x: number, y: number) => { let h = false, v = false; for (const r of ROADS) { if (onRoad(r, x, y)) { if (r.axis === 'h') h = true; else v = true; } } return h && v; };
+  // the expressway's crash barriers (a gap at every junction), lane dashes, lamps on the kerbs, kerbside parking
+  for (const i of xw) tiles(ROADS[i], [0, 3], (x, y, s) => {
+    const r = ROADS[i];
+    if (c.ground[y * W + x] !== G.GRASS || cross(x, y) || ROADS.some((o, j) => j !== i && o.axis !== r.axis && (r.axis === 'h' ? x >= o.at - 2 && x <= o.at + 5 && r.at + 3 >= o.from && r.at <= o.to : y >= o.at - 2 && y <= o.at + 5 && r.at + 3 >= o.from && r.at <= o.to))) return;
+    c.solid[y * W + x] = S.LOW; if (s % 2 === 0) c.props.push({ x: px(x), y: px(y), sprite: 'xw-barrier', r: 0, solid: 'none', layer: 'ground', w: 2 * T, rot: r.axis === 'h' ? 0 : Math.PI / 2 });
+  });
+  for (const r of ROADS) for (let s = r.from; s <= r.to; s += 2) {
+    const x = r.axis === 'h' ? s : r.at + 2, y = r.axis === 'h' ? r.at + 2 : s;
+    if (!free(x, y) || cross(x, y) || (r.axis === 'h' ? cross(x, y - 1) : cross(x - 1, y))) continue;
+    c.decals.push({ x: r.axis === 'h' ? x * T + T / 2 : x * T, y: r.axis === 'h' ? y * T : y * T + T / 2, sprite: 'd-dash', r: 0, solid: 'none', layer: 'ground', w: T * 0.8, rot: r.axis === 'h' ? 0 : Math.PI / 2 });
+  }
+  const kerb = (x: number, y: number) => c.solid[y * W + x] === S.OPEN && c.ground[y * W + x] !== G.ROAD && !(c.flags[y * W + x] & F_BRIDGE) && !cross(x, y);
+  let k = 0;
+  ROADS.forEach((r, i) => { if (!xw.has(i)) tiles(r, [0, 3], (x, y, s, kk) => {
+    if ((s - r.from) % 11 !== 5 || !kerb(x, y)) return;
+    const kind = ++k % 4 === 0 ? 'van' : k % 4 === 2 ? 'tuktuk' : 'scooter';
+    c.parking.push({ x: px(x), y: px(y), d: districtAt(x, y), kind, rot: r.axis === 'h' ? (kk === 0 ? -Math.PI / 2 : Math.PI / 2) : (kk === 0 ? 0 : Math.PI) });
+  }); });
+  ROADS.forEach((r, i) => { if (!xw.has(i)) tiles(r, [0, 3], (x, y, s, kk) => {
+    if ((s - r.from) % 6 !== 2 || !kerb(x, y) || c.parking.some(p => Math.abs(p.x - px(x)) < T && Math.abs(p.y - px(y)) < T)) return;
+    c.props.push({ x: px(x) + (r.axis === 'v' ? (kk === 0 ? -20 : 20) : 0), y: px(y) + (r.axis === 'h' ? (kk === 0 ? -20 : 20) : 0), sprite: 'lamp', r: 8, solid: 'tall', layer: 'over' });
+  }); });
+
+  // ── Orchard's old place: HDB blocks round the new crossings, a playground, a multi-storey car park, void-deck tables
+  for (const [x, y, w, h, sp] of [[377, 2, 10, 4, 'hdb-slab-a'], [384, 7, 4, 4, 'hdb-point-b'], [396, 2, 10, 4, 'hdb-slab-b'], [416, 2, 4, 4, 'hdb-point-a'], [416, 7, 4, 4, 'hdb-point-b'],
+    [378, 17, 10, 4, 'hdb-slab-a'], [396, 16, 6, 5, 'hdb-mscp'], [404, 17, 4, 4, 'hdb-point-a'], [417, 17, 4, 4, 'hdb-point-b'],
+    [377, 27, 10, 4, 'hdb-slab-b'], [379, 32, 4, 4, 'hdb-point-a'], [396, 27, 10, 4, 'hdb-slab-a'], [416, 28, 4, 4, 'hdb-point-b'], [416, 33, 4, 4, 'hdb-point-a']] as const) bld(x, y, w, h, sp);
+  for (let y = 7; y < 10; y++) for (let x = 397; x < 403; x++) setT(x, y, G.RUBBER);
+  prop(400, 8, 'playground', 40, 'tall', 'over', 150);
+  for (const [x, y, sp, w] of [[379, 7, 'void-table', 84], [398, 22, 'void-table', 84], [386, 33, 'letterbox', 84], [404, 33, 'void-table', 84]] as const) prop(x, y, sp, 22, 'tall', 'over', w);
+  for (const [x, y] of [[388, 1], [407, 9], [421, 11], [377, 36], [386, 36], [399, 34], [407, 35], [421, 36]] as const) if (c.ground[y * W + x] === G.HDB) prop(x, y, 'tree-round', 22, 'tall');
+
+  // ── the parks west of Chinatown: trees on the lawns, clear of the roads and the river
+  const lawn = (x: number, y: number) => free(x, y) && c.ground[y * W + x] === G.GRASS && (c.flags[y * W + x] & F_PARK) > 0;
+  for (let y = 1; y < COAST_Y - 4; y += 3) for (let x = 5; x <= WEST_X1; x += 3) {
+    const tx = x + Math.floor(R() * 2), ty = y + Math.floor(R() * 2);
+    if (R() < 0.45) continue;
+    let ok = true; for (let dy = -1; dy <= 1 && ok; dy++) for (let dx = -1; dx <= 1; dx++) if (!lawn(tx + dx, ty + dy)) { ok = false; break; }
+    if (ok) prop(tx, ty, R() < 0.6 ? 'tree-round' : 'tree-frangipani', 22, 'tall');
+  }
 }
 
 // ── queries

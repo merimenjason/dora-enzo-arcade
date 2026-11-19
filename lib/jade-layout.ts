@@ -3,9 +3,15 @@
 // is an old tile rect and the new tile it lands at; a tile no block covers is filler (open sea) in the new world. Every
 // absolute world position in the game (the city's own, and the story's, gigs', businesses' and so on) goes through
 // mvT / mvP once, so a block can move without a hand edit anywhere else.
-// The live table is the identity: one block, the whole old world, mapped onto itself. A debug switch
-// (globalThis.__JADE_LAYOUT__ = 'shift' before the game's modules load) swaps in a table that moves every block by
-// +7 tiles east and +3 south, for the tests that prove each position goes through the table (tests/jade-layout.mjs).
+// The live table puts the districts where they are in Singapore: the main block (Chinatown, Sentosa below it, Toa
+// Payoh and Marina Bay, Little India and Kampong Glam, Katong and Changi) moves 100 columns east, and four districts the
+// build laid out east of Chinatown come out of it and go west: Orchard Road to the north-west, Clarke Quay below it,
+// Tiong Bahru below that (south-west of Chinatown) and Jurong far to the west. The tiles no block covers are filler,
+// laid in the new frame by lib/jade-city.ts (the seams: link roads, the Ayer Rajah Expressway, the Singapore River's
+// way out to the sea, parkland, and new HDB estates in Orchard's old place).
+// Two debug tables (globalThis.__JADE_LAYOUT__ before the game's modules load): 'zero', the identity (the old frame
+// itself, which the tests compare the real world with block by block), and 'shift', which moves every block by the same
+// +7 tiles east and +3 south (tests/jade-layout.mjs proves each position goes through the table).
 // A leaf module: it imports nothing, so lib/jade-city.ts and every pass can use it.
 
 /** the tile size in world units (also lib/jade-city.ts T) */
@@ -17,24 +23,35 @@ export const OLD_W = 376, OLD_H = 128;
 export type Block = { id: string; x0: number; y0: number; x1: number; y1: number; nx: number; ny: number };
 export type Layout = { blocks: Block[]; NW: number; NH: number };
 
-/** the live table: the whole old world onto itself (no visible change) */
+/** the identity: the whole old world onto itself */
 const ZERO: Layout = { blocks: [{ id: 'main', x0: 0, y0: 0, x1: OLD_W - 1, y1: OLD_H - 1, nx: 0, ny: 0 }], NW: OLD_W, NH: OLD_H };
-/** the test table: the five blocks the relayout will use, every one moved by the same +7, +3 (more specific blocks
- * first: a tile belongs to the first block that covers it) */
+/** the four blocks that leave the main block (more specific blocks first: a tile belongs to the first block that covers
+ * it). The south strip's three are its land rows only (96 to 125), split on the column between Zion Road and the
+ * Singapore River, so no road runs along a seam */
+const MOVED = [
+  { id: 'orchard', x0: 276, y0: 0, x1: 323, y1: 37 }, { id: 'jurong', x0: 194, y0: 96, x1: 241, y1: 125 },
+  { id: 'tiong', x0: 242, y0: 96, x1: 289, y1: 125 }, { id: 'quay', x0: 290, y0: 96, x1: 329, y1: 125 },
+];
+/** the real table (new-frame origins): Orchard Road north-west of Chinatown, Fort Canning Park between them (Orchard
+ * Boulevard runs on into Pagoda Street); Clarke Quay under Orchard (Clemenceau Avenue joins them; Eu Tong Sen Street runs
+ * on over the Singapore River into Keong Saik Road); Tiong Bahru under that, south-west of Smith Street, past the Ayer
+ * Rajah Expressway; Jurong at the west edge; the main block 100 columns east */
+const REAL_AT: Record<string, [number, number]> = { orchard: [36, 0], quay: [52, 44], tiong: [44, 78], jurong: [0, 44], main: [100, 0] };
+const REAL: Layout = {
+  blocks: [...MOVED, { id: 'main', x0: 0, y0: 0, x1: OLD_W - 1, y1: OLD_H - 1 }].map(b => ({ ...b, nx: REAL_AT[b.id][0], ny: REAL_AT[b.id][1] })),
+  NW: OLD_W + 100, NH: OLD_H,
+};
+/** the test table: the same five blocks, every one moved by the same +7, +3 */
 const SHIFT_X = 7, SHIFT_Y = 3;
 const SHIFT: Layout = {
-  blocks: [
-    { id: 'orchard', x0: 276, y0: 0, x1: 323, y1: 37 }, { id: 'jurong', x0: 194, y0: 92, x1: 241, y1: 127 },
-    { id: 'tiong', x0: 242, y0: 92, x1: 287, y1: 127 }, { id: 'quay', x0: 288, y0: 92, x1: 329, y1: 127 },
-    { id: 'main', x0: 0, y0: 0, x1: OLD_W - 1, y1: OLD_H - 1 },
-  ].map(b => ({ ...b, nx: b.x0 + SHIFT_X, ny: b.y0 + SHIFT_Y })),
+  blocks: [...MOVED, { id: 'main', x0: 0, y0: 0, x1: OLD_W - 1, y1: OLD_H - 1 }].map(b => ({ ...b, nx: b.x0 + SHIFT_X, ny: b.y0 + SHIFT_Y })),
   NW: OLD_W + SHIFT_X, NH: OLD_H + SHIFT_Y,
 };
 
 const mode = (globalThis as { __JADE_LAYOUT__?: string }).__JADE_LAYOUT__;
 /** the table in use */
-export const LAYOUT: Layout = mode === 'shift' ? SHIFT : ZERO;
-export const LAYOUT_MODE: 'zero' | 'shift' = mode === 'shift' ? 'shift' : 'zero';
+export const LAYOUT_MODE: 'real' | 'zero' | 'shift' = mode === 'shift' ? 'shift' : mode === 'zero' ? 'zero' : 'real';
+export const LAYOUT: Layout = LAYOUT_MODE === 'shift' ? SHIFT : LAYOUT_MODE === 'zero' ? ZERO : REAL;
 /** the new world's size in tiles */
 export const NW = LAYOUT.NW, NH = LAYOUT.NH;
 const BLOCKS = LAYOUT.blocks;
