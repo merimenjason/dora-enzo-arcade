@@ -91,6 +91,9 @@ function districtMap(): Uint8Array {
     const b = blockNew(x, y); if (!b) continue;
     let d = districtAtOld(x - b.nx + b.x0, y - b.ny + b.y0);
     if (b === MAIN && LAYOUT_MODE === 'real') d = d === 'orchard' ? 'katong' : d === 'jurong' || d === 'tiong' || d === 'quay' ? 'resort' : d;
+    // (a moved block is its own district throughout: Tiong Bahru's last two columns were built as Clarke Quay's, which sat
+    // next door then; now Clarke Quay is across the expressway)
+    else if (LAYOUT_MODE === 'real') d = b.id as District;
     m[y * W + x] = di(d); set[y * W + x] = 1; q.push(y * W + x);
   }
   // breadth first from every block tile; a filler tile west of the main block only from the moved blocks
