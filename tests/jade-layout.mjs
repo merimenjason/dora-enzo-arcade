@@ -133,7 +133,8 @@ if (process.argv.includes('--child')) {
   let seam = 0; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!unmvT(x, y)) seam++;
   assert.equal(seam, W * H - OLD_W * OLD_H, 'the blocks tile the old frame once over');
   // a placed thing moved with its block onto the same ground; its district is the identity's, but for the main block's
-  // tiles that were Orchard Road's or the south strip's (now Katong's estates and Sentosa's sea)
+  // tiles that were Orchard Road's or the south strip's (now Katong's estates and Sentosa's sea), and for a moved block,
+  // which is its own district throughout (Tiong Bahru's last two columns were built as Clarke Quay's)
   const REMAP = { orchard: 'katong', jurong: 'resort', tiong: 'resort', quay: 'resort' };
   let m = 0;
   const moved = (a, b, what) => {
@@ -141,7 +142,8 @@ if (process.argv.includes('--child')) {
     assert.deepEqual([b.tx, b.ty], mvT(a.tx, a.ty), `${what}: moved with its block`);
     if (a.x !== undefined) assert.deepEqual([b.x, b.y], mvP(a.x, a.y), `${what}: x, y`);
     assert.equal(b.g, a.g, `${what}: same ground`);
-    assert.ok(b.d === a.d || (blockOld(a.tx, a.ty).id === 'main' && b.d === REMAP[a.d]), `${what}: district ${a.d} -> ${b.d}`); m++;
+    const bo = blockOld(a.tx, a.ty).id;
+    assert.ok(b.d === a.d || (bo === 'main' ? b.d === REMAP[a.d] : b.d === bo), `${what}: district ${a.d} -> ${b.d}`); m++;
   };
   const r = facts();
   for (const id of Object.keys(z.places)) moved(z.places[id], r.places[id], `place ${id}`);
