@@ -14,6 +14,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Jade Street**: police roadblocks at three lanterns now land on the road ahead of you anywhere in the city; before, they checked the wrong tile and only ever appeared in Chinatown.
 - **Jade Street**: on a hired bike from Uncle Bala's rack, the partner now rides a second hired bike a length behind you instead of vanishing.
 
 ## 18-11-2026

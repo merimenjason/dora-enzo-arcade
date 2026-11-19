@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
-import { city, T, W, H, OW, S, G, F_ROOF, DISTRICTS, districtAt, passable } from '../.checks/jade-city.js';
+import { city, T, W, H, OW, S, G, F_ROOF, DISTRICTS, districtAt, passable, STREET_NAME } from '../.checks/jade-city.js';
 import { field, nearestFree, los } from '../.checks/jade-nav.js';
 import { VEHICLES, FOOT, drive, overlapping } from '../.checks/jade-move.js';
 import { GOODS, GOOD, midPrice, prices, buy, sell, capacity, haggleResult, haggleZone, cargoCount, emptyCargo, bestRoute, moveGoods } from '../.checks/jade-trade.js';
@@ -185,6 +185,24 @@ test('heat: lanterns bring wardens, roadblocks and the blimp; losing them, hidin
   assert.ok(Object.values(c.places).some(p => p.kind === 'safe' && Math.hypot(p.x - w3.p.x, p.y - w3.p.y) < 3 * T), 'at a safe house');
   // on the roofs nobody adds heat, and line of sight is blocked by buildings
   assert.equal(los(c, ...mvP(1 * T, 57 * T), ...mvP(1 * T, 70 * T)), false);
+});
+
+test('heat: a roadblock lands on the road ahead, in Chinatown and out east alike', () => {
+  // the road test once read the ground with Chinatown's old 120-tile width, so it looked at the wrong tile (and only
+  // in Chinatown); now any open district's road ahead of you can get one
+  for (const ri of [0, 25]) {
+    const road = ROADS[ri], at = road.at + 1, mid = Math.floor((road.from + road.to) / 2);
+    const w = world({ done: allDone }); w.s.settings.diff = 'normal';
+    const r = w.rides.find(r => r.kind === 'scooter' && !r.locked) ?? w.rides[0]; r.locked = false;
+    w.placePlayer((mid - 14) * T + 32, at * T + 32); r.b.x = w.p.b.x; r.b.y = w.p.b.y; r.b.h = 0; r.b.speed = 0;
+    w.enter(r); for (let i = 0; i < 30; i++) w.step(NO_INPUT, DT);
+    assert.equal(w.p.ride, r, 'riding');
+    addHeat(w, 3.05, 'test'); w.wardens = []; w.blocks = [];
+    for (let i = 0; i < 125 && !w.blocks.length; i++) { w.wardens = []; r.b.h = 0; w.step(NO_INPUT, DT); }
+    assert.ok(w.blocks.length > 0, `a roadblock on ${STREET_NAME[ri]}`);
+    const b = w.blocks[0], tx = Math.floor(b.x / T), ty = Math.floor(b.y / T);
+    assert.equal(c.ground[ty * W + tx], G.ROAD, `the roadblock on ${STREET_NAME[ri]} sits on the road`);
+  }
 });
 
 test('trading: prices, spreads, rep, tips, haggling, capacity, buying, selling and the stash', () => {
