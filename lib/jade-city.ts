@@ -6,7 +6,12 @@
 // the temple park, the docks and piers, flat-roof terraces you can run across, and every named place the story uses.
 // Ground (what is painted), solid (what blocks you) and flags (alley, stairs, roof, bridge) are separate layers.
 // Pure data and queries: no drawing here (lib/jade-scene.ts paints it).
+// Two frames: every pass builds in the old frame (OLD_W×OLD_H, the constants below, OLD_ROADS, districtAtOld), then
+// relayout() moves the built city block by block into the new frame (lib/jade-layout.ts) that the game plays in (W×H,
+// ROADS, districtAt, streetAt and every City position). Runtime code never compares a position with an old-frame
+// constant: it asks districtAt / unmvT, or moves the constant with mvT.
 import { rng } from './jade-rng.js';
+import { OLD_W, OLD_H, NW, NH, LAYOUT, blockNew, mvT, mvP, mvTRect, mvPLine, mvPP } from './jade-layout.js';
 import { remodel, type Path, type FestivalSpot } from './jade-remodel.js';
 import { sgCity, type SgCity } from './jade-sgcity.js';
 import { island, type Isle } from './jade-island.js';
@@ -15,7 +20,10 @@ import { far, type Far } from './jade-far.js';
 import { south, type South } from './jade-south.js';
 
 export const T = 64;
-export const W = 376, H = 128;
+/** the world you play in, in tiles (the new frame: lib/jade-layout.ts) */
+export const W = NW, H = NH;
+export { OLD_W, OLD_H };
+// ── the old frame: where each pass first laid its districts out (build time only; see the note at the top)
 /** Chinatown's width: the original quarter, built first and never moved */
 export const OW = 120;
 /** the first island's height (Chinatown, Toa Payoh and Marina Bay are rows 0 to 91; Sentosa lies south of it) */
@@ -30,6 +38,7 @@ export const FAR_X0 = 276, FAR_SPLIT = 38, CHANGI_X0 = 324, FAR_X1 = 371;
 /** the fourteenth pass: south of Kampong Glam over the water, rows 96 to 125: Jurong (columns 198 to 241), Tiong Bahru
  * (242 to 287) and Clarke Quay (288 to 329) */
 export const SOUTH_X0 = 198, SOUTH_X1 = 329, SOUTH_Y0 = 96, SOUTH_Y1 = 125, TIONG_X0 = 242, QUAY_X0 = 288;
+/** the world you play in, in world units (the new frame) */
 export const WORLD_W = W * T, WORLD_H = H * T;
 
 export const G = { SEA: 0, CANAL: 1, ROAD: 2, WALK: 3, PLAZA: 4, GRASS: 5, DOCK: 6, PLANK: 7, TEMPLE: 8, NEON: 9, PATH: 10, COBBLE: 11, BRIDGE: 12, STAIRS: 13, BLD: 14,
@@ -58,7 +67,14 @@ export const DISTRICTS: District[] = [...CT_DISTRICTS, 'heartland', 'bay', 'indi
 export const DISTRICT_NAME: Record<District, string> = { market: 'Smith Street', temple: 'Temple Street', canal: 'Boat Quay', docks: 'the Tanjong Pagar Docks', arcade: 'Club Street', heartland: 'Toa Payoh', bay: 'Marina Bay', india: 'Little India', glam: 'Kampong Glam', resort: 'Sentosa', orchard: 'Orchard Road', katong: 'Katong', changi: 'Changi', tiong: 'Tiong Bahru', quay: 'Clarke Quay', jurong: 'Jurong' };
 /** the row where the heartlands end and the bay front begins (the Pan Island Expressway runs along it) */
 export const ISLE_SPLIT = 38;
+const MAIN = LAYOUT.blocks[LAYOUT.blocks.length - 1];
+/** the district at a new-frame tile (filler tiles take the main block's) */
 export function districtAt(tx: number, ty: number): District {
+  const b = blockNew(tx, ty) ?? MAIN;
+  return districtAtOld(tx - b.nx + b.x0, ty - b.ny + b.y0);
+}
+/** the district at an old-frame tile (the build passes) */
+export function districtAtOld(tx: number, ty: number): District {
   // Sentosa and the harbour round it are the south; Little India and Kampong Glam the far side of the Rochor River
   if (ty >= CT_H) return tx >= SOUTH_X0 - 4 && tx <= SOUTH_X1 + 1 ? (tx >= QUAY_X0 ? 'quay' : tx >= TIONG_X0 ? 'tiong' : 'jurong') : 'resort';
   // past the Geylang River: Orchard Road north, Katong south, Changi to the east
@@ -104,7 +120,8 @@ export const CT_ROADS: Road[] = [
 ];
 /** the island's east edge for roads (the east coast is beyond) */
 export const ISLE_X1 = 207;
-export const ROADS: Road[] = [
+/** the road plan in the old frame (the build passes); ROADS below is the same list in the new frame, same indices */
+export const OLD_ROADS: Road[] = [
   ...CT_ROADS.map((r, i) => i === 0 || i === 2 || i === 3 || i === 4 ? { ...r, to: EAST_X1 } : i === 1 ? { ...r, to: 125 } : i === 10 ? { ...r, to: 115 } : { ...r }),
   // 12-14: the Central Expressway (north to south), the Pan Island Expressway and the East Coast Parkway (over the bay mouth)
   { axis: 'v', at: 122, from: 0, to: 81 }, { axis: 'h', at: 36, from: 122, to: ISLE_X1 }, { axis: 'h', at: 78, from: 122, to: ISLE_X1 },
@@ -127,7 +144,17 @@ export const ROADS: Road[] = [
   { axis: 'h', at: 103, from: SOUTH_X0, to: QUAY_X0 + 1 }, { axis: 'h', at: 114, from: 224, to: SOUTH_X1 },
   { axis: 'v', at: 224, from: 82, to: SOUTH_Y1 }, { axis: 'v', at: 244, from: 82, to: SOUTH_Y1 }, { axis: 'v', at: 266, from: SOUTH_Y0, to: SOUTH_Y1 }, { axis: 'v', at: 286, from: SOUTH_Y0, to: SOUTH_Y1 }, { axis: 'v', at: 308, from: SOUTH_Y0, to: SOUTH_Y1 },
 ];
-const ALL_ROADS = ROADS;
+const ALL_ROADS = OLD_ROADS;
+/** a road moves with the block its start is in; one that would tear across blocks moving by different amounts can't be
+ * a single road any more (the relayout has to split it, and renumber XWAYS, the lights and the street names) */
+function mvRoad(r: Road, i: number): Road {
+  const [fx, fy] = r.axis === 'h' ? [r.from, r.at] : [r.at, r.from], [tx, ty] = r.axis === 'h' ? [r.to, r.at + 3] : [r.at + 3, r.to];
+  const [nfx, nfy] = mvT(fx, fy), [ntx, nty] = mvT(tx, ty);
+  if (ntx - tx !== nfx - fx || nty - ty !== nfy - fy) throw new Error(`jade-layout: road ${i} spans blocks that move apart`);
+  return r.axis === 'h' ? { axis: 'h', at: nfy, from: nfx, to: r.to + nfx - fx } : { axis: 'v', at: nfx, from: nfy, to: r.to + nfy - fy };
+}
+/** the road plan in the new frame (what traffic, the map, the street names and the townsfolk use) */
+export const ROADS: Road[] = OLD_ROADS.map(mvRoad);
 /** expressways: faster lanes, no townsfolk, no lights, gantries */
 export const XWAYS = [12, 13, 14, 32];
 /** real public street names of Singapore's Chinatown and the river, one per road above (no brands) */
@@ -148,10 +175,14 @@ const ISLE_STREET: [number, number, string][] = [[0, EAST_X0 - 4, 'Syed Alwi Roa
 const ISLE_NORTH: Record<number, string> = { 15: 'Lorong 4 Toa Payoh', 16: 'Toa Payoh East', 17: 'Lorong 8 Toa Payoh' };
 /** Kampong Glam's names for the roads that run on south out of Little India (real public road names) */
 const GLAM_SOUTH: Record<number, string> = { 18: 'Beach Road', 19: 'North Bridge Road', 20: 'Kandahar Street' };
-/** the street a tile is on (null off the roads) */
+/** the street a new-frame tile is on (null off the roads and on filler) */
 export function streetAt(tx: number, ty: number): string | null {
-  for (let i = 0; i < ROADS.length; i++) {
-    const r = ROADS[i];
+  const b = blockNew(tx, ty);
+  return b ? streetAtOld(tx - b.nx + b.x0, ty - b.ny + b.y0) : null;
+}
+function streetAtOld(tx: number, ty: number): string | null {
+  for (let i = 0; i < OLD_ROADS.length; i++) {
+    const r = OLD_ROADS[i];
     if (r.axis === 'h' ? ty >= r.at && ty < r.at + 4 && tx >= r.from && tx <= r.to : tx >= r.at && tx < r.at + 4 && ty >= r.from && ty <= r.to) {
       if (i < 12 && tx >= OW) { let n = STREET_NAME[i]; for (const [k, from, name] of ISLE_STREET) if (k === i && tx >= from) { n = name; break; } return n; }
       if (ISLE_NORTH[i] && ty < ISLE_SPLIT) return ISLE_NORTH[i];
@@ -165,15 +196,19 @@ export function streetAt(tx: number, ty: number): string | null {
   }
   return null;
 }
-/** is tile (tx,ty) on an expressway (lanes or verge) */
+/** is new-frame tile (tx,ty) on an expressway (lanes or verge) */
 export function xwayAt(tx: number, ty: number): boolean {
-  for (const i of XWAYS) { const r = ROADS[i]; if (r.axis === 'h' ? ty >= r.at && ty < r.at + 4 && tx >= r.from && tx <= r.to : tx >= r.at && tx < r.at + 4 && ty >= r.from && ty <= r.to) return true; }
+  const b = blockNew(tx, ty);
+  if (!b) return false;
+  tx = tx - b.nx + b.x0; ty = ty - b.ny + b.y0;
+  for (const i of XWAYS) { const r = OLD_ROADS[i]; if (r.axis === 'h' ? ty >= r.at && ty < r.at + 4 && tx >= r.from && tx <= r.to : tx >= r.at && tx < r.at + 4 && ty >= r.from && ty <= r.to) return true; }
   return false;
 }
 const CANAL_X0 = 66, CANAL_X1 = 68, SEA_Y = 82;
 
 let CACHE: City | null = null;
-export function city(): City { if (!CACHE) { CACHE = build(); remodel(CACHE); dressBuildings(CACHE); sgCity(CACHE); island(CACHE); east(CACHE); far(CACHE); backLanes(CACHE); south(CACHE); } return CACHE; }
+/** the city in the new frame: every pass runs in the old frame, then relayout() moves the result */
+export function city(): City { if (!CACHE) { const c = build(); remodel(c); dressBuildings(c); sgCity(c); island(c); east(c); far(c); backLanes(c); south(c); CACHE = relayout(c); } return CACHE; }
 
 const SIDEWALK: Record<District, G> = { market: G.WALK, temple: G.TEMPLE, canal: G.COBBLE, docks: G.DOCK, arcade: G.NEON, heartland: G.HDB, bay: G.GRANITE, india: G.INDIA, glam: G.GLAM, resort: G.RESORT, orchard: G.ORCHARD, katong: G.KATONG, changi: G.CHANGI, tiong: G.TIONG, quay: G.QUAY, jurong: G.JURONG };
 const FRONTS: Record<District, string[]> = {
@@ -194,16 +229,16 @@ function build(): City {
   // Chinatown is built in its own frame (the first 120 columns) with its first road plan and its first random draws, so
   // nothing in it moves; the island east of it is left to lib/jade-island.ts
   const ROADS = CT_ROADS, DISTRICTS = CT_DISTRICTS;
-  const N = W * H;
+  const N = OLD_W * OLD_H;
   const ground = new Uint8Array(N).fill(G.BLD), solid = new Uint8Array(N).fill(S.BUILDING), flags = new Uint8Array(N);
   const reserved = new Uint8Array(N); // cells taken by plans before the block filler runs
   const buildings: Building[] = [], props: Prop[] = [], decals: Prop[] = [];
   const places: Record<string, Place> = {};
   const ladders: City['ladders'] = [], hides: City['hides'] = [], parking: City['parking'] = [];
   const R = rng(20261114);
-  const at = (x: number, y: number) => y * W + x;
-  const inb = (x: number, y: number) => x >= 0 && y >= 0 && x < OW && y < H;
-  for (let y = 0; y < H; y++) for (let x = OW; x < W; x++) reserved[at(x, y)] = 1;
+  const at = (x: number, y: number) => y * OLD_W + x;
+  const inb = (x: number, y: number) => x >= 0 && y >= 0 && x < OW && y < OLD_H;
+  for (let y = 0; y < OLD_H; y++) for (let x = OW; x < OLD_W; x++) reserved[at(x, y)] = 1;
   const set = (x: number, y: number, g: G, s: S = S.OPEN, f = 0) => { if (!inb(x, y)) return; const i = at(x, y); ground[i] = g; solid[i] = s; flags[i] = f; reserved[i] = 1; };
   const rect = (x0: number, y0: number, w: number, h: number, g: G, s: S = S.OPEN, f = 0) => { for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) set(x, y, g, s, f); };
   const prop = (x: number, y: number, sprite: string, r: number, solidKind: Prop['solid'], layer: Prop['layer'] = 'ground', extra: Partial<Prop> = {}) => (solidKind === 'low' && (solid[at(x, y)] = S.LOW), props.push({ x: x * T + T / 2, y: y * T + T / 2, sprite, r, solid: solidKind, layer, ...extra }));
@@ -211,10 +246,10 @@ function build(): City {
     for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) { const i = at(xx, yy); ground[i] = G.BLD; solid[i] = S.BUILDING; flags[i] = roof ? F_ROOF : 0; reserved[i] = 1; }
     buildings.push({ x, y, w, h, sprite, front, roof });
   };
-  const place = (name: string, x: number, y: number, kind: string, label?: string) => { places[name] = { x: x * T + T / 2, y: y * T + T / 2, d: districtAt(x, y), kind, name: label }; };
+  const place = (name: string, x: number, y: number, kind: string, label?: string) => { places[name] = { x: x * T + T / 2, y: y * T + T / 2, d: districtAtOld(x, y), kind, name: label }; };
 
   // ── water: the harbour along the south and the canal running down to it
-  rect(0, SEA_Y, OW, H - SEA_Y, G.SEA, S.WATER);
+  rect(0, SEA_Y, OW, OLD_H - SEA_Y, G.SEA, S.WATER);
   rect(CANAL_X0, 0, CANAL_X1 - CANAL_X0 + 1, SEA_Y, G.CANAL, S.WATER);
   rect(64, 0, 2, SEA_Y, G.COBBLE); rect(69, 0, 2, SEA_Y, G.COBBLE); // canal promenades
 
@@ -223,7 +258,7 @@ function build(): City {
     const x = r.axis === 'h' ? s : r.at + k, y = r.axis === 'h' ? r.at + k : s;
     if (ground[at(x, y)] === G.ROAD) continue;
     const water = x >= CANAL_X0 && x <= CANAL_X1 && y < SEA_Y;
-    set(x, y, water ? G.BRIDGE : SIDEWALK[districtAt(x, y)], S.OPEN, water ? F_BRIDGE : 0);
+    set(x, y, water ? G.BRIDGE : SIDEWALK[districtAtOld(x, y)], S.OPEN, water ? F_BRIDGE : 0);
   }
   for (const r of ROADS) for (let s = r.from; s <= r.to; s++) for (let k = 1; k < 3; k++) {
     const x = r.axis === 'h' ? s : r.at + k, y = r.axis === 'h' ? r.at + k : s;
@@ -323,7 +358,7 @@ function build(): City {
         if (!inb(x, y) || solid[at(x, y)] !== S.OPEN || flags[at(x, y)] & F_BRIDGE) continue;
         if (crossing(x, y)) continue;
         const roll = R();
-        const d = districtAt(x, y);
+        const d = districtAtOld(x, y);
         const kind = roll < 0.42 ? 'scooter' : roll < 0.6 ? 'trishaw' : roll < 0.8 ? 'tuktuk' : 'van';
         const rot = r.axis === 'h' ? (k === 0 ? -Math.PI / 2 : Math.PI / 2) : (k === 0 ? 0 : Math.PI);
         parking.push({ x: x * T + T / 2, y: y * T + T / 2, d, kind, rot });
@@ -332,7 +367,7 @@ function build(): City {
   }
   // boats at the canal jetties and the ferry
   // (moored against the bank or a pier, so you can step aboard from dry land)
-  for (const [x, y, rot] of [[66, 24, 1], [66, 44, 1], [66, 60, 1], [66, 77, 1], [12, 88, 0], [9, 85, 1], [99, 85, 1], [104, 86, 1]] as const) parking.push({ x: x * T + T / 2, y: y * T + T / 2, d: districtAt(x, y), kind: 'boat', rot: rot * Math.PI / 2 });
+  for (const [x, y, rot] of [[66, 24, 1], [66, 44, 1], [66, 60, 1], [66, 77, 1], [12, 88, 0], [9, 85, 1], [99, 85, 1], [104, 86, 1]] as const) parking.push({ x: x * T + T / 2, y: y * T + T / 2, d: districtAtOld(x, y), kind: 'boat', rot: rot * Math.PI / 2 });
 
   // ── street dressing: lamps on the kerbs, lantern strings over the market streets, zebra crossings, manholes
   for (const r of ROADS) for (let s = r.from + 2; s <= r.to - 2; s += 5) for (const k of [0, 3]) {
@@ -350,7 +385,7 @@ function build(): City {
   for (const r of ROADS) {
     if (r.axis !== 'h') continue;
     for (let s = r.from + 4; s <= r.to - 4; s += 9) {
-      const d = districtAt(s, r.at);
+      const d = districtAtOld(s, r.at);
       if (s >= 63 && s <= 71) continue;
       props.push({ x: s * T + T / 2, y: (r.at + 2) * T, sprite: d === 'arcade' ? 'lanterns-gold' : 'lanterns-red', r: 0, solid: 'none', layer: 'sky', w: 4.4 * T, rot: Math.PI / 2 });
     }
@@ -387,7 +422,7 @@ function build(): City {
     if (solid[at(x, y - 1)] === S.BUILDING && !(flags[at(x, y - 1)] & F_ROOF)) quiet.push([x, y]);
   }
   const taken = new Set<number>();
-  const far = (x: number, y: number, d: number) => { for (const k of taken) { const kx = k % W, ky = Math.floor(k / W); if (Math.abs(kx - x) < d && Math.abs(ky - y) < d) return false; } return true; };
+  const far = (x: number, y: number, d: number) => { for (const k of taken) { const kx = k % OLD_W, ky = Math.floor(k / OLD_W); if (Math.abs(kx - x) < d && Math.abs(ky - y) < d) return false; } return true; };
   const pick = (want: number, d: number, filter: (x: number, y: number) => boolean) => {
     const out: [number, number][] = [];
     const pool = quiet.filter(([x, y]) => filter(x, y));
@@ -399,14 +434,14 @@ function build(): City {
     return out;
   };
   const isPlaceNear = (x: number, y: number) => Object.values(places).some(p => Math.abs(p.x / T - 0.5 - x) < 2 && Math.abs(p.y / T - 0.5 - y) < 2) || parking.some(p => Math.abs(p.x / T - 0.5 - x) < 1.5 && Math.abs(p.y / T - 0.5 - y) < 1.5);
-  for (const d of DISTRICTS) for (const [x, y] of [...pick(5, 5, (x, y) => districtAt(x, y) === d && (flags[at(x, y)] & F_ALLEY) > 0), ...pick(2, 5, (x, y) => districtAt(x, y) === d && ground[at(x, y)] !== G.ROAD)].slice(0, 7)) {
+  for (const d of DISTRICTS) for (const [x, y] of [...pick(5, 5, (x, y) => districtAtOld(x, y) === d && (flags[at(x, y)] & F_ALLEY) > 0), ...pick(2, 5, (x, y) => districtAtOld(x, y) === d && ground[at(x, y)] !== G.ROAD)].slice(0, 7)) {
     hides.push({ x: x * T + T / 2, y: y * T + T / 2 }); props.push({ x: x * T + T / 2, y: y * T + 14, sprite: R() < 0.55 ? 'curtain' : 'basket', r: 0, solid: 'none', layer: 'ground' });
   }
   let m = 0;
-  for (const d of DISTRICTS) for (const [x, y] of pick(3, 6, (x, y) => districtAt(x, y) === d && ground[at(x, y)] !== G.ROAD)) {
+  for (const d of DISTRICTS) for (const [x, y] of pick(3, 6, (x, y) => districtAtOld(x, y) === d && ground[at(x, y)] !== G.ROAD)) {
     murals.push({ id: 'mural-' + (++m), x: x * T + T / 2, y: y * T + 10 });
   }
-  for (const d of DISTRICTS) for (const [x, y] of pick(8, 3, (x, y) => districtAt(x, y) === d && solid[at(x, y)] === S.OPEN)) cats.push({ x: x * T + T / 2, y: y * T + T / 2 });
+  for (const d of DISTRICTS) for (const [x, y] of pick(8, 3, (x, y) => districtAtOld(x, y) === d && solid[at(x, y)] === S.OPEN)) cats.push({ x: x * T + T / 2, y: y * T + T / 2 });
   // the rest of the 50 cats sit in odd corners: rooftops, pier ends, the park
   const odd: [number, number][] = [[95, 35], [103, 43], [99, 39], [1, 67], [5, 79], [2, 2], [40, 1], [12, 5], [102, 88], [49, 88]];
   for (const [x, y] of odd) cats.push({ x: x * T + T / 2, y: y * T + T / 2 });
@@ -427,7 +462,7 @@ function build(): City {
     return h && v;
   }
   function fillBlock(b: { x: number; y: number; w: number; h: number }) {
-    const d = districtAt(b.x, b.y);
+    const d = districtAtOld(b.x, b.y);
     const yardG = d === 'market' ? G.WALK : d === 'temple' ? G.TEMPLE : d === 'canal' ? G.COBBLE : d === 'docks' ? G.DOCK : G.NEON;
     const free = (x: number, y: number) => inb(x, y) && !reserved[at(x, y)] && ground[at(x, y)] === G.BLD;
     // alleys: a one-tile lane through wide blocks (foot and scooters only), sometimes a cross lane
@@ -458,9 +493,9 @@ function dressBuildings(c: City) {
     if (b.sprite) continue;
     const below = b.y + b.h;
     let open = 0;
-    for (let x = b.x; x < b.x + b.w; x++) if (below < H && c.solid[below * W + x] !== S.BUILDING) open++;
+    for (let x = b.x; x < b.x + b.w; x++) if (below < OLD_H && c.solid[below * OLD_W + x] !== S.BUILDING) open++;
     b.front = open >= 2;
-    const d = districtAt(b.x, b.y);
+    const d = districtAtOld(b.x, b.y);
     const list = b.front ? FRONTS[d] : ROOFS[d];
     // never the same picture as a building touching this one
     const near = new Set(c.buildings.filter(o => o !== b && o.sprite && o.x <= b.x + b.w && o.x + o.w >= b.x && o.y <= b.y + b.h && o.y + o.h >= b.y).map(o => o.sprite));
@@ -470,23 +505,74 @@ function dressBuildings(c: City) {
   }
 }
 function findBlocks(ground: Uint8Array, reserved: Uint8Array) {
-  const seen = new Uint8Array(W * H); const out: { x: number; y: number; w: number; h: number }[] = [];
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const i = y * W + x;
+  const seen = new Uint8Array(OLD_W * OLD_H); const out: { x: number; y: number; w: number; h: number }[] = [];
+  for (let y = 0; y < OLD_H; y++) for (let x = 0; x < OLD_W; x++) {
+    const i = y * OLD_W + x;
     if (seen[i] || reserved[i] || ground[i] !== G.BLD) continue;
     // flood the connected unreserved region and take its bounding box
     let x0 = x, x1 = x, y0 = y, y1 = y; const st = [i]; seen[i] = 1;
     while (st.length) {
-      const j = st.pop()!; const jx = j % W, jy = (j - jx) / W;
+      const j = st.pop()!; const jx = j % OLD_W, jy = (j - jx) / OLD_W;
       x0 = Math.min(x0, jx); x1 = Math.max(x1, jx); y0 = Math.min(y0, jy); y1 = Math.max(y1, jy);
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        const nx = jx + dx, ny = jy + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
-        const k = ny * W + nx; if (seen[k] || reserved[k] || ground[k] !== G.BLD) continue; seen[k] = 1; st.push(k);
+        const nx = jx + dx, ny = jy + dy; if (nx < 0 || ny < 0 || nx >= OLD_W || ny >= OLD_H) continue;
+        const k = ny * OLD_W + nx; if (seen[k] || reserved[k] || ground[k] !== G.BLD) continue; seen[k] = 1; st.push(k);
       }
     }
     out.push({ x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 });
   }
   return out;
+}
+
+// ── the relayout: the built city (old frame) into the world you play in (new frame)
+/** a world position, a tile position and a tile rect {x, y, w, h} move with the block under them; sizes, radii,
+ * lengths and rotations stay */
+const mvXY = <O extends { x: number; y: number }>(o: O): O => { const [x, y] = mvP(o.x, o.y); return { ...o, x, y }; };
+const mvTXY = <O extends { x: number; y: number }>(o: O): O => { const [x, y] = mvT(o.x, o.y); return { ...o, x, y }; };
+/** a per-tile layer, copied tile by tile; filler is `fill` */
+function mvLayer(a: Uint8Array, fill: number): Uint8Array {
+  const out = new Uint8Array(W * H).fill(fill);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const b = blockNew(x, y); if (!b) continue;
+    out[y * W + x] = a[(y - b.ny + b.y0) * OLD_W + (x - b.nx + b.x0)];
+  }
+  return out;
+}
+function relayout(c: City): City {
+  const n: City = {
+    ground: mvLayer(c.ground, G.SEA), solid: mvLayer(c.solid, S.WATER), flags: mvLayer(c.flags, 0),
+    buildings: c.buildings.map(mvTXY), props: c.props.map(mvXY), roads: ROADS, decals: c.decals.map(mvXY),
+    places: Object.fromEntries(Object.entries(c.places).map(([k, p]) => [k, mvXY(p)])),
+    cats: c.cats.map(mvXY), murals: c.murals.map(mvXY), hides: c.hides.map(mvXY), parking: c.parking.map(mvXY),
+    // a ladder's foot (x, y) and the roof tile it reaches (rx, ry) are tiles; they move together, with the foot
+    ladders: c.ladders.map(l => { const [x, y] = mvT(l.x, l.y); return { x, y, rx: l.rx + x - l.x, ry: l.ry + y - l.y }; }),
+    paths: c.paths.map(p => ({ ...p, pts: mvPLine(p.pts) })), tables: c.tables.map(mvXY), festival: c.festival.map(mvXY),
+  };
+  if (c.sg) { const g = c.sg, [hx, hy] = mvT(g.hawker.x0, g.hawker.y0);
+    n.sg = { ...g, fivefoot: mvLayer(g.fivefoot, 0), hawker: { x0: hx, y0: hy, x1: g.hawker.x1 + hx - g.hawker.x0, y1: g.hawker.y1 + hy - g.hawker.y0 },
+      tables: g.tables.map(mvXY), kopi: mvPP(g.kopi),
+      // a gantry knows its world position and the road tile it stands over
+      gantries: g.gantries.map(q => { const [x, y] = mvP(q.x, q.y), [tx, ty] = mvT(q.tx, q.ty); return { ...q, x, y, tx, ty }; }),
+      pigeons: g.pigeons.map(mvPP), bins: g.bins.map(mvPP), gum: g.gum.map(mvPP), round: mvPLine(g.round), junk: g.junk.map(mvPP),
+      chess: mvPP(g.chess), mama: mvPP(g.mama), getai: mvPP(g.getai), jetties: g.jetties.map(mvPP), silver: g.silver.map(mvTRect) }; }
+  if (c.isle) { const i = c.isle, h = i.hideouts;
+    // the MRT line is abstract (trains run along it between stations) but its points are world positions; lineLen and
+    // visFrom are distances along it and stay
+    n.isle = { ...i, rail: mvPLine(i.rail), line: i.line.map(mvPP), stations: i.stations.map(mvXY), taxiStands: i.taxiStands.map(mvPP),
+      hideouts: Object.fromEntries(Object.entries(h).map(([k, v]) => [k, mvPP(v)])) as typeof h, stage: mvTRect(i.stage) }; }
+  if (c.east) { const e = c.east;
+    const link = (l: typeof e.cable): typeof e.cable => ({ ...l, stops: [mvXY(l.stops[0]), mvXY(l.stops[1])], path: mvPLine(l.path) });
+    n.east = { ...e, cable: link(e.cable), ferry: link(e.ferry), pylons: e.pylons.map(mvPP), arch: mvPP(e.arch), lamps: e.lamps.map(mvPP),
+      kolams: e.kolams.map(mvPP), bazaar: e.bazaar.map(mvPP), pelita: e.pelita.map(mvPP), beach: e.beach.map(mvPP), chairs: e.chairs.map(mvPP) }; }
+  if (c.far) { const f = c.far;
+    n.far = { ...f, arches: f.arches.map(mvPP), lights: f.lights.map(mvPP), trees: f.trees.map(mvPP), vortex: mvPP(f.vortex), jewel: mvTRect(f.jewel),
+      track: mvPLine(f.track), bikes: f.bikes.map(mvPP), kites: f.kites.map(mvPP), bbq: f.bbq.map(mvPP), spots: f.spots.map(mvPP),
+      planes: f.planes.map(mvPP), roost: mvPP(f.roost) }; }
+  if (c.south) { const o = c.south, [lx, ly] = mvP(o.lake[0], o.lake[1]);
+    n.south = { ...o, canopy: o.canopy.map(mvPP), sling: mvPP(o.sling), stage: mvPP(o.stage), birds: mvPP(o.birds), kueh: mvPP(o.kueh),
+      lake: [lx, ly, o.lake[2], o.lake[3]], koi: o.koi.map(mvPP), scope: mvPP(o.scope), lanterns: o.lanterns.map(mvPP), lotus: o.lotus.map(mvPP),
+      walk: [mvPP(o.walk[0]), mvPP(o.walk[1])] }; }
+  return n;
 }
 
 // ── queries

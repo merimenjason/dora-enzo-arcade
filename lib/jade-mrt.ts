@@ -5,6 +5,7 @@
 // station, pay the fare, and a short ride view plays (skippable) while you and your partner travel. A durian on the
 // train is a fine, and the wardens lose you underground. No DOM; deterministic.
 import { T, districtAt, SOUTH_Y0 } from './jade-city.js';
+import { mvP, unmvP } from './jade-layout.js';
 import type { Isle, Station } from './jade-island.js';
 import { nearestFree } from './jade-nav.js';
 import { dist } from './jade-rng.js';
@@ -112,12 +113,14 @@ export const RIDE_SECS = { mrt: 8, cable: 9, ferry: 6 } as const;
 export const TRAVEL_MIN = 25, TRAVEL_SAVE = 0.35;
 /** the south shore (Jurong, Tiong Bahru, Clarke Quay) is reached on foot only over the two long bridges from Kampong
  * Glam (columns 224 and 244), so a walk across the water is measured round by the nearer bridge, not straight over it */
-const SOUTH_D = new Set(['tiong', 'quay', 'jurong']), BRIDGES = [226, 246], BRIDGE_N = 81;
-const isSouth = (x: number, y: number) => SOUTH_D.has(districtAt(Math.floor(x / T), Math.floor(y / T))) && y >= (SOUTH_Y0 - 1) * T;
+const SOUTH_D = new Set(['tiong', 'quay', 'jurong']), BRIDGE_N = 81;
+/** each bridge's north and south ends (world units; old-frame columns 226 and 246 moved through the layout table) */
+const BRIDGES = [226, 246].map(bx => [mvP(bx * T, BRIDGE_N * T), mvP(bx * T, SOUTH_Y0 * T)] as const);
+const isSouth = (x: number, y: number) => SOUTH_D.has(districtAt(Math.floor(x / T), Math.floor(y / T))) && (unmvP(x, y)?.[1] ?? 0) >= (SOUTH_Y0 - 1) * T;
 export function walkDist(x: number, y: number, tx: number, ty: number): number {
   const a = isSouth(x, y), b = isSouth(tx, ty); if (a === b) return dist(x, y, tx, ty);
   const [nx, ny, sx, sy] = a ? [tx, ty, x, y] : [x, y, tx, ty];
-  return Math.min(...BRIDGES.map(bx => dist(nx, ny, bx * T, BRIDGE_N * T) + (SOUTH_Y0 - BRIDGE_N) * T + dist(bx * T, SOUTH_Y0 * T, sx, sy)));
+  return Math.min(...BRIDGES.map(([n, s]) => dist(nx, ny, n[0], n[1]) + (SOUTH_Y0 - BRIDGE_N) * T + dist(s[0], s[1], sx, sy)));
 }
 /** the quickest way from (x, y) to (tx, ty): a ride when it saves enough time, else null (walk) */
 export function travelPlan(w: World, tx: number, ty: number, x = w.p.x, y = w.p.y): Travel | null {

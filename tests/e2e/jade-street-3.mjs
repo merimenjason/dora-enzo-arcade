@@ -66,7 +66,7 @@ export async function third(h) {
   // (climbing off, cheering) and the hero still knocked about by a sign, and any of those hides every F move, so the
   // offer sometimes never came. Both heroes now start the step on the roof together with nothing in hand)
   await until(() => !window.__jade.artWait(), null, 20000); // (the paintings for where the float is, if they were not in)
-  await W(() => { const J = window.__jade; J.enterStep(J.stepOf('float')); const w = J.world(); if (w.p.ride) { w.p.ride.parked = true; w.p.ride = null; } w.two = false; w.p.act = null; w.p.hide = false; w.p.stunT = 0; w.p.roof = true; w.p.b.x = 103 * 64 + 32; w.p.b.y = 34 * 64 + 12; w.p.lastRoof = [w.p.b.x, w.p.b.y]; w.regroup(); w.mate.b.x = w.p.b.x + 40; w.mate.b.y = w.p.b.y; w.mate.lastRoof = [w.mate.b.x, w.mate.b.y]; w.talk = null; w.ui = null; });
+  await W(() => { const J = window.__jade; J.enterStep(J.stepOf('float')); const w = J.world(); if (w.p.ride) { w.p.ride.parked = true; w.p.ride = null; } w.two = false; w.p.act = null; w.p.hide = false; w.p.stunT = 0; w.p.roof = true; [w.p.b.x, w.p.b.y] = window.__jade.layout.mvP(103 * 64 + 32, 34 * 64 + 12); w.p.lastRoof = [w.p.b.x, w.p.b.y]; w.regroup(); w.mate.b.x = w.p.b.x + 40; w.mate.b.y = w.p.b.y; w.mate.lastRoof = [w.mate.b.x, w.mate.b.y]; w.talk = null; w.ui = null; });
   // the float only swings in once the partner hauls the bunting rope: F sends them
   const rope = await until(() => window.__jade.duo().tag === 'hold', null, 3000);
   check(rope, `${name}: F offers the bunting rope` + (rope ? '' : ' ' + await W(() => JSON.stringify({ duo: window.__jade.duo(), wait: window.__jade.artWait(), paused: window.__jade.play.paused }))));
@@ -80,7 +80,7 @@ export async function third(h) {
   await W(() => window.__jade.world().quitJob()); await settle();
 
   // ── businesses: buy, upgrade, collect at the stall and at a safe house
-  await W(() => { const w = window.__jade.world(); w.s.biz.noodle = { lvl: 0, bank: 0, tonight: 0, hist: [], raids: 0, defended: 0 }; w.placePlayer(39 * 64 + 32, 68 * 64 + 32 + 40); w.findNear(); });
+  await W(() => { const w = window.__jade.world(); w.s.biz.noodle = { lvl: 0, bank: 0, tonight: 0, hist: [], raids: 0, defended: 0 }; w.placePlayer(...window.__jade.layout.mvP(39 * 64 + 32, 68 * 64 + 32 + 40)); w.findNear(); });
   check(await until(() => window.__jade.world().near?.kind === 'biz', null, 2000), `${name}: the stall offers a stake`);
   await act(); check(await appear('biz'), `${name}: the stall panel opens`); await look('business stall');
   await press('biz-buy'); check(await W(() => window.__jade.world().s.biz.noodle.lvl === 1), `${name}: buy a stake`);
@@ -107,7 +107,7 @@ export async function third(h) {
   // ── a crow raid: get there, then dash into the crows
   await W(() => { window.__jade.world().s.biz.noodle.bank = 150; window.__jade.raid('noodle'); });
   check(await W(() => window.__jade.run()?.t === 'goto' && /raid/i.test(window.__jade.run().id)), `${name}: a raid starts a defend job`);
-  await W(() => window.__jade.world().placePlayer(39 * 64 + 32, 70 * 64 + 32));
+  await W(() => window.__jade.world().placePlayer(...window.__jade.layout.mvP(39 * 64 + 32, 70 * 64 + 32)));
   check(await until(() => window.__jade.run()?.t === 'raid', null, 3000), `${name}: the crows burst out`); await wait(300); await look('raid');
   for (let i = 0; i < 40 && await W(() => !!window.__jade.run()); i++) {
     const ok = await W(() => { const w = window.__jade.world(), r = w.run; if (!r) return false; const a = r.actors.find(x => !x.gone && x.stun <= 0); if (!a) return false; w.placePlayer(a.b.x - 30, a.b.y); return true; });

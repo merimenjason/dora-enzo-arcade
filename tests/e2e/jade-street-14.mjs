@@ -107,7 +107,7 @@ export async function fourteenth(h) {
   await free();
 
   // ── a bumboat on the Singapore River: E gets in, it sails
-  const boat = await W(() => { const w = window.__jade.world(), r = w.rides.find(r => r.kind === 'boat' && Math.floor(r.b.x / 64) > 288 && Math.floor(r.b.y / 64) > 100); return r ? [r.b.x, r.b.y] : null; });
+  const boat = await W(() => { const w = window.__jade.world(), r = w.rides.find(r => r.kind === 'boat' && (([x, y]) => Math.floor(x / 64) > 288 && Math.floor(y / 64) > 100)(window.__jade.layout.unmvP(r.b.x, r.b.y) ?? [0, 0])); return r ? [r.b.x, r.b.y] : null; });
   check(!!boat, `${name}: a bumboat at the steps by Read Bridge`);
   if (boat) {
     const nb = await stand(boat[0], boat[1] - 70); check(nb?.kind === 'ride', `${name}: the bumboat's prompt: "${nb?.label}"`);

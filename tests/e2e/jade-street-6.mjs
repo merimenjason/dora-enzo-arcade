@@ -22,7 +22,7 @@ export async function sixth(h) {
   // ── the island's districts on screen
   for (const [pl, what] of [['safe-heartland', 'Toa Payoh'], ['playground', 'the dragon playground'], ['raffles', 'Raffles Place'], ['promenade', 'the bay promenade'], ['stage', 'the Float @ Marina Bay']]) {
     await W(pl => window.__jade.teleportTo(pl), pl); await wait(900);
-    check(await W(() => window.__jade.world().c.isle && window.__jade.world().p.x > 120 * 64), `${name}: ${what} is on the island`); await look(what);
+    check(await W(() => window.__jade.world().c.isle && (window.__jade.layout.unmvP(window.__jade.world().p.x, window.__jade.world().p.y)?.[0] ?? 0) > 120 * 64), `${name}: ${what} is on the island`); await look(what);
   }
 
   // (Madame Glint offers the first island job at the station: take it as read, so the gates answer E)
@@ -68,7 +68,7 @@ export async function sixth(h) {
 
   // ── the slide at the dragon playground
   await W(() => window.__jade.teleportTo('playground')); await wait(300);
-  await W(() => { const w = window.__jade.world(); const pr = w.c.props.find(q => q.sprite === 'playground' && q.x < 160 * 64); w.placePlayer(pr.x, pr.y + 40); });
+  await W(() => { const w = window.__jade.world(); const pr = w.c.props.find(q => q.sprite === 'playground' && (window.__jade.layout.unmvP(q.x, q.y)?.[0] ?? 1e9) < 160 * 64); w.placePlayer(pr.x, pr.y + 40); });
   const n2 = await near(); check(n2?.label === 'Go down the slide', `${name}: the playground offers "${n2?.label}"`);
   await E(); await wait(300); check(await W(() => window.__jade.world().p.act?.n === 'slide'), `${name}: E goes down the slide`); await look('slide'); await wait(1400);
 

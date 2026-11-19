@@ -16,6 +16,7 @@ import type { World } from './jade-game.js';
 import type { Mission, Step } from './jade-story.js';
 import type { Run, Actor } from './jade-mission.js';
 import { PROPS, STALL_KIND, upOf, incomeOf, type PropDef, type PropKind } from './jade-props.js';
+import { mvT } from './jade-layout.js';
 
 /** the eleven first stalls by name; the tenth pass's properties (lib/jade-props.ts) are plain strings */
 export type BizId = 'noodle' | 'cake' | 'tea' | 'fan' | 'jade' | 'claw' | 'ckt' | 'chicken' | 'satay' | 'laksa' | 'kopi' | (string & {});
@@ -39,6 +40,8 @@ const STALLS: BizDef[] = [
 for (const b of STALLS) { b.up = upOf(b.price); b.income = incomeOf(b.price); b.kind = STALL_KIND[b.id]; }
 export const STALL_IDS = STALLS.map(b => b.id);
 export const BIZ: BizDef[] = [...STALLS, ...PROPS];
+// every `at` above (and in lib/jade-props.ts) is an old-frame tile: moved once, here, through the layout table
+for (const b of BIZ) b.at = mvT(b.at[0], b.at[1]);
 export const BIZ_OF = Object.fromEntries(BIZ.map(b => [b.id, b])) as Record<BizId, BizDef>;
 export const BIZ_IDS = BIZ.map(b => b.id);
 /** what the save keeps per business: level (0 not owned), coins waiting in the till, the last nights' takings */

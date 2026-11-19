@@ -8,6 +8,7 @@ import type { District } from './jade-city.js';
 import type { VehicleKind } from './jade-move.js';
 import type { Good } from './jade-trade.js';
 import { EMPIRE_JOBS } from './jade-empjobs.js';
+import { mvT } from './jade-layout.js';
 
 export type Spot = string | [number, number];
 /** a portrait expression per line: 'calm' is the character's usual portrait, the others are painted moods */
@@ -175,12 +176,55 @@ export const CHANGI_OPENS = 'm52';
 /** the story job that opens Jurong (half way through chapter nine) */
 export const JURONG_OPENS = 'm61';
 
+// ── every [x, y] tile in a step is written in the old frame (where the district was first laid out) and moved once,
+// here, through the layout table (lib/jade-layout.ts); names ('kee', 'here', 'loot') are places and stay
+/** a spot: a place name stays, a tile moves */
+export const mvSpot = <S extends Spot>(s: S): S => (typeof s === 'string' ? s : mvT(s[0], s[1])) as S;
+const mvSpots = (a: Spot[]) => a.map(mvSpot);
+/** [x, y, facing in degrees]: the tile moves, the facing stays */
+const mvFacing = (a: [number, number, number][]) => a.map(([x, y, f]) => [...mvT(x, y), f] as [number, number, number]);
+/** every tile a step names, moved (an exhaustive switch: a new step kind won't compile until it is listed here); an
+ * optional field the step didn't have stays absent */
+export function mvStep(st: Step): Step {
+  const o = mvStepFields(st) as Record<string, unknown>;
+  for (const k of Object.keys(o)) if (o[k] === undefined && !(k in st)) delete o[k];
+  return o as Step;
+}
+function mvStepFields(st: Step): Step {
+  switch (st.t) {
+    case 'talk': case 'mini': case 'heat': case 'trade': case 'fares': case 'train': case 'cable': case 'beat': case 'switch': case 'boost':
+      return st; // nothing on the map (boost's `at` is an index into BOOSTS)
+    case 'goto': case 'pickup': case 'raid': case 'post': case 'defend': return { ...st, at: mvSpot(st.at) };
+    case 'bag': return { ...st, at: mvSpot(st.at) };
+    case 'ride': return st.near === undefined ? st : { ...st, near: mvSpot(st.near) };
+    case 'deliver': return { ...st, to: mvSpot(st.to) };
+    case 'chase': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), sets: st.sets?.map(d => ({ ...d, at: mvT(d.at[0], d.at[1]) })) };
+    case 'float': return st.rope === undefined ? st : { ...st, rope: mvSpot(st.rope) };
+    case 'tail': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), relay: st.relay && { ...st.relay, spot: mvSpot(st.relay.spot) } };
+    case 'escort': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route) };
+    case 'race': return { ...st, marks: mvSpots(st.marks) }; // `relay` is an index into marks
+    case 'stealth': return { ...st, lookouts: st.lookouts.map(mvSpots), goal: mvSpot(st.goal), exit: mvSpot(st.exit), shutter: st.shutter === undefined ? undefined : mvSpot(st.shutter) };
+    case 'collect': return { ...st, items: mvSpots(st.items), watch: st.watch && mvT(st.watch[0], st.watch[1]) };
+    case 'hold': return { ...st, lever: mvSpot(st.lever), gate: st.gate.map(([x, y]) => mvT(x, y)), through: mvSpot(st.through) };
+    case 'case': return { ...st, spots: st.spots.map(o => ({ ...o, at: mvSpot(o.at) })), guards: st.guards.map(mvSpots) };
+    case 'heist': return { ...st, front: mvSpot(st.front), back: mvSpot(st.back), safe: mvSpot(st.safe), drop: mvSpot(st.drop), guards: st.guards.map(mvSpots), cams: mvFacing(st.cams) };
+    case 'blend': return { ...st, rack: mvSpot(st.rack), route: mvSpots(st.route), goal: mvSpot(st.goal), lookouts: mvFacing(st.lookouts) };
+    case 'detective': return { ...st, witnesses: st.witnesses.map(o => ({ ...o, at: mvSpot(o.at) })), spots: st.spots.map(o => ({ ...o, at: mvSpot(o.at) })) };
+    case 'trap': return { ...st, spots: mvSpots(st.spots), bait: mvSpot(st.bait), wait: mvSpot(st.wait), path: mvSpots(st.path) };
+    case 'swap': return { ...st, crates: mvSpots(st.crates), guards: st.guards.map(mvSpots) };
+    default: { const never: never = st; return never; }
+  }
+}
+/** a mission with every step's tiles moved */
+export const mvMission = (m: Mission): Mission => ({ ...m, steps: m.steps.map(mvStep) });
+function mvMissions(ms: Mission[]): Mission[] { return ms.map(mvMission); }
+
 // road crossings by name: X(v, h) is the lane tile where vertical road v meets horizontal road h
 const V = { a: 10, b: 26, c: 42, d: 60, e: 71, f: 90, g: 106 } as const;
 const Hh = { n: 12, m: 30, s: 46, d: 62, x: 22 } as const;
 const X = (v: keyof typeof V, h: keyof typeof Hh): [number, number] => [V[v] + 2, Hh[h] + 2];
 
-export const MISSIONS: Mission[] = [
+export const MISSIONS: Mission[] = mvMissions([
   // ── Chapter 1: Smith Street (Jade Dragon)
   { id: 'm1', ch: 1, title: 'Opening Night', giver: 'kee', at: 'kee', reward: 60, rep: 12, blurb: 'Help Uncle Kee get a crate of mangoes to Chef Mo.',
     steps: [
@@ -816,10 +860,10 @@ export const MISSIONS: Mission[] = [
       { t: 'pickup', at: 'loot', item: 'moon-lantern', label: 'Catch the Moon Lantern' },
       { t: 'talk', lines: [['hoot', 'I only wanted the best party on the island. For once, I wanted them to come to mine.', 'worried'], ['musang', 'Then come to ours, Towkay. A lantern costs nothing to carry.', 'happy'], ['seng', 'And chwee kueh after. I brought the steamer.', 'happy'], ['hero', 'Happy Mid-Autumn, everybody.', 'happy'], ['mate', 'Best moon ever. The whole island under it.', 'happy']] },
     ] },
-];
+]);
 // ── Hawker Tales: the Singapore side jobs. They sit outside the five chapters (ch 0), open once their story job is
 // done, and pay like a story job; the townsfolk they help are in PEOPLE.
-export const SIDE: Mission[] = [
+export const SIDE: Mission[] = mvMissions([
   { id: 'k1', side: 'm3', ch: 0, title: 'The Kopi Run', giver: 'teo', at: 'teo', reward: 70, rep: 8, blurb: 'Make Uncle Teo’s kopi orders, then run the tray to Uncle Goh’s chess game.',
     steps: [
       { t: 'talk', lines: [['teo', 'Eh, hero! My hands so busy today. You know kopi lingo or not?', 'calm'], ['hero', 'Kopi… is coffee?', 'calm'], ['teo', 'Kopi-O is no milk, C is evaporated milk, kosong is no sugar, peng is ice. Simple! Your phone has the list.', 'happy'], ['teo', 'Make the orders for the chess uncles at the void deck. Then run them over, don’t spill!', 'calm']] },
@@ -990,7 +1034,7 @@ export const SIDE: Mission[] = [
       { t: 'goto', at: 'suria', label: 'Bring the rockets back to Dr Suria' },
       { t: 'talk', lines: [['suria', 'All four, and only one bent fin. The children say you are the best ground crew in Singapore.', 'happy']] },
     ] },
-];
+]);
 export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id, m])) as Record<string, Mission>;
 
 /** every count of jobs shown to the player, derived from MISSIONS and SIDE (never written in by hand): story jobs and

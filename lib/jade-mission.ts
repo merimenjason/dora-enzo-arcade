@@ -7,7 +7,8 @@
 // timer and a warning before it bites: the getaway meter in chases, the troupe meter in escorts, suspicion and alert
 // when tailing and sneaking, wobble for fragile cargo, timers on deliveries, trades, races and hurried trips. Chase set
 // pieces live in lib/jade-setpiece.ts, Madame Glint's phases and float in lib/jade-boss.ts, raids in lib/jade-biz.ts.
-import { T, W, S, OW, F_ROOF, districtAt, type District } from './jade-city.js';
+import { T, W, OLD_W, S, OW, F_ROOF, districtAt, type District } from './jade-city.js';
+import { unmvT } from './jade-layout.js';
 import { VEHICLES, drive, type Body, type VehicleKind } from './jade-move.js';
 import { los, downhill, nearestFree, type Field } from './jade-nav.js';
 import { dist, angDiff, clamp } from './jade-rng.js';
@@ -600,14 +601,14 @@ export class Run {
       const a = R() * Math.PI * 2, d = (8 + R() * 8) * T;
       const tx = Math.floor((w.p.x + Math.cos(a) * d) / T), ty = Math.floor((w.p.y + Math.sin(a) * d) / T);
       if (!this.fareOk(tx, ty)) continue;
-      this.fare = { x: tx * T + T / 2, y: ty * T + T / 2, to: null, sp: (tx >= OW ? ['tapir', 'mousedeer', 'civet', 'tapir'] : ['rabbit', 'dog', 'cat', 'duck'])[Math.floor(R() * 4)] };
+      this.fare = { x: tx * T + T / 2, y: ty * T + T / 2, to: null, sp: ((unmvT(tx, ty)?.[0] ?? OW) >= OW ? ['tapir', 'mousedeer', 'civet', 'tapir'] : ['rabbit', 'dog', 'cat', 'duck'])[Math.floor(R() * 4)] };
       this.label = `Pick up the fare (${this.count + 1}/${(this.cur as { n: number }).n})`; this.timer = null;
       return;
     }
     const pl = this.w.c.places['bo']; this.fare = { x: pl.x, y: pl.y + T, to: null, sp: 'dog' };
   }
   fareOk(tx: number, ty: number) {
-    const w = this.w; if (tx < 1 || ty < 1 || tx > W - 3 || ty > 90) return false;
+    const w = this.w, o = unmvT(tx, ty); if (!o || o[0] < 1 || o[1] < 1 || o[0] > OLD_W - 3 || o[1] > 90) return false;
     const i = ty * W + tx;
     if (w.c.solid[i] !== S.OPEN || !w.open.has(districtAt(tx, ty)) || w.c.ground[i] === 2) return false;
     // next to a road a big ride can reach

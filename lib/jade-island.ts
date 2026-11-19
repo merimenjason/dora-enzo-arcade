@@ -7,7 +7,7 @@
 // seam, the East Coast Parkway crosses the bay mouth on a bridge, and Chinatown's east-west roads run on into the
 // island. The MRT line (the MRT) runs underground from Chinatown to Raffles Place and Bayfront, then climbs onto
 // a viaduct to Toa Payoh. Real public place and road names; real names for the bay's landmarks too (owner, 16-11). Pure data.
-import { T, W, OW, CT_H, G, S, F_BRIDGE, F_PARK, ROADS, XWAYS, ISLE_X1, districtAt, type City, type District, type Prop } from './jade-city.js';
+import { T, OLD_W as W, OW, CT_H, G, S, F_BRIDGE, F_PARK, OLD_ROADS as ROADS, XWAYS, ISLE_X1, districtAtOld as districtAt, type City, type District, type Prop } from './jade-city.js';
 import { rng } from './jade-rng.js';
 
 export type Station = { id: string; name: string; x: number; y: number; d: District; s: number };

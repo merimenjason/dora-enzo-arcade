@@ -17,6 +17,7 @@ import { MISSIONS, MISSION, SIDE } from '../.checks/jade-story.js';
 import { newSave, available, offered } from '../.checks/jade-save.js';
 import { VEHICLES } from '../.checks/jade-move.js';
 import { T, W, S, F_ROOF, OW, city } from '../.checks/jade-city.js';
+import { unmvP } from '../.checks/jade-layout.js';
 import { downhill, los } from '../.checks/jade-nav.js';
 import { rng } from '../.checks/jade-rng.js';
 import { makeMini } from '../.checks/jade-mini.js';
@@ -150,7 +151,7 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
     if (w.near?.kind === 'ride' && w.near.ride === r) { press('act'); return; }
     go(r.b.x, r.b.y);
   };
-  const districtOf = (x, y) => { const tx = Math.floor(x / T), ty = Math.floor(y / T); return tx >= OW ? (ty < 38 ? 'heartland' : 'bay') : tx < 46 ? (ty < 30 ? 'temple' : 'market') : ty >= 62 ? 'docks' : tx < 75 ? 'canal' : 'arcade'; };
+  const districtOf = (x, y) => { const [ox, oy] = unmvP(x, y) ?? [0, 0], tx = Math.floor(ox / T), ty = Math.floor(oy / T); return tx >= OW ? (ty < 38 ? 'heartland' : 'bay') : tx < 46 ? (ty < 30 ? 'temple' : 'market') : ty >= 62 ? 'docks' : tx < 75 ? 'canal' : 'arcade'; };
   const offFoot = () => { if (w.p.ride && w.near?.kind === 'exit') press('act'); };
 
   // what a careful player sees coming: rubble rings, drum lanes, the container's shadow, sign shadows and decoys

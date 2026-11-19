@@ -6,6 +6,7 @@
 // your partner to wait, or calls them back. Each move has its own painted animation for both heroes.
 import { noise } from './jade-aware.js';
 import { T, districtAt } from './jade-city.js';
+import { mvT } from './jade-layout.js';
 import { dist } from './jade-rng.js';
 import { nearestFree } from './jade-nav.js';
 import { catchEventCrow } from './jade-gear.js';
@@ -15,11 +16,12 @@ import type { Actor } from './jade-mission.js';
 
 export type TagOpt = { kind: string; label: string; go: () => void };
 export const nameOf = (h: string) => h === 'dora' ? 'Dora' : 'Enzo';
-/** the wall spots where one hero can boost the other onto the flat roofs: [street tile, roof tile] */
-export const BOOSTS: { g: [number, number]; r: [number, number] }[] = [
+/** the wall spots where one hero can boost the other onto the flat roofs: [street tile, roof tile] (old-frame tiles,
+ * moved through the layout table) */
+export const BOOSTS: { g: [number, number]; r: [number, number] }[] = ([
   { g: [93, 39], r: [94, 39] }, { g: [105, 39], r: [104, 39] }, { g: [99, 41], r: [99, 40] }, { g: [99, 45], r: [99, 44] },
   { g: [7, 71], r: [6, 71] }, { g: [7, 79], r: [6, 79] }, { g: [3, 73], r: [2, 72] },
-];
+] as { g: [number, number]; r: [number, number] }[]).map(b => ({ g: mvT(b.g[0], b.g[1]), r: mvT(b.r[0], b.r[1]) }));
 export const boostXY = (i: number, roof: boolean): [number, number] => { const b = BOOSTS[i]; const [x, y] = roof ? b.r : b.g; return [x * T + T / 2, y * T + T / 2]; };
 export function boostNear(w: World, p: Player, roof = false, r = 80): number {
   for (let i = 0; i < BOOSTS.length; i++) { const [x, y] = boostXY(i, roof); if (dist(x, y, p.x, p.y) < r && w.open.has(districtAt(BOOSTS[i].g[0], BOOSTS[i].g[1]))) return i; }

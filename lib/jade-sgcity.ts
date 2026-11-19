@@ -5,7 +5,7 @@
 // getai stage in the docks car park, bumboat jetties on the river, road-toll gantries, the five-foot ways (the shaded
 // arcade in front of every shophouse), the pigeons' squares, the litter bins and the karang guni man's round.
 // Pure data; lib/jade-sg.ts runs it and lib/jade-scene.ts paints it.
-import { T, W, H, G, S, districtAt, type City, type Prop } from './jade-city.js';
+import { T, OLD_W as W, OLD_H as H, G, S, districtAtOld as districtAt, type City, type Prop } from './jade-city.js';
 
 export type Gantry = { x: number; y: number; axis: 'h' | 'v'; tx: number; ty: number };
 export type SgCity = {

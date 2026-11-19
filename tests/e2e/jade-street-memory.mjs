@@ -73,7 +73,7 @@ while (Date.now() - t0 < MS && !crashed) {
     const rode = (k / 30) % 2 === 1;
     await p.evaluate(([d, k, rode]) => {
       const J = window.__jade, w = J.world(); w.talk = null; w.ui = null; if (w.run) w.quitJob(); if (w.p.ride) w.exit();
-      const CH = 128, CW = w.c.ground.length / CH, spots = [];
+      const CH = J.layout.NH, CW = w.c.ground.length / CH, spots = [];
       for (let ty = 1; ty < CH - 1; ty++) for (let tx = 1; tx < CW - 1; tx++) if (w.c.ground[ty * CW + tx] === 2 && w.c.solid[ty * CW + tx] === 0 && J.district(tx, ty) === d) spots.push([tx, ty]);
       const [tx, ty] = spots[(k * 7919) % spots.length]; J.teleport(tx, ty);
       if (rode) { const r = w.addRide('scooter', tx * 64 + 32, ty * 64 + 32, 0, false, 0, true); w.p.act = null; w.p.ride = r; r.parked = false; }

@@ -9,7 +9,7 @@
 // Changi Village with its hawker centre, shophouses and hotel; the ferry terminal for Pulau Ubin and Changi Beach). The
 // East Coast Parkway runs along the coast from Katong to Changi. Real place, road, mall and landmark names (owner,
 // 16-11); the Atas Bats who roost in East Coast Park are fictional. Pure data: lib/jade-fardraw.ts paints the extras.
-import { T, W, H, CT_H, G, S, F_BRIDGE, F_PARK, ROADS, FAR_X0, FAR_SPLIT, CHANGI_X0, districtAt, type City, type Prop } from './jade-city.js';
+import { T, OLD_W as W, OLD_H as H, CT_H, G, S, F_BRIDGE, F_PARK, OLD_ROADS as ROADS, FAR_X0, FAR_SPLIT, CHANGI_X0, districtAtOld as districtAt, type City, type Prop } from './jade-city.js';
 import type { Station } from './jade-island.js';
 import { F_XWAY } from './jade-island.js';
 

@@ -19,6 +19,7 @@
 //             first time, each with its perk.
 // Pure engine, no DOM; every roll is seeded by the save's seed and the night.
 import { T, W, DISTRICT_NAME, districtAt } from './jade-city.js';
+import { mvT, mvTs } from './jade-layout.js';
 import { rng, hashStr, dist } from './jade-rng.js';
 import { nearestFree } from './jade-nav.js';
 import { FOOT } from './jade-move.js';
@@ -452,9 +453,9 @@ export function empireJob(w: World, jobId: string, id: BizId): Mission {
       const kay = b.kind === 'kayak';
       steps = [
         { t: 'talk', lines: [[g, kay ? 'Tourists for the lagoon tour! Round every buoy, and don’t tip them in.' : 'Tourists for the lantern tour! Through every gate, and wave at the ducks.', 'happy']] },
-        kay ? { t: 'ride', kind: 'boat', near: [125, 108], label: 'Step into the tour boat by the ferry pier', cp: true } : { t: 'ride', kind: 'boat', near: 'jetty', label: 'Step into the bumboat at the jetty', cp: true },
-        kay ? { t: 'race', ride: 'boat', time: w.assist ? 110 : 90, marks: [[124, 121], [114, 126], [96, 125], [114, 126], [132, 126], [132, 112]], label: 'Steer round every buoy before the tourists get bored' }
-          : { t: 'race', ride: 'boat', time: w.assist ? 80 : 66, marks: [[67, 26], [67, 14], [67, 40], [67, 58], [67, 46], [67, 32]], label: 'Steer through every lantern gate before the tourists get bored' },
+        kay ? { t: 'ride', kind: 'boat', near: mvT(125, 108), label: 'Step into the tour boat by the ferry pier', cp: true } : { t: 'ride', kind: 'boat', near: 'jetty', label: 'Step into the bumboat at the jetty', cp: true },
+        kay ? { t: 'race', ride: 'boat', time: w.assist ? 110 : 90, marks: mvTs([[124, 121], [114, 126], [96, 125], [114, 126], [132, 126], [132, 112]]), label: 'Steer round every buoy before the tourists get bored' }
+          : { t: 'race', ride: 'boat', time: w.assist ? 80 : 66, marks: mvTs([[67, 26], [67, 14], [67, 40], [67, 58], [67, 46], [67, 32]]), label: 'Steer through every lantern gate before the tourists get bored' },
         { t: 'talk', lines: [[g, 'Five stars from the boat! They want to come back tomorrow.', 'happy']] },
       ];
       break;

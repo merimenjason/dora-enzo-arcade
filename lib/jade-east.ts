@@ -9,7 +9,7 @@
 // by the MRT to Beach station, or by the ferry from Marina Bay. It has the beach, a theme park, a resort hotel,
 // the old fort at Siloso Point and the ferry pier. Real public place and road names; the shops and attractions are
 // real (owner, 16-11: real names, not parodies) or invented. Pure data: lib/jade-cable.ts runs the cable car and the ferry, lib/jade-eastdraw.ts paints.
-import { T, W, H, CT_H, OW, G, S, F_BRIDGE, F_PARK, F_ALLEY, ROADS, EAST_X0, EAST_X1, EAST_SPLIT, FAR_X0, districtAt, type City, type Prop } from './jade-city.js';
+import { T, OLD_W as W, OLD_H as H, CT_H, OW, G, S, F_BRIDGE, F_PARK, F_ALLEY, OLD_ROADS as ROADS, EAST_X0, EAST_X1, EAST_SPLIT, FAR_X0, districtAtOld as districtAt, type City, type Prop } from './jade-city.js';
 import type { Station } from './jade-island.js';
 
 /** a two-stop link you ride (the cable car, the ferry): its stops and the path between them (world units) */

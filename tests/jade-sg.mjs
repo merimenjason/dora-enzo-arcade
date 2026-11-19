@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
 import { T, W, S, G, districtAt, DISTRICT_NAME, STREET_NAME, streetAt } from '../.checks/jade-city.js';
+import { mvT, unmvT } from '../.checks/jade-layout.js';
 import { MISSIONS, MISSION, SIDE, PEOPLE } from '../.checks/jade-story.js';
 import { newSave, loadSave, SAVE_VERSION, SAVE_KEY, offered, sideJobs } from '../.checks/jade-save.js';
 import { FRAMES } from '../.checks/jade-art.js';
@@ -37,11 +38,11 @@ test('the Singapore places are on open ground, in the right districts, with real
   }
   for (const t of sg.tables) assert.equal(tile(w, Math.floor(t.x / T), Math.floor(t.y / T)), S.OPEN, 'hawker tables on the floor');
   assert.ok(sg.fivefoot.reduce((a, b) => a + b, 0) > 150, 'plenty of five-foot way');
-  assert.equal(sg.gantries.filter(g => g.tx < 120 && g.ty < 82).length, 6, 'six gantries in Chinatown (the seventh is on the Sentosa Gateway)');
+  assert.equal(sg.gantries.filter(g => { const [ox, oy] = unmvT(g.tx, g.ty) ?? [1e9, 1e9]; return ox < 120 && oy < 82; }).length, 6, 'six gantries in Chinatown (the seventh is on the Sentosa Gateway)');
   for (const g of sg.gantries) assert.equal(c.ground[(g.ty + (g.axis === 'v' ? 0 : 1)) * W + g.tx + (g.axis === 'v' ? 1 : 0)], G.ROAD, 'a gantry stands over a road');
   assert.equal(DISTRICT_NAME.market, 'Smith Street'); assert.equal(DISTRICT_NAME.canal, 'Boat Quay');
   assert.ok(STREET_NAME.includes('Pagoda Street') && STREET_NAME.includes('South Bridge Road'));
-  assert.ok(typeof streetAt(20, 48) === 'string');
+  assert.ok(typeof streetAt(...mvT(20, 48)) === 'string');
   assert.equal(BIZ.filter(b => ['ckt', 'chicken', 'satay', 'laksa', 'kopi'].includes(b.id)).length, 5, 'five hawker stalls are businesses');
 });
 
