@@ -122,12 +122,23 @@ function driver(sc: Scene, x: X, w: World, p: Player, r: Ride, variant: string) 
   if (f) spr(x, f, rx, ry, { anchor: 'center', rot: r.b.h + Math.PI / 2, variant });
   if (p.carry) spr(x, itemOf(p.carry), r.b.x, r.b.y, { w: 26, anchor: 'center', rot: r.b.h + Math.PI / 2 });
 }
+/** the partner's own hired bike, a length behind the driver's and a lane to the side, pedalling at the same pace */
+function companionBike(sc: Scene, x: X, r: Ride, who: string, variant: string) {
+  const len = VEHICLES.bike.len, h = r.b.h, side = h + Math.PI / 2;
+  const bx = r.b.x - Math.cos(h) * len * 0.95 + Math.cos(side) * 24, by = r.b.y - Math.sin(h) * len * 0.95 + Math.sin(side) * 24;
+  x.fillStyle = 'rgba(0,0,0,.32)'; sc.shadow(x, bx + 5, by + 7, len * 0.45, VEHICLES.bike.r * 0.9);
+  spr(x, 'v-bike', bx, by, { anchor: 'center', rot: h + Math.PI / 2 });
+  // half a stroke out of step with the driver, so the two pairs of legs don't move as one
+  spr(x, `${who}-ride-bike-${Math.floor(sc.t * (2 + r.b.speed / 45) + 0.5) % 2}`, bx + Math.cos(h) * len * 0.02, by + Math.sin(h) * len * 0.02, { anchor: 'center', rot: h + Math.PI / 2, variant });
+}
 /** the partner on the back seat (scooters and boats show them; a tuk-tuk, a van and a trishaw's cab hide them) */
 export function passenger(sc: Scene, x: X, w: World, r: Ride) {
   const m = w.mate.seat === r ? w.mate : w.p.seat === r ? w.p : null; if (!m) return;
+  const of = OUTFITS.findIndex(o => o.id === w.s.outfit[m.who]); const variant = of > 0 ? `${m.who}:${of}` : '';
+  // a hired bike has one seat, so the partner rides a second hired bike a length behind and to one side
+  if (r.kind === 'bike') { companionBike(sc, x, r, m.who, variant); return; }
   // pillion on a scooter, on the bench of a trishaw, in the bow of a boat; a tuk-tuk or van carries them inside the cab
   if (r.kind !== 'scooter' && r.kind !== 'boat' && r.kind !== 'trishaw') return;
-  const of = OUTFITS.findIndex(o => o.id === w.s.outfit[m.who]); const variant = of > 0 ? `${m.who}:${of}` : '';
   const back = r.kind === 'boat' ? 0.12 : r.kind === 'trishaw' ? 0.2 : -0.26;
   const px = r.b.x + Math.cos(r.b.h) * VEHICLES[r.kind].len * back, py = r.b.y + Math.sin(r.b.h) * VEHICLES[r.kind].len * back;
   // which side the passenger leans to: toward what they aim at or grab
