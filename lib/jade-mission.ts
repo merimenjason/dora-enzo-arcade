@@ -159,7 +159,7 @@ export class Run {
       case 'ride': {
         const [x, y] = this.spot(st.near ?? [Math.floor(w.p.x / T), Math.floor(w.p.y / T)]);
         if (w.p.ride?.kind === st.kind && !st.locked) { this.next(); return; }
-        let r = w.rides.find(r => r.parked && r.kind === st.kind && dist(r.b.x, r.b.y, x, y) < 260 && (!st.locked || r.locked));
+        let r = w.rides.find(r => r.parked && r.kind === st.kind && dist(r.b.x, r.b.y, x, y) < 260 && (!st.locked || r.locked) && w.boardable(r.b.x, r.b.y));
         if (!r) { const [rx, ry] = w.rideSpot(st.kind, x, y); r = w.addRide(st.kind, rx, ry, -Math.PI / 2, !!st.locked, 0, true); }
         this.ride = r;
         break;

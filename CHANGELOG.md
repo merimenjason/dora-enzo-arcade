@@ -8,6 +8,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Jade Street**: the MRT gates are easier to read. Each stop's district (and the taxi list's fare) sits on a dark chip instead of faded beige on the jade plaque. The station names have a firmer shadow, and the stop you are at shows in gold as "you are here" instead of greyed out like a locked one.
 - **Jade Street**: Kak Melati could not be seen at Clarke Quay, because she stands under one of the river canopies, which were drawn over everyone. Canopies and other overhead props now turn see-through over the heroes and any job giver standing under them.
+- **Jade Street**: retrying River Run (or any boat job) could hand you the bumboat left out mid-river from the try before, which you could not step into from the bank. A job's boat is now always one you can board from the bank.
+- **Jade Street**: traffic no longer gridlocks. At crossings without lights two cars could each wait on the other forever, and the queues behind them locked the streets for minutes, with cars piled on top of each other. A car now goes after waiting a moment for cross traffic, and queued cars keep a proper gap.
 
 ## 20-11-2026
 

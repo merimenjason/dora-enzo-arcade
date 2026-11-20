@@ -156,4 +156,19 @@ test('a new night deals its contracts one a frame on the street (never three in 
   w.s.night++; for (let k = 0; k < 4; k++) w.step(NO_INPUT, DT);
   assert.equal(w.s.contracts.offers.length, 3, 'a few frames on the street deal all three');
 });
+// 21-11: a River Run retry picked the bumboat left out mid-river from the try before, which nobody could step into
+test('a ride step never hands you a boat out of reach of the bank', () => {
+  const { w, run } = at('m59', 1); const r1 = run.ride;
+  assert.ok(r1 && w.boardable(r1.b.x, r1.b.y), 'the first boat waits by the steps');
+  let spot = null;
+  for (let dy = -4; dy <= 4 && !spot; dy += 0.5) for (let dx = -4; dx <= 4 && !spot; dx += 0.5) {
+    const x = r1.b.x + dx * T, y = r1.b.y + dy * T;
+    if (Math.hypot(dx, dy) * T < 240 && w.c.solid && !w.boardable(x, y) && w.rideSpot('boat', x, y)) spot = [x, y];
+  }
+  assert.ok(spot, 'there is open water out of reach near the steps');
+  r1.b.x = spot[0]; r1.b.y = spot[1]; r1.parked = true;
+  run.enter(1); w.talk = null;
+  assert.ok(run.ride && run.ride !== r1, 'the stranded boat is not offered again');
+  assert.ok(w.boardable(run.ride.b.x, run.ride.b.y), 'the new boat can be boarded from the bank');
+});
 console.log(`jade ride jobs: ${n} tests ok`);
