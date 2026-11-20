@@ -26,6 +26,9 @@ export type Ubin = {
   tracks: [[number, number], [number, number]][];
   /** Jejawi Tower's foot, Chek Jawa's flats (a world rect inside the boardwalk), the den's door, the rental's rack */
   tower: [number, number]; flats: [number, number, number, number]; den: [number, number]; rack: [number, number];
+  /** the island's parked rides (the rental's bikes and tandem, a boat on Ketam Quarry): appended to the city's parking
+   * after every older ride (lib/jade-city.ts), so the older rides keep their ids and seeded paint */
+  park: { x: number; y: number; d: 'pulau'; kind: string; rot: number }[];
 };
 const px = (t: number) => t * T + T / 2;
 /** the real names: the town, the tracks, the temple, the quarries, Chek Jawa; the Tusker Boys are fictional */
@@ -123,12 +126,13 @@ export function ubin(c: City) {
   deco(2, 24.2, 'sampan', 70, 'ground');
 
   // ── Ubin Town: the row of shops, the bicycle rental with its rack, the safe house, kampong houses
-  bld(10, 18, 3, 2, 'ubin-shops'); bld(13, 18, 3, 2, 'ubin-shops'); place('ubintown', 13, 20, 'spot', N.town); place('mk-pulau', 11, 20, 'market', 'the Ubin Town provision shop');
+  bld(10, 18, 3, 2, 'ubin-shops'); bld(13, 18, 3, 2, 'ubin-house-b'); place('ubintown', 13, 20, 'spot', N.town); place('mk-pulau', 11, 20, 'market', 'the Ubin Town provision shop');
   bld(12, 22, 3, 2, 'ubin-bikes'); place('bikes-ubin', 13, 24, 'spot', N.rental); place('ayu', 16, 22, 'contact', 'Kak Ayu');
   prop(17, 23, 'ubin-rack', 14, 'tall', 'over', 84);
   const rack = P(17, 23);
-  for (const [lx, ly] of [[17, 24], [18, 24], [11, 24]] as const) c.parking.push({ x: px(X(lx)), y: px(Y(ly)), d: 'pulau', kind: 'bike', rot: 0 });
-  c.parking.push({ x: px(X(19)), y: px(Y(23)), d: 'pulau', kind: 'tandem', rot: 0 });
+  const park: Ubin['park'] = [];
+  for (const [lx, ly] of [[17, 24], [18, 24], [11, 24]] as const) park.push({ x: px(X(lx)), y: px(Y(ly)), d: 'pulau', kind: 'bike', rot: 0 });
+  park.push({ x: px(X(19)), y: px(Y(23)), d: 'pulau', kind: 'tandem', rot: 0 });
   bld(5, 17, 2, 2, 'safe-ubin'); place('safe-ubin', 6, 19, 'safe', 'Kampong safe house');
   bld(4, 14, 3, 2, 'ubin-house-a'); bld(17, 13, 3, 2, 'ubin-house-a'); bld(20, 23, 3, 2, 'ubin-house-a'); bld(25, 13, 3, 2, 'ubin-house-a');
   bld(9, 3, 3, 2, 'ubin-house-b'); bld(26, 18, 3, 2, 'ubin-house-b');
@@ -145,7 +149,7 @@ export function ubin(c: City) {
   // ── the durian orchard south of the orchard lane, rambutans by the houses, coconut palms on the shore
   const durians: [number, number][] = [];
   for (const [lx, ly] of [[17, 23], [16, 24], [23, 22], [25, 22], [18, 25]] as const) if (open(lx, ly) && land(lx, ly)) { prop(lx, ly, 'durian-tree', 18, 'tall', 'over', 120); durians.push(P(lx, ly)); }
-  for (const [lx, ly] of [[12, 15], [7, 19], [21, 14], [27, 15], [11, 6]] as const) if (open(lx, ly)) prop(lx, ly, 'rambutan-tree', 16, 'tall', 'over', 104);
+  for (const [lx, ly] of [[12, 15], [8, 23], [21, 14], [27, 15], [11, 6]] as const) if (open(lx, ly)) prop(lx, ly, 'rambutan-tree', 16, 'tall', 'over', 104);
   place('orchard-ubin', 20, 22, 'spot', N.orchard);
   deco(22, 22, 'durian-pile', 54);
 
@@ -157,11 +161,11 @@ export function ubin(c: City) {
   prop(21, 8, 'granite-blocks', 12, 'tall', 'over', 60); prop(15, 6, 'winch', 10, 'tall', 'over', 50);
   deco(17, 4.4, 'dig-hole', 60, 'ground'); deco(20, 5, 'dig-hole', 60, 'ground');
   // a sampan moored on Ketam Quarry (the chapter's finale crosses it)
-  c.parking.push({ x: px(X(7)), y: px(Y(10)) , d: 'pulau', kind: 'boat', rot: Math.PI / 2 });
+  park.push({ x: px(X(7)), y: px(Y(10)), d: 'pulau', kind: 'boat', rot: Math.PI / 2 });
 
   // ── Chek Jawa: House No. 1 on the headland, Jejawi Tower in the mangroves, the flats' creatures
   bld(24, 7, 3, 2, 'ubin-house1'); place('house1', 25, 9, 'spot', N.house1); place('belangkas', 27, 9, 'contact', 'Uncle Belangkas');
-  prop(31.5, 13.5, 'ubin-tower', 26, 'tall', 'over', 92); deck(31, 14); place('tower', 31, 15, 'spot', N.tower);
+  prop(31.5, 13.5, 'ubin-tower', 26, 'tall', 'over', 92); deck(31, 14); place('jejawi', 31, 15, 'spot', N.tower);
   place('chekjawa', 28, 10, 'spot', N.boardwalk);
   for (const [lx, ly, sp, w] of [[30, 11, 'horseshoe-crab', 40], [32, 16, 'sea-star', 34], [30, 18, 'heron', 50], [32, 8, 'mangrove', 110], [34, 13, 'mangrove', 110], [29, 19, 'mangrove', 100], [30, 7, 'mangrove', 100], [31.5, 12, 'seagrass', 60], [29.5, 14.5, 'seagrass', 60]] as const)
     deco(lx, ly, sp, w, sp === 'seagrass' ? 'ground' : 'over');
@@ -195,7 +199,7 @@ export function ubin(c: City) {
   const stops: [LinkStop, LinkStop] = [{ id: 'ferry-cv', name: N.ferry, x: cv.x, y: cv.y }, { id: 'jetty-ubin', name: N.jetty, x: c.places['jetty-ubin'].x, y: c.places['jetty-ubin'].y }];
   const boat = linkOf('bumboat', N.boat, stops, boatPath(boatA, boatB));
 
-  c.ubin = { boat, boatA, boatB, digs, durians, tracks, tower: P(31, 15), flats, den, rack };
+  c.ubin = { boat, boatA, boatB, digs, durians, tracks, tower: P(31, 15), flats, den, rack, park };
 }
 /** the island block's size in tiles */
 export const UBIN_W = 36, UBIN_H = 30;

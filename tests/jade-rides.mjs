@@ -63,10 +63,12 @@ test('the four new rides: names, blurbs, stats, seats and classes, each unlike t
 
 test('one of each, parked in the right district beside what it belongs to, after every older ride', () => {
   // (the sixteenth pass adds a second dragon boat, on Jurong Lake, after these four)
-  const tail = c.parking.slice(-NEW.length - 1, -1); const lake = c.parking[c.parking.length - 1];
+  // (and the seventeenth pass's Ubin rides after those: the rental's bikes and tandem, a boat on Ketam Quarry)
+  const UB = c.ubin.park.length; assert.deepEqual(c.parking.slice(-UB).map(p => p.d), c.ubin.park.map(() => 'pulau'));
+  const tail = c.parking.slice(-NEW.length - 1 - UB, -1 - UB); const lake = c.parking[c.parking.length - 1 - UB];
   assert.equal(lake.kind, 'dragon'); assert.equal(lake.d, 'jurong'); assert.equal(c.solid[tile(lake.x, lake.y)[1] * W + tile(lake.x, lake.y)[0]], S.WATER, 'the lake boat floats');
   assert.deepEqual(tail.map(p => p.kind), NEW, 'appended last, so older rides keep their ids and seeded paint');
-  for (const k of NEW) assert.equal(c.parking.filter(p => p.kind === k).length, k === 'dragon' ? 2 : 1, k);
+  for (const k of NEW) assert.equal(c.parking.filter(p => p.kind === k && p.d !== 'pulau').length, k === 'dragon' ? 2 : 1, k);
   const want = { tandem: 'katong', icecream: 'orchard', luge: 'resort', dragon: 'quay' };
   for (const p of tail) {
     assert.equal(p.d, want[p.kind], p.kind); assert.equal(districtAt(...tile(p.x, p.y)), p.d, `${p.kind} stands in ${p.d}`);
@@ -81,7 +83,7 @@ test('one of each, parked in the right district beside what it belongs to, after
   assert.ok(near(dr, c.places['mk-quay'].x, c.places['mk-quay'].y, 30) && Math.abs(dr.y - c.parking.find(b => b.kind === 'boat' && b.d === 'quay').y) < T, 'the dragon boat on the river at Clarke Quay');
   for (const r of NEW_RIDES) { const [x, y] = mvT(...r.at); assert.ok([...tail, lake].some(p => tile(p.x, p.y)[0] === x && tile(p.x, p.y)[1] === y), r.kind); }
   // the older rides' ids and paint are as they were: the new ones come last
-  const w = world(); assert.deepEqual(w.rides.slice(-NEW.length - 1).map(r => r.kind), [...NEW, 'dragon']);
+  const w = world(); assert.deepEqual(w.rides.slice(-NEW.length - 1 - UB, -UB).map(r => r.kind), [...NEW, 'dragon']);
 });
 
 test('getting on each new ride from its prompt, riding it and getting off', () => {

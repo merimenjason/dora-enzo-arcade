@@ -31,8 +31,10 @@ import { NEW_RIDES } from '../.checks/jade-rides.js';
  * strait to Jurong and Tiong Bahru (the districts now join over land) and the Singapore River's mouth past Clarke
  * Quay's east edge (the river runs on through the seam), and those are the only changes to the build. The sixteenth
  * pass (20-11-2026) added two places, the ride-job givers `buaya` (Orchard) and `kerbau` (Clarke Quay); without them
- * the hash is still 2bf5685f, so the ground, solid and flags are untouched */
-const ZERO_HASH = 'cd70127f2b1d5d08be17acf547a64a94216a64766a6ab86e5fab37dc187c2885';
+ * the hash is still 2bf5685f, so the ground, solid and flags are untouched. The seventeenth pass (21-11-2026) built
+ * Pulau Ubin in the old frame's open sea south of Changi (old columns 332-367, rows 96-125, its own block in the real
+ * layout) with its places, and the Changi place `tower` kept its name (the island's is `jejawi`) */
+const ZERO_HASH = 'c468c75e680e10c6304ae34d77dd3795a16a668a674480e67293a0a2dee697bd';
 
 const c = city();
 const ti = (x, y) => [Math.floor(x / T), Math.floor(y / T)];
@@ -149,15 +151,17 @@ if (process.argv.includes('--child')) {
     assert.ok(b.d === a.d || (bo === 'main' ? b.d === REMAP[a.d] : b.d === bo), `${what}: district ${a.d} -> ${b.d}`); m++;
   };
   const r = facts();
+  const TAIL = [...NEW_RIDES.map(q => q.kind), ...city().ubin.park.map(q => q.kind)];
   for (const id of Object.keys(z.places)) moved(z.places[id], r.places[id], `place ${id}`);
   for (const k of KEYS) {
-    // the fifteenth pass's special rides are parked last of all, after the seams' (lib/jade-rides.ts): matched end to end
-    const nNew = k === 'parking' || k === 'rides' ? NEW_RIDES.length : 0, zk = z[k].slice(0, z[k].length - nNew), rk = r[k].slice(0, r[k].length - nNew);
+    // the fifteenth pass's special rides are parked last of all, after the seams' (lib/jade-rides.ts), and the seventeenth
+    // pass's Ubin rides (its own block) after those: matched end to end
+    const nNew = k === 'parking' || k === 'rides' ? TAIL.length : 0, zk = z[k].slice(0, z[k].length - nNew), rk = r[k].slice(0, r[k].length - nNew);
     zk.forEach((a, i) => moved(a, rk[i], `${k} ${a.id ?? a.kind ?? i}`));
     // the seams' own kerbside parking (and the rides parked there) come after the build's, on seam tiles
     if (nNew) {
       rk.slice(zk.length).forEach((b, i) => assert.equal(unmvT(b.tx, b.ty), null, `${k} ${zk.length + i} on a seam`));
-      z[k].slice(-nNew).forEach((a, i) => { const b = r[k][r[k].length - nNew + i]; assert.equal(a.kind ?? NEW_RIDES[i].kind, NEW_RIDES[i].kind); moved(a, b, `${k} ${NEW_RIDES[i].kind}`); });
+      z[k].slice(-nNew).forEach((a, i) => { const b = r[k][r[k].length - nNew + i]; assert.equal(a.kind ?? TAIL[i], TAIL[i]); moved(a, b, `${k} ${TAIL[i]}`); });
     } else assert.equal(r[k].length, z[k].length, `${k}: same count`);
   }
   z.boosts.forEach((b, i) => { moved(b[0], r.boosts[i][0], `boost ${i} street`); moved(b[1], r.boosts[i][1], `boost ${i} roof`); });

@@ -90,6 +90,23 @@ export function isleActor(sc: Scene, x: X, a: Actor): boolean {
     if (a.stun > 0) sc.stars(x, b.x, b.y - 38); else spr(x, 'loot-bag', b.x, b.y - 40, { w: 18 });
     return true;
   }
+  // the seventeenth pass: a Tusker Boy on the run (a forager you tail, a boar you chase), head down, trotters going
+  if (a.skin === 'boar' && a.kind === 'runner') {
+    x.fillStyle = 'rgba(0,0,0,.3)'; sc.shadow(x, b.x, b.y + 2, 20, 8);
+    const cx = Math.cos(b.h), sy = Math.sin(b.h), side = Math.abs(cx) > Math.abs(sy);
+    const f = a.stun > 0 ? (a.netT ? 'boar-netted' : 'boar-dizzy') : b.speed < 5 ? 'boar-peer' : side ? (b.speed > 200 ? `boar-charge-${fl}` : `boar-run-${fl}`) : `boar-walk-${sy > 0 ? 'down' : 'up'}-${fl}`;
+    spr(x, f, b.x, b.y + 4, { flip: side && cx < 0, w: 56 });
+    if (a.stun > 0) sc.stars(x, b.x, b.y - 42);
+    return true;
+  }
+  // Tok Taring, the Tusker Boys' boss: grizzled, tusks first
+  if (a.skin === 'taring' && a.kind === 'runner') {
+    x.fillStyle = 'rgba(0,0,0,.3)'; sc.shadow(x, b.x, b.y + 2, 24, 9);
+    const f = a.stun > 0 ? (a.netT ? 'taring-caught' : 'taring-dizzy') : b.speed < 5 ? 'taring-laugh' : b.speed > 210 ? 'taring-charge' : `taring-run-${fl}`;
+    spr(x, f, b.x, b.y + 6, { flip: Math.cos(b.h) < 0, w: 70 });
+    if (a.stun > 0) sc.stars(x, b.x, b.y - 56);
+    return true;
+  }
   if (a.skin === 'hoot' && a.kind === 'runner') {
     const fl = Math.floor(sc.t * 9) % 2, b = a.b, left = Math.cos(b.h) < 0;
     const f = a.stun > 0 ? 'hoot-dizzy' : b.speed < 5 ? 'hoot-stand' : `hoot-run-${fl}`;

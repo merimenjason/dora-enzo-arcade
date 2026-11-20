@@ -16,6 +16,7 @@ export const fareTo = (w: World, p: Place) => Math.max(4, Math.round(3 + dist(w.
 /** why you can't get a taxi now, or null */
 export function cantHail(w: World): string | null {
   if (w.run) return 'No taxis during a job';
+  if (districtAt(Math.floor(w.p.x / T), Math.floor(w.p.y / T)) === 'pulau') return 'No taxis on Pulau Ubin: no roads, only bike tracks. Hire a bike from Kak Ayu, or take the bumboat back';
   if (w.heat >= 1) return 'No taxi will stop with the wardens after you';
   if (w.ticket) return 'Pay your ticket first';
   if (w.p.ride || w.p.roof || w.p.hide) return 'Hail from the pavement, on foot';
@@ -51,6 +52,8 @@ export function dropOffs(w: World): { id: string; name: string; fare: number }[]
   const out: { id: string; name: string; fare: number }[] = [];
   for (const [id, p] of Object.entries(w.c.places)) {
     if (!w.open.has(p.d) || !p.name || !['safe', 'market', 'station', 'spot'].includes(p.kind)) continue;
+    // (Pulau Ubin is over the strait: no taxi crosses it)
+    if (p.d === 'pulau') continue;
     if (dist(p.x, p.y, w.p.x, w.p.y) < 8 * T) continue;
     out.push({ id, name: p.name, fare: fareTo(w, p) });
   }

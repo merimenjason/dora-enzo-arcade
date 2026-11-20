@@ -107,13 +107,13 @@ export function JadeLineTab({ play, onClose }: { play: Play; onClose: () => void
         );
       })}</ul>
       {w.c.east && <>
-        <p className="small"><Sprite name="i-cable" h={28} w={28} /> Over the water to Sentosa: the cable car from HarbourFront ({FARES.cable} coins), the ferry from Marina Bay ({FARES.ferry} coins), or walk the boardwalk.</p>
+        <p className="small"><Sprite name="i-cable" h={28} w={28} /> Over the water to Sentosa: the cable car from HarbourFront ({FARES.cable} coins), the ferry from Marina Bay ({FARES.ferry} coins), or walk the boardwalk. Pak Ubin’s bumboat crosses from Changi Point to Pulau Ubin ({FARES.bumboat} coins).</p>
         <ul className="jade-line-list">{linksOf(w).flatMap(l => l.stops.map(s => {
           const open = w.open.has(districtAt(Math.floor(s.x / T), Math.floor(s.y / T)));
           return (
             <li key={s.id}>
               <Sprite name={l.id === 'cable' ? 'pin-cable' : 'pin-ferry'} h={32} w={32} />
-              <span><b>{s.name}</b><small>{open ? (l.id === 'cable' ? 'cable car' : 'ferry pier') : 'under fog: follow the story'}</small></span>
+              <span><b>{s.name}</b><small>{open ? (l.id === 'cable' ? 'cable car' : l.id === 'bumboat' ? 'bumboat jetty' : 'ferry pier') : 'under fog: follow the story'}</small></span>
               <button type="button" className="jade-btn jade" disabled={!open || !!w.run} data-testid={`link-route-${s.id}`} onClick={() => { if (routeToStop(w, s.id)) { onClose(); play.bump(); } }}>Route me</button>
             </li>
           );

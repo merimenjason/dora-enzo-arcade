@@ -136,6 +136,9 @@ export const EAST_TEXT = 'The MRT runs on over the Rochor River: Bugis for Kampo
 export const FAR_TEXT = 'The MRT runs on: Katong Park for Joo Chiat and East Coast Park, over the Geylang River east of Kampong Glam, and Orchard for the Christmas light-up, past Fort Canning Park north-west of Chinatown. Walk, or take a taxi.';
 export const CHANGI_TEXT = 'Changi is open! The MRT runs to Changi Airport station: Jewel, the Rain Vortex, the airport and Changi Village. Hire a bike at East Coast Park and ride along the coast.';
 export const SOUTH_TEXT = 'The MRT runs on west of Chinatown: Tiong Bahru for the market and the bird corner, and Clarke Quay for the river. Or walk: Outram Road runs down Chinatown’s west side to Clarke Quay, and on to Tiong Bahru under the Ayer Rajah Expressway.';
+export const UBIN_TEXT = 'Pulau Ubin is open! Take my bumboat from the Changi Point jetty, four coins. Kak Ayu rents bicycles by the Ubin jetty. No cars, no trains, only the kampong. And the boars, lah.';
+/** the hook at the end of chapter ten (not an ending: the story goes on) */
+export const KAMPONG_TEXT = 'The black-sailed junk slipped away before dawn, heading south. Keep both halves of the chart safe. I will ask the fishermen where she has gone.';
 export const JURONG_TEXT = 'Jurong is open! The MRT runs to Jurong East station: the Science Centre, Snow City and the Chinese Garden on Jurong Lake. Or cross the bridge at the end of Beach Road.';
 export const RESORT_TEXT = 'Sentosa is open! The cable car leaves from HarbourFront at the docks (4 coins), the boardwalk runs beside the Sentosa Gateway, the MRT stops at Beach station, and the ferry crosses from Marina Bay (3 coins).';
 export function routeToStop(w: World, id: string): boolean {

@@ -54,6 +54,8 @@ export function missionSave(id, o = {}) {
   // on the island, the safe house of the contact's district
   const d = city().places[MISSION[id]?.at]?.d;
   if (['heartland', 'bay', 'india', 'glam', 'resort'].includes(d)) s.safe = `safe-${d}`;
+  // Pulau Ubin is over the strait (m66 takes the bumboat there): its jobs start from the kampong safe house
+  if (d === 'pulau') { s.safe = 'safe-ubin'; s.best['house:safe-ubin'] = 1; }
   return s;
 }
 
@@ -437,6 +439,16 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
         if (w.ferry) return;
         if (w.near?.kind === 'cable' || w.near?.kind === 'ferry') { press('act'); return; }
         const tg = run.target(); if (tg) go(tg[0], tg[1]); return;
+      }
+      // the seventeenth pass: a boar trail. Walk to the next fresh set of prints and read it (E). On Assist the route
+      // arrow points at it; off Assist a person goes the way the last set said ("north-east, towards Pekan Quarry"),
+      // and the next set shows within a few tiles, so the bot heads for it as that person would
+      case 'track': {
+        if (p.ride) { offFoot(); return; }
+        if (p.act) { inp.mx = 0; inp.my = 0; return; }
+        if (nearJob('read:')) { const k = +w.near.id.split(':')[1]; if (!run.items[k]?.marks) { press('act'); return; } }
+        const k = run.items.findIndex(it => !it.got && !it.marks); if (k < 0) return;
+        const tg = run.target() ?? [run.items[k].x, run.items[k].y]; go(tg[0], tg[1]); return;
       }
       // the sixteenth pass: the tandem's tosses and the dragon boat's paddle (surge whenever the drum allows)
       case 'toss': {

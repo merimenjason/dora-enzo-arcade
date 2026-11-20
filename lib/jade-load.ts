@@ -36,7 +36,9 @@ const ATLAS_TIER: Record<string, Tier> = {
   'atlas-act16': 'job', 'atlas-cast16-far': 'far', 'atlas-cast16-south': 'south', 'atlas-stands16': 'south', 'atlas-lake16': 'south',
   // the seventeenth pass: everything of Pulau Ubin's streams with the island (the heroes' island actions too: Changi's jetty is
   // within reach of it); the map icons are small and wait for a job
-  'atlas-ubin': 'ubin', 'atlas-boars': 'ubin', 'atlas-cast-ubin': 'ubin', 'atlas-act17': 'ubin', 'atlas-ui17': 'job',
+  'atlas-ubin': 'ubin', 'atlas-boars': 'ubin', 'atlas-cast-ubin': 'ubin', 'atlas-ui17': 'job',
+  // (the heroes' new actions stream with the rest of their rarer poses: every hero frame is core or job)
+  'atlas-act17': 'job',
 };
 const TEX_TIER: Record<string, Tier> = {
   road: 'core', walk: 'core', plaza: 'core', grass: 'core', canal: 'core', plank: 'core', temple: 'core', sea: 'core', dock: 'core', neon: 'core', path: 'core', cobble: 'core',
