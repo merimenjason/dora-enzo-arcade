@@ -95,6 +95,10 @@ export function festOf(seed: number, night: number, docksOpen: boolean): Fest {
   if (r < 0.72) return 'lantern';
   return null;
 }
+/** the festival's fireworks shows, in clock seconds from 7 pm (one game minute a second): 9:00 to 9:30 pm and midnight
+ * to 12:45 am. Before, a burst went off every two or three seconds all night, every night, once chapter five was won. */
+export const FIREWORK_SHOWS: [number, number][] = [[120, 150], [300, 345]];
+export const fireworksOn = (clock: number) => FIREWORK_SHOWS.some(([a, b]) => clock >= a && clock < b);
 /** a tropical thunderstorm: the heaviest shower of a night bursts into one (0 to 1) */
 export function stormAt(seed: number, night: number, clock: number): number {
   for (const sh of showers(seed, night)) {

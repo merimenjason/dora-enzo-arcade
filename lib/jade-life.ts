@@ -6,6 +6,7 @@
 import { T, ROADS } from './jade-city.js';
 import { LIGHTS, lightOf } from './jade-traffic.js';
 import type { World } from './jade-game.js';
+import { fireworksOn } from './jade-sg.js';
 import type { Ped } from './jade-folk.js';
 
 type Spr = (x: CanvasRenderingContext2D, name: string, px: number, py: number, o?: { w?: number; h?: number; anchor?: 'bottom' | 'center'; rot?: number; flip?: boolean; alpha?: number; variant?: string }) => boolean;
@@ -69,10 +70,11 @@ export class Life {
   over(x: CanvasRenderingContext2D, w: World, vis: (px: number, py: number, m?: number) => boolean, dt: number, cam: { x: number; y: number; w: number; h: number }) {
     if (w.festival) {
       for (const f of w.c.festival) if (f.kind === 'arch' && vis(f.x, f.y, 300)) { this.spr(x, f.sprite, f.x, f.y, { w: f.w, anchor: 'center', alpha: 0.96 }); this.glow(x, f.x, f.y, 140, 'rgba(255,90,60,.18)'); }
-      // a sky lantern drifts up now and then, and fireworks burst over the harbour side of the screen
-      if (Math.random() < dt * 0.6 && this.sky.length < 30) this.sky.push({ x: cam.x + (Math.random() - 0.5) * cam.w, y: cam.y + cam.h * 0.6, t: 0, vx: (Math.random() - 0.5) * 10 });
+      // a sky lantern drifts up now and then, and during the two fireworks shows (FIREWORK_SHOWS) bursts go up over
+      // the top of the screen, in quick volleys
+      if (Math.random() < dt * 0.25 && this.sky.length < 30) this.sky.push({ x: cam.x + (Math.random() - 0.5) * cam.w, y: cam.y + cam.h * 0.6, t: 0, vx: (Math.random() - 0.5) * 10 });
       this.fwT -= dt;
-      if (this.fwT <= 0) { this.fwT = 1.4 + Math.random() * 2.4; this.firework(cam.x + (Math.random() - 0.5) * cam.w * 0.8, cam.y - cam.h * (0.1 + Math.random() * 0.3)); }
+      if (this.fwT <= 0 && fireworksOn(w.s.clock)) { this.fwT = 0.5 + Math.random() * 1.1; this.firework(cam.x + (Math.random() - 0.5) * cam.w * 0.8, cam.y - cam.h * (0.1 + Math.random() * 0.3)); }
     }
     for (const s of this.sky) { s.t += dt; s.y -= 34 * dt; s.x += s.vx * dt; }
     this.sky = this.sky.filter(s => s.t < 14);

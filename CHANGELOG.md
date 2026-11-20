@@ -2,6 +2,15 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 20-11-2026
+
+### Fixed
+
+- **Jade Street**: the ride radio works again after chapter five. Once the festival began, its tune played over every station and pressing R only changed the label; the radio also gave way near markets. Now any station plays over the calm street, market and festival tunes (a chase still drowns it out), and a reloaded save plays the station its chip shows.
+- **Jade Street**: the festival fireworks no longer go off every few seconds all night. They go up in two shows, 9:00 to 9:30 pm and midnight to 12:45 am, with a heads-up when each one starts.
+- **Jade Street**: Havelock Road over the Singapore River and Clemenceau Avenue by Clarke Quay are proper stone bridges with balustrades, not bare road over the water.
+- **Jade Street**: on the City map, the district borders west of Chinatown run straight along the roads instead of in steps across the parks.
+
 ## 19-11-2026
 
 ### Added

@@ -288,6 +288,17 @@ async function viewport(name, w, h, touch) {
   check((await W(() => window.__jade.world().s.radio)) !== st0, `${name}: change the radio station`);
   if (touch) await touchAt('touchEnd', 0, 0); else await p.keyboard.up('w');
   const r1 = await st(); check(Math.hypot(r1.x - r0.x, r1.y - r0.y) > 2, `${name}: the scooter drives (${JSON.stringify([r0.x, r0.y, r1.x, r1.y])}) ${await diag()}`);
+  // the radio is heard over the festival's tune too (after chapter five it played the festival tune whatever the station)
+  if (!touch) {
+    const had = await W(() => { const w = window.__jade.world(), h = w.s.done.includes('m25'); if (!h) w.s.done.push('m25'); w.heat = 0; return h; });
+    check(await until(() => /^radio:/.test(window.__jadeRadio?.() ?? ''), null, 2500), `${name}: the radio plays over the festival tune (${await W(() => window.__jadeRadio?.())})`);
+    const n = await W(() => window.__jade.world().s.radio);
+    for (let i = 0; i < 8 && !(await W(() => window.__jadeRadio?.() === 'off')); i++) { await p.keyboard.press('r'); await wait(250); }
+    check(await W(() => window.__jadeRadio?.() === 'off'), `${name}: Radio off silences it`);
+    await p.keyboard.press('r'); await wait(250);
+    check(await until(() => /^radio:/.test(window.__jadeRadio?.() ?? ''), null, 2500), `${name}: and R turns it back on`);
+    await W(([had, n]) => { const w = window.__jade.world(); if (!had) w.s.done = w.s.done.filter(id => id !== 'm25'); w.s.radio = n; }, [had, n]);
+  }
   await wait(900); await act(); await until(() => !window.__jade.world().p.ride, null, 3000);
   check(!(await st()).ride, `${name}: get off`);
 

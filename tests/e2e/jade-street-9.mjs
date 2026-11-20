@@ -120,11 +120,26 @@ export async function ninth(h) {
   // (pass 13: deterministic. A mynah within 220 of you hops into the air at random (and the camera was still easing
   // after the hero was placed), so the click could land where the bird had been. The target is now held on the
   // ground every frame, the hero stands 300 away, and the click waits for the camera to settle on the bird)
+  // (20-11-2026: still about 1 in 5 missed. placePlayer puts you on the nearest free tile, up to 160 off the spot asked
+  // for, and a shot stops at the first stall, building, passer-by or warden in its way, which Serangoon Road is full of.
+  // The hero now stands where the line to the bird is clear of solid tiles, and nobody walks into that line)
   const tgt = await W(() => {
     // (any bird still about, set running with its loot: the shooed one may have been the only one running)
     const w = window.__jade.world(), m = w.gangs.ev?.mobs.find(m => m.has && m.st === 'run') ?? w.gangs.ev?.mobs.find(m => m.st !== 'gone'); if (!m) return null;
-    m.st = 'run'; m.has = true; m.t = 0; window.__pin9m = m; m.fly = undefined; m.b.speed = 0; m.sing = undefined; const x = m.b.x, y = m.b.y; w.placePlayer(x - 300, y); w.s.settings.assist = true;
-    window.__pin9 = true; const hold = () => { if (!window.__pin9) return; if (m.st === 'run') { m.b.x = x; m.b.y = y; m.b.speed = 0; m.fly = undefined; } requestAnimationFrame(hold); }; hold();
+    m.st = 'run'; m.has = true; m.t = 0; window.__pin9m = m; m.fly = undefined; m.b.speed = 0; m.sing = undefined; const x = m.b.x, y = m.b.y; w.s.settings.assist = true;
+    const NW = window.__jade.layout.NW, clear = (ax, ay) => { for (let k = 0.08; k < 0.95; k += 0.03) { const sx = ax + (x - ax) * k, sy = ay - 26 + (y - ay + 26) * k, so = w.c.solid[Math.floor(sy / 64) * NW + Math.floor(sx / 64)]; if (so === 1 || so === 3) return false; } return true; };
+    let spot = null;
+    for (const [dx, dy] of [[-300, 0], [300, 0], [0, 300], [0, -300], [-220, 200], [220, 200], [-220, -200], [220, -200], [-200, 0], [200, 0], [0, 200], [0, -200]]) { w.placePlayer(x + dx, y + dy); if (Math.hypot(w.p.x - x - dx, w.p.y - y - dy) < 24 && clear(w.p.x, w.p.y)) { spot = [w.p.x, w.p.y]; break; } }
+    if (!spot) { w.placePlayer(x - 300, y); spot = [w.p.x, w.p.y]; }
+    // (the line of fire, from the hero's hands (26 up) to the bird: passers-by, wardens and the other mynahs keep off it)
+    const inLine = (px, py) => { const ax = spot[0], ay = spot[1] - 26, vx = x - ax, vy = y - ay, k = Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / (vx * vx + vy * vy))); return Math.hypot(px - ax - vx * k, py - ay - vy * k) < 48; };
+    window.__pin9 = true; const hold = () => {
+      if (!window.__pin9) return;
+      if (m.st === 'run') { m.b.x = x; m.b.y = y; m.b.speed = 0; m.fly = undefined; }
+      w.peds = w.peds.filter(pd => !inLine(pd.x, pd.y)); w.wardens = w.wardens.filter(wd => !inLine(wd.b.x, wd.b.y));
+      for (const o of w.gangs.ev?.mobs ?? []) if (o !== m && o.st === 'run' && inLine(o.b.x, o.b.y)) o.b.x += 200;
+      requestAnimationFrame(hold);
+    }; hold();
     return true;
   });
   const steady = async () => { let a = null; for (let i = 0; i < 20; i++) { const b = await W(() => { const m = window.__pin9m; return m && m.st === 'run' ? window.__jade.screenOf(m.b.x / 64, m.b.y / 64).map(Math.round) : null; }); if (a && b && Math.abs(a[0] - b[0]) < 2 && Math.abs(a[1] - b[1]) < 2) return b; a = b; await wait(100); } return a; };
