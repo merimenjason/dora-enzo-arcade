@@ -46,13 +46,16 @@ export type Stats = { walked: number; driven: number; boated: number; missions: 
   bats: number; bikes: number; laksa: number; baubles: number; kites: number; planes: number;
   /** the fourteenth pass: plates of chwee kueh, songs at the bird corner, Slingshot rides, koi fed, looks through the
    * telescope, lantern walks round Jurong Lake (all start at zero in an older save: the loader fills them in) */
-  chwee: number; songs: number; slings: number; koi: number; stars: number; lwalks: number };
+  chwee: number; songs: number; slings: number; koi: number; stars: number; lwalks: number;
+  /** the seventeenth pass: durians caught off the tree, looks from Jejawi Tower, boars shooed off their digs, Tusker Boys
+   * caught, boar trails followed to the end, bumboat crossings (all start at zero in an older save: the loader fills them in) */
+  durians: number; spies: number; digs: number; boars: number; trails: number; bumboats: number };
 /** the empire (lib/jade-empire.ts): the highest rank reached (its card shows once), empire jobs finished (by id) and the
  * night each was last done (one a night) */
 export type Empire = { rank: number; jobs: Record<string, number>; last: Record<string, number> };
 export const newEmpire = (): Empire => ({ rank: 0, jobs: {}, last: {} });
 /** the eleventh pass's contracts (lib/jade-contracts.ts): a rival gang muscling in on a district since `night` */
-export type Contest = { d: District; gang: 'crow' | 'mac' | 'otter' | 'liz' | 'myna' | 'bat'; night: number };
+export type Contest = { d: District; gang: 'crow' | 'mac' | 'otter' | 'liz' | 'myna' | 'bat' | 'boar'; night: number };
 /** a contract offer as the generator's reference (lib/jade-proc.ts CRef): it rebuilds the same contract every time */
 export type OfferRef = { seed: number; tier: number; stars: 1 | 2 | 3; open: District[]; giver?: string; kind?: string; avoid?: string[] };
 export type Contracts = {
@@ -132,17 +135,19 @@ export const SAFE_HOUSES: { id: string; d: District; need: number; price: number
   { id: 'safe-india', d: 'india', need: 10, price: 300 }, { id: 'safe-glam', d: 'glam', need: 12, price: 350 }, { id: 'safe-resort', d: 'resort', need: 15, price: 450 },
   { id: 'safe-orchard', d: 'orchard', need: 12, price: 500 }, { id: 'safe-katong', d: 'katong', need: 10, price: 400 }, { id: 'safe-changi', d: 'changi', need: 15, price: 550 },
   { id: 'safe-tiong', d: 'tiong', need: 10, price: 450 }, { id: 'safe-quay', d: 'quay', need: 12, price: 550 }, { id: 'safe-jurong', d: 'jurong', need: 15, price: 600 },
+  // the seventeenth pass: the kampong house by Ubin Jetty
+  { id: 'safe-ubin', d: 'pulau', need: 15, price: 650 },
 ];
 
 export function newSave(seed = 1): Save {
   return {
     v: SAVE_VERSION, seed, hero: 'dora', started: false,
     cash: 100, night: 1, clock: 0, cargo: emptyCargo(), stash: emptyCargo(),
-    done: [], rep: { market: 0, temple: 0, canal: 0, docks: 0, arcade: 0, heartland: 0, bay: 0, india: 0, glam: 0, resort: 0, orchard: 0, katong: 0, changi: 0, tiong: 0, quay: 0, jurong: 0 },
+    done: [], rep: { market: 0, temple: 0, canal: 0, docks: 0, arcade: 0, heartland: 0, bay: 0, india: 0, glam: 0, resort: 0, orchard: 0, katong: 0, changi: 0, tiong: 0, quay: 0, jurong: 0, pulau: 0 },
     upgrades: { speed: 0, grip: 0, cargo: 0 }, paint: 'red',
     outfits: { dora: ['classic'], enzo: ['classic'] }, outfit: { dora: 'classic', enzo: 'classic' },
     cats: [], murals: [], trophies: [], tips: [], safe: 'safe-market', best: {}, daily: '', dailyDone: [],
-    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0, tolls: 0, junk: 0, kopi: 0, chope: 0, mrt: 0, taxi: 0, photos: 0, heists: 0, quiet: 0, defends: 0, disguises: 0, clues: 0, traps: 0, swaps: 0, lures: 0, palHelps: 0, bribes: 0, cable: 0, ferry: 0, lamps: 0, kuih: 0, mynahs: 0, raidsWon: 0, raidsMissed: 0, repairs: 0, rounds: 0, empJobs: 0, gradeA: 0 , bats: 0, bikes: 0, laksa: 0, baubles: 0, kites: 0, planes: 0, chwee: 0, songs: 0, slings: 0, koi: 0, stars: 0, lwalks: 0 },
+    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0, tolls: 0, junk: 0, kopi: 0, chope: 0, mrt: 0, taxi: 0, photos: 0, heists: 0, quiet: 0, defends: 0, disguises: 0, clues: 0, traps: 0, swaps: 0, lures: 0, palHelps: 0, bribes: 0, cable: 0, ferry: 0, lamps: 0, kuih: 0, mynahs: 0, raidsWon: 0, raidsMissed: 0, repairs: 0, rounds: 0, empJobs: 0, gradeA: 0 , bats: 0, bikes: 0, laksa: 0, baubles: 0, kites: 0, planes: 0, chwee: 0, songs: 0, slings: 0, koi: 0, stars: 0, lwalks: 0, durians: 0, spies: 0, digs: 0, boars: 0, trails: 0, bumboats: 0 },
     settings: { sound: true, music: true, assist: true, diff: 'easy', touch: 'auto', shake: true, calm: false, keys: {}, bigText: false, cbMarks: false, partner: 'auto' },
     medals: {}, story: { intro: false, ch: 0, ending: false, isle: false, lights: false, coast: false, lake: false }, learned: [], msgs: [], radio: 0, helped: 0,
     biz: Object.fromEntries(BIZ.map(b => [b.id, newBiz()])), bizLog: [], gear: newGear(), bag: newBag(), fines: newFines(), lingo: [], empire: newEmpire(), contracts: newContracts(),
@@ -308,7 +313,7 @@ function migrate12(o: Record<string, unknown>): Record<string, unknown> {
   const st = (o.stats ?? {}) as Record<string, unknown>, sy = (o.story ?? {}) as Record<string, unknown>;
   return { ...o, v: 13, stats: { ...st, bats: 0, bikes: 0, laksa: 0, baubles: 0, kites: 0, planes: 0 }, story: { ...sy, coast: false } };
 }
-const GANGS = ['crow', 'mac', 'otter', 'liz', 'myna', 'bat'];
+const GANGS = ['crow', 'mac', 'otter', 'liz', 'myna', 'bat', 'boar'];
 /** the contracts, repaired: offers with a known shape (a bad one is simply dealt again), counts in range */
 function contractsOf(v: unknown): Contracts {
   const c = newContracts(), o = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;

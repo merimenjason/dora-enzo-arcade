@@ -33,11 +33,13 @@ export function eastSorted(sc: Scene, x: X, w: World, list: List, vis: Vis) {
   // the ferry: on its timetable, or carrying you
   const F = E.ferry;
   if (w.open.has('resort')) {
-    const f = w.ferry ? (() => { const [fx, fy, h] = linkAt(F, w.ferry!.s); return { x: fx, y: fy, h: w.ferry!.dir > 0 ? h : h + Math.PI }; })() : ferryAt(F, w.time);
+    // (the Ubin bumboat is lib/jade-ubindraw.ts's: this ferry carries you only when the ride is its own)
+    const mine = !!w.ferry && (w.ferry.l ?? 'ferry') === 'ferry';
+    const f = mine ? (() => { const [fx, fy, h] = linkAt(F, w.ferry!.s); return { x: fx, y: fy, h: w.ferry!.dir > 0 ? h : h + Math.PI }; })() : ferryAt(F, w.time);
     if (vis(f.x, f.y, 200)) list.push([f.y, () => {
       x.fillStyle = 'rgba(0,0,0,.25)'; sc.shadow(x, f.x + 6, f.y + 10, 70, 30);
       spr(x, 'ferry-boat', f.x, f.y, { anchor: 'center', rot: f.h + Math.PI / 2, w: 96 });
-      if (w.ferry) for (const [k, h] of [[-1, w.p.who], [1, w.mate.who]] as const) spr(x, `${h}-seat`, f.x + Math.cos(f.h) * k * 16, f.y + Math.sin(f.h) * k * 16 - 6, { w: 30 });
+      if (mine) for (const [k, h] of [[-1, w.p.who], [1, w.mate.who]] as const) spr(x, `${h}-seat`, f.x + Math.cos(f.h) * k * 16, f.y + Math.sin(f.h) * k * 16 - 6, { w: 30 });
       sc.glow(x, f.x, f.y, 70, 'rgba(255,240,180,.2)');
     }]);
   }
