@@ -109,6 +109,32 @@ function districtMap(): Uint8Array {
   if (LAYOUT_MODE === 'real') for (let y = HOLE[1]; y <= HOLE[3]; y++) for (let x = HOLE[0]; x <= HOLE[2]; x++) m[y * W + x] = di('katong');
   DMAP = m; return m;
 }
+/** the district the City map paints a tile as. The same as districtAt everywhere but the filler west of Chinatown,
+ * where districtAt's nearest-block fill draws stepped diagonal borders across the parks. There the map splits a narrow
+ * gap between two blocks side by side down the middle, and otherwise takes the nearest block (or split gap) straight
+ * up or down the tile's column, so the borders run straight along the seam roads. Only the map's tint and borders use
+ * it: what is open, and where, still follows districtAt. */
+export function mapDistrictAt(tx: number, ty: number): District {
+  const x = Math.max(0, Math.min(W - 1, tx)), y = Math.max(0, Math.min(H - 1, ty));
+  if (LAYOUT_MODE !== 'real' || x >= MAIN.nx - MAIN.x0 || blockNew(x, y)) return districtAt(x, y);
+  const m = MDMAP ?? (MDMAP = new Map()); const k = y * W + x, got = m.get(k); if (got) return got;
+  const blk = (bx: number, by: number) => bx < 0 || by < 0 || bx >= W || by >= H ? null : blockNew(bx, by);
+  const moved = (bx: number, by: number) => { const b = blk(bx, by); return !!b && b !== MAIN; };
+  // the gap split: the nearer of the blocks within 16 tiles either side along the row (the main block never claims it)
+  const split = (gx: number, gy: number): District | null => {
+    if (gx < 0 || gy < 0 || gx >= W || gy >= H || blk(gx, gy)) return null;
+    let L = 0, R = 0; for (let r = 1; r <= 16; r++) { if (!L && blk(gx - r, gy)) L = r; if (!R && blk(gx + r, gy)) R = r; }
+    if (!L || !R) return null;
+    const lm = moved(gx - L, gy), rm = moved(gx + R, gy);
+    return lm && (!rm || L <= R) ? districtAt(gx - L, gy) : rm ? districtAt(gx + R, gy) : null;
+  };
+  const at = (cx: number, cy: number) => moved(cx, cy) ? districtAt(cx, cy) : split(cx, cy);
+  let d = split(x, y);
+  for (let r = 1; r < H && !d; r++) d = at(x, y - r) ?? at(x, y + r);
+  for (let r = 1; r < W && !d; r++) d = moved(x - r, y) ? districtAt(x - r, y) : moved(x + r, y) ? districtAt(x + r, y) : null;
+  const out = d ?? districtAt(x, y); m.set(k, out); return out;
+}
+let MDMAP: Map<number, District> | null = null;
 /** Orchard Road's old place in the world (the real layout): new HDB estates between Little India and Changi */
 const HOLE = [376, 0, 423, 37] as const;
 /** the district at an old-frame tile (the build passes) */
@@ -744,6 +770,24 @@ function seams(c: City) {
     let ok = true; for (let dy = -1; dy <= 1 && ok; dy++) for (let dx = -1; dx <= 1; dx++) if (!lawn(tx + dx, ty + dy)) { ok = false; break; }
     if (ok) prop(tx, ty, R() < 0.6 ? 'tree-round' : 'tree-frangipani', 22, 'tall');
   }
+
+  // ── the river bridges the relayout made (Havelock Road over the Singapore River, Clemenceau Avenue by Clarke Quay)
+  // were bare asphalt over the water: give each the canal's stone bridge, balustrades and all (not the expressways)
+  const bridged = (bx: number, by: number) => c.decals.some(d => d.sprite.startsWith('d-bridge') && Math.hypot(d.x - bx, d.y - by) < 3 * T) || c.props.some(p => p.sprite === 'red-bridge' && Math.hypot(p.x - bx, p.y - by) < 3 * T);
+  ROADS.forEach((r, i) => {
+    if (xw.has(i)) return;
+    let run = -1;
+    for (let s = r.from; s <= r.to + 1; s++) {
+      const x = r.axis === 'h' ? s : r.at + 1, y = r.axis === 'h' ? r.at + 1 : s;
+      const on = s <= r.to && x >= 0 && y >= 0 && x < W && y < H && c.ground[y * W + x] === G.BRIDGE && (c.flags[y * W + x] & F_BRIDGE) > 0;
+      if (on && run < 0) run = s;
+      if (on || run < 0) continue;
+      const len = s - run, mid = run + len / 2; run = -1;
+      if (len < 2 || len > 8) continue;
+      const bx = r.axis === 'h' ? mid * T : (r.at + 2) * T, by = r.axis === 'h' ? (r.at + 2) * T : mid * T;
+      if (!bridged(bx, by)) c.decals.push({ x: bx, y: by, sprite: 'd-bridge-stone', r: 0, solid: 'none', layer: 'ground', w: (len + 2.2) * T, rot: r.axis === 'h' ? 0 : Math.PI / 2 });
+    }
+  });
 }
 
 // ── queries

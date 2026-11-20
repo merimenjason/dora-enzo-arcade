@@ -323,7 +323,7 @@ export class Play {
     this.saveT += dt; if (this.saveT > 5) { this.saveT = 0; this.persist(w.s); }
     // music follows the action
     this.snd?.play(this.theme());
-    this.snd?.radio(w.p.ride?.kind ?? null);
+    this.snd?.radio(w.p.ride?.kind ?? null, w.s.radio);
     this.ambT -= dt; if (this.ambT <= 0) { this.ambT = 1; this.snd?.ambient(districtAt(Math.floor(w.p.x / T), Math.floor(w.p.y / T)), w.rain); }
     if (this.endingT > 0 && !this.paused) { this.endingT -= dt; if (this.endingT <= 0) this.onEnding?.(); }
     // the job's cards are up: the street's passing news (a photo taken, coins) is done with

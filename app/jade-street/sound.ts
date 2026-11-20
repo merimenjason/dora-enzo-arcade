@@ -2,7 +2,7 @@
 // crossfades) and the characters' babble voices live in music.ts; a gong when the lanterns light or a chase starts, and short effects
 // for every action (scooter putter on getting on, a whistle for wardens, coins, the lucky-cat chime, a wobble for the
 // cake, clicks and sparks for the mini-games). Silent until the first input; effects are rate-limited.
-// On a ride the street tune gives way to the ride radio (stations in radio.ts; the chase tune still wins when the
+// On a ride the calm tunes (street, market, festival) give way to the ride radio (stations in radio.ts; the chase tune still wins when the
 // lanterns are lit), and under everything runs a very quiet ambient bed for the district you are in (market chatter
 // and sizzle, temple wind chimes and bells, lapping canal water, gulls and horns at the docks, neon hum and blips on
 // the Strip) plus rain hiss and drips during showers.
@@ -56,7 +56,9 @@ export class JadeSound {
   stations(kind: string | null): string[] { return stationList(kind); }
   stationName(kind: string | null, i: number): string { const l = stationList(kind); return l[((i % l.length) + l.length) % l.length]; }
   /** tune the radio for the ride the hero is on (null on foot: the street tune comes back); safe to call every frame */
-  radio(kind: string | null) {
+  radio(kind: string | null, ix = this.radioIx) {
+    // (the saved station: a reloaded save showed one station on the chip and played another)
+    if (kind) { const l = stationList(kind); this.radioIx = ((ix % l.length) + l.length) % l.length; }
     if (kind === this.radioKind) return;
     this.radioKind = kind;
   }
@@ -66,14 +68,18 @@ export class JadeSound {
     if (this.radioKind) this.tuneStatic();
     return l[this.radioIx];
   }
+  /** what the music scheduler is playing: a theme, 'radio:<station>' or 'off' (the browser tests read it) */
+  nowPlaying(): string { return this.playing; }
   /** the station on air for the current ride, or null when on foot or switched off */
   onAir(): string | null { if (!this.radioKind) return null; const n = this.stationName(this.radioKind, this.radioIx); return n === OFF ? null : n; }
   private tuneStatic() { if (!this.ctx || !this.sfxOn) return; const t = this.t; this.burst(t, 0.25, 2600, 0.4, 0.12); this.tone(1400, t + 0.05, 0.12, 'sine', 0.05, this.out!, 0.5); }
 
   private schedule() {
     const C = this.ctx; if (!C || !this.tune || !this.mus) return;
-    const st = this.tune === 'street' && this.radioKind ? stationOf(this.onAir() ?? '') : null;
-    const off = this.tune === 'street' && this.radioKind && !this.onAir();
+    // the radio plays over every calm tune (the street, a market, the festival nights); a chase or the boss drowns it out
+    const calm = this.tune === 'street' || this.tune === 'market' || this.tune === 'festival';
+    const st = calm && this.radioKind ? stationOf(this.onAir() ?? '') : null;
+    const off = calm && this.radioKind && !this.onAir();
     const key = off ? 'off' : st ? 'radio:' + st.name : this.tune;
     if (key !== this.playing) { this.playing = key; this.n = 0; this.next = Math.max(this.next, C.currentTime + 0.15); }
     if (off) { this.music?.hush(); this.music?.schedule(); this.next = C.currentTime; return; }

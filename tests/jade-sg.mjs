@@ -15,7 +15,7 @@ import { newSave, loadSave, SAVE_VERSION, SAVE_KEY, offered, sideJobs } from '..
 import { FRAMES } from '../.checks/jade-art.js';
 import { addHeat, lanterns } from '../.checks/jade-heat.js';
 import { FINE, OFFENCES, fineAmount, offence, payTicket } from '../.checks/jade-fines.js';
-import { MAMA, mamaBuy, LINGO, sgAct, festOf, BARKS } from '../.checks/jade-sg.js';
+import { MAMA, mamaBuy, LINGO, sgAct, festOf, BARKS, fireworksOn, FIREWORK_SHOWS } from '../.checks/jade-sg.js';
 import { startGang, gangHit } from '../.checks/jade-gangs.js';
 import { KopiGame, KOPI_FIELDS, kopiName, kopiSprite } from '../.checks/jade-mini.js';
 import { chaseProgress } from '../.checks/jade-mission.js';
@@ -212,6 +212,16 @@ test('festivals and storms are seeded; Singlish is light', () => {
   for (const l of Object.values(BARKS).flat()) assert.ok(l.length < 70, l);
 });
 
+test('festival fireworks go up only in the two shows, each announced once and not during a job', () => {
+  assert.ok(!fireworksOn(0) && !fireworksOn(119.9) && fireworksOn(120) && fireworksOn(149) && !fireworksOn(150), 'the 9 pm show');
+  assert.ok(fireworksOn(300) && fireworksOn(344) && !fireworksOn(345) && !fireworksOn(600), 'the midnight show');
+  const lit = FIREWORK_SHOWS.reduce((a, [x, y]) => a + y - x, 0); assert.ok(lit < 720 * 0.12, 'dark most of the night');
+  const w = world(); assert.ok(w.festival); w.s.clock = 118; w.drain(); w.clock(3);
+  assert.equal(w.drain().filter(f => f.t === 'toast' && /9 o’clock show/.test(f.msg)).length, 1, 'the 9 pm show is announced');
+  w.clock(3); assert.equal(w.drain().filter(f => f.t === 'toast' && /show is starting/.test(f.msg)).length, 0, 'once');
+  const pre = world({ done: [] }); pre.s.clock = 298; pre.drain(); pre.clock(3);
+  assert.equal(pre.drain().filter(f => f.t === 'toast' && /show is starting/.test(f.msg)).length, 0, 'no shows before the festival');
+});
 test('every new painting is in the atlas', () => {
   const need = ['v-bumboat', 'otter-run-0', 'mac-run-0', 'sleek-boat-0', 'warden-ticket', 'warden-write', 'pigeon-0', 'pigeon-fly', 'table-chope', 'table-empty', 'auntie-chope', 'ong-trike-0', 'liondance-0', 'kid-lantern', 'lily-sing-0', 'goh-chess-0',
     'face-hoon', 'face-teo', 'face-beng', 'face-sleek', 'face-kow', 'sg-hdb', 'sg-kopitiam', 'sg-wetmarket', 'gantry', 'stink-cloud', 'durian-crate', 'kopi-tray', 'wok', 'mic', 'handbag', 'bun', 'ticket', 'litter-bin',

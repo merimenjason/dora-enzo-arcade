@@ -18,7 +18,7 @@ import { trafficStep, redRun, type Car } from './jade-traffic.js';
 import { pedStep, type Ped } from './jade-folk.js';
 import { DIFF } from './jade-diff.js';
 import { heatStep, addHeat, caught, type Warden, type Roadblock } from './jade-heat.js';
-import { sgStep, sgNear, sgAct, sgGates, newSg, cheer, type SgState, type Bark } from './jade-sg.js';
+import { sgStep, sgNear, sgAct, sgGates, newSg, cheer, FIREWORK_SHOWS, type SgState, type Bark } from './jade-sg.js';
 import { finesStep, payTicket, offence, FINE, type Patrol, type Ticket } from './jade-fines.js';
 import { gangsStep, gangNear, gangAct, newGangs, type GangState } from './jade-gangs.js';
 import { stationNear, mrtTo, cantRide, routeToStation, stationById, MRT_TEXT, travelPlan, type Travel } from './jade-mrt.js';
@@ -288,6 +288,7 @@ export class World {
     if (this.run && this.s.clock >= 719.5) this.s.clock = 719.5;
     accrue(this, Math.min(720, this.s.clock) - before);
     empireClock(this, before, this.s.clock);
+    if (this.festival && !this.run) for (const [a] of FIREWORK_SHOWS) if (before < a && this.s.clock >= a) this.say(a < 240 ? 'Fireworks! The 9 o’clock show is starting.' : 'Fireworks! The midnight show is starting.', 'good');
     if (this.s.clock >= 720) this.newNight();
   }
   /** a raid starts as soon as you are free to answer it (not in a job, a menu, a talk or the middle of an action) */

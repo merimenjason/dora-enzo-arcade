@@ -73,6 +73,7 @@ export default function JadeStreetPage() {
     const mq = window.matchMedia('(pointer: coarse)'); setCoarse(mq.matches);
     const onMq = () => setCoarse(mq.matches); mq.addEventListener?.('change', onMq);
     (window as unknown as Record<string, unknown>).__jadeSave = () => playRef.current?.w.s ?? saveRef.current;
+    (window as unknown as Record<string, unknown>).__jadeRadio = () => snd.nowPlaying(); // (the browser tests: what the music is playing)
     return () => { snd.stop(); window.removeEventListener('pointerdown', first); window.removeEventListener('keydown', first); mq.removeEventListener?.('change', onMq); };
   }, []);
 

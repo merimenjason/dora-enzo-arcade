@@ -480,7 +480,9 @@ export class Scene {
       if (d.sprite.startsWith('d-bridge')) {
         const fs = frameSize(d.sprite); const hh = d.sprite === 'd-bridge-stone' ? 4.5 * T : 2.7 * T;
         void fs;
-        const s2 = src(d.sprite); if (s2) { x.drawImage(s2[0], s2[1], s2[2], s2[3], s2[4], d.x - (d.w ?? 0) / 2, d.y - hh / 2, d.w ?? 0, hh); }
+        const s2 = src(d.sprite);
+        if (s2 && d.rot) { x.save(); x.translate(d.x, d.y); x.rotate(d.rot); x.drawImage(s2[0], s2[1], s2[2], s2[3], s2[4], -(d.w ?? 0) / 2, -hh / 2, d.w ?? 0, hh); x.restore(); }
+        else if (s2) x.drawImage(s2[0], s2[1], s2[2], s2[3], s2[4], d.x - (d.w ?? 0) / 2, d.y - hh / 2, d.w ?? 0, hh);
         continue;
       }
       if (!simple) spr(x, d.sprite, d.x, d.y, { w: d.w, anchor: 'center', rot: d.rot, alpha: d.sprite === 'd-dash' || d.sprite === 'd-zebra' ? 0.75 : 0.9 });

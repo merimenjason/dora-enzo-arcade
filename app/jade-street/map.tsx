@@ -6,7 +6,7 @@
 // zoom; tap a pin for its name and a "Route here" button. Code draws only the tints, fog fallback and the route line.
 import { linksOf, FARES } from '@/lib/jade-cable';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DISTRICTS, DISTRICT_NAME, T, W, H, districtAt, type District } from '@/lib/jade-city';
+import { DISTRICTS, DISTRICT_NAME, T, W, H, districtAt, mapDistrictAt, type District } from '@/lib/jade-city';
 import { mvT, mvP } from '@/lib/jade-layout';
 import { offered, safeOpen } from '@/lib/jade-save';
 import { BIZ, bizPos } from '@/lib/jade-biz';
@@ -48,7 +48,7 @@ function tints(): HTMLCanvasElement {
   if (TINTS) return TINTS;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d')!; const im = x.createImageData(W, H);
-  for (let ty = 0; ty < H; ty++) for (let tx = 0; tx < W; tx++) { const [r, g, b] = TINT[districtAt(tx, ty)]; const i = (ty * W + tx) * 4; im.data[i] = r; im.data[i + 1] = g; im.data[i + 2] = b; im.data[i + 3] = 255; }
+  for (let ty = 0; ty < H; ty++) for (let tx = 0; tx < W; tx++) { const [r, g, b] = TINT[mapDistrictAt(tx, ty)]; const i = (ty * W + tx) * 4; im.data[i] = r; im.data[i + 1] = g; im.data[i + 2] = b; im.data[i + 3] = 255; }
   x.putImageData(im, 0, 0); TINTS = c; return c;
 }
 let BORDERS: [number, number, number, number][] | null = null;
@@ -56,9 +56,9 @@ function borders() {
   if (BORDERS) return BORDERS;
   const out: [number, number, number, number][] = [];
   for (let ty = 0; ty < H; ty++) for (let tx = 0; tx < W; tx++) {
-    const d = districtAt(tx, ty);
-    if (tx + 1 < W && districtAt(tx + 1, ty) !== d) out.push([(tx + 1) * T, ty * T, (tx + 1) * T, (ty + 1) * T]);
-    if (ty + 1 < H && districtAt(tx, ty + 1) !== d) out.push([tx * T, (ty + 1) * T, (tx + 1) * T, (ty + 1) * T]);
+    const d = mapDistrictAt(tx, ty);
+    if (tx + 1 < W && mapDistrictAt(tx + 1, ty) !== d) out.push([(tx + 1) * T, ty * T, (tx + 1) * T, (ty + 1) * T]);
+    if (ty + 1 < H && mapDistrictAt(tx, ty + 1) !== d) out.push([tx * T, (ty + 1) * T, (tx + 1) * T, (ty + 1) * T]);
   }
   BORDERS = out; return out;
 }
