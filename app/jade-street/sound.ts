@@ -380,6 +380,9 @@ export class JadeSound {
       case 'warden-hit': case 'dizzy': case 'blind': this.bump(0.5); break;
       case 'crate': case 'gadget-gift': this.chime(); break;
       case 'slip': this.skid(); break;
+      // the sixteenth pass: a parcel caught at a toss mark, a guard's ice cream
+      case 'toss': this.hop(); this.chime(); break;
+      case 'treat': this.chime(); break;
       case 'p2-join': case 'p2-leave': this.chime(); break;
       case 'bump': case 'block': this.bump(f.k ?? 0.4); break;
       case 'hit': this.bump(0.9); this.coins(); break;

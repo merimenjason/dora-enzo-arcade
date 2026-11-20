@@ -146,6 +146,8 @@ export const CHAT: Record<string, string> = {
   melati: 'One more song before the last bumboat, darling?',
   suria: 'Did you know Saturn would float in a bathtub? A very large bathtub.',
   musang: 'A lantern is only paper until somebody carries it.',
+  buaya: 'Potong, sandwich or cone? Same price as 1985. Almost.',
+  kerbau: 'Paddles up! Hear the drum? That is your heartbeat now.',
   tiara: 'Lights, music, crowd control. Christmas on Orchard Road is a full-time job.',
   faiz: 'Good evening. Clear skies tonight, light winds from the east. Perfect for flying.',
   ubin: 'Twelve people, then we go. Pulau Ubin waits for nobody, but the boat waits for twelve.',

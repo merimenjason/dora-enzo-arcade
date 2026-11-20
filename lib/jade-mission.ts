@@ -20,6 +20,7 @@ import { redAhead } from './jade-traffic.js';
 import { makeSets, stepSets, type SetState } from './jade-setpiece.js';
 import { bossEnter, bossStep, floatEnter, floatStep, floatNear, tryLeap, inWindow, leapSpot, LADDER, type Sign, type Float } from './jade-boss.js';
 import { raidEnter, raidStep } from './jade-biz.js';
+import { rideEnter, rideStep, rideTag, rideTarget } from './jade-ridejobs.js';
 import { teamEnter, teamStep, teamTag, guardGoal, guardHits, onGadget, onBurst, watchStep, blind, postMate, releaseMate, holding, dropBag } from './jade-team.js';
 import { matePounceHit, pounce, pounceWindow, nameOf, GRAB_REACH, type TagOpt } from './jade-tag.js';
 import { seat, newAI, type MateMode } from './jade-duo.js';
@@ -146,6 +147,7 @@ export class Run {
     this.label = 'label' in st ? st.label : '';
     const k = (this.assist ? 1.4 : 1) * this.w.diff.timer;
     if (teamEnter(this, st)) return;
+    if (rideEnter(this, st)) return;
     if (jobEnter(this, st)) return;
     switch (st.t) {
       case 'talk': {
@@ -284,6 +286,7 @@ export class Run {
     const px = p.x, py = p.y, pb = p.ride ? p.ride.b : p.b;
     watchStep(this, dt);
     if (teamStep(this, st, dt)) return;
+    if (rideStep(this, st, dt)) return;
     if (jobStep(this, st, dt)) return;
     switch (st.t) {
       case 'goto': {
@@ -662,7 +665,7 @@ export class Run {
     else { this.w.say('Not quite! Have another go.', 'bad'); this.w.ui = { kind: 'mini', mini: st.kind, level: st.level, from: 'mission' }; }
   }
   // ── the duo and the gadgets (lib/jade-team.ts)
-  tagOption(): TagOpt | null { return jobTag(this) ?? teamTag(this); }
+  tagOption(): TagOpt | null { return rideTag(this) ?? jobTag(this) ?? teamTag(this); }
   guardGoal(m: Player) { return jobGuardGoal(this, m) ?? guardGoal(this, m); }
   postRoof(goal: [number, number]) { return (this.w.c.flags[Math.floor(goal[1] / T) * W + Math.floor(goal[0] / T)] & F_ROOF) > 0; }
   holdAnim() { const st = this.cur; return st?.t === 'float' ? 'haul' : 'hold'; }
@@ -685,6 +688,7 @@ export class Run {
   target(): [number, number] | null {
     const st = this.cur; if (!st) return null; const w = this.w;
     const jt = jobTarget(this); if (jt !== undefined) return jt;
+    const rt = rideTarget(this); if (rt !== undefined) return rt;
     switch (st.t) {
       case 'goto': return this.spot(st.at);
       case 'ride': return this.ride && this.ride.parked ? [this.ride.b.x, this.ride.b.y] : null;

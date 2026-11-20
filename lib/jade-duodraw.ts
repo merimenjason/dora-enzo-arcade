@@ -10,7 +10,7 @@ import { OUTFITS } from './jade-save.js';
 import { GADGETS, carried, stallPos, stallOpen, type GadgetId } from './jade-gear.js';
 import { BOOSTS, boostXY } from './jade-tag.js';
 import { holding } from './jade-team.js';
-import { spr, heroFrame, type Scene } from './jade-scene.js';
+import { spr, heroFrame, hasFrame as has, type Scene } from './jade-scene.js';
 import type { World, Player, Ride } from './jade-game.js';
 import type { Actor } from './jade-mission.js';
 
@@ -144,6 +144,10 @@ function driver(sc: Scene, x: X, w: World, p: Player, r: Ride, variant: string) 
   else if (k === 'scooter') f = w.banner?.text === 'Job done!' ? `${h}-ride-cheer` : `${h}-ride-scooter-${Math.sin(sc.t * 3) > 0 ? 0 : 1}`;
   else if (k === 'trishaw') f = `${h}-ride-pedal-${Math.floor(sc.t * (2 + r.b.speed / 50)) % 2}`;
   else if (k === 'boat') f = `${h}-ride-pole-${Math.floor(sc.t * 1.5) % 2}`;
+  // the sixteenth pass: ringing the ice-cream bell, and the dragon boat's power stroke on a surge (their own frames,
+  // which stream in with the job art: until then the everyday riding frame stands in)
+  else if (k === 'icecream' && p.chimeT > 0 && has(`${h}-ride-bell-0`)) f = `${h}-ride-bell-${Math.floor(sc.t * 6) % 2}`;
+  else if (k === 'dragon' && p.boostT > 0 && has(`${h}-ride-stroke-0`)) f = `${h}-ride-stroke-${Math.floor(sc.t * 5) % 2}`;
   else f = rideFrame(h, k, sc, r);
   RIDE_DRAWN.driver = f && spr(x, f, rx, ry, { anchor: 'center', rot: r.b.h + Math.PI / 2, variant }) ? f : ''; RIDE_DRAWN.partner = ''; RIDE_DRAWN.t = sc.t;
   if (p.carry) spr(x, itemOf(p.carry), r.b.x, r.b.y, { w: 26, anchor: 'center', rot: r.b.h + Math.PI / 2 });
@@ -186,6 +190,10 @@ export function passenger(sc: Scene, x: X, w: World, r: Ride) {
     case 'pass-cheer': f = `${m.who}-pass-cheer`; break;
     case 'pass-duck': f = `${m.who}-pass-duck`; break;
     case 'pass-wave': f = `${m.who}-pass-wave`; break;
+    // the sixteenth pass: a parcel tossed from the tandem's back saddle (wind-up, then the throw), a cone held out of
+    // the sidecar (then an ice-cream sandwich and a wave), each toward its own side
+    case 'pass-toss': if (has(`${m.who}-toss-0`)) { f = `${m.who}-toss-${m.tossT > 0.35 ? 0 : 1}`; flip = Math.sin(m.aimH - r.b.h) > 0; } break;
+    case 'pass-serve': if (has(`${m.who}-serve-0`)) f = `${m.who}-serve-${Math.floor(sc.t * 0.8) % 2}`; break;
   }
   if (spr(x, f, px, py, { anchor: 'center', rot: r.b.h + Math.PI / 2, variant, flip })) RIDE_DRAWN.partner = f;
 }

@@ -100,7 +100,7 @@ export function contractCase(k, o = {}) {
 export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
   // lapse: the chance per decision of a human slip (a glance at the map, a fumbled turn) lasting 0.5-1.1 s;
   // notice: the chance of reading a telegraphed hazard in time to steer round it
-  const P = { perfect: { lo: 0.2, hi: 0.2, wob: 0, slop: 0, lapse: 0, notice: 1 }, casual: { lo: 0.2, hi: 0.3, wob: 0.28, slop: 1, lapse: 0, notice: 0.85 }, normal: { lo: 0.22, hi: 0.34, wob: 0.24, slop: 0.8, lapse: o.lapse ?? 0.05, notice: 0.7 } }[profile];
+  const P = { perfect: { lo: 0.2, hi: 0.2, wob: 0, slop: 0, lapse: 0, notice: 1, surge: 1 }, casual: { lo: 0.2, hi: 0.3, wob: 0.28, slop: 1, lapse: 0, notice: 0.85, surge: 0.25 }, normal: { lo: 0.22, hi: 0.34, wob: 0.24, slop: 0.8, lapse: o.lapse ?? 0.05, notice: 0.7, surge: 0.12 } }[profile];
   const assist = o.assist ?? profile !== 'normal';
   // the tenth pass: an empire raid or empire job is not a story job: `o.save` gives its save, `o.setup(w)` sets it up
   // (a raid alert, or the job started at its property) and `o.done(w)` says when it is over
@@ -199,7 +199,7 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
   }
   // ── the job steps (lib/jade-jobs.ts)
   const angTo = (a, x, y) => Math.abs(((Math.atan2(y - a.b.y, x - a.b.x) - a.b.h) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI);
-  const blindA = a => (a.extra2 ?? 0) > 0 || (a.stare ?? 0) > 0;
+  const blindA = a => (a.extra2 ?? 0) > 0 || (a.stare ?? 0) > 0 || (a.mind?.treat ?? 0) > 0;
   /** would a guard or a camera see a point (with a margin a careful player leaves)? */
   const watched = (x, y, margin = 1) => w.run.actors.some(a => {
     if (blindA(a)) return false;
@@ -241,6 +241,22 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
   const job = { asked: {}, order: null };
   function decideJob(st) {
     const p = w.p, run = w.run, js = run.js; if (!js) return;
+    // the sixteenth pass: a case beside the ice-cream motorbike: ride up, ring the chime, and hop off to photograph
+    // while the guards eat (back on and ring again once they go back to their posts)
+    if (st.t === 'case' && st.skin === 'bat') {
+      const guards = run.actors.filter(a => a.kind === 'guard'), tg = run.target();
+      const eating = guards.filter(a => (a.mind?.treat ?? 0) > 3).length, coming = guards.filter(a => a.mind?.wantTreat).length;
+      const hungry = guards.some(a => (a.mind?.cones ?? 0) < 2);
+      if (p.ride?.kind === 'icecream') {
+        if (!tg) return;
+        if (dist(tg[0], tg[1], p.x, p.y) > 230) { go(tg[0], tg[1], 0.7); return; }
+        inp.mx = 0; inp.my = 0;
+        if (eating + coming === 0) { if (hungry && p.chimeT <= 0 && (w.tick & 15) === 0) press('hop'); else if (!hungry) offFoot(); return; }
+        if (coming === 0) offFoot();
+        return;
+      }
+      if (!p.ride && eating === 0 && hungry && !p.act && guards.every(a => a.mind?.st === 'patrol' || a.mind?.st === 'back')) { getRide(r => r.kind === 'icecream'); return; }
+    }
     if (p.ride && !(st.t === 'heist' && js.ph === 3 && js.mode === 'loud') && st.t !== 'defend') { offFoot(); return; }
     switch (st.t) {
       case 'case': {
@@ -421,6 +437,20 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
         if (w.ferry) return;
         if (w.near?.kind === 'cable' || w.near?.kind === 'ferry') { press('act'); return; }
         const tg = run.target(); if (tg) go(tg[0], tg[1]); return;
+      }
+      // the sixteenth pass: the tandem's tosses and the dragon boat's paddle (surge whenever the drum allows)
+      case 'toss': {
+        if (p.ride?.kind !== 'tandem') { getRide(r => r.kind === 'tandem'); return; }
+        if (w.mate.seat !== p.ride) { inp.mx = 0; inp.my = 0; return; }
+        if (tagIf('toss')) return;
+        const tg = run.target(); if (tg) go(tg[0], tg[1], 0.8); return;
+      }
+      case 'paddle': {
+        if (p.ride?.kind !== 'dragon') { getRide(r => r.kind === 'dragon'); return; }
+        if (w.mate.seat !== p.ride && !o.solo) { inp.mx = 0; inp.my = 0; return; }
+        const [x, y] = run.spot(st.to); go(x, y);
+        if (p.boostCd <= 0 && !o.nosurge && R() < P.surge) press('dash');
+        return;
       }
       case 'beat': { if (!p.ride) { getRide(r => r.kind === 'scooter'); return; } const [x, y] = run.spot(st.to); go(x, y); return; }
       case 'deliver': { const [x, y] = run.spot(st.to); go(x, y, st.fragile ? 0.62 : 1); if (st.fragile && p.ride && p.ride.b.speed > 200) { inp.mx *= 0.2; inp.my *= 0.2; } return; }

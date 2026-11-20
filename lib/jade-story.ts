@@ -70,7 +70,11 @@ export type Step =
   // ── the seventh pass's job steps (lib/jade-jobs.ts)
   /** case the joint: photograph spots (E) from where you have a clear view of them, without the guards seeing you; each
    * photo is intel the next step uses (lib/jade-jobs.ts INTEL); `need` photos end the step (all of them by default) */
-  | { t: 'case'; spots: { at: Spot; kind: Intel }[]; guards: Spot[][]; need?: number; label: string; cp?: boolean }
+  /** the sixteenth pass: the tandem along the park, the partner on the back saddle tossing a parcel (F) at each mark */
+  | { t: 'toss'; marks: Spot[]; item: string; time?: number; label: string; cp?: boolean }
+  /** the sixteenth pass: a delivery on the dragon boat, timed for a boat with the partner drumming */
+  | { t: 'paddle'; to: Spot; time: number; item: string; label: string; cp?: boolean }
+  | { t: 'case'; spots: { at: Spot; kind: Intel }[]; guards: Spot[][]; need?: number; label: string; cp?: boolean; /** who keeps watch (guards in caps when unset) */ skin?: 'liz' | 'myna' | 'bat' }
   /** the heist: choose quiet or loud. Quiet sneaks in at `back` (only with the back door cased) or at `front`, past the
    * guards and `cams` ([x, y, facing in degrees]), cracks the safe and slips out the same way; loud sends the partner
    * to set off a confetti diversion at the front, then it is a race to the safe before `time` runs out and a getaway
@@ -147,6 +151,9 @@ export const PEOPLE: Record<string, { name: string; face: string; who: string }>
   melati: { name: 'Kak Melati', face: 'face-melati', who: 'Clarke Quay jazz singer (a Singapura cat)' },
   suria: { name: 'Dr Suria', face: 'face-suria', who: 'Science Centre astronomer (a slow loris)' },
   musang: { name: 'Sifu Musang', face: 'face-musang', who: 'Chinese Garden lantern maker (a palm civet)' },
+  // the sixteenth pass: the ride jobs' two new givers
+  buaya: { name: 'Uncle Buaya', face: 'face-buaya', who: 'Orchard Road ice-cream uncle (a saltwater crocodile)' },
+  kerbau: { name: 'Coach Kerbau', face: 'face-kerbau', who: 'Clarke Quay dragon-boat coach (a water buffalo)' },
   // the tenth pass: the empire's supplier, the health inspector, the rival towkay and the jaga you can hire
   huat: { name: 'Ah Huat', face: 'face-huat', who: 'wholesale supplier (a wild boar)' },
   siew: { name: 'Inspector Siew', face: 'face-siew', who: 'health inspector (a milky stork)' },
@@ -198,6 +205,8 @@ function mvStepFields(st: Step): Step {
     case 'bag': return { ...st, at: mvSpot(st.at) };
     case 'ride': return st.near === undefined ? st : { ...st, near: mvSpot(st.near) };
     case 'deliver': return { ...st, to: mvSpot(st.to) };
+    case 'paddle': return { ...st, to: mvSpot(st.to) };
+    case 'toss': return { ...st, marks: mvSpots(st.marks) };
     case 'chase': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), sets: st.sets?.map(d => ({ ...d, at: mvT(d.at[0], d.at[1]) })) };
     case 'float': return st.rope === undefined ? st : { ...st, rope: mvSpot(st.rope) };
     case 'tail': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), relay: st.relay && { ...st.relay, spot: mvSpot(st.relay.spot) } };
@@ -1033,6 +1042,38 @@ export const SIDE: Mission[] = mvMissions([
       { t: 'collect', items: [[200, 102], [222, 103], [238, 103], [232, 113]], item: 'rocket', time: 90, label: 'Find the four model rockets round the Science Centre and Jem', cp: true },
       { t: 'goto', at: 'suria', label: 'Bring the rockets back to Dr Suria' },
       { t: 'talk', lines: [['suria', 'All four, and only one bent fin. The children say you are the best ground crew in Singapore.', 'happy']] },
+    ] },
+  // ── the sixteenth pass: a job for each of the fifteenth pass's rides
+  { id: 'k20', side: 'm51', ch: 0, title: 'Two Scoops', giver: 'buaya', at: 'buaya', reward: 260, rep: 12, blurb: 'Datin Ciku’s bats took Uncle Buaya’s whole freezer of potong for their gala and are guarding it behind Ngee Ann City. Bats can’t resist the ice-cream chime. Ring it, and while they eat, photograph the proof.',
+    steps: [
+      { t: 'talk', lines: [['buaya', 'Thirty years I ride this motorbike down Orchard Road. Tonight, my freezer: gone! The Atas Bats are selling MY potong at their gala behind Ngee Ann City.', 'cross'], ['buaya', 'Inspector Siew needs photos, but the bats are on guard. Secret: no bat can resist the ice-cream chime. Take my motorbike.', 'happy'], ['mate', 'I’ll ride in the sidecar and hand out the cones.', 'smug']] },
+      { t: 'ride', kind: 'icecream', near: 'buaya', label: 'Get on Uncle Buaya’s ice-cream motorbike (E)', cp: true },
+      { t: 'case', skin: 'bat', spots: [{ at: [315, 7], kind: 'door' }, { at: [319, 7], kind: 'safe' }, { at: [323, 8], kind: 'rota' }, { at: [326, 7], kind: 'cam' }], need: 3, guards: [[[316, 9], [319, 9]], [[322, 10], [325, 10]]],
+        label: 'Ride up to the bats and ring the chime (Q): they come for an ice cream. While they eat, hop off (E) and photograph three things', cp: true },
+      { t: 'goto', at: 'buaya', label: 'Take the photos back to Uncle Buaya' },
+      { t: 'talk', lines: [['buaya', 'Wah, clear clear! The freezer, the back door, even their rota. Inspector Siew will be very happy. The bats, not so much.', 'happy'], ['buaya', 'Two scoops each, on the house. Next time, you ring the chime anywhere you like.', 'happy']] },
+    ] },
+  { id: 'k21', side: 'm59', ch: 0, title: 'Bak Chang by Boat', giver: 'kerbau', at: 'kerbau', reward: 270, rep: 12, blurb: 'Coach Kerbau’s dragon-boat crew are training at the harbour and their bak chang supper is still at Clarke Quay. Paddle it down the Singapore River before it goes cold. Alone you’re too slow: take the partner to drum.',
+    steps: [
+      { t: 'talk', lines: [['kerbau', 'Paddles up! My crew trains at the harbour tonight and their bak chang is still here, hot. Cold bak chang, no power.', 'worried'], ['kerbau', 'One paddles, one drums. The drum is the secret: on the beat, the boat surges twice as often. Space on the beat!', 'happy'], ['mate', 'I’ll drum. You paddle. Don’t steer into a bridge.', 'smug']] },
+      { t: 'ride', kind: 'dragon', near: 'kerbau', label: 'Climb into the dragon boat (E): {mate} takes the drum', cp: true },
+      { t: 'paddle', to: [8, 88], time: 17, item: 'kuih', label: 'Paddle the bak chang down the river to the harbour', cp: true },
+      { t: 'talk', lines: [['kerbau', 'Still steaming! You two have the timing of a full crew. Come and train with us any night.', 'happy'], ['mate', 'My arms say no. My stomach says bak chang.', 'happy']] },
+    ] },
+  { id: 'k22', side: 'm49', ch: 0, title: 'Picnic Post', giver: 'bala', at: 'bala', reward: 260, rep: 12, blurb: 'Four families at East Coast Park ordered nasi lemak from the hawker centre, and Uncle Bala’s delivery cyclist is off sick. Take the tandem: one pedals, one tosses.',
+    steps: [
+      { t: 'talk', lines: [['bala', 'Four families, four nasi lemak, all at the barbecue pits along the park. My delivery boy? Fever. Take the tandem!', 'worried'], ['mate', 'You pedal, I toss from the back. I have very good aim.', 'smug'], ['bala', 'Toss gently, ah. Nasi lemak is not a frisbee.', 'calm']] },
+      { t: 'ride', kind: 'tandem', near: 'bala', label: 'Get on the tandem (E): {mate} hops on the back', cp: true },
+      { t: 'toss', marks: [[280, 86], [290, 85], [309, 85], [316, 86]], item: 'nasi-lemak', time: 80, label: 'Pedal past the four barbecue pits: F near each one and {mate} tosses the nasi lemak', cp: true },
+      { t: 'goto', at: 'bala', label: 'Ride back to Uncle Bala' },
+      { t: 'talk', lines: [['bala', 'Four families, four thumbs up, zero rice on the floor. Wah, power! Keep the tandem as long as you like.', 'happy']] },
+    ] },
+  { id: 'k23', side: 'm45', ch: 0, title: 'Down Siloso Road', giver: 'helang', at: 'helang', reward: 270, rep: 12, blurb: 'A Kecoh mynah snatched Sergeant Helang’s medal and is hopping off down Siloso Road. A luge cart is the fastest thing on Sentosa.',
+    steps: [
+      { t: 'talk', lines: [['helang', 'Attention! A mynah has my long-service medal! Last seen heading for the Skyline Luge!', 'cross'], ['hero', 'Downhill, fast, no brakes. Sounds like us.', 'smug']] },
+      { t: 'ride', kind: 'luge', near: [75, 100], label: 'Get in the Skyline Luge cart on Siloso Road (E)', cp: true },
+      { t: 'chase', who: 'runner', name: 'the mynah', skin: 'myna', from: [81, 101], route: [[100, 101], [118, 101], [118, 113], [95, 113], [93, 102], [104, 102]], bumps: 3, loot: '', speed: 245, label: 'Luge after the mynah down Siloso Road and bump it three times', cp: true },
+      { t: 'talk', lines: [['helang', 'My medal! Polished, even. Mynahs like shiny things. Excellent pursuit, soldiers. Salute!', 'happy']] },
     ] },
 ]);
 export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id, m])) as Record<string, Mission>;

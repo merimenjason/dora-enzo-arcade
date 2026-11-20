@@ -15,6 +15,8 @@ export const PAR: Record<string, number> = {
   m21: 105, m22: 85, m23: 110, m24: 170, m25: 105,
   // Lights by the Lake (chapter nine) and its Hawker Tales, about 1.7 times the solver's time
   m56: 85, m57: 180, m58: 200, m59: 205, m60: 255, m61: 215, m62: 195, m63: 185, m64: 210, m65: 165, k17: 165, k18: 190, k19: 165,
+  // the sixteenth pass's ride jobs (1.7 times the solver, like the rest)
+  k20: 80, k21: 35, k22: 170, k23: 55,
 };
 export const MEDAL_NAME = ['Finished', 'Bronze', 'Silver', 'Gold'] as const;
 export const MEDAL_SPRITE = ['ui-medal-none', 'ui-medal-bronze', 'ui-medal-silver', 'ui-medal-gold'] as const;

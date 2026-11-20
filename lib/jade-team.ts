@@ -193,7 +193,8 @@ export function onBurst(run: Run, g: GadgetId, x: number, y: number, R: number) 
   }
 }
 /** the window lookout's view (and painted or distracted lookouts seeing nothing) */
-export function blind(a: Actor) { return (a.extra2 ?? 0) > 0 || (a.stare ?? 0) > 0; }
+/** painted over, staring at a distraction, or eating an ice cream from the motorbike (the sixteenth pass's chime) */
+export function blind(a: Actor) { return (a.extra2 ?? 0) > 0 || (a.stare ?? 0) > 0 || (a.mind?.treat ?? 0) > 0; }
 export function watchStep(run: Run, dt: number) {
   const w = run.w, p = w.p;
   for (const a of run.actors) {

@@ -62,7 +62,7 @@ export function makeCtx(open: District[]): GenCtx {
 
 // ── the cast, the gangs and their voices
 /** who gives contracts: everyone with a contact place of their own (Mr Ong rides his round, so not him) */
-export const GIVERS = ['kee', 'mo', 'pang', 'heron', 'ren', 'kiri', 'lim', 'gizmo', 'bo', 'hoon', 'beng', 'teo', 'goh', 'lily', 'kamal', 'vanda', 'raju', 'malar', 'kancil', 'wangi', 'helang', 'duyung', 'lepak', 'bising', 'rosie', 'bala', 'tiara', 'faiz', 'ubin', 'ciku', 'seng', 'melati', 'suria', 'musang'];
+export const GIVERS = ['kee', 'mo', 'pang', 'heron', 'ren', 'kiri', 'lim', 'gizmo', 'bo', 'hoon', 'beng', 'teo', 'goh', 'lily', 'kamal', 'vanda', 'raju', 'malar', 'kancil', 'wangi', 'helang', 'duyung', 'lepak', 'bising', 'rosie', 'bala', 'tiara', 'faiz', 'ubin', 'ciku', 'seng', 'melati', 'suria', 'musang', 'buaya', 'kerbau'];
 /** a giver whose face and body are painted (the phone card shows the face, the street the body); one still waiting for
  * art gives no contracts. A gang boss only needs the face, for a taunt */
 const painted = (g: string, body = GIVERS.includes(g)) => !!FRAMES[PEOPLE[g]?.face ?? ''] && (!body || !!FRAMES[`npc-${g}-idle-0`]);
@@ -100,6 +100,8 @@ export const VOICE: Record<string, Voice> = {
   seng: { hi: ['Eh, you two! Come, come. Got small job.', 'Eat first? No. Job first, then eat.'], ok: ['Steady lah! Like my chwee kueh: soft inside.', 'Good, good. One plate on the house.'], oops: ['Aiyah, steamer too hot, plan too cold. Again.', 'Never mind. Even the merbok sings flat sometimes.'] },
   melati: { hi: ['Darlings! A little number for you.', 'The band is tuning up. So should you.'], ok: ['Encore! Encore! That was perfect pitch.', 'You two could headline, darling.'], oops: ['A flat note, darling. From the top.', 'The show must go on. Again.'] },
   suria: { hi: ['Oh! Hello. I have a hypothesis, and a job.', 'By my calculations, you are right on time.'], ok: ['The data agrees: excellent work.', 'Result confirmed. Thank you both!'], oops: ['An anomaly. We repeat the experiment.', 'Interesting failure. Again, with notes.'] },
+  buaya: { hi: ['Eh, small ones! Uncle got job, and got ice cream.', 'Ding-ding! Come, come, before it melts.'], ok: ['Wah, shiok! Two scoops for you.', 'Steady! Like my potong: cold and solid.'], oops: ['Aiyoh, melted. Never mind, try again.', 'Slowly lah. Again.'] },
+  kerbau: { hi: ['Paddles up, crew! Got a job.', 'Hear the drum? That means work.'], ok: ['Power! Like a full crew at the finish.', 'Good stroke, good timing. Rest.'], oops: ['Out of time! Again, on the drum.', 'Catch the beat. Once more.'] },
   musang: { hi: ['Young ones. The lanterns need careful paws.', 'Sit. Listen. Then go quickly.'], ok: ['Well carried. The light is steady.', 'The garden thanks you. So do I.'], oops: ['Paper tears. We paste, we try again.', 'Slowly, slowly. Once more.'] },
   tiara: { hi: ['Places, everyone! I have a job.', 'Cue lights, cue music, cue chinchillas.'], ok: ['That’s a wrap! Lights look perfect.', 'Standing room only, all thanks to you.'], oops: ['Cut! Back to first positions.', 'Technical difficulty. We go again.'] },
   faiz: { hi: ['Good evening, crew. A small irregularity.', 'Captain speaking. Please fasten your seatbelts.'], ok: ['A textbook landing. Well done.', 'Right on time. The tower thanks you.'], oops: ['We will be going around again.', 'A little turbulence. Second approach.'] },

@@ -29,8 +29,10 @@ import { NEW_RIDES } from '../.checks/jade-rides.js';
 /** sha256 over the identity world's ground, solid and flags and the places' JSON. It was d4fb60f1 on origin/main
  * a779a06f, before the table existed; the real layout (19-11-2026) took out the two bridges from Kampong Glam over the
  * strait to Jurong and Tiong Bahru (the districts now join over land) and the Singapore River's mouth past Clarke
- * Quay's east edge (the river runs on through the seam), and those are the only changes to the build */
-const ZERO_HASH = '2bf5685ff040fe63fa685be3ac2cac207210a9f176e532281dea76c7d905626c';
+ * Quay's east edge (the river runs on through the seam), and those are the only changes to the build. The sixteenth
+ * pass (20-11-2026) added two places, the ride-job givers `buaya` (Orchard) and `kerbau` (Clarke Quay); without them
+ * the hash is still 2bf5685f, so the ground, solid and flags are untouched */
+const ZERO_HASH = 'cd70127f2b1d5d08be17acf547a64a94216a64766a6ab86e5fab37dc187c2885';
 
 const c = city();
 const ti = (x, y) => [Math.floor(x / T), Math.floor(y / T)];

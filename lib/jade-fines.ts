@@ -183,7 +183,11 @@ export function finesStep(w: World, dt: number) {
   if (p.ride && !onWater(p.ride.kind)) {
     const sp = p.ride.b.speed;
     const silver = w.c.sg?.silver.some(([x0, y0, x1, y1]) => tx >= x0 && tx <= x1 && ty >= y0 && ty <= y1);
-    if (silver && sp > 230) offence(w, 'speeding', px, py, true);
+    // (the sixteenth pass) speed limits are for motors: a hired bike or the tandem is never booked for speeding, or
+    // Picnic Post's ride past the East Coast Park pits drew a speed-camera fine
+    const pedal = p.ride.kind === 'bike' || p.ride.kind === 'tandem';
+    if (pedal) { /* no speeding */ }
+    else if (silver && sp > 230) offence(w, 'speeding', px, py, true);
     else if (sp > 345) offence(w, 'speeding', px, py);
     // wheels along the five-foot way, in sight of a warden (free roam: a job's rush takes the shortcut unfined)
     if (w.c.sg?.fivefoot[i] && sp > 40 && (!w.run || strict)) offence(w, 'pavement', px, py);

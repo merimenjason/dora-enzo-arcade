@@ -32,15 +32,24 @@ export type Mind = {
   pinned: number; seen: boolean;
   /** seconds you have been in its eye lately: a glimpse shorter than its reaction time is not enough to stop it */
   glimpse: number;
+  /** the sixteenth pass: the ice-cream chime. `wantTreat`: walking over to the motorbike for a cone; `treat`: seconds
+   * left eating it (it watches nothing else meanwhile); `cones`: how many it has had this job (two is enough) */
+  wantTreat?: boolean; treat?: number; cones?: number;
 };
 export const newMind = (): Mind => ({ st: 'patrol', t: 0, at: null, last: null, pts: [], pi: 0, dwell: 0, pose: '', poseT: 0, rush: false, why: 'heard', lure: false, base: 0, pinned: 0, seen: false, glimpse: 0 });
 export type Noise = { x: number; y: number; r: number; kind: string; lure: boolean; at: number; by: 'you' | 'mate' | 'world' };
 
 /** how loud each kind of noise is (its radius in world units, before muffling) */
-export const LOUD: Record<string, number> = { step: 110, dash: 250, hop: 170, crash: 330, prop: 360, horn: 430, popper: 470, confetti: 420, thud: 230, hit: 200, distract: 330, commotion: 900 };
+export const LOUD: Record<string, number> = { chime: 520, step: 110, dash: 250, hop: 170, crash: 330, prop: 360, horn: 430, popper: 470, confetti: 420, thud: 230, hit: 200, distract: 330, commotion: 900 };
 /** the noises a guard walks over to look at even when they come from nowhere near you: thrown things, bursts, the
  * partner's distraction (a lure is how you pull a guard off its beat) */
-const LURES = new Set(['popper', 'confetti', 'thud', 'hit', 'distract', 'commotion']);
+const LURES = new Set(['popper', 'confetti', 'thud', 'hit', 'distract', 'commotion', 'chime']);
+/** the sixteenth pass: how long a guard stands eating an ice cream from the motorbike (seconds), and how many it takes */
+export const treatTime = (w: World) => w.assist ? 12 : w.s.settings.diff === 'hard' ? 6.5 : w.s.settings.diff === 'easy' ? 10 : 8.5;
+export const CONES = 2;
+const YUM = ['Ooh! Ice cream!', 'One potong, uncle!', 'Wah, the ice-cream man!', 'Got durian flavour?'];
+const SHIOK = ['Shiok!', 'Back to work lah.', 'Best part of the night.'];
+const FULL = ['Already had two, cannot.', 'No more for me, lah.'];
 
 /** make a noise. Under a five-foot way it carries about half as far; sneaking makes none (callers don't call it) */
 export function noise(w: World, x: number, y: number, kind: string, by: Noise['by'] = 'you', r = LOUD[kind] ?? 200) {
@@ -133,14 +142,23 @@ export function mindStep(w: World, a: { b: Body; mind?: Mind }, dt: number, o: M
   const m = a.mind ?? (a.mind = newMind()), b = a.b, tn = tune(w);
   m.t += dt; if (m.poseT > 0) { m.poseT -= dt; if (m.poseT <= 0) m.pose = ''; }
   m.seen = !!o.seen;
+  if ((m.treat ?? 0) > 0) {
+    // eating an ice cream at the motorbike (the sixteenth pass): facing it, watching nothing else, then back to its beat
+    m.treat = Math.max(0, m.treat! - dt); b.speed = 0; if (m.at) b.h = turnTo(b.h, Math.atan2(m.at[1] - b.y, m.at[0] - b.x), dt * 6); m.pose = ''; m.dwell = 0;
+    if (m.treat <= 0) { setSt(w, m, b, 'back'); bark(w, b.x, b.y - 40, SHIOK); }
+    return 'hold';
+  }
   if (o.busy) { b.speed = 0; return 'hold'; }
   const you = o.seen;
   if (you) m.last = [you.x, you.y];
   m.glimpse = you ? m.glimpse + dt : Math.max(0, m.glimpse - dt * 0.5);
   // a noise: anything but an alert mind turns toward it (an alert one has better things to do)
-  const n = m.st === 'alert' ? null : hear(w, b.x, b.y, tn.hear);
+  let n = m.st === 'alert' || (m.treat ?? 0) > 0 ? null : hear(w, b.x, b.y, tn.hear);
+  // the ice-cream chime: a guard who has had its two cones only grumbles about it; one already queueing ignores repeats
+  if (n?.kind === 'chime' && ((m.cones ?? 0) >= CONES || m.wantTreat)) { if ((m.cones ?? 0) >= CONES && m.st === 'patrol' && m.poseT <= 0) { m.pose = 'grumble'; m.poseT = 1; bark(w, b.x, b.y - 40, FULL); } n = null; }
   if (n && !you && (m.st === 'patrol' || m.st === 'back' || m.st === 'search' || (m.st === 'look' && dist(n.x, n.y, m.at?.[0] ?? 0, m.at?.[1] ?? 0) > 60))) {
     m.at = [n.x, n.y]; m.why = 'heard'; m.lure = n.lure && n.by !== 'world'; m.rush = false;
+    if (n.kind === 'chime' && !o.still) { m.wantTreat = true; bark(w, b.x, b.y - 40, YUM); }
     if (m.st === 'look') { m.dwell = 0; } else { setSt(w, m, b, 'sus'); m.base = Math.atan2(n.y - b.y, n.x - b.x); }
     if (m.lure && w.s.stats) w.s.stats.lures = (w.s.stats.lures ?? 0) + 1;
   }
@@ -164,6 +182,7 @@ export function mindStep(w: World, a: { b: Body; mind?: Mind }, dt: number, o: M
         return 'hold';
       }
       const d = goTo(w, b, m.at![0], m.at![1], m.rush ? tn.chase * 0.85 : tn.look, dt);
+      if (m.wantTreat && (d < 64 || m.t > 9)) { m.wantTreat = false; m.treat = treatTime(w); m.cones = (m.cones ?? 0) + 1; w.fx.push({ t: 'treat', x: b.x, y: b.y }); return 'hold'; }
       if (d < 30 || m.t > 9) { m.dwell = tn.dwell; m.base = b.h; }
       return 'moved';
     }
