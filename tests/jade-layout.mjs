@@ -24,6 +24,7 @@ import { BIZ } from '../.checks/jade-biz.js';
 import { BOOSTS } from '../.checks/jade-tag.js';
 import { LADDER, LEAP_SPOTS } from '../.checks/jade-boss.js';
 import { LIGHTS } from '../.checks/jade-traffic.js';
+import { NEW_RIDES } from '../.checks/jade-rides.js';
 
 /** sha256 over the identity world's ground, solid and flags and the places' JSON. It was d4fb60f1 on origin/main
  * a779a06f, before the table existed; the real layout (19-11-2026) took out the two bridges from Kampong Glam over the
@@ -148,10 +149,14 @@ if (process.argv.includes('--child')) {
   const r = facts();
   for (const id of Object.keys(z.places)) moved(z.places[id], r.places[id], `place ${id}`);
   for (const k of KEYS) {
-    z[k].forEach((a, i) => moved(a, r[k][i], `${k} ${a.id ?? a.kind ?? i}`));
+    // the fifteenth pass's special rides are parked last of all, after the seams' (lib/jade-rides.ts): matched end to end
+    const nNew = k === 'parking' || k === 'rides' ? NEW_RIDES.length : 0, zk = z[k].slice(0, z[k].length - nNew), rk = r[k].slice(0, r[k].length - nNew);
+    zk.forEach((a, i) => moved(a, rk[i], `${k} ${a.id ?? a.kind ?? i}`));
     // the seams' own kerbside parking (and the rides parked there) come after the build's, on seam tiles
-    if (k === 'parking' || k === 'rides') r[k].slice(z[k].length).forEach((b, i) => assert.equal(unmvT(b.tx, b.ty), null, `${k} ${z[k].length + i} on a seam`));
-    else assert.equal(r[k].length, z[k].length, `${k}: same count`);
+    if (nNew) {
+      rk.slice(zk.length).forEach((b, i) => assert.equal(unmvT(b.tx, b.ty), null, `${k} ${zk.length + i} on a seam`));
+      z[k].slice(-nNew).forEach((a, i) => { const b = r[k][r[k].length - nNew + i]; assert.equal(a.kind ?? NEW_RIDES[i].kind, NEW_RIDES[i].kind); moved(a, b, `${k} ${NEW_RIDES[i].kind}`); });
+    } else assert.equal(r[k].length, z[k].length, `${k}: same count`);
   }
   z.boosts.forEach((b, i) => { moved(b[0], r.boosts[i][0], `boost ${i} street`); moved(b[1], r.boosts[i][1], `boost ${i} roof`); });
   assert.deepEqual(Object.keys(r.story), Object.keys(z.story), 'story: the same targets');

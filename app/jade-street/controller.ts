@@ -28,7 +28,7 @@ import { listContracts, startContract, giverAt, contractOf } from '@/lib/jade-co
 import { contractMission, type Mod } from '@/lib/jade-proc';
 import { owned } from '@/lib/jade-biz';
 import { applyTwo } from '@/lib/jade-duo';
-import { duoFrame } from '@/lib/jade-duodraw';
+import { duoFrame, RIDE_DRAWN } from '@/lib/jade-duodraw';
 import { tagOption } from '@/lib/jade-tag';
 import { Notices } from '@/lib/jade-notice';
 import { stallPos, giveGadget, buyGadget, buyAmmo, upgradeGadget, carry, carried, GADGET_IDS, type GadgetId } from '@/lib/jade-gear';
@@ -364,6 +364,8 @@ export class Play {
     const g = window as unknown as Record<string, unknown>;
     g.__jade = {
       play: this, world: () => this.w, save: () => this.w.s,
+      /** tests: the frames the last drawn ride showed for its driver and its partner (lib/jade-duodraw.ts) */
+      rideDrawn: () => ({ ...RIDE_DRAWN }),
       /** tests: the layout table (lib/jade-layout.ts), so a test that names a tile in the old frame can move it */
       layout: { mvT, mvP, unmvT, unmvP, NW, NH, mode: LAYOUT_MODE },
       fps: () => this.fps, fpsLog: () => this.fpsLog.slice(), art: () => this.artStats(), artWait: () => this.artWait ? { ...this.artWait } : null,

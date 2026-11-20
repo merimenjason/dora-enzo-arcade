@@ -6,7 +6,7 @@
 // `mate` the partner (lib/jade-duo.ts: AI, switching, the second player); tag-team moves: lib/jade-tag.ts; the
 // cartoon gadgets: lib/jade-gear.ts.
 import { city as getCityOnce, T, W, H, S, G, F_ROOF, F_ALLEY, districtAt, DISTRICT_NAME, type City, type District } from './jade-city.js';
-import { VEHICLES, FOOT, drive, step as moveStep, obstacleGrid, shove, overlapping, type Body, type Ctx, type VehicleKind, type Obstacle } from './jade-move.js';
+import { VEHICLES, FOOT, onWater, drive, step as moveStep, obstacleGrid, shove, overlapping, type Body, type Ctx, type VehicleKind, type Obstacle } from './jade-move.js';
 import { nearestFree, field, pathFrom, type Field } from './jade-nav.js';
 import { castOf, castKey, CHAT, type CastMember } from './jade-cast.js';
 import { rng, clamp, angDiff, dist } from './jade-rng.js';
@@ -378,14 +378,23 @@ export class World {
     const up = this.s.upgrades;
     let top = v.speed * (1 + up.speed * 0.07) * (this.overloaded() ? 0.75 : 1);
     // a hired bike flies along East Coast Park's cycling track
-    if (r.kind === 'bike' && this.c.ground[Math.floor(r.b.y / T) * W + Math.floor(r.b.x / T)] === G.CYCLE) top *= 1.18;
+    const ti = Math.floor(r.b.y / T) * W + Math.floor(r.b.x / T);
+    if ((r.kind === 'bike' || r.kind === 'tandem') && this.c.ground[ti] === G.CYCLE) top *= 1.18;
+    // the tandem wants both of you pedalling; the dragon boat wants the drum going (the partner on board)
+    const crewed = this.mate.seat === r;
+    if (r.kind === 'tandem') top *= crewed ? 1.15 : 0.85;
+    if (r.kind === 'dragon' && !crewed) top *= 0.8;
+    // a luge cart is built for Sentosa's slopes: anywhere else it scrapes along
+    if (r.kind === 'luge' && districtAt(Math.floor(r.b.x / T), Math.floor(r.b.y / T)) !== 'resort') top *= 0.72;
     const turn = v.turn * (1 + up.grip * 0.1);
-    if (inp.dash && p.boostCd <= 0) { p.boostT = 0.7; p.boostCd = 2.4; this.fx.push({ t: 'boost', x: r.b.x, y: r.b.y }); }
+    // a surge: on the drum's beat a dragon boat surges harder and twice as often
+    const drum = r.kind === 'dragon' && crewed;
+    if (inp.dash && p.boostCd <= 0) { p.boostT = 0.7; p.boostCd = drum ? 1.2 : 2.4; this.fx.push({ t: 'boost', x: r.b.x, y: r.b.y }); }
     if (inp.hop) this.honk();
-    if (p.boostT > 0) { p.boostT -= dt; top *= 1.35; }
+    if (p.boostT > 0) { p.boostT -= dt; top *= drum ? 1.45 : 1.35; }
     let mx = inp.mx, my = inp.my;
     // a hard turn at speed skids and throws up dust
-    if (Math.hypot(mx, my) > 0.5 && r.b.speed > 200 && p.skidCd <= 0 && r.kind !== 'boat' && Math.abs(angDiff(r.b.h, Math.atan2(my, mx))) > 1.2) { p.skidCd = 0.35; this.fx.push({ t: 'skid', x: r.b.x - Math.cos(r.b.h) * 20, y: r.b.y - Math.sin(r.b.h) * 20, k: Math.min(1, r.b.speed / 340) }); }
+    if (Math.hypot(mx, my) > 0.5 && r.b.speed > 200 && p.skidCd <= 0 && !onWater(r.kind) && Math.abs(angDiff(r.b.h, Math.atan2(my, mx))) > 1.2) { p.skidCd = 0.35; this.fx.push({ t: 'skid', x: r.b.x - Math.cos(r.b.h) * 20, y: r.b.y - Math.sin(r.b.h) * 20, k: Math.min(1, r.b.speed / 340) }); }
     if (p.boostT > 0 && Math.hypot(mx, my) < 0.2) { mx = Math.cos(r.b.h); my = Math.sin(r.b.h); }
     // aim help: when chasing, lean the stick toward a close target that is roughly ahead
     if (this.assist && this.run) { const a = this.run.aimAt(); if (a) { const d = dist(a[0], a[1], r.b.x, r.b.y); const ang = Math.atan2(a[1] - r.b.y, a[0] - r.b.x); const want = Math.atan2(my, mx); if (d < 170 && Math.hypot(mx, my) > 0.3 && Math.abs(angDiff(want, ang)) < 0.6) { mx = mx * 0.6 + Math.cos(ang) * 0.4; my = my * 0.6 + Math.sin(ang) * 0.4; } } }
@@ -393,11 +402,11 @@ export class World {
     const res = drive(this.ctx(), r.b, mx, my, top, v.accel * (1 + up.speed * 0.05), turn, dt, false);
     const moved = Math.hypot(r.b.x - ox, r.b.y - oy);
     // on Normal and Hard, a warden notices a ride that runs a red light
-    if (r.kind !== 'boat' && r.b.speed > 90 && redRun(this, ox, oy, r.b.x, r.b.y, r.b.h) >= 0) {
+    if (!onWater(r.kind) && r.b.speed > 90 && redRun(this, ox, oy, r.b.x, r.b.y, r.b.h) >= 0) {
       if (this.diff.redLight > 0) { addHeat(this, this.diff.redLight, 'red-light'); this.say('You ran a red light! A warden saw you.', 'bad'); }
       offence(this, 'red', r.b.x, r.b.y, true);
     }
-    if (r.kind === 'boat') this.s.stats.boated += moved; else this.s.stats.driven += moved;
+    if (onWater(r.kind)) this.s.stats.boated += moved; else this.s.stats.driven += moved;
     if (res.bump > 110) this.bumped(res.bump, r.b.x - res.nx * r.b.r, r.b.y - res.ny * r.b.r, 'wall');
     this.faceFrom(r.b.h);
     p.anim = p.bumpT > 0 ? 'ride-bump' : 'ride';
@@ -416,7 +425,12 @@ export class World {
       for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const i = (ty + dy) * W + tx + dx; if (this.c.solid[i] === S.TALL && k > 170) { addHeat(this, 0.45, 'stall'); this.fx.push({ t: 'spill', x, y }); noise(this, x, y, 'prop'); return; } }
     }
   }
-  honk() { if (this.p.boostCd > 2.1) return; this.fx.push({ t: 'honk', x: this.p.x, y: this.p.y }); noise(this, this.p.x, this.p.y, 'horn'); for (const pd of this.peds) if (dist(pd.x, pd.y, this.p.x, this.p.y) < 220) pd.scare = 1; }
+  honk() {
+    if (this.p.boostCd > 2.1) return;
+    // the ice-cream motorbike's chime: townsfolk stop for a treat instead of scattering, and no guard minds it
+    if (this.p.ride?.kind === 'icecream') { this.fx.push({ t: 'honk', x: this.p.x, y: this.p.y, kind: 'icecream' }); for (const pd of this.peds) if (dist(pd.x, pd.y, this.p.x, this.p.y) < 260) { pd.scare = 0; pd.wait = Math.max(pd.wait, 1.6); } return; }
+    this.fx.push({ t: 'honk', x: this.p.x, y: this.p.y, kind: this.p.ride?.kind }); noise(this, this.p.x, this.p.y, 'horn'); for (const pd of this.peds) if (dist(pd.x, pd.y, this.p.x, this.p.y) < 220) pd.scare = 1;
+  }
 
   // ── getting on and off
   enter(r: Ride) {
@@ -425,7 +439,7 @@ export class World {
     // a no-rides contract (lib/jade-proc.ts): on foot all the way
     if (this.run?.m.mods?.includes('foot')) { this.say('No rides on this contract: on foot all the way!', 'bad'); return; }
     if (r.locked) { this.ui = { kind: 'mini', mini: 'wires', level: 1, from: 'ride' }; this.pendingRide = r; this.fx.push({ t: 'mini' }); return; }
-    if (p.carry === 'durian' && (r.kind === 'tuktuk' || r.kind === 'trishaw' || r.kind === 'boat')) offence(this, 'durian', r.b.x, r.b.y, true);
+    if (p.carry === 'durian' && (r.kind === 'tuktuk' || r.kind === 'trishaw' || onWater(r.kind))) offence(this, 'durian', r.b.x, r.b.y, true);
     p.act = { n: 'climb-on', t: 0, dur: 0.32, then: () => { p.ride = r; r.parked = false; p.b.x = r.b.x; p.b.y = r.b.y; p.hide = false; this.enteredAt = this.time; this.fx.push({ t: 'enter', kind: r.kind }); if (r.kind === 'bike') this.s.stats.bikes++; this.run?.onEnter(r); } };
     p.face = 'side'; p.flip = r.b.x < p.b.x;
     // walk the hero onto the seat during the climb
@@ -449,7 +463,7 @@ export class World {
     const tries: [number, number][] = [[r.b.x + Math.cos(side) * (r.b.r + 18), r.b.y + Math.sin(side) * (r.b.r + 18)], [r.b.x - Math.cos(side) * (r.b.r + 18), r.b.y - Math.sin(side) * (r.b.r + 18)]];
     let spot: [number, number] | null = null;
     for (const [x, y] of tries) { const b = { ...p.b, x, y }; if (!overlapping(this.ctx(), b)) { spot = [x, y]; break; } }
-    if (!spot) { const [x, y] = nearestFree(this.c, 'foot', r.b.x, r.b.y, this.open, r.kind === 'boat' ? 3 : 4); if (Math.hypot(x - r.b.x, y - r.b.y) > T * (r.kind === 'boat' ? 3.2 : 2.6) || this.c.solid[Math.floor(y / T) * W + Math.floor(x / T)] !== S.OPEN) { this.say(r.kind === 'boat' ? 'Steer to the bank or a jetty to step off.' : 'No room to get off here.', 'bad'); return false; } spot = [x, y]; }
+    if (!spot) { const [x, y] = nearestFree(this.c, 'foot', r.b.x, r.b.y, this.open, onWater(r.kind) ? 3 : 4); if (Math.hypot(x - r.b.x, y - r.b.y) > T * (onWater(r.kind) ? 3.2 : 2.6) || this.c.solid[Math.floor(y / T) * W + Math.floor(x / T)] !== S.OPEN) { this.say(onWater(r.kind) ? 'Steer to the bank or a jetty to step off.' : 'No room to get off here.', 'bad'); return false; } spot = [x, y]; }
     r.parked = true; r.b.speed = 0; p.ride = null;
     p.b.x = spot[0]; p.b.y = spot[1]; p.b.speed = 0; p.b.h = side;
     p.act = { n: 'climb-off', t: 0, dur: 0.3 };
@@ -483,11 +497,11 @@ export class World {
     if (p.ride) {
       if (this.run?.wantsRide()) { this.near = null; }
       // a job's giver is close: E gets off and talks to them (before "Get off")
-      if (!this.run && p.ride.kind !== 'boat') for (const m of offered(this.s)) { const pl = this.c.places[m.at]; if (pl) cand({ kind: 'mission', label: `Talk to ${PEOPLE[m.giver].name}: “${m.title}”`, x: pl.x, y: pl.y, id: m.id }, 130); }
+      if (!this.run && !onWater(p.ride.kind)) for (const m of offered(this.s)) { const pl = this.c.places[m.at]; if (pl) cand({ kind: 'mission', label: `Talk to ${PEOPLE[m.giver].name}: “${m.title}”`, x: pl.x, y: pl.y, id: m.id }, 130); }
       for (const id of ['garage-market', 'garage-canal']) { const g = this.c.places[id]; if (this.open.has(g.d)) cand({ kind: 'garage', label: 'Garage: upgrades and paint', x: g.x, y: g.y, id }, 110); }
       // markets are drive-up: trade from the saddle
-      if (p.ride.kind !== 'boat') for (const pl of Object.values(this.c.places)) if (pl.kind === 'market' && this.open.has(pl.d)) cand({ kind: 'market', label: `Trade at ${MARKET_NAME[pl.d]}`, x: pl.x, y: pl.y, id: pl.d }, 120);
-      if (!best) best = { kind: 'exit', label: p.ride.kind === 'boat' ? 'Step off the boat' : 'Get off', x, y };
+      if (!onWater(p.ride.kind)) for (const pl of Object.values(this.c.places)) if (pl.kind === 'market' && this.open.has(pl.d)) cand({ kind: 'market', label: `Trade at ${MARKET_NAME[pl.d]}`, x: pl.x, y: pl.y, id: pl.d }, 120);
+      if (!best) best = { kind: 'exit', label: onWater(p.ride.kind) ? 'Step off the boat' : 'Get off', x, y };
       this.near = best; return;
     }
     if (p.roof) { const lp = this.run?.nearAction(x, y); if (lp) { this.near = lp; return; } for (const l of this.c.ladders) cand({ kind: 'ladder-down', label: 'Climb down', x: l.rx * T + T / 2, y: l.ry * T + T / 2 }, 70); this.near = best; return; }
@@ -532,7 +546,7 @@ export class World {
       if (this.s.story.isle && this.open.has('bay')) cand({ kind: 'isle', label: 'Dance on the Float @ Marina Bay', x: (sx0 + sx1) / 2 * T, y: (sy0 + sy1) / 2 * T, id: 'dance' }, 150);
     }
     for (const m of this.c.murals) if (!this.s.murals.includes(m.id) && this.open.has(districtAt(Math.floor(m.x / T), Math.floor(m.y / T)))) cand({ kind: 'mural', label: 'Restore the faded mural', x: m.x, y: m.y + 30, id: m.id }, 60);
-    for (const r of this.rides) if (r.parked && this.open.has(districtAt(Math.floor(r.b.x / T), Math.floor(r.b.y / T)))) cand({ kind: 'ride', label: `${r.locked ? 'Jump-start' : 'Ride'} the ${VEHICLES[r.kind].name.toLowerCase()}`, x: r.b.x, y: r.b.y, ride: r }, r.kind === 'boat' ? 96 : 70);
+    for (const r of this.rides) if (r.parked && this.open.has(districtAt(Math.floor(r.b.x / T), Math.floor(r.b.y / T)))) cand({ kind: 'ride', label: `${r.locked ? 'Jump-start' : 'Ride'} the ${VEHICLES[r.kind].name.toLowerCase()}`, x: r.b.x, y: r.b.y, ride: r }, r.kind === 'dragon' ? 110 : onWater(r.kind) ? 96 : 70);
     // the taxi you called wins once it is in reach
     if (this.taxi?.st === 'wait' && dist(this.taxi.b.x, this.taxi.b.y, x, y) < 110) best = { kind: 'taxi', label: 'Get in the taxi', x: this.taxi.b.x, y: this.taxi.b.y };
     // a job's train step: the station gates win over a scooter parked by the entrance

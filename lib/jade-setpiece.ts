@@ -9,6 +9,7 @@
 import { T, W, S } from './jade-city.js';
 import { dist } from './jade-rng.js';
 import { nearestFree } from './jade-nav.js';
+import { onWater } from './jade-move.js';
 import type { SetDef } from './jade-story.js';
 import type { Run } from './jade-mission.js';
 
@@ -93,7 +94,7 @@ export function stepSets(run: Run, dt: number) {
           const lower = 2.4, shut = w.assist ? 4 : 5.5, lift = 1.6;
           s.down = s.t < lower ? s.t / lower : s.t < lower + shut ? 1 : Math.max(0, 1 - (s.t - lower - shut) / lift);
           if (s.t > lower + shut + lift) { s.ph = 'done'; s.down = 0; }
-          if (s.down > 0.6 && p.ride?.kind === 'boat' && Math.abs(pb.y - s.y) < 1.5 * T && Math.abs(pb.x - s.x) < 2 * T && s.cd <= 0) { s.cd = 1.5; run.warn('Blocked! Wait for the bridge to lift.'); }
+          if (s.down > 0.6 && p.ride && onWater(p.ride.kind) && Math.abs(pb.y - s.y) < 1.5 * T && Math.abs(pb.x - s.x) < 2 * T && s.cd <= 0) { s.cd = 1.5; run.warn('Blocked! Wait for the bridge to lift.'); }
         }
         break;
       }

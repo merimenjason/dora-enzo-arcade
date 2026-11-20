@@ -88,7 +88,7 @@ test('every parked ride can be reached on foot, and every boat from dry land', (
   for (const r of w.rides) {
     const reachable = [];
     for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const tx = Math.floor(r.b.x / T) + dx, ty = Math.floor(r.b.y / T) + dy; if (tx >= 0 && ty >= 0 && tx < W && ty < H && f.dist[ty * W + tx] >= 0 && c.solid[ty * W + tx] === S.OPEN) reachable.push(Math.hypot(tx * T + T / 2 - r.b.x, ty * T + T / 2 - r.b.y)); }
-    assert.ok(reachable.length && Math.min(...reachable) < (r.kind === 'boat' ? 96 : 70) + 20, `${r.kind} at ${Math.floor(r.b.x / T)},${Math.floor(r.b.y / T)} is within reach of a walkable tile`);
+    assert.ok(reachable.length && Math.min(...reachable) < (VEHICLES[r.kind].cls === 'boat' ? 96 : 70) + 20, `${r.kind} at ${Math.floor(r.b.x / T)},${Math.floor(r.b.y / T)} is within reach of a walkable tile`);
   }
 });
 

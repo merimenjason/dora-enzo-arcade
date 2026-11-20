@@ -202,6 +202,7 @@ export function Controls({ touch }: { touch: boolean }) {
     ['Ride the cable car or the ferry to Sentosa: walk up to the station or the pier', ['E'], 'i-cable', 'Action button'],
     ['Festivals and the beach: light a lamp, buy a kuih, shoo a mynah, a deck chair, a sandcastle', ['E'], 'i-festival', 'Action button'],
     ['Katong, Changi and Orchard Road: hire a bike at East Coast Park, slurp a laksa, hang a bauble, fly a kite, wave at a plane', ['E'], 'i-bike', 'Action button'],
+    ['Special rides: a tandem for two at East Coast Park, the ice-cream motorbike and sidecar on Orchard Road, a luge cart on Sentosa, a dragon boat at Clarke Quay (Q rings each one’s own horn)', ['E', 'Q'], 'v-luge', 'Action button'],
     ['West of Chinatown: chwee kueh and the bird corner in Tiong Bahru, the Slingshot at Clarke Quay, the koi, the telescope and a lantern walk in Jurong', ['E'], 'i-rabbit', 'Action button'],
     ['Your empire: buy, upgrade and repair properties, hire a jaga, take an empire job (walk up to one)', ['E'], 'i-empire', 'Action button'],
     ['The Empire tab: rank, ledger, raids, send your partner round the tills', ['T'], 'i-ledger', 'Phone button'],

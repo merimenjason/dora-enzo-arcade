@@ -4,6 +4,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 20-11-2026
 
+### Added
+
+- **Jade Street**: four special rides, each with its own painted sprite and riding poses for both heroes. A tandem bike at the East Coast Park bike racks: both of you pedal, and together you beat a hired bike. The ice-cream uncle's motorbike outside ION Orchard: your partner rides in the sidecar with a cone, and Q plays the ice-cream chime, which stops the street for a treat instead of scattering it. A Skyline Luge cart on Sentosa: the quickest wheels on the island but slow anywhere else, with your partner on their own cart. A dragon boat on the Singapore River at Clarke Quay: you paddle while your partner beats the drum at the bow, and the drum makes its surges come twice as often.
+
 ### Fixed
 
 - **Jade Street**: the ride radio works again after chapter five. Once the festival began, its tune played over every station and pressing R only changed the label; the radio also gave way near markets. Now any station plays over the calm street, market and festival tunes (a chase still drowns it out), and a reloaded save plays the station its chip shows.

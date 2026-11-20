@@ -5,7 +5,7 @@
 // stall, the aim line and the ring under the hero you control. All painted sprites; code adds only light and shadow.
 import { slingLift } from './jade-southdraw.js';
 import { T } from './jade-city.js';
-import { VEHICLES } from './jade-move.js';
+import { VEHICLES, OWN_COPY, type VehicleKind } from './jade-move.js';
 import { OUTFITS } from './jade-save.js';
 import { GADGETS, carried, stallPos, stallOpen, type GadgetId } from './jade-gear.js';
 import { BOOSTS, boostXY } from './jade-tag.js';
@@ -109,50 +109,85 @@ function ring(x: X, px: number, py: number, rgb: string, a: number) {
   const g = x.createRadialGradient(px, py, 4, px, py, 26); g.addColorStop(0, `rgba(${rgb},0)`); g.addColorStop(0.7, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`);
   x.fillStyle = g; x.beginPath(); x.ellipse(px, py, 26, 11, 0, 0, Math.PI * 2); x.fill(); x.restore();
 }
+/** where each hero sits on the fifteenth pass's rides: along the ride (a share of its length, + forward) and across it
+ * (world units, + to the rider's right): the tandem's two saddles, the motorbike and its sidecar on the right, the
+ * luge's one seat, the dragon boat's paddler amidships and its drummer at the bow */
+const SEAT: Partial<Record<VehicleKind, { drv: [number, number]; pas?: [number, number] }>> = {
+  tandem: { drv: [0.25, 0], pas: [-0.3, 0] }, icecream: { drv: [-0.05, -12], pas: [-0.22, 16] }, luge: { drv: [-0.25, 0] }, dragon: { drv: [-0.21, 0], pas: [0.33, 0] },
+};
+const at = (r: Ride, [fwd, side]: [number, number]): [number, number] => {
+  const h = r.b.h, len = VEHICLES[r.kind].len;
+  return [r.b.x + Math.cos(h) * len * fwd + Math.cos(h + Math.PI / 2) * side, r.b.y + Math.sin(h) * len * fwd + Math.sin(h + Math.PI / 2) * side];
+};
+/** the riding frames of a kind (the driver's, or the partner riding their own copy of a one-seat ride) */
+function rideFrame(h: string, k: VehicleKind, sc: Scene, r: Ride, half = 0): string {
+  const pedal = Math.floor(sc.t * (2 + r.b.speed / 45) + half) % 2;
+  switch (k) {
+    // the hired bike and the tandem's front saddle: their own pedalling pairs, faster the quicker you ride
+    case 'bike': return `${h}-ride-bike-${pedal}`;
+    case 'tandem': return `${h}-ride-tandem-${pedal}`;
+    // the motorbike: ears flapping in the wind; the luge: leaning one way then the other down the slope
+    case 'icecream': return `${h}-ride-moto-${Math.floor(sc.t * (2 + r.b.speed / 90)) % 2}`;
+    case 'luge': return `${h}-ride-luge-${Math.floor(sc.t * 1.6 + half) % 2}`;
+    // the dragon boat's paddle, left then right, quicker with speed
+    case 'dragon': return `${h}-ride-paddle-${Math.floor(sc.t * (1.2 + r.b.speed / 140)) % 2}`;
+  }
+  return '';
+}
+/** what the last frame drew on the ride (the browser tests check both heroes are really drawn) */
+export const RIDE_DRAWN: { driver: string; partner: string; t: number } = { driver: '', partner: '', t: 0 };
 function driver(sc: Scene, x: X, w: World, p: Player, r: Ride, variant: string) {
   const h = p.who, k = r.kind; const fwd = k === 'trishaw' ? -0.3 : k === 'boat' ? -0.32 : 0.02;
-  const rx = r.b.x + Math.cos(r.b.h) * VEHICLES[k].len * fwd, ry = r.b.y + Math.sin(r.b.h) * VEHICLES[k].len * fwd;
+  let [rx, ry] = SEAT[k] ? at(r, SEAT[k]!.drv) : [r.b.x + Math.cos(r.b.h) * VEHICLES[k].len * fwd, r.b.y + Math.sin(r.b.h) * VEHICLES[k].len * fwd];
   let f = '';
-  if (p.anim === 'ride-bump') f = `${h}-ride-bump`;
+  if (p.anim === 'ride-bump') { f = `${h}-ride-bump`; if (k === 'luge' || k === 'dragon') [rx, ry] = [r.b.x, r.b.y]; }
   else if (k === 'scooter') f = w.banner?.text === 'Job done!' ? `${h}-ride-cheer` : `${h}-ride-scooter-${Math.sin(sc.t * 3) > 0 ? 0 : 1}`;
   else if (k === 'trishaw') f = `${h}-ride-pedal-${Math.floor(sc.t * (2 + r.b.speed / 50)) % 2}`;
-  // the hired bike: its own pedalling pair, faster the quicker you ride
-  else if (k === 'bike') f = `${h}-ride-bike-${Math.floor(sc.t * (2 + r.b.speed / 45)) % 2}`;
   else if (k === 'boat') f = `${h}-ride-pole-${Math.floor(sc.t * 1.5) % 2}`;
-  if (f) spr(x, f, rx, ry, { anchor: 'center', rot: r.b.h + Math.PI / 2, variant });
+  else f = rideFrame(h, k, sc, r);
+  RIDE_DRAWN.driver = f && spr(x, f, rx, ry, { anchor: 'center', rot: r.b.h + Math.PI / 2, variant }) ? f : ''; RIDE_DRAWN.partner = ''; RIDE_DRAWN.t = sc.t;
   if (p.carry) spr(x, itemOf(p.carry), r.b.x, r.b.y, { w: 26, anchor: 'center', rot: r.b.h + Math.PI / 2 });
 }
-/** the partner's own hired bike, a length behind the driver's and a lane to the side, pedalling at the same pace */
-function companionBike(sc: Scene, x: X, r: Ride, who: string, variant: string) {
-  const len = VEHICLES.bike.len, h = r.b.h, side = h + Math.PI / 2;
+/** a one-seat ride (the hired bike, the luge cart): the partner rides their own copy a length behind the driver's and a
+ * lane to the side, at the same pace and half a stroke out of step, so the two pairs of legs don't move as one */
+function companion(sc: Scene, x: X, r: Ride, who: string, variant: string): string {
+  const v = VEHICLES[r.kind], len = v.len, h = r.b.h, side = h + Math.PI / 2;
   const bx = r.b.x - Math.cos(h) * len * 0.95 + Math.cos(side) * 24, by = r.b.y - Math.sin(h) * len * 0.95 + Math.sin(side) * 24;
-  x.fillStyle = 'rgba(0,0,0,.32)'; sc.shadow(x, bx + 5, by + 7, len * 0.45, VEHICLES.bike.r * 0.9);
-  spr(x, 'v-bike', bx, by, { anchor: 'center', rot: h + Math.PI / 2 });
-  // half a stroke out of step with the driver, so the two pairs of legs don't move as one
-  spr(x, `${who}-ride-bike-${Math.floor(sc.t * (2 + r.b.speed / 45) + 0.5) % 2}`, bx + Math.cos(h) * len * 0.02, by + Math.sin(h) * len * 0.02, { anchor: 'center', rot: h + Math.PI / 2, variant });
+  x.fillStyle = 'rgba(0,0,0,.32)'; sc.shadow(x, bx + 5, by + 7, len * 0.45, v.r * 0.9);
+  spr(x, 'v-' + r.kind, bx, by, { anchor: 'center', rot: h + Math.PI / 2 });
+  const f = rideFrame(who, r.kind, sc, r, 0.5), [fx, fy] = SEAT[r.kind]?.drv ?? [0.02, 0];
+  return spr(x, f, bx + Math.cos(h) * len * fx + Math.cos(side) * fy, by + Math.sin(h) * len * fx + Math.sin(side) * fy, { anchor: 'center', rot: h + Math.PI / 2, variant }) ? f : '';
 }
-/** the partner on the back seat (scooters and boats show them; a tuk-tuk, a van and a trishaw's cab hide them) */
+/** the partner's seat pose on a two-seat ride of the fifteenth pass: the tandem's back saddle, the sidecar, the drum */
+function seatFrame(who: string, k: VehicleKind, sc: Scene, r: Ride): string {
+  if (k === 'tandem') return `${who}-tandem-back-${Math.floor(sc.t * (2 + r.b.speed / 45) + 0.5) % 2}`;
+  if (k === 'icecream') return `${who}-sidecar-${Math.floor(sc.t * 0.7) % 2}`;
+  if (k === 'dragon') return `${who}-drum-${Math.floor(sc.t * (1.8 + r.b.speed / 120)) % 2}`;
+  return '';
+}
+/** the partner on the back seat (scooters, boats and the new two-seaters show them; a tuk-tuk, a van and a trishaw's
+ * cab hide them; a one-seat ride gives them their own copy) */
 export function passenger(sc: Scene, x: X, w: World, r: Ride) {
   const m = w.mate.seat === r ? w.mate : w.p.seat === r ? w.p : null; if (!m) return;
   const of = OUTFITS.findIndex(o => o.id === w.s.outfit[m.who]); const variant = of > 0 ? `${m.who}:${of}` : '';
-  // a hired bike has one seat, so the partner rides a second hired bike a length behind and to one side
-  if (r.kind === 'bike') { companionBike(sc, x, r, m.who, variant); return; }
+  if (OWN_COPY.has(r.kind)) { RIDE_DRAWN.partner = companion(sc, x, r, m.who, variant); return; }
+  const own = SEAT[r.kind]?.pas;
   // pillion on a scooter, on the bench of a trishaw, in the bow of a boat; a tuk-tuk or van carries them inside the cab
-  if (r.kind !== 'scooter' && r.kind !== 'boat' && r.kind !== 'trishaw') return;
+  if (!own && r.kind !== 'scooter' && r.kind !== 'boat' && r.kind !== 'trishaw') return;
   const back = r.kind === 'boat' ? 0.12 : r.kind === 'trishaw' ? 0.2 : -0.26;
-  const px = r.b.x + Math.cos(r.b.h) * VEHICLES[r.kind].len * back, py = r.b.y + Math.sin(r.b.h) * VEHICLES[r.kind].len * back;
+  const [px, py] = own ? at(r, own) : [r.b.x + Math.cos(r.b.h) * VEHICLES[r.kind].len * back, r.b.y + Math.sin(r.b.h) * VEHICLES[r.kind].len * back];
   // which side the passenger leans to: toward what they aim at or grab
   const side = Math.sin(m.aimH - r.b.h) < 0;
-  let f = `${m.who}-pass-${Math.floor(sc.t * 1.2) % 2}`, flip = false;
+  let f = own ? seatFrame(m.who, r.kind, sc, r) : `${m.who}-pass-${Math.floor(sc.t * 1.2) % 2}`, flip = false;
   switch (m.anim) {
     case 'pass-aim': f = `${m.who}-pass-aim`; flip = side; break;
     case 'pass-grab': f = `${m.who}-pass-grab`; flip = side; break;
-    case 'pass-hold': f = `${m.who}-pass-sit`; break;
+    case 'pass-hold': if (!own) f = `${m.who}-pass-sit`; break;
     case 'pass-cheer': f = `${m.who}-pass-cheer`; break;
     case 'pass-duck': f = `${m.who}-pass-duck`; break;
     case 'pass-wave': f = `${m.who}-pass-wave`; break;
   }
-  spr(x, f, px, py, { anchor: 'center', rot: r.b.h + Math.PI / 2, variant, flip });
+  if (spr(x, f, px, py, { anchor: 'center', rot: r.b.h + Math.PI / 2, variant, flip })) RIDE_DRAWN.partner = f;
 }
 
 // ── gadgets in the world

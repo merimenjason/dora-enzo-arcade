@@ -9,7 +9,7 @@ import { EAGER, ART_BUDGET, decodedBytes } from './jade-load.js';
 import { T, W, H, G, OW, CT_H, EAST_X0, EAST_SPLIT, FAR_X0, FAR_SPLIT, CHANGI_X0, SOUTH_X0, SOUTH_X1, TIONG_X0, QUAY_X0, GROUND_NAMES, F_ROOF, districtAt, type City, type District } from './jade-city.js';
 import { unmvT } from './jade-layout.js';
 import { F_XWAY } from './jade-island.js';
-import { VEHICLES } from './jade-move.js';
+import { VEHICLES, onWater, AS_PAINTED } from './jade-move.js';
 import { tagOption, grabTarget } from './jade-tag.js';
 import type { World, Ride } from './jade-game.js';
 import type { Actor } from './jade-mission.js';
@@ -708,9 +708,9 @@ export class Scene {
     spr(x, p.sprite, p.x, p.y + 12, {});
   }
   ride(x: CanvasRenderingContext2D, w: World, r: Ride, player: boolean) {
-    const name = r.broken ? 'van-broken' : r.kind === 'boat' ? (r.id % 2 ? 'v-bumboat-b' : 'v-bumboat') : 'v-' + r.kind; const paint = player ? PAINTS.find(q => q.id === w.s.paint)?.filter ?? 0 : [0, 140, 40, 210, 280][r.tint % 5];
+    const name = r.broken ? 'van-broken' : r.kind === 'boat' ? (r.id % 2 ? 'v-bumboat-b' : 'v-bumboat') : 'v-' + r.kind; const paint = AS_PAINTED.has(r.kind) ? 0 : player ? PAINTS.find(q => q.id === w.s.paint)?.filter ?? 0 : [0, 140, 40, 210, 280][r.tint % 5];
     x.fillStyle = 'rgba(0,0,0,.32)'; this.shadow(x, r.b.x + 5, r.b.y + 7, VEHICLES[r.kind].len * 0.45, VEHICLES[r.kind].r * 0.9);
-    const bob = r.kind === 'boat' ? Math.sin(this.t * 2 + r.id) * 0.03 : 0;
+    const bob = onWater(r.kind) ? Math.sin(this.t * 2 + r.id) * 0.03 : 0;
     spr(x, name, r.b.x, r.b.y, { anchor: 'center', rot: r.b.h + Math.PI / 2 + bob, variant: paint ? 'paint:' + paint : '' });
     if (r.locked && !player) { const b = Math.sin(this.t * 4) * 3; spr(x, 'i-key', r.b.x, r.b.y - 30 + b, { w: 26, anchor: 'center' }); }
   }
@@ -927,7 +927,7 @@ export class Scene {
     }
     // the hero's ride has a headlight
     const r = w.p.ride;
-    if (r && r.kind !== 'boat') { const hx = r.b.x + Math.cos(r.b.h) * 40, hy = r.b.y + Math.sin(r.b.h) * 40; const g = x.createRadialGradient(hx, hy, 0, hx + Math.cos(r.b.h) * 60, hy + Math.sin(r.b.h) * 60, 120); g.addColorStop(0, 'rgba(255,240,200,.28)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.beginPath(); x.moveTo(hx, hy); x.arc(hx, hy, 170, r.b.h - 0.4, r.b.h + 0.4); x.fill(); }
+    if (r && !onWater(r.kind)) { const hx = r.b.x + Math.cos(r.b.h) * 40, hy = r.b.y + Math.sin(r.b.h) * 40; const g = x.createRadialGradient(hx, hy, 0, hx + Math.cos(r.b.h) * 60, hy + Math.sin(r.b.h) * 60, 120); g.addColorStop(0, 'rgba(255,240,200,.28)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.beginPath(); x.moveTo(hx, hy); x.arc(hx, hy, 170, r.b.h - 0.4, r.b.h + 0.4); x.fill(); }
     x.restore();
   }
   blimp(x: CanvasRenderingContext2D, w: World) {

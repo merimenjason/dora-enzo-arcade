@@ -23,6 +23,7 @@ import { island, F_XWAY, type Isle } from './jade-island.js';
 import { east, backLanes, type East } from './jade-east.js';
 import { far, type Far } from './jade-far.js';
 import { south, type South } from './jade-south.js';
+import { newRides } from './jade-rides.js';
 
 export const T = 64;
 /** the world you play in, in tiles (the new frame: lib/jade-layout.ts) */
@@ -317,7 +318,7 @@ const CANAL_X0 = 66, CANAL_X1 = 68, SEA_Y = 82;
 
 let CACHE: City | null = null;
 /** the city in the new frame: every pass runs in the old frame, then relayout() moves the result */
-export function city(): City { if (!CACHE) { const c = build(); remodel(c); dressBuildings(c); sgCity(c); island(c); east(c); far(c); backLanes(c); south(c); CACHE = relayout(c); } return CACHE; }
+export function city(): City { if (!CACHE) { const c = build(); remodel(c); dressBuildings(c); sgCity(c); island(c); east(c); far(c); backLanes(c); south(c); CACHE = relayout(c); newRides(CACHE); } return CACHE; }
 
 const SIDEWALK: Record<District, G> = { market: G.WALK, temple: G.TEMPLE, canal: G.COBBLE, docks: G.DOCK, arcade: G.NEON, heartland: G.HDB, bay: G.GRANITE, india: G.INDIA, glam: G.GLAM, resort: G.RESORT, orchard: G.ORCHARD, katong: G.KATONG, changi: G.CHANGI, tiong: G.TIONG, quay: G.QUAY, jurong: G.JURONG };
 const FRONTS: Record<District, string[]> = {

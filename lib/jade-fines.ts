@@ -9,7 +9,7 @@
 // speeding, red lights and riding along the five-foot way, and chase a rider who drives off with a ticket.
 import { T, W, H, G, OW, districtAt } from './jade-city.js';
 import { unmvP } from './jade-layout.js';
-import { drive, type Body } from './jade-move.js';
+import { drive, onWater, type Body } from './jade-move.js';
 import { los, downhill, nearestFree } from './jade-nav.js';
 import { dist, clamp, angDiff } from './jade-rng.js';
 import { mindStep, type Mind } from './jade-aware.js';
@@ -180,7 +180,7 @@ export function finesStep(w: World, dt: number) {
     }
   }
   w.lastTile = i;
-  if (p.ride && p.ride.kind !== 'boat') {
+  if (p.ride && !onWater(p.ride.kind)) {
     const sp = p.ride.b.speed;
     const silver = w.c.sg?.silver.some(([x0, y0, x1, y1]) => tx >= x0 && tx <= x1 && ty >= y0 && ty <= y1);
     if (silver && sp > 230) offence(w, 'speeding', px, py, true);
