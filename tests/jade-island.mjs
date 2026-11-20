@@ -49,9 +49,10 @@ test('the island: two new districts east of Chinatown, each with a market, a saf
   assert.ok(c.props.some(p => p.sprite === 'playground') && c.props.some(p => p.sprite === 'void-table'), 'playgrounds and void decks');
   assert.equal(streetAt(...mvT(150, 37)), 'Pan Island Expressway'); assert.equal(streetAt(...mvT(123, 50)), 'Central Expressway');
   for (const v of Object.values(ISLE_NAMES)) assert.ok(typeof v === 'string' && v.length > 2);
-  // every island place stands where you can walk to it from the island's safe house
+  // every island place stands where you can walk to it from the island's safe house (Pulau Ubin is over the water by
+  // bumboat; jade-reach walks it from its own jetty)
   const s0 = c.places['safe-heartland']; const f = field(c, 'foot', Math.floor(s0.x / T), Math.floor(s0.y / T) + 1, new Set(DISTRICTS));
-  for (const [id, p] of Object.entries(c.places)) if (oldX(p.x, p.y) >= OW * T && id !== 'holt') { const [fx, fy] = nearestFree(c, 'foot', p.x, p.y, new Set(DISTRICTS), 2); assert.ok(f.dist[Math.floor(fy / T) * W + Math.floor(fx / T)] >= 0, `walk to ${id}`); }
+  for (const [id, p] of Object.entries(c.places)) if (oldX(p.x, p.y) >= OW * T && id !== 'holt' && p.d !== 'pulau') { const [fx, fy] = nearestFree(c, 'foot', p.x, p.y, new Set(DISTRICTS), 2); assert.ok(f.dist[Math.floor(fy / T) * W + Math.floor(fx / T)] >= 0, `walk to ${id}`); }
 });
 
 test('expressways: flagged lanes, gantries and crash barriers; island avenues get traffic lights', () => {
