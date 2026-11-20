@@ -152,4 +152,8 @@ export const CHAT: Record<string, string> = {
   faiz: 'Good evening. Clear skies tonight, light winds from the east. Perfect for flying.',
   ubin: 'Twelve people, then we go. Pulau Ubin waits for nobody, but the boat waits for twelve.',
   ciku: 'Darling, is that a real pearl? No? Then I am not interested.',
+  ayu: 'Every bike checked, every bell rings. Mind the boars on Jalan Mamam, they don’t give way.',
+  lan: 'The gongs start at dusk. Come early, the front bench fills up with aunties.',
+  belangkas: 'Four hundred million years on this planet, and still people step on us. Watch your feet on the flats.',
+  taring: 'Hmph. A Tusker never says sorry. He just digs somewhere else.',
 };
