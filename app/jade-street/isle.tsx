@@ -22,7 +22,7 @@ export function MrtPanel({ play, from, onClose }: { play: Play; from: string; on
         {w.c.isle!.stations.map(s => {
           const here = s.id === from, open = w.open.has(s.d), plan = w.travel?.via === 'mrt' && w.travel.to.id === s.id && !here;
           return (
-            <button key={s.id} type="button" className={'jade-btn ' + (here ? 'plain' : 'jade')} data-plan={plan ? 'true' : undefined} disabled={here || !open || w.s.cash < FARE} data-testid={`mrt-${s.id}`} onClick={() => go(s.id)}>
+            <button key={s.id} type="button" className={'jade-btn ' + (here ? 'plain here' : 'jade')} data-plan={plan ? 'true' : undefined} disabled={here || !open || w.s.cash < FARE} data-testid={`mrt-${s.id}`} onClick={() => go(s.id)}>
               <Sprite name="pin-train" h={28} w={28} /> {s.name}<small>{here ? 'you are here' : plan ? `${DISTRICT_NAME[s.d]} · your route` : open ? DISTRICT_NAME[s.d] : 'under fog'}</small>
             </button>
           );
