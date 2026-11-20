@@ -635,10 +635,14 @@ export class Scene {
     aimLine(this, x, w, this.aim, shooterFor(w, p));
     this.markers(x, w, 'over');
     // flying and overhead things
+    // (21-11) a canopy or gantry turns see-through over anyone standing under it (the heroes, a job giver), so Kak
+    // Melati under the Clarke Quay umbrellas or Dora on a gantry'd road never vanishes
+    const under: [number, number][] = [[p.x, p.y - 30], [m.x, m.y - 30]];
+    for (const g of w.cast) if (vis(g.x, g.y, 200)) under.push([g.x, g.y - 30]);
     for (const pr of this.c.props) if (pr.layer === 'sky' && vis(pr.x, pr.y, 200)) {
       if (pr.sprite.startsWith('lanterns')) { this.lanternString(x, pr.x, pr.y, pr.w ?? 4 * T, pr.rot ?? 0, pr.sprite.endsWith('gold')); continue; }
       const fs = frameSize(pr.sprite); const lw = pr.w ?? fs[0];
-      spr(x, pr.sprite, pr.x, pr.y, { w: lw, anchor: 'center', rot: pr.rot, alpha: 0.95 });
+      spr(x, pr.sprite, pr.x, pr.y, { w: lw, anchor: 'center', rot: pr.rot, alpha: skyAlpha(pr.x, pr.y, lw, under) });
     }
     for (const sn of w.snatchers) { this.flyer(x, sn.x, sn.y, sn.h + ((sn.dizzy ?? 0) > 0 ? this.t * 12 : 0), sn.wing); if ((sn.dizzy ?? 0) > 0) this.stars(x, sn.x, sn.y - 24); }
     gearOver(this, x, w, vis);
@@ -1047,3 +1051,12 @@ function nearList(w: World) {
 }
 setItemSprite(itemSprite);
 function MISSION_FACE(id: string) { const m = MISSION[id]; return PEOPLE[m.giver]?.face ?? 'face-kee'; }
+
+/** how solid an overhead prop draws: 0.95 normally, down to 0.3 when someone stands under its middle (exported for tests) */
+export function skyAlpha(cx: number, cy: number, w: number, under: [number, number][]): number {
+  const r = w / 2; let near = Infinity;
+  for (const [ux, uy] of under) near = Math.min(near, Math.hypot(ux - cx, uy - cy));
+  if (near >= r) return 0.95;
+  const k = Math.max(0, (near - r * 0.55) / (r * 0.45));
+  return 0.3 + 0.65 * k;
+}
