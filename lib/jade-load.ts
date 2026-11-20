@@ -19,6 +19,8 @@ export const ZONE_OF: Record<District, Zone> = {
 
 const ATLAS_TIER: Record<string, Tier> = {
   'atlas-dora': 'core', 'atlas-enzo': 'core', 'atlas-ui': 'core', 'atlas-folk': 'core', 'atlas-rides': 'core',
+  // the fifteenth pass's four rides and the heroes' poses on them: each can be ridden anywhere, so they never wait for a zone
+  'atlas-rides15': 'core',
   'atlas-city': 'town', 'atlas-city2': 'town', 'atlas-props': 'town', 'atlas-sg': 'town', 'atlas-set': 'town', 'atlas-empire': 'town', 'atlas-cast-town': 'town',
   'atlas-dora2': 'job', 'atlas-enzo2': 'job', 'atlas-faces-town': 'job', 'atlas-set2': 'job', 'atlas-empire2': 'job', 'atlas-sg2': 'job', 'atlas-props2': 'job', 'atlas-gear': 'job', 'atlas-jobs': 'job', 'atlas-aware': 'job',
   'atlas-mg': 'mini',

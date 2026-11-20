@@ -553,7 +553,7 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
       case 'trade': return trade(st);
       case 'fares': {
         const f = run.fare; if (!f) return;
-        if (!p.ride || VEHICLES[p.ride.kind].seats < 2) { getRide(r => VEHICLES[r.kind].seats >= 2 && r.kind !== 'boat'); return; }
+        if (!p.ride || VEHICLES[p.ride.kind].seats < 2) { getRide(r => VEHICLES[r.kind].seats >= 2 && VEHICLES[r.kind].cls !== 'boat'); return; }
         const [x, y] = f.to ?? [f.x, f.y];
         go(x, y);
         if (!f.to && dist(x, y, p.x, p.y) < 90) { inp.mx = 0; inp.my = 0; }

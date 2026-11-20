@@ -9,7 +9,7 @@
 // pieces live in lib/jade-setpiece.ts, Madame Glint's phases and float in lib/jade-boss.ts, raids in lib/jade-biz.ts.
 import { T, W, OLD_W, S, OW, F_ROOF, districtAt, type District } from './jade-city.js';
 import { unmvT } from './jade-layout.js';
-import { VEHICLES, drive, type Body, type VehicleKind } from './jade-move.js';
+import { VEHICLES, drive, onWater, type Body, type VehicleKind } from './jade-move.js';
 import { los, downhill, nearestFree, type Field } from './jade-nav.js';
 import { dist, angDiff, clamp } from './jade-rng.js';
 import { PEOPLE, type Mission, type Step, type Spot, type Skin } from './jade-story.js';
@@ -107,7 +107,7 @@ export class Run {
     const p = w.p;
     // the ride you were on comes back with you when the checkpoint had one of that kind
     const keep = p.ride && p.ride.kind === s.ride ? p.ride : null;
-    if (p.ride) { p.ride.parked = true; p.ride.b.speed = 0; if (p.ride.kind === 'boat' && !keep) p.ride.b.x = p.ride.b.y = -9999; p.ride = null; }
+    if (p.ride) { p.ride.parked = true; p.ride.b.speed = 0; if (onWater(p.ride.kind) && !keep) p.ride.b.x = p.ride.b.y = -9999; p.ride = null; }
     // (a boat you were steering when it went wrong is towed away: a fresh one waits at the mooring, where you can step aboard)
     p.hide = false; p.act = null; p.dashT = 0; p.hopT = 0; p.carry = s.carry;
     if (s.ride) {
@@ -199,7 +199,7 @@ export class Run {
         if (st.time) this.timer = st.time * k;
         if (st.rival) {
           const cls = st.rival === 'boat' ? 'boat' : st.rival === 'runner' ? 'foot' : 'small';
-          const [x, y] = nearestFree(w.c, cls, w.p.x + 30, w.p.y + 30, w.open, cls === 'boat' && w.p.ride?.kind !== 'boat' ? 12 : 4);
+          const [x, y] = nearestFree(w.c, cls, w.p.x + 30, w.p.y + 30, w.open, cls === 'boat' && !(w.p.ride && onWater(w.p.ride.kind)) ? 12 : 4);
           const sp = st.rival === 'runner' ? 204 : st.rival === 'scooter' ? 292 : 220;
           this.actors.push(this.actor('rival-' + st.rival, x, y, cls, this.marks, sp * (st.pace ?? 1) * (this.assist ? 0.86 : 1) * this.w.diff.rival * this.mercy()));
         }
@@ -451,7 +451,7 @@ export class Run {
       // or a net puts it straight in your paws
       if (st.loot) {
         if (how === 'grab') { this.loot = null; w.fx.push({ t: 'loot', x: a.b.x, y: a.b.y, kind: st.loot.startsWith('h-') ? 'heirloom' : 'loot' }); this.next(); if (this.cur?.t === 'pickup' && this.cur.at === 'loot') this.grabPickup(); return true; }
-        const [lx, ly] = nearestFree(w.c, w.p.ride?.kind === 'boat' ? 'boat' : 'foot', a.b.x, a.b.y, w.open, 3); this.loot = { x: lx, y: ly, sprite: st.loot }; w.fx.push({ t: 'loot', x: lx, y: ly, kind: st.loot.startsWith('h-') ? 'heirloom' : 'loot' });
+        const [lx, ly] = nearestFree(w.c, w.p.ride && onWater(w.p.ride.kind) ? 'boat' : 'foot', a.b.x, a.b.y, w.open, 3); this.loot = { x: lx, y: ly, sprite: st.loot }; w.fx.push({ t: 'loot', x: lx, y: ly, kind: st.loot.startsWith('h-') ? 'heirloom' : 'loot' });
       }
       this.next(); return true;
     }

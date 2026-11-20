@@ -254,8 +254,22 @@ export class JadeSound {
   fanfare() { if (!this.ctx) return; const t = this.t; [67, 71, 74, 79, 83, 86].forEach((m, i) => this.pluck(mtof(m), t + i * 0.1, 0.8, this.out!, 0.35)); this.tone(98, t, 1.2, 'triangle', 0.3, this.out!); }
   sad() { if (!this.ctx) return; const t = this.t; [71, 67, 64, 62].forEach((m, i) => this.pluck(mtof(m), t + i * 0.16, 0.6, this.out!, 0.3)); }
   whistle() { if (!this.ok('whistle', 0.7)) return; const t = this.t; this.tone(2200, t, 0.18, 'sine', 0.16, this.out!, 1.1); this.tone(2200, t + 0.22, 0.3, 'sine', 0.16, this.out!, 1.15); }
-  engine(kind = '') { if (!this.ok('engine', 0.3)) return; const t = this.t; const f = kind === 'van' ? 55 : kind === 'boat' ? 70 : kind === 'trishaw' || kind === 'bike' ? 0 : 90; if (!f) { this.tone(1200, t, 0.08, 'triangle', 0.15, this.out!); this.tone(1500, t + 0.1, 0.08, 'triangle', 0.15, this.out!); return; } for (let i = 0; i < 6; i++) this.tone(f * (1 + i * 0.04), t + i * 0.06, 0.08, 'sawtooth', 0.08, this.out!); }
-  honk() { if (!this.ok('honk', 0.4)) return; const t = this.t; this.tone(415, t, 0.22, 'square', 0.08, this.out!); this.tone(523, t, 0.22, 'square', 0.06, this.out!); }
+  engine(kind = '') { if (!this.ok('engine', 0.3)) return; const t = this.t;
+    // the fifteenth pass's rides: the dragon boat's drum, the luge's rumble off the start, the ice-cream motorbike's putter
+    if (kind === 'dragon') { this.drum(t, 3); return; }
+    if (kind === 'luge') { this.burst(t, 0.5, 500, 0.6, 0.2); this.tone(180, t, 0.4, 'sine', 0.12, this.out!, 0.6); return; }
+    const f = kind === 'van' ? 55 : kind === 'boat' ? 70 : kind === 'icecream' ? 120 : kind === 'trishaw' || kind === 'bike' || kind === 'tandem' ? 0 : 90; if (!f) { this.tone(1200, t, 0.08, 'triangle', 0.15, this.out!); this.tone(1500, t + 0.1, 0.08, 'triangle', 0.15, this.out!); return; } for (let i = 0; i < 6; i++) this.tone(f * (1 + i * 0.04), t + i * 0.06, 0.08, 'sawtooth', 0.08, this.out!); }
+  honk(kind = '') {
+    if (!this.ok('honk', 0.4)) return; const t = this.t, o = this.out!;
+    // the ice-cream uncle's chime, the tandem's bell, a whoop off the luge, two beats of the dragon boat's drum
+    if (kind === 'icecream') { [79, 84, 88, 84, 86, 83, 79].forEach((m, i) => this.pluck(mtof(m), t + i * 0.13, 0.4, o, 0.28)); return; }
+    if (kind === 'tandem') { this.tone(2400, t, 0.25, 'triangle', 0.12, o); this.tone(2400, t + 0.16, 0.3, 'triangle', 0.1, o); return; }
+    if (kind === 'luge') { this.tone(500, t, 0.35, 'sine', 0.12, o, 2.2); return; }
+    if (kind === 'dragon') { this.drum(t, 2); return; }
+    this.tone(415, t, 0.22, 'square', 0.08, o); this.tone(523, t, 0.22, 'square', 0.06, o);
+  }
+  /** a big drum: n low beats */
+  drum(t: number, n: number) { for (let i = 0; i < n; i++) { this.tone(70, t + i * 0.32, 0.25, 'sine', 0.35, this.out!, 0.5); this.burst(t + i * 0.32, 0.06, 200, 0.5, 0.15); } }
   bump(k = 0.5) { if (!this.ok('bump', 0.12)) return; const t = this.t; this.burst(t, 0.12, 300, 0.8, 0.25 + k * 0.35); this.tone(90, t, 0.12, 'sine', 0.3 * k + 0.1, this.out!, 0.6); }
   whoosh() { if (!this.ok('whoosh', 0.15)) return; this.burst(this.t, 0.22, 1400, 0.7, 0.22); }
   hop() { if (!this.ok('hop', 0.12)) return; this.tone(400, this.t, 0.14, 'sine', 0.18, this.out!, 2); }
@@ -371,7 +385,7 @@ export class JadeSound {
       case 'hit': this.bump(0.9); this.coins(); break;
       case 'dash': case 'boost': this.whoosh(); break;
       case 'hop': this.hop(); break;
-      case 'honk': this.honk(); break;
+      case 'honk': this.honk(f.kind); break;
       case 'car-honk': this.honk(); break;
       // the island: the train's door chime and rumble, a whistle for a taxi, its doors and its meter
       case 'mrt': { if (!this.ctx) break; const t = this.t, o = this.out!; this.tone(mtof(76), t, 0.3, 'sine', 0.1, o); this.tone(mtof(72), t + 0.32, 0.4, 'sine', 0.1, o); this.burst(t + 0.2, 1.4, 260, 0.6, 0.12); break; }

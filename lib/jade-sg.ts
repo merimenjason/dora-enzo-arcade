@@ -7,7 +7,7 @@
 // that closes a street, or a mooncake lantern walk through the temple park. No DOM; all randomness is seeded.
 import { T, W, districtAt } from './jade-city.js';
 import { mvP } from './jade-layout.js';
-import { drive, type Body } from './jade-move.js';
+import { drive, onWater, type Body } from './jade-move.js';
 import { downhill } from './jade-nav.js';
 import { rng, hashStr, dist, clamp } from './jade-rng.js';
 import { addRep } from './jade-save.js';
@@ -144,7 +144,7 @@ export function sgStep(w: World, dt: number) {
   if (p.shade && sg.wet > 4 && !p.act && !w.run) { sg.wet = 0; p.act = { n: 'shake-wet', t: 0, dur: 0.9 }; p.face = 'down'; w.fx.push({ t: 'shake', x: px, y: py }); }
   if (w.rain < 0.2) sg.wet = Math.max(0, sg.wet - dt);
   // ── gantries: a coin, or with the lanterns lit, the camera tells the wardens
-  if (p.ride && p.ride.kind !== 'boat') {
+  if (p.ride && !onWater(p.ride.kind)) {
     c.gantries.forEach((g, i) => {
       if ((sg.gant[i] ?? 0) > w.time) return;
       const crossed = g.axis === 'h' ? (sg.lastX - g.x) * (px - g.x) <= 0 && Math.abs(py - g.y) < 2.2 * T && sg.lastX !== px : (sg.lastY - g.y) * (py - g.y) <= 0 && Math.abs(px - g.x) < 2.2 * T && sg.lastY !== py;

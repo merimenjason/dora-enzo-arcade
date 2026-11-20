@@ -5,8 +5,8 @@
 import { T, W, H, S, passable, type City, type MoveClass } from './jade-city.js';
 import { angDiff, clamp } from './jade-rng.js';
 
-export type VehicleKind = 'scooter' | 'trishaw' | 'tuktuk' | 'van' | 'boat' | 'bike';
-export const VEHICLE_KINDS: VehicleKind[] = ['scooter', 'trishaw', 'tuktuk', 'van', 'boat', 'bike'];
+export type VehicleKind = 'scooter' | 'trishaw' | 'tuktuk' | 'van' | 'boat' | 'bike' | 'tandem' | 'icecream' | 'luge' | 'dragon';
+export const VEHICLE_KINDS: VehicleKind[] = ['scooter', 'trishaw', 'tuktuk', 'van', 'boat', 'bike', 'tandem', 'icecream', 'luge', 'dragon'];
 export type VStats = { name: string; speed: number; accel: number; turn: number; r: number; len: number; cargo: number; cls: MoveClass; seats: number; blurb: string };
 export const VEHICLES: Record<VehicleKind, VStats> = {
   scooter: { name: 'Scooter', speed: 340, accel: 900, turn: 12, r: 15, len: 46, cargo: 8, cls: 'small', seats: 1, blurb: 'Quick and nimble. Fits down alleys. Small basket.' },
@@ -14,8 +14,20 @@ export const VEHICLES: Record<VehicleKind, VStats> = {
   tuktuk: { name: 'Tuk-tuk', speed: 310, accel: 750, turn: 10, r: 21, len: 60, cargo: 20, cls: 'big', seats: 2, blurb: 'Zippy three-wheeler with a passenger bench.' },
   van: { name: 'Delivery van', speed: 285, accel: 620, turn: 8.5, r: 24, len: 80, cargo: 40, cls: 'big', seats: 2, blurb: 'Big hold for trading runs. Too wide for alleys.' },
   bike: { name: 'Hired bike', speed: 290, accel: 820, turn: 12, r: 13, len: 42, cargo: 4, cls: 'small', seats: 1, blurb: 'A hired bike from the East Coast Park racks: quick on the cycling track, quiet everywhere.' },
+  // the fifteenth pass's four (one of each, parked where they belong; lib/jade-rides.ts)
+  tandem: { name: 'Tandem bike', speed: 275, accel: 700, turn: 9, r: 13, len: 84, cargo: 6, cls: 'small', seats: 2, blurb: 'A bicycle made for two from the East Coast Park racks: with your partner pedalling on the back it beats the hired bike, but on your own it is a slog.' },
+  icecream: { name: 'Ice-cream motorbike', speed: 315, accel: 780, turn: 9, r: 20, len: 62, cargo: 6, cls: 'big', seats: 2, blurb: 'The ice-cream uncle’s motorbike, with your partner in the sidecar beside the freezer. Too wide for alleys; its chime stops the street for a treat instead of scattering it, and no guard minds it.' },
+  luge: { name: 'Luge cart', speed: 365, accel: 1050, turn: 13, r: 12, len: 40, cargo: 2, cls: 'small', seats: 1, blurb: 'A Skyline Luge cart from Sentosa: the quickest wheels on the island, low and nimble, with room for almost nothing. Off Sentosa it scrapes along.' },
+  dragon: { name: 'Dragon boat', speed: 300, accel: 560, turn: 5.5, r: 16, len: 150, cargo: 10, cls: 'boat', seats: 2, blurb: 'A long racing dragon boat on the Singapore River: you paddle while your partner beats the drum, and with the drum going its surges come twice as often. Turns like a barge.' },
   boat: { name: 'Bumboat', speed: 250, accel: 520, turn: 7, r: 21, len: 78, cargo: 30, cls: 'boat', seats: 2, blurb: 'A painted river bumboat: glides along the Singapore River and the harbour.' },
 };
+/** rides on the water (the bumboat and the dragon boat): moored at jetties, stepped off at a bank, no red lights */
+export const onWater = (k: VehicleKind) => VEHICLES[k].cls === 'boat';
+/** one-seat rides the partner can't share: they take their own copy of it and ride a length behind */
+export const OWN_COPY: ReadonlySet<VehicleKind> = new Set<VehicleKind>(['bike', 'luge']);
+/** rides that keep the colours they were painted in (a red and gold dragon, the uncle's cream and blue, the luge's
+ * orange): no seeded street paint and no garage paint job */
+export const AS_PAINTED: ReadonlySet<VehicleKind> = new Set<VehicleKind>(['tandem', 'icecream', 'luge', 'dragon']);
 export const FOOT = { walk: 145, run: 235, dash: 560, dashT: 0.22, dashCd: 0.75, hopT: 0.42, hopCd: 0.35, r: 12, cargo: 4 };
 
 export type Body = { x: number; y: number; h: number; speed: number; r: number; len: number; cls: MoveClass };
