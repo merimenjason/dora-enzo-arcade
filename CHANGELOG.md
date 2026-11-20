@@ -4,6 +4,12 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 21-11-2026
 
+### Added
+
+- **Jade Street**: Pulau Ubin opens after the Lights by the Lake. Take Pak Ubin's bumboat from the Changi Point jetty (four coins; Route me plans the crossing) to the island's red-earth tracks, Ubin Town, the Wei Tuo Fa Gong Temple and its wayang stage, Ketam and Pekan Quarries, House No. 1, Jejawi Tower and the Chek Jawa boardwalk. No cars and no trains: hire a bike or the tandem. The island has its own safe house, three properties to buy (the bicycle rental, a durian stall and a kelong seafood stall) and wildlife for townsfolk: junglefowl, hornbills, box turtles, egrets and a mousedeer.
+- **Jade Street**: a new gang, the Tusker Boys, wild boars who root about Ubin's tracks. Shoo one off its dig (E) for whatever it dug up. If one paws the ground at you, step off the track before it charges; one that misses ends up dizzy, and E catches it. Also on the island: shake a durian tree, catch it and eat it, and look out from the top of Jejawi Tower.
+- **Jade Street**: chapter ten, "Kampong Spirit": ten new jobs on Pulau Ubin with three new givers (Kak Ayu, Auntie Lan and Uncle Belangkas), and three new Hawker Tales (Kampong Post, Crab Count and Stinky Cargo). A new kind of job step: follow a boar trail by reading each set of hoof prints (E), which shows the next set and the way it heads, before the rain washes them away. Watch for old prints that lead nowhere. Four new trophies.
+
 ### Fixed
 
 - **Jade Street**: Dora has both ears again in the MRT ride painting.

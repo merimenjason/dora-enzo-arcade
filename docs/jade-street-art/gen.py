@@ -21,6 +21,7 @@ from jobs13 import J as JOBS13
 from jobs14 import J as JOBS14
 from jobs15 import J as JOBS15
 from jobs16 import J as JOBS16
+from jobs17 import J as JOBS17
 JOBS.update(JOBS2)
 JOBS.update(JOBS3)
 JOBS.update(JOBS4)
@@ -37,6 +38,7 @@ JOBS.update(JOBS13)
 JOBS.update(JOBS14)
 JOBS.update(JOBS15)
 JOBS.update(JOBS16)
+JOBS.update(JOBS17)
 # the tenth pass's empire sheets (jobs-empire*.py: hyphenated names, so loaded by path)
 import importlib.util
 for _f in sorted(D.glob('jobs-empire*.py')):
