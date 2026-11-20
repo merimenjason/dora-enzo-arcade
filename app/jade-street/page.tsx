@@ -216,7 +216,7 @@ export default function JadeStreetPage() {
               {phone && <PhoneView play={play} onClose={resume} />}
               {paused && <Pause play={play} snd={sndRef.current} touch={touch} onReplay={replay} onClose={resume} onQuit={toTitle} onSave={() => persist(w.s)} onNew={() => { setPaused(false); setScreen('title'); setPick(true); }} />}
               {story === 'intro' && <Storybook onDone={() => storyDone()} />}
-              {story === 'chapter' && <ChapterCard ch={Math.min(9, chapterOf(w.s))} onDone={() => storyDone()} />}
+              {story === 'chapter' && <ChapterCard ch={Math.min(CHAPTERS.length, chapterOf(w.s))} onDone={() => storyDone()} />}
               {story === 'ending' && <Ending hero={w.s.hero} isle={play.endingKind === 'isle'} lights={play.endingKind === 'lights'} coast={play.endingKind === 'coast'} lake={play.endingKind === 'lake'} onDone={() => { sndRef.current?.fx([{ t: 'chapter' }]); setStory('credits'); }} />}
               {story === 'credits' && <Credits onDone={() => storyDone()} />}
               <ArtWait play={play} />

@@ -897,7 +897,7 @@ export const MISSIONS: Mission[] = mvMissions([
     steps: [
       { t: 'talk', lines: [['ayu', 'The provision shop! The door off its hinges, the rice untouched, and the old quarry maps gone from the wall.', 'cross'], ['ayu', 'Boar prints all round the back. Fresh ones shine a little in the red earth. Read each set and it shows you the next.', 'calm'], ['mate', 'Tracking. Like proper jungle rangers.', 'happy']] },
       { t: 'goto', at: [348, 112], label: 'Go behind the shops to Jalan Ubin, where the prints start', ride: 'foot', cp: true },
-      { t: 'track', route: [[348, 112], [347, 109], [346, 106], [343, 108], [346, 104], [347, 101]], old: [[351, 112]], oldAt: 0, label: 'Read the first set of hoof prints (E), then follow the trail they show', cp: true },
+      { t: 'track', route: [[348, 112], [347, 109], [346, 106], [343, 108], [346, 104], [347, 101]], old: [[351, 112]], oldAt: 0, time: 80, label: 'Read the first set of hoof prints (E), then follow the trail they show', cp: true },
       { t: 'talk', lines: [['hero', 'The trail ends at a hut in the trees north of Pekan Quarry. A big one. With a mat that says KEEP OUT in hoof.', 'worried'], ['taring', 'Who is that in my forest? Out! Out before I set the boys on you!', 'cross'], ['mate', 'That must be the boss. Tusks like a pair of bananas.', 'smug'], ['ayu', 'Tok Taring. He was a nice old boar, once. Ask Uncle Belangkas: he sees everything from Chek Jawa.', 'worried']] },
     ] },
   { id: 'm68', ch: 10, title: 'Durian Season', giver: 'lan', at: 'lan', reward: 740, rep: 19, blurb: 'The kampong orchard’s durians are falling early, and the Tusker Boys get to the windfalls first. Pick the ripe ones off the high branches, then pedal the basket to the temple for the festival offering.',
@@ -926,13 +926,13 @@ export const MISSIONS: Mission[] = mvMissions([
   { id: 'm71', ch: 10, title: 'The Night Forager', giver: 'belangkas', at: 'belangkas', reward: 780, rep: 19, blurb: 'A Tusker Boy with a lamp and a spade leaves the den every night. Follow him down Jalan Mamam to wherever he digs, and change over to your partner half way so he never sees the same face twice.',
     steps: [
       { t: 'talk', lines: [['belangkas', 'Every night at ten, one boar, one lamp, one spade. He looks behind him a great deal.', 'calm'], ['mate', 'Then he sees you, then he sees me. Never the same chinchilla twice.', 'smug']] },
-      { t: 'goto', at: [347, 106], label: 'Wait by Pekan Quarry on Jalan Mamam', ride: 'foot', cp: true },
-      { t: 'tail', name: 'the forager', skin: 'boar', from: [347, 104], route: [[347, 107], [347, 110], [345, 109], [341, 109], [338, 109]], relay: { at: 2, spot: [344, 112] }, calm: 0.6, label: 'Follow the forager down Jalan Mamam; switch to {mate} at Jalan Sam Kongsi (Tab)', cp: true },
-      { t: 'talk', lines: [['hero', 'Ketam Quarry. He paced from the old winch, twelve steps, and started digging. Then he stopped and went home. Wrong spot.', 'worried'], ['mate', 'So they don’t know where it is either. They’re missing a piece.', 'smug']] },
+      { t: 'goto', at: [344, 101], label: 'Wait in the trees by the Tuskers’ den, off Jalan Mamam', ride: 'foot', cp: true },
+      { t: 'tail', name: 'the forager', skin: 'boar', from: [347, 100], route: [[347, 104], [347, 107], [351, 107], [354, 106], [359, 107]], relay: { at: 2, spot: [347, 108] }, calm: 0.6, label: 'Follow the forager down Jalan Mamam and east past Pekan Quarry; switch to {mate} at the corner (Tab)', cp: true },
+      { t: 'talk', lines: [['hero', 'Jalan Endut Senin, by the old milestone. He paced twelve steps from it and started digging. Then he stopped and went home. Wrong spot.', 'worried'], ['mate', 'So they don’t know where it is either. They’re missing a piece.', 'smug']] },
     ] },
   { id: 'm72', ch: 10, title: 'Sacks for Sacks', giver: 'ayu', at: 'ayu', reward: 790, rep: 20, blurb: 'Everything the Tusker Boys have dug up is in sacks at their den: the shop’s maps, the temple’s old bell, the stage’s lost props. Swap each sack for a sack of tapioca while they snore.',
     steps: [
-      { t: 'talk', lines: [['ayu', 'They snore after midnight. Everyone on the island hears it. Like a lorry with a cold.', 'happy'], ['ayu', 'Here: tapioca sacks, same size. Boars love tapioca. They’ll never notice.', 'smug']] },
+      { t: 'talk', lines: [['ayu', 'They snore after midnight. Everyone on the island hears it. Like a lorry with a cold.', 'happy'], ['ayu', 'Here: tapioca sacks, same size. Boars love tapioca. They’ll never notice.', 'happy']] },
       { t: 'goto', at: [347, 104], label: 'Creep up Jalan Mamam to the den', ride: 'foot', cp: true },
       { t: 'swap', crates: [[346, 101], [351, 101], [349, 103], [352, 103]], guards: [[[345, 102], [353, 102]], [[350, 104], [350, 100]]], time: 90, decoy: 'decoy', skin: 'boar', label: 'Swap a tapioca sack for each loot sack (E) while the boars look away', cp: true },
       { t: 'goto', at: 'ayu', label: 'Take the sacks back to Kak Ayu at the bicycle rental' },
