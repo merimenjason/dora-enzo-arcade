@@ -10,7 +10,7 @@ import { sgBlockers } from './jade-sg.js';
 import { addHeat } from './jade-heat.js';
 
 export const CAR_SPRITES = ['car-mint', 'car-cream', 'car-van', 'car-taxi', 'car-bus', 'car-purple', 'car-fruit', 'car-moto'];
-export type Car = { id: number; sprite: string; r: number; d: 1 | -1; s: number; x: number; y: number; h: number; speed: number; cruise: number; plan: { r: number; d: 1 | -1; at: number } | null; planned: number; stopT: number; wob: number; rad: number; len: number; go: number };
+export type Car = { id: number; sprite: string; r: number; d: 1 | -1; s: number; x: number; y: number; h: number; speed: number; cruise: number; plan: { r: number; d: 1 | -1; at: number } | null; planned: number; stopT: number; wob: number; rad: number; len: number; go: number; wait?: number };
 export const MAX_CARS = 22;
 
 // ── traffic lights at the main crossings: horizontal roads at 30, 46 and 62 with the avenues at 26, 42, 60 and 90
@@ -81,8 +81,18 @@ export function trafficStep(w: World, dt: number) {
     // what's ahead?
     let block = 1e9, held = false;
     const fx = Math.cos(c.h), fy = Math.sin(c.h);
-    const look = (x: number, y: number, rad: number) => { const dx = x - c.x, dy = y - c.y; const a = dx * fx + dy * fy, l = Math.abs(dx * fy - dy * fx); if (a > 0 && a < 150 && l < rad + 16) block = Math.min(block, a); };
-    for (const o of w.cars) if (o !== c) look(o.x, o.y, o.rad);
+    const look = (x: number, y: number, rad: number, back = 0) => { const dx = x - c.x, dy = y - c.y; const a = dx * fx + dy * fy, l = Math.abs(dx * fy - dy * fx); if (a > 0 && a < 150 + back && l < rad + 16) block = Math.min(block, a - back); };
+    // (21-11) cars: the one ahead in your own lane is measured to its tail, so a queue no longer piles cars on top of
+    // each other; a car crossing your path is waited for, but after 1.5 s of waiting you go (the first of two stuck
+    // cars by id), which ends the junction gridlock where two cars each waited on the other forever
+    const waited = (c.wait ?? 0) > 1.5;
+    let crossHeld = false;
+    for (const o of w.cars) if (o !== c) {
+      const lane = o.r === c.r && o.d === c.d;
+      if (lane) { look(o.x, o.y, o.rad, o.len / 2 - 22); continue; }
+      if (waited && !((o.wait ?? 0) > 1.5 && o.id < c.id)) continue;
+      const b0 = block; look(o.x, o.y, o.rad); if (block < b0) crossHeld = true;
+    }
     look(px, py, w.p.ride ? w.p.ride.b.r : 12);
     for (const pd of w.peds) if (pd.hop <= 0) look(pd.x, pd.y, 10);
     for (const wd of w.wardens) look(wd.b.x, wd.b.y, 14);
@@ -105,6 +115,7 @@ export function trafficStep(w: World, dt: number) {
     const want = block < c.len / 2 + 22 ? 0 : block < c.len / 2 + 80 ? c.cruise * 0.35 : c.cruise;
     c.speed += Math.max(-500 * dt, Math.min(260 * dt, want - c.speed));
     if (c.speed < 5 && block < 1e9 && !held) c.stopT += dt; else c.stopT = 0;
+    c.wait = c.speed < 5 && crossHeld && !held ? (c.wait ?? 0) + dt : c.speed > 30 ? 0 : (c.wait ?? 0);
     if (c.stopT > 2.5 && dist(px, py, c.x, c.y) < 200) { c.stopT = 0; w.fx.push({ t: 'car-honk', x: c.x, y: c.y }); }
     c.wob = Math.max(0, c.wob - dt);
     const s0 = c.s; c.s += c.d * c.speed * dt;

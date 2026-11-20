@@ -7,7 +7,7 @@
 // cartoon gadgets: lib/jade-gear.ts.
 import { city as getCityOnce, T, W, H, S, G, F_ROOF, F_ALLEY, districtAt, DISTRICT_NAME, type City, type District } from './jade-city.js';
 import { VEHICLES, FOOT, onWater, drive, step as moveStep, obstacleGrid, shove, overlapping, type Body, type Ctx, type VehicleKind, type Obstacle } from './jade-move.js';
-import { nearestFree, field, pathFrom, type Field } from './jade-nav.js';
+import { nearestFree, field, pathFrom, navOk, type Field } from './jade-nav.js';
 import { castOf, castKey, CHAT, type CastMember } from './jade-cast.js';
 import { rng, clamp, angDiff, dist } from './jade-rng.js';
 import { cargoCount, cargoValue, capacity, GOODS, GOOD, midPrice, prices, buy as tBuy, sell as tSell, moveGoods, MARKET_NAME, type Good } from './jade-trade.js';
@@ -190,7 +190,17 @@ export class World {
     this.refreshCast();
     const v = VEHICLES[kind], reach = v.r + (v.len ?? 0) / 2;
     const prop = (cx: number, cy: number) => (this.obs[Math.floor(cy / T) * W + Math.floor(cx / T)] ?? []).some(o => dist(o.x, o.y, cx, cy) < o.r + reach);
-    return nearestFree(this.c, v.cls, x, y, this.open, 10, (cx, cy) => this.rides.some(r => dist(r.b.x, r.b.y, cx, cy) < 90) || prop(cx, cy));
+    // (21-11) a boat or dragon boat must sit where you can step in from the bank: never a spot out in the stream
+    const water = v.cls === 'boat';
+    return nearestFree(this.c, v.cls, x, y, this.open, 10, (cx, cy) => this.rides.some(r => dist(r.b.x, r.b.y, cx, cy) < 90) || prop(cx, cy) || (water && !this.boardable(cx, cy)));
+  }
+  /** can someone on foot reach a ride parked at (x,y)? A walkable tile's middle within the boarding range (21-11: a
+   * River Run retry picked the boat left out mid-river from the try before, which nobody could step into) */
+  boardable(x: number, y: number): boolean {
+    const tx = Math.floor(x / T), ty = Math.floor(y / T);
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++)
+      if (navOk(this.c, 'foot', tx + dx, ty + dy, this.open) && dist((tx + dx) * T + T / 2, (ty + dy) * T + T / 2, x, y) < 80) return true;
+    return false;
   }
   placePlayer(x: number, y: number) {
     const [fx, fy] = nearestFree(this.c, 'foot', x, y, this.open);

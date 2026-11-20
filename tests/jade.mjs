@@ -527,6 +527,17 @@ test('the city breaks the grid: landmarks, plazas, curving paths, tables, and no
   assert.ok(c.festival.length >= 20, 'festival dressing planned');
 });
 
+// 21-11: at Tiong Bahru's unlit crossings two cars each waited on the other forever and the queues behind them
+// locked the streets for minutes (cars piled on top of each other in the queue); now nobody waits long
+test('traffic never gridlocks at an unlit crossing', () => {
+  const ids = [...MISSIONS].map(m => m.id), s = newSave(5); s.started = true; s.story.intro = true; s.story.ch = 9; s.done = ids.slice(0, ids.indexOf('m59'));
+  const w = new World(s, 11); w.quiet = true; w.talk = null; w.step(NO_INPUT, DT);
+  const pl = w.c.places.books; w.placePlayer(pl.x, pl.y);
+  const still = new Map(); let worst = 0;
+  for (let i = 0; i < 180 / DT; i++) { w.talk = null; w.ui = null; w.step(NO_INPUT, DT);
+    for (const c of w.cars) { const t = c.speed < 3 ? (still.get(c.id) ?? 0) + DT : 0; still.set(c.id, t); worst = Math.max(worst, t); } }
+  assert.ok(worst < 20, `the longest any car stood still was ${worst.toFixed(0)} s`);
+});
 console.log(`jade: ${n} tests ok`);
 // the third pass: fail conditions for every job, set pieces, Glint's phases, businesses, raids, v4 saves, moods
 await import('./jade-more.mjs');
