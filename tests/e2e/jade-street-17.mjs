@@ -153,6 +153,8 @@ export async function seventeenth(h) {
       if (ready && ok) { await hold(new Set()); await key('e', 300); lastKey = Date.now(); continue; }
       if (ready && s.ride && /Hop off \(E\)|hop off \(E\)/.test(s.hint)) { await hold(new Set()); await key('e', 400); lastKey = Date.now(); continue; }
       if (ready && /^F: /.test(s.hint)) { await key('f', 150); lastKey = Date.now(); }
+      // ("pedal under each tree and press F": a person presses F once they are under the one the gold line points at)
+      if (ready && s.ride && /press F/.test(s.hint) && s.to && Math.hypot(s.to[0] - s.x, s.to[1] - s.y) < 150) { await key('f', 150); lastKey = Date.now(); }
       if (/Space: /.test(s.hint) && s.boostCd <= 0) await key(' ', 60);
       if (/^Wait for|^Here they come|wait for them|Hold the stage/i.test(s.hint) && !s.to) { await hold(new Set()); await wait(150); continue; }
       await steer(s); await wait(90);
