@@ -12,6 +12,10 @@ import { PAR } from '../.checks/jade-medals.js';
 import { FRAMES } from '../.checks/jade-art.js';
 import { tierOf } from '../.checks/jade-load.js';
 import { tagOption } from '../.checks/jade-tag.js';
+import { travelPlan, travelText, CHAIN_SAVE } from '../.checks/jade-mrt.js';
+import { listContracts } from '../.checks/jade-contracts.js';
+import { MISSIONS } from '../.checks/jade-story.js';
+import { newSave } from '../.checks/jade-save.js';
 import { T } from '../.checks/jade-city.js';
 import { playMission, missionSave } from './jade-bot.mjs';
 
@@ -122,5 +126,34 @@ test('every ride job is won by the bots, and the new art streams (never core)', 
   for (const h of ['dora', 'enzo']) for (const f of ['toss-0', 'toss-1', 'ride-bell-0', 'ride-bell-1', 'ride-stroke-0', 'ride-stroke-1', 'serve-0', 'serve-1']) assert.ok(FRAMES[`${h}-${f}`], `${h}-${f}`);
   for (const b of ['chweekueh', 'yongsiak', 'riversatay', 'jazzbar', 'lakeshop', 'laketea']) for (let l = 0; l < 4; l++) assert.ok(FRAMES[`biz-${b}-${l}`], `${b} ${l}`);
   assert.ok(FRAMES['lake-bank']);
+});
+function late(cash = 300) {
+  const s = newSave(5); s.started = true; s.story.intro = true; s.story.ch = 9; s.done = [...MISSIONS.map(m => m.id), ...SIDE.map(m => m.id)]; s.cash = cash;
+  const w = new World(s, 5); w.quiet = true; w.talk = null; w.step(NO_INPUT, DT); return w;
+}
+
+test('Route me chains two rides when that is clearly quicker than one, and names both', () => {
+  const w = late(0), E = w.c.east;
+  // a stretched ferry (its far pier moved out past Changi) makes the cable car then the ferry worth it from Sentosa
+  const far = { ...E.ferry.stops[1], x: E.ferry.stops[1].x + T * 140, y: E.ferry.stops[1].y };
+  w.c = { ...w.c, east: { ...E, ferry: { ...E.ferry, stops: [{ ...E.ferry.stops[0], x: E.cable.stops[0].x + T * 2, y: E.cable.stops[0].y }, far] } } };
+  const a = E.cable.stops[1]; w.placePlayer(a.x - T * 3, a.y);
+  const t = travelPlan(w, far.x, far.y + T * 2);
+  assert.ok(t?.then, 'two rides'); assert.equal(t.via, 'cable'); assert.equal(t.then.via, 'ferry');
+  assert.match(travelText(t), /Cable car: .* then Ferry: /);
+  assert.ok(CHAIN_SAVE > 0.1, 'only when clearly quicker');
+  // on the real map, the one-ride plans stand (the MRT reaches Sentosa)
+  const r = late(); r.placePlayer(a.x - T * 3, a.y); const z = r.c.isle.stations.find(s => s.id === 'stn-changi');
+  assert.ok(!travelPlan(r, z.x, z.y + T * 3)?.then);
+});
+
+test('a new night deals its contracts one a frame on the street (never three in one step), all at once on the phone', () => {
+  const w = late();
+  listContracts(w); w.s.night++;
+  assert.equal(listContracts(w, true).filter(l => l.tag === 'offer').length, 1, 'one this frame');
+  assert.equal(listContracts(w, true).filter(l => l.tag === 'offer').length, 2);
+  assert.equal(listContracts(w).filter(l => l.tag === 'offer').length, 3, 'the phone deals the rest');
+  w.s.night++; for (let k = 0; k < 4; k++) w.step(NO_INPUT, DT);
+  assert.equal(w.s.contracts.offers.length, 3, 'a few frames on the street deal all three');
 });
 console.log(`jade ride jobs: ${n} tests ok`);

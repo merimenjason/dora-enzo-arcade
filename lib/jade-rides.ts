@@ -17,6 +17,8 @@ export const NEW_RIDES: { kind: VehicleKind; at: [number, number]; d: District; 
   { kind: 'luge', at: [75, 100], d: 'resort', rot: 0, where: 'Siloso Road on Sentosa' },
   // moored along the north bank of the Singapore River, between Read Bridge and the next one up
   { kind: 'dragon', at: [315, 103], d: 'quay', rot: 0, where: 'the Singapore River at Clarke Quay' },
+  // the sixteenth pass: a second dragon boat on Jurong Lake, off the festival lawn (chapter 9's crow learns its drum)
+  { kind: 'dragon', at: [217, 117], d: 'jurong', rot: Math.PI, where: 'Jurong Lake, off the festival lawn' },
 ];
 
 export function newRides(c: City) {
