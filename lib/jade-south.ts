@@ -181,6 +181,8 @@ export function south(c: City) {
   for (const [x, y] of [[301, 101], [318, 101], [324, 101]] as const) prop(x, y, 'barrel-table', 12, 'tall', 'over', 54);
   prop(314, 101, 'satay-grill', 14, 'tall', 'over', 70); prop(328, 101, 'cat-statue', 8, 'tall', 'over', 36);
   place('readbridge', 299, 102, 'spot', N.read);
+  // the sixteenth pass: Coach Kerbau on the north bank beside his dragon boat
+  place('kerbau', 313, 101, 'contact', 'Coach Kerbau');
   // the south bank: the seafood restaurant, the Old Hill Street Police Station, Clarke Quay station, Clarke Quay Central
   bld(291, 109, 8, 4, 'quay-seafood'); place('seafood-quay', 295, 113, 'spot', N.seafood);
   bld(300, 109, 6, 4, 'quay-police'); place('police', 303, 113, 'spot', N.police);

@@ -114,6 +114,8 @@ export function far(c: City) {
   // ION Orchard and its plaza (Ms Tiara runs the light-up from here), Ngee Ann City with Takashimaya
   bld(295, 1, 12, 6, 'orchard-ion'); place('ion', 300, 8, 'spot', N.ion); place('tiara', 303, 9, 'contact', 'Ms Tiara');
   bld(314, 1, 10, 6, 'orchard-ngee'); place('takashimaya', 318, 8, 'spot', `${N.ngee} (${N.taka})`);
+  // the sixteenth pass: Uncle Buaya beside his ice-cream motorbike on the ION pavement
+  place('buaya', 305, 12, 'contact', 'Uncle Buaya');
   // the hotel, the safe house off Cairnhill, Lucky Plaza and Paragon, Orchard station
   bld(277, 16, 4, 4, 'orchard-hotel'); bld(283, 17, 3, 3, 'safe-orchard'); place('safe-orchard', 284, 20, 'safe', 'Cairnhill safe house');
   bld(295, 16, 6, 4, 'orchard-lucky'); bld(302, 16, 6, 4, 'orchard-lux');

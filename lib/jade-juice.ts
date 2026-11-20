@@ -178,6 +178,9 @@ export class Juice {
         case 'boost': this.spray('spark', x, y, 4, 0.6); break;
         case 'shoo': this.pop(x, y - 40, 'Shoo!', '#ffd060'); break;
         // the job steps: the camera flash, the safe swinging open, nets, the crowd's double take, a found clue
+        // the sixteenth pass: a parcel lands with a family at a toss mark; a guard takes an ice cream from the motorbike
+        case 'toss': this.spray('paper', x, y - 20, 8, 0.8); this.pop(x, y - 60, 'Caught it!', '#fff2b0'); break;
+        case 'treat': this.pop(x, y - 80, 'Ice cream!', '#ffd6f0'); break;
         case 'job-photo': this.flashOf(0.28, '255,255,240'); this.spray('spark', x, y - 30, 4, 0.5); this.pop(x, y - 64, 'Snap!', '#e8fbff'); break;
         case 'job-safe': this.slowmo(false); this.spray('coins', x, y, 12, 1.1); this.pop(x, y - 60, 'Cracked it!', '#ffe68a', true); break;
         case 'job-diversion': this.impact(0.5); this.spray('paper', x, y, 16, 1.4); this.pop(x, y - 70, 'Confetti!', '#ffb0e0', true); break;

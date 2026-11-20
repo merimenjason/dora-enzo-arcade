@@ -24,6 +24,7 @@ import type { Player, Near } from './jade-game.js';
 import { nameOf, distract, type TagOpt } from './jade-tag.js';
 import { postMate, releaseMate, blind } from './jade-team.js';
 import type { GadgetId } from './jade-gear.js';
+import { lureLabel } from './jade-ridejobs.js';
 
 type St<K extends Step['t']> = Extract<Step, { t: K }>;
 export const JOB_STEPS = ['case', 'heist', 'defend', 'blend', 'detective', 'trap', 'swap'] as const;
@@ -151,7 +152,7 @@ export function jobEnter(run: Run, st: Step): boolean {
   switch (st.t) {
     case 'case': {
       run.items = st.spots.map(s => { const [x, y] = run.spot(s.at); return { x, y, got: false, sprite: 'case-' + s.kind }; });
-      guards(run, st.guards); run.meter = { name: 'Alert', v: 0 }; run.progress = `Photos 0/${st.need ?? st.spots.length}`;
+      guards(run, st.guards, st.skin); run.meter = { name: 'Alert', v: 0 }; run.progress = `Photos 0/${st.need ?? st.spots.length}`;
       break;
     }
     case 'heist': {
@@ -221,7 +222,7 @@ function caseStep(run: Run, st: St<'case'>, dt: number) {
   const p = run.w.p, calm = run.intel.includes('rota') ? 0.7 : 1;
   if (crewWatch(run, dt, { kind: 'guard', look: false, rate: () => (p.sneak ? 0.4 : 1) * calm, warn: 'A guard is turning your way! Get out of the torch beam or hide!',
     spotted: 'A guard spotted you casing the joint! Keep out of the torch beams and take your photos from cover.', caught: 'A guard caught you casing the joint! When one shouts, run and hide until he gives up.' })) return;
-  run.label = crewLabel(run) ?? st.label;
+  run.label = crewLabel(run) ?? lureLabel(run) ?? st.label;
 }
 const photoRange = (run: Run) => run.assist ? 320 : 260;
 

@@ -138,10 +138,11 @@ test('chapter nine: ten jobs across the three districts, a mix of steps, at most
     for (const g of [...(st.guards ?? []), ...(st.t === 'stealth' ? st.lookouts : [])]) for (const s of g) assert.equal(solidAt(s[0], s[1]), S.OPEN, `${m.id} guard ${s}`);
     for (const k of ['item', 'loot', 'decoy']) if (st[k] && st[k] !== 'loot') assert.ok(FRAMES[st[k]] || ['parcel', 'recipe', 'decoy'].includes(st[k]), `${m.id}: a painting for ${st[k]}`);
   }
-  assert.deepEqual(SIDE.slice(-3).map(m => m.id), TALES);
+  assert.deepEqual(SIDE.filter(m => TALES.includes(m.id)).map(m => m.id), TALES); // (the sixteenth pass's ride jobs follow them)
+  assert.deepEqual(SIDE.slice(-7, -4).map(m => m.id), TALES);
   for (const id of TALES) assert.ok(SOUTH.includes(c.places[MISSION[id].at].d), `${id} in a new district`);
   const s = newSave(); s.done = allDone.filter(id => MISSION[id].ch <= 8); assert.equal(chapterOf(s), 9); s.done = allDone; assert.equal(chapterOf(s), 10);
-  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 65); assert.equal(jc.talesAll, 19);
+  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 65); assert.equal(jc.talesAll, 23);
 });
 
 test('the solver finishes every chapter-nine job and the new Hawker Tales; the casual bot finishes the finale', () => {

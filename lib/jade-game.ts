@@ -55,6 +55,9 @@ export class Player {
   seat: Ride | null = null; ai: MateAI = newAI();
   /** gadgets: fire cooldown, the firing pose (time, gadget, aim angle), a reload; a passenger's grab; a cheer */
   fireCd = 0; fireT = 0; fireG = ''; aimH = 0; reloadT = 0; reloadG = ''; grabT = 0; cheerT = 0;
+  /** the sixteenth pass's ride actions: ringing the ice-cream bell, a parcel tossed from the tandem's back saddle, a
+   * cone held out of the sidecar */
+  chimeT = 0; tossT = 0; serveT = 0;
   b: Body = { x: 0, y: 0, h: Math.PI / 2, speed: 0, r: FOOT.r, len: 0, cls: 'foot' };
   ride: Ride | null = null; roof = false; lastRoof: [number, number] = [0, 0];
   dashT = 0; dashCd = 0; hopT = 0; hopCd = 0; boostT = 0; boostCd = 0;
@@ -182,7 +185,12 @@ export class World {
   }
   /** a free tile for a new ride near (x,y), clear of every other ride */
   rideSpot(kind: VehicleKind, x: number, y: number): [number, number] {
-    return nearestFree(this.c, VEHICLES[kind].cls, x, y, this.open, 10, (cx, cy) => this.rides.some(r => dist(r.b.x, r.b.y, cx, cy) < 90));
+    // (the sixteenth pass) clear of props and the givers too: Picnic Post's tandem once spawned on Uncle Bala himself
+    // and could not move
+    this.refreshCast();
+    const v = VEHICLES[kind], reach = v.r + (v.len ?? 0) / 2;
+    const prop = (cx: number, cy: number) => (this.obs[Math.floor(cy / T) * W + Math.floor(cx / T)] ?? []).some(o => dist(o.x, o.y, cx, cy) < o.r + reach);
+    return nearestFree(this.c, v.cls, x, y, this.open, 10, (cx, cy) => this.rides.some(r => dist(r.b.x, r.b.y, cx, cy) < 90) || prop(cx, cy));
   }
   placePlayer(x: number, y: number) {
     const [fx, fy] = nearestFree(this.c, 'foot', x, y, this.open);
@@ -322,7 +330,7 @@ export class World {
       if (p.act.t >= p.act.dur) { const f = p.act.then; p.act = null; f?.(); }
       return;
     }
-    p.dashCd = Math.max(0, p.dashCd - dt); p.hopCd = Math.max(0, p.hopCd - dt); p.boostCd = Math.max(0, p.boostCd - dt); p.bumpT = Math.max(0, p.bumpT - dt);
+    p.dashCd = Math.max(0, p.dashCd - dt); p.hopCd = Math.max(0, p.hopCd - dt); p.boostCd = Math.max(0, p.boostCd - dt); p.chimeT = Math.max(0, p.chimeT - dt); p.bumpT = Math.max(0, p.bumpT - dt);
     if (p.hide) { p.anim = 'hide'; if (Math.hypot(inp.mx, inp.my) > 0.5) this.unhide(); return; }
     p.stunT = Math.max(0, p.stunT - dt); p.skidT = Math.max(0, p.skidT - dt); p.skidCd = Math.max(0, p.skidCd - dt);
     if (p.stunT > 0) inp = { ...inp, mx: 0, my: 0, dash: false, hop: false };
@@ -383,15 +391,16 @@ export class World {
     // the tandem wants both of you pedalling; the dragon boat wants the drum going (the partner on board)
     const crewed = this.mate.seat === r;
     if (r.kind === 'tandem') top *= crewed ? 1.15 : 0.85;
-    if (r.kind === 'dragon' && !crewed) top *= 0.8;
+    if (r.kind === 'dragon' && !crewed) top *= 0.6; // one paddler in a twenty-seat boat (0.8 before the sixteenth pass's river job)
     // a luge cart is built for Sentosa's slopes: anywhere else it scrapes along
     if (r.kind === 'luge' && districtAt(Math.floor(r.b.x / T), Math.floor(r.b.y / T)) !== 'resort') top *= 0.72;
     const turn = v.turn * (1 + up.grip * 0.1);
     // a surge: on the drum's beat a dragon boat surges harder and twice as often
     const drum = r.kind === 'dragon' && crewed;
-    if (inp.dash && p.boostCd <= 0) { p.boostT = 0.7; p.boostCd = drum ? 1.2 : 2.4; this.fx.push({ t: 'boost', x: r.b.x, y: r.b.y }); }
+    // (the sixteenth pass) a dragon boat's stroke kicks at once: the whole crew pulls on the beat
+    if (inp.dash && p.boostCd <= 0) { p.boostT = 0.7; p.boostCd = drum ? 1.2 : 2.4; this.fx.push({ t: 'boost', x: r.b.x, y: r.b.y }); if (r.kind === 'dragon') r.b.speed = Math.min(top * (drum ? 1.6 : 1.3), r.b.speed + (drum ? 150 : 70)); }
     if (inp.hop) this.honk();
-    if (p.boostT > 0) { p.boostT -= dt; top *= drum ? 1.45 : 1.35; }
+    if (p.boostT > 0) { p.boostT -= dt; top *= drum ? 1.6 : 1.35; }
     let mx = inp.mx, my = inp.my;
     // a hard turn at speed skids and throws up dust
     if (Math.hypot(mx, my) > 0.5 && r.b.speed > 200 && p.skidCd <= 0 && !onWater(r.kind) && Math.abs(angDiff(r.b.h, Math.atan2(my, mx))) > 1.2) { p.skidCd = 0.35; this.fx.push({ t: 'skid', x: r.b.x - Math.cos(r.b.h) * 20, y: r.b.y - Math.sin(r.b.h) * 20, k: Math.min(1, r.b.speed / 340) }); }
@@ -427,8 +436,15 @@ export class World {
   }
   honk() {
     if (this.p.boostCd > 2.1) return;
-    // the ice-cream motorbike's chime: townsfolk stop for a treat instead of scattering, and no guard minds it
-    if (this.p.ride?.kind === 'icecream') { this.fx.push({ t: 'honk', x: this.p.x, y: this.p.y, kind: 'icecream' }); for (const pd of this.peds) if (dist(pd.x, pd.y, this.p.x, this.p.y) < 260) { pd.scare = 0; pd.wait = Math.max(pd.wait, 1.6); } return; }
+    // the ice-cream motorbike's chime: townsfolk stop for a treat instead of scattering; guards on a job hear it as a
+    // lure, walk over and stand eating a cone at the motorbike for a while (lib/jade-aware.ts, the sixteenth pass)
+    if (this.p.ride?.kind === 'icecream') {
+      if (this.p.chimeT > 0.3) return;
+      this.p.chimeT = 1.1; this.fx.push({ t: 'honk', x: this.p.x, y: this.p.y, kind: 'icecream' }); noise(this, this.p.x, this.p.y, 'chime');
+      if (this.mate.seat === this.p.ride) this.mate.serveT = Math.max(this.mate.serveT, 1.8);
+      for (const pd of this.peds) if (dist(pd.x, pd.y, this.p.x, this.p.y) < 260) { pd.scare = 0; pd.wait = Math.max(pd.wait, 1.6); }
+      return;
+    }
     this.fx.push({ t: 'honk', x: this.p.x, y: this.p.y, kind: this.p.ride?.kind }); noise(this, this.p.x, this.p.y, 'horn'); for (const pd of this.peds) if (dist(pd.x, pd.y, this.p.x, this.p.y) < 220) pd.scare = 1;
   }
 
@@ -511,7 +527,9 @@ export class World {
     if (!this.run) for (const cm of this.cast) if (cm.job?.startsWith('emp:')) { const [, jid, bid] = cm.job.split(':'); cand({ kind: 'empire', label: `${PEOPLE[cm.id].name}: ${EMPIRE_JOB[jid]?.title ?? 'a job'} at the ${BIZ_OF[bid]?.name ?? 'shop'}`, x: cm.x, y: cm.y, id: `job:${jid}:${bid}` }, 72); }
     // a job offered at a station's gates is taken from its giver standing there, so E at the gates still rides the train
     if (!this.run) for (const m of offered(this.s)) { const pl = this.c.places[m.at]; if (!pl) continue; const g = m.at.startsWith('stn-') ? this.cast.find(c => c.id === m.giver) : null; cand({ kind: 'mission', label: `${PEOPLE[m.giver].name}: “${m.title}”`, x: g ? g.x : pl.x, y: g ? g.y : pl.y, id: m.id }, g ? 60 : 80); }
-    const rm = this.run?.nearAction(x, y); if (rm) cand(rm, 90);
+    // a job's own action beats a parked ride beside you (the sixteenth pass: off the ice-cream motorbike next to the bats'
+    // door, E took a photo's place and put you back on the bike)
+    const rm = this.run?.nearAction(x, y); if (rm) cand(rm, 90, 60);
     for (const [id, pl] of Object.entries(this.c.places)) {
       if (!this.open.has(pl.d)) continue;
       if (pl.kind === 'market') cand({ kind: 'market', label: `Trade at ${MARKET_NAME[pl.d]}`, x: pl.x, y: pl.y, id: pl.d }, 90);

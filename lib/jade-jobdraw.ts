@@ -90,14 +90,16 @@ export function jobActor(sc: Scene, x: X, w: World, a: Actor): boolean {
       x.fillStyle = 'rgba(0,0,0,.3)'; sc.shadow(x, b.x, b.y + 2, 16, 7);
       const dazed = a.hits === 1 && (a.extra2 ?? 0) > 0, painted = (a.extra2 ?? 0) > 0 && !dazed;
       const m = a.mind;
-      if (!dazed && !painted && !((a.stare ?? 0) > 0)) mindBeam(sc, x, m, b.x, b.y - 20, b.h, sightRange(w.run!), w.assist ? 0.45 : 0.55);
+      const eating = (m?.treat ?? 0) > 0;
+      if (!dazed && !painted && !eating && !((a.stare ?? 0) > 0)) mindBeam(sc, x, m, b.x, b.y - 20, b.h, sightRange(w.run!), w.assist ? 0.45 : 0.55);
       let f: string;
       if (a.skin === 'myna' || a.skin === 'bat') {
         // a Kecoh Mynah or Atas Bat lookout: head cocked to look, beak (or snout) open to call the others; a bat on
         // watch hangs from its perch when it stands still
         const k = a.skin;
         const lp = m?.pose === 'call' ? `${k}-sing` : m?.pose === 'search' || m?.pose === 'look' || m?.st === 'sus' ? `${k}-peer` : '';
-        f = (a.stare ?? 0) > 0 ? `${k}-taunt` : lp && b.speed < 5 ? lp : b.speed < 5 ? (k === 'bat' ? 'bat-perch' : 'myna-walk-down-0') : side ? `${k}-run-${fl}` : `${k}-walk-${sy > 0 ? 'down' : 'up'}-${fl}`;
+        // (the sixteenth pass) eating an ice cream from the motorbike: munching, turned to it
+        f = eating ? `${k}-munch` : (a.stare ?? 0) > 0 ? `${k}-taunt` : lp && b.speed < 5 ? lp : b.speed < 5 ? (k === 'bat' ? 'bat-perch' : 'myna-walk-down-0') : side ? `${k}-run-${fl}` : `${k}-walk-${sy > 0 ? 'down' : 'up'}-${fl}`;
         spr(x, f, b.x, b.y + 4, { flip: side && cx < 0, w: k === 'bat' ? 48 : 44 }); if (painted) spr(x, 'sp-teal', b.x, b.y - 28, { w: 22 });
         if (!painted) mindBubble(sc, x, m, b.x, b.y - 66); return true;
       }

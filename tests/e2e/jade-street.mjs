@@ -9,7 +9,7 @@
 // upgrade and a paint), and the failure card (Retry and Quit job). On every screen it checks for sideways scroll and
 // for text that is too faint to read against its own backing. Fails on any failed check, page error or console
 // error. The third pass (voices, the typewriter, moods, set pieces, Glint's phases, businesses, raids, Reduce shake and
-// the new animations) is in ./jade-street-3.mjs, the fourth (both heroes, tag-team moves, gadgets, Tock's stall, two players) in ./jade-street-4.mjs, the fifth (Singapore: the hawker centre, chope, fines, kopi, the gangs, festivals, side jobs, accessibility, player 1's gamepad) in ./jade-street-5.mjs, the sixth (the island: the MRT, taxis, the slide, scooter wardens, the lizards, the notice queue, the island's ending) in ./jade-street-6.mjs, the seventh (the job steps: casing, heists and the safe, holding a stall, the disguise, the detective, traps, the crate swap) in ./jade-street-7.mjs, the eighth (guards who hear and think, the partner helping on their own and its setting, the harder stall, clue markers, the branch cards) in ./jade-street-8.mjs, the ninth (Little India, Kampong Glam and Sentosa, the cable car and ferry, the festivals, the Kecoh Mynahs, chapter seven) in ./jade-street-9.mjs, the tenth (the Chinatown empire: properties, raids, the partner's round, repairs, the jaga, empire jobs, ranks) in ./jade-street-10.mjs, the fifteenth (the four new rides: walked up to, boarded with the partner, both heroes drawn, Tab, Q and off) in ./jade-street-15.mjs, and the eleventh (procedural contracts: the Contracts tab, Route me, the giver's prompt, modifiers, the contract of the day, the rivals' pushback) in ./jade-street-11.mjs; all of them run at 1280×800 only, since Jade Street is a desktop game. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves a screenshot of every screen.
+// the new animations) is in ./jade-street-3.mjs, the fourth (both heroes, tag-team moves, gadgets, Tock's stall, two players) in ./jade-street-4.mjs, the fifth (Singapore: the hawker centre, chope, fines, kopi, the gangs, festivals, side jobs, accessibility, player 1's gamepad) in ./jade-street-5.mjs, the sixth (the island: the MRT, taxis, the slide, scooter wardens, the lizards, the notice queue, the island's ending) in ./jade-street-6.mjs, the seventh (the job steps: casing, heists and the safe, holding a stall, the disguise, the detective, traps, the crate swap) in ./jade-street-7.mjs, the eighth (guards who hear and think, the partner helping on their own and its setting, the harder stall, clue markers, the branch cards) in ./jade-street-8.mjs, the ninth (Little India, Kampong Glam and Sentosa, the cable car and ferry, the festivals, the Kecoh Mynahs, chapter seven) in ./jade-street-9.mjs, the tenth (the Chinatown empire: properties, raids, the partner's round, repairs, the jaga, empire jobs, ranks) in ./jade-street-10.mjs, the fifteenth (the four new rides: walked up to, boarded with the partner, both heroes drawn, Tab, Q and off) in ./jade-street-15.mjs, the sixteenth (the four ride jobs, each played first-timer style from the on-screen hints alone, with every new action drawn) in ./jade-street-16.mjs, and the eleventh (procedural contracts: the Contracts tab, Route me, the giver's prompt, modifiers, the contract of the day, the rivals' pushback) in ./jade-street-11.mjs; all of them run at 1280×800 only, since Jade Street is a desktop game. Needs `npm run dev` (or BASE_URL) and Playwright. SHOTS=<dir> saves a screenshot of every screen.
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { third } from './jade-street-3.mjs';
@@ -25,6 +25,7 @@ import { twelfth } from './jade-street-12.mjs';
 import { thirteenth } from './jade-street-13.mjs';
 import { fourteenth } from './jade-street-14.mjs';
 import { fifteenth } from './jade-street-15.mjs';
+import { sixteenth } from './jade-street-16.mjs';
 const require = createRequire(import.meta.url);
 let chromium;
 try { ({ chromium } = require('playwright')); } catch { ({ chromium } = createRequire(process.cwd() + '/')('playwright')); }
@@ -160,6 +161,7 @@ async function viewport(name, w, h, touch) {
   if (process.env.PASS === '6') { await W(() => { window.__jade.world().s.settings.partner = 'tag'; }); await sixth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '7') { await W(() => { window.__jade.world().s.settings.partner = 'tag'; }); if (!touch) await seventh({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '3') { if (!touch) await third({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
+  if (process.env.PASS === '16') { if (!touch) await sixteenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '15') { if (!touch) await fifteenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '14') { if (!touch) await fourteenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '13') { if (!touch) await thirteenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
@@ -464,6 +466,7 @@ async function viewport(name, w, h, touch) {
   if (!touch) await thirteenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
   if (!touch) await fourteenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
   if (!touch) await fifteenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
+  if (!touch) await sixteenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name });
   await W(() => { window.__jade.world().s.done = ['m1', 'm2']; window.__jade.world().open = new Set(['market', 'temple']); });
 
   // ── back to the title, Continue, and both answers to starting over

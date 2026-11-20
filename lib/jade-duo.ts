@@ -153,8 +153,10 @@ function seatStep(w: World, m: Player, dt: number) {
   const driver = w.p.ride === r ? w.p : w.mate.ride === r ? w.mate : null;
   if (!driver && !w.two) { leaveSeat(w, m); return; }
   if (m.act) { m.act.t += dt; if (m.act.t >= m.act.dur) { const f = m.act.then; m.act = null; f?.(); } }
-  m.anim = m.fireT > 0 ? 'pass-aim' : m.grabT > 0 ? 'pass-grab' : m.reloadT > 0 ? 'pass-duck' : m.cheerT > 0 ? 'pass-cheer' : r.b.speed > 260 ? 'pass-hold' : 'pass';
-  m.cheerT = Math.max(0, m.cheerT - dt);
+  // the sixteenth pass: a cone held out of the sidecar while a guard eats at the motorbike (or the street queues)
+  if (r.kind === 'icecream' && w.run?.actors.some(a => (a.mind?.treat ?? 0) > 0 && dist(a.b.x, a.b.y, r.b.x, r.b.y) < 220)) m.serveT = Math.max(m.serveT, 0.3);
+  m.anim = m.tossT > 0 ? 'pass-toss' : m.fireT > 0 ? 'pass-aim' : m.grabT > 0 ? 'pass-grab' : m.reloadT > 0 ? 'pass-duck' : m.serveT > 0 ? 'pass-serve' : m.cheerT > 0 ? 'pass-cheer' : r.b.speed > 260 ? 'pass-hold' : 'pass';
+  m.cheerT = Math.max(0, m.cheerT - dt); m.tossT = Math.max(0, m.tossT - dt); m.serveT = Math.max(0, m.serveT - dt);
 }
 export function leaveSeat(w: World, m: Player) {
   const r = m.seat; if (!r) return; m.seat = null;
