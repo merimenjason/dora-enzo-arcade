@@ -7,6 +7,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 ### Fixed
 
 - **Jade Street**: the MRT gates are easier to read. Each stop's district (and the taxi list's fare) sits on a dark chip instead of faded beige on the jade plaque. The station names have a firmer shadow, and the stop you are at shows in gold as "you are here" instead of greyed out like a locked one.
+- **Jade Street**: Kak Melati could not be seen at Clarke Quay, because she stands under one of the river canopies, which were drawn over everyone. Canopies and other overhead props now turn see-through over the heroes and any job giver standing under them.
 
 ## 20-11-2026
 
