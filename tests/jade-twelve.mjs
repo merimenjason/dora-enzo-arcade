@@ -41,7 +41,7 @@ const at = (w, id, dy = 0.6) => { const p = w.c.places[id]; w.placePlayer(p.x, p
 const tile = (x, y) => [Math.floor(x / T), Math.floor(y / T)];
 
 test('the map grows east over the Geylang River: Orchard Road north, Katong south, Changi at the far end', () => {
-  assert.equal(OLD_W, 376); assert.ok(W * H < 65536, 'the nav heap still fits');
+  assert.equal(OLD_W, 376); assert.ok(W * H <= 131072, 'the nav heap still fits (its key packs tile and distance; widened for Pulau Ubin)');
   assert.deepEqual(DISTRICTS.slice(10, 13), FAR);
   assert.equal(DISTRICT_NAME.orchard, 'Orchard Road'); assert.equal(DISTRICT_NAME.katong, 'Katong'); assert.equal(DISTRICT_NAME.changi, 'Changi');
   assert.equal(districtAt(...mvT(300, 10)), 'orchard'); assert.equal(districtAt(...mvT(300, 60)), 'katong'); assert.equal(districtAt(...mvT(340, 30)), 'changi'); assert.equal(districtAt(...mvT(250, 10)), 'india');
@@ -110,7 +110,7 @@ test('the empire reaches the coast: a property or two in each new district, raid
 
 test('the hired bikes: parked by the racks, quiet, quicker on the cycling track; riding one has its own frames', () => {
   assert.equal(VEHICLES.bike.seats, 1); assert.equal(VEHICLES.bike.cls, 'small');
-  const bikes = c.parking.filter(p => p.kind === 'bike'); assert.equal(bikes.length, c.far.bikes.length);
+  const bikes = c.parking.filter(p => p.kind === 'bike'); assert.equal(bikes.length, c.far.bikes.length + c.parking.filter(p => p.kind === 'bike' && p.d === 'pulau').length);
   for (const b of bikes) assert.equal(districtAt(...tile(b.x, b.y)), b.d);
   for (const h of ['dora', 'enzo']) for (const f of ['ride-bike-0', 'ride-bike-1', 'laksa-0', 'bauble-0', 'kite-0', 'plane-0', 'suitcase-0']) assert.ok(FRAMES[`${h}-${f}`], `${h}-${f}`);
   const w = world(); const r = w.rides.find(r => r.kind === 'bike'); assert.ok(r);
@@ -144,8 +144,8 @@ test('chapter eight: ten jobs, every district, a mix of steps, no more than two 
   }
   assert.deepEqual(SIDE.slice(13, 16).map(m => m.id), ['k14', 'k15', 'k16']);
   for (const id of ['k14', 'k15', 'k16']) assert.ok(FAR.includes(c.places[MISSION[id].at].d), `${id} in a new district`);
-  const s = newSave(); s.done = allDone.filter(id => MISSION[id].ch <= 7); assert.equal(chapterOf(s), 8); s.done = allDone; assert.equal(chapterOf(s), 10);
-  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 65); assert.equal(jc.talesAll, 23);
+  const s = newSave(); s.done = allDone.filter(id => MISSION[id].ch <= 7); assert.equal(chapterOf(s), 8); s.done = allDone; assert.equal(chapterOf(s), 11);
+  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 75); assert.equal(jc.talesAll, 26);
 });
 
 test('the solver finishes every chapter-eight job and the new Hawker Tales; the casual bot finishes the finale', () => {

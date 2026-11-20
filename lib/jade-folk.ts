@@ -35,7 +35,10 @@ export const SOUTH_FOLK: Record<'tiong' | 'quay' | 'jurong', string[]> = {
   quay: ['frog', 'frog', 'frog', 'pigeon', 'civet', 'egret', 'cat', 'mousedeer'],
   jurong: ['squirrel', 'squirrel', 'squirrel', 'deer', 'turtle', 'sunbear', 'egret', 'goose'],
 };
-const folkAt = (tx: number, ty: number) => { const d = districtAt(tx, ty); return d === 'india' || d === 'glam' || d === 'resort' ? EAST_FOLK[d] : d === 'orchard' || d === 'katong' || d === 'changi' ? FAR_FOLK[d] : d === 'tiong' || d === 'quay' || d === 'jurong' ? SOUTH_FOLK[d] : (unmvT(tx, ty)?.[0] ?? OW) >= OW ? ISLE_FOLK : FOLK; };
+/** the seventeenth pass: Pulau Ubin's kampong folk are its wildlife: red junglefowl scratching about, an oriental pied
+ *  hornbill hopping on the tracks, a box turtle taking its time, and a few villagers' neighbours from Changi */
+export const UBIN_FOLK = ['fowl', 'fowl', 'fowl', 'hornbill', 'hornbill', 'boxturtle', 'boxturtle', 'egret', 'deer'];
+const folkAt = (tx: number, ty: number) => { const d = districtAt(tx, ty); return d === 'pulau' ? UBIN_FOLK : d === 'india' || d === 'glam' || d === 'resort' ? EAST_FOLK[d] : d === 'orchard' || d === 'katong' || d === 'changi' ? FAR_FOLK[d] : d === 'tiong' || d === 'quay' || d === 'jurong' ? SOUTH_FOLK[d] : (unmvT(tx, ty)?.[0] ?? OW) >= OW ? ISLE_FOLK : FOLK; };
 export type Ped = {
   id: number; sp: string; x: number; y: number; h: number; tx: number; ty: number; hop: number; hx: number; hy: number; scare: number; wait: number; walk: number;
   dest: number; sit: number; roadT: number; watch: boolean;

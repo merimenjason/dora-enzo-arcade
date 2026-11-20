@@ -10,7 +10,7 @@
 // counts) and version 11 saves (no contracts) migrate forward, keeping every bit of progress, medals included.
 import { DISTRICTS, type District } from './jade-city.js';
 import { emptyCargo, GOODS, type Cargo, type Tip } from './jade-trade.js';
-import { MISSIONS, SIDE, MISSION, CHAPTER_OPENS, FINALE, RESORT_OPENS, CHANGI_OPENS, JURONG_OPENS } from './jade-story.js';
+import { MISSIONS, SIDE, MISSION, CHAPTER_OPENS, FINALE, RESORT_OPENS, CHANGI_OPENS, JURONG_OPENS, UBIN_OPENS } from './jade-story.js';
 import { hashStr, rng } from './jade-rng.js';
 import { asDiff, type Diff } from './jade-diff.js';
 import { BIZ, STALL_IDS, newBiz, rankOf, type BizState } from './jade-biz.js';
@@ -207,7 +207,7 @@ export function loadSave(raw: string | null): Save {
   const md = (o.medals ?? {}) as Record<string, unknown>;
   for (const [k, v] of Object.entries(md)) if (ids.has(k) && v && typeof v === 'object') { const x = v as Record<string, unknown>; s.medals[k] = { m: Math.floor(num(x.m, 0, 0, 3)), t: num(x.t, 0, 0, 1e6), plays: Math.floor(num(x.plays, 1, 1, 1e6)) }; }
   const sy = (o.story ?? {}) as Record<string, unknown>;
-  s.story = { intro: sy.intro === true, ch: Math.floor(num(sy.ch, 0, 0, 10)), ending: sy.ending === true, isle: sy.isle === true, lights: sy.lights === true, coast: sy.coast === true, lake: sy.lake === true };
+  s.story = { intro: sy.intro === true, ch: Math.floor(num(sy.ch, 0, 0, 11)), ending: sy.ending === true, isle: sy.isle === true, lights: sy.lights === true, coast: sy.coast === true, lake: sy.lake === true };
   s.learned = strs(o.learned);
   s.msgs = Array.isArray(o.msgs) ? (o.msgs as Msg[]).filter(m => m && typeof m.text === 'string' && typeof m.from === 'string').slice(-30).map((m, i) => ({ id: Number.isInteger(m.id) ? m.id : i + 1, from: m.from, text: m.text, night: num(m.night, 1, 1, 1e5), read: m.read === true, ...(m.kind === 'job' || m.kind === 'fine' || m.kind === 'help' ? { kind: m.kind } : {}), ...(typeof m.job === 'string' ? { job: m.job } : {}) })) : [];
   s.radio = Math.floor(num(o.radio, 0, -1, 9)); s.helped = Math.floor(num(o.helped, 0, 0, 1e6));
@@ -347,7 +347,7 @@ function migrate1(o: Record<string, unknown>): Record<string, unknown> {
 }
 
 // ── progression
-export const chapterOf = (s: Save) => { let ch = 1; for (let c = 1; c <= 9; c++) { if (MISSIONS.filter(m => m.ch === c).every(m => s.done.includes(m.id))) ch = c + 1; else break; } return Math.min(ch, 10); };
+export const chapterOf = (s: Save) => { let ch = 1; for (let c = 1; c <= 10; c++) { if (MISSIONS.filter(m => m.ch === c).every(m => s.done.includes(m.id))) ch = c + 1; else break; } return Math.min(ch, 11); };
 export function openDistricts(s: Save): District[] {
   const out: District[] = ['market'];
   for (let c = 1; c <= 4; c++) if (s.done.includes(`m${c * 5}`)) out.push(CHAPTER_OPENS[c - 1]);
@@ -362,6 +362,8 @@ export function openDistricts(s: Save): District[] {
   // chapter nine: Tiong Bahru and Clarke Quay, west of Chinatown, once the Christmas Star is home, Jurong half way through
   if (s.done.includes('m55')) out.push('tiong', 'quay');
   if (s.done.includes(JURONG_OPENS)) out.push('jurong');
+  // chapter ten: Pulau Ubin, over the strait from Changi by bumboat, once the Moon Lantern is home
+  if (s.done.includes(UBIN_OPENS)) out.push('pulau');
   return out;
 }
 /** story missions you may start now: the chapter's jobs in order, a couple at a time */
@@ -437,6 +439,11 @@ export const TROPHIES: { id: string; name: string; desc: string; test: (s: Save)
   { id: 'sling', name: 'Up, Up and Away', desc: 'Ride the Slingshot at Clarke Quay three times.', test: s => s.stats.slings >= 3 },
   { id: 'stargazer', name: 'Stargazer', desc: 'See all four sights through the Science Centre Observatory’s telescope.', test: s => s.stats.stars >= 4 },
   { id: 'moonwalk', name: 'Moon Rabbit', desc: 'Feed the koi in Jurong Lake and carry a rabbit lantern round it.', test: s => s.stats.koi >= 1 && s.stats.lwalks >= 1 },
+  // the seventeenth pass
+  { id: 'kampong', name: 'Kampong Spirit', desc: 'Beat the lady in black feathers to the quarry men’s tin at Ketam Quarry.', test: s => s.done.includes('m75') },
+  { id: 'tusker', name: 'Tusker Tamer', desc: 'Catch five dizzy Tusker Boys on Pulau Ubin, out of a job.', test: s => s.stats.boars >= 5 },
+  { id: 'durian', name: 'King of Fruits', desc: 'Shake down three durians on Pulau Ubin and look out from Jejawi Tower.', test: s => s.stats.durians >= 3 && s.stats.spies >= 1 },
+  { id: 'ranger', name: 'Jungle Ranger', desc: 'Follow three boar trails to the end.', test: s => s.stats.trails >= 3 },
   { id: 'ghost', name: 'Ghost', desc: 'Pull off a heist the quiet way.', test: s => s.stats.quiet >= 1 },
   { id: 'sleuth', name: 'Sleuth', desc: 'Find eight clues by asking the right questions.', test: s => s.stats.clues >= 8 },
   { id: 'netted', name: 'Net Result', desc: 'Spring three traps that catch the whole gang.', test: s => s.stats.traps >= 3 },

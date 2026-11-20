@@ -17,6 +17,9 @@ export const PAR: Record<string, number> = {
   m56: 85, m57: 180, m58: 200, m59: 205, m60: 255, m61: 215, m62: 195, m63: 185, m64: 210, m65: 165, k17: 165, k18: 190, k19: 165,
   // the sixteenth pass's ride jobs (1.7 times the solver, like the rest)
   k20: 80, k21: 35, k22: 170, k23: 55,
+  // Kampong Spirit (chapter ten, the seventeenth pass) and its Hawker Tales: 2.5 times the slower of the casual and
+  // normal solvers (they read the boar trails as a person does), at least a minute; m66 includes the bumboat crossing
+  m66: 320, m67: 60, m68: 60, m69: 160, m70: 60, m71: 70, m72: 285, m73: 110, m74: 60, m75: 145, k24: 60, k25: 60, k26: 60,
 };
 export const MEDAL_NAME = ['Finished', 'Bronze', 'Silver', 'Gold'] as const;
 export const MEDAL_SPRITE = ['ui-medal-none', 'ui-medal-bronze', 'ui-medal-silver', 'ui-medal-gold'] as const;

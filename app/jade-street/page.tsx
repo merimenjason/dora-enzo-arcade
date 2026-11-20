@@ -19,7 +19,7 @@ import { filesOf } from '@/lib/jade-load';
 import { Loader, ArtWait, Hint, PhoneHud, PhoneView, RadioHud, switchStation } from './extras';
 import { chapterOf } from '@/lib/jade-save';
 import { learn } from '@/lib/jade-tutor';
-import { jobCounts } from '@/lib/jade-story';
+import { jobCounts, CHAPTERS } from '@/lib/jade-story';
 import { MiniGame } from './minis';
 import { TicketCard, MamaShop, KopiMini } from './sg';
 import { MrtPanel, RideView, TaxiPanel } from './isle';
@@ -118,7 +118,7 @@ export default function JadeStreetPage() {
   useEffect(() => {
     const p = playRef.current; if (!p || story || screen !== 'game') return;
     const s = p.w.s, ch = chapterOf(s);
-    if (s.story.intro && ch <= 9 && ch > s.story.ch && !p.w.run && !p.w.talk) { p.paused = true; setStory('chapter'); }
+    if (s.story.intro && ch <= CHAPTERS.length && ch > s.story.ch && !p.w.run && !p.w.talk) { p.paused = true; setStory('chapter'); }
   });
   const storyDone = (next: Story = null) => {
     const p = playRef.current; if (!p) return;

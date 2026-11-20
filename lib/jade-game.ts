@@ -27,7 +27,7 @@ import { eastStep, eastNear, eastAct, newEast, type EastState } from './jade-eas
 import { farStep, farNear, farAct, newFar, type FarState } from './jade-farfest.js';
 import { southStep, southNear, southAct, newSouth, type SouthState } from './jade-southfest.js';
 import { ubinStep, ubinNear, ubinAct, newUbin, type UbinState } from './jade-ubinfest.js';
-import { linkNear, linkGo, ferryStep, ferryLand, FARES, EAST_TEXT, RESORT_TEXT, FAR_TEXT, CHANGI_TEXT, SOUTH_TEXT, JURONG_TEXT, type FerryRide } from './jade-cable.js';
+import { linkNear, linkGo, ferryStep, ferryLand, FARES, EAST_TEXT, RESORT_TEXT, FAR_TEXT, CHANGI_TEXT, SOUTH_TEXT, JURONG_TEXT, UBIN_TEXT, KAMPONG_TEXT, type FerryRide } from './jade-cable.js';
 
 export const DT = 1 / 60;
 export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop: boolean; act: boolean;
@@ -675,7 +675,7 @@ export class World {
     else if (this.replaying) this.s.cash += Math.round(m.reward / 4);
     this.replaying = false;
     if (m.tip) this.s.tips = this.s.tips.filter(t => !(t.market === m.tip!.market && t.good === m.tip!.good));
-    const before = this.open.size, hadIsle = this.open.has('heartland'), hadEast = this.open.has('india'), hadResort = this.open.has('resort'), hadFar = this.open.has('katong'), hadChangi = this.open.has('changi'), hadSouth = this.open.has('tiong'), hadJurong = this.open.has('jurong'); this.open = new Set(openDistricts(this.s));
+    const before = this.open.size, hadIsle = this.open.has('heartland'), hadEast = this.open.has('india'), hadResort = this.open.has('resort'), hadFar = this.open.has('katong'), hadChangi = this.open.has('changi'), hadSouth = this.open.has('tiong'), hadJurong = this.open.has('jurong'), hadUbin = this.open.has('pulau'); this.open = new Set(openDistricts(this.s));
     if (!hadIsle && this.open.has('heartland')) text(this, 'kamal', MRT_TEXT);
     if (!hadEast && this.open.has('india')) text(this, 'kamal', EAST_TEXT);
     if (!hadResort && this.open.has('resort')) text(this, 'helang', RESORT_TEXT);
@@ -683,6 +683,8 @@ export class World {
     if (!hadChangi && this.open.has('changi')) text(this, 'tiara', CHANGI_TEXT);
     if (!hadSouth && this.open.has('tiong')) text(this, 'kamal', SOUTH_TEXT);
     if (!hadJurong && this.open.has('jurong')) text(this, 'melati', JURONG_TEXT);
+    if (!hadUbin && this.open.has('pulau')) text(this, 'ubin', UBIN_TEXT);
+    if (m.id === 'm75') text(this, 'belangkas', KAMPONG_TEXT);
     this.fieldCache.clear();
     this.fx.push({ t: 'mission-done', name: m.title, k: m.reward });
     this.banner = { text: 'Job done!', sub: `${m.title} · ${MEDAL_NAME[medal]}${medal ? ' medal' : ''}`, t: 3 };

@@ -157,6 +157,11 @@ export const PEOPLE: Record<string, { name: string; face: string; who: string }>
   // the sixteenth pass: the ride jobs' two new givers
   buaya: { name: 'Uncle Buaya', face: 'face-buaya', who: 'Orchard Road ice-cream uncle (a saltwater crocodile)' },
   kerbau: { name: 'Coach Kerbau', face: 'face-kerbau', who: 'Clarke Quay dragon-boat coach (a water buffalo)' },
+  // the seventeenth pass: Pulau Ubin
+  ayu: { name: 'Kak Ayu', face: 'face-ayu', who: 'Pulau Ubin bicycle-rental keeper, Pak Ubin’s cousin (a red junglefowl)' },
+  lan: { name: 'Auntie Lan', face: 'face-lan', who: 'Ubin wayang singer (a straw-headed bulbul)' },
+  belangkas: { name: 'Uncle Belangkas', face: 'face-belangkas', who: 'Chek Jawa nature guide (a horseshoe crab)' },
+  taring: { name: 'Tok Taring', face: 'face-taring', who: 'Tusker Boys boss (a wild boar)' },
   // the tenth pass: the empire's supplier, the health inspector, the rival towkay and the jaga you can hire
   huat: { name: 'Ah Huat', face: 'face-huat', who: 'wholesale supplier (a wild boar)' },
   siew: { name: 'Inspector Siew', face: 'face-siew', who: 'health inspector (a milky stork)' },
@@ -176,15 +181,17 @@ export const HEIRLOOMS = [
 ] as const;
 /** which district each chapter's finale opens (chapter 1 is played in Smith Street) */
 export const CHAPTER_OPENS: District[] = ['temple', 'canal', 'docks', 'arcade'];
-export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Club Street', 'The Island', 'Island Lights', 'Christmas Star', 'Lights by the Lake'];
+export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Club Street', 'The Island', 'Island Lights', 'Christmas Star', 'Lights by the Lake', 'Kampong Spirit'];
 /** the last job of each chapter (its finale) */
-export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55', 'm65'];
+export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55', 'm65', 'm75'];
 /** the story job that opens Sentosa (half way through chapter seven) */
 export const RESORT_OPENS = 'm40';
 /** the story job that opens Changi (half way through chapter eight) */
 export const CHANGI_OPENS = 'm52';
 /** the story job that opens Jurong (half way through chapter nine) */
 export const JURONG_OPENS = 'm61';
+/** the story job that opens Pulau Ubin (the end of chapter nine: chapter ten is set there) */
+export const UBIN_OPENS = 'm65';
 
 // ── every [x, y] tile in a step is written in the old frame (where the district was first laid out) and moved once,
 // here, through the layout table (lib/jade-layout.ts); names ('kee', 'here', 'loot') are places and stay
@@ -873,6 +880,90 @@ export const MISSIONS: Mission[] = mvMissions([
       { t: 'pickup', at: 'loot', item: 'moon-lantern', label: 'Catch the Moon Lantern' },
       { t: 'talk', lines: [['hoot', 'I only wanted the best party on the island. For once, I wanted them to come to mine.', 'worried'], ['musang', 'Then come to ours, Towkay. A lantern costs nothing to carry.', 'happy'], ['seng', 'And chwee kueh after. I brought the steamer.', 'happy'], ['hero', 'Happy Mid-Autumn, everybody.', 'happy'], ['mate', 'Best moon ever. The whole island under it.', 'happy']] },
     ] },
+  // ── chapter ten, Kampong Spirit (the seventeenth pass): Pulau Ubin, over the strait by Pak Ubin's bumboat. The Tusker
+  // Boys are rooting up the whole island by night, and not for tapioca. Tiles are old-frame (the island's corner is old
+  // 332, 96); lib/jade-ubin.ts lays the island out
+  { id: 'm66', ch: 10, title: 'Bumboat to Ubin', giver: 'ubin', at: 'ubin', reward: 720, rep: 18, blurb: 'Pak Ubin’s cousin runs the bicycle rental on Pulau Ubin, and the island’s wayang troupe needs Auntie Lan’s mended headdress before the first show. Take the bumboat over, borrow a bike and get it to the stage.',
+    steps: [
+      { t: 'talk', lines: [['ubin', 'Lights by the Lake, eh? Very nice. Now come see a real kampong. My bumboat leaves from the jetty, four coins.', 'happy'], ['ubin', 'My cousin Ayu has the bicycles. And Auntie Lan’s headdress is in the box, mended. Her show starts soon.', 'calm'], ['mate', 'An island with no cars. I like it already.', 'happy']] },
+      { t: 'cable', to: 'jetty-ubin', label: 'Take Pak Ubin’s bumboat from the Changi Point jetty to Pulau Ubin (E at the jetty)', cp: true },
+      { t: 'goto', at: 'ayu', label: 'Find Kak Ayu at the bicycle rental by Ubin Town', ride: 'foot' },
+      { t: 'talk', lines: [['ayu', 'You must be the two my cousin texted about. Welcome to Ubin! Bikes are by the rack, take any.', 'happy'], ['ayu', 'Mind the tracks after dark. The boars have gone strange this month. Digging everywhere, even the temple steps.', 'worried']] },
+      { t: 'ride', kind: 'bike', near: 'bikes-ubin', label: 'Hop on a rental bike by the rack (E)', cp: true },
+      { t: 'deliver', to: 'lan', item: 'headdress', time: 50, fragile: 3, label: 'Pedal the headdress to Auntie Lan at the wayang stage on Jalan Ubin: gently, it is mended', cp: true },
+      { t: 'talk', lines: [['lan', 'My phoenix crown! Not a bead missing. You have a gentle wheel.', 'happy'], ['lan', 'Now if only the boars would leave my stage alone. Every night, holes under the planks. What do they want under a stage?', 'worried'], ['hero', 'Holes with a plan behind them. We’ll find out.', 'smug']] },
+    ] },
+  { id: 'm67', ch: 10, title: 'Hoof Prints', giver: 'ayu', at: 'ayu', reward: 730, rep: 18, blurb: 'Something broke into the Ubin Town provision shop and took nothing but the old maps off the wall. The hoof prints lead away up the red earth. Follow them, set by set.',
+    steps: [
+      { t: 'talk', lines: [['ayu', 'The provision shop! The door off its hinges, the rice untouched, and the old quarry maps gone from the wall.', 'cross'], ['ayu', 'Boar prints all round the back. Fresh ones shine a little in the red earth. Read each set and it shows you the next.', 'calm'], ['mate', 'Tracking. Like proper jungle rangers.', 'happy']] },
+      { t: 'goto', at: [348, 112], label: 'Go behind the shops to Jalan Ubin, where the prints start', ride: 'foot', cp: true },
+      { t: 'track', route: [[348, 112], [347, 109], [346, 106], [343, 108], [346, 104], [347, 101]], old: [[351, 112]], oldAt: 0, label: 'Read the first set of hoof prints (E), then follow the trail they show', cp: true },
+      { t: 'talk', lines: [['hero', 'The trail ends at a hut in the trees north of Pekan Quarry. A big one. With a mat that says KEEP OUT in hoof.', 'worried'], ['taring', 'Who is that in my forest? Out! Out before I set the boys on you!', 'cross'], ['mate', 'That must be the boss. Tusks like a pair of bananas.', 'smug'], ['ayu', 'Tok Taring. He was a nice old boar, once. Ask Uncle Belangkas: he sees everything from Chek Jawa.', 'worried']] },
+    ] },
+  { id: 'm68', ch: 10, title: 'Durian Season', giver: 'lan', at: 'lan', reward: 740, rep: 19, blurb: 'The kampong orchard’s durians are falling early, and the Tusker Boys get to the windfalls first. Pick the ripe ones off the high branches, then pedal the basket to the temple for the festival offering.',
+    steps: [
+      { t: 'talk', lines: [['lan', 'The temple festival needs the first durians of the season, and the boars are eating every one that drops.', 'worried'], ['lan', 'Pick them off the branch before they fall. One of you lifts, one climbs. Careful of the thorns!', 'calm']] },
+      { t: 'goto', at: 'orchard-ubin', label: 'Go to the kampong durian orchard south of the wayang stage', ride: 'foot', cp: true },
+      { t: 'collect', items: [[349, 117], [355, 117], [357, 117], [350, 119]], item: 'i-durian', time: 70, high: true, label: 'Pick the durians off the high branches (E: {mate} gives you a boost)', cp: true },
+      { t: 'ride', kind: 'bike', near: [348, 116], label: 'Get on a bike: the basket goes on the front (E)' },
+      { t: 'deliver', to: 'temple-ubin', item: 'durian', time: 40, stink: true, label: 'Pedal the basket to the temple on Jalan Ubin before the smell brings every boar on the island', cp: true },
+      { t: 'talk', lines: [['lan', 'The first durians, on the altar. Even the gods will go back for seconds.', 'happy'], ['hero', 'And the boars didn’t eat one. Ayu says they had maps. Since when do boars read maps?', 'worried']] },
+    ] },
+  { id: 'm69', ch: 10, title: 'Wayang Night', giver: 'lan', at: 'lan', reward: 760, rep: 19, blurb: 'Opening night of Auntie Lan’s wayang, and the Tusker Boys mean to dig right under the stage while the gongs play. Hold the stage till the last bow.',
+    steps: [
+      { t: 'talk', lines: [['lan', 'The gongs start in a minute. And listen: grunting, under the stage. Lots of grunting.', 'worried'], ['mate', 'Then we keep them off the planks till the curtain. Shoo, not hurt.', 'smug']] },
+      { t: 'goto', at: 'wayang', label: 'Get to the wayang stage on Jalan Ubin', cp: true },
+      { t: 'defend', at: 'wayang', time: 64, waves: 3, per: 2, gang: 'boar', what: 'Stage', label: 'Hold the wayang stage: knock the Tusker Boys back before they dig in ({mate} helps on their own)', cp: true },
+      { t: 'talk', lines: [['lan', 'A full house and not one hole! Bravo, bravo!', 'happy'], ['taring', 'Sing all you like, bird. What is under that stage was buried before your grandmother’s grandmother. And it is mine.', 'cross'], ['hero', 'Buried. So it’s treasure he’s after.', 'worried']] },
+    ] },
+  { id: 'm70', ch: 10, title: 'Tower Watch', giver: 'belangkas', at: 'belangkas', reward: 770, rep: 19, blurb: 'Uncle Belangkas has watched lamps moving round the Tuskers’ den all week from Jejawi Tower. Go and look closer: photograph what the boars keep in their hut.',
+    steps: [
+      { t: 'talk', lines: [['belangkas', 'Ah, young ones. I count crabs for a living, slowly. But from Jejawi Tower I count lamps too, and the boars have many.', 'calm'], ['belangkas', 'Their hut north of Pekan Quarry. Take my camera, keep to the trees, and see what they are keeping.', 'worried']] },
+      { t: 'goto', at: [347, 103], label: 'Go up Jalan Mamam to the Tuskers’ den, north of Pekan Quarry', ride: 'foot', cp: true },
+      { t: 'case', spots: [{ at: [349, 101], kind: 'door' }, { at: [346, 100], kind: 'rota' }, { at: [352, 101], kind: 'cam' }, { at: [350, 103], kind: 'safe' }], need: 3, guards: [[[345, 102], [352, 102]], [[348, 104], [348, 100]]], skin: 'boar', label: 'Photograph three things (E): the hut door, the dig rota, the lookout boar, the map table', cp: true },
+      { t: 'talk', lines: [['hero', 'A map table! The provision shop maps, pinned together, and a rota: “Stage. Temple. Orchard. Ketam.” Every place they dug.', 'smug'], ['belangkas', 'The old granite quarry men buried their pay in tins, my father said. Maybe the boars have heard the same story.', 'calm'], ['mate', 'Then the next place on the rota is where we’ll be first.', 'smug']] },
+    ] },
+  { id: 'm71', ch: 10, title: 'The Night Forager', giver: 'belangkas', at: 'belangkas', reward: 780, rep: 19, blurb: 'A Tusker Boy with a lamp and a spade leaves the den every night. Follow him down Jalan Mamam to wherever he digs, and change over to your partner half way so he never sees the same face twice.',
+    steps: [
+      { t: 'talk', lines: [['belangkas', 'Every night at ten, one boar, one lamp, one spade. He looks behind him a great deal.', 'calm'], ['mate', 'Then he sees you, then he sees me. Never the same chinchilla twice.', 'smug']] },
+      { t: 'goto', at: [347, 106], label: 'Wait by Pekan Quarry on Jalan Mamam', ride: 'foot', cp: true },
+      { t: 'tail', name: 'the forager', skin: 'boar', from: [347, 104], route: [[347, 107], [347, 110], [345, 109], [341, 109], [338, 109]], relay: { at: 2, spot: [344, 112] }, calm: 0.6, label: 'Follow the forager down Jalan Mamam; switch to {mate} at Jalan Sam Kongsi (Tab)', cp: true },
+      { t: 'talk', lines: [['hero', 'Ketam Quarry. He paced from the old winch, twelve steps, and started digging. Then he stopped and went home. Wrong spot.', 'worried'], ['mate', 'So they don’t know where it is either. They’re missing a piece.', 'smug']] },
+    ] },
+  { id: 'm72', ch: 10, title: 'Sacks for Sacks', giver: 'ayu', at: 'ayu', reward: 790, rep: 20, blurb: 'Everything the Tusker Boys have dug up is in sacks at their den: the shop’s maps, the temple’s old bell, the stage’s lost props. Swap each sack for a sack of tapioca while they snore.',
+    steps: [
+      { t: 'talk', lines: [['ayu', 'They snore after midnight. Everyone on the island hears it. Like a lorry with a cold.', 'happy'], ['ayu', 'Here: tapioca sacks, same size. Boars love tapioca. They’ll never notice.', 'smug']] },
+      { t: 'goto', at: [347, 104], label: 'Creep up Jalan Mamam to the den', ride: 'foot', cp: true },
+      { t: 'swap', crates: [[346, 101], [351, 101], [349, 103], [352, 103]], guards: [[[345, 102], [353, 102]], [[350, 104], [350, 100]]], time: 90, decoy: 'decoy', skin: 'boar', label: 'Swap a tapioca sack for each loot sack (E) while the boars look away', cp: true },
+      { t: 'goto', at: 'ayu', label: 'Take the sacks back to Kak Ayu at the bicycle rental' },
+      { t: 'talk', lines: [['ayu', 'The maps! The temple bell! And what is this, wrapped in oilcloth?', 'happy'], ['hero', 'Half a page, torn. Old ink. A quarry, a winch, a cross, and on the back, a ship with black sails.', 'worried'], ['ayu', 'Half. So someone has the other half.', 'worried']] },
+    ] },
+  { id: 'm73', ch: 10, title: 'Round the Island', giver: 'ayu', at: 'ayu', reward: 800, rep: 20, blurb: 'The Tusker Boys have challenged the kampong to the Round-the-Island bike race: lose and they dig where they like. Ride the first half, hand over to your partner, and beat the clock.',
+    steps: [
+      { t: 'talk', lines: [['ayu', 'Tok Taring wants a race. If the kampong wins, the boars stop digging till the festival. If they win, they dig the jetty!', 'worried'], ['mate', 'Two of us, one bike each, half the island each. Easy.', 'smug']] },
+      { t: 'ride', kind: 'bike', near: 'bikes-ubin', label: 'Take a bike from the rack (E)', cp: true },
+      { t: 'race', ride: 'bike', time: 95, relay: 3, marks: [[343, 113], [350, 113], [355, 108], [359, 106], [355, 113], [352, 117], [344, 117]], label: 'Ride every flag round the island: {mate} takes over at the third (Tab)', cp: true },
+      { t: 'talk', lines: [['ayu', 'The kampong wins! No digging till the festival!', 'happy'], ['taring', 'Bah. A promise is a promise. But my buyer does not wait for festivals.', 'cross'], ['hero', 'His buyer. So the Tuskers are working for someone.', 'worried']] },
+    ] },
+  { id: 'm74', ch: 10, title: 'Tusker Round-up', giver: 'lan', at: 'lan', reward: 820, rep: 20, blurb: 'The Tusker Boys broke their promise and are digging up the temple steps tonight. Net them along Jalan Ubin, then run down Tok Taring himself.',
+    steps: [
+      { t: 'talk', lines: [['lan', 'They are at the temple steps with spades! On festival week!', 'cross'], ['mate', 'Nets along Jalan Ubin, durian for bait. They never say no to durian.', 'smug']] },
+      { t: 'goto', at: [345, 113], label: 'Go to Jalan Ubin outside the shops', ride: 'foot', cp: true },
+      { t: 'trap', spots: [[347, 113], [350, 113], [353, 113], [356, 113]], need: 3, bait: [341, 113], wait: [345, 112], path: [[357, 112], [353, 113], [350, 113], [347, 113], [344, 113], [341, 113]], gang: 'boar', n: 3, catch: 2, label: 'Lay three nets along Jalan Ubin (E), the durian at the far end for bait', cp: true },
+      { t: 'talk', lines: [['taring', 'My boys! In nets! Like fish!', 'cross'], ['hero', 'Give it up, Tok Taring. Who are you digging for?', 'calm'], ['taring', 'Catch me first, little furballs!', 'cross']] },
+      { t: 'chase', who: 'runner', name: 'Tok Taring', skin: 'taring', from: [355, 112], route: [[355, 108], [358, 106], [355, 106], [355, 112], [350, 113], [347, 110], [347, 105]], bumps: 2, loot: '', speed: 190, finish: 'net', label: 'Net Tok Taring together: F sends {mate} in, then dash', cp: true },
+      { t: 'talk', lines: [['taring', 'Oof. All right. ALL RIGHT. A lady came on a boat with black sails. Black feathers, a voice like silk. She pays in gold.', 'worried'], ['taring', 'She has half a chart. She wanted the other half, from the quarry men’s tin. We were only digging!', 'worried'], ['lan', 'Then you can dig the temple steps back in, Tok. Tonight.', 'cross']] },
+    ] },
+  { id: 'm75', ch: 10, title: 'Kampong Spirit', giver: 'belangkas', at: 'belangkas', reward: 1450, rep: 26, blurb: 'Your half of the chart shows where the quarry men’s tin lies at Ketam Quarry, and rain is coming to wash the trail away. Follow the last trail, slip past the boars the lady still pays, and open the tin before she does.',
+    steps: [
+      { t: 'talk', lines: [['belangkas', 'Rain coming, from the strait. It will wash every print off the island in a minute or two.', 'worried'], ['hero', 'Tok Taring’s boys went for the tin tonight, without him. A trail from the den to Ketam Quarry.', 'cross'], ['mate', 'Fast, then. Read the prints, beat the rain.', 'smug']] },
+      { t: 'goto', at: [347, 104], label: 'Go to the Tuskers’ den, where tonight’s trail starts', ride: 'foot', cp: true },
+      { t: 'track', route: [[347, 105], [347, 108], [344, 109], [341, 108], [338, 109]], old: [[350, 108]], oldAt: 1, time: 75, label: 'Follow tonight’s trail to Ketam Quarry before the rain washes it away (E: read each set)', cp: true },
+      { t: 'stealth', lookouts: [[[337, 110], [341, 110]], [[340, 107], [340, 110]]], goal: [338, 108], exit: [343, 109], calm: 0.6, pause: 1.4, label: 'Slip past the boar lookouts to the old winch at Ketam Quarry, then get out', cp: true },
+      { t: 'pickup', at: [338, 108], item: 'tin-chest', label: 'Dig up the quarry men’s tin by the winch' },
+      { t: 'mini', kind: 'lock', level: 3, label: 'Pick the rusted lock on the tin', cp: true },
+      { t: 'talk', lines: [['hero', 'Old coins, a pay book… and the other half of the chart. They fit. A coast, a reef, an island with no name.', 'worried'], ['taring', 'You found it. Good. Better you than her. Look, on the strait.', 'worried'], ['mate', 'A junk. Black sails. No lamps. Just sitting out there in the rain.', 'worried'], ['belangkas', 'And someone on the deck, all in black feathers, looking right at us.', 'worried'], ['hero', 'Then we keep the chart. And we find out where it leads before she does.', 'calm']] },
+    ] },
 ]);
 // ── Hawker Tales: the Singapore side jobs. They sit outside the five chapters (ch 0), open once their story job is
 // done, and pay like a story job; the townsfolk they help are in PEOPLE.
@@ -1019,7 +1110,7 @@ export const SIDE: Mission[] = mvMissions([
     steps: [
       { t: 'talk', lines: [['ubin', 'That young otter says his boat is faster than mine. Fifty years! Faster!', 'cross'], ['ubin', 'Take my bumboat round the markers. Show him how an old boat goes.', 'happy']] },
       { t: 'ride', kind: 'boat', near: [368, 90], label: 'Jump in Pak Ubin’s bumboat by the jetty', cp: true },
-      { t: 'race', ride: 'boat', rival: 'boat', pace: 0.88, time: 80, marks: [[360, 96], [346, 101], [332, 96], [346, 92], [362, 92]], label: 'Steer round every channel marker before the otter’s boat', cp: true },
+      { t: 'race', ride: 'boat', rival: 'boat', pace: 0.88, time: 80, marks: [[360, 94], [346, 95], [332, 94], [346, 91], [362, 91]], label: 'Steer round every channel marker before the otter’s boat', cp: true },
       { t: 'goto', at: 'ubin', label: 'Back to Pak Ubin at the jetty', ride: 'foot', r: 140 },
       { t: 'talk', lines: [['ubin', 'Hah! Old boat, old captain, still the fastest. Come, kopi on me.', 'happy']] },
     ] },
@@ -1078,6 +1169,28 @@ export const SIDE: Mission[] = mvMissions([
       { t: 'ride', kind: 'luge', near: [75, 100], label: 'Get in the Skyline Luge cart on Siloso Road (E)', cp: true },
       { t: 'chase', who: 'runner', name: 'the mynah', skin: 'myna', from: [81, 101], route: [[100, 101], [118, 101], [118, 113], [95, 113], [93, 102], [104, 102]], bumps: 3, loot: '', speed: 245, label: 'Luge after the mynah down Siloso Road and bump it three times', cp: true },
       { t: 'talk', lines: [['helang', 'My medal! Polished, even. Mynahs like shiny things. Excellent pursuit, soldiers. Salute!', 'happy']] },
+    ] },
+  // the seventeenth pass: three on Pulau Ubin
+  { id: 'k24', side: 'm66', ch: 0, title: 'Kampong Post', giver: 'ayu', at: 'bikes-ubin', reward: 280, rep: 12, blurb: 'The postman’s bike has a flat, so the kampong’s letters go by Kak Ayu’s tandem today. Pedal the round and drop each bundle at the door without stopping.',
+    steps: [
+      { t: 'talk', lines: [['ayu', 'Postman Ah Seng has a puncture and forty letters. You ride, I’ll mend.', 'happy'], ['mate', 'You pedal, I throw. Partners.', 'smug']] },
+      { t: 'ride', kind: 'tandem', near: 'bikes-ubin', label: 'Take Kak Ayu’s tandem from the rental (E): {mate} rides on the back', cp: true },
+      { t: 'toss', marks: [[344, 113], [351, 113], [356, 110], [356, 107]], item: 'parcel', time: 80, label: 'Pedal past the four kampong doors: F near each one and {mate} tosses the letters', cp: true },
+      { t: 'talk', lines: [['ayu', 'Every letter home, and not one in a puddle. Ah Seng says you can have his round.', 'happy']] },
+    ] },
+  { id: 'k25', side: 'm70', ch: 0, title: 'Crab Count', giver: 'belangkas', at: 'chekjawa', reward: 280, rep: 12, blurb: 'The low tide at Chek Jawa only lasts so long. Help Uncle Belangkas count his cousins, the horseshoe crabs, along the boardwalk before the water comes back.',
+    steps: [
+      { t: 'talk', lines: [['belangkas', 'Every year I count the horseshoe crabs on the flats. Cousins, all of them. This year my knees say no.', 'calm'], ['mate', 'We count, you write. Four sightings, quick before the tide.', 'happy']] },
+      { t: 'collect', items: [[361, 106], [364, 106], [364, 113], [360, 113]], item: 'horseshoe-crab', time: 70, label: 'Walk the Chek Jawa boardwalk and count the four horseshoe crabs (E at each) before the tide comes in', cp: true },
+      { t: 'talk', lines: [['belangkas', 'Four! Up from three last year. Small numbers, but going the right way.', 'happy']] },
+    ] },
+  { id: 'k26', side: 'm68', ch: 0, title: 'Stinky Cargo', giver: 'lan', at: 'orchard-ubin', reward: 290, rep: 12, blurb: 'Pak Ubin is taking a basket of the orchard’s durians back over to Changi for the troupe’s cousins. Pedal it to the jetty before the bumboat goes, and outrun the smell.',
+    steps: [
+      { t: 'talk', lines: [['lan', 'A basket of durians for my cousins in Changi Village. Pak Ubin’s boat leaves soon.', 'happy'], ['mate', 'A basket of durians. On a bike. Past every boar on the island.', 'worried']] },
+      { t: 'pickup', at: [350, 117], item: 'durian', label: 'Pick up the durian basket by the orchard lane' },
+      { t: 'ride', kind: 'bike', near: [348, 116], label: 'Get on a bike (E)' },
+      { t: 'deliver', to: 'jetty-ubin', item: 'durian', time: 45, stink: true, fines: 6, label: 'Rush the durians to the Ubin jetty: don’t knock into anyone (each bump costs 6 s)', cp: true },
+      { t: 'talk', lines: [['ubin', 'Wah, I can smell them from the boat! Good ones. Climb aboard, durians.', 'happy']] },
     ] },
 ]);
 export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id, m])) as Record<string, Mission>;

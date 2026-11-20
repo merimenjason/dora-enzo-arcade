@@ -35,7 +35,7 @@ export const INTEL: Record<Intel, { what: string; gain: string }> = {
   cam: { what: 'camera wiring', gain: 'the cameras will be off' },
   safe: { what: 'safe', gain: 'one number fewer to crack' },
 };
-const GANG: Record<string, string> = { mac: 'macaques', otter: 'otters', crow: 'crows', liz: 'lizards', myna: 'mynahs', bat: 'bats' };
+const GANG: Record<string, string> = { mac: 'macaques', otter: 'otters', crow: 'crows', liz: 'lizards', myna: 'mynahs', bat: 'bats', boar: 'boars' };
 /** per-step scratch state (reset on entering each step) */
 export type JobState = {
   ph: number; mode: '' | 'quiet' | 'loud'; entered: boolean; div: boolean; alarm: boolean; entry: [number, number] | null; warnedLock: boolean;

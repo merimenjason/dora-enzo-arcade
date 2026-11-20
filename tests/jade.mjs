@@ -73,7 +73,9 @@ test('every road tile is reachable by a small ride, and by a big ride except all
 test('every place, cat, mural, hide and ladder foot can be walked to', () => {
   const s = c.places['safe-market'];
   const f = field(c, 'foot', Math.floor(s.x / T), Math.floor(s.y / T) + 1, ALL);
-  const reach = (x, y) => { const [fx, fy] = nearestFree(c, 'foot', x, y, ALL, 2); return f.dist[Math.floor(fy / T) * W + Math.floor(fx / T)] >= 0; };
+  // Pulau Ubin is over the strait (the bumboat crosses it): its places are walked to from its own jetty
+  const u = c.places['jetty-ubin'], fu = field(c, 'foot', Math.floor(u.x / T), Math.floor(u.y / T), ALL);
+  const reach = (x, y) => { const [fx, fy] = nearestFree(c, 'foot', x, y, ALL, 2), i = Math.floor(fy / T) * W + Math.floor(fx / T); return f.dist[i] >= 0 || fu.dist[i] >= 0; };
   for (const [id, p] of Object.entries(c.places)) assert.ok(reach(p.x, p.y), `place ${id}`);
   c.cats.forEach((k, i) => { const roof = (c.flags[Math.floor(k.y / T) * W + Math.floor(k.x / T)] & F_ROOF) > 0; if (!roof) assert.ok(reach(k.x, k.y), `cat ${i}`); });
   for (const m of c.murals) assert.ok(reach(m.x, m.y + 30), `mural ${m.id}`);
@@ -85,9 +87,10 @@ test('every parked ride can be reached on foot, and every boat from dry land', (
   const w = world({ done: allDone });
   const s = c.places['safe-market'];
   const f = field(c, 'foot', Math.floor(s.x / T), Math.floor(s.y / T) + 1, ALL);
+  const u = c.places['jetty-ubin'], fu = field(c, 'foot', Math.floor(u.x / T), Math.floor(u.y / T), ALL);
   for (const r of w.rides) {
     const reachable = [];
-    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const tx = Math.floor(r.b.x / T) + dx, ty = Math.floor(r.b.y / T) + dy; if (tx >= 0 && ty >= 0 && tx < W && ty < H && f.dist[ty * W + tx] >= 0 && c.solid[ty * W + tx] === S.OPEN) reachable.push(Math.hypot(tx * T + T / 2 - r.b.x, ty * T + T / 2 - r.b.y)); }
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const tx = Math.floor(r.b.x / T) + dx, ty = Math.floor(r.b.y / T) + dy; if (tx >= 0 && ty >= 0 && tx < W && ty < H && (f.dist[ty * W + tx] >= 0 || fu.dist[ty * W + tx] >= 0) && c.solid[ty * W + tx] === S.OPEN) reachable.push(Math.hypot(tx * T + T / 2 - r.b.x, ty * T + T / 2 - r.b.y)); }
     assert.ok(reachable.length && Math.min(...reachable) < (VEHICLES[r.kind].cls === 'boat' ? 96 : 70) + 20, `${r.kind} at ${Math.floor(r.b.x / T)},${Math.floor(r.b.y / T)} is within reach of a walkable tile`);
   }
 });
@@ -238,12 +241,13 @@ test('crows snatch cargo from a slow rider and miss one who dashes', () => {
   assert.equal(w.s.cargo.jade, 2, 'dodged');
 });
 
-test('the story: 65 jobs in 9 chapters (five of five, the island’s ten, Island Lights’ ten, Christmas Star’s ten, Lights by the Lake’s ten), each with a contact, dialogue and a checkpoint, heirlooms at each Chinatown finale', () => {
-  assert.equal(MISSIONS.length, 65);
+test('the story: 75 jobs in 10 chapters (five of five, the island’s ten, Island Lights’ ten, Christmas Star’s ten, Lights by the Lake’s ten, Kampong Spirit’s ten), each with a contact, dialogue and a checkpoint, heirlooms at each Chinatown finale', () => {
+  assert.equal(MISSIONS.length, 75);
   for (let ch = 1; ch <= 5; ch++) assert.equal(MISSIONS.filter(m => m.ch === ch).length, 5);
   assert.equal(MISSIONS.filter(m => m.ch === 6).length, 10);
   assert.equal(MISSIONS.filter(m => m.ch === 7).length, 10);
   assert.equal(MISSIONS.filter(m => m.ch === 8).length, 10);
+  assert.equal(MISSIONS.filter(m => m.ch === 10).length, 10);
   assert.equal(HEIRLOOMS.length, 5);
   for (const m of MISSIONS) {
     assert.ok(c.places[m.at], `${m.id} is given at a real place`);
@@ -325,7 +329,7 @@ test('the save: round trip, repair and clamping, v1 migration, garage, wardrobe 
 });
 
 test('trophies, the daily market event and the night clock', () => {
-  assert.equal(TROPHIES.length, 55);
+  assert.equal(TROPHIES.length, 59);
   const s = newSave(); s.done = ['m1', 'm2', 'm3', 'm4', 'm5']; s.cats = Array.from({ length: 10 }, (_, i) => i);
   const got = checkTrophies(s); assert.ok(got.includes('First Job') && got.includes('Jade Dragon') && got.includes('Lucky Paw'));
   assert.deepEqual(checkTrophies(s), [], 'awarded once');

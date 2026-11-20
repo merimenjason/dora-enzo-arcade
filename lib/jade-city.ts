@@ -328,7 +328,7 @@ const CANAL_X0 = 66, CANAL_X1 = 68, SEA_Y = 82;
 
 let CACHE: City | null = null;
 /** the city in the new frame: every pass runs in the old frame, then relayout() moves the result */
-export function city(): City { if (!CACHE) { const c = build(); remodel(c); dressBuildings(c); sgCity(c); island(c); east(c); far(c); backLanes(c); south(c); ubin(c); CACHE = relayout(c); newRides(CACHE); } return CACHE; }
+export function city(): City { if (!CACHE) { const c = build(); remodel(c); dressBuildings(c); sgCity(c); island(c); east(c); far(c); backLanes(c); south(c); ubin(c); CACHE = relayout(c); newRides(CACHE); if (CACHE.ubin) CACHE.parking.push(...CACHE.ubin.park); } return CACHE; }
 
 const SIDEWALK: Record<District, G> = { market: G.WALK, temple: G.TEMPLE, canal: G.COBBLE, docks: G.DOCK, arcade: G.NEON, heartland: G.HDB, bay: G.GRANITE, india: G.INDIA, glam: G.GLAM, resort: G.RESORT, orchard: G.ORCHARD, katong: G.KATONG, changi: G.CHANGI, tiong: G.TIONG, quay: G.QUAY, jurong: G.JURONG, pulau: G.KAMPONG };
 const FRONTS: Record<District, string[]> = {
@@ -701,7 +701,7 @@ function relayout(c: City): City {
     // the bumboat's two ends move with their own blocks (Changi's, the island's); the open water between is laid again
     n.ubin = { ...u, boatA, boatB, boat: linkOf('bumboat', u.boat.name, [mvXY(u.boat.stops[0]), mvXY(u.boat.stops[1])], boatPath(boatA, boatB)),
       digs: u.digs.map(mvPP), durians: u.durians.map(mvPP), tracks: u.tracks.map(([a, b]) => [mvPP(a), mvPP(b)] as [[number, number], [number, number]]),
-      tower: mvPP(u.tower), flats: [fx0, fy0, fx0 + u.flats[2] - u.flats[0], fy0 + u.flats[3] - u.flats[1]], den: mvPP(u.den), rack: mvPP(u.rack) }; }
+      tower: mvPP(u.tower), flats: [fx0, fy0, fx0 + u.flats[2] - u.flats[0], fy0 + u.flats[3] - u.flats[1]], den: mvPP(u.den), rack: mvPP(u.rack), park: u.park.map(mvXY) }; }
   if (LAYOUT_MODE === 'real') seams(n);
   return n;
 }
