@@ -24,7 +24,7 @@ import { shooterFor } from './jade-gear.js';
 import { isleSorted, isleOver, isleActor, isleGround } from './jade-isledraw.js';
 import { eastGround, eastSorted, eastOver } from './jade-eastdraw.js';
 import { farSorted, farOver } from './jade-fardraw.js';
-import { southSorted, southOver } from './jade-southdraw.js';
+import { southGround, southSorted, southOver } from './jade-southdraw.js';
 import { snapScale, foldTints, chunkStale } from './jade-perf.js';
 import { empSorted, empOver, jagaActor } from './jade-empdraw.js';
 import { BIZ, BIZ_OF, bizPos } from './jade-biz.js';
@@ -227,6 +227,12 @@ export function spr(x: CanvasRenderingContext2D, name: string, px: number, py: n
   } else x.drawImage(im, sx, sy, sw, sh, px - w / 2, a === 'bottom' ? py - h : py - h / 2, w, h);
   if (o.alpha !== undefined) x.globalAlpha = 1;
   return true;
+}
+/** is a frame drawable now (its atlas decoded)? A frame not yet loaded is asked for, so it shows a moment later */
+export function hasFrame(name: string): boolean {
+  const f = FRAMES[name] as Frame | undefined; if (!f) return false;
+  const an = ATLASES[f[0]]; if (images[an]) return true;
+  artMissing.add(an); return false;
 }
 export const frameSize = (name: string) => { const f = FRAMES[name]; return f ? [f[3] / 2, f[4] / 2] : [0, 0]; };
 
@@ -597,6 +603,7 @@ export class Scene {
     gearGround(this, x, w, vis0);
     isleGround(this, x, w, vis0);
     eastGround(this, x, w, vis0);
+    southGround(this, x, w, vis0);
     // y-sorted things
     const list: [number, () => void][] = [];
     const vis = (px: number, py: number, m = 160) => px > ox - m && px < ox + cam.w + m && py > oy - m && py < oy + cam.h + m * 1.5;
