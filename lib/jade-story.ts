@@ -19,7 +19,7 @@ export type Line = [string, string, Mood?];
  * crane's swinging container and the yard gate (lib/jade-setpiece.ts); `wp` is the route leg that triggers it */
 /** a chase or tail target's painted body other than Pip's: a gang member (otter, macaque, lizard, mynah, bat) or a boss
  * (Director Kaw, Crow Number Nine, Datin Ciku) */
-export type Skin = 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine' | 'bat' | 'ciku' | 'hoot';
+export type Skin = 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine' | 'bat' | 'ciku' | 'hoot' | 'boar' | 'taring';
 export type SetDef = { k: 'stall' | 'drums' | 'bridge' | 'crane' | 'gate'; at: [number, number]; wp: number };
 export type Step =
   | { t: 'talk'; lines: Line[]; cp?: boolean }
@@ -74,7 +74,7 @@ export type Step =
   | { t: 'toss'; marks: Spot[]; item: string; time?: number; label: string; cp?: boolean }
   /** the sixteenth pass: a delivery on the dragon boat, timed for a boat with the partner drumming */
   | { t: 'paddle'; to: Spot; time: number; item: string; label: string; cp?: boolean }
-  | { t: 'case'; spots: { at: Spot; kind: Intel }[]; guards: Spot[][]; need?: number; label: string; cp?: boolean; /** who keeps watch (guards in caps when unset) */ skin?: 'liz' | 'myna' | 'bat' }
+  | { t: 'case'; spots: { at: Spot; kind: Intel }[]; guards: Spot[][]; need?: number; label: string; cp?: boolean; /** who keeps watch (guards in caps when unset) */ skin?: 'liz' | 'myna' | 'bat' | 'boar' }
   /** the heist: choose quiet or loud. Quiet sneaks in at `back` (only with the back door cased) or at `front`, past the
    * guards and `cams` ([x, y, facing in degrees]), cracks the safe and slips out the same way; loud sends the partner
    * to set off a confetti diversion at the front, then it is a race to the safe before `time` runs out and a getaway
@@ -82,7 +82,7 @@ export type Step =
   | { t: 'heist'; front: Spot; back: Spot; safe: Spot; drop: Spot; guards: Spot[][]; cams: [number, number, number][]; time: number; loot: string; level: number; label: string; cp?: boolean }
   /** hold out: `waves` waves of a gang (`per` in the first, one more each wave after) raid `at` for `time` seconds;
    * knock them back before they grab; `what` names the thing you guard (the Stall, the Stage, the Float) */
-  | { t: 'defend'; at: Spot; time: number; waves: number; per: number; gang: 'mac' | 'otter' | 'crow' | 'myna' | 'bat'; what: string; label: string; cp?: boolean }
+  | { t: 'defend'; at: Spot; time: number; waves: number; per: number; gang: 'mac' | 'otter' | 'crow' | 'myna' | 'bat' | 'boar'; what: string; label: string; cp?: boolean }
   /** blend in: put on the disguise at `rack` (the partner waits there), then walk with the crowd along `route` to `goal`
    * past the lookouts ([x, y, facing in degrees]); running, hopping, bumping folk or walking alone where they look
    * raises Suspicion */
@@ -92,9 +92,12 @@ export type Step =
   | { t: 'detective'; witnesses: Witness[]; spots: { at: Spot; tags: string[]; what: string }[]; item: string; time: number; label: string; cp?: boolean }
   /** set a trap: lay nets at `need` of the trap spots (E), put the bait down at `bait`, keep back by `wait`, and spring
    * a net (F) while one of the gang walking `path` is on it; catch `catch` of the `n` */
-  | { t: 'trap'; spots: Spot[]; need: number; bait: Spot; wait: Spot; path: Spot[]; gang: 'mac' | 'otter' | 'liz' | 'crow' | 'myna' | 'bat'; n: number; catch: number; label: string; cp?: boolean }
+  | { t: 'trap'; spots: Spot[]; need: number; bait: Spot; wait: Spot; path: Spot[]; gang: 'mac' | 'otter' | 'liz' | 'crow' | 'myna' | 'bat' | 'boar'; n: number; catch: number; label: string; cp?: boolean }
   /** swap: slip a decoy into each crate (E: a moment crouched at it) while the guards look the other way */
-  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat'; label: string; cp?: boolean };
+  /** the seventeenth pass (lib/jade-track.ts): follow a boar trail, reading each set of hoof prints (E) to show the
+   * next; `old`: crusted prints off the line (shown once fresh set `oldAt` is read) that lead nowhere; `time`: the rain */
+  | { t: 'track'; route: Spot[]; old?: Spot[]; oldAt?: number; time?: number; label: string; cp?: boolean }
+  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat' | 'boar'; label: string; cp?: boolean };
 /** what a photo while casing tells you: the back way in, the guards' beats, where the cameras are wired, the safe's make */
 export type Intel = 'door' | 'rota' | 'cam' | 'safe';
 /** a witness: `ask` are the three questions on offer, `right` the one that gets the clue (its `tag` must be among the
@@ -207,6 +210,7 @@ function mvStepFields(st: Step): Step {
     case 'deliver': return { ...st, to: mvSpot(st.to) };
     case 'paddle': return { ...st, to: mvSpot(st.to) };
     case 'toss': return { ...st, marks: mvSpots(st.marks) };
+    case 'track': return { ...st, route: mvSpots(st.route), ...(st.old ? { old: mvSpots(st.old) } : {}) };
     case 'chase': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), sets: st.sets?.map(d => ({ ...d, at: mvT(d.at[0], d.at[1]) })) };
     case 'float': return st.rope === undefined ? st : { ...st, rope: mvSpot(st.rope) };
     case 'tail': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), relay: st.relay && { ...st.relay, spot: mvSpot(st.relay.spot) } };

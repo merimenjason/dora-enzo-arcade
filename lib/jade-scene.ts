@@ -6,7 +6,7 @@
 // pieces, the finale and the business stalls are drawn by lib/jade-setdraw.ts. Every picture is a Codex painting from the atlases in public/art/jade-street/.
 import { FRAMES, ATLASES, VER } from './jade-art.js';
 import { EAGER, ART_BUDGET, decodedBytes } from './jade-load.js';
-import { T, W, H, G, OW, CT_H, EAST_X0, EAST_SPLIT, FAR_X0, FAR_SPLIT, CHANGI_X0, SOUTH_X0, SOUTH_X1, TIONG_X0, QUAY_X0, GROUND_NAMES, F_ROOF, districtAt, type City, type District } from './jade-city.js';
+import { T, W, H, G, OW, CT_H, EAST_X0, EAST_SPLIT, FAR_X0, FAR_SPLIT, CHANGI_X0, SOUTH_X0, SOUTH_X1, TIONG_X0, QUAY_X0, UBIN_X0, UBIN_X1, UBIN_Y0, GROUND_NAMES, F_ROOF, districtAt, type City, type District } from './jade-city.js';
 import { unmvT } from './jade-layout.js';
 import { F_XWAY } from './jade-island.js';
 import { VEHICLES, onWater, AS_PAINTED } from './jade-move.js';
@@ -25,6 +25,7 @@ import { isleSorted, isleOver, isleActor, isleGround } from './jade-isledraw.js'
 import { eastGround, eastSorted, eastOver } from './jade-eastdraw.js';
 import { farSorted, farOver } from './jade-fardraw.js';
 import { southGround, southSorted, southOver } from './jade-southdraw.js';
+import { ubinSorted } from './jade-ubindraw.js';
 import { snapScale, foldTints, chunkStale } from './jade-perf.js';
 import { empSorted, empOver, jagaActor } from './jade-empdraw.js';
 import { BIZ, BIZ_OF, bizPos } from './jade-biz.js';
@@ -313,6 +314,8 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     case 'koi': return `${h}-koi-${cyc(2, 2)}`;
     case 'stars': return `${h}-stars-${t < 1.6 ? 0 : 1}`;
     case 'lantern-walk': return `${h}-lwalk-${cyc(2, 5)}`;
+    // Pulau Ubin (the seventeenth pass): hoof prints, a durian tree, the catch, the binoculars, hailing the bumboat, a durian feast
+    case 'read': return `${h}-read-${cyc(2, 2)}`; case 'tree-shake': return `${h}-shake-${cyc(2, 6)}`; case 'catch': return `${h}-catch-${t < 0.45 ? 0 : 1}`; case 'spy': return `${h}-spy-${t < 1.4 ? 0 : 1}`; case 'boat-hail': return `${h}-hail-${cyc(2, 3)}`; case 'eat-durian': return `${h}-eat-durian-${cyc(2, 2.5)}`;
     // the empire: mending a raided shop, a handshake hiring the jaga, sending the partner off, the partner's coin bag
     // handed over, counting a big till
     case 'repair': return `${h}-repair-${cyc(2, 5)}`;
@@ -429,7 +432,7 @@ export class Scene {
     // (read in the old frame: the tile the layout table moved here; filler, laid in the new frame, has HDB blocks and
     // concrete bridges)
     const oldOf = (i: number) => unmvT(i % W, Math.floor(i / W));
-    const bldTex = (i: number) => { const o = oldOf(i); if (!o) return 'hdb'; const [tx, ty] = o; return ty >= CT_H ? (tx >= SOUTH_X0 - 4 && tx <= SOUTH_X1 + 1 ? (tx >= QUAY_X0 ? 'quay' : tx >= TIONG_X0 ? 'tiong' : 'jurong') : 'resort') : tx >= FAR_X0 - 4 ? (tx >= CHANGI_X0 ? 'changi' : ty < FAR_SPLIT ? 'orchard' : 'katong') : tx >= EAST_X0 - 4 ? (ty < EAST_SPLIT ? 'india' : 'glam') : tx >= OW ? (ty < 38 ? 'hdb' : 'granite') : 'plaza'; };
+    const bldTex = (i: number) => { const o = oldOf(i); if (!o) return 'hdb'; const [tx, ty] = o; return tx >= UBIN_X0 && ty >= UBIN_Y0 && tx <= UBIN_X1 ? 'kampong' : ty >= CT_H ? (tx >= SOUTH_X0 - 4 && tx <= SOUTH_X1 + 1 ? (tx >= QUAY_X0 ? 'quay' : tx >= TIONG_X0 ? 'tiong' : 'jurong') : 'resort') : tx >= FAR_X0 - 4 ? (tx >= CHANGI_X0 ? 'changi' : ty < FAR_SPLIT ? 'orchard' : 'katong') : tx >= EAST_X0 - 4 ? (ty < EAST_SPLIT ? 'india' : 'glam') : tx >= OW ? (ty < 38 ? 'hdb' : 'granite') : 'plaza'; };
     const texOf = (g: number, i: number) => g === G.ROAD && (c.flags[i] & F_XWAY) ? 'xway' : g === G.BRIDGE ? ((oldOf(i)?.[0] ?? OW) >= OW || (oldOf(i)?.[1] ?? 0) >= 80 ? 'xway' : 'canal') : g === G.STAIRS ? 'temple' : g === G.BLD ? bldTex(i) : GROUND_NAMES[g];
     const byTex = new Map<string, number[]>();
     for (let ty = ty0; ty < ty0 + nh; ty++) for (let tx = tx0; tx < tx0 + nw; tx++) {
@@ -441,7 +444,7 @@ export class Scene {
       if (p) { p.setTransform(new DOMMatrix([0.5, 0, 0, 0.5, 0, 0])); x.fillStyle = p; } else x.fillStyle = '#2a2440';
       x.beginPath(); for (let i = 0; i < a.length; i += 2) x.rect(a[i] * T - 0.5, a[i + 1] * T - 0.5, T + 1, T + 1); x.fill();
       // night: the painted ground sits a little darker so lamps, signs and people read on top of it
-      const dim = n === 'canal' || n === 'sea' || n === 'bay' ? 0.12 : n === 'walk' || n === 'plaza' || n === 'temple' ? 0.34 : 0.24;
+      const dim = n === 'canal' || n === 'sea' || n === 'bay' || n === 'quarry' ? 0.12 : n === 'walk' || n === 'plaza' || n === 'temple' ? 0.34 : 0.24;
       x.fillStyle = `rgba(14,8,32,${dim})`; x.fill();
     }
     // kerbs: a lit edge and a soft shadow where the pavement meets the road; water edges get a stone lip
@@ -626,7 +629,7 @@ export class Scene {
     sgSorted(this, x, w, list, vis);
     gearSorted(this, x, w, list, vis);
     isleSorted(this, x, w, list, vis);
-    eastSorted(this, x, w, list, vis); farSorted(this, x, w, list, vis); southSorted(this, x, w, list, vis);
+    eastSorted(this, x, w, list, vis); farSorted(this, x, w, list, vis); southSorted(this, x, w, list, vis); ubinSorted(this, x, w, list, vis);
     if (!p.roof) list.push([p.y + 1, () => this.hero(x, w)]);
     if (!m.roof && !m.seat && vis(m.x, m.y)) list.push([m.y + 0.5, () => drawHero(this, x, w, m, w.two)]);
     list.sort((a, b) => a[0] - b[0]);

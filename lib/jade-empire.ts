@@ -34,7 +34,7 @@ import type { World, Near } from './jade-game.js';
 import type { Actor } from './jade-mission.js';
 
 export type RaidKind = 'defend' | 'trap' | 'chase' | 'grab';
-export type Gang = 'crow' | 'mac' | 'otter' | 'liz' | 'myna' | 'bat';
+export type Gang = 'crow' | 'mac' | 'otter' | 'liz' | 'myna' | 'bat' | 'boar';
 /** a raid under way: the property, the gang, what kind of job it will be, seconds left to get there, and whether your
  * partner has gone to deal with it */
 export type Raid = { id: BizId; gang: Gang; kind: RaidKind; t: number; total: number; sent: boolean };
@@ -62,7 +62,7 @@ export const repairCost = (id: BizId) => Math.max(EMP.repairMin, Math.round(BIZ_
 export const jagaCost = (id: BizId) => Math.max(EMP.jagaMin, Math.round(BIZ_OF[id].price * EMP.jagaK / 10) * 10);
 export const gangOf = (id: BizId): Gang => RAID_GANG[BIZ_OF[id].d];
 /** which raid jobs a gang can bring: crows grab and run, the lizards keep low (no stand at the shop) */
-export const RAID_KINDS: Record<Gang, RaidKind[]> = { crow: ['grab', 'defend', 'trap', 'chase'], mac: ['defend', 'trap', 'chase'], otter: ['defend', 'trap', 'chase'], myna: ['defend', 'trap', 'chase'], bat: ['defend', 'trap', 'chase'], liz: ['trap', 'chase'] };
+export const RAID_KINDS: Record<Gang, RaidKind[]> = { crow: ['grab', 'defend', 'trap', 'chase'], mac: ['defend', 'trap', 'chase'], otter: ['defend', 'trap', 'chase'], myna: ['defend', 'trap', 'chase'], bat: ['defend', 'trap', 'chase'], liz: ['trap', 'chase'], boar: ['defend', 'trap', 'chase'] };
 export const RAID_WHAT: Record<RaidKind, string> = { defend: 'Hold the shop', trap: 'Net them on the way in', chase: 'Run down the one with the till', grab: 'Catch the crows with the coins' };
 
 // ── raids

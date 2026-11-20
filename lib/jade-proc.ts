@@ -20,7 +20,7 @@ import { RAID_GANG, GANG_NAME } from './jade-props.js';
 import { chaseLoop, trapPlan, tilesDown } from './jade-empire.js';
 import { FRAMES } from './jade-art.js';
 
-export type Gang = 'crow' | 'mac' | 'otter' | 'liz' | 'myna' | 'bat';
+export type Gang = 'crow' | 'mac' | 'otter' | 'liz' | 'myna' | 'bat' | 'boar';
 /** night: a graveyard shift (darker, guards see less far); rain: a storm the whole way; timer: every clock is
  * shorter; foot: no rides; solo: the partner is busy elsewhere; wardens: the fine city's wardens out in force */
 export type Mod = 'night' | 'rain' | 'timer' | 'foot' | 'solo' | 'wardens';
@@ -111,13 +111,14 @@ export const VOICE: Record<string, Voice> = {
 /** a gang's name from the shared table (lib/jade-props.ts GANG_NAME), without the species on the end, so a rename there
  * flows through every contract */
 const gangName = (g: Gang, one: string) => (GANG_NAME[g] ?? g).replace(new RegExp(` ${one}s$`), '');
-export const GANG: Record<Gang, { name: string; one: string; boss: string; skin?: 'otter' | 'mac' | 'liz' | 'myna' | 'bat'; taunt: string[]; brag: string[] }> = {
+export const GANG: Record<Gang, { name: string; one: string; boss: string; skin?: 'otter' | 'mac' | 'liz' | 'myna' | 'bat' | 'boar'; taunt: string[]; brag: string[] }> = {
   crow: { name: gangName('crow', 'crow'), one: 'crow', boss: 'pip', taunt: ['Finders keepers, fluffballs!', 'Kaypoh means we know everything. Even this!'], brag: ['Caw! Shiny is mine!', 'Kaypoh Crows Pte Ltd, at your disservice!'] },
   mac: { name: gangName('mac', 'macaque'), one: 'macaque', boss: 'kow', skin: 'mac', taunt: ['Bananas belong to everyone. Mostly me!', 'Hoo hoo! Catch me if you can!'], brag: ['The Bunch takes what the Bunch likes!', 'Bananas first, questions never!'] },
   otter: { name: gangName('otter', 'otter'), one: 'otter', boss: 'sleek', skin: 'otter', taunt: ['Borrowing only! Hehe!', 'The river is our playground!'], brag: ['Splash and dash!', 'Otters don’t steal. We just… find early.'] },
   liz: { name: gangName('liz', 'lizard'), one: 'lizard', boss: 'lepak', skin: 'liz', taunt: ['Lepak lah, it’s only a small thing.', 'Down the drain it goes!'], brag: ['Slow and steady, then fast and gone.', 'The longkang never gives back.'] },
   myna: { name: gangName('myna', 'mynah'), one: 'mynah', boss: 'bising', skin: 'myna', taunt: ['KECOH! Mine now!', 'Loud and proud and gone!'], brag: ['We sing, we swipe, we fly!', 'KECOH KECOH KECOH!'] },
   bat: { name: gangName('bat', 'bat'), one: 'bat', boss: 'ciku', skin: 'bat', taunt: ['Darling, it simply had to be mine.', 'So atas, so mine! Mwah!'], brag: ['We only take the nicest things.', 'Datin Ciku sends her regards. Ciao!'] },
+  boar: { name: gangName('boar', 'boy'), one: 'boar', boss: 'taring', skin: 'boar', taunt: ['Oink! Finders keepers, kampong rules!', 'Snort snort, too slow lah!'], brag: ['Tusker Boys dig it up first!', 'Whatever is buried belongs to the snout!'] },
 };
 /** the things a job is about, each with a painted sprite (lib/jade-scene.ts itemSprite) and how it is spoken of */
 export const ITEMS: { id: string; name: string; fragile?: boolean; stink?: boolean; food?: boolean }[] = [
@@ -521,8 +522,8 @@ const BUILD: Record<Kind, (b: B) => Build | null> = {
       blurb: `The ${G.name} are muscling in on ${DISTRICT_NAME[b.d]}: our tills are down every night they stay. Push them out.` };
   },
 };
-const defGang = (g: Gang): 'mac' | 'otter' | 'crow' | 'myna' | 'bat' => g === 'liz' ? 'crow' : g;
-const trapGang = (g: Gang): 'mac' | 'otter' | 'liz' | 'crow' | 'myna' | 'bat' => g;
+const defGang = (g: Gang): 'mac' | 'otter' | 'crow' | 'myna' | 'bat' | 'boar' => g === 'liz' ? 'crow' : g;
+const trapGang = (g: Gang): 'mac' | 'otter' | 'liz' | 'crow' | 'myna' | 'bat' | 'boar' => g;
 /** a tail from `from` to a corner 10 to 14 tiles off: the runner starts five tiles down the way */
 function tailTo(b: B, from: [number, number]): { from: Spot; route: Spot[]; end: [number, number] } | null {
   const { ctx, R } = b;

@@ -6,7 +6,8 @@
 // The live table puts the districts where they are in Singapore: the main block (Chinatown, Sentosa below it, Toa
 // Payoh and Marina Bay, Little India and Kampong Glam, Katong and Changi) moves 100 columns east, and four districts the
 // build laid out east of Chinatown come out of it and go west: Orchard Road to the north-west, Clarke Quay below it,
-// Tiong Bahru below that (south-west of Chinatown) and Jurong far to the west. The tiles no block covers are filler,
+// Tiong Bahru below that (south-west of Chinatown) and Jurong far to the west; and (the seventeenth pass) Pulau Ubin,
+// built in the sea south of Changi, goes to the north-east corner off Changi Airport. The tiles no block covers are filler,
 // laid in the new frame by lib/jade-city.ts (the seams: link roads, the Ayer Rajah Expressway, the Singapore River's
 // way out to the sea, parkland, and new HDB estates in Orchard's old place).
 // Two debug tables (globalThis.__JADE_LAYOUT__ before the game's modules load): 'zero', the identity (the old frame
@@ -31,15 +32,20 @@ const ZERO: Layout = { blocks: [{ id: 'main', x0: 0, y0: 0, x1: OLD_W - 1, y1: O
 const MOVED = [
   { id: 'orchard', x0: 276, y0: 0, x1: 323, y1: 37 }, { id: 'jurong', x0: 194, y0: 96, x1: 241, y1: 125 },
   { id: 'tiong', x0: 242, y0: 96, x1: 289, y1: 125 }, { id: 'quay', x0: 290, y0: 96, x1: 329, y1: 125 },
+  // the seventeenth pass: Pulau Ubin, built in the open sea south of Changi in the old frame
+  { id: 'pulau', x0: 332, y0: 96, x1: 367, y1: 125 },
 ];
 /** the real table (new-frame origins): Orchard Road north-west of Chinatown, Fort Canning Park between them (Orchard
  * Boulevard runs on into Pagoda Street); Clarke Quay under Orchard (Clemenceau Avenue joins them; Eu Tong Sen Street runs
  * on over the Singapore River into Keong Saik Road); Tiong Bahru under that, south-west of Smith Street, past the Ayer
  * Rajah Expressway; Jurong at the west edge; the main block 100 columns east */
-const REAL_AT: Record<string, [number, number]> = { orchard: [36, 0], quay: [52, 44], tiong: [44, 78], jurong: [0, 44], main: [100, 0] };
+const REAL_AT: Record<string, [number, number]> = { orchard: [36, 0], quay: [52, 44], tiong: [44, 78], jurong: [0, 44], pulau: [476, 60], main: [100, 0] };
+/** the real world's width: the main block 100 columns east, then Pulau Ubin's 36 columns off Changi (the north-east
+ * corner). 512 × 128 is 65,536 tiles; lib/jade-nav.ts keys its heap on 2^17 so the world may still grow */
+const REAL_W = OLD_W + 100 + 36;
 const REAL: Layout = {
   blocks: [...MOVED, { id: 'main', x0: 0, y0: 0, x1: OLD_W - 1, y1: OLD_H - 1 }].map(b => ({ ...b, nx: REAL_AT[b.id][0], ny: REAL_AT[b.id][1] })),
-  NW: OLD_W + 100, NH: OLD_H,
+  NW: REAL_W, NH: OLD_H,
 };
 /** the test table: the same five blocks, every one moved by the same +7, +3 */
 const SHIFT_X = 7, SHIFT_Y = 3;

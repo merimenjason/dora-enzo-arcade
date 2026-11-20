@@ -11,7 +11,8 @@ import { dist } from './jade-rng.js';
 import { offence } from './jade-fines.js';
 import type { World } from './jade-game.js';
 
-export const FARES = { cable: 4, ferry: 3 } as const;
+/** (the seventeenth pass: the Ubin bumboat from Changi Point, 4 coins) */
+export const FARES = { cable: 4, ferry: 3, bumboat: 4 } as const;
 /** how far from a stop its gates reach */
 export const LINK_R = 110;
 /** the cabins on the line, their spacing in seconds round the loop, and their speed (world units a second) */
@@ -55,7 +56,10 @@ export function ferryAt(l: Link, time: number): { x: number; y: number; h: numbe
   return leg(len - (t - 2 * FERRY_DWELL - run) * FERRY_SPEED, true, -1);
 }
 
-export const linksOf = (w: World): Link[] => w.c.east ? [w.c.east.cable, w.c.east.ferry] : [];
+export const linksOf = (w: World): Link[] => [...(w.c.east ? [w.c.east.cable, w.c.east.ferry] : []), ...(w.c.ubin ? [w.c.ubin.boat] : [])];
+/** a boat link (the island ferry, the Ubin bumboat): you ride it in real time, the camera on the boat */
+export const byBoat = (l: Link) => l.id !== 'cable';
+const linkOfId = (w: World, id: Link['id'] | undefined) => linksOf(w).find(l => l.id === (id ?? 'ferry'));
 const openStop = (w: World, s: LinkStop) => w.open.has(districtAt(Math.floor(s.x / T), Math.floor(s.y / T)));
 /** the cable car station or ferry pier you are at, its link, and the stop at the other end (both ends open) */
 export function linkNear(w: World, x = w.p.x, y = w.p.y): { link: Link; from: LinkStop; to: LinkStop } | null {
@@ -69,10 +73,10 @@ export const linkById = (w: World, id: string) => { for (const l of linksOf(w)) 
 export function cantLink(w: World, l: Link, to: LinkStop): string | null {
   if (w.p.ride) return 'Get off your ride first';
   if (w.ticket) return 'Pay your ticket first';
-  if (!openStop(w, to)) return 'Sentosa is still under fog';
+  if (!openStop(w, to)) return l.id === 'bumboat' ? 'Pak Ubin’s bumboats aren’t running to Pulau Ubin yet' : 'Sentosa is still under fog';
   if (w.s.cash < FARES[l.id]) return `The fare is ${FARES[l.id]} coins`;
   if (w.run && w.run.cur?.t !== 'cable') return 'Not in the middle of a job';
-  if (w.ferry) return 'You are on the ferry';
+  if (w.ferry) return 'You are on a boat';
   return null;
 }
 /** pay and go: the cable car jumps you there behind its ride view; the ferry carries you along its route */
@@ -91,12 +95,16 @@ export function linkGo(w: World): boolean {
     w.fx.push({ t: 'cable', name: to.name, x: to.x, y: to.y });
     return true;
   }
-  w.s.stats.ferry++;
-  const back = to.id === link.stops[0].id;
-  w.ferry = { s: back ? total(link) : 0, dir: back ? -1 : 1, to: to.id, t: 0 };
-  w.p.hide = true; w.mate.hide = true; w.p.act = null;
-  w.fx.push({ t: 'ferry-go' });
-  w.say(`All aboard for ${to.name}! (E skips the crossing)`, 'good');
+  const board = () => {
+    if (link.id === 'bumboat') w.s.stats.bumboats++; else w.s.stats.ferry++;
+    const back = to.id === link.stops[0].id;
+    w.ferry = { s: back ? total(link) : 0, dir: back ? -1 : 1, to: to.id, t: 0, l: link.id };
+    w.p.hide = true; w.mate.hide = true; w.p.act = null;
+    w.fx.push({ t: 'ferry-go' });
+    w.say(link.id === 'bumboat' ? `Pak Ubin's bumboat putters off for ${to.name}! (E skips the crossing)` : `All aboard for ${to.name}! (E skips the crossing)`, 'good');
+  };
+  // the bumboat waits for a wave from the jetty (its own animation); the island ferry is boarded at the gate
+  if (link.id === 'bumboat') { w.p.face = 'down'; w.p.act = { n: 'boat-hail', t: 0, dur: 0.8, then: board }; } else board();
   return true;
 }
 function arriveAt(w: World, to: LinkStop) {
@@ -106,9 +114,9 @@ function arriveAt(w: World, to: LinkStop) {
   w.lastLink = to.id;
 }
 /** the ferry crossing you are on (lib/jade-game.ts steps it) */
-export type FerryRide = { s: number; dir: 1 | -1; to: string; t: number };
+export type FerryRide = { s: number; dir: 1 | -1; to: string; t: number; /** which boat (the island ferry when unset) */ l?: Link['id'] };
 export function ferryStep(w: World, dt: number) {
-  const f = w.ferry, l = w.c.east?.ferry; if (!f || !l) return;
+  const f = w.ferry, l = linkOfId(w, f?.l); if (!f || !l) return;
   f.t += dt; f.s += f.dir * FERRY_SPEED * FERRY_RIDE * dt;
   const [x, y] = linkAt(l, f.s);
   w.p.b.x = x; w.p.b.y = y; w.mate.b.x = x; w.mate.b.y = y;
@@ -116,7 +124,7 @@ export function ferryStep(w: World, dt: number) {
 }
 /** step off at the pier (the crossing's end, or E to skip it) */
 export function ferryLand(w: World) {
-  const f = w.ferry, l = w.c.east?.ferry; if (!f || !l) return;
+  const f = w.ferry, l = linkOfId(w, f?.l); if (!f || !l) return;
   const to = l.stops.find(s => s.id === f.to)!;
   w.ferry = null; arriveAt(w, to);
   w.fx.push({ t: 'ferry-in', name: to.name, x: to.x, y: to.y });
