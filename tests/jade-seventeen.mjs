@@ -9,6 +9,7 @@ import { MISSIONS, MISSION, SIDE, PEOPLE, CHAPTERS, FINALE, UBIN_OPENS, jobCount
 import { newSave, openDistricts, chapterOf, SAFE_HOUSES, TROPHIES } from '../.checks/jade-save.js';
 import { city, T, W, DISTRICTS, districtAt, passable } from '../.checks/jade-city.js';
 import { travelPlan } from '../.checks/jade-mrt.js';
+import { cantHail } from '../.checks/jade-taxi.js';
 import { linksOf, UBIN_TEXT, KAMPONG_TEXT } from '../.checks/jade-cable.js';
 import { trackNear, trackAct, trackTarget, visible, heading } from '../.checks/jade-track.js';
 import { ubinNear, ubinAct, BOARS, PAW_S, PAW_ASSIST } from '../.checks/jade-ubinfest.js';
@@ -32,6 +33,7 @@ function island(seed = 3, o = {}) {
   const pl = c.places['jetty-ubin']; w.p.b.x = pl.x; w.p.b.y = pl.y + 40; w.step(NO_INPUT, DT);
   return w;
 }
+const w2Main = () => { const w = island(4); const pl = c.places['safe-market']; w.p.b.x = pl.x; w.p.b.y = pl.y + 64; w.step(NO_INPUT, DT); return w; };
 const settle = (w, s = 2) => { for (let i = 0; i < s / DT; i++) w.step(NO_INPUT, DT); };
 function at(id, i, o = {}) {
   const s = missionSave(id, { assist: o.assist ?? false, diff: o.diff ?? 'normal' });
@@ -69,6 +71,7 @@ test('the bumboat crosses from Changi Point to the Ubin jetty, and Route me plan
   assert.ok(plan.via === 'bumboat' || plan.then?.via === 'bumboat', `by bumboat (${plan.via} then ${plan.then?.via})`);
   // and from Changi Point itself, straight onto the bumboat
   const cp = L.stops[0], near = travelPlan(w, to.x, to.y, cp.x, cp.y + 3 * T); assert.equal(near?.via, 'bumboat');
+  assert.ok(cantHail(w), 'no taxi comes to the island'); assert.equal(cantHail(w2Main()), null, 'one comes in Chinatown');
   assert.match(UBIN_TEXT, /bumboat/); assert.match(UBIN_TEXT, /Changi Point/);
 });
 

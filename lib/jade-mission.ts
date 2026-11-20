@@ -733,6 +733,7 @@ function timeUp(st: Step): string {
   if (st.t === 'detective') return 'Out of time! Ask the right question, then search only the spot that fits every clue.';
   if (st.t === 'swap') return 'Out of time! The crates are being loaded. Swap faster while the guards look away.';
   if (st.t === 'heist') return 'Out of time! The crows got back on their feet. Head straight for the safe.';
+  if (st.t === 'track') return 'The rain washed the prints away! Read each set (E), then head the way it says.';
   return 'Out of time!';
 }
 

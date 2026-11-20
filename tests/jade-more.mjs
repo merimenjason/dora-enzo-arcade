@@ -35,7 +35,7 @@ const idle = (w, sec, until = () => false) => { for (let k = 0; k < sec * 60 && 
 
 // ── item 1: every job has a fair, readable way to fail
 const FAILABLE = new Set(['chase', 'tail', 'escort', 'stealth', 'race', 'heat', 'float', 'raid', 'collect', 'trade', 'fares', 'case', 'heist', 'defend', 'blend', 'detective', 'trap', 'swap']);
-const failable = st => FAILABLE.has(st.t) || ((st.t === 'deliver' || st.t === 'goto') && (st.time || st.fragile));
+const failable = st => FAILABLE.has(st.t) || ((st.t === 'deliver' || st.t === 'goto' || st.t === 'track') && (st.time || st.fragile));
 /** provoke a failure at step i by doing nothing useful; returns the reason and whether a timer or meter showed first */
 function provoke(id, i) {
   const { w, run } = at(id, i); const st = run.cur; let shown = false;

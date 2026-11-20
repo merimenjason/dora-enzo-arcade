@@ -1,5 +1,5 @@
 // Jade Street memory soak: a save with every district open, then MINUTES (default 10) of play hopping between all
-// thirteen districts every 20 seconds (walking, dashing, riding a scooter, street events, rain, gadgets fired), with a
+// seventeen districts every 20 seconds (walking, dashing, riding a scooter, street events, rain, gadgets fired), with a
 // sample every 15 seconds of the browser's resident memory (every process of the Playwright browser, from `ps`), the
 // JS heap (Chromium) and the game's own counts (window.__jade.art(): the paintings decoded and their decoded size, the
 // ground chunks and their pixels, the recoloured frames). Fails on a page error or a crash, when the decoded paintings
@@ -54,13 +54,13 @@ const pressed = async () => {
 
 await p.goto(base, { waitUntil: 'domcontentloaded', timeout: 300000 });
 await p.waitForSelector('main[data-ready="true"]', { timeout: 300000 });
-await p.evaluate(() => localStorage.setItem('jade-street-v2', JSON.stringify({ v: 2, seed: 77, started: true, hero: 'dora', cash: 3000, done: Array.from({ length: 64 }, (_, i) => 'm' + (i + 1)), settings: { music: false, sound: false } })));
+await p.evaluate(() => localStorage.setItem('jade-street-v2', JSON.stringify({ v: 2, seed: 77, started: true, hero: 'dora', cash: 3000, done: Array.from({ length: 75 }, (_, i) => 'm' + (i + 1)), settings: { music: false, sound: false } })));
 await p.reload(); await p.waitForSelector('[data-testid="continue"]', { timeout: 300000 });
 await p.click('[data-testid="continue"]');
 await p.waitForFunction(() => !!window.__jade, null, { timeout: 300000 });
 await p.evaluate(() => { const w = window.__jade.world(); w.talk = null; window.__jade.give(); const s = w.s; for (const g of s.gear.own) s.gear.ammo[g] = 999; window.__jade.play.paused = false; });
 
-const DISTRICTS = ['market', 'heartland', 'india', 'temple', 'bay', 'resort', 'orchard', 'canal', 'glam', 'katong', 'docks', 'changi', 'arcade', 'tiong', 'quay', 'jurong'];
+const DISTRICTS = ['market', 'heartland', 'india', 'temple', 'bay', 'resort', 'orchard', 'canal', 'glam', 'katong', 'docks', 'changi', 'arcade', 'tiong', 'quay', 'jurong', 'pulau'];
 const samples = []; const t0 = Date.now(); let k = 0, lastSample = -1e9, held = null;
 const sample = async (d) => {
   const g = await p.evaluate(() => ({ art: window.__jade.art ? window.__jade.art() : { decodedMB: null, files: [], chunks: window.__jade.play.scene.chunks.size, chunkMB: null, recolored: null }, heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null, fps: Math.round(window.__jade.fps()) }));
@@ -75,8 +75,10 @@ while (Date.now() - t0 < MS && !crashed) {
       const J = window.__jade, w = J.world(); w.talk = null; w.ui = null; if (w.run) w.quitJob(); if (w.p.ride) w.exit();
       const CH = J.layout.NH, CW = w.c.ground.length / CH, spots = [];
       for (let ty = 1; ty < CH - 1; ty++) for (let tx = 1; tx < CW - 1; tx++) if (w.c.ground[ty * CW + tx] === 2 && w.c.solid[ty * CW + tx] === 0 && J.district(tx, ty) === d) spots.push([tx, ty]);
+      // (Pulau Ubin has no streets: any open ground)
+      if (!spots.length) for (let ty = 1; ty < CH - 1; ty++) for (let tx = 1; tx < CW - 1; tx++) if (w.c.solid[ty * CW + tx] === 0 && J.district(tx, ty) === d) spots.push([tx, ty]);
       const [tx, ty] = spots[(k * 7919) % spots.length]; J.teleport(tx, ty);
-      if (rode) { const r = w.addRide('scooter', tx * 64 + 32, ty * 64 + 32, 0, false, 0, true); w.p.act = null; w.p.ride = r; r.parked = false; }
+      if (rode) { const r = w.addRide(d === 'pulau' ? 'bike' : 'scooter', tx * 64 + 32, ty * 64 + 32, 0, false, 0, true); w.p.act = null; w.p.ride = r; r.parked = false; }
       J.play.paused = false; J.play.bump();
     }, [d, k, rode]);
   }
