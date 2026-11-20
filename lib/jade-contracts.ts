@@ -52,11 +52,13 @@ export function pushRef(s: Save, open: District[]): CRef | null {
 /** givers busy with a story job or Hawker Tale on offer (the story comes first) */
 const busy = (s: Save) => offered(s).map(m => m.giver);
 
-/** deal the offers: all fresh on a new night, a missing slot refilled at once */
-export function dealOffers(w: World) {
+/** deal the offers: all fresh on a new night, a missing slot refilled. `most` caps how many are built in one call:
+ * each costs a path flood or two over the city (about 10 ms), so the per-frame caller (the street's cast) deals one a
+ * frame and a new night's three never land in a single 20 to 35 ms step (the sixteenth pass) */
+export function dealOffers(w: World, most = OFFERS) {
   const s = w.s, cs = s.contracts; if (!contractsOpen(s)) return;
   if (cs.night !== s.night) { cs.offers = []; cs.night = s.night; }
-  while (cs.offers.length < OFFERS) cs.offers.push(newOffer(w, cs.offers.length));
+  for (let k = 0; k < most && cs.offers.length < OFFERS; k++) cs.offers.push(newOffer(w, cs.offers.length));
 }
 function newOffer(w: World, slot: number): CRef {
   const s = w.s, cs = s.contracts, tier = tierOf(s);
@@ -68,9 +70,9 @@ function newOffer(w: World, slot: number): CRef {
 /** every contract on the phone right now: the three offers, the contract of the day, the retake */
 export type Listed = { which: string; c: Contract; tag: 'offer' | 'day' | 'push' };
 let memo: { k: string; s: Save; out: Listed[] } | null = null;
-export function listContracts(w: World): Listed[] {
+export function listContracts(w: World, spread = false): Listed[] {
   const s = w.s; if (!contractsOpen(s)) return [];
-  dealOffers(w);
+  dealOffers(w, spread ? 1 : OFFERS);
   // asked for every frame (the cast, the prompt, the gold line, the HUD): rebuilt only when something it reads changes
   const cs = s.contracts, k = `${s.seed}|${cs.night}|${cs.n}|${cs.offers.map(r => r.seed).join()}|${w.event?.day}|${w.open.size}|${cs.contest?.d ?? ''}:${cs.contest?.night ?? ''}|${tierOf(s)}`;
   if (memo && memo.k === k && memo.s === s) return memo.out;

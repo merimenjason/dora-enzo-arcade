@@ -6,10 +6,20 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Jade Street**: four new Hawker Tales built around the special rides. In **Two Scoops**, Uncle Buaya, the Orchard Road ice-cream uncle, lends you his motorbike: ring its chime (Q) and the Atas Bats leave their posts for an ice cream, and you photograph their hideout while they eat. In **Bak Chang by Boat**, Coach Kerbau at Clarke Quay needs a supper paddled down the Singapore River in a time that only works with your partner on the drum and your surges (Space) on the beat. In **Picnic Post**, you pedal the tandem along East Coast Park while your partner tosses nasi lemak (F) to four barbecue pits. In **Down Siloso Road**, you chase a mynah down Sentosa in a Skyline Luge cart. Both heroes have their own animations for the toss, the bell, the power stroke and handing out a cone. A second dragon boat waits on Jurong Lake: after the boat job, paddling it with the drum going lures chapter nine's crow down faster.
+- **Jade Street**: new paintings. The Tiong Bahru chwee kueh stall, the Yong Siak Street bookshop café, the Clarke Quay satay, the jazz lounge, the Jurong lantern shop and the lake tea garden each have their own stand at every level. Jurong Lake has a smooth stone bank, and Katong's pavement is plain, calm cream tiles.
+
+### Changed
+
+- **Jade Street**: Route me can now plan two rides back to back (say the cable car, then the ferry) when that is clearly quicker than one. A new night's contracts are dealt over a few frames, so the street no longer hitches at midnight. On a job, E now does the job's action (such as a photo) before getting on a ride parked beside you.
+
 - **Jade Street**: four special rides, each with its own painted sprite and riding poses for both heroes. A tandem bike at the East Coast Park bike racks: both of you pedal, and together you beat a hired bike. The ice-cream uncle's motorbike outside ION Orchard: your partner rides in the sidecar with a cone, and Q plays the ice-cream chime, which stops the street for a treat instead of scattering it. A Skyline Luge cart on Sentosa: the quickest wheels on the island but slow anywhere else, with your partner on their own cart. A dragon boat on the Singapore River at Clarke Quay: you paddle while your partner beats the drum at the bow, and the drum makes its surges come twice as often.
 
 ### Fixed
 
+- **Jade Street**: a ride a job hands you is now parked clear of lamp posts, racks and the job's giver. A tandem could appear on top of its giver and refuse to move.
+- **Jade Street**: the fifteenth pass's ride atlas now streams with the job art instead of sitting in the always-held core, which keeps the ten-minute memory soak under its 320 MB limit (314 MB) with the sixteenth pass's new paintings.
+- **Jade Street**: hired bikes and the tandem are no longer booked for speeding (speed limits are for motors). Pedalling a job's tandem along East Coast Park drew a speed-camera fine.
 - **Jade Street**: the ride radio works again after chapter five. Once the festival began, its tune played over every station and pressing R only changed the label; the radio also gave way near markets. Now any station plays over the calm street, market and festival tunes (a chase still drowns it out), and a reloaded save plays the station its chip shows.
 - **Jade Street**: the festival fireworks no longer go off every few seconds all night. They go up in two shows, 9:00 to 9:30 pm and midnight to 12:45 am, with a heads-up when each one starts.
 - **Jade Street**: Havelock Road over the Singapore River and Clemenceau Avenue by Clarke Quay are proper stone bridges with balustrades, not bare road over the water.
