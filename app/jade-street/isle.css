@@ -2,6 +2,16 @@
 .jade-mrt-line, .jade-taxi-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 .jade-mrt-line .jade-btn, .jade-taxi-list .jade-btn { display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left; }
 .jade-mrt-line small, .jade-taxi-list small { margin-left: auto; opacity: .75; font-size: .8em; }
+/* 21-11: contrast. The district / fare label was faded beige on the painted jade plaque and ran into its gold end caps;
+   it now sits on a dark chip at full strength. The station names get a firmer shadow against the plaque's light
+   streaks, and the stop you stand at is no longer greyed out like a locked one: it reads as the current stop in gold. */
+.jade-shell .jade-mrt-line small, .jade-shell .jade-taxi-list small { opacity: 1; color: var(--ink); font-weight: 800; font-size: 13px;
+  background: rgba(10, 8, 24, .78); border-radius: 999px; padding: 3px 11px; text-shadow: none; white-space: nowrap; }
+.jade-shell .jade-mrt-line .jade-btn:not(.plain), .jade-shell .jade-taxi-list .jade-btn { text-shadow: 0 1px 0 #06241a, 0 0 6px rgba(0,0,0,.85), 0 0 2px rgba(0,0,0,.9); }
+.jade-shell .jade-mrt-line .jade-btn:disabled, .jade-shell .jade-taxi-list .jade-btn:disabled { filter: grayscale(.85) brightness(.8); opacity: .9; }
+.jade-shell .jade-mrt-line .jade-btn.here:disabled { filter: none; opacity: 1; cursor: default; border-color: var(--gold); background: rgba(52, 38, 92, .95); color: var(--ink); }
+.jade-shell .jade-mrt-line .jade-btn.here small { color: #2a1a06; background: var(--gold); }
+.jade-mrt-line .jade-btn.here::before { left: -22px; background: var(--gold); border-color: #c8323c; }
 /* pass 13: the district names clear the buttons' gold end caps, and a red line beside the list joins the stops like a
    line diagram (a dot per stop) */
 .jade-shell .jade-mrt-line { position: relative; padding-left: 22px; }

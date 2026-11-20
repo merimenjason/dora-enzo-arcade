@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 21-11-2026
+
+### Fixed
+
+- **Jade Street**: the MRT gates are easier to read. Each stop's district (and the taxi list's fare) sits on a dark chip instead of faded beige on the jade plaque. The station names have a firmer shadow, and the stop you are at shows in gold as "you are here" instead of greyed out like a locked one.
+
 ## 20-11-2026
 
 ### Added
