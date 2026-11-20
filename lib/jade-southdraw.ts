@@ -14,6 +14,16 @@ type Vis = (px: number, py: number, m?: number) => boolean;
 const CANOPY = ['rgba(255,120,190,.2)', 'rgba(120,190,255,.2)', 'rgba(190,140,255,.2)'];
 /** how high the Slingshot's capsule is (world units) `t` seconds into a ride: up fast, a hang, back down */
 export const slingLift = (t: number) => { const k = Math.max(0, Math.min(1, t / SLING_S)); return Math.sin(k * Math.PI) ** 0.6 * 300; };
+/** the size Jurong Lake's painted bank is drawn at (world units): the ring's stones sit on the water's stepped tile edge,
+ * so the shore reads as one smooth curve (the sixteenth pass) */
+export const LAKE_BANK: [number, number] = [1150, 750];
+/** under everything: Jurong Lake's smooth bank, one Codex decal over the lake's tiles */
+export function southGround(sc: Scene, x: X, w: World, vis: Vis) {
+  const S = w.c.south; if (!S || !w.open.has('jurong')) return;
+  const [lx, ly] = S.lake;
+  if (vis(lx, ly, 700)) spr(x, 'lake-bank', lx, ly, { w: LAKE_BANK[0], h: LAKE_BANK[1], anchor: 'center' });
+  void sc;
+}
 export function southSorted(sc: Scene, x: X, w: World, list: List, vis: Vis) {
   const S = w.c.south; if (!S) return;
   // the Slingshot's capsule: waiting at the foot of the towers, or up in the air with the rider

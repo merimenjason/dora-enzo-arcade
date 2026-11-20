@@ -19,8 +19,10 @@ export const ZONE_OF: Record<District, Zone> = {
 
 const ATLAS_TIER: Record<string, Tier> = {
   'atlas-dora': 'core', 'atlas-enzo': 'core', 'atlas-ui': 'core', 'atlas-folk': 'core', 'atlas-rides': 'core',
-  // the fifteenth pass's four rides and the heroes' poses on them: each can be ridden anywhere, so they never wait for a zone
-  'atlas-rides15': 'core',
+  // the fifteenth pass's four rides and the heroes' poses on them: each can be ridden anywhere, so they wait for no zone.
+  // Core until the sixteenth pass; now in the job tier (streamed first after the title, let go only over the budget
+  // and never during a job), which took 4 MB off the always-held core and kept the memory soak under 320 MB
+  'atlas-rides15': 'job',
   'atlas-city': 'town', 'atlas-city2': 'town', 'atlas-props': 'town', 'atlas-sg': 'town', 'atlas-set': 'town', 'atlas-empire': 'town', 'atlas-cast-town': 'town',
   'atlas-dora2': 'job', 'atlas-enzo2': 'job', 'atlas-faces-town': 'job', 'atlas-set2': 'job', 'atlas-empire2': 'job', 'atlas-sg2': 'job', 'atlas-props2': 'job', 'atlas-gear': 'job', 'atlas-jobs': 'job', 'atlas-aware': 'job',
   'atlas-mg': 'mini',
@@ -29,6 +31,9 @@ const ATLAS_TIER: Record<string, Tier> = {
   'atlas-resort': 'resort', 'atlas-resort2': 'resort', 'atlas-cast-resort': 'resort', 'atlas-faces-resort': 'resort',
   'atlas-far': 'far', 'atlas-far2': 'far', 'atlas-cast-far': 'far', 'atlas-faces-far': 'far',
   'atlas-south': 'south', 'atlas-south2': 'south', 'atlas-cast-south': 'south', 'atlas-faces-south': 'south',
+  // the sixteenth pass: the heroes' new ride actions stream with the job art (until then they ride in their everyday
+  // frames); the two new givers, the six new stands and Jurong Lake's bank stream with their zones
+  'atlas-act16': 'job', 'atlas-cast16-far': 'far', 'atlas-cast16-south': 'south', 'atlas-stands16': 'south', 'atlas-lake16': 'south',
 };
 const TEX_TIER: Record<string, Tier> = {
   road: 'core', walk: 'core', plaza: 'core', grass: 'core', canal: 'core', plank: 'core', temple: 'core', sea: 'core', dock: 'core', neon: 'core', path: 'core', cobble: 'core',
