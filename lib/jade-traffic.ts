@@ -85,12 +85,15 @@ export function trafficStep(w: World, dt: number) {
     // (21-11) cars: the one ahead in your own lane is measured to its tail, so a queue no longer piles cars on top of
     // each other; a car crossing your path is waited for, but after 1.5 s of waiting you go (the first of two stuck
     // cars by id), which ends the junction gridlock where two cars each waited on the other forever
+    // (22-11) and a car that has gone on that way stays gone until the crossing car is behind it: its wait no longer
+    // resets the moment it is up to speed, which had a junction full of cars each creeping a few pixels in turn for a
+    // minute (crossNear: a crossing car it is ignoring would still be in its way)
     const waited = (c.wait ?? 0) > 1.5;
-    let crossHeld = false;
+    let crossHeld = false, crossNear = false;
     for (const o of w.cars) if (o !== c) {
       const lane = o.r === c.r && o.d === c.d;
       if (lane) { look(o.x, o.y, o.rad, o.len / 2 - 22); continue; }
-      if (waited && !((o.wait ?? 0) > 1.5 && o.id < c.id)) continue;
+      if (waited && !((o.wait ?? 0) > 1.5 && o.id < c.id)) { const b1 = block; look(o.x, o.y, o.rad); if (block < c.len / 2 + 80) crossNear = true; block = b1; continue; }
       const b0 = block; look(o.x, o.y, o.rad); if (block < b0) crossHeld = true;
     }
     look(px, py, w.p.ride ? w.p.ride.b.r : 12);
@@ -115,7 +118,7 @@ export function trafficStep(w: World, dt: number) {
     const want = block < c.len / 2 + 22 ? 0 : block < c.len / 2 + 80 ? c.cruise * 0.35 : c.cruise;
     c.speed += Math.max(-500 * dt, Math.min(260 * dt, want - c.speed));
     if (c.speed < 5 && block < 1e9 && !held) c.stopT += dt; else c.stopT = 0;
-    c.wait = c.speed < 5 && crossHeld && !held ? (c.wait ?? 0) + dt : c.speed > 30 ? 0 : (c.wait ?? 0);
+    c.wait = c.speed < 5 && crossHeld && !held ? (c.wait ?? 0) + dt : c.speed > 30 && !crossNear ? 0 : (c.wait ?? 0);
     if (c.stopT > 2.5 && dist(px, py, c.x, c.y) < 200) { c.stopT = 0; w.fx.push({ t: 'car-honk', x: c.x, y: c.y }); }
     c.wob = Math.max(0, c.wob - dt);
     const s0 = c.s; c.s += c.d * c.speed * dt;
