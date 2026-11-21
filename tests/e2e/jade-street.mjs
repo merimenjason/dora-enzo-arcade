@@ -29,6 +29,7 @@ import { sixteenth } from './jade-street-16.mjs';
 import { seventeenth } from './jade-street-17.mjs';
 import { eighteenth } from './jade-street-18.mjs';
 import { nineteenth } from './jade-street-19.mjs';
+import { twentieth, fleetPerks } from './jade-street-20.mjs';
 const require = createRequire(import.meta.url);
 let chromium;
 try { ({ chromium } = require('playwright')); } catch { ({ chromium } = createRequire(process.cwd() + '/')('playwright')); }
@@ -165,6 +166,7 @@ async function viewport(name, w, h, touch) {
   if (process.env.PASS === '7') { await W(() => { window.__jade.world().s.settings.partner = 'tag'; }); if (!touch) await seventh({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '3') { if (!touch) await third({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '19') { if (!touch) await nineteenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
+  if (process.env.PASS === '20') { if (!touch) { const hh = { p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }; if (!process.env.FLEET_ONLY) await twentieth(hh); await fleetPerks(hh); } await ctx.close(); return; }
   if (process.env.PASS === '18') { if (!touch) await eighteenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '17') { if (!touch) await seventeenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '16') { if (!touch) await sixteenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }

@@ -86,13 +86,13 @@ test('chapter eleven: ten jobs in Kallang, a mix of steps, at most a third chase
   assert.doesNotMatch(readFileSync(new URL('../app/jade-street/story.tsx', import.meta.url), 'utf8'), /bg-end-11|chapter 11 ending/i);
   const s = newSave(); s.done = MISSIONS.filter(m => m.ch <= 10).map(m => m.id); assert.equal(chapterOf(s), 11);
   s.done = MISSIONS.map(m => m.id); assert.equal(chapterOf(s), 13);
-  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 95); assert.equal(jc.talesAll, 32);
+  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 95); assert.equal(jc.talesAll, 38);
   // no Hari Raya bazaar and no durians in this chapter
   const text = JSON.stringify([...ten, ...TALES.map(id => MISSION[id])]); assert.doesNotMatch(text, /durian|bazaar|Hari Raya/i);
 });
 
 test('three Hawker Tales in Kallang, each at its own place so its giver waits there', () => {
-  assert.deepEqual(SIDE.slice(-6, -3).map(m => m.id), TALES); // (the nineteenth pass's three in Mandai after these)
+  assert.deepEqual(SIDE.slice(-12, -9).map(m => m.id), TALES); // (the nineteenth pass's three in Mandai and the twentieth's six after these)
   for (const id of TALES) {
     const m = MISSION[id]; assert.ok(inKallang(c.places[m.at].x, c.places[m.at].y), `${id} in Kallang`);
     assert.ok(!MISSIONS.filter(x => x.ch === 11).some(x => x.at === m.at), `${id} not at a chapter-eleven job's place`);

@@ -46,7 +46,7 @@ function mateAboard(w, r) {
 }
 
 test('the four new rides: names, blurbs, stats, seats and classes, each unlike the six older kinds', () => {
-  assert.deepEqual(VEHICLE_KINDS, [...OLD, ...NEW]);
+  assert.deepEqual(VEHICLE_KINDS, [...OLD, ...NEW, 'cab', 'kayak']); // (the twentieth pass's two perk rides after them: tests/jade-twenty.mjs)
   for (const k of NEW) {
     const v = VEHICLES[k]; assert.ok(v.name && v.blurb.length > 40, k);
     // no older kind shares its speed, size, class and seats
