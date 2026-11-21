@@ -583,6 +583,15 @@ export class World {
     // a job's ride step: its ride wins over a festival stage or a stall beside it
     const jr = this.run?.cur?.t === 'ride' ? this.run.ride : null;
     if (jr && jr.parked && dist(jr.b.x, jr.b.y, x, y) < 80) best = { kind: 'ride', label: `${jr.locked ? 'Jump-start' : 'Ride'} the ${VEHICLES[jr.kind].name.toLowerCase()}`, x: jr.b.x, y: jr.b.y, ride: jr };
+    // (21-11) and when the step wants a bike, a bike in reach beats the tandem parked nearer you (Ubin's rental parks
+    // its tandem in the row of bikes, and E there kept offering the tandem to someone told to take a bike)
+    const want = this.run?.cur?.t === 'ride' && !(this.run.cur as { locked?: boolean }).locked ? (this.run.cur as { kind: VehicleKind }).kind : null;
+    const bn = best as Near | null;
+    if (want && bn?.kind === 'ride' && bn.ride && bn.ride.kind !== want) {
+      let pick: Ride | null = null, pd = 70;
+      for (const r of this.rides) if (r.parked && r.kind === want && dist(r.b.x, r.b.y, x, y) < pd) { pd = dist(r.b.x, r.b.y, x, y); pick = r; }
+      if (pick) best = { kind: 'ride', label: `Ride the ${VEHICLES[pick.kind].name.toLowerCase()}`, x: pick.b.x, y: pick.b.y, ride: pick };
+    }
     if (stn && this.run?.cur?.t === 'train' && (best as Near | null)?.kind === 'ride') best = { kind: 'station', label: `${stn.name}: take the train`, x: stn.x, y: stn.y, id: stn.id };
     this.near = best;
   }

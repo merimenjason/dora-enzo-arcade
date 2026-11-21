@@ -10,8 +10,14 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 - **Jade Street**: a new gang, the Tusker Boys, wild boars who root about Ubin's tracks. Shoo one off its dig (E) for whatever it dug up. If one paws the ground at you, step off the track before it charges; one that misses ends up dizzy, and E catches it. Also on the island: shake a durian tree, catch it and eat it, and look out from the top of Jejawi Tower.
 - **Jade Street**: chapter ten, "Kampong Spirit": ten new jobs on Pulau Ubin with three new givers (Kak Ayu, Auntie Lan and Uncle Belangkas), and three new Hawker Tales (Kampong Post, Crab Count and Stinky Cargo). A new kind of job step: follow a boar trail by reading each set of hoof prints (E), which shows the next set and the way it heads, before the rain washes them away. Watch for old prints that lead nowhere. Four new trophies.
 
+### Changed
+
+- **Jade Street**: crate-swap jobs say more about what to do. "Go!" now shows only when no guard is watching the crate you are at, instead of whenever any guard looks away. A watched crate says so and names F to send your partner. If a guard hears your feet, you are told to hold Shift and sneak. The HUD calls guards by their gang (a boar, a lizard, a mynah), and each job names its own loot (Sacks for Sacks swaps loot sacks).
+- **Jade Street**: when a job tells you to take a bike, E by the rack picks a bike, even when a tandem is parked nearer.
+
 ### Fixed
 
+- **Jade Street**: on the sneak-in jobs to the Rain Vortex and the pagoda, the objective named the yard office from an older job. It now names where you are going, and on the way out tells you to follow the gold line.
 - **Jade Street**: Dora has both ears again in the MRT ride painting.
 - **Jade Street**: the MRT gates are easier to read. Each stop's district (and the taxi list's fare) sits on a dark chip instead of faded beige on the jade plaque. The station names have a firmer shadow, and the stop you are at shows in gold as "you are here" instead of greyed out like a locked one.
 - **Jade Street**: Kak Melati could not be seen at Clarke Quay, because she stands under one of the river canopies, which were drawn over everyone. Canopies and other overhead props now turn see-through over the heroes and any job giver standing under them.

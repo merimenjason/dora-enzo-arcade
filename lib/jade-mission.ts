@@ -33,7 +33,7 @@ import { lineAt, stationNear } from './jade-mrt.js';
 import { jobEnter, jobStep, jobNear, jobAct, jobMini, jobTag, jobGuardGoal, jobTarget, jobAim, jobGadget, walkOnly, heistPick, branchPick, askPick, askClose, type JobState, type BranchPick } from './jade-jobs.js';
 import type { Intel } from './jade-story.js';
 import { hear, type Mind, newMind, tune } from './jade-aware.js';
-import { crewWatch, crewLabel } from './jade-jobs.js';
+import { crewWatch, crewLabel, swapNoun } from './jade-jobs.js';
 
 export type Gig = { key: string; reward: number; d: District };
 export type Actor = { id: number; kind: string; b: Body; route: [number, number][]; wp: number; speed: number; t: number; stun: number; look: number; lookCd: number; face: number; gone: boolean; hits: number; extra?: number;
@@ -592,10 +592,10 @@ export class Run {
     if (this.phase === 0) {
       const [gx, gy] = this.spot(st.goal);
       const shut = !!st.shutter && !holding(this);
-      this.label = busy ?? (shut ? (w.mate.ai.mode === 'hold' ? `${nameOf(w.mate.who)} is sneaking round to the shutter lever…` : `The office shutter is down: send ${nameOf(w.mate.who)} to hold its lever (F)`) : 'Reach the yard office unseen');
+      this.label = busy ?? (shut ? (w.mate.ai.mode === 'hold' ? `${nameOf(w.mate.who)} is sneaking round to the shutter lever…` : `The office shutter is down: send ${nameOf(w.mate.who)} to hold its lever (F)`) : stealthGoal(st.label));
       if (dist(p.x, p.y, gx, gy) < 60 && !p.act && !shut) { p.act = { n: 'pickup', t: 0, dur: 0.45, then: () => { p.carry = 'manifest'; w.fx.push({ t: 'pickup' }); this.phase = 1; releaseMate(this); this.snap = { ...this.snapshot(this.i), phase: 1 }; w.fx.push({ t: 'checkpoint' }); } }; }
     } else {
-      const [ex, ey] = this.spot(st.exit); this.label = busy ?? 'Sneak back out through the gate';
+      const [ex, ey] = this.spot(st.exit); this.label = busy ?? 'Got it! Now sneak out along the gold line, unseen';
       if (dist(p.x, p.y, ex, ey) < 70) { p.carry = null; this.next(); }
     }
   }
@@ -722,6 +722,12 @@ export class Run {
 }
 
 
+/** a stealth step's way in, from its label ("Send {mate} to the gate lever (F), reach the fort unseen, then get out"
+ * reads "Reach the fort unseen" once the gate is open) */
+export function stealthGoal(label: string) {
+  const s = label.replace(/^Send \{mate\} to [^,]*, /, '').replace(/, then get out$/, '');
+  return s[0].toUpperCase() + s.slice(1);
+}
 /** what the failure card says when a step's timer runs out */
 function timeUp(st: Step): string {
   if (st.t === 'deliver') return st.item === 'cake' ? 'The cake melted!' : st.item === 'crate' ? 'Chef Mo’s queue gave up waiting for the mangoes!' : 'Out of time! The parcel was too late.';
@@ -731,7 +737,7 @@ function timeUp(st: Step): string {
   if (st.t === 'race') return 'Out of time! Cut the corners and use your boost.';
   if (st.t === 'fares') return 'The fare got fed up and walked! Drive them home quicker.';
   if (st.t === 'detective') return 'Out of time! Ask the right question, then search only the spot that fits every clue.';
-  if (st.t === 'swap') return 'Out of time! The crates are being loaded. Swap faster while the guards look away.';
+  if (st.t === 'swap') return `Out of time! The ${st.thing ?? 'crate'}s are being moved. Swap each one the moment it says Go!, and send your partner (F) at a ${swapNoun(st.skin)} in your way.`;
   if (st.t === 'heist') return 'Out of time! The crows got back on their feet. Head straight for the safe.';
   if (st.t === 'track') return 'The rain washed the prints away! Read each set (E), then head the way it says.';
   return 'Out of time!';

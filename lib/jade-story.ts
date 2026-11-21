@@ -97,7 +97,7 @@ export type Step =
   /** the seventeenth pass (lib/jade-track.ts): follow a boar trail, reading each set of hoof prints (E) to show the
    * next; `old`: crusted prints off the line (shown once fresh set `oldAt` is read) that lead nowhere; `time`: the rain */
   | { t: 'track'; route: Spot[]; old?: Spot[]; oldAt?: number; time?: number; label: string; cp?: boolean }
-  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat' | 'boar'; label: string; cp?: boolean };
+  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat' | 'boar'; /** what the HUD calls a crate ('loot sack') */ thing?: string; label: string; cp?: boolean };
 /** what a photo while casing tells you: the back way in, the guards' beats, where the cameras are wired, the safe's make */
 export type Intel = 'door' | 'rota' | 'cam' | 'safe';
 /** a witness: `ask` are the three questions on offer, `right` the one that gets the clue (its `tag` must be among the
@@ -933,8 +933,10 @@ export const MISSIONS: Mission[] = mvMissions([
   { id: 'm72', ch: 10, title: 'Sacks for Sacks', giver: 'ayu', at: 'ayu', reward: 790, rep: 20, blurb: 'Everything the Tusker Boys have dug up is in sacks at their den: the shop’s maps, the temple’s old bell, the stage’s lost props. Swap each sack for a sack of tapioca while they snore.',
     steps: [
       { t: 'talk', lines: [['ayu', 'They snore after midnight. Everyone on the island hears it. Like a lorry with a cold.', 'happy'], ['ayu', 'Here: tapioca sacks, same size. Boars love tapioca. They’ll never notice.', 'happy']] },
-      { t: 'goto', at: [347, 104], label: 'Creep up Jalan Mamam to the den', ride: 'foot', cp: true },
-      { t: 'swap', crates: [[346, 101], [351, 101], [349, 103], [352, 103]], guards: [[[345, 102], [353, 102]], [[350, 104], [350, 100]]], time: 90, decoy: 'decoy', skin: 'boar', label: 'Swap a tapioca sack for each loot sack (E) while the boars look away', cp: true },
+      { t: 'goto', at: [349, 106], label: 'Creep up Jalan Mamam to the den', ride: 'foot', cp: true },
+      // (the loot sacks sit on dry ground round the hut, clear of Pekan Quarry's pond: two by the hut, two by the
+      // pond's west bank; one boar paces in front of the door, one up and down the bank between the lower two)
+      { t: 'swap', crates: [[344, 100], [351, 99], [343, 103], [347, 104]], guards: [[[346, 101], [352, 101]], [[345, 102], [345, 105]]], time: 90, decoy: 'decoy', skin: 'boar', thing: 'loot sack', label: 'Sneak (hold Shift) to each loot sack and swap in a tapioca sack (E) when no boar is watching it', cp: true },
       { t: 'goto', at: 'ayu', label: 'Take the sacks back to Kak Ayu at the bicycle rental' },
       { t: 'talk', lines: [['ayu', 'The maps! The temple bell! And what is this, wrapped in oilcloth?', 'happy'], ['hero', 'Half a page, torn. Old ink. A quarry, a winch, a cross, and on the back, a ship with black sails.', 'worried'], ['ayu', 'Half. So someone has the other half.', 'worried']] },
     ] },
@@ -1174,7 +1176,9 @@ export const SIDE: Mission[] = mvMissions([
   { id: 'k24', side: 'm66', ch: 0, title: 'Kampong Post', giver: 'ayu', at: 'bikes-ubin', reward: 280, rep: 12, blurb: 'The postman’s bike has a flat, so the kampong’s letters go by Kak Ayu’s tandem today. Pedal the round and drop each bundle at the door without stopping.',
     steps: [
       { t: 'talk', lines: [['ayu', 'Postman Ah Seng has a puncture and forty letters. You ride, I’ll mend.', 'happy'], ['mate', 'You pedal, I throw. Partners.', 'smug']] },
-      { t: 'ride', kind: 'tandem', near: 'bikes-ubin', label: 'Take Kak Ayu’s tandem from the rental (E): {mate} rides on the back', cp: true },
+      // (the rental's own tandem, parked past the bike rack: near the rental's door, a spare once spawned boxed in
+      // between a coconut palm, the shop and the pond)
+      { t: 'ride', kind: 'tandem', near: [351, 119], label: 'Take Kak Ayu’s tandem from the rental (E): {mate} rides on the back', cp: true },
       { t: 'toss', marks: [[344, 113], [351, 113], [356, 110], [356, 107]], item: 'parcel', time: 80, label: 'Pedal past the four kampong doors: F near each one and {mate} tosses the letters', cp: true },
       { t: 'talk', lines: [['ayu', 'Every letter home, and not one in a puddle. Ah Seng says you can have his round.', 'happy']] },
     ] },

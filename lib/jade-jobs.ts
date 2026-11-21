@@ -624,19 +624,24 @@ export function crateWatched(run: Run, x: number, y: number) {
   const rg = sightRange(run) * 1.1, half = cone(run) * 1.2;
   return run.actors.some(a => a.kind === 'guard' && !blind(a) && a.look <= 0 && !((a.stare ?? 0) > 0) && dist(a.b.x, a.b.y, x, y) < rg && Math.abs(angDiff(a.b.h, Math.atan2(y - a.b.y, x - a.b.x))) < half);
 }
+/** what the swap's guards are, in the HUD's words (the boars of Pulau Ubin, a gang's lizards; plain guards otherwise) */
+export const swapNoun = (skin?: string) => skin === 'boar' ? 'boar' : skin === 'liz' ? 'lizard' : skin === 'myna' ? 'mynah' : skin === 'bat' ? 'bat' : 'guard';
 function swapStep(run: Run, st: St<'swap'>, dt: number) {
-  const w = run.w, p = w.p;
+  const w = run.w, p = w.p, g = swapNoun(st.skin), what = st.thing ?? 'crate', mate = nameOf(w.mate.who);
   const swapping = p.act?.n === 'crate-swap';
   const nearCrate = run.items.some(it => !it.got && dist(it.x, it.y, p.x, p.y) < 200);
   // a guard only cares about someone near the crates (and very much about someone at one)
   if (crewWatch(run, dt, { kind: 'guard', look: true, rate: () => swapping ? 2.4 : nearCrate ? (p.sneak ? 0.5 : 1) * 0.8 : 0, calm: run.assist ? 0.75 : 1,
-    warn: swapping ? 'A guard is looking right at you!' : 'A guard is watching the crates! Wait for them to look away.',
-    spotted: 'A guard caught you at the crates! Swap while they look the other way, or have your partner distract them (F).', caught: 'A guard grabbed you by the crates! When one shouts, run for cover.' })) return;
-  // a guard looking over their shoulder: how long you have
-  const away = run.actors.filter(a => a.kind === 'guard' && a.look > 0).map(a => a.look);
-  run.label = crewLabel(run) ?? (swapping ? 'Swapping… keep your head down' : away.length ? `Go! A guard is looking away (${Math.max(...away).toFixed(1)} s)` : st.label);
+    warn: swapping ? `A ${g} is looking right at you!` : `A ${g} can see you! Back off out of its sight, or F: ${mate} distracts it.`,
+    spotted: `A ${g} caught you at the ${what}s! Swap only when the ${what} you are at is unwatched, or have ${mate} distract them (F).`, caught: `A ${g} grabbed you by the ${what}s! When one shouts, run for cover.` })) return;
+  // what the HUD says, from what you can see: the sack you are at watched or not; a guard who heard your feet
+  const at = w.near?.kind === 'job' && w.near.id?.startsWith('swap:') ? run.items[+w.near.id.split(':')[1]] : null;
+  const heard = run.actors.some(a => a.kind === 'guard' && (a.mind?.st === 'sus' || a.mind?.st === 'look') && a.mind.why === 'heard');
+  run.label = crewLabel(run) ?? (swapping ? 'Swapping… keep your head down'
+    : at ? (crateWatched(run, at.x, at.y) ? `A ${g} can see this ${what}: wait till it turns away, or F: ${mate} distracts it` : `Go! No ${g} is watching this ${what}: E to swap it`)
+    : heard && !p.sneak && p.b.speed > 8 ? `A ${g} heard your feet! Hold Shift to sneak, and keep out of its way` : st.label);
   // after a slip-up, the partner's distraction is the tip
-  if (run.retries > 0 && !run.js!.tipped) { run.js!.tipped = true; run.warn('Tip: press F and your partner distracts the guards while you swap.'); }
+  if (run.retries > 0 && !run.js!.tipped) { run.js!.tipped = true; run.warn(`Tip: press F and ${mate} distracts the ${g}s while you swap.`); }
 }
 
 // ── what E does in these steps (Near kind 'job'; World.interact calls jobAct with its id)
@@ -672,7 +677,7 @@ export function jobNear(run: Run, x: number, y: number): Near | null {
     }
     case 'swap': {
       let best = -1, bd = 1e9; run.items.forEach((it, i) => { if (it.got) return; const d = dist(it.x, it.y, x, y); if (d < 64 && d < bd) { bd = d; best = i; } });
-      return best >= 0 ? near('Slip the decoy into the crate', `swap:${best}`) : null;
+      return best >= 0 ? near(st.thing ? `Swap the ${st.thing}` : 'Slip the decoy into the crate', `swap:${best}`) : null;
     }
   }
   return null;
@@ -780,7 +785,7 @@ export function jobTag(run: Run): TagOpt | null {
   const quiet = st.t === 'case' || st.t === 'swap' || (st.t === 'heist' && js.mode === 'quiet' && js.ph >= 1);
   if (quiet && !p.ride && !m.seat) {
     const a = run.actors.filter(a => a.kind === 'guard' && !blind(a)).sort((a, b) => dist(a.b.x, a.b.y, p.x, p.y) - dist(b.b.x, b.b.y, p.x, p.y))[0];
-    if (a && dist(a.b.x, a.b.y, p.x, p.y) < 520) return { kind: 'distract', label: `${n} distracts the guard`, go: () => { distract(w, a.b.x, a.b.y, 6); a.stare = 6.5; a.stareAt = m.who; } };
+    if (a && dist(a.b.x, a.b.y, p.x, p.y) < 520) return { kind: 'distract', label: `${n} distracts the ${st.t === 'swap' ? swapNoun(st.skin) : 'guard'}`, go: () => { distract(w, a.b.x, a.b.y, 6); a.stare = 6.5; a.stareAt = m.who; } };
   }
   return null;
 }
@@ -811,7 +816,8 @@ export function jobTarget(run: Run): [number, number] | null | undefined {
       if (free.length) return [it.x, it.y];
       const g = run.actors.filter(a => a.kind === 'guard').sort((a, b) => dist(a.b.x, a.b.y, it.x, it.y) - dist(b.b.x, b.b.y, it.x, it.y))[0];
       if (!g) return [it.x, it.y];
-      const a = Math.atan2(it.y - g.b.y, it.x - g.b.x); return [it.x + Math.cos(a) * 170, it.y + Math.sin(a) * 170];
+      // (on ground you can stand on: never a spot in a pond or a wall)
+      const a = Math.atan2(it.y - g.b.y, it.x - g.b.x); return nearestFree(run.w.c, 'walk', it.x + Math.cos(a) * 170, it.y + Math.sin(a) * 170, run.w.open, 4);
     }
   }
   return undefined;
