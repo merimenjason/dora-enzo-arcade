@@ -19,7 +19,7 @@ import { playMission } from './jade-bot.mjs';
 let n = 0;
 const test = (name, fn) => { try { fn(); n++; } catch (e) { console.error('FAILED:', name); throw e; } };
 const c = city();
-const ALL = ['market', 'temple', 'canal', 'docks', 'arcade', 'heartland', 'bay', 'india', 'glam', 'resort', 'orchard', 'katong', 'changi', 'tiong', 'quay', 'jurong', 'pulau', 'kallang', 'mandai'];
+const ALL = ['market', 'temple', 'canal', 'docks', 'arcade', 'heartland', 'bay', 'india', 'glam', 'resort', 'orchard', 'katong', 'changi', 'tiong', 'quay', 'jurong', 'pulau', 'kallang', 'mandai', 'islands'];
 /** a save that has finished the story, with reputation everywhere and coins to spend */
 function rich(seed = 5, o = {}) {
   const s = newSave(seed); s.started = true; s.story.intro = true; s.done = [...MISSIONS.map(m => m.id), ...SIDE.map(m => m.id)];
@@ -30,16 +30,18 @@ const world = (s, seed = 9) => { const w = new World(s, seed); w.quiet = true; r
 const idle = (w, sec) => { for (let i = 0; i < sec * 60; i++) w.step(NO_INPUT, DT); };
 
 test('forty-four properties in every district: on clear pavement, reachable on foot, apart, and painted at four levels', () => {
-  assert.equal(BIZ.length, 47); assert.equal(PROPS.length, 36);
+  assert.equal(BIZ.length, 50); assert.equal(PROPS.length, 39);
   const ids = new Set(BIZ.map(b => b.id)); assert.equal(ids.size, BIZ.length, 'ids are unique');
   for (const d of ALL) assert.ok(BIZ.some(b => b.d === d), `a property in ${d}`);
   const sm = c.places['safe-market']; const f = field(c, 'foot', Math.floor(sm.x / T), Math.floor(sm.y / T), new Set(ALL));
   // Pulau Ubin is over the strait (the bumboat): its properties are walked to from its jetty
   const uj = c.places['jetty-ubin'], fu = field(c, 'foot', Math.floor(uj.x / T), Math.floor(uj.y / T), new Set(ALL));
+  // (and the Southern Islands' from St John's jetty, where the island ferry lands)
+  const ij = c.places['isl-jetty'], fi = field(c, 'foot', Math.floor(ij.x / T), Math.floor(ij.y / T), new Set(ALL));
   for (const b of PROPS) {
     assert.equal(districtAt(b.at[0], b.at[1]), b.d, `${b.id} stands in ${b.d}`);
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) assert.equal(c.solid[(b.at[1] + dy) * W + b.at[0] + dx], S.OPEN, `${b.id} on open ground`);
-    assert.ok(f.dist[b.at[1] * W + b.at[0]] >= 0 || fu.dist[b.at[1] * W + b.at[0]] >= 0, `${b.id}: you can walk to it`);
+    assert.ok(f.dist[b.at[1] * W + b.at[0]] >= 0 || fu.dist[b.at[1] * W + b.at[0]] >= 0 || fi.dist[b.at[1] * W + b.at[0]] >= 0, `${b.id}: you can walk to it`);
     assert.ok(PEOPLE[b.keeper], `${b.id} has a keeper`);
     for (const o of BIZ) if (o !== b) assert.ok(Math.hypot(o.at[0] - b.at[0], o.at[1] - b.at[1]) >= 3, `${b.id} and ${o.id} apart`);
     for (const p of Object.values(c.places)) assert.ok(Math.hypot(p.x / T - b.at[0] - 0.5, p.y / T - b.at[1] - 0.5) >= 2.5, `${b.id} clear of a place`);
@@ -55,7 +57,7 @@ test('buying, upgrading and takings: three levels, a till that fills through the
   const r = bizRate(s, 'kopitiam', [...w.open]).rate; assert.ok(r > BIZ_OF.kopitiam.income[3] * 0.8, 'level 3 takings');
   const rn = bizRate(s, 'kopitiam', [...w.open], { daily: w.event, festival: w.festival }).rate; accrue(w, 360); assert.ok(Math.abs(s.biz.kopitiam.bank - rn / 2) < 2, 'half a night, half the takings');
   closeNight(s); assert.equal(s.biz.kopitiam.hist.length, 1);
-  const L = ledger(w); assert.equal(L.mine, 1); assert.equal(L.all, 47); assert.ok(L.till > 0 && L.tonight > 0);
+  const L = ledger(w); assert.equal(L.mine, 1); assert.equal(L.all, 50); assert.ok(L.till > 0 && L.tonight > 0);
   assert.ok(w.collectBiz('kopitiam') >= Math.floor(rn / 2) - 1);
   // reputation gates the sale; fog gates the district
   const s2 = rich(6, { rep: 0 }); const w2 = world(s2); assert.match(w2.buyBiz('taxi') ?? '', /reputation/);
@@ -208,7 +210,8 @@ test('pacing: a careful player who reinvests owns everything in three to five ho
   const night = 720 / 0.85 / 60;
   // (the slowest earner gets five and a half hours since the seventeenth pass's three Ubin properties; the eighteenth pass's three in Kallang bring the whole empire past 200,000)
   for (const [A, lo, hi] of [[45, 180, 300], [30, 180, 330], [60, 170, 300]]) { const m = sim(A, night); assert.ok(m >= lo && m <= hi, `${A} coins a minute: everything in ${(m / 60).toFixed(1)} h`); }
-  assert.ok(EMPIRE_COST > 120000 && EMPIRE_COST < 220000, `the whole empire costs ${EMPIRE_COST}`);
+  // (the twenty-first pass's three on the Southern Islands bring it past 220,000; the hours above still hold)
+  assert.ok(EMPIRE_COST > 120000 && EMPIRE_COST < 250000, `the whole empire costs ${EMPIRE_COST}`);
 });
 
 test('discoverability: properties for sale say their price at the door; a hint once one is affordable; the empire tab’s pins', () => {

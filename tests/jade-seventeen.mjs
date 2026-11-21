@@ -96,7 +96,7 @@ test('chapter ten: ten jobs on the island, a mix of steps, at most a third chase
 });
 
 test('three Hawker Tales on the island, each at its own place so its giver waits there', () => {
-  assert.deepEqual(SIDE.slice(-15, -12).map(m => m.id), TALES); // (the eighteenth pass's three in Kallang, the nineteenth's in Mandai and the twentieth's six after these)
+  assert.deepEqual(SIDE.slice(-18, -15).map(m => m.id), TALES); // (the eighteenth pass's three in Kallang, the nineteenth's in Mandai and the twentieth's six after these)
   for (const id of TALES) {
     const m = MISSION[id]; assert.ok(onUbin(c.places[m.at].x, c.places[m.at].y), `${id} on Ubin`);
     assert.ok(!MISSIONS.filter(x => x.ch === 10).some(x => x.at === m.at), `${id} not at a chapter-ten job's place`);

@@ -65,7 +65,7 @@ for (const m of [...MISSIONS, ...SIDE]) {
       case 'hold': go(st.lever, cls, `${what} lever`); go(st.through, cls, `${what} through`); break;
       // the MRT, the cable car, the ferry and the Ubin bumboat: walk to the gates, ride, step out at the other end
       case 'train': { const t = c.isle.stations.find(x => x.id === st.to); assert.ok(t, `${m.id} ${what}: station ${st.to}`); at = [t.x, t.y]; cls = 'foot'; break; }
-      case 'cable': { const t = [c.east.cable, c.east.ferry, c.ubin.boat].flatMap(l => l.stops).find(x => x.id === st.to); assert.ok(t, `${m.id} ${what}: stop ${st.to}`); at = [t.x, t.y]; cls = 'foot'; break; }
+      case 'cable': { const t = [c.east.cable, c.east.ferry, c.ubin.boat, c.islands.ferry].flatMap(l => l.stops).find(x => x.id === st.to); assert.ok(t, `${m.id} ${what}: stop ${st.to}`); at = [t.x, t.y]; cls = 'foot'; break; }
     }
   });
 }
@@ -81,7 +81,8 @@ for (const done of stages) {
     const ps = Object.values(c.places).filter(p => p.d === d).map(p => [p.x, p.y]);
     if (!ps.length) { for (let y = 0; y < H && !ps.length; y += 2) for (let x = 0; x < W; x += 2) if (districtAt(x, y) === d && passable(c, 'foot', x, y)) { ps.push([x * T + T / 2, y * T + T / 2]); break; } }
     // (Pulau Ubin is an island: walked from the bumboat's jetty, which the bumboat reaches from Changi Point)
-    const from = d === 'pulau' ? [c.places['jetty-ubin'].x, c.places['jetty-ubin'].y] : start;
+    // (and the Southern Islands from St John's jetty, which the island ferry reaches from Marina South Pier)
+    const from = d === 'pulau' ? [c.places['jetty-ubin'].x, c.places['jetty-ubin'].y] : d === 'islands' ? [c.places['isl-jetty'].x, c.places['isl-jetty'].y] : start;
     for (const p of ps) assert.ok(reach('foot', from, p, open, okey), `${d} (${tile(p[0])},${tile(p[1])}) on foot from the market, with ${okey} open`);
     pairs++;
   }

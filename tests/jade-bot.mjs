@@ -16,7 +16,7 @@ import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
 import { MISSIONS, MISSION, SIDE } from '../.checks/jade-story.js';
 import { newSave, available, offered } from '../.checks/jade-save.js';
 import { VEHICLES } from '../.checks/jade-move.js';
-import { T, W, S, F_ROOF, OW, city } from '../.checks/jade-city.js';
+import { T, W, S, G, F_ROOF, OW, city } from '../.checks/jade-city.js';
 import { unmvP } from '../.checks/jade-layout.js';
 import { downhill, los } from '../.checks/jade-nav.js';
 import { rng } from '../.checks/jade-rng.js';
@@ -61,6 +61,8 @@ export function missionSave(id, o = {}) {
   if (d === 'pulau') { s.safe = 'safe-ubin'; s.best['house:safe-ubin'] = 1; }
   // Kallang is far east of the market (the MRT's Stadium station): its jobs start from the hangar safe house
   if (d === 'kallang') { s.safe = 'safe-kallang'; s.best['house:safe-kallang'] = 1; }
+  // the Southern Islands are over the water (m96 takes the island ferry there): their jobs start from the bungalow on St John's
+  if (d === 'islands') { s.safe = 'safe-islands'; s.best['house:safe-islands'] = 1; }
   return s;
 }
 
@@ -486,6 +488,37 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
         const hush = /Shh|stirring|Creeping|creep/i.test(lab) && !/^Follow|^Walk|^Lead|^Take/.test(lab);
         if (/stirring/.test(lab) && (run.meter?.v ?? 0) > 0.6) { inp.mx = 0; inp.my = 0; inp.sneak = true; return; }
         inp.sneak = hush; go(tg[0], tg[1], hush ? 1 : undefined); return;
+      }
+      // the twenty-first pass: a tide crossing. The HUD says what the tide is doing and for how long; the coral heads are
+      // the dark rocks on the reef (the markers stand on them). While it is out, go for the next marker (or rock pool, E
+      // at it) if you can get there with a second or two to spare, else hop to the furthest-on rock you can reach in
+      // time, else wait where you are safe; when it turns or comes in, stand on your rock, or run to the nearest one
+      case 'tide': {
+        if (p.ride) { offFoot(); return; }
+        if (p.act) { inp.mx = 0; inp.my = 0; return; }
+        const lab = run.label, tg = run.target(); if (!tg) return;
+        // the seconds until the water comes over the reef: the low tide's count plus the turning warning (two seconds or
+        // more: a person has seen it every cycle), or the turning count itself
+        const out = /^Tide out \((\d+) s\)/.exec(lab), turn = /^Tide turning! (\d+) s/.exec(lab);
+        const secs = out ? +out[1] - 1 + 2 : turn ? +turn[1] - 1 : 0, spd = 82, rocks = w.c.islands?.rocks ?? [];
+        const reefAt = (x, y) => w.c.ground[Math.floor(y / T) * W + Math.floor(x / T)] === G.REEF;
+        const safeAt = (x, y) => !reefAt(x, y) || rocks.some(([rx, ry]) => dist(rx, ry, x, y) < 50);
+        const nearestRock = (x, y) => rocks.reduce((b, r) => !b || dist(r[0], r[1], x, y) < dist(b[0], b[1], x, y) ? r : b, null);
+        const here = safeAt(p.x, p.y) || /safe here|stay on the/.test(lab);
+        if (out && nearJob('pool:') && secs > 2) { press('act'); return; }
+        if (secs > 0) {
+          // to the target, and (a pool is open reef) the peer and the hop on to a rock after it
+          const d = dist(tg[0], tg[1], p.x, p.y), rk = nearestRock(tg[0], tg[1]);
+          const after = safeAt(tg[0], tg[1]) ? 0 : 1.1 + (rk ? dist(rk[0], rk[1], tg[0], tg[1]) / spd : 0);
+          if (d / spd + after + 0.4 + P.wob < secs) { go(tg[0], tg[1]); return; }
+          // else a rock nearer the target that can be reached in time
+          let best = null, bd = d - 30;
+          for (const [rx, ry] of rocks) { const e = dist(rx, ry, tg[0], tg[1]); if (e < bd && dist(rx, ry, p.x, p.y) / spd + 0.4 + P.wob < secs) { bd = e; best = [rx, ry]; } }
+          if (best) { go(best[0], best[1]); return; }
+        }
+        // nothing reachable in time (or the water is in): hold on your rock (or the sand), or run for the nearest rock
+        if (here) { inp.mx = 0; inp.my = 0; return; }
+        const r = nearestRock(p.x, p.y); if (r) go(r[0], r[1]); return;
       }
       // the twentieth pass: a round of drop-offs. Off any ride, follow the gold line to the nearest stop still waiting
       // and press E the moment the prompt shows; stand still while the pose plays

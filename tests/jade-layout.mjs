@@ -15,7 +15,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
 import { city, T, W, H, OLD_W, OLD_H, idx, districtAt, districtAtOld, ROADS, OLD_ROADS, CT_DISTRICTS, G } from '../.checks/jade-city.js';
-import { LAYOUT_MODE, LAYOUT, NW, NH, mvT, mvP, unmvT, blockNew, blockOld, UNIFORM } from '../.checks/jade-layout.js';
+import { LAYOUT_MODE, LAYOUT, NW, NH, mvT, mvP, unmvT, blockNew, blockOld, UNIFORM, BUILD_H, ISL } from '../.checks/jade-layout.js';
 import { MISSIONS, SIDE } from '../.checks/jade-story.js';
 import { newSave } from '../.checks/jade-save.js';
 import { castOf } from '../.checks/jade-cast.js';
@@ -40,8 +40,12 @@ import { NEW_RIDES } from '../.checks/jade-rides.js';
  * (21-11-2026) the nineteenth pass built Mandai in the open sea west of Sentosa (old columns 0-29, rows 90-127, its own
  * block, set down in the parkland at the map's north-west corner) with its places, rides and station; every tile, place,
  * parked ride, station and prop outside that rect is as pass 18 left it, in the old frame and the real one (checked
- * tile by tile against 4e1da06d's build) */
-const ZERO_HASH = 'cfe7c3bc7b3eb85bcc9600be17423ef1ff596be4df435f9c72d1f34c4a56f379';
+ * tile by tile against 4e1da06d's build); and (22-11-2026) the twenty-first pass grew the build frame 30 rows below
+ * the old one and built the Southern Islands there (old columns 0-43, rows 128-157, its own block, set down in the sea
+ * south of Marina Bay) with their places, rides and the island ferry; every tile, place, parked ride, station and prop
+ * outside that rect is as pass 20 left it, in the old frame and the real one, but for the island ferry's sign at Marina
+ * South Pier (checked tile by tile against beaf43c6's build) */
+const ZERO_HASH = '58985fe3620089802bb12fdce90aa9f1d8f0c413fed89d0c251e7c967086af25';
 
 const c = city();
 const ti = (x, y) => [Math.floor(x / T), Math.floor(y / T)];
@@ -96,7 +100,8 @@ if (process.argv.includes('--child')) {
     assert.deepEqual(unmvT(nx, ny), [x, y], `round trip ${x},${y}`);
     assert.equal(districtAt(nx, ny), districtAtOld(x, y), `district at ${x},${y}`);
   }
-  if (LAYOUT_MODE === 'zero') { assert.equal(W, OLD_W); assert.equal(H, OLD_H); assert.equal(NW, 376); assert.equal(NH, 128); }
+  // (the build frame is the old frame and, since the twenty-first pass, 30 rows below it where the Southern Islands are built)
+  if (LAYOUT_MODE === 'zero') { assert.equal(W, OLD_W); assert.equal(H, BUILD_H); assert.equal(NW, 376); assert.equal(NH, BUILD_H); }
   else {
     assert.equal(LAYOUT_MODE, 'shift'); assert.ok(UNIFORM);
     // the filler strip the shift opens on the west and north is open sea, off every block
@@ -112,7 +117,7 @@ if (process.argv.includes('--child')) {
 
   // ── the shift: everything moved by exactly +7, +3 and kept its ground and district
   assert.notEqual(sh.hash, z.hash, 'the shift moves the world');
-  assert.equal(sh.W, OLD_W + 7); assert.equal(sh.H, OLD_H + 3);
+  assert.equal(sh.W, OLD_W + 7); assert.equal(sh.H, BUILD_H + 3);
   assert.deepEqual(sh.back, z.back, 'shift: every old tile keeps its ground, solid and flags');
   let n = 0;
   const same = (a, b, what) => {
@@ -135,7 +140,9 @@ if (process.argv.includes('--child')) {
   // ── the real table, block by block: every tile of every block is the identity's tile
   const zl = Object.fromEntries(Object.entries(z.layers).map(([k, v]) => [k, Buffer.from(v, 'base64')]));
   const blocks = Object.fromEntries(LAYOUT.blocks.map(b => [b.id, 0]));
-  for (let y = 0; y < OLD_H; y++) for (let x = 0; x < OLD_W; x++) {
+  // (the old frame, and the islands' rect in the build frame's extra rows below it)
+  for (let y = 0; y < BUILD_H; y++) for (let x = 0; x < OLD_W; x++) {
+    if (y >= OLD_H && (x < ISL.x0 || x > ISL.x1)) continue;
     const b = blockOld(x, y), [nx, ny] = mvT(x, y), o = y * OLD_W + x, i = idx(nx, ny);
     if (nx - x !== b.nx - b.x0 || ny - y !== b.ny - b.y0 || blockNew(nx, ny) !== b) assert.fail(`${x},${y} does not move with block ${b.id}`);
     if (c.ground[i] !== zl.ground[o] || c.solid[i] !== zl.solid[o] || c.flags[i] !== zl.flags[o]) assert.fail(`block ${b.id}: old ${x},${y} (new ${nx},${ny}) is not the identity's tile`);
@@ -143,7 +150,8 @@ if (process.argv.includes('--child')) {
   }
   // every old tile lands on a new tile of its own (no block covers another); the rest of the new frame is seam
   let seam = 0; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!unmvT(x, y)) seam++;
-  assert.equal(seam, W * H - OLD_W * OLD_H, 'the blocks tile the old frame once over');
+  const isl = (ISL.x1 - ISL.x0 + 1) * (ISL.y1 - ISL.y0 + 1);
+  assert.equal(seam, W * H - OLD_W * OLD_H - isl, 'the blocks tile the old frame (and the islands’ rect) once over');
   // a placed thing moved with its block onto the same ground; its district is the identity's, but for the main block's
   // tiles that were Orchard Road's or the south strip's (now Katong's estates and Sentosa's sea), and for a moved block,
   // which is its own district throughout (Tiong Bahru's last two columns were built as Clarke Quay's)
@@ -158,11 +166,11 @@ if (process.argv.includes('--child')) {
     assert.ok(b.d === a.d || (bo === 'main' ? b.d === REMAP[a.d] : b.d === bo), `${what}: district ${a.d} -> ${b.d}`); m++;
   };
   const r = facts();
-  const TAIL = [...NEW_RIDES.map(q => q.kind), ...city().ubin.park.map(q => q.kind), ...city().kallang.park.map(q => q.kind), ...city().mandai.park.map(q => q.kind)];
+  const TAIL = [...NEW_RIDES.map(q => q.kind), ...city().ubin.park.map(q => q.kind), ...city().kallang.park.map(q => q.kind), ...city().mandai.park.map(q => q.kind), ...city().islands.park.map(q => q.kind)];
   for (const id of Object.keys(z.places)) moved(z.places[id], r.places[id], `place ${id}`);
   for (const k of KEYS) {
     // the fifteenth pass's special rides are parked last of all, after the seams' (lib/jade-rides.ts), and the seventeenth
-    // pass's Ubin rides (its own block) after those, then the eighteenth's Kallang rides and the nineteenth's Mandai rides: matched end to end
+    // pass's Ubin rides (its own block) after those, then the eighteenth's Kallang rides, the nineteenth's Mandai rides and the twenty-first's islands rides: matched end to end
     const nNew = k === 'parking' || k === 'rides' ? TAIL.length : 0, zk = z[k].slice(0, z[k].length - nNew), rk = r[k].slice(0, r[k].length - nNew);
     zk.forEach((a, i) => moved(a, rk[i], `${k} ${a.id ?? a.kind ?? i}`));
     // the seams' own kerbside parking (and the rides parked there) come after the build's, on seam tiles
