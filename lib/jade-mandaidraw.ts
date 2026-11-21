@@ -1,5 +1,5 @@
 // Jade Street (nineteenth pass): drawing Mandai's moving parts. The Night Safari tram running round its forest loop
-// (waiting at the stop while you ride it), a few lorikeets hopping round Bird Paradise's perch, the amber lanterns and
+// (waiting at the stop while you ride it), the lorikeets on Bird Paradise's perch, the amber lanterns and
 // glowing trail studs, Madam Sutera's black seaplane moored off the reservoir jetty from the end of chapter eleven until
 // it takes off at the end of chapter twelve; and on a torch trail, the dark: only a circle round you is lit, with the
 // studs, the next marker and the resting animals' eyes shining through it, the animals themselves (resting, alert as
@@ -29,6 +29,16 @@ function along(loop: [number, number][], d: number): [number, number, number] {
   }
   return [loop[0][0], loop[0][1], 0];
 }
+/** the lorikeets on Bird Paradise's perch: where each stands (world units from the perch spot, feet on the bar) and which
+ *  way it faces */
+const LORIES: [number, number, boolean][] = [[-30, -118, false], [2, -117, true], [32, -115, true]];
+/** how far below the feet each lorikeet frame runs (the hanging tail), so the feet sit on the bar (world units) */
+const LORY_FOOT: Record<string, number> = { 'mnd-lory-perch': 11, 'mnd-lory-front': 1, 'mnd-lory-preen': 10, 'mnd-lory-wings': 9, 'mnd-lory-wings-front': 1, 'mnd-lory-bob': 2 };
+/** a lorikeet's pose at time t: a nine-second round of sitting, preening, nibbling and a wing stretch */
+function loryPose(t: number): string {
+  const s = ((t % 9) + 9) % 9;
+  return s < 2.4 ? 'mnd-lory-perch' : s < 3.6 ? 'mnd-lory-preen' : s < 4.6 ? 'mnd-lory-front' : s < 5.6 ? 'mnd-lory-bob' : s < 6.4 ? 'mnd-lory-wings' : s < 7.6 ? 'mnd-lory-perch' : s < 8.3 ? 'mnd-lory-wings-front' : 'mnd-lory-front';
+}
 const torchOn = (w: World) => !!w.run && w.run.cur?.t === 'torch' && !!torchOf(w.run);
 
 export function mandaiSorted(sc: Scene, x: X, w: World, list: List, vis: Vis) {
@@ -41,10 +51,11 @@ export function mandaiSorted(sc: Scene, x: X, w: World, list: List, vis: Vis) {
     spr(x, 'mnd-tram', tx, ty + 8, { w: 64 * 1.6, flip: Math.cos(th) < 0 });
     if (!torchOn(w)) sc.glow(x, tx + Math.cos(th) * 40, ty - 10, 26, 'rgba(255,230,150,.35)');
   }]);
-  // lorikeets round the perch (they land and hop; one flutters up now and then)
-  for (let k = 0; k < 3; k++) {
-    const lx = M.perch[0] - 36 + k * 30, hop = Math.max(0, Math.sin(sc.t * 3 + k * 2.1)) * 6, ly = M.perch[1] - 60 - (k % 2) * 16 - hop;
-    if (vis(lx, ly)) list.push([M.perch[1] + 2, () => spr(x, 'i-lory', lx, ly, { anchor: 'center', w: 24, flip: k % 2 === 1 })]);
+  // lorikeets on the perch: each sits a while, preens, bobs to nibble, and now and then lifts its wings and hops
+  for (let k = 0; k < LORIES.length; k++) {
+    const [dx, dy, flip] = LORIES[k], f = loryPose(sc.t + k * 2.7), up = f.endsWith('wings') || f.endsWith('wings-front') ? Math.max(0, Math.sin((sc.t + k * 2.7) * 5)) * 5 : 0;
+    const lx = M.perch[0] + dx, ly = M.perch[1] + dy - up;
+    if (vis(lx, ly)) list.push([M.perch[1] + 2 + k * 0.01, () => spr(x, f, lx, ly + LORY_FOOT[f], { flip })]);
   }
   // the black seaplane, moored off the jetty from the end of chapter eleven until it takes off at the end of chapter twelve
   if (w.s.done.includes('m85') && !w.s.done.includes('m95')) {

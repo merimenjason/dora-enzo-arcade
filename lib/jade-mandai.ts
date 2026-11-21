@@ -114,7 +114,7 @@ export function mandai(c: City) {
 
   // ── Bird Paradise: the aviary dome, the lory perch; Auntie Enggang keeps the birds
   bld(2, 10, 8, 6, 'mnd-aviary'); place('aviary', 6, 16, 'spot', N.aviary); place('enggang', 9, 17, 'contact', 'Auntie Enggang');
-  prop(4, 18, 'mnd-perch', 14, 'tall', 'over', 90); const perch = P(4, 19);
+  prop(4, 18, 'mnd-perch-bare', 14, 'tall', 'over', 90); const perch = P(4, 19);
   deco(6.4, 19.2, 'mnd-nectar', 40);
   // ── the Singapore Zoo's entrance, the Mandai market beside it
   bld(12, 10, 8, 4, 'mnd-zoo'); place('zoo', 16, 14, 'spot', N.zoo);
