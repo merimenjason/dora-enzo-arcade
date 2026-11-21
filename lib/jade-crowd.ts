@@ -37,15 +37,18 @@ export function crowdEnter(run: Run, st: Step): boolean {
   const hard = run.w.s.settings.diff === 'hard', v = FAN_V * (run.assist ? 0.75 : 1) * (hard ? 1.15 : 1), gap = GAP * (run.assist ? 1.35 : 1) * (hard ? 0.9 : 1);
   const lanes: Lane[] = [];
   for (let k = 0; k < st.lanes; k++) {
-    const at = len * (k + 1) / (st.lanes + 1), loop = 2 * span + 2 * T, fans: number[] = [], skin: number[] = [];
+    const at = len * (k + 1) / (st.lanes + 1), loop = 2 * span + 2 * T, fans: number[] = [], skin: number[] = [], lv = v * (1 + h(k, 5) * 0.2);
+    // (the gap the loop ends on is always wide enough to cross at a walk with time to spare, at this lane's own pace on
+    // every difficulty: a person who waits at the edge always gets a way through)
+    const wide = Math.max(gap, lv * (crossTime() + 0.8) + 2 * (FAN_R + HERO_R + 10));
     let s = h(run.i, k) * 60;
-    // clusters of two to four, then a gap; the loop always ends on a gap so its wrap never closes one up
-    while (s < loop - gap) {
+    // clusters of two to four, then a gap; the loop always ends on a wide gap so its wrap never closes one up
+    while (s < loop - wide) {
       const n = 2 + Math.floor(h(k * 7 + fans.length, run.i + 3) * 3);
-      for (let j = 0; j < n && s < loop - gap; j++) { fans.push(s); skin.push(Math.floor(h(fans.length, k + 11) * 3)); s += CLUSTER_GAP; }
+      for (let j = 0; j < n && s < loop - wide; j++) { fans.push(s); skin.push(Math.floor(h(fans.length, k + 11) * 3)); s += CLUSTER_GAP; }
       s += gap * (1 + h(fans.length, k) * 0.6);
     }
-    lanes.push({ at, dir: k % 2 ? -1 : 1, v: v * (1 + h(k, 5) * 0.2), loop, fans, skin });
+    lanes.push({ at, dir: k % 2 ? -1 : 1, v: lv, loop, fans, skin });
   }
   ST.set(run, { ux, uy, nx: -uy, ny: ux, ox: fx, oy: fy, len, span, lanes, t: 0, grace: 0, crossed: 0, shoves: 0 });
   run.progress = `Crowds 0/${st.lanes}`;
