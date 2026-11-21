@@ -97,6 +97,10 @@ export type Step =
   /** the seventeenth pass (lib/jade-track.ts): follow a boar trail, reading each set of hoof prints (E) to show the
    * next; `old`: crusted prints off the line (shown once fresh set `oldAt` is read) that lead nowhere; `time`: the rain */
   | { t: 'track'; route: Spot[]; old?: Spot[]; oldAt?: number; time?: number; label: string; cp?: boolean }
+  /** the eighteenth pass (lib/jade-crowd.ts): get from `from` to `to` through `lanes` lanes of match-night fans
+   * streaming across the way (`span` tiles either side); a fan walks into you and you are shoved back; `ticket`: E at
+   * the turnstile at `to` to end it; `item`: carried through (`keep`: still carried after) */
+  | { t: 'crowd'; from: Spot; to: Spot; lanes: number; span?: number; time?: number; item?: string; keep?: boolean; ticket?: boolean; label: string; cp?: boolean }
   | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat' | 'boar'; /** what the HUD calls a crate ('loot sack') */ thing?: string; label: string; cp?: boolean };
 /** what a photo while casing tells you: the back way in, the guards' beats, where the cameras are wired, the safe's make */
 export type Intel = 'door' | 'rota' | 'cam' | 'safe';
@@ -162,6 +166,11 @@ export const PEOPLE: Record<string, { name: string; face: string; who: string }>
   lan: { name: 'Auntie Lan', face: 'face-lan', who: 'Ubin wayang singer (a straw-headed bulbul)' },
   belangkas: { name: 'Uncle Belangkas', face: 'face-belangkas', who: 'Chek Jawa nature guide (a horseshoe crab)' },
   taring: { name: 'Tok Taring', face: 'face-taring', who: 'Tusker Boys boss (a wild boar)' },
+  // the eighteenth pass: Kallang
+  biru: { name: 'Coach Biru', face: 'face-biru', who: 'Kallang dragon-boat and rowing coach (a collared kingfisher)' },
+  tenuk: { name: 'Ms Tenuk', face: 'face-tenuk', who: 'Sports Hub events manager (a Malayan tapir)' },
+  kubung: { name: 'Uncle Kubung', face: 'face-kubung', who: 'caretaker of the Old Kallang Airport and its archive (a Sunda colugo)' },
+  sutera: { name: 'Madam Sutera', face: 'face-sutera', who: 'the lady in black feathers (a black swan)' },
   // the tenth pass: the empire's supplier, the health inspector, the rival towkay and the jaga you can hire
   huat: { name: 'Ah Huat', face: 'face-huat', who: 'wholesale supplier (a wild boar)' },
   siew: { name: 'Inspector Siew', face: 'face-siew', who: 'health inspector (a milky stork)' },
@@ -181,9 +190,9 @@ export const HEIRLOOMS = [
 ] as const;
 /** which district each chapter's finale opens (chapter 1 is played in Smith Street) */
 export const CHAPTER_OPENS: District[] = ['temple', 'canal', 'docks', 'arcade'];
-export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Club Street', 'The Island', 'Island Lights', 'Christmas Star', 'Lights by the Lake', 'Kampong Spirit'];
+export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Club Street', 'The Island', 'Island Lights', 'Christmas Star', 'Lights by the Lake', 'Kampong Spirit', 'Kallang Roar'];
 /** the last job of each chapter (its finale) */
-export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55', 'm65', 'm75'];
+export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55', 'm65', 'm75', 'm85'];
 /** the story job that opens Sentosa (half way through chapter seven) */
 export const RESORT_OPENS = 'm40';
 /** the story job that opens Changi (half way through chapter eight) */
@@ -197,6 +206,9 @@ export const KALLANG_OPENS = 'm75';
 
 // ── every [x, y] tile in a step is written in the old frame (where the district was first laid out) and moved once,
 // here, through the layout table (lib/jade-layout.ts); names ('kee', 'here', 'loot') are places and stay
+/** a Kallang tile by its local column and row (lib/jade-kallang.ts kalOld, written out here so the story needs no
+ * city at run time): the north strip's rows 0-13 sit under Kampong Glam, the rest east of Sentosa, both in the old frame */
+const K = (lx: number, ly: number): [number, number] => ly < 14 ? [212 + lx, 82 + ly] : [148 + lx, 82 + ly];
 /** a spot: a place name stays, a tile moves */
 export const mvSpot = <S extends Spot>(s: S): S => (typeof s === 'string' ? s : mvT(s[0], s[1])) as S;
 const mvSpots = (a: Spot[]) => a.map(mvSpot);
@@ -220,6 +232,7 @@ function mvStepFields(st: Step): Step {
     case 'paddle': return { ...st, to: mvSpot(st.to) };
     case 'toss': return { ...st, marks: mvSpots(st.marks) };
     case 'track': return { ...st, route: mvSpots(st.route), ...(st.old ? { old: mvSpots(st.old) } : {}) };
+    case 'crowd': return { ...st, from: mvSpot(st.from), to: mvSpot(st.to) };
     case 'chase': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), sets: st.sets?.map(d => ({ ...d, at: mvT(d.at[0], d.at[1]) })) };
     case 'float': return st.rope === undefined ? st : { ...st, rope: mvSpot(st.rope) };
     case 'tail': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), relay: st.relay && { ...st.relay, spot: mvSpot(st.relay.spot) } };
@@ -970,6 +983,85 @@ export const MISSIONS: Mission[] = mvMissions([
       { t: 'mini', kind: 'lock', level: 3, label: 'Pick the rusted lock on the tin', cp: true },
       { t: 'talk', lines: [['hero', 'Old coins, a pay book… and the other half of the chart. They fit. A coast, a reef, an island with no name.', 'worried'], ['taring', 'You found it. Good. Better you than her. Look, on the strait.', 'worried'], ['mate', 'A junk. Black sails. No lamps. Just sitting out there in the rain.', 'worried'], ['belangkas', 'And someone on the deck, all in black feathers, looking right at us.', 'worried'], ['hero', 'Then we keep the chart. And we find out where it leads before she does.', 'calm']] },
     ] },
+  // ── chapter eleven, the eighteenth pass: Kallang, match week at the Sports Hub. Madam Sutera, the lady in black
+  // feathers, lands her seaplane on the Kallang Basin; she wants the 1937 flying-boat survey that photographed the island
+  // with no name. It ends on a hook, not an ending.
+  { id: 'm76', ch: 11, title: 'Scarves for the Fans', giver: 'tenuk', at: 'tenuk', reward: 840, rep: 20, blurb: 'Cup final week at the Sports Hub, and the fans are already pouring in. Ms Tenuk needs a box of home scarves from Kallang Wave Mall at the fan-zone stage for the giveaway: through the crowd, without dropping a scarf.',
+    steps: [
+      { t: 'talk', lines: [['tenuk', 'Ah. The two from Ubin. Uncle Kubung said you might come. Welcome to Kallang, in cup final week. Calmly, please.', 'calm'], ['tenuk', 'The scarves for the giveaway are at Kallang Wave Mall and the stage is at the far end of the fan walk. Between them: forty thousand fans.', 'worried'], ['mate', 'A crowd. We wait for the gaps and squeeze through. Excuse me, excuse me.', 'happy']] },
+      { t: 'pickup', at: K(41, 28), item: 'kal-scarf', label: 'Pick up the box of scarves outside Kallang Wave Mall', cp: true },
+      { t: 'crowd', from: K(41, 28), to: K(41, 39), lanes: 3, span: 3, time: 60, item: 'kal-scarf', label: 'Get the scarves down the fan walk to the stage: wait for a gap in each stream of fans, then squeeze through', cp: true },
+      { t: 'talk', lines: [['tenuk', 'Not one scarf on the ground. You have done crowds before.', 'happy'], ['hero', 'Ms Tenuk, what is that, out on the basin? A plane, on the water. All black.', 'worried'], ['tenuk', 'A seaplane. It landed at dawn by the old airport. Nobody booked it in. I do not like things nobody booked in.', 'cross']] },
+    ] },
+  { id: 'm77', ch: 11, title: 'Dawn Paddle', giver: 'biru', at: 'biru', reward: 850, rep: 20, blurb: 'Coach Biru’s dragon-boat crew is two paddlers short for the dawn time trial round the basin buoys. Take a seat, keep time with the drum, and beat the rowing club’s sampan round the course.',
+    steps: [
+      { t: 'talk', lines: [['biru', 'YOU TWO! Arms like that, you paddle! Dawn trial, round the buoys, beat the club sampan. Hup hup!', 'happy'], ['mate', 'One paddles, one drums. I’ll keep the beat.', 'smug']] },
+      { t: 'goto', at: 'pontoon', label: 'Go down to the rowing club’s pontoon on the Kallang Basin', ride: 'foot', cp: true },
+      { t: 'ride', kind: 'dragon', near: 'pontoon', label: 'Step into a dragon boat at the pontoon (E): {mate} takes the drum' },
+      { t: 'race', ride: 'dragon', rival: 'boat', time: 90, pace: 0.85, marks: [K(9, 27), K(3, 31), K(8, 37), K(13, 41), K(14, 32), K(11, 25)], label: 'Paddle round the six buoys before the club sampan (Space: surge with the drum)', cp: true },
+      { t: 'talk', lines: [['biru', 'Faster than my Tuesday crew! Faster than my Thursday crew! Do not tell them.', 'happy'], ['hero', 'Coach, the black seaplane by the old airport slipway. Whose is it?', 'worried'], ['biru', 'A lady in black feathers. Walked up the slipway like she owned it. Asked me the way to the airport archive.', 'worried'], ['mate', 'Black feathers. A voice like silk?', 'worried'], ['biru', 'Like silk. How did you know?', 'calm']] },
+    ] },
+  { id: 'm78', ch: 11, title: 'Hangar Files', giver: 'kubung', at: 'kubung', reward: 860, rep: 21, blurb: 'Uncle Kubung keeps the Old Kallang Airport’s archive, and since the seaplane landed, crows in caps have been carrying crates out of his hangar. Photograph what they are up to, and do not let them see you.',
+    steps: [
+      { t: 'talk', lines: [['kubung', 'In 1937 this was the finest airport in the Empire. Flying boats came down on the basin and taxied up my slipway.', 'calm'], ['kubung', 'Now crows in caps carry my crates out in the night. Old logbooks, maps, photographs. Will you look, quietly?', 'worried']] },
+      { t: 'goto', at: K(23, 14), label: 'Go round to the old airport’s apron, in front of the terminal', ride: 'foot', cp: true },
+      { t: 'case', spots: [{ at: K(19, 8), kind: 'door' }, { at: K(28, 8), kind: 'rota' }, { at: K(30, 12), kind: 'cam' }, { at: K(20, 13), kind: 'safe' }], need: 3, guards: [[K(18, 10), K(30, 10)], [K(25, 15), K(25, 9)]], label: 'Photograph three things (E): the hangar door, the crates’ list, the lookout, the strongbox', cp: true },
+      { t: 'talk', lines: [['hero', 'The crates’ list: “Logbooks, 1937. Survey photographs. Charts.” And on every crate, a black feather.', 'worried'], ['kubung', 'The flying-boat survey! In 1937 a flying boat flew south from this basin and photographed an island that is on no map.', 'worried'], ['mate', 'An island with no name. Like on our chart.', 'smug']] },
+    ] },
+  { id: 'm79', ch: 11, title: 'Follow the Feather', giver: 'kubung', at: 'kubung', reward: 870, rep: 21, blurb: 'A crow you know too well is carrying one of Uncle Kubung’s crates from the hangar to the Sports Hub. Follow Pip without being seen, and change over to your partner on the boulevard so Pip never sees the same face twice.',
+    steps: [
+      { t: 'talk', lines: [['kubung', 'One crow in a cap, one crate, every night. Off down Stadium Boulevard, very pleased with itself.', 'calm'], ['hero', 'That cap. That swagger. That’s Pip.', 'cross'], ['mate', 'Then Pip sees you, then Pip sees me. Never the same chinchilla twice.', 'smug']] },
+      { t: 'goto', at: K(22, 13), label: 'Wait by the old terminal for Pip to come out of the hangar', ride: 'foot', cp: true },
+      { t: 'tail', from: K(24, 13), route: [K(24, 15), K(31, 15), K(31, 21), K(34, 25), K(38, 27), K(39, 32)], relay: { at: 3, spot: K(33, 21) }, calm: 0.55, label: 'Follow Pip down the boulevard to the Sports Hub; switch to {mate} by the station (Tab)', cp: true },
+      { t: 'talk', lines: [['sutera', 'Thank you, Pip. And thank you, little ones, for walking my courier home. You have something of mine, I believe. A chart.', 'calm'], ['hero', 'It’s not yours. The quarry men buried it, and we dug it up.', 'cross'], ['sutera', 'Half a story, darlings. The other half flew out of this basin in 1937. I will have both. I always do.', 'smug'], ['mate', 'She’s very… silky.', 'worried']] },
+    ] },
+  { id: 'm80', ch: 11, title: 'Through the Turnstiles', giver: 'tenuk', at: 'tenuk', reward: 880, rep: 21, blurb: 'Madam Sutera has a box at the stadium for the semi-final, and Ms Tenuk saw a crate carried in through the west gate. Get through the pre-match crowd and show your ticket before kick-off.',
+    steps: [
+      { t: 'talk', lines: [['tenuk', 'Your lady in black has a box for tonight. Her crows carried a crate in at the west gate. Here: two tickets.', 'calm'], ['tenuk', 'Kick-off in a few minutes. The west concourse is solid with fans. Calmly, and quickly.', 'worried']] },
+      { t: 'goto', at: K(21, 24), label: 'Go to the top of the west concourse, by the Riverwalk', ride: 'foot', cp: true },
+      { t: 'crowd', from: K(21, 24), to: K(22, 33), lanes: 3, span: 3, time: 70, ticket: true, label: 'Squeeze through the pre-match crowd to the west gate, then show your ticket (E)', cp: true },
+      { t: 'talk', lines: [['hero', 'The steward says the crows left again, with the crate, out towards the fan zone.', 'worried'], ['tenuk', 'The fan zone. Where my big screen is. Where forty thousand people will watch the second half if the bowl is full. Oh no.', 'cross']] },
+    ] },
+  { id: 'm81', ch: 11, title: 'Big Screen', giver: 'tenuk', at: 'tenuk', reward: 890, rep: 22, blurb: 'The Kaypoh Crows are at the fan zone pulling the cables out of Ms Tenuk’s big screen. Hold the stage and the screen until the half-time whistle.',
+    steps: [
+      { t: 'talk', lines: [['tenuk', 'Crows in the cables! If the screen goes dark the fan zone riots. Politely, but it riots.', 'worried'], ['mate', 'Then we keep them off it till half-time. Shoo, not hurt.', 'smug']] },
+      { t: 'goto', at: 'fanzone', label: 'Get to the fan-zone stage at the end of the fan walk', cp: true },
+      { t: 'defend', at: 'fanzone', time: 62, waves: 3, per: 2, gang: 'crow', what: 'Big Screen', label: 'Hold the fan zone: knock the crows back before they reach the screen’s cables ({mate} helps on their own)', cp: true },
+      { t: 'talk', lines: [['tenuk', 'The screen held! And the fans did not even notice. That is the best kind of event.', 'happy'], ['hero', 'It was a distraction. While we were here, the crate went back to the hangar.', 'cross']] },
+    ] },
+  { id: 'm82', ch: 11, title: 'Crate Swap', giver: 'kubung', at: 'kubung', reward: 900, rep: 22, blurb: 'Madam Sutera’s crates are on the apron, ready to load into the seaplane at dawn. Swap each one for a crate of old newspapers while the crows on watch look the other way.',
+    steps: [
+      { t: 'talk', lines: [['kubung', 'Four crates on my apron, for the seaplane at dawn. My logbooks are in one of them. I have crates of old newspapers, the same size.', 'worried'], ['mate', 'Newspapers for logbooks. She’ll be reading the weather forecast from 1990.', 'smug']] },
+      { t: 'goto', at: K(23, 15), label: 'Creep onto the old airport’s apron', ride: 'foot', cp: true },
+      { t: 'swap', crates: [K(19, 10), K(27, 10), K(21, 14), K(29, 13)], guards: [[K(18, 11), K(30, 11)], [K(25, 15), K(25, 9)]], time: 90, decoy: 'decoy', label: 'Swap a newspaper crate for each of hers (E) while the crows look away', cp: true },
+      { t: 'goto', at: 'kubung', label: 'Take the crates back to Uncle Kubung at the terminal' },
+      { t: 'talk', lines: [['kubung', 'My logbooks! The survey, 1937… but look. The page with the photograph is torn out.', 'worried'], ['hero', 'So she has the photograph of the island. And we have the chart that shows the way in past the reef.', 'worried'], ['kubung', 'Then she needs your chart, and you need her photograph. Oh dear. That is how wars start. Or friendships.', 'calm']] },
+    ] },
+  { id: 'm83', ch: 11, title: 'Logbook Run', giver: 'biru', at: 'biru', reward: 910, rep: 22, blurb: 'Crows are watching every road out of Kallang, and Uncle Kubung’s logbook must reach the Riverwalk steps, where Ms Tenuk’s car is waiting. Coach Biru says go by water: paddle it across the basin against the clock.',
+    steps: [
+      { t: 'talk', lines: [['biru', 'Crows on the boulevard, crows on the bridge. But no crow can catch a dragon boat in full flight. Hup hup!', 'happy'], ['mate', 'I drum, you paddle. And mind the logbook: it’s older than both of us put together.', 'smug']] },
+      { t: 'goto', at: 'pontoon', label: 'Go down to the pontoon with the logbook', ride: 'foot', cp: true },
+      { t: 'ride', kind: 'dragon', near: 'pontoon', label: 'Step into a dragon boat at the pontoon (E): {mate} takes the drum' },
+      { t: 'paddle', to: K(14, 39), time: 60, item: 'kal-charts', label: 'Paddle the logbook across the basin to the Riverwalk steps (Space: surge with the drum)', cp: true },
+      { t: 'talk', lines: [['tenuk', 'Logbook received. It goes in the Sports Hub safe, under the trophy. Nobody gets near the trophy.', 'calm'], ['hero', 'Not even Madam Sutera?', 'worried'], ['tenuk', 'She has a ticket for the final. Everybody has a ticket for the final.', 'worried']] },
+    ] },
+  { id: 'm84', ch: 11, title: 'One of the Crowd', giver: 'tenuk', at: 'tenuk', reward: 930, rep: 23, blurb: 'Final night. Madam Sutera is meeting her crows at the south gate, and two chinchillas in team scarves are just two more fans. Put on the home shirt, walk with the crowd, and listen.',
+    steps: [
+      { t: 'talk', lines: [['tenuk', 'She meets her crows at the south gate before kick-off. Two chinchillas would stand out. Two fans would not.', 'calm'], ['mate', 'Home shirts. Red and white. I look good in red and white.', 'happy']] },
+      { t: 'blend', rack: K(40, 28), route: [K(40, 29), K(41, 34), K(40, 39), K(35, 41), K(32, 41)], goal: K(31, 41), lookouts: [[...K(38, 35), 0], [...K(34, 42), 270]], crowd: 8, folk: 'town', label: 'Put on the home shirt by the scarf kiosk (E), then walk with the fans to the south gate', cp: true },
+      { t: 'talk', lines: [['sutera', 'The photograph shows the island. Their chart shows the way in past the reef. One without the other is a very pretty postcard.', 'calm'], ['sutera', 'At the final whistle the whole stadium pours out at once. Pip: in the crowd, take the chart. Then the plane.', 'smug'], ['hero', 'At full time, then. We’ll be ready.', 'cross']] },
+    ] },
+  { id: 'm85', ch: 11, title: 'Kallang Roar', giver: 'biru', at: 'biru', reward: 1600, rep: 28, blurb: 'Full time at the cup final, and the National Stadium empties all at once. Get the chart through the roaring crowd to the pontoon, run down Pip on the basin when the crows strike, and see where Madam Sutera goes next.',
+    steps: [
+      { t: 'talk', lines: [['biru', 'Final whistle! Home team wins! Listen to that, the Kallang Roar! Fifty thousand voices!', 'happy'], ['hero', 'And fifty thousand people coming out at once. With us in the middle, holding the chart.', 'worried'], ['biru', 'The boats are ready at the pontoon. Get the chart to the water, and we paddle it home.', 'calm']] },
+      { t: 'goto', at: K(37, 41), label: 'Go to the stadium’s south gate as the final whistle blows', ride: 'foot', cp: true },
+      { t: 'crowd', from: K(37, 41), to: K(20, 41), lanes: 3, span: 2, time: 70, item: 'i-map', keep: true, label: 'Carry the chart west through the crowd pouring out of the stadium: wait for each gap, then squeeze through', cp: true },
+      { t: 'talk', lines: [['hero', 'Through! Now down to the pontoon and—', 'happy'], ['mate', 'PIP! Pip has the chart! Snatched it right off you! Pip’s in the club’s sampan!', 'cross']] },
+      { t: 'goto', at: 'pontoon', label: 'Run up the Riverwalk to the pontoon after Pip', ride: 'foot', cp: true },
+      { t: 'ride', kind: 'dragon', near: 'pontoon', label: 'Jump into a dragon boat at the pontoon (E): {mate} takes the drum' },
+      { t: 'chase', who: 'boat', from: K(9, 28), route: [K(4, 34), K(10, 39), K(14, 33), K(8, 27), K(3, 36), K(12, 41)], bumps: 3, loot: 'i-map', speed: 200, label: 'Paddle after Pip’s sampan and bump it three times', cp: true },
+      { t: 'talk', lines: [['hero', 'Got it! The chart, dry and whole. Sorry, Pip.', 'happy'], ['sutera', 'Keep it, darlings. A chart is only paper. I have the photograph, and the photograph has the bearing.', 'smug'], ['mate', 'The seaplane! Its engines are going! She’s taking off across the basin!', 'worried'], ['biru', 'Heading south. Low and fast, over the Straits.', 'worried'], ['hero', 'South. Towards an island with no name. And she’s a day ahead of us.', 'cross']] },
+    ] },
 ]);
 // ── Hawker Tales: the Singapore side jobs. They sit outside the five chapters (ch 0), open once their story job is
 // done, and pay like a story job; the townsfolk they help are in PEOPLE.
@@ -1199,6 +1291,25 @@ export const SIDE: Mission[] = mvMissions([
       { t: 'ride', kind: 'bike', near: [348, 116], label: 'Get on a bike (E)' },
       { t: 'deliver', to: 'jetty-ubin', item: 'durian', time: 45, stink: true, fines: 6, label: 'Rush the durians to the Ubin jetty: don’t knock into anyone (each bump costs 6 s)', cp: true },
       { t: 'talk', lines: [['ubin', 'Wah, I can smell them from the boat! Good ones. Climb aboard, durians.', 'happy']] },
+    ] },
+  // the eighteenth pass: three in Kallang
+  { id: 'k27', side: 'm76', ch: 0, title: 'The Big Drum', giver: 'tenuk', at: 'fanzone', reward: 300, rep: 12, blurb: 'Uncle Gendang, the sun bear who leads the home end’s drumming, left his big drum at the fan-zone stage, and the band starts at the mall in a minute. Carry it back up the fan walk through the crowd.',
+    steps: [
+      { t: 'talk', lines: [['tenuk', 'Uncle Gendang’s drum. Without it the home end is just very loud singing. Could you?', 'calm'], ['mate', 'A big drum through a big crowd. Excuse me, excuse me, mind the drum.', 'happy']] },
+      { t: 'crowd', from: K(41, 39), to: K(41, 28), lanes: 3, span: 3, time: 60, item: 'kal-drum', label: 'Carry the drum up the fan walk to the mall: wait for a gap in each stream of fans, then squeeze through', cp: true },
+      { t: 'talk', lines: [['tenuk', 'The drum is home, and listen: boom, boom, boom. The whole mall is shaking. Good.', 'happy']] },
+    ] },
+  { id: 'k28', side: 'm77', ch: 0, title: 'Morning Run', giver: 'biru', at: 'club', reward: 300, rep: 12, blurb: 'Coach Biru runs the Riverwalk every morning before practice and says no paddler alive can keep up. Prove him wrong: every marker along the water before he gets back to the boathouse.',
+    steps: [
+      { t: 'talk', lines: [['biru', 'Every morning: boathouse, Riverwalk, sea wall, and back. No paddler alive has beaten me. Hup!', 'smug'], ['mate', 'He has very short legs for someone who talks so fast.', 'smug']] },
+      { t: 'race', ride: 'foot', rival: 'runner', time: 80, pace: 0.9, marks: [K(12, 20), K(18, 25), K(18, 33), K(19, 42), K(18, 30), K(11, 21)], label: 'Run every marker along the Riverwalk and back before Coach Biru', cp: true },
+      { t: 'talk', lines: [['biru', 'Beaten! By a chinchilla! In my own Riverwalk! Same time tomorrow?', 'happy']] },
+    ] },
+  { id: 'k29', side: 'm78', ch: 0, title: 'Loose Pages', giver: 'kubung', at: 'airport', reward: 300, rep: 12, blurb: 'A gust off the basin blew a box of Uncle Kubung’s old flight logs open, and the pages are skating across the apron. Pick up all four before the wind takes them into the water.',
+    steps: [
+      { t: 'talk', lines: [['kubung', 'The wind! My 1938 logs, all over the apron! Four pages, and the basin is very wet.', 'worried'], ['mate', 'Four pages. We can do four pages.', 'happy']] },
+      { t: 'collect', items: [K(17, 9), K(31, 5), K(29, 14), K(20, 15)], item: 'kal-charts', time: 70, label: 'Pick up the four flight-log pages blowing across the apron (E at each) before they reach the water', cp: true },
+      { t: 'talk', lines: [['kubung', 'All four. Every take-off, every landing. Thank you. History is mostly paper, and paper is mostly wind.', 'happy']] },
     ] },
 ]);
 export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id, m])) as Record<string, Mission>;

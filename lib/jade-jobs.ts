@@ -60,7 +60,7 @@ function guardWalk(run: Run, a: Actor, dt: number, look: boolean) {
   // a look over the shoulder now and then (the swap's guards): they stop and face the other way for a moment
   if (look) {
     if (a.look > 0) { a.look -= dt; a.b.speed = 0; a.b.h = a.face; return; }
-    a.lookCd -= dt; if (a.lookCd <= 0) { a.look = run.assist ? 1.3 : 1.7; a.lookCd = 4.5 + (a.id % 3); a.face = a.b.h + Math.PI; run.w.fx.push({ t: 'look', x: a.b.x, y: a.b.y }); }
+    a.lookCd -= dt; if (a.lookCd <= 0) { a.look = run.assist ? 1.3 : 1.7; a.lookCd = 4.5 + (run.actors.indexOf(a) % 3); a.face = a.b.h + Math.PI; run.w.fx.push({ t: 'look', x: a.b.x, y: a.b.y }); }
   }
   const wp = a.wp; run.walk(a, dt, a.speed, true); if (a.wp !== wp) a.extra = run.assist ? 1.6 : 1.3;
 }

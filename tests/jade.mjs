@@ -241,13 +241,14 @@ test('crows snatch cargo from a slow rider and miss one who dashes', () => {
   assert.equal(w.s.cargo.jade, 2, 'dodged');
 });
 
-test('the story: 75 jobs in 10 chapters (five of five, the island’s ten, Island Lights’ ten, Christmas Star’s ten, Lights by the Lake’s ten, Kampong Spirit’s ten), each with a contact, dialogue and a checkpoint, heirlooms at each Chinatown finale', () => {
-  assert.equal(MISSIONS.length, 75);
+test('the story: 85 jobs in 11 chapters (five of five, the island’s ten, Island Lights’ ten, Christmas Star’s ten, Lights by the Lake’s ten, Kampong Spirit’s ten, Kallang Roar’s ten), each with a contact, dialogue and a checkpoint, heirlooms at each Chinatown finale', () => {
+  assert.equal(MISSIONS.length, 85);
   for (let ch = 1; ch <= 5; ch++) assert.equal(MISSIONS.filter(m => m.ch === ch).length, 5);
   assert.equal(MISSIONS.filter(m => m.ch === 6).length, 10);
   assert.equal(MISSIONS.filter(m => m.ch === 7).length, 10);
   assert.equal(MISSIONS.filter(m => m.ch === 8).length, 10);
   assert.equal(MISSIONS.filter(m => m.ch === 10).length, 10);
+  assert.equal(MISSIONS.filter(m => m.ch === 11).length, 10);
   assert.equal(HEIRLOOMS.length, 5);
   for (const m of MISSIONS) {
     assert.ok(c.places[m.at], `${m.id} is given at a real place`);
@@ -329,7 +330,7 @@ test('the save: round trip, repair and clamping, v1 migration, garage, wardrobe 
 });
 
 test('trophies, the daily market event and the night clock', () => {
-  assert.equal(TROPHIES.length, 59);
+  assert.equal(TROPHIES.length, 63);
   const s = newSave(); s.done = ['m1', 'm2', 'm3', 'm4', 'm5']; s.cats = Array.from({ length: 10 }, (_, i) => i);
   const got = checkTrophies(s); assert.ok(got.includes('First Job') && got.includes('Jade Dragon') && got.includes('Lucky Paw'));
   assert.deepEqual(checkTrophies(s), [], 'awarded once');
