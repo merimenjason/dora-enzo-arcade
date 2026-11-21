@@ -28,6 +28,7 @@ import { inWindow, LADDER } from '../.checks/jade-boss.js';
 import { tagOption, boostXY } from '../.checks/jade-tag.js';
 import { carried, giveGadget, GEAR_GIFT } from '../.checks/jade-gear.js';
 import { hiddenSpot, sightRange, BRANCHES } from '../.checks/jade-jobs.js';
+import { crowdOf, laneAt, nextLane, laneClear, crossTime, BAND, HERO_R } from '../.checks/jade-crowd.js';
 import { BIZ_OF } from '../.checks/jade-biz.js';
 import { startRaidAlert, startEmpireJob, RAID_KINDS, gangOf } from '../.checks/jade-empire.js';
 import { contractOf, tierOf, starsFor } from '../.checks/jade-contracts.js';
@@ -56,6 +57,8 @@ export function missionSave(id, o = {}) {
   if (['heartland', 'bay', 'india', 'glam', 'resort'].includes(d)) s.safe = `safe-${d}`;
   // Pulau Ubin is over the strait (m66 takes the bumboat there): its jobs start from the kampong safe house
   if (d === 'pulau') { s.safe = 'safe-ubin'; s.best['house:safe-ubin'] = 1; }
+  // Kallang is far east of the market (the MRT's Stadium station): its jobs start from the hangar safe house
+  if (d === 'kallang') { s.safe = 'safe-kallang'; s.best['house:safe-kallang'] = 1; }
   return s;
 }
 
@@ -449,6 +452,22 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
         if (nearJob('read:')) { const k = +w.near.id.split(':')[1]; if (!run.items[k]?.marks) { press('act'); return; } }
         const k = run.items.findIndex(it => !it.got && !it.marks); if (k < 0) return;
         const tg = run.target() ?? [run.items[k].x, run.items[k].y]; go(tg[0], tg[1]); return;
+      }
+      // the eighteenth pass: a match-night crowd. Walk up to the near edge of the next stream of fans and stop; watch the
+      // fans coming (a person looks, then goes: the bot's look is its 200-300 ms think, plus a beat of doubt) and step
+      // in when the gap in front will last the crossing; keep walking once in a lane; E at the turnstile with a ticket
+      case 'crowd': {
+        if (p.ride) { offFoot(); return; }
+        if (p.act) { inp.mx = 0; inp.my = 0; return; }
+        if (nearJob('ticket')) { press('act'); return; }
+        const c = crowdOf(run), tg = run.target(); if (!c || !tg) return;
+        if (laneAt(c, p.x, p.y) >= 0) { go(tg[0], tg[1]); return; }
+        const n = nextLane(c, p.x, p.y); if (n < 0) { go(tg[0], tg[1]); return; }
+        const a = (p.x - c.ox) * c.ux + (p.y - c.oy) * c.uy, sx = (p.x - c.ox) * c.nx + (p.y - c.oy) * c.ny;
+        const edge = c.lanes[n].at - BAND - HERO_R - 12;
+        if (a < edge - 30 || Math.abs(sx) > 40) { go(c.ox + c.ux * edge, c.oy + c.uy * edge); return; }
+        if (laneClear(c, n, sx, crossTime() + 0.35 + 0.3 * P.wob)) { go(tg[0], tg[1]); return; }
+        inp.mx = 0; inp.my = 0; return;
       }
       // the sixteenth pass: the tandem's tosses and the dragon boat's paddle (surge whenever the drum allows)
       case 'toss': {

@@ -49,7 +49,10 @@ export type Stats = { walked: number; driven: number; boated: number; missions: 
   chwee: number; songs: number; slings: number; koi: number; stars: number; lwalks: number;
   /** the seventeenth pass: durians caught off the tree, looks from Jejawi Tower, boars shooed off their digs, Tusker Boys
    * caught, boar trails followed to the end, bumboat crossings (all start at zero in an older save: the loader fills them in) */
-  durians: number; spies: number; digs: number; boars: number; trails: number; bumboats: number };
+  durians: number; spies: number; digs: number; boars: number; trails: number; bumboats: number;
+  /** the eighteenth pass: crowds squeezed through, Kallang Waves started at the fan zone, planes spotted from the old
+   * airport's apron (all start at zero in an older save: the loader fills them in) */
+  crowds: number; waves: number; skies: number };
 /** the empire (lib/jade-empire.ts): the highest rank reached (its card shows once), empire jobs finished (by id) and the
  * night each was last done (one a night) */
 export type Empire = { rank: number; jobs: Record<string, number>; last: Record<string, number> };
@@ -149,7 +152,7 @@ export function newSave(seed = 1): Save {
     upgrades: { speed: 0, grip: 0, cargo: 0 }, paint: 'red',
     outfits: { dora: ['classic'], enzo: ['classic'] }, outfit: { dora: 'classic', enzo: 'classic' },
     cats: [], murals: [], trophies: [], tips: [], safe: 'safe-market', best: {}, daily: '', dailyDone: [],
-    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0, tolls: 0, junk: 0, kopi: 0, chope: 0, mrt: 0, taxi: 0, photos: 0, heists: 0, quiet: 0, defends: 0, disguises: 0, clues: 0, traps: 0, swaps: 0, lures: 0, palHelps: 0, bribes: 0, cable: 0, ferry: 0, lamps: 0, kuih: 0, mynahs: 0, raidsWon: 0, raidsMissed: 0, repairs: 0, rounds: 0, empJobs: 0, gradeA: 0 , bats: 0, bikes: 0, laksa: 0, baubles: 0, kites: 0, planes: 0, chwee: 0, songs: 0, slings: 0, koi: 0, stars: 0, lwalks: 0, durians: 0, spies: 0, digs: 0, boars: 0, trails: 0, bumboats: 0 },
+    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0, tolls: 0, junk: 0, kopi: 0, chope: 0, mrt: 0, taxi: 0, photos: 0, heists: 0, quiet: 0, defends: 0, disguises: 0, clues: 0, traps: 0, swaps: 0, lures: 0, palHelps: 0, bribes: 0, cable: 0, ferry: 0, lamps: 0, kuih: 0, mynahs: 0, raidsWon: 0, raidsMissed: 0, repairs: 0, rounds: 0, empJobs: 0, gradeA: 0 , bats: 0, bikes: 0, laksa: 0, baubles: 0, kites: 0, planes: 0, chwee: 0, songs: 0, slings: 0, koi: 0, stars: 0, lwalks: 0, durians: 0, spies: 0, digs: 0, boars: 0, trails: 0, bumboats: 0, crowds: 0, waves: 0, skies: 0 },
     settings: { sound: true, music: true, assist: true, diff: 'easy', touch: 'auto', shake: true, calm: false, keys: {}, bigText: false, cbMarks: false, partner: 'auto' },
     medals: {}, story: { intro: false, ch: 0, ending: false, isle: false, lights: false, coast: false, lake: false }, learned: [], msgs: [], radio: 0, helped: 0,
     biz: Object.fromEntries(BIZ.map(b => [b.id, newBiz()])), bizLog: [], gear: newGear(), bag: newBag(), fines: newFines(), lingo: [], empire: newEmpire(), contracts: newContracts(),
@@ -209,7 +212,7 @@ export function loadSave(raw: string | null): Save {
   const md = (o.medals ?? {}) as Record<string, unknown>;
   for (const [k, v] of Object.entries(md)) if (ids.has(k) && v && typeof v === 'object') { const x = v as Record<string, unknown>; s.medals[k] = { m: Math.floor(num(x.m, 0, 0, 3)), t: num(x.t, 0, 0, 1e6), plays: Math.floor(num(x.plays, 1, 1, 1e6)) }; }
   const sy = (o.story ?? {}) as Record<string, unknown>;
-  s.story = { intro: sy.intro === true, ch: Math.floor(num(sy.ch, 0, 0, 11)), ending: sy.ending === true, isle: sy.isle === true, lights: sy.lights === true, coast: sy.coast === true, lake: sy.lake === true };
+  s.story = { intro: sy.intro === true, ch: Math.floor(num(sy.ch, 0, 0, 12)), ending: sy.ending === true, isle: sy.isle === true, lights: sy.lights === true, coast: sy.coast === true, lake: sy.lake === true };
   s.learned = strs(o.learned);
   s.msgs = Array.isArray(o.msgs) ? (o.msgs as Msg[]).filter(m => m && typeof m.text === 'string' && typeof m.from === 'string').slice(-30).map((m, i) => ({ id: Number.isInteger(m.id) ? m.id : i + 1, from: m.from, text: m.text, night: num(m.night, 1, 1, 1e5), read: m.read === true, ...(m.kind === 'job' || m.kind === 'fine' || m.kind === 'help' ? { kind: m.kind } : {}), ...(typeof m.job === 'string' ? { job: m.job } : {}) })) : [];
   s.radio = Math.floor(num(o.radio, 0, -1, 9)); s.helped = Math.floor(num(o.helped, 0, 0, 1e6));
@@ -349,7 +352,7 @@ function migrate1(o: Record<string, unknown>): Record<string, unknown> {
 }
 
 // ── progression
-export const chapterOf = (s: Save) => { let ch = 1; for (let c = 1; c <= 10; c++) { if (MISSIONS.filter(m => m.ch === c).every(m => s.done.includes(m.id))) ch = c + 1; else break; } return Math.min(ch, 11); };
+export const chapterOf = (s: Save) => { let ch = 1; for (let c = 1; c <= 11; c++) { if (MISSIONS.filter(m => m.ch === c).every(m => s.done.includes(m.id))) ch = c + 1; else break; } return Math.min(ch, 12); };
 export function openDistricts(s: Save): District[] {
   const out: District[] = ['market'];
   for (let c = 1; c <= 4; c++) if (s.done.includes(`m${c * 5}`)) out.push(CHAPTER_OPENS[c - 1]);
@@ -445,6 +448,11 @@ export const TROPHIES: { id: string; name: string; desc: string; test: (s: Save)
   { id: 'moonwalk', name: 'Moon Rabbit', desc: 'Feed the koi in Jurong Lake and carry a rabbit lantern round it.', test: s => s.stats.koi >= 1 && s.stats.lwalks >= 1 },
   // the seventeenth pass
   { id: 'kampong', name: 'Kampong Spirit', desc: 'Beat the lady in black feathers to the quarry men’s tin at Ketam Quarry.', test: s => s.done.includes('m75') },
+  // the eighteenth pass
+  { id: 'roar', name: 'Kallang Roar', desc: 'Carry the chart through the full-time crowd at the National Stadium and get it back off Pip on the basin.', test: s => s.done.includes('m85') },
+  { id: 'squeeze', name: 'Excuse Me, Excuse Me', desc: 'Squeeze through five match-night crowds at the Sports Hub.', test: s => s.stats.crowds >= 5 },
+  { id: 'mexican', name: 'Kallang Wave', desc: 'Start the Kallang Wave at the fan zone three times.', test: s => s.stats.waves >= 3 },
+  { id: 'flyingboat', name: 'Flying Boat Spotter', desc: 'Spot three planes from the apron of the Old Kallang Airport.', test: s => s.stats.skies >= 3 },
   { id: 'tusker', name: 'Tusker Tamer', desc: 'Catch five dizzy Tusker Boys on Pulau Ubin, out of a job.', test: s => s.stats.boars >= 5 },
   { id: 'durian', name: 'King of Fruits', desc: 'Shake down three durians on Pulau Ubin and look out from Jejawi Tower.', test: s => s.stats.durians >= 3 && s.stats.spies >= 1 },
   { id: 'ranger', name: 'Jungle Ranger', desc: 'Follow three boar trails to the end.', test: s => s.stats.trails >= 3 },

@@ -55,6 +55,11 @@ for (const m of [...MISSIONS, ...SIDE]) {
       case 'collect': { const from = at; for (const [k, it] of st.items.entries()) { at = from; go(it, cls, `${what} item ${k}`); } break; }
       // a boar trail: walk print to print (the old prints of a false branch too)
       case 'track': st.route.forEach((r, k) => go(r, cls, `${what} print ${k}`)); for (const [k, r] of (st.old ?? []).entries()) go(r, cls, `${what} old ${k}`); break;
+      // a match-night crowd: the way through runs straight from one end to the other (you squeeze across the lanes), so
+      // every tile on that line stands open on foot
+      case 'crowd': { go(st.from, 'foot', `${what} from`); const a0 = at; go(st.to, 'foot', `${what} to`);
+        for (let q = 0; q <= 1; q += 0.02) { const x = a0[0] + (at[0] - a0[0]) * q, y = a0[1] + (at[1] - a0[1]) * q; assert.ok(passable(c, 'foot', tile(x), tile(y)), `${m.id} ${what}: the way through is open at ${tile(x)},${tile(y)}`); }
+        break; }
       case 'hold': go(st.lever, cls, `${what} lever`); go(st.through, cls, `${what} through`); break;
       // the MRT, the cable car, the ferry and the Ubin bumboat: walk to the gates, ride, step out at the other end
       case 'train': { const t = c.isle.stations.find(x => x.id === st.to); assert.ok(t, `${m.id} ${what}: station ${st.to}`); at = [t.x, t.y]; cls = 'foot'; break; }

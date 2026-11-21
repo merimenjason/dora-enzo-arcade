@@ -135,19 +135,20 @@ export function kallang(c: City) {
   // ── the Sports Hub: Stadium station, Kallang Wave Mall, the National Stadium in the middle of its concourse, the gates
   bld(21, 20, 8, 4, 'kallang-stn'); place('stn-stadium', 25, 24, 'station', N.station);
   bld(38, 20, 7, 7, 'kal-mall'); place('wavemall', 41, 27, 'spot', N.mall); place('mk-kallang', 43, 28, 'market', 'the Kallang Wave Mall market');
-  bld(24, 27, 14, 13, 'kal-stadium'); place('stadium', 30, 41, 'spot', N.stadium); place('sportshub', 33, 25, 'spot', N.hub);
+  bld(24, 29, 14, 9, 'kal-stadium'); place('stadium', 30, 41, 'spot', N.stadium); place('sportshub', 33, 25, 'spot', N.hub);
   place('tenuk', 33, 26, 'contact', 'Ms Tenuk');
-  const gates: [number, number][] = [P(30, 26), P(23, 33), P(38, 33), P(31, 40)];
-  for (const [lx, ly, rot] of [[30, 26, 0], [23, 33, Math.PI / 2], [38, 33, Math.PI / 2], [31, 40, 0]] as const) deco(lx, ly - 0.2, 'kal-turnstile', 96, 'over', rot);
-  place('gate-n', 30, 26, 'spot', N.gateN); place('gate-w', 23, 33, 'spot', N.gateW); place('gate-e', 38, 33, 'spot', N.gateE); place('gate-s', 31, 41, 'spot', N.gateS);
-  // floodlight masts round the dome, crowd barriers along the concourse
-  for (const [lx, ly] of [[22, 26], [39, 28], [22, 41], [39, 41]] as const) if (open(lx, ly)) prop(lx, ly, 'kal-floodlight', 10, 'tall', 'over', 70);
-  for (const [lx, ly] of [[26, 25], [35, 25], [21, 30], [21, 36], [40, 31]] as const) if (open(lx, ly)) deco(lx, ly, 'kal-barrier', 100);
-  // the fan zone east of the dome: the stage, food trucks, a big screen
-  prop(42, 33, 'kal-stage', 30, 'tall', 'over', 180); place('fanzone', 42, 35, 'spot', N.fanzone);
-  prop(40, 38, 'kal-foodtruck', 20, 'tall', 'over', 120); prop(43.5, 38, 'kal-foodtruck', 20, 'tall', 'over', 120);
-  prop(44, 30.5, 'kal-screen', 16, 'tall', 'over', 110);
-  const wave: [number, number] = P(41, 35), fanzone: [number, number] = P(42, 36);
+  const gates: [number, number][] = [P(30, 28), P(23, 33), P(38, 33), P(31, 38)];
+  for (const [lx, ly, rot] of [[30, 28, 0], [23, 33, Math.PI / 2], [38, 33, Math.PI / 2], [31, 38, 0]] as const) deco(lx, ly - 0.2, 'kal-turnstile', 96, 'over', rot);
+  place('gate-n', 30, 27, 'spot', N.gateN); place('gate-w', 23, 33, 'spot', N.gateW); place('gate-e', 38, 33, 'spot', N.gateE); place('gate-s', 31, 39, 'spot', N.gateS);
+  // floodlight masts round the dome, crowd barriers along the west concourse
+  for (const [lx, ly] of [[22, 26], [21.5, 42.4], [39, 42], [44.6, 42]] as const) if (open(Math.floor(lx), ly)) prop(lx, ly, 'kal-floodlight', 10, 'tall', 'over', 70);
+  for (const [lx, ly] of [[26, 25], [35, 25], [20.4, 27], [20.4, 39]] as const) if (open(Math.floor(lx), ly)) deco(lx, ly, 'kal-barrier', 100);
+  // the fan zone: the east concourse between the mall and the stage is the fans' walk (the crowd jobs cross it), so the
+  // food trucks and the big screen stand along its east edge and the stage at its south end
+  prop(42, 42.2, 'kal-stage', 30, 'tall', 'over', 180); place('fanzone', 42, 40, 'spot', N.fanzone);
+  prop(45, 31, 'kal-foodtruck', 20, 'tall', 'over', 120); prop(45, 36, 'kal-foodtruck', 20, 'tall', 'over', 120);
+  prop(45, 27.4, 'kal-screen', 16, 'tall', 'over', 110);
+  const wave: [number, number] = P(40, 40), fanzone: [number, number] = P(42, 40);
   // the Riverwalk: benches and lamps down the east bank, the basin's name
   for (const ly of [25, 31, 37]) deco(18.4, ly, 'bench', 70, 'over');
   for (const ly of [23, 29, 35, 41]) if (open(19, ly)) prop(19, ly, 'prom-lamp', 8, 'tall', 'over', 54);

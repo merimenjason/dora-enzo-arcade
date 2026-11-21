@@ -133,7 +133,7 @@ J['ui18'] = (L, SREF + ['icons.png', 'ui17.png', 'ui12.png'], STYLE + SG + "A ga
   "separate items. Row 1: (1) a small map landmark icon of a silver STADIUM DOME glowing from inside; (2) a small map landmark icon "
   "of a white art-deco AIRPORT terminal with a round glass control tower; (3) a small map landmark icon of a red DRAGON BOAT with "
   "paddles; (4) a map PIN shaped like a teardrop with a little black swan head inside. Row 2: (5) a round icon of a jostling CROWD "
-  "of three little heads, in a gold ring; (6) a round icon of two arms raised in a cheering WAVE, in a gold ring; (7) a round icon of "
+  "of three little cartoon ANIMAL football fans' heads (a sun bear, a mouse deer and an otter) in red-and-white, in a gold ring; (6) a round icon of two arms raised in a cheering WAVE, in a gold ring; (7) a round icon of "
   "a blank paper match TICKET, in a gold ring; (8) a round icon of a small black SEAPLANE, in a gold ring. No text, no letters, no "
   "numbers. " + MAG)
 

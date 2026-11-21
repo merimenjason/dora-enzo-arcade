@@ -26,6 +26,7 @@ import { eastGround, eastSorted, eastOver } from './jade-eastdraw.js';
 import { farSorted, farOver } from './jade-fardraw.js';
 import { southGround, southSorted, southOver } from './jade-southdraw.js';
 import { ubinSorted } from './jade-ubindraw.js';
+import { kallangSorted } from './jade-kallangdraw.js';
 import { snapScale, foldTints, chunkStale } from './jade-perf.js';
 import { empSorted, empOver, jagaActor } from './jade-empdraw.js';
 import { BIZ, BIZ_OF, bizPos } from './jade-biz.js';
@@ -319,6 +320,10 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     case 'lantern-walk': return `${h}-lwalk-${cyc(2, 5)}`;
     // Pulau Ubin (the seventeenth pass): hoof prints, a durian tree, the catch, the binoculars, hailing the bumboat, a durian feast
     case 'read': return `${h}-read-${cyc(2, 2)}`; case 'tree-shake': return `${h}-shake-${cyc(2, 6)}`; case 'catch': return `${h}-catch-${t < 0.45 ? 0 : 1}`; case 'spy': return `${h}-spy-${t < 1.4 ? 0 : 1}`; case 'boat-hail': return `${h}-hail-${cyc(2, 3)}`; case 'eat-durian': return `${h}-eat-durian-${cyc(2, 2.5)}`;
+    // Kallang (the eighteenth pass): squeezing sideways through a crowd (and standing in a lane), shoved back by a fan, the
+    // ticket held up at the turnstile, the Kallang Wave (crouch, then up), looking up at a plane (then pointing)
+    case 'squeeze': return `${h}-squeeze-${cyc(2, 4)}`; case 'squeeze-idle': return `${h}-squeeze-0`; case 'shoved': return `${h}-shoved`; case 'gate-ticket': return `${h}-ticket-up`;
+    case 'kwave': return `${h}-wave-${t < 0.7 ? 0 : 1}`; case 'skyward': return `${h}-${t < 1.3 ? 'skyward' : 'point-up'}`;
     // the empire: mending a raided shop, a handshake hiring the jaga, sending the partner off, the partner's coin bag
     // handed over, counting a big till
     case 'repair': return `${h}-repair-${cyc(2, 5)}`;
@@ -632,7 +637,7 @@ export class Scene {
     sgSorted(this, x, w, list, vis);
     gearSorted(this, x, w, list, vis);
     isleSorted(this, x, w, list, vis);
-    eastSorted(this, x, w, list, vis); farSorted(this, x, w, list, vis); southSorted(this, x, w, list, vis); ubinSorted(this, x, w, list, vis);
+    eastSorted(this, x, w, list, vis); farSorted(this, x, w, list, vis); southSorted(this, x, w, list, vis); ubinSorted(this, x, w, list, vis); kallangSorted(this, x, w, list, vis);
     if (!p.roof) list.push([p.y + 1, () => this.hero(x, w)]);
     if (!m.roof && !m.seat && vis(m.x, m.y)) list.push([m.y + 0.5, () => drawHero(this, x, w, m, w.two)]);
     list.sort((a, b) => a[0] - b[0]);

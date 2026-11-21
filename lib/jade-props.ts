@@ -61,6 +61,11 @@ export const PROPS: PropDef[] = [
   P('ubinbikes', 'Jalan Ubin Bicycle Rental', 'ayu', 'pulau', [341, 112], 900, 0.75, 12, 'shop'),
   P('durianstall', 'Kampong Durian Stall', 'lan', 'pulau', [353, 112], 1000, 1.05, 12, 'food'),
   P('kelongseafood', 'Ubin Kelong Seafood', 'belangkas', 'pulau', [359, 118], 1500, 0.9, 15, 'food'),
+  // the eighteenth pass: three in Kallang (raided by the crows): a scarf-and-jersey kiosk by Kallang Wave Mall, a satay
+  // stall on the Sports Hub's north concourse, and a rowing café on the Kallang Riverside by the boathouse
+  P('wavekiosk', 'Kallang Wave Scarf Kiosk', 'tenuk', 'kallang', [184, 109], 1100, 0.9, 12, 'shop'),
+  P('hubsatay', 'Sports Hub Satay Stall', 'tenuk', 'kallang', [183, 105], 1300, 1.15, 12, 'food'),
+  P('rowcafe', 'Kallang Riverside Rowing Café', 'biru', 'kallang', [149, 102], 1700, 1, 15, 'food'),
 ];
 /** the first eleven, kept as they were placed, with the kind of trade each is */
 export const STALL_KIND: Record<string, PropKind> = { noodle: 'food', cake: 'food', tea: 'food', fan: 'shop', jade: 'shop', claw: 'shop', ckt: 'food', chicken: 'food', satay: 'food', laksa: 'food', kopi: 'food' };
