@@ -81,7 +81,7 @@ export async function twentieth(h) {
       // (before it starts a person walks up to the flag or the giver, not along the gold line to wherever it last led)
       if (s.giver && !started) s.to = s.giver;
       if (process.env.TRACE20) { const k = `${s.run}|${s.step}|${s.ride}|${s.hint}|${s.near?.kind ?? ''}:${s.near?.id ?? ''}|m${s.mark}|${s.rival ?? ''}|${Math.round(s.x / 64)},${Math.round(s.y / 64)}`; if (k !== last) { last = k; console.log(`  [${id} ${((Date.now() - t0) / 1000).toFixed(0)}s] ${k} @${s.x.toFixed(0)},${s.y.toFixed(0)}`); } }
-      if (s.failed) { fails++; await hold(new Set()); await p.locator('[data-testid="retry"]').click(); await wait(500); continue; }
+      if (s.failed) { if (process.env.TRACE20 || process.env.WHY20) console.log(`    ${id} failed: ${await W(() => document.querySelector('[data-testid="retry"]')?.closest('[role=dialog],div')?.textContent?.slice(0, 160))} | step ${s.step} hint ${s.hint}`); fails++; await hold(new Set()); await p.locator('[data-testid="retry"]').click(); await wait(500); continue; }
       if (s.talk) { await hold(new Set()); await key('e', 160); continue; }
       if (s.view) { await hold(new Set()); await key('e', 300); continue; }
       if (s.run === runId) started = true;
