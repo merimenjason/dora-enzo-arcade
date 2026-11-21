@@ -4,9 +4,23 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 22-11-2026
 
+### Added
+
+- **Jade Street**: the Southern Islands open after Night Safari. Take the island ferry from Marina South Pier, on the promenade south of the Bay (three coins; Route me plans the crossing), out to St John's Island with its marine lab and canteen, over the causeway to Lazarus Island and its lagoon beach, across the reef to Kusu Island's temple, tortoise pond and hilltop keramat, down to the Sisters' Islands marine park, and on to Raffles Lighthouse on Pulau Satumu. There is a bungalow safe house on St John's and three properties to buy: the Lazarus Coconut Bar, St John's Jetty Café and St John's Snorkel Hire. There are no taxis out here, only footpaths.
+- **Jade Street**: chapter thirteen, "Raffles Lighthouse": ten new jobs that follow Madam Sutera's "see you at the lighthouse" out to sea. There are four new givers (Kak Lumba the reef guide, a pink humpback dolphin; Auntie Ku, keeper of Kusu's tortoises; Pak Camar the lighthouse keeper, a black-naped tern; and Kapitan Umang, a hermit crab with a deck crew of hermit crabs on watch). The chapter ends on a hook, not an ending.
+- **Jade Street**: a new kind of job step, the tide crossing. Cross the reef flats marker to marker while the tide is out; the HUD counts down to the turn. When the tide turns, get onto a coral head (the dark rocks, ringed in gold) or the sand and wait it out, or the water washes you back to the last marker. On the open reef you wade, slower than a walk and with no dash. Assist gives a longer low tide; Hard a shorter one.
+- **Jade Street**: three new Hawker Tales on the islands: Tortoise Breakfast (kangkong from the canteen to Kusu's pond), Reef Count (peer into four rock pools on the low tide) and Hermit Race (round Lazarus Island against a hermit crab). There is a new side gig too, Kak Lumba's lagoon kayak loop round the buoys off Lazarus.
+- **Jade Street**: new things to do on the islands, each with its own animation: feed Kusu's tortoises a leaf of kangkong, float on your back in the Lazarus lagoon, look out through the keeper's binoculars from the lighthouse gallery, and peer into the rock pools on the reef. Four new trophies: Raffles Lighthouse, Tide Reader, Slow Food and Island Time.
+- **Jade Street**: own St John's Snorkel Hire and it leaves a kayak at any Southern Islands shore you call from.
+
 ### Changed
 
 - **Jade Street**: the rainbow lorikeets on Bird Paradise's feeding perch in Mandai are now painted birds instead of round icons. They sit on the perch and take turns preening, bobbing down to nibble, and stretching their wings.
+- **Jade Street**: walk into a hedge or a crate on a job and the job line now says "Q hops the hedge". Some routes hop one, such as the walk round the Bay to Marina South Pier, and nothing on screen used to say so.
+
+### Fixed
+
+- **Jade Street**: traffic no longer clogs an unlit crossing for up to a minute. A car that had waited its turn used to stop again as soon as it got moving, so a junction full of cars crept forward a few pixels each in turn.
 
 ## 21-11-2026
 
