@@ -81,7 +81,7 @@ export async function twentieth(h) {
       // (before it starts a person walks up to the flag or the giver, not along the gold line to wherever it last led)
       if (s.giver && !started) s.to = s.giver;
       if (process.env.TRACE20) { const k = `${s.run}|${s.step}|${s.ride}|${s.hint}|${s.near?.kind ?? ''}:${s.near?.id ?? ''}|m${s.mark}|${s.rival ?? ''}|${Math.round(s.x / 64)},${Math.round(s.y / 64)}`; if (k !== last) { last = k; console.log(`  [${id} ${((Date.now() - t0) / 1000).toFixed(0)}s] ${k} @${s.x.toFixed(0)},${s.y.toFixed(0)}`); } }
-      if (s.failed) { if (process.env.TRACE20 || process.env.WHY20) console.log(`    ${id} failed: ${await W(() => document.querySelector('[data-testid="retry"]')?.closest('[role=dialog],div')?.textContent?.slice(0, 160))} | step ${s.step} hint ${s.hint}`); fails++; await hold(new Set()); await p.locator('[data-testid="retry"]').click(); await wait(500); continue; }
+      if (s.failed) { if (process.env.TRACE20 || process.env.WHY20) console.log(`    ${id} failed: ${await W(() => { const w = window.__jade.world(); return JSON.stringify({ why: w.failed?.reason, x: Math.round(w.p.x), y: Math.round(w.p.y), carry: w.p.carry, act: w.p.act?.n ?? null, mark: w.run?.mark ?? null }); })} | step ${s.step} hint ${s.hint}`); fails++; await hold(new Set()); await p.locator('[data-testid="retry"]').click(); await wait(500); continue; }
       if (s.talk) { await hold(new Set()); await key('e', 160); continue; }
       if (s.view) { await hold(new Set()); await key('e', 300); continue; }
       if (s.run === runId) started = true;
@@ -89,7 +89,8 @@ export async function twentieth(h) {
       if (started && s.run !== runId) { await hold(new Set()); const won = (await state(id, gig)).won; return { won, fails, secs: (Date.now() - t0) / 1000 }; }
       const now = Date.now(), ready = now - lastKey > 350 && !s.act;
       const want = /dragon boat/i.test(s.hint) ? 'dragon' : /tuk-tuk/i.test(s.hint) ? 'tuktuk' : /bike|bicycle/i.test(s.hint) ? 'bike' : /boat|sampan/i.test(s.hint) ? 'boat' : null;
-      const ok = s.near && ((s.near.kind === 'mission' && s.near.id === id) || (s.near.kind === 'gig' && s.near.id === id && !started) || s.near.kind === 'job' || (s.near.kind === 'ride' && !s.ride && want && s.near.ride === want));
+      // (a warden's ticket, say for jaywalking off a zebra on the way: the E prompt says to pay it, so pay it, as a player would)
+      const ok = s.near && (s.near.kind === 'fine' || (s.near.kind === 'mission' && s.near.id === id) || (s.near.kind === 'gig' && s.near.id === id && !started) || s.near.kind === 'job' || (s.near.kind === 'ride' && !s.ride && want && s.near.ride === want));
       if (ready && ok) { await hold(new Set()); await key('e', 300); lastKey = Date.now(); continue; }
       if (ready && s.ride && /Hop off \(E\)|hop off \(E\)/.test(s.hint)) { await hold(new Set()); await key('e', 400); lastKey = Date.now(); continue; }
       if (/Space: /.test(s.hint) && s.boostCd <= 0) await key(' ', 60);
