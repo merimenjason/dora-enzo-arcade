@@ -142,6 +142,10 @@ export const KAMPONG_TEXT = 'The black-sailed junk slipped away before dawn, hea
 /** the phone text when Kallang opens (after chapter ten), and the hook at the end of chapter eleven (not an ending either) */
 export const KALLANG_TEXT = 'Hello? This is Kubung, at the Old Kallang Airport. A black seaplane landed on my basin at dawn, and crows in caps are carrying my archive away. Ms Tenuk at the Sports Hub says you help people. Take the MRT to Stadium, or walk east from Kampong Glam.';
 export const ROAR_TEXT = 'She flew south over the Straits with the photograph, and you still have the chart. I have found the 1937 survey’s flight log: the bearing is in it. Come and see me at the airport.';
+/** the phone text when Mandai opens (after chapter eleven), and the hook at the end of chapter twelve (not an ending:
+ * the story goes on) */
+export const MANDAI_TEXT = 'Hello… this is… Kongkang. Ranger… at the Night Safari, in Mandai. A black seaplane… landed on my reservoir. And strange owls… on my trails. Kubung says… you help. The MRT… runs to Mandai Lake Road.';
+export const SELETAR_TEXT = 'Bearing one-eight-two from Station Mandai runs straight down the island and out to sea, past Raffles Lighthouse. She left her card on my jetty: see you at the lighthouse. Until then… my trails are yours. Any night.';
 export const JURONG_TEXT = 'Jurong is open! The MRT runs to Jurong East station: the Science Centre, Snow City and the Chinese Garden on Jurong Lake. Or cross the bridge at the end of Beach Road.';
 export const RESORT_TEXT = 'Sentosa is open! The cable car leaves from HarbourFront at the docks (4 coins), the boardwalk runs beside the Sentosa Gateway, the MRT stops at Beach station, and the ferry crosses from Marina Bay (3 coins).';
 export function routeToStop(w: World, id: string): boolean {

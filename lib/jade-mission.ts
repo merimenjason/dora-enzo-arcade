@@ -23,6 +23,7 @@ import { raidEnter, raidStep } from './jade-biz.js';
 import { rideEnter, rideStep, rideTag, rideTarget } from './jade-ridejobs.js';
 import { trackEnter, trackStep, trackNear, trackAct, trackTarget } from './jade-track.js';
 import { crowdEnter, crowdStep, crowdNear, crowdAct, crowdTarget } from './jade-crowd.js';
+import { torchEnter, torchStep, torchTarget } from './jade-torch.js';
 import { teamEnter, teamStep, teamTag, guardGoal, guardHits, onGadget, onBurst, watchStep, blind, postMate, releaseMate, holding, dropBag } from './jade-team.js';
 import { matePounceHit, pounce, pounceWindow, nameOf, GRAB_REACH, type TagOpt } from './jade-tag.js';
 import { seat, newAI, type MateMode } from './jade-duo.js';
@@ -149,7 +150,7 @@ export class Run {
     this.label = 'label' in st ? st.label : '';
     const k = (this.assist ? 1.4 : 1) * this.w.diff.timer;
     if (teamEnter(this, st)) return;
-    if (rideEnter(this, st) || trackEnter(this, st) || crowdEnter(this, st)) return;
+    if (rideEnter(this, st) || trackEnter(this, st) || crowdEnter(this, st) || torchEnter(this, st)) return;
     if (jobEnter(this, st)) return;
     switch (st.t) {
       case 'talk': {
@@ -288,7 +289,7 @@ export class Run {
     const px = p.x, py = p.y, pb = p.ride ? p.ride.b : p.b;
     watchStep(this, dt);
     if (teamStep(this, st, dt)) return;
-    if (rideStep(this, st, dt) || trackStep(this, st) || crowdStep(this, st, dt)) return;
+    if (rideStep(this, st, dt) || trackStep(this, st) || crowdStep(this, st, dt) || torchStep(this, st, dt)) return;
     if (jobStep(this, st, dt)) return;
     switch (st.t) {
       case 'goto': {
@@ -690,7 +691,7 @@ export class Run {
   target(): [number, number] | null {
     const st = this.cur; if (!st) return null; const w = this.w;
     const jt = jobTarget(this); if (jt !== undefined) return jt;
-    const rt = this.cur?.t === 'track' ? trackTarget(this) : this.cur?.t === 'crowd' ? crowdTarget(this) : rideTarget(this); if (rt !== undefined) return rt;
+    const rt = this.cur?.t === 'track' ? trackTarget(this) : this.cur?.t === 'crowd' ? crowdTarget(this) : this.cur?.t === 'torch' ? torchTarget(this) : rideTarget(this); if (rt !== undefined) return rt;
     switch (st.t) {
       case 'goto': return this.spot(st.at);
       case 'ride': return this.ride && this.ride.parked ? [this.ride.b.x, this.ride.b.y] : null;
@@ -741,6 +742,7 @@ function timeUp(st: Step): string {
   if (st.t === 'swap') return `Out of time! The ${st.thing ?? 'crate'}s are being moved. Swap each one the moment it says Go!, and send your partner (F) at a ${swapNoun(st.skin)} in your way.`;
   if (st.t === 'heist') return 'Out of time! The crows got back on their feet. Head straight for the safe.';
   if (st.t === 'crowd') return 'The match kicked off without you! Wait at the edge for a gap in each stream of fans, then squeeze through.';
+  if (st.t === 'torch') return 'The night ran out! Follow the studs marker to marker, and hold Shift to creep whenever the HUD says an animal is near.';
   if (st.t === 'track') return 'The rain washed the prints away! Read each set (E), then head the way it says.';
   return 'Out of time!';
 }

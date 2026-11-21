@@ -27,6 +27,7 @@ import { farSorted, farOver } from './jade-fardraw.js';
 import { southGround, southSorted, southOver } from './jade-southdraw.js';
 import { ubinSorted } from './jade-ubindraw.js';
 import { kallangSorted } from './jade-kallangdraw.js';
+import { mandaiSorted, mandaiOver } from './jade-mandaidraw.js';
 import { snapScale, foldTints, chunkStale } from './jade-perf.js';
 import { empSorted, empOver, jagaActor } from './jade-empdraw.js';
 import { BIZ, BIZ_OF, bizPos } from './jade-biz.js';
@@ -323,6 +324,11 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     // Kallang (the eighteenth pass): squeezing sideways through a crowd (and standing in a lane), shoved back by a fan, the
     // ticket held up at the turnstile, the Kallang Wave (crouch, then up), looking up at a plane (then pointing)
     case 'squeeze': return `${h}-squeeze-${cyc(2, 4)}`; case 'squeeze-idle': return `${h}-squeeze-0`; case 'shoved': return `${h}-shoved`; case 'gate-ticket': return `${h}-ticket-up`;
+    // Mandai (the nineteenth pass): creeping by torch on a night trail (two frames), standing still listening, hushing
+    // while an animal stirs, startled when one bolts; the lorikeet on an outstretched arm, clapping at the show, sat on
+    // the Night Safari tram
+    case 'torch': return `${h}-torch-${cyc(2, 4)}`; case 'torch-still': return `${h}-listen`; case 'torch-hush': return `${h}-hush`; case 'torch-startle': return `${h}-startle`;
+    case 'lory': return `${h}-lory`; case 'clap': return `${h}-clap`; case 'tram': return `${h}-tram`;
     case 'kwave': return `${h}-wave-${t < 0.7 ? 0 : 1}`; case 'skyward': return `${h}-${t < 1.3 ? 'skyward' : 'point-up'}`;
     // the empire: mending a raided shop, a handshake hiring the jaga, sending the partner off, the partner's coin bag
     // handed over, counting a big till
@@ -637,7 +643,7 @@ export class Scene {
     sgSorted(this, x, w, list, vis);
     gearSorted(this, x, w, list, vis);
     isleSorted(this, x, w, list, vis);
-    eastSorted(this, x, w, list, vis); farSorted(this, x, w, list, vis); southSorted(this, x, w, list, vis); ubinSorted(this, x, w, list, vis); kallangSorted(this, x, w, list, vis);
+    eastSorted(this, x, w, list, vis); farSorted(this, x, w, list, vis); southSorted(this, x, w, list, vis); ubinSorted(this, x, w, list, vis); kallangSorted(this, x, w, list, vis); mandaiSorted(this, x, w, list, vis);
     if (!p.roof) list.push([p.y + 1, () => this.hero(x, w)]);
     if (!m.roof && !m.seat && vis(m.x, m.y)) list.push([m.y + 0.5, () => drawHero(this, x, w, m, w.two)]);
     list.sort((a, b) => a[0] - b[0]);
@@ -671,6 +677,8 @@ export class Scene {
     this.lights(x, w, ox, oy, cam.w, cam.h);
     if (w.blimp.on) this.blimp(x, w);
     this.fog(x, w, ox, oy, cam.w, cam.h);
+    // Mandai's lanterns, and the dark of a torch trail with the torch's circle (lib/jade-mandaidraw.ts)
+    mandaiOver(this, x, w, vis, ox, oy, cam.w, cam.h);
     this.particles(x, dt);
     this.juice.drawWorld(x, spr);
     // night tint by the clock and a soft vignette (screen space)

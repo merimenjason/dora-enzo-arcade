@@ -55,6 +55,8 @@ for (const m of [...MISSIONS, ...SIDE]) {
       case 'collect': { const from = at; for (const [k, it] of st.items.entries()) { at = from; go(it, cls, `${what} item ${k}`); } break; }
       // a boar trail: walk print to print (the old prints of a false branch too)
       case 'track': st.route.forEach((r, k) => go(r, cls, `${what} print ${k}`)); for (const [k, r] of (st.old ?? []).entries()) go(r, cls, `${what} old ${k}`); break;
+      // a torch trail: walk marker to marker on foot; every animal rests on open ground by the trail
+      case 'torch': st.route.forEach((r, k) => go(r, 'foot', `${what} marker ${k}`)); for (const [k, b] of st.beasts.entries()) assert.ok(passable(c, 'foot', b.at[0], b.at[1]), `${m.id} ${what}: animal ${k} rests on open ground`); break;
       // a match-night crowd: the way through runs straight from one end to the other (you squeeze across the lanes), so
       // every tile on that line stands open on foot
       case 'crowd': { go(st.from, 'foot', `${what} from`); const a0 = at; go(st.to, 'foot', `${what} to`);

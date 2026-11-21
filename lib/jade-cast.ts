@@ -160,4 +160,8 @@ export const CHAT: Record<string, string> = {
   tenuk: 'Forty thousand fans, six gates, one manager. Calmly. Everything is fine. Calmly.',
   kubung: 'The flying boats came down right there on the basin, in 1937. You could hear them from Geylang.',
   sutera: 'Such a pretty little basin, darlings. I shan’t be staying long.',
+  kongkang: 'Slowly… slowly. On my trails… slow is… fast.',
+  enggang: 'Mind your hair, darling: the lories think everything is a perch.',
+  bintu: 'Yes, I smell of popcorn. All binturongs do. No, you may not eat me.',
+  hantu: 'My owls see everything after dark. Everything is extra.',
 };
