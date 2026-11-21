@@ -24,6 +24,7 @@ import { rideEnter, rideStep, rideTag, rideTarget } from './jade-ridejobs.js';
 import { trackEnter, trackStep, trackNear, trackAct, trackTarget } from './jade-track.js';
 import { crowdEnter, crowdStep, crowdNear, crowdAct, crowdTarget } from './jade-crowd.js';
 import { torchEnter, torchStep, torchTarget } from './jade-torch.js';
+import { roundsEnter, roundsStep, roundsNear, roundsAct, roundsTarget, roundsTimeUp } from './jade-rounds.js';
 import { teamEnter, teamStep, teamTag, guardGoal, guardHits, onGadget, onBurst, watchStep, blind, postMate, releaseMate, holding, dropBag } from './jade-team.js';
 import { matePounceHit, pounce, pounceWindow, nameOf, GRAB_REACH, type TagOpt } from './jade-tag.js';
 import { seat, newAI, type MateMode } from './jade-duo.js';
@@ -150,7 +151,7 @@ export class Run {
     this.label = 'label' in st ? st.label : '';
     const k = (this.assist ? 1.4 : 1) * this.w.diff.timer;
     if (teamEnter(this, st)) return;
-    if (rideEnter(this, st) || trackEnter(this, st) || crowdEnter(this, st) || torchEnter(this, st)) return;
+    if (rideEnter(this, st) || trackEnter(this, st) || crowdEnter(this, st) || torchEnter(this, st) || roundsEnter(this, st)) return;
     if (jobEnter(this, st)) return;
     switch (st.t) {
       case 'talk': {
@@ -289,7 +290,7 @@ export class Run {
     const px = p.x, py = p.y, pb = p.ride ? p.ride.b : p.b;
     watchStep(this, dt);
     if (teamStep(this, st, dt)) return;
-    if (rideStep(this, st, dt) || trackStep(this, st) || crowdStep(this, st, dt) || torchStep(this, st, dt)) return;
+    if (rideStep(this, st, dt) || trackStep(this, st) || crowdStep(this, st, dt) || torchStep(this, st, dt) || roundsStep(this, st)) return;
     if (jobStep(this, st, dt)) return;
     switch (st.t) {
       case 'goto': {
@@ -656,7 +657,7 @@ export class Run {
     this.hits++; this.meter = { name: 'Wobble', v: this.hits / st.fragile, bad: this.hits >= st.fragile - 2 };
     this.w.fx.push({ t: 'wobble', x: this.w.p.x, y: this.w.p.y });
     if (this.hits === st.fragile - 2) this.warn(st.item === 'cake' ? 'The cake is wobbling! Two more bumps and it topples!' : 'Careful! Two more bumps and it’s ruined!');
-    if (this.hits >= st.fragile) this.fail(st.item === 'cake' ? 'Splat! The cake toppled. Smoother driving!' : st.item === 'crate' ? 'The mangoes are bruised to pulp! Steer round the bumps.' : 'Crash! The pots broke. Gently round the corners!');
+    if (this.hits >= st.fragile) this.fail(st.item === 'cake' ? 'Splat! The cake toppled. Smoother driving!' : st.item === 'g20-chweekueh' ? 'Splat! The chwee kueh slid off the plate. Steady round the corners!' : st.item === 'g20-batik' ? 'The batik is creased and muddy! Go round, not into things.' : st.item === 'crate' ? 'The mangoes are bruised to pulp! Steer round the bumps.' : 'Crash! The pots broke. Gently round the corners!');
   }
   onCarTouch(_c: Car) { }
   onEnter(_r: Ride) { }
@@ -676,9 +677,9 @@ export class Run {
   onSwitch() { }
   onGadget(a: Actor, g: GadgetId, pw: number, x: number, y: number) { return jobGadget(this, a, g, pw, x, y) || onGadget(this, a, g, pw, x, y); }
   onBurst(g: GadgetId, x: number, y: number, r: number) { onBurst(this, g, x, y, r); }
-  nearAction(x: number, y: number): Near | null { return this.cur?.t === 'float' ? floatNear(this, x, y) : this.cur?.t === 'track' ? trackNear(this, x, y) : this.cur?.t === 'crowd' ? crowdNear(this, x, y) : jobNear(this, x, y); }
+  nearAction(x: number, y: number): Near | null { return this.cur?.t === 'float' ? floatNear(this, x, y) : this.cur?.t === 'track' ? trackNear(this, x, y) : this.cur?.t === 'crowd' ? crowdNear(this, x, y) : this.cur?.t === 'rounds' ? roundsNear(this, x, y) : jobNear(this, x, y); }
   /** E on one of the job steps' things (a photo, a witness, a crate) */
-  jobAct(id: string) { if (!trackAct(this, id) && !crowdAct(this, id)) jobAct(this, id); }
+  jobAct(id: string) { if (!trackAct(this, id) && !crowdAct(this, id) && !roundsAct(this, id)) jobAct(this, id); }
   walkOnly() { return walkOnly(this); }
   heistPick(mode: 'quiet' | 'loud') { heistPick(this, mode); }
   branchPick(pick: BranchPick) { branchPick(this, pick); }
@@ -691,7 +692,7 @@ export class Run {
   target(): [number, number] | null {
     const st = this.cur; if (!st) return null; const w = this.w;
     const jt = jobTarget(this); if (jt !== undefined) return jt;
-    const rt = this.cur?.t === 'track' ? trackTarget(this) : this.cur?.t === 'crowd' ? crowdTarget(this) : this.cur?.t === 'torch' ? torchTarget(this) : rideTarget(this); if (rt !== undefined) return rt;
+    const rt = this.cur?.t === 'track' ? trackTarget(this) : this.cur?.t === 'crowd' ? crowdTarget(this) : this.cur?.t === 'torch' ? torchTarget(this) : this.cur?.t === 'rounds' ? roundsTarget(this) : rideTarget(this); if (rt !== undefined) return rt;
     switch (st.t) {
       case 'goto': return this.spot(st.at);
       case 'ride': return this.ride && this.ride.parked ? [this.ride.b.x, this.ride.b.y] : null;
@@ -743,6 +744,7 @@ function timeUp(st: Step): string {
   if (st.t === 'heist') return 'Out of time! The crows got back on their feet. Head straight for the safe.';
   if (st.t === 'crowd') return 'The match kicked off without you! Wait at the edge for a gap in each stream of fans, then squeeze through.';
   if (st.t === 'torch') return 'The night ran out! Follow the studs marker to marker, and hold Shift to creep whenever the HUD says an animal is near.';
+  if (st.t === 'rounds') return roundsTimeUp(st);
   if (st.t === 'track') return 'The rain washed the prints away! Read each set (E), then head the way it says.';
   return 'Out of time!';
 }

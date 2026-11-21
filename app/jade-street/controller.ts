@@ -30,6 +30,7 @@ import { owned } from '@/lib/jade-biz';
 import { applyTwo } from '@/lib/jade-duo';
 import { duoFrame, RIDE_DRAWN } from '@/lib/jade-duodraw';
 import { tagOption } from '@/lib/jade-tag';
+import { cantCall, fleetSpot, fleetSprite, fleetHue, fleetBoost, type FleetId } from '@/lib/jade-fleet';
 import { Notices } from '@/lib/jade-notice';
 import { stallPos, giveGadget, buyGadget, buyAmmo, upgradeGadget, carry, carried, GADGET_IDS, type GadgetId } from '@/lib/jade-gear';
 
@@ -420,6 +421,11 @@ export class Play {
       /** the tenth pass: the empire. Start a raid alert at a property (and choose its kind), stand at a property, set
        * the empire's rank, the raid clock and the partner's round, and read it all back */
       raidAlert: (id: BizId, kind?: RaidKind) => { const w = this.w; Object.assign(w.emp, { raid: null }); w.quitJob(); w.talk = null; startRaidAlert(w, id); if (w.emp.raid && kind) w.emp.raid.kind = kind; this.bump(); return w.emp.raid ? { ...w.emp.raid } : null; },
+      /** the twentieth pass's vehicle perks: stand the player on the nearest tile to a vehicle business (in its own
+       * district) where its ride can be called, and say why a call is refused there (null: it can be called) */
+      toFleet: (id: FleetId) => { const ok = !!fleetSpot(this.w, id); if (ok) { this.w.step(NO_INPUT, DT); this.bump(); } return ok; },
+      cantCall: (id: FleetId) => cantCall(this.w, id),
+      ownRide: () => { const w = this.w, r = w.p.ride; return r ? { kind: r.kind, own: r.own ?? null, sprite: fleetSprite(r, w.s), hue: fleetHue(r, w.s), boost: fleetBoost(w, r) } : null; },
       toBiz: (id: BizId) => { const [x, y] = bizPos(BIZ_OF[id]); this.w.placePlayer(x, y + 46); this.w.step(NO_INPUT, DT); this.bump(); return this.w.near ? { kind: this.w.near.kind, label: this.w.near.label } : null; },
       empire: () => { const w = this.w, e = w.emp; return { rank: w.s.empire.rank, jobs: { ...w.s.empire.jobs }, raid: e.raid ? { ...e.raid } : null, round: e.round ? { kind: e.round.kind, got: e.round.got, at: e.round.at, queue: e.round.queue.slice() } : null, jaga: !!e.jaga, owned: BIZ.filter(b => w.s.biz[b.id].lvl).map(b => b.id), stats: { raidsWon: w.s.stats.raidsWon, raidsMissed: w.s.stats.raidsMissed, repairs: w.s.stats.repairs, rounds: w.s.stats.rounds } }; },
       setBiz: (id: BizId, o: { lvl?: number; bank?: number; dmg?: number; jaga?: boolean }) => { Object.assign(this.w.s.biz[id], o); this.bump(); },

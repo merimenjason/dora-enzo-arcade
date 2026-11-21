@@ -15,6 +15,7 @@ import { hashStr, rng } from './jade-rng.js';
 import { asDiff, type Diff } from './jade-diff.js';
 import { BIZ, STALL_IDS, newBiz, rankOf, type BizState } from './jade-biz.js';
 import { EMPIRE_JOB_IDS } from './jade-empjobs.js';
+import { GIG20_DEFS } from './jade-gigs20.js';
 import { newGear, giveGadget, clipOf, ammoCap, GEAR_GIFT, GADGET_IDS, type GearState, type GadgetId } from './jade-gear.js';
 
 export const SAVE_KEY = 'jade-street-v13';
@@ -119,7 +120,7 @@ export const newBag = (): Bag => ({ tissue: 2, seed: 0, banana: 0, gum: 0, junk:
 export const newFines = (): Fines => ({ paid: 0, n: 0, by: {}, list: [], fled: 0 });
 export type Medal = { m: number; t: number; plays: number };
 /** a text; `kind` 'job' (an offer, with its job id) and 'fine' count on the phone's badge, chatter doesn't */
-export type Msg = { id: number; from: string; text: string; night: number; read: boolean; kind?: 'job' | 'fine' | 'help'; job?: string };
+export type Msg = { id: number; from: string; text: string; night: number; read: boolean; kind?: 'job' | 'fine' | 'help'; job?: string; /** a side gig's id (its board's Route me) */ gig?: string };
 export const OUTFITS: { id: string; name: string; hero: Hero | 'both'; price: number; need: { d: District; rep: number } | null; hue: number }[] = [
   { id: 'classic', name: 'Street classic', hero: 'both', price: 0, need: null, hue: 0 },
   { id: 'midnight', name: 'Midnight blue', hero: 'both', price: 120, need: { d: 'market', rep: 20 }, hue: 1 },
@@ -219,7 +220,7 @@ export function loadSave(raw: string | null): Save {
   const sy = (o.story ?? {}) as Record<string, unknown>;
   s.story = { intro: sy.intro === true, ch: Math.floor(num(sy.ch, 0, 0, 13)), ending: sy.ending === true, isle: sy.isle === true, lights: sy.lights === true, coast: sy.coast === true, lake: sy.lake === true };
   s.learned = strs(o.learned);
-  s.msgs = Array.isArray(o.msgs) ? (o.msgs as Msg[]).filter(m => m && typeof m.text === 'string' && typeof m.from === 'string').slice(-30).map((m, i) => ({ id: Number.isInteger(m.id) ? m.id : i + 1, from: m.from, text: m.text, night: num(m.night, 1, 1, 1e5), read: m.read === true, ...(m.kind === 'job' || m.kind === 'fine' || m.kind === 'help' ? { kind: m.kind } : {}), ...(typeof m.job === 'string' ? { job: m.job } : {}) })) : [];
+  s.msgs = Array.isArray(o.msgs) ? (o.msgs as Msg[]).filter(m => m && typeof m.text === 'string' && typeof m.from === 'string').slice(-30).map((m, i) => ({ id: Number.isInteger(m.id) ? m.id : i + 1, from: m.from, text: m.text, night: num(m.night, 1, 1, 1e5), read: m.read === true, ...(m.kind === 'job' || m.kind === 'fine' || m.kind === 'help' ? { kind: m.kind } : {}), ...(typeof m.job === 'string' ? { job: m.job } : {}), ...(typeof m.gig === 'string' ? { gig: m.gig } : {}) })) : [];
   s.radio = Math.floor(num(o.radio, 0, -1, 9)); s.helped = Math.floor(num(o.helped, 0, 0, 1e6));
   const bz = (o.biz ?? {}) as Record<string, unknown>;
   for (const b of BIZ) {
@@ -500,8 +501,13 @@ export const TROPHIES: { id: string; name: string; desc: string; test: (s: Save)
   { id: 'contractor', name: 'Contractor', desc: 'Finish ten contracts.', test: s => (s.contracts?.done ?? 0) >= 10 },
   { id: 'cotd', name: 'Job of the Day', desc: 'Finish a contract of the day.', test: s => (s.contracts?.dayRuns ?? 0) >= 1 },
   { id: 'turf', name: 'Turf Holder', desc: 'Win back three contested districts.', test: s => (s.contracts?.retaken ?? 0) >= 3 },
-  { id: 'defender', name: 'Till Keeper', desc: 'Chase off three crow raids.', test: s => Object.values(s.biz).reduce((a, b) => a + b.defended, 0) >= 3 },
+  { id: 'defender', name: 'Till Keeper', desc: 'Chase off three crow raids.', test: s => Object.values(s.biz).reduce((a, b) => a + b.defended, 0) >= 3 },  // the twentieth pass: the side gigs past Chinatown (lib/jade-gigs20.ts)
+  { id: 'every-corner', name: 'Every Corner', desc: 'Finish a side gig in every district past Chinatown.', test: s => [...new Set(GIG20_DEFS.map(g => g.d))].every(d => GIG20_DEFS.some(g => g.d === d && s.best['gig:' + g.id])) },
+  { id: 'rounds', name: 'Round the Houses', desc: 'Finish every round: mooncakes, balloons, garlands, potong, laksa, luggage, pastries, lanterns and nectar feeders.', test: s => GIG20_DEFS.filter(g => ROUND_KINDS.includes(g.kind)).every(g => s.best['gig:' + g.id]) },
+  { id: 'wheels-wakes', name: 'Wheels and Wakes', desc: 'Finish the river taxi run, the island bike loop and the buoy sprint.', test: s => ['river-taxi', 'ubin-loop', 'buoy-sprint'].every(id => s.best['gig:' + id]) },
 ];
+/** the side gigs that are rounds (lib/jade-rounds.ts) */
+const ROUND_KINDS = ['mooncakes', 'balloons', 'garlands', 'potong', 'laksa', 'luggage', 'croissants', 'lanterns', 'feeders'];
 /** award any trophies newly earned; returns their names */
 export function checkTrophies(s: Save): string[] {
   const out: string[] = [];
