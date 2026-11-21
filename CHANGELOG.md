@@ -18,6 +18,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Jade Street**: when a thief flying off with the loot swoops low, the hint now names it (crow, myna or bat) and says to dash into it with Space.
 - **Jade Street**: crate-swap jobs say more about what to do. "Go!" now shows only when no guard is watching the crate you are at, instead of whenever any guard looks away. A watched crate says so and names F to send your partner. If a guard hears your feet, you are told to hold Shift and sneak. The HUD calls guards by their gang (a boar, a lizard, a mynah), and each job names its own loot (Sacks for Sacks swaps loot sacks).
 - **Jade Street**: when a job tells you to take a bike, E by the rack picks a bike, even when a tandem is parked nearer.
 

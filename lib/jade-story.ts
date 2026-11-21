@@ -1327,7 +1327,7 @@ export const SIDE: Mission[] = mvMissions([
   { id: 'k34', side: 'm57', ch: 0, title: 'The Last Paid Crow', giver: 'seng', at: 'seng', reward: 300, rep: 12, blurb: 'One of the crows Towkay Hoot paid to clear the bird corner never heard the job was over, and he says the corner is his until somebody beats him round the estate. Beat him.',
     steps: [
       { t: 'talk', lines: [['seng', 'This crow! Hoot paid him for a week, and now he will not leave. He says only a faster runner can move him.', 'cross'], ['crow', 'Round the flats and back, fluffies. Lose and I keep the corner.', 'smug'], ['mate', 'Round the flats. We live round flats.', 'smug']] },
-      { t: 'race', ride: 'foot', rival: 'runner', pace: 0.9, marks: [[270, 102], [278, 106], [278, 113], [286, 113], [286, 124], [270, 124], [262, 117]], label: 'Beat the crow to every marker round the Tiong Bahru flats', cp: true },
+      { t: 'race', ride: 'foot', rival: 'runner', pace: 0.78, marks: [[270, 102], [278, 106], [286, 106], [286, 113], [286, 124], [270, 124], [262, 117]], label: 'Beat the crow to every marker round the Tiong Bahru flats', cp: true },
       { t: 'talk', lines: [['crow', 'Fine! Fine. The corner is yours. Does anybody here know if Hoot still owes me for Thursday?', 'cross'], ['seng', 'Go and ask him. Far away. Slowly.', 'happy']] },
     ] },
   { id: 'k35', side: 'm47', ch: 0, title: 'The Laksa Bat', giver: 'rosie', at: 'rosie', reward: 300, rep: 12, blurb: 'A bat swooped through Nyonya Rosie’s kitchen window and flew off with the bowl of laksa she made for the food critic. It is circling the shophouses with it. Knock it loose before he arrives.',

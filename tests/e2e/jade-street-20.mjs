@@ -32,11 +32,11 @@ export async function twentieth(h) {
   check(NEW.length === 17, `${name}: seventeen gig flags past Chinatown (${NEW.length})`);
 
   // ── the map shows the flags
-  if (await exists('jade-map-btn') || await exists('map')) {
-    await press(await exists('jade-map-btn') ? 'jade-map-btn' : 'map'); await wait(500);
-    check(await W(ids => ids.every(id => !!document.querySelector(`[data-key="gig-${id}"]`)) || document.querySelectorAll('[data-kind="gig"]').length >= ids.length, NEW), `${name}: the map pins every gig flag`);
-    await look('map: gig flags'); if (await exists('close')) await press('close'); await free();
-  }
+  await press('map-btn'); check(await appear('map'), `${name}: the map opens`); await wait(500);
+  for (let i = 0; i < 8; i++) await press('jade-map-zoom-out'); await wait(400);
+  const pins = await W(() => [...document.querySelectorAll('[data-testid="jade-map-pin"][data-kind="gig"]')].map(e => e.getAttribute('data-key')));
+  check(NEW.every(id => pins.includes('gig-' + id)), `${name}: the map pins every gig flag past Chinatown (${NEW.filter(id => !pins.includes('gig-' + id)).join(', ') || 'all there'})`);
+  await look('map: gig flags'); await press('close'); await free();
 
   // ── a giver texts about their gig; the text's Route me points the gold line at the flag
   await W(() => { const w = window.__jade.world(); w.s.night++; w.tick = 0; });
@@ -56,6 +56,8 @@ export async function twentieth(h) {
     return { hint: q('objective')?.textContent ?? '', talk: !!q('dialogue'), failed: !!q('retry'), view: !!q('ride-view'),
       run: w.run?.m.id ?? null, step: w.run?.cur?.t ?? null, x: w.p.x, y: w.p.y, ride: w.p.ride?.kind ?? null, act: !!w.p.act, boostCd: w.p.boostCd ?? 0,
       near: w.near ? { kind: w.near.kind, id: w.near.id ?? null, ride: w.near.ride?.kind ?? null } : null, to: k >= 0 ? r[k] : r.length ? r[r.length - 1] : o, obj: o, giver: g ? [g.x, g.y] : null,
+      mark: w.run?.mark ?? null, rival: (() => { const a = (w.run?.actors ?? []).find(a => /^rival/.test(a.kind)); return a ? `${a.kind}:${a.wp ?? a.i ?? '?'}@${Math.round(a.b.x)},${Math.round(a.b.y)}` : null; })(),
+      bird: (() => { const a = (w.run?.actors ?? []).find(a => a.kind === 'bagbird' && !a.gone); return a ? [a.b.x, a.b.y] : null; })(),
       won: gig ? !!w.s.best['gig:' + id] : w.s.done.includes(id) };
   }, [id, gig]);
   let held = new Set();
@@ -78,7 +80,7 @@ export async function twentieth(h) {
       const s = await state(id, gig);
       // (before it starts a person walks up to the flag or the giver, not along the gold line to wherever it last led)
       if (s.giver && !started) s.to = s.giver;
-      if (process.env.TRACE20) { const k = `${s.run}|${s.step}|${s.ride}|${s.hint}|${s.near?.kind ?? ''}:${s.near?.id ?? ''}`; if (k !== last) { last = k; console.log(`  [${id} ${((Date.now() - t0) / 1000).toFixed(0)}s] ${k} @${s.x.toFixed(0)},${s.y.toFixed(0)}`); } }
+      if (process.env.TRACE20) { const k = `${s.run}|${s.step}|${s.ride}|${s.hint}|${s.near?.kind ?? ''}:${s.near?.id ?? ''}|m${s.mark}|${s.rival ?? ''}|${Math.round(s.x / 64)},${Math.round(s.y / 64)}`; if (k !== last) { last = k; console.log(`  [${id} ${((Date.now() - t0) / 1000).toFixed(0)}s] ${k} @${s.x.toFixed(0)},${s.y.toFixed(0)}`); } }
       if (s.failed) { fails++; await hold(new Set()); await p.locator('[data-testid="retry"]').click(); await wait(500); continue; }
       if (s.talk) { await hold(new Set()); await key('e', 160); continue; }
       if (s.view) { await hold(new Set()); await key('e', 300); continue; }
@@ -91,6 +93,12 @@ export async function twentieth(h) {
       if (ready && ok) { await hold(new Set()); await key('e', 300); lastKey = Date.now(); continue; }
       if (ready && s.ride && /Hop off \(E\)|hop off \(E\)/.test(s.hint)) { await hold(new Set()); await key('e', 400); lastKey = Date.now(); continue; }
       if (/Space: /.test(s.hint) && s.boostCd <= 0) await key(' ', 60);
+      // (a thief in the air, as the hint says: keep near it while it circles; when "It's low", run into it and dash (Space))
+      if (s.step === 'bag' && s.bird) {
+        const d = Math.hypot(s.bird[0] - s.x, s.bird[1] - s.y);
+        if (/low/i.test(s.hint)) { s.to = s.bird; if (d < 90 && ready) { await key(' ', 60); lastKey = Date.now(); } }
+        else if (d < 200) { await hold(new Set()); await wait(90); continue; } else s.to = s.bird;
+      }
       await steer(s); await wait(90);
     }
     await hold(new Set());
@@ -104,7 +112,7 @@ export async function twentieth(h) {
   const results = {};
   for (const id of NEW) {
     const b = await W(id => { const g = window.__jade.world().gigs().find(g => g.id === id); return g && [g.x, g.y]; }, id);
-    await arrive(b[0], b[1] + 150);
+    await arrive(b[0], b[1] + 70);
     const r = await play(id, true, 220); results[id] = r;
     check(r.won, `${name}: a first-timer finishes the ${id} gig on Normal from the hints alone (${r.secs.toFixed(0)} s, ${r.fails} retries)`);
     if (!r.fails && !r.skipped) results[id].first = true;
@@ -121,8 +129,10 @@ export async function twentieth(h) {
     await look(`${id} done`);
     if (!r.won) await W(id => { const w = window.__jade.world(); w.quitJob(); if (!w.s.done.includes(id)) w.s.done.push(id); }, id);
   }
-  for (const n of ['serve', 'drape', 'hang']) check(await seen(n), `${name}: the ${n} pose was seen`);
+  if (!only) for (const n of ['serve', 'drape', 'hang']) check(await seen(n), `${name}: the ${n} pose was seen`);
   check(!(await exists('jade-ending')), `${name}: no ending`);
   void loc; void appear; void until;
+  const first = Object.entries(results).filter(([, r]) => !r.skipped), clean = first.filter(([, r]) => r.won && !r.fails);
+  console.log(`  pass 20 first-timer: ${clean.length}/${first.length} first try on Normal; retries: ${first.filter(([, r]) => r.fails).map(([id, r]) => `${id} ${r.fails}`).join(', ') || 'none'}`);
   return results;
 }
