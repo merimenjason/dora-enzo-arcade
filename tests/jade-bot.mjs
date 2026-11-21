@@ -34,6 +34,8 @@ import { startRaidAlert, startEmpireJob, RAID_KINDS, gangOf } from '../.checks/j
 import { contractOf, tierOf, starsFor } from '../.checks/jade-contracts.js';
 import { contractMission } from '../.checks/jade-proc.js';
 import { openDistricts, SAFE_HOUSES } from '../.checks/jade-save.js';
+import { startGig } from '../.checks/jade-gigs.js';
+import { GIG20_DEFS } from '../.checks/jade-gigs20.js';
 
 const QUICK = process.argv.includes('--quick');
 const MAIN = import.meta.url === `file://${process.argv[1]}`;
@@ -75,6 +77,11 @@ export function empireSave(id, seed = 0) {
 /** the empire's cases: [label, property, options for playMission] — each empire job at a property that offers it, and
  *  every raid kind of each gang (at one property in the gang's district); a raid alert starts across town, with the
  *  real clock */
+/** the twentieth pass: each side gig past Chinatown, started at its board on a save with the whole story done (every
+ *  district open), as a player walks up to the flag and presses E */
+export function gigCases() {
+  return GIG20_DEFS.map(g => [`gig ${g.id}`, g.id, s => ({ save: s, setup: w => { const b = w.gigs().find(x => x.id === g.id); assert.ok(b, `${g.id} board is up`); w.placePlayer(b.x, b.y + 20); startGig(w, g.id); }, done: () => !!s.best['gig:' + g.id], maxT: 400 })]);
+}
 export function empireCases() {
   const out = [];
   for (const [job, id] of [['supplier', 'chicken'], ['inspector', 'prata'], ['pricewar', 'textile'], ['taxi', 'taxi'], ['tour', 'bumboat'], ['tour', 'kayak'], ['karaoke', 'karaoke']])
@@ -469,6 +476,14 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
         if (laneClear(c, n, sx, crossTime() + 0.35 + 0.3 * P.wob)) { go(tg[0], tg[1]); return; }
         inp.mx = 0; inp.my = 0; return;
       }
+      // the twentieth pass: a round of drop-offs. Off any ride, follow the gold line to the nearest stop still waiting
+      // and press E the moment the prompt shows; stand still while the pose plays
+      case 'rounds': {
+        if (p.ride) { offFoot(); return; }
+        if (p.act) { inp.mx = 0; inp.my = 0; return; }
+        if (nearJob('drop:')) { press('act'); return; }
+        const tg = run.target(); if (tg) go(tg[0], tg[1]); return;
+      }
       // the sixteenth pass: the tandem's tosses and the dragon boat's paddle (surge whenever the drum allows)
       case 'toss': {
         if (p.ride?.kind !== 'tandem') { getRide(r => r.kind === 'tandem'); return; }
@@ -734,7 +749,9 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
 
 if (MAIN) {
   const only = process.argv.find(a => /^[mk]\d+$/.test(a));
-  const ids = only ? [only] : [...MISSIONS, ...SIDE].map(m => m.id);
+  // --gigs: only the side gigs past Chinatown (the twentieth pass's), for a quick look at them
+  const GIGS_ONLY = process.argv.includes('--gigs');
+  const ids = only ? [only] : GIGS_ONLY ? [] : [...MISSIONS, ...SIDE].map(m => m.id);
   // the casual bot plays the same 10 seeds in --quick (npm test) as in the full run: with fewer, one unlucky run could
   // sink a job below 90% by itself; --quick only trims the Normal and Hard runs and the perfect bot
   const seeds = 10;
@@ -754,8 +771,18 @@ if (MAIN) {
     rows.push(`${id.padEnd(4)} ${MISSION[id].title.padEnd(26)} casual ${String(Math.round(rate * 100)).padStart(3)}%  avg ${cw ? Math.round(ct / cw) : '-'}s  first try ${first}/${seeds}   Normal ${nw}/${ns} (first ${nFirst}, tries ${(nTries / ns).toFixed(1)})   Hard ${hw}/${ns} (first ${hFirst}, tries ${(hTries / ns).toFixed(1)})   perfect ${pr.won ? Math.round(pr.time) + 's' : 'LOST'}`);
     console.log(rows[rows.length - 1]);
   }
+  // the twentieth pass: every side gig past Chinatown, casual on every seed, Normal and Hard first tries reported
+  if (!only) for (const [label, id, opts] of gigCases()) {
+    let cw = 0, ct = 0, first = 0, nw = 0, nf = 0, hw = 0; const cs = QUICK ? 3 : seeds, ns = QUICK ? 2 : 6;
+    for (let k = 0; k < cs; k++) { const r = playMission(label, 'casual', k, opts(contractSave(k, 1))); if (r.won) { cw++; ct += r.time; if (!r.fails) first++; } else if (process.argv.includes('-v')) console.log('  casual lost', label, k, r); }
+    for (let k = 0; k < ns; k++) { const r = playMission(label, 'normal', 50 + k, { ...opts(contractSave(50 + k, 1)), assist: false, diff: 'normal' }); if (r.won) { nw++; if (!r.fails) nf++; } else if (process.argv.includes('-v')) console.log('  normal lost', label, k, r); }
+    for (let k = 0; k < ns; k++) { const r = playMission(label, 'normal', 80 + k, { ...opts(contractSave(80 + k, 1)), assist: false, diff: 'hard' }); if (r.won) hw++; else if (process.argv.includes('-v')) console.log('  hard lost', label, k, r); }
+    const rate = cw / cs; worst = Math.min(worst, rate);
+    rows.push(`${label.padEnd(31)} casual ${String(Math.round(rate * 100)).padStart(3)}%  avg ${cw ? Math.round(ct / cw) : '-'}s  first try ${first}/${cs}   Normal ${nw}/${ns} (first ${nf})   Hard ${hw}/${ns}`);
+    console.log(rows[rows.length - 1]);
+  }
   // the empire: each empire job and raid kind, casual on every seed, Normal and Hard reported
-  if (!only) for (const [label, id, opts] of empireCases()) {
+  if (!only && !process.argv.includes('--gigs')) for (const [label, id, opts] of empireCases()) {
     let cw = 0, ct = 0, first = 0, nw = 0, hw = 0; const cs = QUICK ? 3 : seeds, ns = QUICK ? 1 : 4;
     for (let k = 0; k < cs; k++) { const s = empireSave(id, k); const r = playMission(label, 'casual', k, opts(s)); if (r.won) { cw++; ct += r.time; if (!r.fails) first++; } else if (process.argv.includes('-v')) console.log('  casual lost', label, k, r); }
     for (let k = 0; k < ns; k++) { const s = empireSave(id, 50 + k); if (playMission(label, 'normal', 50 + k, { ...opts(s), assist: false, diff: 'normal' }).won) nw++; }
@@ -767,7 +794,7 @@ if (MAIN) {
   // the eleventh pass: generated contracts, each a new seed (a different job every time), across the three saves
   // (just past chapter six, the whole story, a small empire at a higher tier): casual must finish at least 90%, Normal
   // fails a fair share of first tries without walling anyone, Hard finishes at least 80%
-  if (!only) {
+  if (!only && !GIGS_ONLY) {
     const cn = QUICK ? 24 : 300, nn = QUICK ? 8 : 150; const kinds = {};
     let cw = 0, cf = 0, nw = 0, nf = 0, hw = 0, hf = 0;
     for (let k = 0; k < cn; k++) { const { c, opts } = contractCase(k); const r = playMission('con' + k, 'casual', k, opts); const kd = kinds[c.kind] ??= { n: 0, w: 0 }; kd.n++; if (r.won) { cw++; kd.w++; if (!r.fails) cf++; } else if (process.argv.includes('-v')) console.log('  casual lost contract', k, c.kind, c.mods.join(), r.at); }
@@ -781,7 +808,7 @@ if (MAIN) {
   const pc = (a, b) => `${Math.round(100 * a / Math.max(1, b))}%`;
   console.log(`Normal: finished ${pc(tot.nw, tot.n)}, first try ${pc(tot.nf, tot.n)}   Hard: finished ${pc(tot.hw, tot.n)}, first try ${pc(tot.hf, tot.n)}`);
   assert.ok(worst >= 1, `the casual bot finishes every job every time on Assist (worst ${Math.round(worst * 100)}%)`);
-  if (!QUICK && !only) {
+  if (!QUICK && !only && !GIGS_ONLY) {
     // the full run also holds Normal and Hard to their targets: every job finishable, Normal failing a fair share of
     // first tries without walling anyone, Hard clearly harder
     assert.ok(tot.hw / tot.n >= 0.97 && tot.nw / tot.n >= 0.97, 'Normal and Hard bots finish (almost) every job');

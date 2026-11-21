@@ -39,6 +39,8 @@ const ATLAS_TIER: Record<string, Tier> = {
   'atlas-ubin': 'ubin', 'atlas-boars': 'ubin', 'atlas-cast-ubin': 'ubin', 'atlas-ui17': 'job',
   // the eighteenth pass: Kallang's paintings stream with its zone; the two new hero moves and the new icons are job art
   'atlas-kallang': 'kallang', 'atlas-cast-kallang': 'kallang', 'atlas-act18': 'job', 'atlas-ui18': 'job',
+  // the twentieth pass: the heroes' rounds poses are job art; each district's carried things stream with its zone
+  'atlas-act20': 'job', 'atlas-gig20-south': 'south', 'atlas-gig20-east': 'east', 'atlas-gig20-far': 'far',
   // (the heroes' new actions stream with the rest of their rarer poses: every hero frame is core or job)
   'atlas-act17': 'job',
 };

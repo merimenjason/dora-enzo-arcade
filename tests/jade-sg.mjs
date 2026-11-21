@@ -162,7 +162,7 @@ test('the kopi counter: orders in kopi lingo, a wrong cup costs a try, all order
 });
 
 test('Hawker Tales: thirteen side jobs, each offered after its story job, outside the chapters', () => {
-  assert.equal(SIDE.length, 29); assert.equal(MISSIONS.length, 85);
+  assert.equal(SIDE.length, 35); assert.equal(MISSIONS.length, 85);
   for (const m of SIDE) { assert.ok(MISSION[m.id] === m); assert.ok(MISSIONS.some(x => x.id === m.side), `${m.id} opens after a story job`); assert.equal(m.ch, 0); }
   const s = newSave(2); s.done = ['m1', 'm2', 'm3']; assert.deepEqual(sideJobs(s).map(m => m.id), ['k1']);
   assert.ok(offered(s).some(m => m.id === 'k1') && offered(s).some(m => m.side === undefined));

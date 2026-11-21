@@ -101,6 +101,10 @@ export type Step =
    * streaming across the way (`span` tiles either side); a fan walks into you and you are shoved back; `ticket`: E at
    * the turnstile at `to` to end it; `item`: carried through (`keep`: still carried after) */
   | { t: 'crowd'; from: Spot; to: Spot; lanes: number; span?: number; time?: number; item?: string; keep?: boolean; ticket?: boolean; label: string; cp?: boolean }
+  /** the twentieth pass (lib/jade-rounds.ts): a round of drop-offs. You carry `item` and hand one over at each of `drops`
+   * (E there: the step's own pose, `act`) before `time` runs out; `who`: the townsfolk waiting at each drop (unset: a hook,
+   * a shrine or a doorway); `what`: the thing, as the HUD names it ('songbird cage') */
+  | { t: 'rounds'; drops: Spot[]; item: string; act: 'serve' | 'drape' | 'hang'; what: string; who?: string[]; time: number; label: string; cp?: boolean }
   | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat' | 'boar'; /** what the HUD calls a crate ('loot sack') */ thing?: string; label: string; cp?: boolean };
 /** what a photo while casing tells you: the back way in, the guards' beats, where the cameras are wired, the safe's make */
 export type Intel = 'door' | 'rota' | 'cam' | 'safe';
@@ -233,6 +237,7 @@ function mvStepFields(st: Step): Step {
     case 'toss': return { ...st, marks: mvSpots(st.marks) };
     case 'track': return { ...st, route: mvSpots(st.route), ...(st.old ? { old: mvSpots(st.old) } : {}) };
     case 'crowd': return { ...st, from: mvSpot(st.from), to: mvSpot(st.to) };
+    case 'rounds': return { ...st, drops: mvSpots(st.drops) };
     case 'chase': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), sets: st.sets?.map(d => ({ ...d, at: mvT(d.at[0], d.at[1]) })) };
     case 'float': return st.rope === undefined ? st : { ...st, rope: mvSpot(st.rope) };
     case 'tail': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), relay: st.relay && { ...st.relay, spot: mvSpot(st.relay.spot) } };
@@ -1310,6 +1315,46 @@ export const SIDE: Mission[] = mvMissions([
       { t: 'talk', lines: [['kubung', 'The wind! My 1938 logs, all over the apron! Four pages, and the basin is very wet.', 'worried'], ['mate', 'Four pages. We can do four pages.', 'happy']] },
       { t: 'collect', items: [K(17, 9), K(31, 5), K(29, 14), K(20, 15)], item: 'kal-charts', time: 70, label: 'Pick up the four flight-log pages blowing across the apron (E at each) before they reach the water', cp: true },
       { t: 'talk', lines: [['kubung', 'All four. Every take-off, every landing. Thank you. History is mostly paper, and paper is mostly wind.', 'happy']] },
+    ] },
+  // the twentieth pass: more tales for the districts with fewest (Tiong Bahru and Katong two each, Toa Payoh and Marina
+  // Bay their first); k30 to k32 are the nineteenth pass's
+  { id: 'k33', side: 'm57', ch: 0, title: 'Contest Morning', giver: 'seng', at: 'seng', reward: 300, rep: 12, blurb: 'It is the songbird contest at the bird corner, and the judges arrive at first light. Uncle Seng has four cages and four empty hooks: hang every one before the judges’ whistle.',
+    steps: [
+      { t: 'talk', lines: [['seng', 'Contest morning! Four birds, four hooks, and my old arms will not reach. You two have long ears. Good for reaching.', 'happy'], ['mate', 'Ears do not help with reaching, Uncle.', 'calm'], ['seng', 'Hurry, hurry. When the whistle goes, every bird must be up and singing.', 'worried']] },
+      { t: 'rounds', act: 'hang', item: 'g20-cage', what: 'songbird cage', drops: [[258, 112], [264, 113], [260, 108], [265, 109]], time: 50, label: 'Hang a songbird cage on each empty hook at the bird corner (E at each glowing ring)', cp: true },
+      { t: 'talk', lines: [['seng', 'Listen. The shama first, then the merbok, then all four together. The judges are writing very fast.', 'happy'], ['hero', 'Who wins?', 'calm'], ['seng', 'Tiong Bahru wins. Every morning.', 'happy']] },
+    ] },
+  { id: 'k34', side: 'm57', ch: 0, title: 'The Last Paid Crow', giver: 'seng', at: 'seng', reward: 300, rep: 12, blurb: 'One of the crows Towkay Hoot paid to clear the bird corner never heard the job was over, and he says the corner is his until somebody beats him round the estate. Beat him.',
+    steps: [
+      { t: 'talk', lines: [['seng', 'This crow! Hoot paid him for a week, and now he will not leave. He says only a faster runner can move him.', 'cross'], ['crow', 'Round the flats and back, fluffies. Lose and I keep the corner.', 'smug'], ['mate', 'Round the flats. We live round flats.', 'smug']] },
+      { t: 'race', ride: 'foot', rival: 'runner', pace: 0.9, marks: [[270, 102], [278, 106], [278, 113], [286, 113], [286, 124], [270, 124], [262, 117]], label: 'Beat the crow to every marker round the Tiong Bahru flats', cp: true },
+      { t: 'talk', lines: [['crow', 'Fine! Fine. The corner is yours. Does anybody here know if Hoot still owes me for Thursday?', 'cross'], ['seng', 'Go and ask him. Far away. Slowly.', 'happy']] },
+    ] },
+  { id: 'k35', side: 'm47', ch: 0, title: 'The Laksa Bat', giver: 'rosie', at: 'rosie', reward: 300, rep: 12, blurb: 'A bat swooped through Nyonya Rosie’s kitchen window and flew off with the bowl of laksa she made for the food critic. It is circling the shophouses with it. Knock it loose before he arrives.',
+    steps: [
+      { t: 'talk', lines: [['rosie', 'The critic’s bowl! Three generations of laksa, and a bat thinks it is his supper.', 'cross'], ['mate', 'He is holding it very carefully, Auntie.', 'calm'], ['rosie', 'Then knock it out of his claws before he takes it to the roost! The critic comes at nine!', 'worried']] },
+      { t: 'bag', at: 'here', loot: 'g20-laksa', skin: 'bat', time: 60, label: 'Knock the bowl of laksa out of the bat’s claws (shoot it, or dash when it swoops low)', cp: true },
+      { t: 'talk', lines: [['rosie', 'Not one cockle spilled. The critic says nine out of ten. The tenth point, he says, is for the bat. Cheeky.', 'happy'], ['rosie', 'Tonight the laksa is free for you two, and for nobody with wings.', 'happy']] },
+    ] },
+  { id: 'k36', side: 'm49', ch: 0, title: 'Kite Day', giver: 'bala', at: 'bala', reward: 300, rep: 12, blurb: 'The sea breeze snapped six strings at once at East Coast Park, and the kids’ kites are coming down all along the beach. Run them down before they land in the sea.',
+    steps: [
+      { t: 'talk', lines: [['bala', 'Six kites, six strings, one big gust. The kids are crying all along the park.', 'worried'], ['hero', 'Where are they coming down?', 'calm'], ['bala', 'Everywhere! Follow the gold line and grab each one.', 'happy']] },
+      { t: 'collect', items: [[292, 84], [305, 82], [312, 85], [322, 83], [296, 87], [280, 85]], item: 'kite', time: 55, label: 'Run along the beach and catch every falling kite', cp: true },
+      { t: 'talk', lines: [['bala', 'All six, and only one with a hole. I have tape. The kids want to know if you fly kites.', 'happy'], ['mate', 'We are not allowed near strings. Long story.', 'calm']] },
+    ] },
+  { id: 'k37', side: 'm56', ch: 0, title: 'Void Deck Wedding', giver: 'kamal', at: 'kamal', reward: 300, rep: 12, blurb: 'Uncle Kamal’s nephew is getting married at the void deck by the community club tonight, and the wedding cake is still at the station. Carry it over without a single knock.',
+    steps: [
+      { t: 'talk', lines: [['kamal', 'My nephew! Married! And the cake is here, with me, and the wedding is there, with the guests.', 'worried'], ['mate', 'Three tiers. We can carry three tiers.', 'calm'], ['kamal', 'Gently, ah. Every bump, a tier leans.', 'worried']] },
+      { t: 'pickup', at: [152, 32], item: 'cake', label: 'Pick up the wedding cake', cp: true },
+      { t: 'deliver', to: 'cc', time: 50, fragile: 6, item: 'cake', label: 'Carry the cake to the void deck by the community club: no bumping into walls!' },
+      { t: 'talk', lines: [['kamal', 'Not one crumb out of place! The aunties are already cutting it. Come, come, eat first.', 'happy']] },
+    ] },
+  { id: 'k38', side: 'm34', ch: 0, title: 'Bay Regatta', giver: 'vanda', at: 'vanda', reward: 300, rep: 12, blurb: 'The bumboat regatta round Marina Bay is on, and Kaw’s crows have entered a boat to show they still own the water. Take Auntie Vanda’s bumboat and beat them round every buoy.',
+    steps: [
+      { t: 'talk', lines: [['vanda', 'Regatta night! And look who entered. Kaw’s crows, in a stolen bumboat.', 'cross'], ['hero', 'Then we beat them in a borrowed one.', 'smug']] },
+      { t: 'ride', kind: 'boat', near: [193, 70], label: 'Take the bumboat at the boardwalk', cp: true },
+      { t: 'race', ride: 'boat', rival: 'boat', pace: 0.85, time: 85, marks: [[185, 72], [170, 70], [160, 76], [150, 80], [175, 81], [190, 76]], label: 'Steer round every buoy in the bay before the crows’ boat', cp: true },
+      { t: 'talk', lines: [['vanda', 'First across the line! The crows are paddling home with their beaks down. Ha!', 'happy']] },
     ] },
 ]);
 export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id, m])) as Record<string, Mission>;

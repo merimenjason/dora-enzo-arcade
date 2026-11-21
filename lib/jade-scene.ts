@@ -26,6 +26,7 @@ import { eastGround, eastSorted, eastOver } from './jade-eastdraw.js';
 import { farSorted, farOver } from './jade-fardraw.js';
 import { southGround, southSorted, southOver } from './jade-southdraw.js';
 import { ubinSorted } from './jade-ubindraw.js';
+import { roundsGround } from './jade-rounddraw.js';
 import { kallangSorted } from './jade-kallangdraw.js';
 import { snapScale, foldTints, chunkStale } from './jade-perf.js';
 import { empSorted, empOver, jagaActor } from './jade-empdraw.js';
@@ -323,6 +324,9 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     // Kallang (the eighteenth pass): squeezing sideways through a crowd (and standing in a lane), shoved back by a fan, the
     // ticket held up at the turnstile, the Kallang Wave (crouch, then up), looking up at a plane (then pointing)
     case 'squeeze': return `${h}-squeeze-${cyc(2, 4)}`; case 'squeeze-idle': return `${h}-squeeze-0`; case 'shoved': return `${h}-shoved`; case 'gate-ticket': return `${h}-ticket-up`;
+    // the twentieth pass's rounds (lib/jade-rounds.ts): a garland held up, then draped; a cage or lantern hooked up high,
+    // then admired
+    case 'drape': return `${h}-drape-${t < 0.45 ? 0 : 1}`; case 'hang': return `${h}-${t < 0.65 ? 'hang-up' : 'admire'}`;
     case 'kwave': return `${h}-wave-${t < 0.7 ? 0 : 1}`; case 'skyward': return `${h}-${t < 1.3 ? 'skyward' : 'point-up'}`;
     // the empire: mending a raided shop, a handshake hiring the jaga, sending the partner off, the partner's coin bag
     // handed over, counting a big till
@@ -897,7 +901,7 @@ export class Scene {
         }
       }
       if (run) {
-        if (!jobGround(this, x, w, run)) for (const it of run.items) if (!it.got) { this.glow(x, it.x, it.y, 46, 'rgba(255,200,80,.4)'); spr(x, itemSprite(it.sprite), it.x, it.y + 10, { w: it.sprite === 'lookout' ? 60 : 30 }); if (cb) this.cb(x, 'item', it.x + 26, it.y - 30); }
+        if (!jobGround(this, x, w, run) && !roundsGround(this, x, w, run)) for (const it of run.items) if (!it.got) { this.glow(x, it.x, it.y, 46, 'rgba(255,200,80,.4)'); spr(x, itemSprite(it.sprite), it.x, it.y + 10, { w: it.sprite === 'lookout' ? 60 : 30 }); if (cb) this.cb(x, 'item', it.x + 26, it.y - 30); }
         if (run.loot) { this.glow(x, run.loot.x, run.loot.y, 54, 'rgba(120,255,200,.45)'); spr(x, run.loot.sprite, run.loot.x, run.loot.y + 8 + b * 0.4, { w: 40 }); if (cb) this.cb(x, 'loot', run.loot.x + 30, run.loot.y - 34, 14); }
         if (run.cur.t === 'pickup' && run.cur.at !== 'loot') { const [px, py] = run.spot(run.cur.at); spr(x, itemSprite(run.cur.item), px, py + 10, { w: 34 }); }
         if (run.fare) { const f = run.fare; if (!f.to) spr(x, `folk-${f.sp}-hop`, f.x, f.y + 4, {}); }

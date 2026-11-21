@@ -7,9 +7,11 @@ import { offered } from './jade-save.js';
 import { PEOPLE } from './jade-story.js';
 import type { World } from './jade-game.js';
 import type { Msg } from './jade-save.js';
+import { gigBoards } from './jade-gigs.js';
+import { GIG20_DEFS } from './jade-gigs20.js';
 
 export const CONTACT_OF: Record<District, string> = { market: 'kee', temple: 'pang', canal: 'kiri', docks: 'bo', arcade: 'gizmo', heartland: 'kamal', bay: 'vanda', india: 'raju', glam: 'kancil', resort: 'duyung', orchard: 'tiara', katong: 'rosie', changi: 'ubin', tiong: 'seng', quay: 'melati', jurong: 'musang', pulau: 'ayu', kallang: 'tenuk' };
-export function text(w: World, from: string, msg: string, o: { kind?: Msg['kind']; job?: string } = {}) {
+export function text(w: World, from: string, msg: string, o: { kind?: Msg['kind']; job?: string; gig?: string } = {}) {
   const s = w.s; const id = (s.msgs[s.msgs.length - 1]?.id ?? 0) + 1;
   s.msgs.push({ id, from, text: msg, night: s.night, read: false, ...o });
   if (s.msgs.length > 30) s.msgs.splice(0, s.msgs.length - 30);
@@ -39,7 +41,17 @@ export function phoneStep(w: World) {
     const where = w.c.places[m.at];
     text(w, m.giver, `Job for you: “${m.title}”. ${firstPerson(m.blurb, PEOPLE[m.giver]?.name ?? '')} Come and find me${where ? ` in ${DISTRICT_NAME[where.d].replace(/^the /, 'the ')}` : ''}.`, { kind: 'job', job: m.id });
   }
+  gigText(w);
   void ids;
+}
+/** the twentieth pass: a giver past Chinatown texts about their side gig once its board is up (one such text a night,
+ *  never for a gig already played; the text carries a Route me to the board's flag) */
+function gigText(w: World) {
+  const s = w.s; if (w.run || s.msgs.some(m => m.gig && m.night === s.night)) return;
+  const up = new Set(gigBoards(w).map(b => b.id));
+  const g = GIG20_DEFS.find(g => up.has(g.id) && !s.best['gig:' + g.id] && !s.best['gigs:' + g.id] && !s.msgs.some(m => m.gig === g.id));
+  if (!g) return;
+  text(w, g.giver, `Side gig at my flag in ${DISTRICT_NAME[g.d]}: “${g.title}”. Quick coins, any night you like. Come by!`, { kind: 'job', gig: g.id });
 }
 /** at the start of a night, a contact in an open district may text a tip that lifts a good's price at their market */
 export function nightTip(w: World) {

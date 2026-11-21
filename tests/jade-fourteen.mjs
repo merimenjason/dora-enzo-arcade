@@ -143,7 +143,7 @@ test('chapter nine: ten jobs across the three districts, a mix of steps, at most
   assert.deepEqual(SIDE.slice(-13, -10).map(m => m.id), TALES); // (and the seventeenth pass's three on Ubin and the eighteenth's three in Kallang after those)
   for (const id of TALES) assert.ok(SOUTH.includes(c.places[MISSION[id].at].d), `${id} in a new district`);
   const s = newSave(); s.done = allDone.filter(id => MISSION[id].ch <= 8); assert.equal(chapterOf(s), 9); s.done = allDone; assert.equal(chapterOf(s), 12);
-  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 85); assert.equal(jc.talesAll, 29);
+  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 85); assert.equal(jc.talesAll, 35);
 });
 
 test('the solver finishes every chapter-nine job and the new Hawker Tales; the casual bot finishes the finale', () => {
