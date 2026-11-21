@@ -93,15 +93,16 @@ export function jobActor(sc: Scene, x: X, w: World, a: Actor): boolean {
       const eating = (m?.treat ?? 0) > 0;
       if (!dazed && !painted && !eating && !((a.stare ?? 0) > 0)) mindBeam(sc, x, m, b.x, b.y - 20, b.h, sightRange(w.run!), w.assist ? 0.45 : 0.55);
       let f: string;
-      if (a.skin === 'myna' || a.skin === 'bat' || a.skin === 'boar' || a.skin === 'owl') {
-        // (the nineteenth pass) one of Tuan Hantu's barn owls on night watch at Mandai
+      if (a.skin === 'myna' || a.skin === 'bat' || a.skin === 'boar' || a.skin === 'owl' || a.skin === 'crab') {
+        // (the nineteenth pass) one of Tuan Hantu's barn owls on night watch at Mandai; (the twenty-first) one of Kapitan
+        // Umang's hermit-crab deckhands on the Southern Islands
         // a Kecoh Mynah, Atas Bat or Tusker Boy (the seventeenth pass) lookout: head cocked to look, beak (or snout) open to call the others; a bat on
         // watch hangs from its perch when it stands still
         const k = a.skin;
         const lp = m?.pose === 'call' ? `${k}-sing` : m?.pose === 'search' || m?.pose === 'look' || m?.st === 'sus' ? `${k}-peer` : '';
         // (the sixteenth pass) eating an ice cream from the motorbike: munching, turned to it
         f = eating ? `${k}-munch` : (a.stare ?? 0) > 0 ? `${k}-taunt` : lp && b.speed < 5 ? lp : b.speed < 5 ? (k === 'bat' ? 'bat-perch' : `${k}-walk-down-0`) : side ? `${k}-run-${fl}` : `${k}-walk-${sy > 0 ? 'down' : 'up'}-${fl}`;
-        spr(x, f, b.x, b.y + 4, { flip: side && cx < 0, w: k === 'bat' ? 48 : k === 'boar' ? 54 : k === 'owl' ? 50 : 44 }); if (painted) spr(x, 'sp-teal', b.x, b.y - 28, { w: 22 });
+        spr(x, f, b.x, b.y + 4, { flip: side && cx < 0, w: k === 'bat' ? 48 : k === 'boar' ? 54 : k === 'owl' ? 50 : k === 'crab' ? 46 : 44 }); if (painted) spr(x, 'sp-teal', b.x, b.y - 28, { w: 22 });
         if (!painted) mindBubble(sc, x, m, b.x, b.y - 66); return true;
       }
       if (a.skin === 'liz') {

@@ -16,7 +16,7 @@
 // ROADS, districtAt, streetAt and every City position). Runtime code never compares a position with an old-frame
 // constant: it asks districtAt / unmvT, or moves the constant with mvT.
 import { rng } from './jade-rng.js';
-import { OLD_W, OLD_H, NW, NH, LAYOUT, LAYOUT_MODE, blockNew, mvT, mvP, mvTRect, mvPLine, mvPP } from './jade-layout.js';
+import { OLD_W, OLD_H, BUILD_H, ISL, NW, NH, LAYOUT, LAYOUT_MODE, blockNew, mvT, mvP, mvTRect, mvPLine, mvPP } from './jade-layout.js';
 import { remodel, type Path, type FestivalSpot } from './jade-remodel.js';
 import { sgCity, type SgCity } from './jade-sgcity.js';
 import { island, F_XWAY, type Isle } from './jade-island.js';
@@ -26,6 +26,7 @@ import { south, type South } from './jade-south.js';
 import { ubin, boatPath, linkOf, type Ubin } from './jade-ubin.js';
 import { kallang, type Kallang } from './jade-kallang.js';
 import { mandai, type Mandai } from './jade-mandai.js';
+import { islands, islePath, type Islands } from './jade-islands.js';
 import { newRides } from './jade-rides.js';
 
 export const T = 64;
@@ -60,6 +61,10 @@ export const KAL_NX0 = 212, KAL_NY0 = 82, KAL_X0 = 148, KAL_Y0 = 96, KAL_W = 46,
  * sea west of Sentosa (columns 0 to 29, rows 90 to 127). In the world it is its own block in the north-west corner, at
  * the top edge west of Orchard Road (lib/jade-layout.ts) */
 export const MND_X0 = 0, MND_Y0 = 90, MND_W = 30, MND_H = 38;
+/** the twenty-first pass (in the build frame's extra rows, lib/jade-layout.ts ISL): the Southern Islands, south of Marina
+ * Bay, 44 columns by 30 rows. In the world, their own block in the sea between the Sentosa ferry's lane and Kallang */
+export const ISL_X0 = ISL.x0, ISL_Y0 = ISL.y0, ISL_W = ISL.x1 - ISL.x0 + 1, ISL_H = ISL.y1 - ISL.y0 + 1;
+export { BUILD_H };
 /** the world you play in, in world units (the new frame) */
 export const WORLD_W = W * T, WORLD_H = H * T;
 
@@ -82,20 +87,23 @@ export const G = { SEA: 0, CANAL: 1, ROAD: 2, WALK: 3, PLAZA: 4, GRASS: 5, DOCK:
   HUB: 43, PROM: 44, APRON: 45, BASIN: 46,
   /** the nineteenth pass: the Upper Seletar Reservoir's water (water), the Mandai boardwalk's teak, the night forest floor
    * and the parks' red laterite paths */
-  RESV: 47, BOARD: 48, JUNGLE: 49, LATERITE: 50 } as const;
+  RESV: 47, BOARD: 48, JUNGLE: 49, LATERITE: 50,
+  /** the twenty-first pass: the Southern Islands' reef flats (walkable: the tide step's ground), the shallows over the reef
+   * (water), white coral sand and the islands' grassy footpaths */
+  REEF: 51, SHOAL: 52, CORAL: 53, ISLEPATH: 54 } as const;
 export type G = (typeof G)[keyof typeof G];
-export const GROUND_NAMES = ['sea', 'canal', 'road', 'walk', 'plaza', 'grass', 'dock', 'plank', 'temple', 'neon', 'path', 'cobble', 'bridge', 'stairs', 'bld', 'xway', 'hdb', 'rubber', 'granite', 'deck', 'bay', 'india', 'glam', 'sand', 'resort', 'lagoon', 'fort', 'katong', 'orchard', 'tarmac', 'cycle', 'jewel', 'changi', 'tiong', 'quay', 'jurong', 'garden', 'dirt', 'kampong', 'mud', 'forest', 'quarry', 'rock', 'hub', 'prom', 'apron', 'basin', 'resv', 'board', 'jungle', 'laterite'] as const;
+export const GROUND_NAMES = ['sea', 'canal', 'road', 'walk', 'plaza', 'grass', 'dock', 'plank', 'temple', 'neon', 'path', 'cobble', 'bridge', 'stairs', 'bld', 'xway', 'hdb', 'rubber', 'granite', 'deck', 'bay', 'india', 'glam', 'sand', 'resort', 'lagoon', 'fort', 'katong', 'orchard', 'tarmac', 'cycle', 'jewel', 'changi', 'tiong', 'quay', 'jurong', 'garden', 'dirt', 'kampong', 'mud', 'forest', 'quarry', 'rock', 'hub', 'prom', 'apron', 'basin', 'resv', 'board', 'jungle', 'laterite', 'reef', 'shoal', 'coral', 'islepath'] as const;
 /** solid: 0 open, 1 building, 2 water, 3 tall prop (stall, container), 4 low prop (hop over on foot) */
 export const S = { OPEN: 0, BUILDING: 1, WATER: 2, TALL: 3, LOW: 4 } as const;
 export type S = (typeof S)[keyof typeof S];
 /** flags */
 export const F_ALLEY = 1, F_STAIRS = 2, F_ROOF = 4, F_BRIDGE = 8, F_PARK = 16;
 
-export type District = 'market' | 'temple' | 'canal' | 'docks' | 'arcade' | 'heartland' | 'bay' | 'india' | 'glam' | 'resort' | 'orchard' | 'katong' | 'changi' | 'tiong' | 'quay' | 'jurong' | 'pulau' | 'kallang' | 'mandai';
+export type District = 'market' | 'temple' | 'canal' | 'docks' | 'arcade' | 'heartland' | 'bay' | 'india' | 'glam' | 'resort' | 'orchard' | 'katong' | 'changi' | 'tiong' | 'quay' | 'jurong' | 'pulau' | 'kallang' | 'mandai' | 'islands';
 /** Chinatown's five districts (the first plan), then the island's two, the ninth pass's three and the twelfth's three */
 export const CT_DISTRICTS: District[] = ['market', 'temple', 'canal', 'docks', 'arcade'];
-export const DISTRICTS: District[] = [...CT_DISTRICTS, 'heartland', 'bay', 'india', 'glam', 'resort', 'orchard', 'katong', 'changi', 'tiong', 'quay', 'jurong', 'pulau', 'kallang', 'mandai'];
-export const DISTRICT_NAME: Record<District, string> = { market: 'Smith Street', temple: 'Temple Street', canal: 'Boat Quay', docks: 'the Tanjong Pagar Docks', arcade: 'Club Street', heartland: 'Toa Payoh', bay: 'Marina Bay', india: 'Little India', glam: 'Kampong Glam', resort: 'Sentosa', orchard: 'Orchard Road', katong: 'Katong', changi: 'Changi', tiong: 'Tiong Bahru', quay: 'Clarke Quay', jurong: 'Jurong', pulau: 'Pulau Ubin', kallang: 'Kallang', mandai: 'Mandai' };
+export const DISTRICTS: District[] = [...CT_DISTRICTS, 'heartland', 'bay', 'india', 'glam', 'resort', 'orchard', 'katong', 'changi', 'tiong', 'quay', 'jurong', 'pulau', 'kallang', 'mandai', 'islands'];
+export const DISTRICT_NAME: Record<District, string> = { market: 'Smith Street', temple: 'Temple Street', canal: 'Boat Quay', docks: 'the Tanjong Pagar Docks', arcade: 'Club Street', heartland: 'Toa Payoh', bay: 'Marina Bay', india: 'Little India', glam: 'Kampong Glam', resort: 'Sentosa', orchard: 'Orchard Road', katong: 'Katong', changi: 'Changi', tiong: 'Tiong Bahru', quay: 'Clarke Quay', jurong: 'Jurong', pulau: 'Pulau Ubin', kallang: 'Kallang', mandai: 'Mandai', islands: 'the Southern Islands' };
 /** the row where the heartlands end and the bay front begins (the Pan Island Expressway runs along it) */
 export const ISLE_SPLIT = 38;
 const MAIN = LAYOUT.blocks[LAYOUT.blocks.length - 1];
@@ -105,6 +113,8 @@ export function districtAt(tx: number, ty: number): District {
   return DISTRICTS[m[Math.max(0, Math.min(H - 1, ty)) * W + Math.max(0, Math.min(W - 1, tx))]];
 }
 let DMAP: Uint8Array | null = null;
+/** the blocks that claim none of the filler round them (districtMap, mapDistrictAt) */
+const NO_FILL = new Set(['mandai', 'islands']);
 /** every new-frame tile's district (an index into DISTRICTS). A block tile has its old tile's; the main block's tiles
  * the moved blocks left behind (the Geylang River beside Orchard's old place, the sea round the south strip's) take
  * the district that is there now (Katong; Sentosa's sea). Filler takes the nearest block tile's district: west of
@@ -125,9 +135,10 @@ function districtMap(): Uint8Array {
   // breadth first from every block tile; a filler tile west of the main block only from the moved blocks
   const westOf = MAIN.nx - MAIN.x0;
   for (let k = 0; k < q.length; k++) {
-    // (Mandai, the nineteenth pass, claims none of the filler: the parkland round it keeps the district it had before)
+    // (Mandai, the nineteenth pass, and the Southern Islands, the twenty-first, claim none of the filler: the parkland and
+    // the sea round them keep the district they had before)
     const i = q[k], x = i % W, y = (i - x) / W, bk = blockNew(x, y), fromMain = bk === MAIN;
-    if (bk?.id === 'mandai') continue;
+    if (bk && NO_FILL.has(bk.id)) continue;
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
       const j = ny * W + nx; if (set[j] || (fromMain && nx < westOf)) continue;
@@ -147,7 +158,7 @@ export function mapDistrictAt(tx: number, ty: number): District {
   if (LAYOUT_MODE !== 'real' || x >= MAIN.nx - MAIN.x0 || blockNew(x, y)) return districtAt(x, y);
   const m = MDMAP ?? (MDMAP = new Map()); const k = y * W + x, got = m.get(k); if (got) return got;
   // (Mandai is a block the filler's borders ignore, as districtAt's fill does: the parkland's tint is as it was)
-  const blk = (bx: number, by: number) => { if (bx < 0 || by < 0 || bx >= W || by >= H) return null; const b = blockNew(bx, by); return b?.id === 'mandai' ? null : b; };
+  const blk = (bx: number, by: number) => { if (bx < 0 || by < 0 || bx >= W || by >= H) return null; const b = blockNew(bx, by); return b && NO_FILL.has(b.id) ? null : b; };
   const moved = (bx: number, by: number) => { const b = blk(bx, by); return !!b && b !== MAIN; };
   // the gap split: the nearer of the blocks within 16 tiles either side along the row (the main block never claims it)
   const split = (gx: number, gy: number): District | null => {
@@ -170,6 +181,7 @@ const HOLE = [376, 0, 423, 37] as const;
 export function districtAtOld(tx: number, ty: number): District {
   // Sentosa and the harbour round it are the south; Little India and Kampong Glam the far side of the Rochor River
   if (tx >= MND_X0 && tx < MND_X0 + MND_W && ty >= MND_Y0 && ty < MND_Y0 + MND_H) return 'mandai';
+  if (ty >= ISL_Y0) return 'islands';
   if (tx >= KAL_NX0 && tx < KAL_NX0 + KAL_W && ty >= KAL_NY0 && ty < KAL_NY0 + KAL_NH) return 'kallang';
   if (tx >= KAL_X0 && tx < KAL_X0 + KAL_W && ty >= KAL_Y0 && ty < KAL_Y0 + KAL_H - KAL_NH) return 'kallang';
   if (ty >= CT_H && tx >= UBIN_X0 && tx <= UBIN_X1 && ty >= UBIN_Y0 && ty <= UBIN_Y1) return 'pulau';
@@ -210,6 +222,8 @@ export type City = {
   kallang?: Kallang;
   /** the nineteenth pass (lib/jade-mandai.ts): the Night Safari's trails and tram, Bird Paradise's lories, the show */
   mandai?: Mandai;
+  /** the twenty-first pass (lib/jade-islands.ts): the Southern Islands' ferry, reef flats, tortoises and lighthouse */
+  islands?: Islands;
 };
 
 // the street plan: horizontal and vertical roads, 4 tiles wide (kerb, lane, lane, kerb). Chinatown's twelve come first
@@ -356,21 +370,21 @@ const CANAL_X0 = 66, CANAL_X1 = 68, SEA_Y = 82;
 
 let CACHE: City | null = null;
 /** the city in the new frame: every pass runs in the old frame, then relayout() moves the result */
-export function city(): City { if (!CACHE) { const c = build(); remodel(c); dressBuildings(c); sgCity(c); island(c); east(c); far(c); backLanes(c); south(c); ubin(c); kallang(c); mandai(c); CACHE = relayout(c); newRides(CACHE); if (CACHE.ubin) CACHE.parking.push(...CACHE.ubin.park); if (CACHE.kallang) CACHE.parking.push(...CACHE.kallang.park); if (CACHE.mandai) CACHE.parking.push(...CACHE.mandai.park); } return CACHE; }
+export function city(): City { if (!CACHE) { const c = build(); remodel(c); dressBuildings(c); sgCity(c); island(c); east(c); far(c); backLanes(c); south(c); ubin(c); kallang(c); mandai(c); islands(c); CACHE = relayout(c); newRides(CACHE); if (CACHE.ubin) CACHE.parking.push(...CACHE.ubin.park); if (CACHE.kallang) CACHE.parking.push(...CACHE.kallang.park); if (CACHE.mandai) CACHE.parking.push(...CACHE.mandai.park); if (CACHE.islands) CACHE.parking.push(...CACHE.islands.park); } return CACHE; }
 
-const SIDEWALK: Record<District, G> = { market: G.WALK, temple: G.TEMPLE, canal: G.COBBLE, docks: G.DOCK, arcade: G.NEON, heartland: G.HDB, bay: G.GRANITE, india: G.INDIA, glam: G.GLAM, resort: G.RESORT, orchard: G.ORCHARD, katong: G.KATONG, changi: G.CHANGI, tiong: G.TIONG, quay: G.QUAY, jurong: G.JURONG, pulau: G.KAMPONG, kallang: G.HUB, mandai: G.LATERITE };
+const SIDEWALK: Record<District, G> = { market: G.WALK, temple: G.TEMPLE, canal: G.COBBLE, docks: G.DOCK, arcade: G.NEON, heartland: G.HDB, bay: G.GRANITE, india: G.INDIA, glam: G.GLAM, resort: G.RESORT, orchard: G.ORCHARD, katong: G.KATONG, changi: G.CHANGI, tiong: G.TIONG, quay: G.QUAY, jurong: G.JURONG, pulau: G.KAMPONG, kallang: G.HUB, mandai: G.LATERITE, islands: G.ISLEPATH };
 const FRONTS: Record<District, string[]> = {
   market: ['shop-1', 'shop-2', 'shop-3', 'shop-4', 'shop-5', 'shop-6', 'shop-7', 'shop-8', 'shop-9', 'shop-10', 'shop-11', 'shop-12'],
   temple: ['bld-hill', 'bld-pavilion', 'bld-incense', 'bld-callig', 'shop-2', 'shop-5', 'shop-9'],
   canal: ['bld-canal', 'bld-tea', 'bld-boathouse', 'bld-flowers', 'bld-wheel', 'shop-3', 'shop-7'],
   docks: ['bld-office', 'bld-fish', 'bld-rope', 'bld-chandler', 'shop-4'],
   arcade: ['bld-noodle', 'bld-karaoke', 'bld-hotel', 'bld-robot', 'bld-boba', 'shop-10', 'shop-12'],
-  heartland: ['shop-sg1', 'shop-sg2'], bay: ['shop-sg1', 'shop-sg2'], india: ['shop-sg1'], glam: ['shop-sg2'], resort: ['shop-sg1'], orchard: ['shop-sg1'], katong: ['shop-sg2'], changi: ['shop-sg1'], tiong: ['shop-sg2'], quay: ['shop-sg1'], jurong: ['shop-sg1'], pulau: ['shop-sg1'], kallang: ['shop-sg1'], mandai: ['shop-sg1'],
+  heartland: ['shop-sg1', 'shop-sg2'], bay: ['shop-sg1', 'shop-sg2'], india: ['shop-sg1'], glam: ['shop-sg2'], resort: ['shop-sg1'], orchard: ['shop-sg1'], katong: ['shop-sg2'], changi: ['shop-sg1'], tiong: ['shop-sg2'], quay: ['shop-sg1'], jurong: ['shop-sg1'], pulau: ['shop-sg1'], kallang: ['shop-sg1'], mandai: ['shop-sg1'], islands: ['shop-sg1'],
 };
 const ROOFS: Record<District, string[]> = {
   market: ['roof-1', 'roof-2', 'roof-3', 'roof-4', 'roof-7', 'roof-8', 'roof-10', 'roof-11'], temple: ['roof-5', 'roof-6', 'roof-1', 'roof-9', 'roof-11'],
   canal: ['roof-2', 'roof-3', 'roof-6', 'roof-7', 'roof-9'], docks: ['roof-4', 'roof-3', 'roof-8', 'roof-10'], arcade: ['roof-4', 'roof-1', 'roof-5', 'roof-12', 'roof-8'],
-  heartland: ['roof-4'], bay: ['roof-4'], india: ['roof-4'], glam: ['roof-4'], resort: ['roof-4'], orchard: ['roof-4'], katong: ['roof-4'], changi: ['roof-4'], tiong: ['roof-4'], quay: ['roof-4'], jurong: ['roof-4'], pulau: ['roof-4'], kallang: ['roof-4'], mandai: ['roof-4'],
+  heartland: ['roof-4'], bay: ['roof-4'], india: ['roof-4'], glam: ['roof-4'], resort: ['roof-4'], orchard: ['roof-4'], katong: ['roof-4'], changi: ['roof-4'], tiong: ['roof-4'], quay: ['roof-4'], jurong: ['roof-4'], pulau: ['roof-4'], kallang: ['roof-4'], mandai: ['roof-4'], islands: ['roof-4'],
 };
 
 function build(): City {
@@ -736,6 +750,12 @@ function relayout(c: City): City {
   if (c.mandai) { const d = c.mandai;
     n.mandai = { ...d, tram: mvPLine(d.tram), stops: d.stops.map(mvPP), perch: mvPP(d.perch), stage: mvPP(d.stage), plane: mvPP(d.plane), studs: d.studs.map(mvPP),
       lanterns: d.lanterns.map(mvPP), park: d.park.map(mvXY) }; }
+  if (c.islands) { const d = c.islands, boatA = d.boatA.map(mvPP), boatB = d.boatB.map(mvPP);
+    // the island ferry's two ends move with their own blocks (Marina Bay's pier, St John's jetty); the water between is
+    // laid again
+    n.islands = { ...d, boatA, boatB, ferry: linkOf('launch', d.ferry.name, [mvXY(d.ferry.stops[0]), mvXY(d.ferry.stops[1])], islePath(boatA, boatB)),
+      rocks: d.rocks.map(mvPP), pools: d.pools.map(mvPP), tortoises: d.tortoises.map(mvPP), lagoon: mvPP(d.lagoon), gallery: mvPP(d.gallery), pond: mvPP(d.pond),
+      jetties: d.jetties.map(mvPP), beam: mvPP(d.beam), junk: mvPP(d.junk), park: d.park.map(mvXY), quiet: mvTRect(d.quiet) }; }
   if (LAYOUT_MODE === 'real') seams(n);
   return n;
 }

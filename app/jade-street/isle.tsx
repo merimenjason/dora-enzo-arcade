@@ -114,7 +114,7 @@ export function JadeLineTab({ play, onClose }: { play: Play; onClose: () => void
           return (
             <li key={s.id}>
               <Sprite name={l.id === 'cable' ? 'pin-cable' : 'pin-ferry'} h={32} w={32} />
-              <span><b>{s.name}</b><small>{open ? (l.id === 'cable' ? 'cable car' : l.id === 'bumboat' ? 'bumboat jetty' : 'ferry pier') : 'under fog: follow the story'}</small></span>
+              <span><b>{s.name}</b><small>{open ? (l.id === 'cable' ? 'cable car' : l.id === 'bumboat' ? 'bumboat jetty' : l.id === 'launch' ? 'island ferry pier' : 'ferry pier') : 'under fog: follow the story'}</small></span>
               <button type="button" className="jade-btn jade" disabled={!open || !!w.run} data-testid={`link-route-${s.id}`} onClick={() => { if (routeToStop(w, s.id)) { onClose(); play.bump(); } }}>Route me</button>
             </li>
           );

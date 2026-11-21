@@ -13,7 +13,7 @@ import type { World, Ride } from './jade-game.js';
 import type { Save } from './jade-save.js';
 import { BIZ, BIZ_OF, bizPos } from './jade-biz.js';
 
-export type FleetId = 'taxi' | 'bumboat' | 'kayak' | 'ubinbikes' | 'icekacang';
+export type FleetId = 'taxi' | 'bumboat' | 'kayak' | 'ubinbikes' | 'icekacang' | 'snorkelhire';
 export type Perk = { id: FleetId; kind: VehicleKind; perk: string; call: string; where: string };
 /** the five vehicle businesses and what each lends (the buy panel's "Perk:" line, the phone's button) */
 export const FLEET: Perk[] = [
@@ -22,6 +22,8 @@ export const FLEET: Perk[] = [
   { id: 'kayak', kind: 'kayak', perk: 'a kayak waiting at any Sentosa shore', call: 'Call a kayak', where: 'Stand at the water’s edge on Sentosa' },
   { id: 'ubinbikes', kind: 'bike', perk: 'a bike brought to you anywhere on Pulau Ubin', call: 'Call a bike', where: 'Only on Pulau Ubin' },
   { id: 'icekacang', kind: 'icecream', perk: 'the ice-cream motorbike, called from your phone', call: 'Call the ice-cream bike', where: 'Stand by a road' },
+  // (the twenty-first pass) the St John's Snorkel Hire
+  { id: 'snorkelhire', kind: 'kayak', perk: 'a kayak waiting at any Southern Islands shore', call: 'Call a kayak', where: 'Stand at the water’s edge on the Southern Islands' },
 ];
 export const FLEET_OF: Record<FleetId, Perk> = Object.fromEntries(FLEET.map(f => [f.id, f])) as Record<FleetId, Perk>;
 /** the business's level makes its vehicle quicker (levels 0 to 3) */
@@ -60,7 +62,9 @@ export function cantCall(w: World, id: FleetId): string | null {
   const [tx, ty] = tileOf(w.p.x, w.p.y), d = districtAt(tx, ty);
   if (id === 'ubinbikes' && d !== 'pulau') return 'The bike shop only delivers on Pulau Ubin';
   if (id === 'kayak' && d !== 'resort') return 'The kayaks only go out from Sentosa’s shores';
+  if (id === 'snorkelhire' && d !== 'islands') return 'The snorkel hut’s kayaks only go out round the Southern Islands';
   if ((id === 'taxi' || id === 'icekacang') && d === 'pulau') return 'No roads on Pulau Ubin: only bike tracks';
+  if ((id === 'taxi' || id === 'icekacang' || id === 'ubinbikes') && d === 'islands') return 'No roads on the Southern Islands: only footpaths';
   if (!spotFor(w, f)) return f.where;
   return null;
 }

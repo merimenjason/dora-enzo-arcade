@@ -14,7 +14,7 @@ import type { Station } from './jade-island.js';
 
 /** a two-stop link you ride (the cable car, the ferry): its stops and the path between them (world units) */
 export type LinkStop = { id: string; name: string; x: number; y: number };
-export type Link = { id: 'cable' | 'ferry' | 'bumboat'; name: string; stops: [LinkStop, LinkStop]; path: [number, number][]; len: number[] };
+export type Link = { id: 'cable' | 'ferry' | 'bumboat' | 'launch'; name: string; stops: [LinkStop, LinkStop]; path: [number, number][]; len: number[] };
 export type East = {
   cable: Link; ferry: Link;
   /** the cable car's towers (world units) */

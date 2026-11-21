@@ -12,7 +12,7 @@ import { offence } from './jade-fines.js';
 import type { World } from './jade-game.js';
 
 /** (the seventeenth pass: the Ubin bumboat from Changi Point, 4 coins) */
-export const FARES = { cable: 4, ferry: 3, bumboat: 4 } as const;
+export const FARES = { cable: 4, ferry: 3, bumboat: 4, launch: 3 } as const;
 /** how far from a stop its gates reach */
 export const LINK_R = 110;
 /** the cabins on the line, their spacing in seconds round the loop, and their speed (world units a second) */
@@ -56,7 +56,7 @@ export function ferryAt(l: Link, time: number): { x: number; y: number; h: numbe
   return leg(len - (t - 2 * FERRY_DWELL - run) * FERRY_SPEED, true, -1);
 }
 
-export const linksOf = (w: World): Link[] => [...(w.c.east ? [w.c.east.cable, w.c.east.ferry] : []), ...(w.c.ubin ? [w.c.ubin.boat] : [])];
+export const linksOf = (w: World): Link[] => [...(w.c.east ? [w.c.east.cable, w.c.east.ferry] : []), ...(w.c.ubin ? [w.c.ubin.boat] : []), ...(w.c.islands ? [w.c.islands.ferry] : [])];
 /** a boat link (the island ferry, the Ubin bumboat): you ride it in real time, the camera on the boat */
 export const byBoat = (l: Link) => l.id !== 'cable';
 const linkOfId = (w: World, id: Link['id'] | undefined) => linksOf(w).find(l => l.id === (id ?? 'ferry'));
@@ -73,7 +73,7 @@ export const linkById = (w: World, id: string) => { for (const l of linksOf(w)) 
 export function cantLink(w: World, l: Link, to: LinkStop): string | null {
   if (w.p.ride) return 'Get off your ride first';
   if (w.ticket) return 'Pay your ticket first';
-  if (!openStop(w, to)) return l.id === 'bumboat' ? 'Pak Ubin’s bumboats aren’t running to Pulau Ubin yet' : 'Sentosa is still under fog';
+  if (!openStop(w, to)) return l.id === 'bumboat' ? 'Pak Ubin’s bumboats aren’t running to Pulau Ubin yet' : l.id === 'launch' ? 'The island ferry isn’t running to the Southern Islands yet' : 'Sentosa is still under fog';
   if (w.s.cash < FARES[l.id]) return `The fare is ${FARES[l.id]} coins`;
   if (w.run && w.run.cur?.t !== 'cable') return 'Not in the middle of a job';
   if (w.ferry) return 'You are on a boat';
@@ -96,12 +96,12 @@ export function linkGo(w: World): boolean {
     return true;
   }
   const board = () => {
-    if (link.id === 'bumboat') w.s.stats.bumboats++; else w.s.stats.ferry++;
+    if (link.id === 'bumboat') w.s.stats.bumboats++; else if (link.id === 'launch') w.s.stats.launches++; else w.s.stats.ferry++;
     const back = to.id === link.stops[0].id;
     w.ferry = { s: back ? total(link) : 0, dir: back ? -1 : 1, to: to.id, t: 0, l: link.id };
     w.p.hide = true; w.mate.hide = true; w.p.act = null;
     w.fx.push({ t: 'ferry-go' });
-    w.say(link.id === 'bumboat' ? `Pak Ubin's bumboat putters off for ${to.name}! (E skips the crossing)` : `All aboard for ${to.name}! (E skips the crossing)`, 'good');
+    w.say(link.id === 'bumboat' ? `Pak Ubin's bumboat putters off for ${to.name}! (E skips the crossing)` : link.id === 'launch' ? `The island ferry casts off for ${to.name}! (E skips the crossing)` : `All aboard for ${to.name}! (E skips the crossing)`, 'good');
   };
   // the bumboat waits for a wave from the jetty (its own animation); the island ferry is boarded at the gate
   if (link.id === 'bumboat') { w.p.face = 'down'; w.p.act = { n: 'boat-hail', t: 0, dur: 0.8, then: board }; } else board();
@@ -146,6 +146,10 @@ export const ROAR_TEXT = 'She flew south over the Straits with the photograph, a
  * the story goes on) */
 export const MANDAI_TEXT = 'Hello… this is… Kongkang. Ranger… at the Night Safari, in Mandai. A black seaplane… landed on my reservoir. And strange owls… on my trails. Kubung says… you help. The MRT… runs to Mandai Lake Road.';
 export const SELETAR_TEXT = 'Bearing one-eight-two from Station Mandai runs straight down the island and out to sea, past Raffles Lighthouse. She left her card on my jetty: see you at the lighthouse. Until then… my trails are yours. Any night.';
+/** the phone text when the Southern Islands open (after chapter twelve), and the hook at the end of chapter thirteen
+ * (not an ending: the story goes on) */
+export const ISLANDS_TEXT = 'Vanda here, at the bay. Raffles Lighthouse, you said? The island ferry runs from Marina South Pier, on the promenade south of the Bay, out to St John’s Island: three coins. My friend Kak Lumba guides on the reef there. Come and see me first.';
+export const LIGHTHOUSE_TEXT = 'Pak Camar here, on the rock. The lamp is lit and the door is still on its hinges, thanks to you. That island on the 1937 chart that no other chart has: I have the keeper’s log open on it. Come and read it with me. The ferry runs all night.';
 export const JURONG_TEXT = 'Jurong is open! The MRT runs to Jurong East station: the Science Centre, Snow City and the Chinese Garden on Jurong Lake. Or cross the bridge at the end of Beach Road.';
 export const RESORT_TEXT = 'Sentosa is open! The cable car leaves from HarbourFront at the docks (4 coins), the boardwalk runs beside the Sentosa Gateway, the MRT stops at Beach station, and the ferry crosses from Marina Bay (3 coins).';
 export function routeToStop(w: World, id: string): boolean {

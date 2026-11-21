@@ -19,13 +19,19 @@
 const T = 64;
 /** the old frame: the world the build passes lay out */
 export const OLD_W = 376, OLD_H = 128;
+/** the twenty-first pass: the build frame grows 30 rows below the old frame (every older pass builds and loops over the
+ * first OLD_H rows only, so nothing it built moves). The Southern Islands are built there, in the rect ISL (old columns
+ * 0 to 43, rows 128 to 157), their own block; the rest of the extra rows are open sea that no table shows */
+export const BUILD_H = OLD_H + 30;
+export const ISL = { x0: 0, y0: OLD_H, x1: 43, y1: OLD_H + 29 } as const;
 
 /** an old tile rect (inclusive) and the new tile its top-left corner lands at */
 export type Block = { id: string; x0: number; y0: number; x1: number; y1: number; nx: number; ny: number };
 export type Layout = { blocks: Block[]; NW: number; NH: number };
 
-/** the identity: the whole old world onto itself */
-const ZERO: Layout = { blocks: [{ id: 'main', x0: 0, y0: 0, x1: OLD_W - 1, y1: OLD_H - 1, nx: 0, ny: 0 }], NW: OLD_W, NH: OLD_H };
+/** the identity: the whole old world onto itself (the build frame's extra rows with it: the islands' block where it was
+ * built) */
+const ZERO: Layout = { blocks: [{ id: 'islands', ...ISL, nx: ISL.x0, ny: ISL.y0 }, { id: 'main', x0: 0, y0: 0, x1: OLD_W - 1, y1: OLD_H - 1, nx: 0, ny: 0 }], NW: OLD_W, NH: BUILD_H };
 /** the four blocks that leave the main block (more specific blocks first: a tile belongs to the first block that covers
  * it). The south strip's three are its land rows only (96 to 125), split on the column between Zion Road and the
  * Singapore River, so no road runs along a seam */
@@ -39,13 +45,17 @@ const MOVED = [
   { id: 'kallang', x0: 148, y0: 96, x1: 193, y1: 125 },
   // the nineteenth pass: Mandai, built in the open sea west of Sentosa; in the world, the north-west corner
   { id: 'mandai', x0: 0, y0: 90, x1: 29, y1: 127 },
+  // the twenty-first pass: the Southern Islands, built in the build frame's extra rows below the old frame; in the world,
+  // the open sea south of Marina Bay, between the Sentosa ferry's lane and Kallang
+  { id: 'islands', ...ISL },
 ];
 /** the real table (new-frame origins): Orchard Road north-west of Chinatown, Fort Canning Park between them (Orchard
  * Boulevard runs on into Pagoda Street); Clarke Quay under Orchard (Clemenceau Avenue joins them; Eu Tong Sen Street runs
  * on over the Singapore River into Keong Saik Road); Tiong Bahru under that, south-west of Smith Street, past the Ayer
  * Rajah Expressway; Jurong at the west edge; Mandai in the north-west corner, west of Orchard Road at the top edge (the
- * reservoir along the edge); the main block 100 columns east */
-const REAL_AT: Record<string, [number, number]> = { orchard: [36, 0], quay: [52, 44], tiong: [44, 78], jurong: [0, 44], pulau: [476, 60], kallang: [312, 96], mandai: [6, 0], main: [100, 0] };
+ * reservoir along the edge); the Southern Islands in the sea south of Marina Bay (Marina South Pier's ferry runs down to
+ * them), west of Kallang; the main block 100 columns east */
+const REAL_AT: Record<string, [number, number]> = { orchard: [36, 0], quay: [52, 44], tiong: [44, 78], jurong: [0, 44], pulau: [476, 60], kallang: [312, 96], mandai: [6, 0], islands: [264, 96], main: [100, 0] };
 /** the real world's width: the main block 100 columns east, then Pulau Ubin's 36 columns off Changi (the north-east
  * corner). 512 × 128 is 65,536 tiles; lib/jade-nav.ts keys its heap on 2^17 so the world may still grow */
 const REAL_W = OLD_W + 100 + 36;
@@ -53,11 +63,11 @@ const REAL: Layout = {
   blocks: [...MOVED, { id: 'main', x0: 0, y0: 0, x1: OLD_W - 1, y1: OLD_H - 1 }].map(b => ({ ...b, nx: REAL_AT[b.id][0], ny: REAL_AT[b.id][1] })),
   NW: REAL_W, NH: OLD_H,
 };
-/** the test table: the same five blocks, every one moved by the same +7, +3 */
+/** the test table: the same blocks, every one moved by the same +7, +3 */
 const SHIFT_X = 7, SHIFT_Y = 3;
 const SHIFT: Layout = {
   blocks: [...MOVED, { id: 'main', x0: 0, y0: 0, x1: OLD_W - 1, y1: OLD_H - 1 }].map(b => ({ ...b, nx: b.x0 + SHIFT_X, ny: b.y0 + SHIFT_Y })),
-  NW: OLD_W + SHIFT_X, NH: OLD_H + SHIFT_Y,
+  NW: OLD_W + SHIFT_X, NH: BUILD_H + SHIFT_Y,
 };
 
 const mode = (globalThis as { __JADE_LAYOUT__?: string }).__JADE_LAYOUT__;

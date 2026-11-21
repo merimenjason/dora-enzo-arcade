@@ -164,4 +164,8 @@ export const CHAT: Record<string, string> = {
   enggang: 'Mind your hair, darling: the lories think everything is a perch.',
   bintu: 'Yes, I smell of popcorn. All binturongs do. No, you may not eat me.',
   hantu: 'My owls see everything after dark. Everything is extra.',
+  lumba: 'Pink means old, not shy. Mind the fire coral, it bites back.',
+  ku: 'Hurry? I have never hurried. I am a hundred and four.',
+  camar: 'Thirty years on this rock. The light has never once gone out. Not on my watch.',
+  umang: 'This shell? Borrowed. Everything a crab owns is borrowed, little one.',
 };

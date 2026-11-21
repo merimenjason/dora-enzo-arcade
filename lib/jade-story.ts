@@ -19,7 +19,7 @@ export type Line = [string, string, Mood?];
  * crane's swinging container and the yard gate (lib/jade-setpiece.ts); `wp` is the route leg that triggers it */
 /** a chase or tail target's painted body other than Pip's: a gang member (otter, macaque, lizard, mynah, bat) or a boss
  * (Director Kaw, Crow Number Nine, Datin Ciku) */
-export type Skin = 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine' | 'bat' | 'ciku' | 'hoot' | 'boar' | 'taring' | 'owl';
+export type Skin = 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine' | 'bat' | 'ciku' | 'hoot' | 'boar' | 'taring' | 'owl' | 'crab';
 /** the nineteenth pass: the night animals resting by a torch trail (lib/jade-torch.ts) */
 export type Beast = 'fcat' | 'pango' | 'porc' | 'squir';
 export type SetDef = { k: 'stall' | 'drums' | 'bridge' | 'crane' | 'gate'; at: [number, number]; wp: number };
@@ -43,7 +43,7 @@ export type Step =
   /** `flanks`: crows come in pairs from both sides and the partner guards the far flank */
   | { t: 'escort'; from: Spot; route: Spot[]; label: string; crows: number; flanks?: boolean; skin?: 'otter'; cp?: boolean }
   /** `relay`: the marks from this one on count only for the partner waiting there (a hand-off) */
-  | { t: 'race'; marks: Spot[]; label: string; rival?: 'runner' | 'scooter' | 'boat'; roof?: boolean; time?: number; ride?: VehicleKind | 'foot'; relay?: number; cp?: boolean; /** the rival's speed against the usual (a slow raft) */ pace?: number }
+  | { t: 'race'; marks: Spot[]; label: string; rival?: 'runner' | 'scooter' | 'boat'; roof?: boolean; time?: number; ride?: VehicleKind | 'foot'; relay?: number; cp?: boolean; /** the rival's speed against the usual (a slow raft) */ pace?: number; /** (the twenty-first pass) the rival runner's painted body (a crow cadet when unset) */ skin?: 'crab' }
   /** `shutter`: the goal's shutter is down unless the partner holds its lever there */
   /** `calm`: lookouts grow sure more slowly (a multiplier on the Alert meter's rise); `pause`: each stops this many
    * seconds at the ends of its beat, sweeping its torch, so a careful player can read the gap */
@@ -76,7 +76,7 @@ export type Step =
   | { t: 'toss'; marks: Spot[]; item: string; time?: number; label: string; cp?: boolean }
   /** the sixteenth pass: a delivery on the dragon boat, timed for a boat with the partner drumming */
   | { t: 'paddle'; to: Spot; time: number; item: string; label: string; cp?: boolean }
-  | { t: 'case'; spots: { at: Spot; kind: Intel }[]; guards: Spot[][]; need?: number; label: string; cp?: boolean; /** who keeps watch (guards in caps when unset) */ skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' }
+  | { t: 'case'; spots: { at: Spot; kind: Intel }[]; guards: Spot[][]; need?: number; label: string; cp?: boolean; /** who keeps watch (guards in caps when unset) */ skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' | 'crab' }
   /** the heist: choose quiet or loud. Quiet sneaks in at `back` (only with the back door cased) or at `front`, past the
    * guards and `cams` ([x, y, facing in degrees]), cracks the safe and slips out the same way; loud sends the partner
    * to set off a confetti diversion at the front, then it is a race to the safe before `time` runs out and a getaway
@@ -106,12 +106,17 @@ export type Step =
    * animals resting by it (`beasts`): in earshot, creep (Shift) or the animal wakes and bolts and you go back a marker;
    * `time`: the night left */
   | { t: 'torch'; route: Spot[]; beasts: { at: Spot; kind: Beast }[]; time?: number; label: string; cp?: boolean }
+  /** the twenty-first pass (lib/jade-tide.ts): a crossing of the Southern Islands' reef flats, marker to marker along
+   * `route` (after peering into each of `pools`, E, in order). The tide goes out, turns and comes in on a cycle the HUD
+   * shows: while it is in, off a coral head or the sand the water washes you back to the last marker; `out`: the low
+   * tide's length against the usual (a spring tide is shorter); `time`: the night left */
+  | { t: 'tide'; route: Spot[]; pools?: Spot[]; out?: number; time?: number; label: string; cp?: boolean }
   | { t: 'crowd'; from: Spot; to: Spot; lanes: number; span?: number; time?: number; item?: string; keep?: boolean; ticket?: boolean; label: string; cp?: boolean }
   /** the twentieth pass (lib/jade-rounds.ts): a round of drop-offs. You carry `item` and hand one over at each of `drops`
    * (E there: the step's own pose, `act`) before `time` runs out; `who`: the townsfolk waiting at each drop (unset: a hook,
    * a shrine or a doorway); `what`: the thing, as the HUD names it ('songbird cage') */
   | { t: 'rounds'; drops: Spot[]; item: string; act: 'serve' | 'drape' | 'hang'; what: string; who?: string[]; time: number; label: string; cp?: boolean }
-  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl'; /** what the HUD calls a crate ('loot sack') */ thing?: string; label: string; cp?: boolean };
+  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' | 'crab'; /** what the HUD calls a crate ('loot sack') */ thing?: string; label: string; cp?: boolean };
 /** what a photo while casing tells you: the back way in, the guards' beats, where the cameras are wired, the safe's make */
 export type Intel = 'door' | 'rota' | 'cam' | 'safe';
 /** a witness: `ask` are the three questions on offer, `right` the one that gets the clue (its `tag` must be among the
@@ -183,6 +188,11 @@ export const PEOPLE: Record<string, { name: string; face: string; who: string }>
   // the nineteenth pass: Mandai
   kongkang: { name: 'Encik Kongkang', face: 'face-kongkang', who: 'Night Safari ranger (a slow loris)' },
   enggang: { name: 'Auntie Enggang', face: 'face-enggang', who: 'Bird Paradise keeper (a rhinoceros hornbill)' },
+  // the twenty-first pass: the Southern Islands
+  lumba: { name: 'Kak Lumba', face: 'face-lumba', who: 'St John’s reef guide (an Indo-Pacific humpback dolphin, pink with age)' },
+  ku: { name: 'Auntie Ku', face: 'face-ku', who: 'keeper of Kusu Island’s tortoises (a tortoise)' },
+  camar: { name: 'Pak Camar', face: 'face-camar', who: 'keeper of Raffles Lighthouse (a black-naped tern)' },
+  umang: { name: 'Kapitan Umang', face: 'face-umang', who: 'boss of a deck crew for hire (a hermit crab)' },
   bintu: { name: 'Dr Bintu', face: 'face-bintu', who: 'the parks’ vet and host of the Creatures of the Night show (a binturong)' },
   hantu: { name: 'Tuan Hantu', face: 'face-hantu', who: 'boss of a night watch for hire (a barn owl)' },
   sutera: { name: 'Madam Sutera', face: 'face-sutera', who: 'the lady in black feathers (a black swan)' },
@@ -205,9 +215,9 @@ export const HEIRLOOMS = [
 ] as const;
 /** which district each chapter's finale opens (chapter 1 is played in Smith Street) */
 export const CHAPTER_OPENS: District[] = ['temple', 'canal', 'docks', 'arcade'];
-export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Club Street', 'The Island', 'Island Lights', 'Christmas Star', 'Lights by the Lake', 'Kampong Spirit', 'Kallang Roar', 'Night Safari'];
+export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Club Street', 'The Island', 'Island Lights', 'Christmas Star', 'Lights by the Lake', 'Kampong Spirit', 'Kallang Roar', 'Night Safari', 'Raffles Lighthouse'];
 /** the last job of each chapter (its finale) */
-export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55', 'm65', 'm75', 'm85', 'm95'];
+export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55', 'm65', 'm75', 'm85', 'm95', 'm105'];
 /** the story job that opens Sentosa (half way through chapter seven) */
 export const RESORT_OPENS = 'm40';
 /** the story job that opens Changi (half way through chapter eight) */
@@ -220,6 +230,8 @@ export const UBIN_OPENS = 'm65';
 export const KALLANG_OPENS = 'm75';
 /** the story job that opens Mandai (the end of chapter eleven: chapter twelve is set there) */
 export const MANDAI_OPENS = 'm85';
+/** the story job that opens the Southern Islands (the end of chapter twelve: chapter thirteen is set there) */
+export const ISLANDS_OPENS = 'm95';
 
 // ── every [x, y] tile in a step is written in the old frame (where the district was first laid out) and moved once,
 // here, through the layout table (lib/jade-layout.ts); names ('kee', 'here', 'loot') are places and stay
@@ -228,6 +240,8 @@ export const MANDAI_OPENS = 'm85';
 const K = (lx: number, ly: number): [number, number] => ly < 14 ? [212 + lx, 82 + ly] : [148 + lx, 82 + ly];
 /** a Mandai tile by its local column and row (lib/jade-mandai.ts mndOld): built in the old frame west of Sentosa */
 const M = (lx: number, ly: number): [number, number] => [lx, 90 + ly];
+/** a Southern Islands tile by its local column and row (lib/jade-islands.ts islOld): built in the rows below the old frame */
+const I = (lx: number, ly: number): [number, number] => [lx, 128 + ly];
 /** a spot: a place name stays, a tile moves */
 export const mvSpot = <S extends Spot>(s: S): S => (typeof s === 'string' ? s : mvT(s[0], s[1])) as S;
 const mvSpots = (a: Spot[]) => a.map(mvSpot);
@@ -254,6 +268,7 @@ function mvStepFields(st: Step): Step {
     case 'crowd': return { ...st, from: mvSpot(st.from), to: mvSpot(st.to) };
     case 'torch': return { ...st, route: mvSpots(st.route), beasts: st.beasts.map(b => ({ ...b, at: mvSpot(b.at) })) };
     case 'rounds': return { ...st, drops: mvSpots(st.drops) };
+    case 'tide': return { ...st, route: mvSpots(st.route), ...(st.pools ? { pools: mvSpots(st.pools) } : {}) };
     case 'chase': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), sets: st.sets?.map(d => ({ ...d, at: mvT(d.at[0], d.at[1]) })) };
     case 'float': return st.rope === undefined ? st : { ...st, rope: mvSpot(st.rope) };
     case 'tail': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), relay: st.relay && { ...st.relay, spot: mvSpot(st.relay.spot) } };
@@ -1158,6 +1173,84 @@ export const MISSIONS: Mission[] = mvMissions([
       { t: 'defend', at: 'mnd-jetty', time: 60, waves: 3, per: 2, gang: 'crow', what: 'the jetty', label: 'Hold the jetty: knock the crows back before they cut the mooring line ({mate} helps on their own)', cp: true },
       { t: 'talk', lines: [['sutera', 'Darlings! In the dark, through my owls, past every sleeping thing in the forest. I am almost impressed.', 'happy'], ['hantu', 'Madam. My owls are paid until midnight. It is midnight.', 'calm'], ['sutera', 'Then go home, Tuan. Pip, the door.', 'calm'], ['mate', 'She’s taking off! And she dropped something on the jetty.', 'worried'], ['hero', 'A black feather. And a card: “Bearing one-eight-two, darlings. See you at the lighthouse.”', 'cross'], ['kongkang', 'One-eight-two… from here… runs… right out to Raffles Lighthouse. Far south. On its own… little rock.', 'calm'], ['hero', 'Then that’s where the island is. And this time, she’s waiting for us.', 'cross']] },
     ] },
+  // ── Chapter thirteen, "Raffles Lighthouse" (the twenty-first pass): the Southern Islands. Bearing one-eight-two from
+  // Station Mandai runs out to sea past Raffles Lighthouse on Pulau Satumu, and Madam Sutera left her card: see you at the
+  // lighthouse. The island ferry runs from Marina South Pier to St John's; the reef flats join the islands at low tide;
+  // and Kapitan Umang's hermit-crab deck crew is carrying her crates out to the lighthouse.
+  { id: 'm96', ch: 13, title: 'Marina South Pier', giver: 'vanda', at: 'vanda', reward: 1080, rep: 26, blurb: 'Madam Sutera’s card said “see you at the lighthouse”. Raffles Lighthouse stands on Pulau Satumu, far out past the Southern Islands. Ms Vanda knows the way out: the island ferry from Marina South Pier.',
+    steps: [
+      { t: 'talk', lines: [['vanda', 'Raffles Lighthouse? On Pulau Satumu, darlings: the last rock before the shipping lanes. No ferry goes that far.', 'calm'], ['vanda', 'But the island ferry from Marina South Pier runs out to St John’s Island, and my friend Kak Lumba guides on the reef there. If anyone can get you to Satumu, she can.', 'happy'], ['mate', 'A ferry, a reef and a lighthouse. Better than a forest in the dark.', 'happy']] },
+      { t: 'goto', at: 'pier-msp', label: 'Walk round the bay to Marina South Pier', cp: true },
+      { t: 'cable', to: 'isl-jetty', label: 'Take the island ferry to St John’s Island (E at the pier, 3 coins)', cp: true },
+      { t: 'goto', at: 'lumba', time: 60, label: 'Find Kak Lumba, the reef guide, by the marine lab before she goes out on the reef' },
+      { t: 'talk', lines: [['lumba', 'Hello, hello! Vanda’s chinchillas! I am Lumba. Yes, I am pink. All of us are, at my age.', 'happy'], ['lumba', 'Satumu? No ferry goes there. But at low tide the reef flats come up out of the sea, island to island, and you can walk it. If you read the tide.', 'calm'], ['lumba', 'And someone else is walking it at night. Little tracks, hundreds of them. Dragging something heavy.', 'worried'], ['hero', 'Then teach us the tide.', 'calm']] },
+    ] },
+  { id: 'm97', ch: 13, title: 'Low Tide', giver: 'lumba', at: 'lumba', reward: 1090, rep: 26, blurb: 'Kak Lumba walks the reef flats at low tide. Learn how: cross from St John’s to Little Sister, rock to rock, and when the tide comes in, wait it out on a coral head.',
+    steps: [
+      { t: 'talk', lines: [['lumba', 'The reef is dry when the tide is out. When it turns, the sea comes over the flats fast. Get onto a coral head, the dark rocks, or onto the sand, and wait.', 'calm'], ['lumba', 'Out, turning, in. Out again. Watch the meter, not the water.', 'calm'], ['mate', 'Rock to rock. Like stepping stones, but wetter.', 'smug']] },
+      { t: 'goto', at: 'reef-north', label: 'Go down to the reef flats on St John’s south shore', ride: 'foot', cp: true },
+      { t: 'tide', route: [I(15, 14), I(14, 16), I(13, 18)], time: 120, label: 'Cross the reef to Little Sister, marker to marker', cp: true },
+      { t: 'talk', lines: [['lumba', 'Dry feet, nearly! You read it like a dolphin. Now look down. Those tracks.', 'happy'], ['hero', 'Hermit crabs. Hundreds of little feet, and something dragged between them. Heading for Lazarus.', 'worried']] },
+    ] },
+  { id: 'm98', ch: 13, title: 'Shell Game', giver: 'lumba', at: 'lumba', reward: 1100, rep: 26, blurb: 'The hermit crabs have a camp on Lazarus Island’s north shore, with crates under a sail. Photograph their door, their rota, their lookout and their strongbox without being seen.',
+    steps: [
+      { t: 'talk', lines: [['lumba', 'There is a camp on Lazarus, past the causeway. Crabs with caps. They click at me when I swim by. Rude!', 'cross'], ['mate', 'Crabs with caps. Photograph first, laugh later.', 'smug']] },
+      { t: 'case', skin: 'crab', spots: [{ at: I(38, 4), kind: 'door' }, { at: I(41, 6), kind: 'rota' }, { at: I(36, 5), kind: 'cam' }, { at: I(40, 9), kind: 'safe' }], need: 3, guards: [[I(35, 5), I(41, 5)], [I(37, 10), I(42, 10)]], label: 'Photograph three things (E): the crabs’ door, their rota, their lookout, their strongbox', cp: true },
+      { t: 'goto', at: 'safe-islands', label: 'Slip back over the causeway to the bungalow on St John’s with the photos' },
+      { t: 'talk', lines: [['hero', 'The rota: “Kapitan Umang’s Deck Crew. Paid by M. Sutera. Carry the crates out to the lighthouse at the lowest tide.”', 'worried'], ['lumba', 'The lowest tide of the year is three nights away. The spring tide.', 'worried'], ['mate', 'So she isn’t there yet. She’s moving in, a crate at a time.', 'cross']] },
+    ] },
+  { id: 'm99', ch: 13, title: 'Tortoise Roll Call', giver: 'ku', at: 'ku', reward: 1110, rep: 27, blurb: 'Auntie Ku keeps the tortoises on Kusu Island, and someone left the pond gate open in the night. Find all four before the tide takes them, then hear the story of the island.',
+    steps: [
+      { t: 'talk', lines: [['ku', 'Ah. Visitors. Slowly, slowly, they come. I am Ku. My tortoises are out. Four of them. Somebody with little claws opened my gate.', 'worried'], ['mate', 'Tortoises. How far can they have got?', 'smug'], ['ku', 'You would be surprised, young man.', 'cross']] },
+      { t: 'collect', items: [I(1, 4), I(9, 3), I(8, 11), I(1, 8)], item: 'isl-tortoise-rest', time: 75, label: 'Find the four runaway tortoises round Kusu Island (E at each)', cp: true },
+      { t: 'talk', lines: [['ku', 'All four. Thank you. Now sit. A story. Long ago a great tortoise turned itself into this island to save two sailors from the sea.', 'calm'], ['ku', 'And in 1937 the survey men came. They climbed the steps to the keramat on the hill with a lamp, and signalled to the lighthouse.', 'calm'], ['hero', 'The 1937 survey. Here.', 'worried']] },
+      { t: 'goto', at: 'keramat', label: 'Climb the steps to the hilltop keramat', ride: 'foot', cp: true },
+      { t: 'talk', lines: [['hero', 'A little brass plate in the step: “Survey 1937. Lamp to Raffles Light.” Somebody has polished it.', 'worried'], ['mate', 'And look south. A black ship, no lights, anchored off the lighthouse.', 'cross'], ['hero', 'Her junk. She’s there already.', 'cross']] },
+    ] },
+  { id: 'm100', ch: 13, title: 'The Keeper', giver: 'ku', at: 'ku', reward: 1120, rep: 27, blurb: 'Pak Camar keeps Raffles Lighthouse, and Auntie Ku says he has the 1937 keeper’s logbook. Go to Little Sister and cross the long reef to Pulau Satumu on the tide.',
+    steps: [
+      { t: 'talk', lines: [['ku', 'Pak Camar keeps the light. A tern. Sharp. Kind. He keeps the old logbooks too, every one since the lamp was lit.', 'calm'], ['ku', 'The long reef runs from Little Sister to Satumu. Read the tide, and do not hurry. Hurrying is how you get wet.', 'calm']] },
+      { t: 'goto', at: 'littlesis', label: 'Go to Little Sister, where the long reef to Satumu begins', ride: 'foot', cp: true },
+      { t: 'tide', route: [I(17, 21), I(19, 22), I(21, 24), I(24, 24)], time: 130, label: 'Cross the long reef from Little Sister to Pulau Satumu, marker to marker', cp: true },
+      { t: 'goto', at: 'camar', label: 'Find Pak Camar, the lighthouse keeper, by his cottage' },
+      { t: 'talk', lines: [['camar', 'Visitors at night, over the reef? Either very brave or very silly. Chinchillas. Both, then.', 'calm'], ['camar', 'The 1937 log? Here. The survey men stayed three nights. They took a photograph from the gallery, and they drew an island on their chart, south, on bearing one-eight-two.', 'calm'], ['camar', 'There is no island there. I have looked every night for thirty years.', 'worried'], ['hero', 'There’s one on our chart.', 'worried']] },
+    ] },
+  { id: 'm101', ch: 13, title: 'Supply Run', giver: 'camar', at: 'camar', reward: 1130, rep: 27, blurb: 'Pak Camar’s supplies come out by boat from St John’s, and Kapitan Umang’s crew want to reach his jetty first with a boat full of crates. Beat them there round the far side of Lazarus.',
+    steps: [
+      { t: 'talk', lines: [['camar', 'My supply boat is tied up at St John’s. Umang’s crabs have a boat too, and they mean to land their crates on my jetty tonight.', 'cross'], ['hero', 'Then we get there first and tie up across it.', 'smug']] },
+      { t: 'goto', at: 'isl-jetty', label: 'Go back to St John’s jetty (over the reef, or by boat)', cp: true },
+      { t: 'ride', kind: 'boat', near: 'isl-jetty', label: 'Take Pak Camar’s supply boat at St John’s jetty (E)', cp: true },
+      { t: 'race', ride: 'boat', rival: 'boat', pace: 0.84, time: 95, marks: [I(28, 0), I(35, 1), I(43, 6), I(43, 15), I(40, 21), I(34, 24)], label: 'Steer round every buoy, the long way round Lazarus, to Satumu’s jetty before the crabs’ boat', cp: true },
+      { t: 'talk', lines: [['camar', 'Tied across my jetty, and the crabs going round in circles. Ha! A tern laughs too, you know.', 'happy'], ['mate', 'They’ll land somewhere else. They always do.', 'worried']] },
+    ] },
+  { id: 'm102', ch: 13, title: 'Crate Swap', giver: 'camar', at: 'camar', reward: 1140, rep: 28, blurb: 'Kapitan Umang’s crabs landed their crates on Satumu’s beach anyway. Swap each one for a crate of empty shells while the deckhand on watch looks the other way.',
+    steps: [
+      { t: 'talk', lines: [['camar', 'They landed on the beach instead, the sneaks. Four crates, by my cottage. Kak Lumba has crates of empty shells, same size.', 'cross'], ['mate', 'Empty shells, for hermit crabs. They’ll love them, actually.', 'smug']] },
+      { t: 'swap', crates: [I(23, 25), I(31, 26), I(25, 28), I(29, 28)], guards: [[I(24, 26), I(30, 26)]], time: 90, decoy: 'decoy', skin: 'crab', thing: 'supply crate', label: 'Swap a crate of shells for each of hers (E) while the crab on watch looks away', cp: true },
+      { t: 'talk', lines: [['hero', 'In the last crate: a copy of the 1937 photograph. The sea, the reef, and a rail across the bottom of the picture.', 'worried'], ['camar', 'That rail is my gallery. They took it from the top of my lighthouse.', 'calm'], ['hero', 'Then that’s where she has to stand to read it.', 'cross']] },
+    ] },
+  { id: 'm103', ch: 13, title: 'Lagoon Party', giver: 'lumba', at: 'lumba', reward: 1150, rep: 28, blurb: 'Madam Sutera is throwing a party on the Lazarus lagoon beach, and Kapitan Umang is her guest of honour. Pull on a beach shirt, wander in with the party crowd, and listen.',
+    steps: [
+      { t: 'talk', lines: [['lumba', 'A party on my beach! Lanterns, music, and a lady in black with a very large crab. Beach shirts by the causeway. Nobody looks at beach shirts.', 'happy'], ['mate', 'I look excellent in a beach shirt.', 'happy']] },
+      { t: 'blend', rack: I(34, 8), route: [I(35, 9), I(35, 10), I(36, 11), I(38, 12)], goal: I(39, 12), lookouts: [[...I(41, 11), 180], [...I(34, 13), 0]], crowd: 8, folk: 'town', label: 'Pull on a beach shirt by the causeway (E), then wander down to the lagoon with the party crowd', cp: true },
+      { t: 'talk', lines: [['umang', 'Every crate on Satumu, madam, near enough. My crew don’t mind the water.', 'happy'], ['sutera', 'Good, Kapitan. The photograph was taken from the gallery at the spring low tide, when the reef shows its whole shape. Tomorrow night is the spring tide.', 'happy'], ['sutera', 'I stand where they stood, I hold up the picture, and the sea tells me where the island is.', 'happy'], ['hero', 'Tomorrow night. Then we’re on that gallery first.', 'cross']] },
+    ] },
+  { id: 'm104', ch: 13, title: 'Logbook Dash', giver: 'lumba', at: 'lumba', reward: 1170, rep: 28, blurb: 'Pak Camar brought his 1937 logbook over to the marine lab to copy it, and Pip snatched it off the table. Chase him round St John’s and bump him three times before he reaches the crabs’ boat.',
+    steps: [
+      { t: 'talk', lines: [['lumba', 'The crow child! He took Pak Camar’s logbook off the lab table and ran! Towards the causeway!', 'cross'], ['mate', 'Run. Now. Talk later.', 'cross']] },
+      { t: 'goto', at: 'stjohn', label: 'Run up the path after Pip', ride: 'foot', cp: true },
+      { t: 'chase', who: 'runner', from: I(24, 7), route: [I(30, 7), I(34, 7), I(37, 9), I(37, 11), I(34, 12), I(36, 8), I(32, 7), I(24, 7), I(18, 6), I(13, 7), I(8, 7), I(3, 10), I(8, 9), I(13, 7), I(21, 9)], bumps: 3, loot: 'isl-logbook', speed: 190, label: 'Chase Pip round Lazarus, back over St John’s and out to Kusu, and bump him three times (Space dashes)', cp: true },
+      { t: 'talk', lines: [['hero', 'Got it back. Sorry, Pip.', 'happy'], ['pip', 'Keep it! Madam copied the page she wanted! The spring tide is TONIGHT and she is already walking out!', 'smug']] },
+    ] },
+  { id: 'm105', ch: 13, title: 'Raffles Lighthouse', giver: 'camar', at: 'camar', reward: 1800, rep: 30, blurb: 'The spring tide is tonight and Madam Sutera is walking out to the lighthouse. Cross the south reef on the short spring low tide, hold the lighthouse door against her crows, and climb to the gallery first.',
+    steps: [
+      { t: 'talk', lines: [['camar', 'Spring tide. The lowest of the year, and the shortest. The south reef from St John’s comes straight to my door. Go now, or swim.', 'worried'], ['hero', 'Rock to rock, and quick about it.', 'cross']] },
+      { t: 'goto', at: 'reef-south', label: 'Go down to the south reef on St John’s', ride: 'foot', cp: true },
+      { t: 'tide', route: [I(25, 14), I(25, 16), I(26, 19), I(25, 22)], out: 0.6, time: 120, label: 'Cross the south reef to Satumu on the spring tide (a short low tide: be quick)', cp: true },
+      { t: 'goto', at: 'lighthouse', label: 'Run to the lighthouse door', ride: 'foot', cp: true },
+      { t: 'defend', at: 'lighthouse', time: 50, waves: 2, per: 2, gang: 'crow', what: 'Lighthouse door', label: 'Hold the lighthouse door: knock the crows back before they get inside ({mate} helps on their own)', cp: true },
+      { t: 'talk', lines: [['sutera', 'Darlings! Over the reef on a spring tide, through my crows, and on my gallery before me. I am impressed. Truly.', 'happy'], ['umang', 'Madam, the tide. It is turning. My crew are… floating.', 'worried'], ['sutera', 'Then we go, Kapitan. Back to the junk.', 'calm'], ['mate', 'Look! From up here the reef shows its whole shape, like the photograph. And past it, on one-eight-two…', 'worried'], ['camar', 'White water. Breakers, where the chart says open sea. Something just under the surface, the size of an island. Thirty years, and I never once looked at the spring tide.', 'worried'], ['hero', 'And her junk is sailing straight for it. She doesn’t need the gallery. She only needed to know we’d look.', 'cross']] },
+    ] },
 ]);
 // ── Hawker Tales: the Singapore side jobs. They sit outside the five chapters (ch 0), open once their story job is
 // done, and pay like a story job; the townsfolk they help are in PEOPLE.
@@ -1467,6 +1560,28 @@ export const SIDE: Mission[] = mvMissions([
       { t: 'ride', kind: 'boat', near: [193, 70], label: 'Take the bumboat at the boardwalk', cp: true },
       { t: 'race', ride: 'boat', rival: 'boat', pace: 0.85, time: 85, marks: [[185, 72], [170, 70], [160, 76], [150, 80], [175, 81], [190, 76]], label: 'Steer round every buoy in the bay before the crows’ boat', cp: true },
       { t: 'talk', lines: [['vanda', 'First across the line! The crows are paddling home with their beaks down. Ha!', 'happy']] },
+    ] },
+  // the twenty-first pass: the Southern Islands' townsfolk
+  { id: 'k39', side: 'm99', ch: 0, title: 'Tortoise Breakfast', giver: 'ku', at: 'pond', reward: 320, rep: 12, blurb: 'Auntie Ku’s tortoises want their kangkong, and the canteen on St John’s has the freshest. Fetch a basket of greens over the reef before it wilts.',
+    steps: [
+      { t: 'talk', lines: [['ku', 'Breakfast. Kangkong. From the canteen on St John’s, the fresh basket. Not the old one. They know the difference.', 'calm'], ['mate', 'Fussy tortoises.', 'smug'], ['ku', 'Old tortoises, young man.', 'cross']] },
+      { t: 'pickup', at: 'mk-islands', item: 'basket', label: 'Pick up the basket of kangkong at the St John’s canteen (E)', cp: true },
+      { t: 'deliver', to: 'pond', item: 'basket', time: 75, label: 'Carry the greens over the reef to the tortoise pond on Kusu', cp: true },
+      { t: 'talk', lines: [['ku', 'Fresh. They are eating, look. Very, very slowly. That is a tortoise saying thank you.', 'happy']] },
+    ] },
+  { id: 'k40', side: 'm97', ch: 0, title: 'Reef Count', giver: 'lumba', at: 'isl-lab', reward: 320, rep: 12, blurb: 'Kak Lumba counts what lives in the rock pools on the reef every month for the marine park. Help her this month: peer into four pools on the low tide, without getting washed off.',
+    steps: [
+      { t: 'talk', lines: [['lumba', 'Reef count night! Four rock pools between here and Little Sister. Kneel, look, count. And watch the tide while you’re looking.', 'happy'], ['hero', 'Look down, but keep one eye on the meter.', 'calm']] },
+      { t: 'goto', at: 'reef-north', label: 'Go down to the reef flats on St John’s south shore', ride: 'foot', cp: true },
+      { t: 'tide', route: [I(13, 18)], pools: [I(15, 15), I(14, 17), I(18, 22), I(20, 24)], time: 160, label: 'Peer into each rock pool (E) on the low tide, then come ashore on Little Sister', cp: true },
+      { t: 'talk', lines: [['lumba', 'Sea stars, a clam, a seahorse! A good month. The reef is happy. So am I.', 'happy']] },
+    ] },
+  { id: 'k41', side: 'm98', ch: 0, title: 'Hermit Race', giver: 'lumba', at: 'lumba', reward: 330, rep: 12, blurb: 'One of Kapitan Umang’s deckhands says no chinchilla can beat a hermit crab round Lazarus Island. Race him round every marker on the beach.',
+    steps: [
+      { t: 'talk', lines: [['lumba', 'That deckhand says crabs are faster than chinchillas. Sideways, maybe. Show him.', 'smug'], ['mate', 'He’s carrying his house. We’re not.', 'smug']] },
+      { t: 'goto', at: 'lazarus', label: 'Go over the causeway to Lazarus Island', ride: 'foot', cp: true },
+      { t: 'race', ride: 'foot', rival: 'runner', skin: 'crab', pace: 0.8, time: 80, marks: [I(34, 8), I(34, 16), I(34, 11), I(38, 7), I(41, 10), I(41, 16)], label: 'Beat the hermit crab round Lazarus: down the west beach and back, over the top, down the east beach', cp: true },
+      { t: 'talk', lines: [['lumba', 'He says it was the shell. It is always the shell.', 'happy']] },
     ] },
 ]);
 export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id, m])) as Record<string, Mission>;

@@ -128,7 +128,7 @@ export function ChapterCard({ ch, onDone }: { ch: number; onDone: () => void }) 
       <div className="jade-chapter-cap">
         <div className="jade-chapter-n">Chapter {c}</div>
         <h2>{CHAPTERS[c - 1]}</h2>
-        {opened && <p>{DISTRICT_NAME[opened].replace(/^the /, 'The ')} {/Docks$/.test(DISTRICT_NAME[opened]) ? 'are' : 'is'} open.</p>}
+        {opened && <p>{DISTRICT_NAME[opened].replace(/^the /, 'The ')} {/(Docks|Islands)$/.test(DISTRICT_NAME[opened]) ? 'are' : 'is'} open.</p>}
         {heir && <p>Find the {heir.name}.</p>}
         {c === 6 && <><p>Toa Payoh and Marina Bay are open: take the MRT from Chinatown station.</p><p>Stop Director Kaw.</p></>}
         {c === 7 && <><p>Little India and Kampong Glam are open: take the MRT to Little India or Bugis.</p><p>Find out who is copying voices.</p></>}
@@ -136,6 +136,7 @@ export function ChapterCard({ ch, onDone }: { ch: number; onDone: () => void }) 
         {c === 9 && <><p>Tiong Bahru and Clarke Quay are open: take the MRT to Tiong Bahru or Clarke Quay.</p><p>Find out who is buying up the lanterns.</p></>}
         {c === 10 && <><p>Pulau Ubin is open: take Pak Ubin’s bumboat from the Changi Point jetty.</p><p>Find out what the boars are digging for.</p></>}
         {c === 12 && <><p>Mandai is open: take the MRT to Mandai Lake Road.</p><p>Find out where the black seaplane is heading.</p></>}
+        {c === 13 && <><p>The Southern Islands are open: take the island ferry from Marina South Pier.</p><p>Get to Raffles Lighthouse before Madam Sutera.</p></>}
         <div className="jade-chapter-bar"><span /></div>
       </div>
       <button type="button" className="jade-btn plain jade-story-skip" data-testid="jade-story-skip" onClick={e => { e.stopPropagation(); finish(); }}>Skip ›</button>
