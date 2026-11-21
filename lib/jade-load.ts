@@ -42,6 +42,10 @@ const ATLAS_TIER: Record<string, Tier> = {
   // the nineteenth pass: Mandai's paintings (the night animals and Madam Sutera's owls among them: they only ever appear
   // there) stream with its zone; the heroes' night-trail actions and the new icons are job art
   'atlas-mandai': 'mandai', 'atlas-cast-mandai': 'mandai', 'atlas-act19': 'job', 'atlas-ui19': 'job',
+  // the twentieth pass: the heroes' rounds poses are job art; each district's carried things stream with its zone
+  'atlas-act20': 'job', 'atlas-gig20-south': 'south', 'atlas-gig20-east': 'east', 'atlas-gig20-far': 'far',
+  // the vehicle perks' cab, kayak and riding poses (lib/jade-fleet.ts): decoded in free roam, as the older rides
+  'atlas-ride20': 'job',
   // (the heroes' new actions stream with the rest of their rarer poses: every hero frame is core or job)
   'atlas-act17': 'job',
 };
