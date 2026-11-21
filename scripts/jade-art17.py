@@ -54,9 +54,9 @@ def grid(atlas, file, names, gx, gy, world, ref=None, fix=None, keep=0.04):
     for n in names:
         if n: put(atlas, n, scaled(cs[n], k))
 
-def each(atlas, file, names, gx, gy, sizes, keep=0.04):
+def each(atlas, file, names, gx, gy, sizes, keep=0.04, green=False):
     """each item scaled to its own world width"""
-    for n, c in zip(names, cells(file, gx, gy, keep=keep)):
+    for n, c in zip(names, cells(file, gx, gy, keep=keep, green=green)):
         if n: put(atlas, n, scaled(c, sizes[n] * PX / c.shape[1]))
 
 def rect(atlas, file, names, gx, gy, sizes):
@@ -69,7 +69,7 @@ rect('atlas-ubin', 'ubin-bld', ['ubin-house-a', 'ubin-house-b', 'ubin-shops', 'u
      {'ubin-house-a': (3, 2), 'ubin-house-b': (3, 2), 'ubin-shops': (3, 2), 'ubin-bikes': (3, 2), 'ubin-temple': (3, 2), 'ubin-wayang': (3, 2)})
 rect('atlas-ubin', 'ubin-bld2', [None, 'ubin-house1', None, 'safe-ubin', 'ubin-den', None], 3, 2,
      {'ubin-house1': (3, 2), 'safe-ubin': (2, 2), 'ubin-den': (3, 2)})
-each('atlas-ubin', 'ubin-bld2', ['ubin-tower', None, 'ubin-jetty', None, None, 'kelong'], 3, 2, {'ubin-tower': 92, 'ubin-jetty': 150, 'kelong': 210})
+each('atlas-ubin', 'ubin-bld2', ['ubin-tower', None, 'ubin-jetty', None, None, 'kelong'], 3, 2, {'ubin-tower': 92, 'ubin-jetty': 150, 'kelong': 210}, green=True)
 # ── props (world widths as lib/jade-ubin.ts draws them)
 each('atlas-ubin', 'props17a', ['durian-tree', 'rambutan-tree', 'coconut', 'mangrove', 'ubin-bike', 'ubin-rack', 'drum', 'coop',
      'sampan', 'fish-trap', 'boulder', 'signpost', 'dig-hole', 'hoof-prints', 'durian-pile', 'tin-chest'], 4, 4,
