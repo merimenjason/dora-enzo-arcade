@@ -92,7 +92,7 @@ test('chapter eleven: ten jobs in Kallang, a mix of steps, at most a third chase
 });
 
 test('three Hawker Tales in Kallang, each at its own place so its giver waits there', () => {
-  assert.deepEqual(SIDE.slice(-3).map(m => m.id), TALES);
+  assert.deepEqual(SIDE.slice(-9, -6).map(m => m.id), TALES); // (the twentieth pass's six after these)
   for (const id of TALES) {
     const m = MISSION[id]; assert.ok(inKallang(c.places[m.at].x, c.places[m.at].y), `${id} in Kallang`);
     assert.ok(!MISSIONS.filter(x => x.ch === 11).some(x => x.at === m.at), `${id} not at a chapter-eleven job's place`);

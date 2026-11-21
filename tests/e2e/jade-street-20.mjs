@@ -136,3 +136,96 @@ export async function twentieth(h) {
   console.log(`  pass 20 first-timer: ${clean.length}/${first.length} first try on Normal; retries: ${first.filter(([, r]) => r.fails).map(([id, r]) => `${id} ${r.fails}`).join(', ') || 'none'}`);
   return results;
 }
+
+// The vehicle perks (lib/jade-fleet.ts), clicked through the real UI: for each of the five vehicle businesses, the buy
+// panel shows its perk before buying; Buy; the phone's taxi app gets a button to call its ride; the click brings it to
+// your side (the wave pose plays); a short walk and E climbs in (the cab with its own step-in pose) and the hero is drawn
+// driving or paddling it. Upgrading to levels 2 and 3 through the panel repaints the ride and makes it quicker. Calls are
+// refused on a job, with heat and with a ticket, the button greyed with the reason. Owning the depot makes Grab free.
+export async function fleetPerks(h) {
+  const { p, W, press, loc, exists, appear, look, check, until, wait, name } = h;
+  const key = async (k, ms = 160) => { await p.keyboard.press(k); await wait(ms); };
+  const free = () => W(() => { const w = window.__jade.world(); w.talk = null; w.ui = null; w.p.act = null; w.heat = 0; w.wardens = []; w.ticket = null; w.gangs.ev = null; w.emp.raid = null; window.__jade.play.paused = false; window.__jade.play.bump(); });
+  const offRide = async () => { for (let i = 0; i < 6 && await W(() => !!window.__jade.world().p.ride); i++) { await key('e', 500); } };
+  await W(() => {
+    const J = window.__jade, w = J.world(); if (!w.s.done.includes('m1')) J.finishAll(); w.quitJob(); w.s.cash = 60000;
+    for (const id of ['taxi', 'bumboat', 'kayak', 'ubinbikes', 'icekacang']) w.s.biz[id].lvl = 0;
+    for (const d of Object.keys(w.s.rep)) w.s.rep[d] = Math.max(w.s.rep[d], 100); // (the keepers' reputation, as after the story)
+    window.__seenF = new Set(); const f = () => { const w = window.__jade.world(); if (w.p.act) window.__seenF.add(w.p.act.n); requestAnimationFrame(f); }; requestAnimationFrame(f);
+  });
+  await offRide(); await free();
+  const DRAWN = { taxi: /-ride-cab-[01]$/, bumboat: /-ride-pole-[01]$/, kayak: /-ride-kayak-[01]$/, ubinbikes: /-ride-bike-[01]$/, icekacang: /-ride-(moto|bell)-[01]$/ };
+  let held = new Set();
+  const hold = async keys => { for (const k of held) if (!keys.has(k)) await p.keyboard.up(k); for (const k of keys) if (!held.has(k)) await p.keyboard.down(k); held = keys; };
+  /** call the business's ride from the phone (the real buttons) and climb in: walk to it, E */
+  const callAndBoard = async (id, label) => {
+    check(await W(id => window.__jade.toFleet(id), id), `${name}: ${label}: somewhere by the ${id} business to call it from`);
+    await press('jade-phone'); await press('phone-taxi');
+    check(await appear(`fleet-call-${id}`), `${name}: ${label}: the phone's taxi app has the call button`);
+    check(!(await loc(`fleet-call-${id}`).isDisabled()), `${name}: ${label}: the button is live (${await loc(`fleet-why-${id}`).innerText()})`);
+    await press(`fleet-call-${id}`); await wait(300);
+    const r = await W(id => { const w = window.__jade.world(), r = w.rides.find(r => r.own === id); return r ? { x: r.b.x, y: r.b.y, d: Math.hypot(r.b.x - w.p.x, r.b.y - w.p.y) } : null; }, id);
+    check(!!r && r.d < 6 * 64, `${name}: ${label}: the ride comes to your side (${r ? Math.round(r.d) : 'none'} px)`);
+    check(await W(() => window.__seenF.has('call-ride')), `${name}: ${label}: the wave-it-over pose plays`);
+    await wait(900);
+    // walk to it until E offers it
+    const t0 = Date.now(); let near = false;
+    while (Date.now() - t0 < 8000) {
+      const s = await W(id => { const w = window.__jade.world(), r = w.rides.find(r => r.own === id); return { x: w.p.x, y: w.p.y, rx: r.b.x, ry: r.b.y, near: w.near?.ride === r }; }, id);
+      if (s.near) { near = true; break; }
+      const dx = s.rx - s.x, dy = s.ry - s.y, l = Math.hypot(dx, dy) || 1, keys = new Set();
+      if (dx / l > 0.38) keys.add('d'); if (dx / l < -0.38) keys.add('a'); if (dy / l > 0.38) keys.add('s'); if (dy / l < -0.38) keys.add('w');
+      await hold(keys); await wait(60);
+    }
+    await hold(new Set());
+    check(near, `${name}: ${label}: a short walk and the E prompt offers the ride`);
+    await key('e', 900);
+    check(await W(id => window.__jade.world().p.ride?.own === id, id), `${name}: ${label}: E climbs in`);
+    // a short drive (a bump into a kerb shows the bump pose for a moment, so the frames are sampled along the way)
+    const frames = new Set(); const sample = async ms => { const t1 = Date.now(); while (Date.now() - t1 < ms) { frames.add((await W(() => window.__jade.rideDrawn())).driver); await wait(80); } };
+    await sample(400); await hold(new Set(['w'])); await sample(700); await hold(new Set(['s'])); await sample(500); await hold(new Set()); await sample(300);
+    check([...frames].some(f => DRAWN[id].test(f)), `${name}: ${label}: the hero is drawn riding it (${[...frames].join(', ') || 'nothing'})`);
+    return W(() => window.__jade.ownRide());
+  };
+  const LABEL = { taxi: 'the taxi depot’s cab', bumboat: 'the bumboat', kayak: 'the Siloso kayak', ubinbikes: 'the Ubin bike', icekacang: 'the ice-cream motorbike' };
+  for (const id of ['taxi', 'bumboat', 'kayak', 'ubinbikes', 'icekacang']) {
+    const label = LABEL[id];
+    await offRide(); await free();
+    await W(id => window.__jade.toBiz(id), id); await key('e', 400);
+    check(await appear('biz'), `${name}: ${label}: E opens the business`);
+    check(/^Perk: /.test(await loc('biz-perk').innerText()), `${name}: ${label}: the perk is on the panel before buying ("${await loc('biz-perk').innerText()}")`);
+    await press('biz-buy'); check(await W(id => window.__jade.world().s.biz[id].lvl === 1, id), `${name}: ${label}: Buy`);
+    await press('close'); await free();
+    const one = await callAndBoard(id, label);
+    if (id === 'taxi') check(await W(() => window.__seenF.has('cab-in')), `${name}: ${label}: the step-into-the-cab pose plays`);
+    await look(`perk: ${id} level 1`);
+    // levels 2 and 3, bought on the panel: a new paint job and a quicker ride
+    await offRide(); await free();
+    await W(id => window.__jade.toBiz(id), id); await key('e', 400); await appear('biz');
+    await press('biz-up'); await press('biz-up'); check(await W(id => window.__jade.world().s.biz[id].lvl === 3, id), `${name}: ${label}: upgraded to level 3 on the panel`);
+    await press('close'); await free();
+    const three = await callAndBoard(id, `${label} at level 3`);
+    check(three.boost > one.boost && (three.sprite !== one.sprite || three.hue !== one.hue), `${name}: ${label}: level 3 is quicker (${one.boost} → ${three.boost}) with new paint (${one.sprite ?? one.hue} → ${three.sprite ?? three.hue})`);
+    await look(`perk: ${id} level 3`);
+  }
+  // refusals: with heat, a ticket or on a job the button is greyed with the reason
+  await offRide(); await free(); await W(() => window.__jade.toFleet('taxi'));
+  for (const [why, set] of [['heat', 'w.heat = 1'], ['a ticket', "w.ticket = { kind: 'litter', amt: 10 }"]]) {
+    await W(set => { const w = window.__jade.world(); new Function('w', set)(w); window.__jade.play.bump(); }, set);
+    await press('jade-phone'); await press('phone-taxi'); await appear('fleet-call-taxi');
+    check(await loc('fleet-call-taxi').isDisabled(), `${name}: no cab with ${why} (${await loc('fleet-why-taxi').innerText()})`);
+    await press('close'); await free();
+  }
+  await W(() => window.__jade.start('k33'));
+  check(await W(() => !!window.__jade.world().run), `${name}: a job is running`);
+  {
+    await press('jade-phone'); await press('phone-taxi'); await appear('fleet-call-taxi');
+    check(await loc('fleet-call-taxi').isDisabled(), `${name}: no cab on a job (${await loc('fleet-why-taxi').innerText()})`);
+    await press('close'); await W(() => window.__jade.world().quitJob()); await free();
+  }
+  // the depot makes Grab free
+  await press('jade-phone'); await press('phone-taxi'); await appear('taxi-book');
+  check(/free/.test(await loc('taxi-book').innerText()), `${name}: with the depot, the Grab button says it is free ("${await loc('taxi-book').innerText()}")`);
+  await press('close'); await free();
+  void exists; void until;
+}

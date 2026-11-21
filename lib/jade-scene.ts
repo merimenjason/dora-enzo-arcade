@@ -33,6 +33,7 @@ import { empSorted, empOver, jagaActor } from './jade-empdraw.js';
 import { BIZ, BIZ_OF, bizPos } from './jade-biz.js';
 import { jobActor, jobGround, mindBeam, mindBubble } from './jade-jobdraw.js';
 import { castFrame, castPose, type CastMember } from './jade-cast.js';
+import { fleetSprite, fleetHue } from './jade-fleet.js';
 
 export const ART = '/art/jade-street/';
 const CH = 8; // tiles per chunk
@@ -256,6 +257,10 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     case 'hide': return `${h}-hide`;
     case 'carry': case 'carry-idle': return face === 'side' ? `${h}-carry-side` : `${h}-carry-down`;
     case 'climb-on': return `${h}-climb-on`;
+    // the twentieth pass: stepping into your own cab, and waving a called ride over with the phone
+    // (job art: until it has streamed in, the older climb and phone poses stand in)
+    case 'cab-in': return hasFrame(`${h}-cab-in`) ? `${h}-cab-in` : `${h}-climb-on`;
+    case 'call-ride': return hasFrame(`${h}-call`) ? `${h}-call` : `${h}-phone`;
     case 'climb-off': return `${h}-climb-off`;
     case 'celebrate': return `${h}-cheer-${cyc(2, 4)}`;
     case 'caught': return t < 0.6 ? `${h}-caught-0` : `${h}-caught-1`;
@@ -734,7 +739,9 @@ export class Scene {
     spr(x, p.sprite, p.x, p.y + 12, {});
   }
   ride(x: CanvasRenderingContext2D, w: World, r: Ride, player: boolean) {
-    const name = r.broken ? 'van-broken' : r.kind === 'boat' ? (r.id % 2 ? 'v-bumboat-b' : 'v-bumboat') : 'v-' + r.kind; const paint = AS_PAINTED.has(r.kind) ? 0 : player ? PAINTS.find(q => q.id === w.s.paint)?.filter ?? 0 : [0, 140, 40, 210, 280][r.tint % 5];
+    // (a ride lent by your business wears its livery: lib/jade-fleet.ts)
+    const own = fleetSprite(r, w.s), hue = fleetHue(r, w.s);
+    const name = own ?? (r.broken ? 'van-broken' : r.kind === 'boat' ? (r.id % 2 ? 'v-bumboat-b' : 'v-bumboat') : 'v-' + r.kind); const paint = hue !== null ? hue : AS_PAINTED.has(r.kind) ? 0 : player ? PAINTS.find(q => q.id === w.s.paint)?.filter ?? 0 : [0, 140, 40, 210, 280][r.tint % 5];
     x.fillStyle = 'rgba(0,0,0,.32)'; this.shadow(x, r.b.x + 5, r.b.y + 7, VEHICLES[r.kind].len * 0.45, VEHICLES[r.kind].r * 0.9);
     const bob = onWater(r.kind) ? Math.sin(this.t * 2 + r.id) * 0.03 : 0;
     spr(x, name, r.b.x, r.b.y, { anchor: 'center', rot: r.b.h + Math.PI / 2 + bob, variant: paint ? 'paint:' + paint : '' });

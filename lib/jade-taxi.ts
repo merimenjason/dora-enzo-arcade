@@ -7,12 +7,14 @@ import { downhill, nearestFree } from './jade-nav.js';
 import { dist } from './jade-rng.js';
 import type { Body } from './jade-move.js';
 import type { World } from './jade-game.js';
+import { freeGrab } from './jade-fleet.js';
 
 export const TAXI_APP = 'Grab';
 /** autopilot speed (world units a second): quick, so the island's districts are a short ride apart */
 export const TAXI_SPEED = 420;
 export type Taxi = { b: Body; st: 'come' | 'wait' | 'ride' | 'gone'; t: number; to: string | null; sprite: string; fare: number; wait: number };
-export const fareTo = (w: World, p: Place) => Math.max(4, Math.round(3 + dist(w.p.x, w.p.y, p.x, p.y) / T * 0.12));
+// (with the ComfortDelGro depot owned, Grab rides are on the house: lib/jade-fleet.ts)
+export const fareTo = (w: World, p: Place) => freeGrab(w.s) ? 0 : Math.max(4, Math.round(3 + dist(w.p.x, w.p.y, p.x, p.y) / T * 0.12));
 /** why you can't get a taxi now, or null */
 export function cantHail(w: World): string | null {
   if (w.run) return 'No taxis during a job';
@@ -78,7 +80,7 @@ export function arrive(w: World) {
   w.p.b.x = x; w.p.b.y = y; w.p.b.speed = 0; w.p.hide = false; w.mate.hide = false; w.p.face = 'down';
   w.regroup(); tx.st = 'gone'; tx.t = 0; tx.b.x = x + 70; tx.b.y = y;
   w.fx.push({ t: 'taxi-out', k: tx.fare, x, y });
-  w.say(`${TAXI_APP}: ${tx.fare} coins. Terima kasih!`, 'good');
+  w.say(tx.fare ? `${TAXI_APP}: ${tx.fare} coins. Terima kasih!` : `${TAXI_APP}: on the house, boss. Terima kasih!`, 'good');
 }
 export function taxiStep(w: World, dt: number) {
   const tx = w.taxi; if (!tx) return;

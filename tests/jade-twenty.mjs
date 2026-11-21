@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
 import { MISSIONS, MISSION, SIDE, PEOPLE, jobCounts } from '../.checks/jade-story.js';
 import { newSave, TROPHIES, checkTrophies } from '../.checks/jade-save.js';
-import { city, T, W, DISTRICTS, districtAt, passable } from '../.checks/jade-city.js';
+import { city, T, W, DISTRICTS, districtAt, passable, F_BRIDGE } from '../.checks/jade-city.js';
 import { field } from '../.checks/jade-nav.js';
 import { GIG_DEFS, gigBoards, gigMission, startGig } from '../.checks/jade-gigs.js';
 import { GIG20_DEFS } from '../.checks/jade-gigs20.js';
@@ -19,6 +19,10 @@ import { DIFF } from '../.checks/jade-diff.js';
 import { FRAMES, ATLASES } from '../.checks/jade-art.js';
 import { tierOf, ZONE_OF } from '../.checks/jade-load.js';
 import { phoneStep } from '../.checks/jade-phone.js';
+import { FLEET, FLEET_OF, FLEET_SPEED, perkLine, cantCall, callRide, fleetSpot, fleetSprite, fleetBoost, freeGrab } from '../.checks/jade-fleet.js';
+import { fareTo, dropOffs, taxiGo } from '../.checks/jade-taxi.js';
+import { PROPS } from '../.checks/jade-props.js';
+import { VEHICLE_KINDS } from '../.checks/jade-move.js';
 import { playMission, missionSave, gigCases, contractSave } from './jade-bot.mjs';
 
 let n = 0;
@@ -221,6 +225,89 @@ test('first-timer play: the bot clears each new gig and tale on Normal reading t
     const h = playMission(id, 'normal', 91, { assist: false, diff: 'hard' }); assert.ok(h.won, `${id} on Hard: ${JSON.stringify(h)}`);
   }
   void missionSave;
+});
+
+// ── the vehicle perks (lib/jade-fleet.ts): the vehicle businesses lend their owner a ride
+/** a free-roam world owning the given vehicle businesses at a level */
+function fleetWorld(own, lvl = 1, seed = 5) {
+  const w = done(seed); for (const id of own) w.s.biz[id].lvl = lvl; w.s.cash = 5000; return w;
+}
+const standFor = (w, id) => fleetSpot(w, id);
+const HOME = { taxi: 'heartland', bumboat: 'canal', kayak: 'resort', ubinbikes: 'pulau', icekacang: 'bay' };
+
+test('the five vehicle businesses each lend a ride; the cab and the kayak are new kinds after the older ten', () => {
+  assert.deepEqual(FLEET.map(f => f.id), ['taxi', 'bumboat', 'kayak', 'ubinbikes', 'icekacang']);
+  for (const f of FLEET) {
+    const p = PROPS.find(q => q.id === f.id); assert.ok(p, f.id); assert.equal(p.d, HOME[f.id], `${f.id} district`);
+    assert.match(perkLine(f.id), /^Perk: /, `${f.id}: the buy panel shows the perk before buying`);
+  }
+  assert.equal(FLEET_OF.taxi.kind, 'cab'); assert.equal(FLEET_OF.kayak.kind, 'kayak'); assert.equal(FLEET_OF.bumboat.kind, 'boat');
+  assert.equal(FLEET_OF.ubinbikes.kind, 'bike'); assert.equal(FLEET_OF.icekacang.kind, 'icecream');
+  assert.equal(perkLine('claw'), null, 'no perk on a business without vehicles');
+  assert.deepEqual(VEHICLE_KINDS.slice(-2), ['cab', 'kayak'], 'appended after the older kinds');
+  assert.equal(VEHICLES.cab.cls, 'big'); assert.equal(VEHICLES.cab.seats, 2); assert.equal(VEHICLES.kayak.cls, 'boat'); assert.equal(VEHICLES.kayak.seats, 1);
+  assert.ok(FLEET_SPEED[1] === 1 && FLEET_SPEED[2] > 1 && FLEET_SPEED[3] > FLEET_SPEED[2], 'levels 2 and 3 are quicker');
+});
+
+test('owned, each ride comes to its own kind of place beside you, parked and unlocked, and you can get in', () => {
+  for (const f of FLEET) {
+    const w = fleetWorld([f.id]); const at = standFor(w, f.id, HOME[f.id]); assert.ok(at, `${f.id}: somewhere in ${HOME[f.id]} to call it`);
+    const before = w.rides.length; const r = callRide(w, f.id); assert.ok(r, f.id);
+    assert.equal(w.rides.length, before + 1); assert.equal(r.kind, f.kind); assert.equal(r.own, f.id); assert.ok(r.parked && !r.locked);
+    const [rx, ry] = tileOf([r.b.x, r.b.y]); assert.ok(passable(c, VEHICLES[f.kind].cls, rx, ry), `${f.id}: on ${VEHICLES[f.kind].cls} ground`);
+    assert.ok(Math.hypot(r.b.x - w.p.x, r.b.y - w.p.y) < 6 * T, `${f.id}: beside you`);
+    if (f.kind === 'cab' || f.kind === 'icecream') assert.equal(c.ground[ry * W + rx], 2, `${f.id}: on a road`);
+    if (VEHICLES[f.kind].cls === 'boat') assert.ok(c.solid[ry * W + rx] === 2 && !(c.flags[ry * W + rx] & F_BRIDGE), `${f.id}: on open water, not a pier or under a bridge`);
+    assert.equal(w.p.act?.n, 'call-ride', 'the call plays its own pose');
+    // walk up to it, as a player would: within a few seconds E offers it
+    settle(w, 1.2); for (let i = 0; i < 4 / DT && w.near?.ride !== r; i++) { const dx = r.b.x - w.p.x, dy = r.b.y - w.p.y, l = Math.hypot(dx, dy) || 1; w.step({ ...NO_INPUT, mx: dx / l, my: dy / l }, DT); }
+    assert.equal(w.near?.ride, r, `${f.id}: a short walk and E offers it (${w.near?.kind})`);
+    w.enter(r); settle(w, 0.8); assert.equal(w.p.ride, r, `${f.id}: you climb in`);
+    // calling again from the ground sends the first one home: one at a time
+    w.exit?.(); settle(w, 1);
+    if (!cantCall(w, f.id)) { callRide(w, f.id); assert.equal(w.rides.filter(q => q.own === f.id).length, 1, `${f.id}: one at a time`); }
+  }
+});
+
+test('calls are free roam only, as taxis are: not unowned, not on a job, not with heat or a ticket, not riding; each in its own place', () => {
+  const w = fleetWorld(['taxi', 'kayak', 'ubinbikes']); assert.ok(standFor(w, 'taxi', 'heartland'));
+  const w0 = fleetWorld([]); w0.p.b.x = w.p.b.x; w0.p.b.y = w.p.b.y; assert.ok(cantCall(w0, 'taxi'), 'unowned');
+  w.heat = 1; assert.ok(cantCall(w, 'taxi'), 'heat'); w.heat = 0;
+  w.ticket = { kind: 'litter', amt: 10 }; assert.ok(cantCall(w, 'taxi'), 'a ticket'); w.ticket = null;
+  assert.equal(cantCall(w, 'taxi'), null);
+  assert.ok(cantCall(w, 'kayak'), 'kayaks only on Sentosa'); assert.ok(cantCall(w, 'ubinbikes'), 'bikes only on Ubin');
+  assert.equal(callRide(w, 'kayak'), null, 'a refused call adds nothing');
+  const u = fleetWorld(['taxi', 'ubinbikes']); assert.ok(standFor(u, 'ubinbikes', 'pulau')); assert.match(cantCall(u, 'taxi'), /Ubin/, 'no cab on Ubin');
+  // on a job
+  const j = fleetWorld(['taxi']); startGig(j, 'fares-tp'); settle(j, 0.2); assert.ok(j.run, 'the gig runs'); standFor(j, 'taxi', 'heartland');
+  assert.equal(cantCall(j, 'taxi'), 'No calls during a job');
+  // riding
+  const r = fleetWorld(['taxi']); standFor(r, 'taxi', 'heartland'); const cab = callRide(r, 'taxi'); settle(r, 1.2); r.enter(cab); settle(r, 0.8); assert.ok(cantCall(r, 'taxi'), 'not while riding');
+});
+
+test('levels 2 and 3 make the ride quicker and repaint it; every livery and riding pose is painted, in the job tier', () => {
+  for (const id of ['taxi', 'kayak']) for (const lv of [1, 2, 3]) {
+    const w = fleetWorld([id], lv); standFor(w, id, HOME[id]); const r = callRide(w, id);
+    assert.equal(fleetBoost(w, r), FLEET_SPEED[lv]);
+    const name = fleetSprite(r, w.s); assert.equal(name, lv === 1 ? `v-${r.kind}` : `v-${r.kind}-${lv}`);
+    assert.ok(FRAMES[name], name); assert.equal(tierOf(ATLASES[FRAMES[name][0]]), 'job', `${name}: job tier, never core`);
+  }
+  for (const h of ['dora', 'enzo']) for (const f of ['ride-cab-0', 'ride-cab-1', 'ride-kayak-0', 'ride-kayak-1', 'cab-in', 'call']) {
+    const n = `${h}-${f}`; assert.ok(FRAMES[n], n); assert.equal(tierOf(ATLASES[FRAMES[n][0]]), 'job', n);
+  }
+  // the same cab driven flat out for two seconds: level 3 outruns level 1
+  // (whichever way along the road is open: both ways tried from the same kerb)
+  const top = lv => Math.max(...[0, Math.PI].map(turn => { const w = fleetWorld(['taxi'], lv); standFor(w, 'taxi', 'heartland'); const r = callRide(w, 'taxi'); settle(w, 1.2); w.enter(r); settle(w, 0.8);
+    const h = r.b.h + turn; let best = 0; for (let i = 0; i < 2 / DT; i++) { w.step({ ...NO_INPUT, mx: Math.cos(h), my: Math.sin(h) }, DT); best = Math.max(best, Math.abs(r.b.speed)); } return best; }));
+  const t1 = top(1), t3 = top(3); assert.ok(t3 > t1, `level 3 (${t3.toFixed(0)}) beats level 1 (${t1.toFixed(0)})`);
+});
+
+test('the taxi depot makes Grab rides free; without it the fares are unchanged', () => {
+  const w = fleetWorld([]); standFor(fleetWorld(['taxi']), 'taxi', 'heartland'); w.p.b.x = 165 * T; w.p.b.y = 35 * T;
+  assert.ok(!freeGrab(w.s)); const paid = dropOffs(w); assert.ok(paid.length && paid.every(d => d.fare >= 4), 'paid fares as before');
+  w.s.biz.taxi.lvl = 1; assert.ok(freeGrab(w.s)); assert.ok(dropOffs(w).every(d => d.fare === 0), 'free with the depot');
+  w.s.cash = 0; assert.equal(fareTo(w, Object.values(w.c.places)[0]), 0);
+  void taxiGo;
 });
 
 console.log(`jade (twentieth pass, side gigs past Chinatown): ${n} tests ok`);

@@ -41,6 +41,8 @@ const ATLAS_TIER: Record<string, Tier> = {
   'atlas-kallang': 'kallang', 'atlas-cast-kallang': 'kallang', 'atlas-act18': 'job', 'atlas-ui18': 'job',
   // the twentieth pass: the heroes' rounds poses are job art; each district's carried things stream with its zone
   'atlas-act20': 'job', 'atlas-gig20-south': 'south', 'atlas-gig20-east': 'east', 'atlas-gig20-far': 'far',
+  // the vehicle perks' cab, kayak and riding poses (lib/jade-fleet.ts): decoded in free roam, as the older rides
+  'atlas-ride20': 'job',
   // (the heroes' new actions stream with the rest of their rarer poses: every hero frame is core or job)
   'atlas-act17': 'job',
 };

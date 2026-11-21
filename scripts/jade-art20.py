@@ -7,6 +7,8 @@ other entry:
   atlas-gig20-south  the Tiong Bahru Bakery box, the songbird cage and the plate of chwee kueh: the 'south' zone
   atlas-gig20-east   the bolt of batik: the 'east' zone
   atlas-gig20-far    the bowl of Katong laksa and the box of potong: the 'far' zone
+  atlas-ride20       the vehicle perks' cab and kayak (three liveries each) and both heroes driving, paddling, stepping
+                     into the cab and calling a ride: the job tier, decoded in free roam like the older rides
 Every sheet is painted on MAGENTA and keyed magenta; after packing every new frame is checked for leftover magenta or
 chroma green. No frame name may already exist in lib/jade-art.ts. Re-runnable: a second run replaces these atlases' own
 entries.
@@ -73,6 +75,33 @@ ITEMS = ['g20-croissants', 'g20-cage', 'g20-chweekueh', 'g20-batik', 'g20-laksa'
 ZONE = {'g20-croissants': 'south', 'g20-cage': 'south', 'g20-chweekueh': 'south', 'g20-batik': 'east', 'g20-laksa': 'far', 'g20-potong': 'far'}
 for n, c in zip(ITEMS, cells('props20', 3, 2)):
     put(f'atlas-gig20-{ZONE[n]}', n, scaled(c, 120 / max(c.shape[:2])))
+
+# ── the vehicle perks (lib/jade-fleet.ts): the taxi depot's cab and the Siloso kayak, each in three liveries (the
+# business's levels 1, 2 and 3), top-down and facing up like 'vehicles' (v-taxi is 80 units long); and both heroes
+# driving the cab (paws on the wheel, then a hand over the top in a turn), paddling the kayak (left blade, right blade),
+# stepping into the cab and waving a called ride over with the phone. All of it the job tier (atlas-ride20).
+for n, c in zip(['v-cab', 'v-cab-2', 'v-cab-3', 'v-kayak', 'v-kayak-2', 'v-kayak-3'], cells('rides20', 3, 2)):
+    put('atlas-ride20', n, scaled(c, (80 if 'cab' in n else 74) * PX / c.shape[0]))  # (the kayak drawn a little over its 62-unit hull, so the paddler sits inside it)
+def pair(file, names, gx, gy, world, fix=None):
+    """two-frame cycles cut to the box both frames share (the rider, drawn centred on the seat, doesn't jump between
+    frames); one scale per pair (the first frame is `world` units tall); a lone frame is cropped to itself"""
+    arr = key(Image.open(SRC / f'{file}.png'))
+    if fix: arr = fix(arr)
+    H, W = arr.shape[:2]; cs = []
+    for j in range(gy):
+        for i in range(gx):
+            sub = biggest(arr[H * j // gy:H * (j + 1) // gy, W * i // gx:W * (i + 1) // gx], 0.01)
+            ys, xs = np.where(sub[..., 3] > 20); cs.append((sub, (xs.min(), ys.min(), xs.max() + 1, ys.max() + 1)))
+    return dict(zip(names, cs))
+for h in ('dora', 'enzo'):
+    cs = pair(f'{h}-ride20', [f'{h}-ride-cab-0', f'{h}-ride-cab-1', f'{h}-ride-kayak-0', f'{h}-ride-kayak-1', f'{h}-cab-in', f'{h}-call'], 3, 2, 0, cream if h == 'dora' else None)
+    for a, b, world in ((f'{h}-ride-cab-0', f'{h}-ride-cab-1', 46), (f'{h}-ride-kayak-0', f'{h}-ride-kayak-1', 44)):
+        (_, ba), (_, bb) = cs[a], cs[b]; u = (min(ba[0], bb[0]), min(ba[1], bb[1]), max(ba[2], bb[2]), max(ba[3], bb[3]))
+        k = world * PX / (ba[3] - ba[1])
+        for n in (a, b): put('atlas-ride20', n, scaled(cs[n][0][u[1]:u[3], u[0]:u[2]], k))
+    # (standing poses at the act scale: 58 units tall, as climb-on)
+    for n in (f'{h}-cab-in', f'{h}-call'):
+        s, (x0, y0, x1, y1) = cs[n]; put('atlas-ride20', n, scaled(s[y0:y1, x0:x1], 58 * PX / (y1 - y0)))
 
 # ── a looser magenta key: the songbird cage's background shows through its bars, and the antialiased key leaves those
 # slivers a dull pink-violet; anything with green far under both red and blue is the sheet, not paint (the heroes' pink
