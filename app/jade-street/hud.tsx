@@ -56,7 +56,7 @@ export function TopHud({ play, onMap, onPause }: { play: Play; onMap: () => void
       {run && (
         <div className="jade-job" data-testid="job">
           <div className="jade-job-title">{run.gig?.key.startsWith('con:') ? `${run.gig.key.startsWith('con:day') ? 'Contract of the day' : run.gig.key.startsWith('con:push') ? 'Retake' : 'Contract'}${run.m.mods?.length ? ' · ' + run.m.mods.map(m => MOD_NAME[m]).join(', ') : ''}` : run.gig ? 'Side gig' : run.m.side ? 'Hawker Tales' : `Chapter ${run.m.ch}`} · {run.m.title}</div>
-          <div className="jade-job-label" data-testid="objective">{run.label || 'Listen'}</div>
+          <div className="jade-job-label" data-testid="objective">{w.hedgeT > 0 && !w.p.ride ? 'Q hops the hedge · ' : ''}{run.label || 'Listen'}</div>
           <div className="jade-job-row">
             {run.timer !== null && <span className={'jade-timer' + (run.timer < 10 ? ' low' : '')} data-testid="timer">{Math.ceil(run.timer)}s</span>}
             {run.progress && <span className="jade-progress">{run.progress}</span>}

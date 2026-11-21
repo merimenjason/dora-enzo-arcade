@@ -50,7 +50,7 @@ const isJob = (st: Step): st is St<JobStepKind> => (JOB_STEPS as readonly string
 const k = (run: Run) => (run.assist ? 1.4 : 1) * run.w.diff.timer;
 
 // ── shared: guards that walk a beat, stop at its ends to sweep their torch, and see in a cone
-function guards(run: Run, routes: Spot[][], skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl') {
+function guards(run: Run, routes: Spot[][], skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' | 'crab') {
   for (const r of routes) { const pts = r.map(s => run.spot(s)); const a = run.actor('guard', pts[0][0], pts[0][1], 'fly', pts, 46); a.lookCd = 4 + run.actors.length % 3; a.skin = skin; run.actors.push(a); }
 }
 function guardWalk(run: Run, a: Actor, dt: number, look: boolean) {
@@ -625,7 +625,7 @@ export function crateWatched(run: Run, x: number, y: number) {
   return run.actors.some(a => a.kind === 'guard' && !blind(a) && a.look <= 0 && !((a.stare ?? 0) > 0) && dist(a.b.x, a.b.y, x, y) < rg && Math.abs(angDiff(a.b.h, Math.atan2(y - a.b.y, x - a.b.x))) < half);
 }
 /** what the swap's guards are, in the HUD's words (the boars of Pulau Ubin, a gang's lizards; plain guards otherwise) */
-export const swapNoun = (skin?: string) => skin === 'boar' ? 'boar' : skin === 'owl' ? 'owl' : skin === 'liz' ? 'lizard' : skin === 'myna' ? 'mynah' : skin === 'bat' ? 'bat' : 'guard';
+export const swapNoun = (skin?: string) => skin === 'boar' ? 'boar' : skin === 'owl' ? 'owl' : skin === 'crab' ? 'hermit crab' : skin === 'liz' ? 'lizard' : skin === 'myna' ? 'mynah' : skin === 'bat' ? 'bat' : 'guard';
 function swapStep(run: Run, st: St<'swap'>, dt: number) {
   const w = run.w, p = w.p, g = swapNoun(st.skin), what = st.thing ?? 'crate', mate = nameOf(w.mate.who);
   const swapping = p.act?.n === 'crate-swap';

@@ -106,7 +106,7 @@ export function routeToStation(w: World, id: string): boolean {
 /** a far trip by train or link: walk to `from`, ride to `to`, walk on; `secs` is the rough time, `direct` on foot */
 type Stop = { id: string; name: string; x: number; y: number };
 /** one ride of a trip */
-export type TripLeg = { via: 'mrt' | 'cable' | 'ferry' | 'bumboat'; from: Stop; to: Stop; ride: number };
+export type TripLeg = { via: 'mrt' | 'cable' | 'ferry' | 'bumboat' | 'launch'; from: Stop; to: Stop; ride: number };
 /** `then`: a second ride after this one (the sixteenth pass chains two when that is clearly quicker than either alone,
  * say the ferry to Sentosa and on by cable car; the gold line leads to the first, and after it the plan is made again
  * from where you are, so the second follows by itself) */
@@ -116,13 +116,15 @@ export const CHAIN_SAVE = 0.15;
 /** on foot about this fast over the ground, streets and corners included (units a second) */
 export const TRAVEL_FOOT = 235 / 1.3;
 /** a ride's cost in seconds: the gates, the ride view and the walk out (the ferry also crosses in real time) */
-export const RIDE_SECS = { mrt: 8, cable: 9, ferry: 6, bumboat: 6 } as const;
+export const RIDE_SECS = { mrt: 8, cable: 9, ferry: 6, bumboat: 6, launch: 6 } as const;
 /** shorter than this (seconds on foot) the plan is always to walk; a ride must save at least this share of the time */
 export const TRAVEL_MIN = 25, TRAVEL_SAVE = 0.35;
 /** how far a walk is, as the crow flies (every district joins its neighbours over land; the street grid's corners
- * are in TRAVEL_FOOT). Pulau Ubin is the exception (the seventeenth pass): no bridge, so a walk on or off it is endless */
+ * are in TRAVEL_FOOT). Pulau Ubin and the Southern Islands are the exceptions (the seventeenth and twenty-first passes): no
+ * bridge, so a walk on or off either is endless */
 export function walkDist(x: number, y: number, tx: number, ty: number): number { return onUbin(x, y) !== onUbin(tx, ty) ? Infinity : dist(x, y, tx, ty); }
-const onUbin = (x: number, y: number) => districtAt(Math.floor(x / T), Math.floor(y / T)) === 'pulau';
+/** which island (off the main island, no bridge, no train) a point is on, or '' */
+const onUbin = (x: number, y: number) => { const d = districtAt(Math.floor(x / T), Math.floor(y / T)); return d === 'pulau' || d === 'islands' ? d : ''; };
 /** the quickest way from (x, y) to (tx, ty): a ride when it saves enough time, else null (walk) */
 export function travelPlan(w: World, tx: number, ty: number, x = w.p.x, y = w.p.y): Travel | null {
   const open = (sx: number, sy: number) => w.open.has(districtAt(Math.floor(sx / T), Math.floor(sy / T)));
@@ -162,7 +164,7 @@ export function travelPlan(w: World, tx: number, ty: number, x = w.p.x, y = w.p.
 }
 /** "by MRT from Chinatown to Changi Airport" */
 const short = (n: string) => n.replace(/ (station|stop|pier)$/i, '');
-const VIA_NAME: Record<TripLeg['via'], [string, string]> = { mrt: ['MRT', 'by MRT'], cable: ['Cable car', 'by cable car'], ferry: ['Ferry', 'by ferry'], bumboat: ['Bumboat', 'by bumboat'] };
+const VIA_NAME: Record<TripLeg['via'], [string, string]> = { mrt: ['MRT', 'by MRT'], cable: ['Cable car', 'by cable car'], ferry: ['Ferry', 'by ferry'], bumboat: ['Bumboat', 'by bumboat'], launch: ['Island ferry', 'by island ferry'] };
 const legText = (t: { via: TripLeg['via']; from: Stop; to: Stop }) => `${VIA_NAME[t.via][0]}: ${short(t.from.name)} → ${short(t.to.name)}`;
 export const travelText = (t: Travel) => legText(t) + (t.then ? `, then ${legText(t.then)}` : '');
 /** a rough travel time for a card: "about 40 s by MRT", "about 2 min on foot" */

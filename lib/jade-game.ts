@@ -30,8 +30,10 @@ import { southStep, southNear, southAct, newSouth, type SouthState } from './jad
 import { ubinStep, ubinNear, ubinAct, newUbin, type UbinState } from './jade-ubinfest.js';
 import { kallangStep, kallangNear, kallangAct, newKallang, type KallangState } from './jade-kallangfest.js';
 import { mandaiStep, mandaiNear, mandaiAct, newMandai, type MandaiState } from './jade-mandaifest.js';
+import { islandsStep, islandsNear, islandsAct, newIslands, type IslandsState } from './jade-islandsfest.js';
+import { onReef, onRock, tideOf, phaseOf, wading, TIDE } from './jade-tide.js';
 import { crowdIn } from './jade-crowd.js';
-import { linkNear, linkGo, ferryStep, ferryLand, FARES, EAST_TEXT, RESORT_TEXT, FAR_TEXT, CHANGI_TEXT, SOUTH_TEXT, JURONG_TEXT, UBIN_TEXT, KAMPONG_TEXT, KALLANG_TEXT, ROAR_TEXT, MANDAI_TEXT, SELETAR_TEXT, type FerryRide } from './jade-cable.js';
+import { linkNear, linkGo, ferryStep, ferryLand, FARES, EAST_TEXT, RESORT_TEXT, FAR_TEXT, CHANGI_TEXT, SOUTH_TEXT, JURONG_TEXT, UBIN_TEXT, KAMPONG_TEXT, KALLANG_TEXT, ROAR_TEXT, MANDAI_TEXT, SELETAR_TEXT, ISLANDS_TEXT, LIGHTHOUSE_TEXT, type FerryRide } from './jade-cable.js';
 
 export const DT = 1 / 60;
 export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop: boolean; act: boolean;
@@ -47,7 +49,7 @@ export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; lo
 /** `over`: a toast that replaces any showing or waiting toast containing this text (pass 13: "Your taxi is here" sat
  * beside "a taxi is on its way") */
 export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string; over?: string };
-export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry' | 'east' | 'empire' | 'contract' | 'far' | 'south' | 'ubin' | 'kallang' | 'mandai'; label: string; x: number; y: number; id?: string; ride?: Ride };
+export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry' | 'east' | 'empire' | 'contract' | 'far' | 'south' | 'ubin' | 'kallang' | 'mandai' | 'islands'; label: string; x: number; y: number; id?: string; ride?: Ride };
 export type Snatcher = { x: number; y: number; h: number; t: number; out: boolean; took: number; wing: number; good?: string; dizzy?: number };
 export type Act = { n: string; t: number; dur: number; then?: () => void };
 export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' | 'sg' } | { kind: 'map' } | { kind: 'biz'; id: BizId } | { kind: 'gear' } | { kind: 'mama' } | { kind: 'glossary' }
@@ -88,6 +90,8 @@ export class World {
   run: Run | null = null; talk: { lines: [string, string, string?][]; i: number; done?: () => void } | null = null;
   ui: UiPanel = null; near: Near | null = null; fx: Fx[] = [];
   time = 0; tick = 0; nextId = 1; open: Set<District>; route: [number, number][] = []; routeT = 0;
+  /** seconds left of the HUD's "Q hops the hedge" tip (shown while you walk into a hedge or crate on a job) */
+  hedgeT = 0;
   failed: { reason: string } | null = null; banner: { text: string; sub: string; t: number } | null = null;
   snatchT = 20; spawnT = 0; daySales: Record<string, number> = {}; profitBase = 0; tripCost: Record<Good, number>;
   fieldCache = new Map<string, Field>();
@@ -119,7 +123,7 @@ export class World {
   /** the island: a hailed taxi (lib/jade-taxi.ts), the station the last train ride arrived at (lib/jade-mrt.ts) */
   taxi: Taxi | null = null; lastMrt = '';
   /** the ninth pass: the ferry crossing you are on, and the last cable car or ferry stop you stepped off at */
-  ferry: FerryRide | null = null; lastLink = ''; east: EastState = newEast(); far: FarState = newFar(); south: SouthState = newSouth(); ubin: UbinState = newUbin(); kallang: KallangState = newKallang(); mandai: MandaiState = newMandai();
+  ferry: FerryRide | null = null; lastLink = ''; east: EastState = newEast(); far: FarState = newFar(); south: SouthState = newSouth(); ubin: UbinState = newUbin(); kallang: KallangState = newKallang(); mandai: MandaiState = newMandai(); islands: IslandsState = newIslands();
   /** today's date from the device ('yyyy-mm-dd', set by the page) for the festivals; null in the Node tests */
   today: string | null = null;
   /** the partner thinking for themselves (lib/jade-pal.ts) */
@@ -261,7 +265,7 @@ export class World {
     this.collectStep();
     trafficStep(this, dt); pedStep(this, dt);
     heatStep(this, dt);
-    finesStep(this, dt); sgStep(this, dt); gangsStep(this, dt); eastStep(this); farStep(this); southStep(this); ubinStep(this, dt); kallangStep(this, dt); mandaiStep(this, dt); empireStep(this, dt);
+    finesStep(this, dt); sgStep(this, dt); gangsStep(this, dt); eastStep(this); farStep(this); southStep(this); ubinStep(this, dt); kallangStep(this, dt); mandaiStep(this, dt); islandsStep(this, dt); empireStep(this, dt);
     if (this.run) this.run.step(dt, inp);
     this.snatchStep(dt);
     eventsStep(this, dt);
@@ -359,9 +363,16 @@ export class World {
     // on foot, a sharp about-turn at a run skids
     if (Math.hypot(mx, my) > 0.5 && p.b.speed > 180 && p.skidCd <= 0 && Math.abs(angDiff(p.b.h, Math.atan2(my, mx))) > 2.3) { p.skidT = 0.22; p.skidCd = 0.6; this.fx.push({ t: 'skid', x: p.b.x, y: p.b.y + 8, k: 0.6 }); }
     if (inp.hop && p.hopCd <= 0 && !p.air) { p.hopT = FOOT.hopT; p.hopCd = FOOT.hopCd + FOOT.hopT; this.fx.push({ t: 'hop', x: p.b.x, y: p.b.y }); }
+    // (22-11) walking into a hedge or a crate on a job: the HUD says how to get over it (a job's route can hop one)
+    if (p === this.p) {
+      this.hedgeT = Math.max(0, this.hedgeT - dt); const l = Math.hypot(mx, my);
+      if (this.run && !p.air && !p.roof && l > 0.5 && p.b.speed < 60 && this.c.solid[Math.floor((p.b.y + my / l * 36) / T) * W + Math.floor((p.b.x + mx / l * 36) / T)] === S.LOW) this.hedgeT = 2;
+    }
     const over = this.overloaded();
     let top = p.sneak || (p === this.p && this.run?.walkOnly()) ? FOOT.walk : FOOT.run;
     if (over) top = FOOT.walk * 0.75;
+    // wading the reef flats in a tide crossing (lib/jade-tide.ts): slow going, no dash
+    if (p === this.p && wading(this.run, p.b.x, p.b.y)) { top = Math.min(top, TIDE.wade); p.dashT = 0; }
     if (p.dashT > 0) { p.dashT -= dt; top = FOOT.dash; if (Math.hypot(mx, my) < 0.2) { mx = Math.cos(p.b.h); my = Math.sin(p.b.h); } }
     const wasAir = p.air;
     if (p.air) { p.hopT -= dt; if (Math.hypot(mx, my) < 0.2 && p.b.speed > 40) { mx = Math.cos(p.b.h); my = Math.sin(p.b.h); } top = Math.max(top, 230); }
@@ -382,6 +393,12 @@ export class World {
     if (this.run && !p.air && p.stunT <= 0 && crowdIn(this.run, p.b.x, p.b.y)) p.anim = p.b.speed > 8 ? 'squeeze' : 'squeeze-idle';
     // on a torch trail at the Night Safari: creeping by torch, or still and listening (hushed while an animal stirs)
     if (this.run?.cur?.t === 'torch' && !p.air && p.stunT <= 0 && !p.carry) p.anim = p.b.speed > 8 ? 'torch' : (this.run.meter?.v ?? 0) > 0.3 ? 'torch-hush' : 'torch-still';
+    // on the Southern Islands' reef flats in a tide crossing: wading (two frames), or braced on a coral head while the
+    // water is over the reef
+    if (this.run?.cur?.t === 'tide' && !p.air && p.stunT <= 0 && !p.carry && onReef(this.run, p.x, p.y)) {
+      const c = tideOf(this.run), ph = c ? phaseOf(this.run, this.run.cur, c.t).ph : 'out';
+      p.anim = p.b.speed > 8 ? 'wade' : ph !== 'out' && onRock(this.run, p.x, p.y) ? 'tide-brace' : p.anim;
+    }
     if (this.pushing) this.faceFrom(this.inputAng);
   }
   land() {
@@ -563,7 +580,7 @@ export class World {
     if (!this.run) empireNear(this, cand);
     if (!this.run) contractNear(this, cand);
     const en = eventNear(this); if (en) cand(en, 80);
-    if (!this.run) { sgNear(this, cand); gangNear(this, cand); eastNear(this, cand); farNear(this, cand); southNear(this, cand); ubinNear(this, cand); kallangNear(this, cand); mandaiNear(this, cand); }
+    if (!this.run) { sgNear(this, cand); gangNear(this, cand); eastNear(this, cand); farNear(this, cand); southNear(this, cand); ubinNear(this, cand); kallangNear(this, cand); mandaiNear(this, cand); islandsNear(this, cand); }
     if (this.festival) for (const f of this.c.festival) if (f.kind !== 'arch') cand({ kind: 'festival', label: f.kind === 'stage' ? 'Dance on the festival stage' : 'Let a sky lantern go', x: f.x, y: f.y, id: f.kind }, 80);
     for (const pr of this.tables()) cand({ kind: 'eat', label: 'Grab a bowl of noodles (3 coins)', x: pr.x, y: pr.y + 20 }, 56);
     for (const l of this.c.ladders) cand({ kind: 'ladder-up', label: 'Climb the ladder', x: l.x * T + T / 2, y: l.y * T + T / 2 }, 60);
@@ -575,8 +592,8 @@ export class World {
     // the cable car station and the ferry pier (a job's cable step names its stop)
     const lk = linkNear(this);
     if (lk && (!this.run || this.run.cur?.t === 'cable')) {
-      const fare = FARES[lk.link.id], what = lk.link.id === 'cable' ? 'the cable car' : lk.link.id === 'bumboat' ? 'the bumboat' : 'the ferry';
-      cand({ kind: lk.link.id === 'bumboat' ? 'ferry' : lk.link.id, label: `Ride ${what} to ${lk.to.name} (${fare} coins)`, x: lk.from.x, y: lk.from.y, id: lk.from.id }, 110);
+      const fare = FARES[lk.link.id], what = lk.link.id === 'cable' ? 'the cable car' : lk.link.id === 'bumboat' ? 'the bumboat' : lk.link.id === 'launch' ? 'the island ferry' : 'the ferry';
+      cand({ kind: lk.link.id === 'bumboat' || lk.link.id === 'launch' ? 'ferry' : lk.link.id, label: `Ride ${what} to ${lk.to.name} (${fare} coins)`, x: lk.from.x, y: lk.from.y, id: lk.from.id }, 110);
     }
     // the island's playgrounds have a slide; after Island Night the Float @ Marina Bay is a dance floor
     if (!this.run && this.c.isle) {
@@ -586,10 +603,13 @@ export class World {
     }
     for (const m of this.c.murals) if (!this.s.murals.includes(m.id) && this.open.has(districtAt(Math.floor(m.x / T), Math.floor(m.y / T)))) cand({ kind: 'mural', label: 'Restore the faded mural', x: m.x, y: m.y + 30, id: m.id }, 60);
     for (const r of this.rides) if (r.parked && this.open.has(districtAt(Math.floor(r.b.x / T), Math.floor(r.b.y / T)))) cand({ kind: 'ride', label: `${r.locked ? 'Jump-start' : 'Ride'} the ${VEHICLES[r.kind].name.toLowerCase()}`, x: r.b.x, y: r.b.y, ride: r }, r.kind === 'dragon' ? 110 : onWater(r.kind) ? 96 : 70);
+    // a ride a business of yours sent (lib/jade-fleet.ts) wins too once it is in reach, out of a job: a kayak called at the
+    // water's edge by the snorkel hut is the one you walked down to, not the hut's panel
+    if (!this.run) { const mine = this.rides.find(r => r.own && r.parked && dist(r.b.x, r.b.y, x, y) < (onWater(r.kind) ? 96 : 70)); if (mine) best = { kind: 'ride', label: `Ride the ${VEHICLES[mine.kind].name.toLowerCase()}`, x: mine.b.x, y: mine.b.y, ride: mine }; }
     // the taxi you called wins once it is in reach
     if (this.taxi?.st === 'wait' && dist(this.taxi.b.x, this.taxi.b.y, x, y) < 110) best = { kind: 'taxi', label: 'Get in the taxi', x: this.taxi.b.x, y: this.taxi.b.y };
     // a job's train step: the station gates win over a scooter parked by the entrance
-    if (lk && this.run?.cur?.t === 'cable' && (best as Near | null)?.kind === 'ride') best = { kind: lk.link.id === 'bumboat' ? 'ferry' : lk.link.id, label: `Ride to ${lk.to.name}`, x: lk.from.x, y: lk.from.y, id: lk.from.id };
+    if (lk && this.run?.cur?.t === 'cable' && (best as Near | null)?.kind === 'ride') best = { kind: lk.link.id === 'bumboat' || lk.link.id === 'launch' ? 'ferry' : lk.link.id, label: `Ride to ${lk.to.name}`, x: lk.from.x, y: lk.from.y, id: lk.from.id };
     // a job's ride step: its ride wins over a festival stage or a stall beside it
     const jr = this.run?.cur?.t === 'ride' ? this.run.ride : null;
     if (jr && jr.parked && dist(jr.b.x, jr.b.y, x, y) < 80) best = { kind: 'ride', label: `${jr.locked ? 'Jump-start' : 'Ride'} the ${VEHICLES[jr.kind].name.toLowerCase()}`, x: jr.b.x, y: jr.b.y, ride: jr };
@@ -638,6 +658,7 @@ export class World {
       case 'ubin': ubinAct(this, n.id!); break;
       case 'kallang': kallangAct(this, n.id!); break;
       case 'mandai': mandaiAct(this, n.id!); break;
+      case 'islands': islandsAct(this, n.id!); break;
       case 'empire': empireAct(this, n.id!); break;
       case 'contract': contractAct(this, n.id!); break;
       case 'fine': payTicket(this); break;
@@ -696,7 +717,7 @@ export class World {
     else if (this.replaying) this.s.cash += Math.round(m.reward / 4);
     this.replaying = false;
     if (m.tip) this.s.tips = this.s.tips.filter(t => !(t.market === m.tip!.market && t.good === m.tip!.good));
-    const before = this.open.size, hadIsle = this.open.has('heartland'), hadEast = this.open.has('india'), hadResort = this.open.has('resort'), hadFar = this.open.has('katong'), hadChangi = this.open.has('changi'), hadSouth = this.open.has('tiong'), hadJurong = this.open.has('jurong'), hadUbin = this.open.has('pulau'), hadKallang = this.open.has('kallang'), hadMandai = this.open.has('mandai'); this.open = new Set(openDistricts(this.s));
+    const before = this.open.size, hadIsle = this.open.has('heartland'), hadEast = this.open.has('india'), hadResort = this.open.has('resort'), hadFar = this.open.has('katong'), hadChangi = this.open.has('changi'), hadSouth = this.open.has('tiong'), hadJurong = this.open.has('jurong'), hadUbin = this.open.has('pulau'), hadKallang = this.open.has('kallang'), hadMandai = this.open.has('mandai'), hadIslands = this.open.has('islands'); this.open = new Set(openDistricts(this.s));
     if (!hadIsle && this.open.has('heartland')) text(this, 'kamal', MRT_TEXT);
     if (!hadEast && this.open.has('india')) text(this, 'kamal', EAST_TEXT);
     if (!hadResort && this.open.has('resort')) text(this, 'helang', RESORT_TEXT);
@@ -710,6 +731,8 @@ export class World {
     if (m.id === 'm85') text(this, 'kubung', ROAR_TEXT);
     if (!hadMandai && this.open.has('mandai')) text(this, 'kongkang', MANDAI_TEXT);
     if (m.id === 'm95') text(this, 'kongkang', SELETAR_TEXT);
+    if (!hadIslands && this.open.has('islands')) text(this, 'vanda', ISLANDS_TEXT);
+    if (m.id === 'm105') text(this, 'camar', LIGHTHOUSE_TEXT);
     this.fieldCache.clear();
     this.fx.push({ t: 'mission-done', name: m.title, k: m.reward });
     this.banner = { text: 'Job done!', sub: `${m.title} · ${MEDAL_NAME[medal]}${medal ? ' medal' : ''}`, t: 3 };

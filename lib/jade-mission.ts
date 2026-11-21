@@ -24,6 +24,7 @@ import { rideEnter, rideStep, rideTag, rideTarget } from './jade-ridejobs.js';
 import { trackEnter, trackStep, trackNear, trackAct, trackTarget } from './jade-track.js';
 import { crowdEnter, crowdStep, crowdNear, crowdAct, crowdTarget } from './jade-crowd.js';
 import { torchEnter, torchStep, torchTarget } from './jade-torch.js';
+import { tideEnter, tideStep, tideTarget, tideNear, tideAct } from './jade-tide.js';
 import { roundsEnter, roundsStep, roundsNear, roundsAct, roundsTarget, roundsTimeUp } from './jade-rounds.js';
 import { teamEnter, teamStep, teamTag, guardGoal, guardHits, onGadget, onBurst, watchStep, blind, postMate, releaseMate, holding, dropBag } from './jade-team.js';
 import { matePounceHit, pounce, pounceWindow, nameOf, GRAB_REACH, type TagOpt } from './jade-tag.js';
@@ -151,7 +152,7 @@ export class Run {
     this.label = 'label' in st ? st.label : '';
     const k = (this.assist ? 1.4 : 1) * this.w.diff.timer;
     if (teamEnter(this, st)) return;
-    if (rideEnter(this, st) || trackEnter(this, st) || crowdEnter(this, st) || torchEnter(this, st) || roundsEnter(this, st)) return;
+    if (rideEnter(this, st) || trackEnter(this, st) || crowdEnter(this, st) || torchEnter(this, st) || tideEnter(this, st) || roundsEnter(this, st)) return;
     if (jobEnter(this, st)) return;
     switch (st.t) {
       case 'talk': {
@@ -207,7 +208,9 @@ export class Run {
           const cls = st.rival === 'boat' ? 'boat' : st.rival === 'runner' ? 'foot' : 'small';
           const [x, y] = nearestFree(w.c, cls, w.p.x + 30, w.p.y + 30, w.open, cls === 'boat' && !(w.p.ride && onWater(w.p.ride.kind)) ? 12 : 4);
           const sp = st.rival === 'runner' ? 204 : st.rival === 'scooter' ? 292 : 220;
-          this.actors.push(this.actor('rival-' + st.rival, x, y, cls, this.marks, sp * (st.pace ?? 1) * (this.assist ? 0.86 : 1) * this.w.diff.rival * this.mercy()));
+          const rv = this.actor('rival-' + st.rival, x, y, cls, this.marks, sp * (st.pace ?? 1) * (this.assist ? 0.86 : 1) * this.w.diff.rival * this.mercy());
+          if (st.skin) rv.skin = st.skin;
+          this.actors.push(rv);
         }
         this.progress = `Gates 0/${this.marks.length}`; this.starter = w.p.who;
         break;
@@ -290,7 +293,7 @@ export class Run {
     const px = p.x, py = p.y, pb = p.ride ? p.ride.b : p.b;
     watchStep(this, dt);
     if (teamStep(this, st, dt)) return;
-    if (rideStep(this, st, dt) || trackStep(this, st) || crowdStep(this, st, dt) || torchStep(this, st, dt) || roundsStep(this, st)) return;
+    if (rideStep(this, st, dt) || trackStep(this, st) || crowdStep(this, st, dt) || torchStep(this, st, dt) || tideStep(this, st, dt) || roundsStep(this, st)) return;
     if (jobStep(this, st, dt)) return;
     switch (st.t) {
       case 'goto': {
@@ -677,9 +680,9 @@ export class Run {
   onSwitch() { }
   onGadget(a: Actor, g: GadgetId, pw: number, x: number, y: number) { return jobGadget(this, a, g, pw, x, y) || onGadget(this, a, g, pw, x, y); }
   onBurst(g: GadgetId, x: number, y: number, r: number) { onBurst(this, g, x, y, r); }
-  nearAction(x: number, y: number): Near | null { return this.cur?.t === 'float' ? floatNear(this, x, y) : this.cur?.t === 'track' ? trackNear(this, x, y) : this.cur?.t === 'crowd' ? crowdNear(this, x, y) : this.cur?.t === 'rounds' ? roundsNear(this, x, y) : jobNear(this, x, y); }
+  nearAction(x: number, y: number): Near | null { return this.cur?.t === 'float' ? floatNear(this, x, y) : this.cur?.t === 'track' ? trackNear(this, x, y) : this.cur?.t === 'crowd' ? crowdNear(this, x, y) : this.cur?.t === 'rounds' ? roundsNear(this, x, y) : this.cur?.t === 'tide' ? tideNear(this, x, y) : jobNear(this, x, y); }
   /** E on one of the job steps' things (a photo, a witness, a crate) */
-  jobAct(id: string) { if (!trackAct(this, id) && !crowdAct(this, id) && !roundsAct(this, id)) jobAct(this, id); }
+  jobAct(id: string) { if (!trackAct(this, id) && !crowdAct(this, id) && !roundsAct(this, id) && !tideAct(this, id)) jobAct(this, id); }
   walkOnly() { return walkOnly(this); }
   heistPick(mode: 'quiet' | 'loud') { heistPick(this, mode); }
   branchPick(pick: BranchPick) { branchPick(this, pick); }
@@ -692,7 +695,7 @@ export class Run {
   target(): [number, number] | null {
     const st = this.cur; if (!st) return null; const w = this.w;
     const jt = jobTarget(this); if (jt !== undefined) return jt;
-    const rt = this.cur?.t === 'track' ? trackTarget(this) : this.cur?.t === 'crowd' ? crowdTarget(this) : this.cur?.t === 'torch' ? torchTarget(this) : this.cur?.t === 'rounds' ? roundsTarget(this) : rideTarget(this); if (rt !== undefined) return rt;
+    const rt = this.cur?.t === 'track' ? trackTarget(this) : this.cur?.t === 'crowd' ? crowdTarget(this) : this.cur?.t === 'torch' ? torchTarget(this) : this.cur?.t === 'tide' ? tideTarget(this) : this.cur?.t === 'rounds' ? roundsTarget(this) : rideTarget(this); if (rt !== undefined) return rt;
     switch (st.t) {
       case 'goto': return this.spot(st.at);
       case 'ride': return this.ride && this.ride.parked ? [this.ride.b.x, this.ride.b.y] : null;
@@ -743,6 +746,7 @@ function timeUp(st: Step): string {
   if (st.t === 'swap') return `Out of time! The ${st.thing ?? 'crate'}s are being moved. Swap each one the moment it says Go!, and send your partner (F) at a ${swapNoun(st.skin)} in your way.`;
   if (st.t === 'heist') return 'Out of time! The crows got back on their feet. Head straight for the safe.';
   if (st.t === 'crowd') return 'The match kicked off without you! Wait at the edge for a gap in each stream of fans, then squeeze through.';
+  if (st.t === 'tide') return 'The night ran out! Cross while the HUD says the tide is out, and when it turns, wait on a coral head (the dark rocks) or the sand.';
   if (st.t === 'torch') return 'The night ran out! Follow the studs marker to marker, and hold Shift to creep whenever the HUD says an animal is near.';
   if (st.t === 'rounds') return roundsTimeUp(st);
   if (st.t === 'track') return 'The rain washed the prints away! Read each set (E), then head the way it says.';
