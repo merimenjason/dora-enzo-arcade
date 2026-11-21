@@ -5,7 +5,7 @@
 // districts, dust and sparkles; game feel (shake, hit-stop, debris, speed lines) is in lib/jade-juice.ts and the set
 // pieces, the finale and the business stalls are drawn by lib/jade-setdraw.ts. Every picture is a Codex painting from the atlases in public/art/jade-street/.
 import { FRAMES, ATLASES, VER } from './jade-art.js';
-import { EAGER, ART_BUDGET, decodedBytes } from './jade-load.js';
+import { EAGER, ART_BUDGET, decodedBytes, tierOf } from './jade-load.js';
 import { T, W, H, G, OW, CT_H, EAST_X0, EAST_SPLIT, FAR_X0, FAR_SPLIT, CHANGI_X0, SOUTH_X0, SOUTH_X1, TIONG_X0, QUAY_X0, UBIN_X0, UBIN_X1, UBIN_Y0, GROUND_NAMES, F_ROOF, districtAt, type City, type District } from './jade-city.js';
 import { unmvT } from './jade-layout.js';
 import { F_XWAY } from './jade-island.js';
@@ -58,6 +58,9 @@ export const artMissing = new Set<string>();
 let missed = false;
 /** the maps paint the whole island: a picture missing there is not asked for (it would pull in every district) */
 let quietMiss = false;
+/** a district's own atlases (not the core, the job tier or the mini-games'): the maps' painting does not count as using
+ *  one, or painting the minimap every few seconds would keep every district it has seen decoded (the memory soak) */
+const ZONED = ATLASES.map(a => !['core', 'job', 'mini'].includes(tierOf(a)));
 /** was a picture missing since the last call (for a canvas painted outside the scene, such as the painted map) */
 export const takeMissed = () => { const m = missed; missed = false; return m; };
 /** the minimap's map: strip width (px), columns painted at a time, and ms of painting a frame */
@@ -428,7 +431,7 @@ export class Scene {
   dropChunk(k: number) { const v = this.chunks.get(k); if (v) { freeCanvas(v.c); this.chunks.delete(k); } }
   /** forget every ground chunk and the minimap's map (their canvases freed) */
   dropAll() { for (const k of [...this.chunks.keys()]) this.dropChunk(k); this.dropMap(); }
-  dropMap() { for (const st of this.mapStrips) freeCanvas(st.c); this.mapStrips = []; if (this.mapNext) for (const st of this.mapNext.strips) freeCanvas(st.c); this.mapNext = null; }
+  dropMap() { for (const st of this.mapStrips) freeCanvas(st.c); this.mapStrips = []; this.mapArtUp = new Set(); if (this.mapNext) for (const st of this.mapNext.strips) freeCanvas(st.c); this.mapNext = null; }
   /** paint tiles (tx0..tx0+n) of the city's ground layer into x (already transformed to world units) */
   paintGround(x: CanvasRenderingContext2D, tx0: number, ty0: number, nw: number, nh: number, simple = false) {
     quietMiss = simple; try { this.paintGround1(x, tx0, ty0, nw, nh, simple); } finally { quietMiss = false; }
@@ -516,7 +519,9 @@ export class Scene {
     for (const b of c.buildings) {
       if (b.x + b.w < tx0 - 1 || b.x > tx0 + nw + 1 || b.y + b.h < ty0 - 1 || b.y > ty0 + nh + 1) continue;
       const s2 = src(b.sprite);
-      if (s2) x.drawImage(s2[0], s2[1], s2[2], s2[3], s2[4], b.x * T - 2, b.y * T - 4, b.w * T + 4, b.h * T + 6);
+      if (s2) { x.drawImage(s2[0], s2[1], s2[2], s2[3], s2[4], b.x * T - 2, b.y * T - 4, b.w * T + 4, b.h * T + 6); if (this.mapPainting) this.mapArt.add(b); }
+      // (on the map, a building painted last time whose district's art has since been let go keeps last time's picture)
+      else if (simple && this.mapKeep(x, b)) { if (this.mapPainting) this.mapArt.add(b); }
       else { x.fillStyle = '#5a3040'; x.fillRect(b.x * T, b.y * T, b.w * T, b.h * T); }
     }
     x.shadowColor = 'rgba(0,0,0,0)'; x.shadowBlur = 0; x.shadowOffsetX = 0; x.shadowOffsetY = 0;
@@ -524,11 +529,24 @@ export class Scene {
 
   // ── the whole-city map (minimap and the full map screen use it)
   mapMiss = false; mapT = 0;
+  /** the buildings drawn with their picture on the map being painted, and on the one up now */
+  mapArt = new Set<object>(); mapArtUp = new Set<object>(); mapPainting = false;
+  /** copy a building's patch from the map up now, if it was painted there with its picture (x is a new strip's context,
+   *  in world units); false when it was not */
+  mapKeep(x: CanvasRenderingContext2D, b: { x: number; y: number; w: number; h: number }): boolean {
+    if (!this.mapArtUp.has(b) || !this.mapStrips.length) return false;
+    const s = this.mapK / T, wx0 = b.x * T - 2, wy0 = b.y * T - 4, wx1 = wx0 + b.w * T + 4, wy1 = wy0 + b.h * T + 6;
+    for (const st of this.mapStrips) {
+      const sx0 = st.x0 / s, sx1 = (st.x0 + st.c.width) / s, a0 = Math.max(wx0, sx0), a1 = Math.min(wx1, sx1); if (a1 <= a0) continue;
+      x.drawImage(st.c, a0 * s - st.x0, wy0 * s, (a1 - a0) * s, (wy1 - wy0) * s, a0, wy0, a1 - a0, wy1 - wy0);
+    }
+    return true;
+  }
   /** paint the next few columns of the map (about MAP_BUDGET ms a frame); swaps it in once complete. True when ready */
   mapWork(): boolean {
     const k = this.mapK;
     if (!this.mapNext && this.mapStrips.length) return true;
-    if (!this.mapNext) this.mapNext = { strips: [], col: 0, miss: false };
+    if (!this.mapNext) { this.mapNext = { strips: [], col: 0, miss: false }; this.mapArt = new Set(); }
     const nb = this.mapNext, t0 = now(), SW = Math.floor(MAP_STRIP / k); // tiles a strip
     while (nb.col < W && now() - t0 < MAP_BUDGET) {
       const si = Math.floor(nb.col / SW);
@@ -537,12 +555,12 @@ export class Scene {
       // each strip also paints one column past its end, so neighbouring strips meet without a seam
       const n1 = nb.col + n === (si + 1) * SW && nb.col + n < W ? n + 1 : n;
       missed = false;
-      if (x) { x.setTransform(k / T, 0, 0, k / T, -st.x0, 0); this.paintGround(x, nb.col, 0, n1, H, true); } else missed = true;
+      if (x) { x.setTransform(k / T, 0, 0, k / T, -st.x0, 0); this.mapPainting = true; try { this.paintGround(x, nb.col, 0, n1, H, true); } finally { this.mapPainting = false; } } else missed = true;
       nb.miss = nb.miss || missed; nb.col += n;
     }
     if (nb.col < W) return this.mapStrips.length > 0;
     for (const st of this.mapStrips) freeCanvas(st.c);
-    this.mapStrips = nb.strips; this.mapMiss = nb.miss; this.mapT = this.t; this.mapNext = null;
+    this.mapStrips = nb.strips; this.mapMiss = nb.miss; this.mapT = this.t; this.mapNext = null; this.mapArtUp = this.mapArt;
     return true;
   }
 
@@ -557,7 +575,7 @@ export class Scene {
       for (const v of this.chunks.values()) if (v.miss) v.s = -9; // repainted in place (drawn as it was until then)
     }
     // (the old map stays up while the new one is painted)
-    if (this.mapStrips.length && this.mapMiss && !this.mapNext && this.t - this.mapT > 4 && this.artSeen === artGen) this.mapNext = { strips: [], col: 0, miss: false };
+    if (this.mapStrips.length && this.mapMiss && !this.mapNext && this.t - this.mapT > 4 && this.artSeen === artGen) { this.mapNext = { strips: [], col: 0, miss: false }; this.mapArt = new Set(); }
     const p = w.p; const ride = p.ride;
     this.juice.tick(dt);
     if (ride) this.juice.trail(dt, p.boostT > 0, ride.b.x, ride.b.y, ride.b.h, 'v-' + ride.kind);

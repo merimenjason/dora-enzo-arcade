@@ -6,10 +6,10 @@ other entry (the full rebuild needs every older sheet, so it is not run for this
                       properties' stands: the 'kallang' zone
   atlas-cast-kallang  the four chapter-eleven givers' bodies and portraits: the 'kallang' zone
   atlas-act18         both heroes' match-night actions (squeezing through a crowd, shoved, the ticket, the Kallang Wave,
-                      looking up at the sky): the 'kallang' zone (every one of them happens there)
+                      looking up at the sky): the job tier, as every hero frame is core or job art
   atlas-ui18          map icons, the black-swan pin and four round icons: the job tier
 plus four seamless ground textures (hub, prom, apron, basin) and two paintings (bg-chapter-11 and bg-stall-kallang). Every
-atlas here is cropped to what it holds; the first three stream with their zone (lib/jade-load.ts), so none of them adds to
+atlas here is cropped to what it holds; the first two stream with their zone (lib/jade-load.ts), so none of them adds to
 the paintings decoded before play. Re-runnable: a second run replaces these atlases' own entries.
 """
 import ast, hashlib, re, sys
@@ -67,7 +67,7 @@ def rect(atlas, file, names, gx, gy, sizes):
 # ── Kallang's buildings (footprints in lib/jade-kallang.ts); the dome is its own sheet
 rect('atlas-kallang', 'kallang-bld', ['kal-airport', 'kal-indoor', 'kal-mall', 'kal-boathouse', 'safe-kallang', 'kallang-stn'], 3, 2,
      {'kal-airport': (11, 5), 'kal-indoor': (8, 8), 'kal-mall': (7, 7), 'kal-boathouse': (5, 3), 'safe-kallang': (3, 2), 'kallang-stn': (8, 4)})
-rect('atlas-kallang', 'kallang-dome', ['kal-stadium'], 1, 1, {'kal-stadium': (14, 13)})
+rect('atlas-kallang', 'kallang-dome', ['kal-stadium'], 1, 1, {'kal-stadium': (14, 9)})
 # ── props (world widths as lib/jade-kallang.ts draws them; the seaplane and the biplane are drawn by lib/jade-kallangdraw.ts)
 each('atlas-kallang', 'props18', ['kal-shells', 'kal-drum', 'kal-buoy', 'kal-seaplane', 'kal-plane', 'kal-windsock', 'kal-bowser', 'kal-suitcases',
      'kal-turnstile', 'kal-floodlight', 'kal-barrier', 'kal-stage', 'kal-foodtruck', 'kal-screen', 'kal-scarf', 'kal-charts'], 4, 4,
