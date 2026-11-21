@@ -960,8 +960,10 @@ export const MISSIONS: Mission[] = mvMissions([
     steps: [
       { t: 'talk', lines: [['belangkas', 'Rain coming, from the strait. It will wash every print off the island in a minute or two.', 'worried'], ['hero', 'Tok Taring’s boys went for the tin tonight, without him. A trail from the den to Ketam Quarry.', 'cross'], ['mate', 'Fast, then. Read the prints, beat the rain.', 'smug']] },
       { t: 'goto', at: [347, 104], label: 'Go to the Tuskers’ den, where tonight’s trail starts', ride: 'foot', cp: true },
-      { t: 'track', route: [[347, 105], [347, 108], [344, 109], [341, 108], [338, 109]], old: [[350, 108]], oldAt: 1, time: 75, label: 'Follow tonight’s trail to Ketam Quarry before the rain washes it away (E: read each set)', cp: true },
-      { t: 'stealth', lookouts: [[[337, 110], [341, 110]], [[340, 107], [340, 110]]], goal: [338, 108], exit: [343, 109], calm: 0.6, pause: 1.4, label: 'Slip past the boar lookouts to the old winch at Ketam Quarry, then get out', cp: true },
+      // (the trail ends at the quarry's gate, out of the lookouts' sight: it once ended on the winch itself, a tile from
+      // both boars, so the sneak began inside their view and nearly every first try was caught there)
+      { t: 'track', route: [[347, 105], [347, 108], [345, 110], [344, 109]], old: [[350, 108]], oldAt: 1, time: 75, label: 'Follow tonight’s trail to Ketam Quarry before the rain washes it away (E: read each set)', cp: true },
+      { t: 'stealth', lookouts: [[[337, 110], [341, 110]], [[340, 107], [340, 110]]], goal: [338, 108], exit: [346, 109], calm: 0.6, pause: 1.4, label: 'Slip past the boar lookouts to the old winch at Ketam Quarry, then get out', cp: true },
       { t: 'pickup', at: [338, 108], item: 'tin-chest', label: 'Dig up the quarry men’s tin by the winch' },
       { t: 'mini', kind: 'lock', level: 3, label: 'Pick the rusted lock on the tin', cp: true },
       { t: 'talk', lines: [['hero', 'Old coins, a pay book… and the other half of the chart. They fit. A coast, a reef, an island with no name.', 'worried'], ['taring', 'You found it. Good. Better you than her. Look, on the strait.', 'worried'], ['mate', 'A junk. Black sails. No lamps. Just sitting out there in the rain.', 'worried'], ['belangkas', 'And someone on the deck, all in black feathers, looking right at us.', 'worried'], ['hero', 'Then we keep the chart. And we find out where it leads before she does.', 'calm']] },
