@@ -10,7 +10,7 @@ import { OUTFITS } from './jade-save.js';
 import { GADGETS, carried, stallPos, stallOpen, type GadgetId } from './jade-gear.js';
 import { BOOSTS, boostXY } from './jade-tag.js';
 import { holding } from './jade-team.js';
-import { fleetSprite } from './jade-fleet.js';
+import { fleetSprite, fleetHue } from './jade-fleet.js';
 import { spr, heroFrame, hasFrame as has, type Scene } from './jade-scene.js';
 import type { World, Player, Ride } from './jade-game.js';
 import type { Actor } from './jade-mission.js';
@@ -161,11 +161,11 @@ function driver(sc: Scene, x: X, w: World, p: Player, r: Ride, variant: string) 
 }
 /** a one-seat ride (the hired bike, the luge cart): the partner rides their own copy a length behind the driver's and a
  * lane to the side, at the same pace and half a stroke out of step, so the two pairs of legs don't move as one */
-function companion(sc: Scene, x: X, r: Ride, who: string, variant: string, hull = 'v-' + r.kind): string {
+function companion(sc: Scene, x: X, r: Ride, who: string, variant: string, hull = 'v-' + r.kind, paint = 0): string {
   const v = VEHICLES[r.kind], len = v.len, h = r.b.h, side = h + Math.PI / 2;
   const bx = r.b.x - Math.cos(h) * len * 0.95 + Math.cos(side) * 24, by = r.b.y - Math.sin(h) * len * 0.95 + Math.sin(side) * 24;
   x.fillStyle = 'rgba(0,0,0,.32)'; sc.shadow(x, bx + 5, by + 7, len * 0.45, v.r * 0.9);
-  spr(x, hull, bx, by, { anchor: 'center', rot: h + Math.PI / 2 });
+  spr(x, hull, bx, by, { anchor: 'center', rot: h + Math.PI / 2, variant: paint ? 'paint:' + paint : '' });
   const f = rideFrame(who, r.kind, sc, r, 0.5), [fx, fy] = SEAT[r.kind]?.drv ?? [0.02, 0];
   return spr(x, f, bx + Math.cos(h) * len * fx + Math.cos(side) * fy, by + Math.sin(h) * len * fx + Math.sin(side) * fy, { anchor: 'center', rot: h + Math.PI / 2, variant }) ? f : '';
 }
@@ -182,7 +182,7 @@ export function passenger(sc: Scene, x: X, w: World, r: Ride) {
   const m = w.mate.seat === r ? w.mate : w.p.seat === r ? w.p : null; if (!m) return;
   const of = OUTFITS.findIndex(o => o.id === w.s.outfit[m.who]); const variant = of > 0 ? `${m.who}:${of}` : '';
   // (a lent ride's copy wears the same livery: lib/jade-fleet.ts)
-  if (OWN_COPY.has(r.kind)) { RIDE_DRAWN.partner = companion(sc, x, r, m.who, variant, fleetSprite(r, w.s) ?? 'v-' + r.kind); return; }
+  if (OWN_COPY.has(r.kind)) { RIDE_DRAWN.partner = companion(sc, x, r, m.who, variant, fleetSprite(r, w.s) ?? 'v-' + r.kind, fleetHue(r, w.s) ?? 0); return; }
   const own = SEAT[r.kind]?.pas;
   // pillion on a scooter, on the bench of a trishaw, in the bow of a boat; a tuk-tuk or van carries them inside the cab
   // (your own cab, the twentieth pass's perk: the partner in the front seat beside you, under the open sunroof)
