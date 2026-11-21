@@ -20,6 +20,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Jade Street**: the shelter at Pulau Ubin's jetty, Jejawi Tower and the kelong no longer sit on a bright green square.
 - **Jade Street**: the game uses less memory as you travel. Repainting the minimap counted as using every district's paintings, so none of them were let go until the whole map had loaded.
 - **Jade Street**: on the sneak-in jobs to the Rain Vortex and the pagoda, the objective named the yard office from an older job. It now names where you are going, and on the way out tells you to follow the gold line.
 - **Jade Street**: Dora has both ears again in the MRT ride painting.
