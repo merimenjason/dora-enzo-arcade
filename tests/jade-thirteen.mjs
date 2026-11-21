@@ -137,9 +137,9 @@ test('the Atas Bats fly their own way: rarer, longer weaving glides, and a start
     let up = null, hs = [];
     for (let i = 0; i < 600 && m.st === 'run'; i++) {
       w.step(NO_INPUT, DT); w.talk = null; w.ui = null;
-      if (m.fly !== undefined && !up) { up = { d0: dist(m.b.x, m.b.y, w.p.x, w.p.y), t: 0 }; hs = []; }
-      if (up && m.fly !== undefined) { up.t += DT; hs.push(m.b.h); }
-      if (up && m.fly === undefined) { flights[kind].push({ gain: dist(m.b.x, m.b.y, w.p.x, w.p.y) - up.d0, t: up.t, turn: Math.max(...hs.map(h => Math.abs(Math.atan2(Math.sin(h - hs[0]), Math.cos(h - hs[0]))))) }); break; }
+      if (m.fly !== undefined && !up) { up = { d0: dist(m.b.x, m.b.y, w.p.x, w.p.y), t: 0, g0: m.goal, regoal: false }; hs = []; }
+      if (up && m.fly !== undefined) { up.t += DT; hs.push(m.b.h); if (m.goal !== up.g0) up.regoal = true; }
+      if (up && m.fly === undefined) { flights[kind].push({ gain: dist(m.b.x, m.b.y, w.p.x, w.p.y) - up.d0, t: up.t, regoal: up.regoal, turn: Math.max(...hs.map(h => Math.abs(Math.atan2(Math.sin(h - hs[0]), Math.cos(h - hs[0]))))) }); break; }
     }
   }
   if (process.env.V) console.log(JSON.stringify(flights));
@@ -147,7 +147,7 @@ test('the Atas Bats fly their own way: rarer, longer weaving glides, and a start
   assert.ok(flights.bats.length >= 4 && flights.mynahs.length >= 4, `flights seen ${flights.bats.length}, ${flights.mynahs.length}`);
   assert.ok(avg(flights.bats, f => f.t) > avg(flights.mynahs, f => f.t) * 1.4, 'bats glide longer');
   assert.ok(flights.bats.every(f => f.gain > 0), 'a startled bat ends further from you');
-  assert.ok(flights.bats.every(f => f.turn > 0.3) && flights.mynahs.filter(f => f.turn < 0.05).length >= flights.mynahs.length - 1, 'bats weave and curve; mynahs fly straight (but for a new goal mid-flight)');
+  assert.ok(flights.bats.every(f => f.turn > 0.3) && flights.mynahs.filter(f => !f.regoal).every(f => f.turn < 0.05) && flights.mynahs.filter(f => !f.regoal).length >= flights.mynahs.length - 3, 'bats weave and curve; mynahs fly straight (but for a new goal mid-flight)');
   assert.ok(BAT_FLIGHT.roamRate < 0.25, 'and take off less often when left alone');
 });
 
