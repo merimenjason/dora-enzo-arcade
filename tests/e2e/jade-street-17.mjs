@@ -109,13 +109,13 @@ export async function seventeenth(h) {
   await free();
 
   // ── every chapter-ten job and the new Hawker Tales, played as a first-timer
-  const state = () => W(() => {
-    const J = window.__jade, w = J.world(), q = s => document.querySelector(`[data-testid="${s}"]`);
+  const state = (id = null) => W(id => {
+    const J = window.__jade, w = J.world(), g = id && !w.run ? (w.cast || []).find(c => c.job === id) : null, q = s => document.querySelector(`[data-testid="${s}"]`);
     const r = w.route, k = r.findIndex((q, i) => i > 0 && Math.hypot(q[0] - w.p.x, q[1] - w.p.y) > 60), o = w.objective();
-    return { hint: q('objective')?.textContent ?? '', talk: !!q('dialogue'), failed: !!q('retry'), view: !!q('ride-view'), mini: window.__jadeMini ? (q('mini-lock') ? 'lock' : 'other') : null,
+    return { hint: q('objective')?.textContent ?? '', talk: !!q('dialogue'), failed: !!q('retry'), view: !!q('ride-view'), branch: !!q('branch'), mini: window.__jadeMini ? (q('mini-lock') ? 'lock' : 'other') : null,
       run: w.run?.m.id ?? null, step: w.run?.cur?.t ?? null, x: w.p.x, y: w.p.y, ride: w.p.ride?.kind ?? null, act: !!w.p.act,
-      near: w.near ? { kind: w.near.kind, id: w.near.id ?? null, ride: w.near.ride?.kind ?? null } : null, ferry: !!w.ferry, to: k >= 0 ? r[k] : r.length ? r[r.length - 1] : o, boostCd: w.p.boostCd };
-  });
+      near: w.near ? { kind: w.near.kind, id: w.near.id ?? null, ride: w.near.ride?.kind ?? null } : null, ferry: !!w.ferry, to: k >= 0 ? r[k] : r.length ? r[r.length - 1] : o, obj: o, giver: g ? [g.x, g.y] : null, onNet: (() => { const R = w.run, js = R?.js; if (!R || R.cur?.t !== 'trap' || !js || js.ph !== 2) return false; return js.set.some(i => !js.sprung.includes(i) && R.actors.some(a => a.kind === 'lured' && a.extra === 0 && Math.hypot(a.b.x - R.items[i].x, a.b.y - R.items[i].y) < 50)); })(), boostCd: w.p.boostCd };
+  }, id);
   let held = new Set();
   const hold = async keys => { for (const k of held) if (!keys.has(k)) await p.keyboard.up(k); for (const k of keys) if (!held.has(k)) await p.keyboard.down(k); held = keys; };
   let stuckAt = null, side = 0;
@@ -135,13 +135,18 @@ export async function seventeenth(h) {
   };
   const only = process.env.ONLY17 ? process.env.ONLY17.split(',') : null;
   async function play(id, secs) {
-    const t0 = Date.now(); let fails = 0, started = false, lastKey = 0, last = '';
+    const t0 = Date.now(); let fails = 0, started = false, lastKey = 0, last = '', fAt = 0;
     if (only && !only.includes(id)) { await W(id => window.__jade.world().s.done.push(id), id); return { won: true, fails: 0, secs: 0, skipped: true }; }
+    if (process.env.TRACE17) console.log(`  [${id}] cast`, JSON.stringify(await W(() => { const w = window.__jade.world(); return { cast: (w.cast || []).filter(c => c.job).map(c => [c.id, c.job, Math.round(c.x), Math.round(c.y)]), ch: w.s.story.ch, run: w.run?.m.id ?? null }; })));
     while (Date.now() - t0 < secs * 1000) {
-      const s = await state();
+      const s = await state(id);
+      // (before the job starts a person walks up to the giver waving it, not along the gold line to wherever it last led)
+      if (s.giver && !started) s.to = s.giver;
       if (process.env.TRACE17) { const k = `${s.run}|${s.step}|${s.ride}|${s.hint}|${s.near?.kind ?? ''}:${s.near?.id ?? ''}`; if (k !== last) { last = k; console.log(`  [${id} ${((Date.now() - t0) / 1000).toFixed(0)}s] ${k} @${s.x.toFixed(0)},${s.y.toFixed(0)}`); } }
       if (s.failed) { fails++; await hold(new Set()); await p.locator('[data-testid="retry"]').click(); await wait(500); continue; }
       if (s.talk) { await hold(new Set()); await key('e', 160); continue; }
+      // (the branch cards: the first, which is the way the label already describes, as nets on m74)
+      if (s.branch) { await hold(new Set()); await p.locator('[data-testid^="branch-"]').first().click(); await wait(300); continue; }
       if (s.view) { await hold(new Set()); await key('e', 300); continue; }
       if (s.mini === 'lock') { await hold(new Set()); await lock(); continue; }
       if (s.run === id) started = true;
@@ -150,12 +155,26 @@ export async function seventeenth(h) {
       // (a ride: the one the hint names, as a person reading "hop on a rental bike" picks a bike, not the tandem beside it)
       const want = /tandem/i.test(s.hint) ? 'tandem' : /bike|bicycle/i.test(s.hint) ? 'bike' : /boat|sampan/i.test(s.hint) ? 'boat' : null;
       const ok = s.near && ((s.near.kind === 'mission' && s.near.id === id) || s.near.kind === 'job' || (s.near.kind === 'ferry' && s.step === 'cable' && !s.ferry) || (s.near.kind === 'ride' && !s.ride && want && s.near.ride === want));
+      // (a net: spring it the moment a boar stands on one, as the label says)
+      if (s.onNet && ready) { await hold(new Set()); await key('f', 150); lastKey = Date.now(); continue; }
+      // (the sack swap: E when a guard is looking away ("Go!"); otherwise send the partner to distract them (F, the game's
+      // own tip) and swap while they stare)
+      if (s.step === 'swap' && s.near?.kind === 'job' && ready) {
+        if (/^Go!/.test(s.hint) || now - fAt < 3000) { await hold(new Set()); await key('e', 300); lastKey = Date.now(); continue; }
+        if (now - fAt > 8000) { await hold(new Set()); await key('f', 200); fAt = Date.now(); lastKey = 0; continue; }
+        await hold(new Set()); await wait(120); continue;
+      }
       if (ready && ok) { await hold(new Set()); await key('e', 300); lastKey = Date.now(); continue; }
       if (ready && s.ride && /Hop off \(E\)|hop off \(E\)/.test(s.hint)) { await hold(new Set()); await key('e', 400); lastKey = Date.now(); continue; }
       if (ready && /^F: /.test(s.hint)) { await key('f', 150); lastKey = Date.now(); }
       // ("pedal under each tree and press F": a person presses F once they are under the one the gold line points at)
       if (ready && s.ride && /press F/.test(s.hint) && s.to && Math.hypot(s.to[0] - s.x, s.to[1] - s.y) < 150) { await key('f', 150); lastKey = Date.now(); }
       if (/Space: /.test(s.hint) && s.boostCd <= 0) await key(' ', 60);
+      // (a tail, as the label says: keep back from the one you follow, keep them in sight, and Tab when it says to)
+      if (s.step === 'tail') {
+        if (ready && /\(Tab\)/.test(s.hint) && /knows your face/.test(s.hint)) { await hold(new Set()); await key('Tab', 300); lastKey = Date.now(); continue; }
+        if (s.obj && Math.hypot(s.obj[0] - s.x, s.obj[1] - s.y) < 280) { await hold(new Set()); await wait(120); continue; }
+      }
       if (/^Wait for|^Here they come|wait for them|Hold the stage/i.test(s.hint) && !s.to) { await hold(new Set()); await wait(150); continue; }
       await steer(s); await wait(90);
     }
