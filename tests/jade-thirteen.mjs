@@ -121,7 +121,7 @@ test('the partner’s round of every till takes about a minute, and they never p
     // (on the way to a till; back home, the partner's usual catch-up out of sight brings them to your side)
     const m = [w.mate.x, w.mate.y]; if (going && dist(m[0], m[1], last[0], last[1]) > 100 && dist(m[0], m[1], w.p.x, w.p.y) <= ROUND_OFF) pops++; last = m;
   }
-  assert.equal(w.emp.round, null, 'back'); assert.ok(t < 90, `the round took ${t.toFixed(0)} s (was about 140 s, up to four minutes)`);
+  assert.equal(w.emp.round, null, 'back'); assert.ok(t < 100, `the round took ${t.toFixed(0)} s (was about 140 s, up to four minutes)`); // (the twenty-first pass's three island tills, out over the sea, add a few seconds)
   assert.ok(s.cash >= cash + 32 * 50, 'every till handed over'); assert.equal(pops, 0, 'no jumps in view');
 });
 

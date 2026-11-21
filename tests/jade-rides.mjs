@@ -66,7 +66,9 @@ test('one of each, parked in the right district beside what it belongs to, after
   // (and the seventeenth pass's Ubin rides after those: the rental's bikes and tandem, a boat on Ketam Quarry)
   // (and the eighteenth pass's Kallang rides after those: the rowing club's dragon boats and a sampan, bikes, scooters)
   // (and the nineteenth pass's Mandai rides after those: a boat on the reservoir, bikes, scooters)
-  const MD = c.mandai.park.length; assert.deepEqual(c.parking.slice(-MD).map(p => p.d), c.mandai.park.map(() => 'mandai'));
+  // (and the twenty-first pass's island rides after those: a kayak and a bike)
+  const IS = c.islands.park.length; assert.deepEqual(c.parking.slice(-IS).map(p => p.d), c.islands.park.map(() => 'islands'));
+  const MD = c.mandai.park.length + IS; assert.deepEqual(c.parking.slice(-MD, -IS).map(p => p.d), c.mandai.park.map(() => 'mandai'));
   const KL = c.kallang.park.length + MD; assert.deepEqual(c.parking.slice(-KL, -MD).map(p => p.d), c.kallang.park.map(() => 'kallang'));
   const UB = c.ubin.park.length + KL; assert.deepEqual(c.parking.slice(-UB, -KL).map(p => p.d), c.ubin.park.map(() => 'pulau'));
   const tail = c.parking.slice(-NEW.length - 1 - UB, -1 - UB); const lake = c.parking[c.parking.length - 1 - UB];
