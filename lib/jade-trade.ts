@@ -39,6 +39,8 @@ export const LEAN: Record<District, Record<Good, number>> = {
   // the island's provision shop: mangoes and fans off the kampong cheap, jade and mooncakes dear (all comes by bumboat)
   pulau: { jade: 1.38, mooncake: 1.3, tea: 0.92, bowl: 1.12, fan: 0.74, mango: 0.62 },
   kallang: { jade: 0.9, mooncake: 1.18, tea: 0.8, bowl: 1.26, fan: 1.4, mango: 1.1 },
+  // the nineteenth pass: Mandai's market sells mangoes and tea cheap off the farms up north, pays for jade and bowls
+  mandai: { jade: 1.32, mooncake: 1.1, tea: 0.78, bowl: 1.3, fan: 1.0, mango: 0.68 },
 };
 export type Tip = { night: number; market: District; good: Good; mult: number; from: string; text: string };
 export type Cargo = Record<Good, number>;
@@ -110,4 +112,4 @@ export function bestRoute(seed: number, night: number, open: District[], tips: T
 }
 
 /** each market's name, the same on its E prompt and its panel */
-export const MARKET_NAME: Record<District, string> = { market: 'Smith Street Market', temple: 'Temple Street Bazaar', canal: 'Boat Quay Market', docks: 'Tanjong Pagar Market', arcade: 'Club Street Neon Market', heartland: 'Toa Payoh Provision Shop', bay: 'Promenade Kiosk', india: 'Tekka Market', glam: 'Arab Street Market', resort: 'Siloso Beach Kiosk', orchard: 'Orchard Road Christmas Market', katong: 'Joo Chiat Market', changi: 'Changi Village Market', tiong: 'Tiong Bahru Market', quay: 'Clarke Quay Night Market', jurong: 'Jurong Lake Night Market', pulau: 'Ubin Town Provision Shop', kallang: 'Kallang Wave Mall Market' };
+export const MARKET_NAME: Record<District, string> = { market: 'Smith Street Market', temple: 'Temple Street Bazaar', canal: 'Boat Quay Market', docks: 'Tanjong Pagar Market', arcade: 'Club Street Neon Market', heartland: 'Toa Payoh Provision Shop', bay: 'Promenade Kiosk', india: 'Tekka Market', glam: 'Arab Street Market', resort: 'Siloso Beach Kiosk', orchard: 'Orchard Road Christmas Market', katong: 'Joo Chiat Market', changi: 'Changi Village Market', tiong: 'Tiong Bahru Market', quay: 'Clarke Quay Night Market', jurong: 'Jurong Lake Night Market', pulau: 'Ubin Town Provision Shop', kallang: 'Kallang Wave Mall Market', mandai: 'Mandai Market' };

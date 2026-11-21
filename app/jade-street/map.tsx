@@ -24,9 +24,9 @@ const PIN_SPRITE: Record<PinKind, string> = {
   job: 'pin-job', market: 'pin-market', safe: 'pin-safe', garage: 'pin-garage', gig: 'pin-gig', cat: 'pin-cat', mural: 'pin-mural', pin: 'pin-star', spot: 'pin-star', stn: 'pin-train', cable: 'pin-cable', ferry: 'pin-ferry', prop: 'pin-prop', own: 'pin-prop-own', raid: 'pin-raid',
 };
 const LEGEND: [PinKind, string][] = [['job', 'Job'], ['prop', 'Property for sale'], ['own', 'Your property'], ['raid', 'A raid! Get there fast'], ['market', 'Market'], ['safe', 'Safe house'], ['garage', 'Garage'], ['gig', 'Side gig'], ['cat', 'Lucky cat found'], ['mural', 'Mural painted'], ['stn', 'MRT station (click to route)'], ['cable', 'Cable car (click to route)'], ['ferry', 'Ferry pier (click to route)'], ['pin', 'Your pin']];
-const TINT: Record<District, [number, number, number]> = { market: [255, 128, 70], temple: [90, 200, 120], canal: [60, 200, 215], arcade: [225, 90, 220], docks: [80, 125, 255], india: [255, 110, 170], glam: [150, 120, 255], resort: [70, 215, 245], heartland: [240, 200, 70], bay: [70, 225, 175], orchard: [255, 215, 120], katong: [255, 150, 200], changi: [120, 210, 255], tiong: [170, 230, 190], quay: [255, 130, 150], jurong: [255, 200, 90], pulau: [200, 150, 90], kallang: [110, 190, 255] };
+const TINT: Record<District, [number, number, number]> = { market: [255, 128, 70], temple: [90, 200, 120], canal: [60, 200, 215], arcade: [225, 90, 220], docks: [80, 125, 255], india: [255, 110, 170], glam: [150, 120, 255], resort: [70, 215, 245], heartland: [240, 200, 70], bay: [70, 225, 175], orchard: [255, 215, 120], katong: [255, 150, 200], changi: [120, 210, 255], tiong: [170, 230, 190], quay: [255, 130, 150], jurong: [255, 200, 90], pulau: [200, 150, 90], kallang: [110, 190, 255], mandai: [90, 200, 120] };
 /** each district's label tile (old-frame tiles, moved through the layout table below) */
-const CENTRE: Record<District, [number, number]> = { market: [22, 58], temple: [23, 16], canal: [58, 31], arcade: [97, 34], docks: [84, 76], heartland: [168, 20], bay: [170, 56], india: [242, 22], glam: [242, 62], resort: [76, 110], orchard: [300, 18], katong: [300, 60], changi: [350, 40], tiong: [265, 110], quay: [309, 110], jurong: [220, 110], pulau: [350, 110], kallang: [171, 112] };
+const CENTRE: Record<District, [number, number]> = { market: [22, 58], temple: [23, 16], canal: [58, 31], arcade: [97, 34], docks: [84, 76], heartland: [168, 20], bay: [170, 56], india: [242, 22], glam: [242, 62], resort: [76, 110], orchard: [300, 18], katong: [300, 60], changi: [350, 40], tiong: [265, 110], quay: [309, 110], jurong: [220, 110], pulau: [350, 110], kallang: [171, 112], mandai: [15, 108] };
 for (const d of Object.keys(CENTRE) as District[]) CENTRE[d] = mvT(...CENTRE[d]);
 const dName = (d: District) => DISTRICT_NAME[d].replace(/^the /, 'The ');
 const MW = W * T, MH = H * T;
@@ -85,6 +85,8 @@ function landmarks(play: Play): [string, number, number][] {
   // Kallang: the National Stadium's dome, the Old Kallang Airport and the rowing club's dragon boats
   const dome = c.buildings.find(b => b.sprite === 'kal-stadium'); if (dome) out.push(['mi-stadium', (dome.x + dome.w / 2) * T, (dome.y + dome.h / 2) * T]);
   at('mi-oldairport', 'airport', 0, -3 * T); at('mi-dragon', 'club', 0, 0);
+  // Mandai: the Night Safari's lodge, Bird Paradise's aviary and River Wonders' panda house
+  at('mi-nightsafari', 'safari', 0, -2 * T); at('mi-aviary', 'aviary', 0, -3 * T); at('mi-panda', 'riverwonders', 0, -2 * T);
   return out;
 }
 

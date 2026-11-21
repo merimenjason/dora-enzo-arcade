@@ -37,12 +37,15 @@ const MOVED = [
   // the eighteenth pass: Kallang's south part, built in the open sea east of Sentosa (its north strip is built under
   // Kampong Glam, in the main block, and moves with it)
   { id: 'kallang', x0: 148, y0: 96, x1: 193, y1: 125 },
+  // the nineteenth pass: Mandai, built in the open sea west of Sentosa; in the world, the north-west corner
+  { id: 'mandai', x0: 0, y0: 90, x1: 29, y1: 127 },
 ];
 /** the real table (new-frame origins): Orchard Road north-west of Chinatown, Fort Canning Park between them (Orchard
  * Boulevard runs on into Pagoda Street); Clarke Quay under Orchard (Clemenceau Avenue joins them; Eu Tong Sen Street runs
  * on over the Singapore River into Keong Saik Road); Tiong Bahru under that, south-west of Smith Street, past the Ayer
- * Rajah Expressway; Jurong at the west edge; the main block 100 columns east */
-const REAL_AT: Record<string, [number, number]> = { orchard: [36, 0], quay: [52, 44], tiong: [44, 78], jurong: [0, 44], pulau: [476, 60], kallang: [312, 96], main: [100, 0] };
+ * Rajah Expressway; Jurong at the west edge; Mandai in the north-west corner, west of Orchard Road at the top edge (the
+ * reservoir along the edge); the main block 100 columns east */
+const REAL_AT: Record<string, [number, number]> = { orchard: [36, 0], quay: [52, 44], tiong: [44, 78], jurong: [0, 44], pulau: [476, 60], kallang: [312, 96], mandai: [6, 0], main: [100, 0] };
 /** the real world's width: the main block 100 columns east, then Pulau Ubin's 36 columns off Changi (the north-east
  * corner). 512 × 128 is 65,536 tiles; lib/jade-nav.ts keys its heap on 2^17 so the world may still grow */
 const REAL_W = OLD_W + 100 + 36;

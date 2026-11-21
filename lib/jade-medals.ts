@@ -23,6 +23,9 @@ export const PAR: Record<string, number> = {
   // Kallang Roar (chapter eleven, the eighteenth pass) and its Hawker Tales: 2.5 times the slower of the casual and normal
   // solvers (they wait at the crowd's edge for a gap as a person does), at least a minute
   m76: 60, m77: 70, m78: 60, m79: 110, m80: 60, m81: 185, m82: 120, m83: 60, m84: 60, m85: 130, k27: 60, k28: 85, k29: 60,
+  // Night Safari (chapter twelve, the nineteenth pass) and its Hawker Tales: 2.5 times the slower of the casual and
+  // normal solvers (they creep past the animals on a torch trail as a person does), at least a minute
+  m86: 60, m87: 70, m88: 60, m89: 75, m90: 70, m91: 65, m92: 115, m93: 65, m94: 70, m95: 160, k30: 75, k31: 65, k32: 70,
 };
 export const MEDAL_NAME = ['Finished', 'Bronze', 'Silver', 'Gold'] as const;
 export const MEDAL_SPRITE = ['ui-medal-none', 'ui-medal-bronze', 'ui-medal-silver', 'ui-medal-gold'] as const;
