@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 22-11-2026
+
+### Changed
+
+- **Jade Street**: the rainbow lorikeets on Bird Paradise's feeding perch in Mandai are now painted birds instead of round icons. They sit on the perch and take turns preening, bobbing down to nibble, and stretching their wings.
+
 ## 21-11-2026
 
 ### Added

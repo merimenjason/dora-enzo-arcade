@@ -185,7 +185,8 @@ test('the paintings: Mandai’s art streams with its zone, the heroes’ new act
     'npc-kongkang-idle-0', 'npc-enggang-talk-1', 'npc-bintu-wave-0', 'npc-hantu-idle-1', 'face-hantu-cross', 'face-kongkang-happy',
     'biz-safarishop-3', 'biz-boardkopi-0', 'biz-nectarbar-2', 'mi-nightsafari', 'mi-aviary', 'pin-owl', 'i-torch', 'i-eyes', 'i-lory'])
     assert.ok(FRAMES[f], f);
-  for (const a of ['atlas-mandai', 'atlas-cast-mandai']) assert.equal(tierOf(a), 'mandai', a);
+  for (const a of ['atlas-mandai', 'atlas-cast-mandai', 'atlas-lory19b']) assert.equal(tierOf(a), 'mandai', a);
+  for (const f of ['lory-perch', 'lory-front', 'lory-preen', 'lory-wings', 'lory-wings-front', 'lory-bob', 'perch-bare']) assert.ok(FRAMES[`mnd-${f}`], `mnd-${f}`);
   assert.equal(tierOf('atlas-act19'), 'job'); assert.equal(tierOf('atlas-ui19'), 'job');
   for (const a of ATLASES) if (/19|mandai/.test(a)) assert.notEqual(tierOf(a), 'core', a);
 });
