@@ -17,6 +17,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Jade Street**: the game uses less memory as you travel. Repainting the minimap counted as using every district's paintings, so none of them were let go until the whole map had loaded.
 - **Jade Street**: on the sneak-in jobs to the Rain Vortex and the pagoda, the objective named the yard office from an older job. It now names where you are going, and on the way out tells you to follow the gold line.
 - **Jade Street**: Dora has both ears again in the MRT ride painting.
 - **Jade Street**: the MRT gates are easier to read. Each stop's district (and the taxi list's fare) sits on a dark chip instead of faded beige on the jade plaque. The station names have a firmer shadow, and the stop you are at shows in gold as "you are here" instead of greyed out like a locked one.

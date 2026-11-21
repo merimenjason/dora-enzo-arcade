@@ -193,7 +193,10 @@ function src(name: string, variant = ''): [Pic | HTMLCanvasElement, number, numb
   const f = FRAMES[name] as Frame | undefined; if (!f) return null;
   const an = ATLASES[f[0]], im = images[an];
   if (!im) { missed = true; if (!quietMiss) artMissing.add(an); return null; }
-  usedAtlas[f[0]] = drawClock;
+  // (21-11) the minimap's repaint does not count as a use: it paints the whole city, so it kept every zone's
+  // paintings "in use" and none was let go (the memory soak's decoded paintings sat at 320-340 MB until the map
+  // stopped missing pictures); a picture let go only leaves the map a little plainer until the next repaint
+  if (!quietMiss) usedAtlas[f[0]] = drawClock;
   if (!variant) return [im, f[1], f[2], f[3], f[4]];
   const [kind, v] = variant.split(':');
   const deg = kind === 'dora' ? (DORA_TO[+v] + 360) % 360 : kind === 'enzo' ? (ENZO_TO[+v] + 360) % 360 : +v;
