@@ -65,12 +65,14 @@ test('one of each, parked in the right district beside what it belongs to, after
   // (the sixteenth pass adds a second dragon boat, on Jurong Lake, after these four)
   // (and the seventeenth pass's Ubin rides after those: the rental's bikes and tandem, a boat on Ketam Quarry)
   // (and the eighteenth pass's Kallang rides after those: the rowing club's dragon boats and a sampan, bikes, scooters)
-  const KL = c.kallang.park.length; assert.deepEqual(c.parking.slice(-KL).map(p => p.d), c.kallang.park.map(() => 'kallang'));
+  // (and the nineteenth pass's Mandai rides after those: a boat on the reservoir, bikes, scooters)
+  const MD = c.mandai.park.length; assert.deepEqual(c.parking.slice(-MD).map(p => p.d), c.mandai.park.map(() => 'mandai'));
+  const KL = c.kallang.park.length + MD; assert.deepEqual(c.parking.slice(-KL, -MD).map(p => p.d), c.kallang.park.map(() => 'kallang'));
   const UB = c.ubin.park.length + KL; assert.deepEqual(c.parking.slice(-UB, -KL).map(p => p.d), c.ubin.park.map(() => 'pulau'));
   const tail = c.parking.slice(-NEW.length - 1 - UB, -1 - UB); const lake = c.parking[c.parking.length - 1 - UB];
   assert.equal(lake.kind, 'dragon'); assert.equal(lake.d, 'jurong'); assert.equal(c.solid[tile(lake.x, lake.y)[1] * W + tile(lake.x, lake.y)[0]], S.WATER, 'the lake boat floats');
   assert.deepEqual(tail.map(p => p.kind), NEW, 'appended last, so older rides keep their ids and seeded paint');
-  for (const k of NEW) assert.equal(c.parking.filter(p => p.kind === k && p.d !== 'pulau' && p.d !== 'kallang').length, k === 'dragon' ? 2 : 1, k);
+  for (const k of NEW) assert.equal(c.parking.filter(p => p.kind === k && p.d !== 'pulau' && p.d !== 'kallang' && p.d !== 'mandai').length, k === 'dragon' ? 2 : 1, k);
   const want = { tandem: 'katong', icecream: 'orchard', luge: 'resort', dragon: 'quay' };
   for (const p of tail) {
     assert.equal(p.d, want[p.kind], p.kind); assert.equal(districtAt(...tile(p.x, p.y)), p.d, `${p.kind} stands in ${p.d}`);

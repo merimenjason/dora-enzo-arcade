@@ -469,6 +469,17 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
         if (laneClear(c, n, sx, crossTime() + 0.35 + 0.3 * P.wob)) { go(tg[0], tg[1]); return; }
         inp.mx = 0; inp.my = 0; return;
       }
+      // the nineteenth pass: a torch trail. Head for the next marker (the route arrow); hold Shift (creep) whenever the
+      // HUD's words say an animal is near ("Shh!", "stirring", "Creeping past"), as a person reading them would, and
+      // stand still while it says the animal is stirring
+      case 'torch': {
+        if (p.ride) { offFoot(); return; }
+        if (p.act) { inp.mx = 0; inp.my = 0; return; }
+        const lab = run.label, tg = run.target(); if (!tg) return;
+        const hush = /Shh|stirring|Creeping|creep/i.test(lab) && !/^Follow|^Walk|^Lead|^Take/.test(lab);
+        if (/stirring/.test(lab) && (run.meter?.v ?? 0) > 0.6) { inp.mx = 0; inp.my = 0; inp.sneak = true; return; }
+        inp.sneak = hush; go(tg[0], tg[1], hush ? 1 : undefined); return;
+      }
       // the sixteenth pass: the tandem's tosses and the dragon boat's paddle (surge whenever the drum allows)
       case 'toss': {
         if (p.ride?.kind !== 'tandem') { getRide(r => r.kind === 'tandem'); return; }
