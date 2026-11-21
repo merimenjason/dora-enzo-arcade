@@ -9,12 +9,12 @@
 import { ATLASES, ATLAS_SIZE, TEXTURES } from './jade-art.js';
 import { districtAt, W, H, type District } from './jade-city.js';
 
-export type Zone = 'town' | 'isle' | 'east' | 'resort' | 'far' | 'south' | 'ubin';
+export type Zone = 'town' | 'isle' | 'east' | 'resort' | 'far' | 'south' | 'ubin' | 'kallang';
 export type Tier = 'core' | 'job' | 'mini' | Zone;
-export const ZONES: Zone[] = ['town', 'isle', 'east', 'resort', 'far', 'south', 'ubin'];
+export const ZONES: Zone[] = ['town', 'isle', 'east', 'resort', 'far', 'south', 'ubin', 'kallang'];
 export const ZONE_OF: Record<District, Zone> = {
   market: 'town', temple: 'town', canal: 'town', docks: 'town', arcade: 'town', heartland: 'isle', bay: 'isle',
-  india: 'east', glam: 'east', resort: 'resort', orchard: 'far', katong: 'far', changi: 'far', tiong: 'south', quay: 'south', jurong: 'south', pulau: 'ubin',
+  india: 'east', glam: 'east', resort: 'resort', orchard: 'far', katong: 'far', changi: 'far', tiong: 'south', quay: 'south', jurong: 'south', pulau: 'ubin', kallang: 'kallang',
 };
 
 const ATLAS_TIER: Record<string, Tier> = {
@@ -37,6 +37,8 @@ const ATLAS_TIER: Record<string, Tier> = {
   // the seventeenth pass: everything of Pulau Ubin's streams with the island (the heroes' island actions too: Changi's jetty is
   // within reach of it); the map icons are small and wait for a job
   'atlas-ubin': 'ubin', 'atlas-boars': 'ubin', 'atlas-cast-ubin': 'ubin', 'atlas-ui17': 'job',
+  // the eighteenth pass: Kallang's paintings stream with its zone; the two new hero moves and the new icons are job art
+  'atlas-kallang': 'kallang', 'atlas-cast-kallang': 'kallang', 'atlas-act18': 'job', 'atlas-ui18': 'job',
   // (the heroes' new actions stream with the rest of their rarer poses: every hero frame is core or job)
   'atlas-act17': 'job',
 };
@@ -46,7 +48,7 @@ const TEX_TIER: Record<string, Tier> = {
   india: 'east', glam: 'east', sand: 'resort', resort: 'resort', lagoon: 'resort', fort: 'resort',
   katong: 'far', orchard: 'far', tarmac: 'far', cycle: 'far', jewel: 'far', changi: 'far',
   tiong: 'south', quay: 'south', jurong: 'south', garden: 'south',
-  dirt: 'ubin', kampong: 'ubin', mud: 'ubin', forest: 'ubin', quarry: 'ubin', rock: 'ubin',
+  dirt: 'ubin', kampong: 'ubin', mud: 'ubin', forest: 'ubin', quarry: 'ubin', rock: 'ubin', hub: 'kallang', prom: 'kallang', apron: 'kallang', basin: 'kallang',
 };
 /** the tier of an atlas ('atlas-x') or ground texture ('tex-x'); anything unlisted waits for its zone like a job's art */
 export function tierOf(file: string): Tier {

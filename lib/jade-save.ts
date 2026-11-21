@@ -10,7 +10,7 @@
 // counts) and version 11 saves (no contracts) migrate forward, keeping every bit of progress, medals included.
 import { DISTRICTS, type District } from './jade-city.js';
 import { emptyCargo, GOODS, type Cargo, type Tip } from './jade-trade.js';
-import { MISSIONS, SIDE, MISSION, CHAPTER_OPENS, FINALE, RESORT_OPENS, CHANGI_OPENS, JURONG_OPENS, UBIN_OPENS } from './jade-story.js';
+import { MISSIONS, SIDE, MISSION, CHAPTER_OPENS, FINALE, RESORT_OPENS, CHANGI_OPENS, JURONG_OPENS, UBIN_OPENS, KALLANG_OPENS } from './jade-story.js';
 import { hashStr, rng } from './jade-rng.js';
 import { asDiff, type Diff } from './jade-diff.js';
 import { BIZ, STALL_IDS, newBiz, rankOf, type BizState } from './jade-biz.js';
@@ -137,13 +137,15 @@ export const SAFE_HOUSES: { id: string; d: District; need: number; price: number
   { id: 'safe-tiong', d: 'tiong', need: 10, price: 450 }, { id: 'safe-quay', d: 'quay', need: 12, price: 550 }, { id: 'safe-jurong', d: 'jurong', need: 15, price: 600 },
   // the seventeenth pass: the kampong house by Ubin Jetty
   { id: 'safe-ubin', d: 'pulau', need: 15, price: 650 },
+  // the eighteenth pass: the old airport's hangar office
+  { id: 'safe-kallang', d: 'kallang', need: 12, price: 650 },
 ];
 
 export function newSave(seed = 1): Save {
   return {
     v: SAVE_VERSION, seed, hero: 'dora', started: false,
     cash: 100, night: 1, clock: 0, cargo: emptyCargo(), stash: emptyCargo(),
-    done: [], rep: { market: 0, temple: 0, canal: 0, docks: 0, arcade: 0, heartland: 0, bay: 0, india: 0, glam: 0, resort: 0, orchard: 0, katong: 0, changi: 0, tiong: 0, quay: 0, jurong: 0, pulau: 0 },
+    done: [], rep: { market: 0, temple: 0, canal: 0, docks: 0, arcade: 0, heartland: 0, bay: 0, india: 0, glam: 0, resort: 0, orchard: 0, katong: 0, changi: 0, tiong: 0, quay: 0, jurong: 0, pulau: 0, kallang: 0 },
     upgrades: { speed: 0, grip: 0, cargo: 0 }, paint: 'red',
     outfits: { dora: ['classic'], enzo: ['classic'] }, outfit: { dora: 'classic', enzo: 'classic' },
     cats: [], murals: [], trophies: [], tips: [], safe: 'safe-market', best: {}, daily: '', dailyDone: [],
@@ -364,6 +366,8 @@ export function openDistricts(s: Save): District[] {
   if (s.done.includes(JURONG_OPENS)) out.push('jurong');
   // chapter ten: Pulau Ubin, over the strait from Changi by bumboat, once the Moon Lantern is home
   if (s.done.includes(UBIN_OPENS)) out.push('pulau');
+  // chapter eleven: Kallang, south of Kampong Glam on the Kallang Basin, once the quarry men's tin is open
+  if (s.done.includes(KALLANG_OPENS)) out.push('kallang');
   return out;
 }
 /** story missions you may start now: the chapter's jobs in order, a couple at a time */

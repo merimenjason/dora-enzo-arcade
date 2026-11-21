@@ -33,8 +33,11 @@ import { NEW_RIDES } from '../.checks/jade-rides.js';
  * pass (20-11-2026) added two places, the ride-job givers `buaya` (Orchard) and `kerbau` (Clarke Quay); without them
  * the hash is still 2bf5685f, so the ground, solid and flags are untouched. The seventeenth pass (21-11-2026) built
  * Pulau Ubin in the old frame's open sea south of Changi (old columns 332-367, rows 96-125, its own block in the real
- * layout) with its places, and the Changi place `tower` kept its name (the island's is `jejawi`) */
-const ZERO_HASH = 'c468c75e680e10c6304ae34d77dd3795a16a668a674480e67293a0a2dee697bd';
+ * layout) with its places, and the Changi place `tower` kept its name (the island's is `jejawi`). The eighteenth pass
+ * (21-11-2026) built Kallang in two pieces of open sea (old columns 212-257, rows 82-95, under Kampong Glam in the main
+ * block, and columns 148-193, rows 96-125, its own block) with its places; every tile and place outside those two
+ * rects is as pass 17 left it, in the old frame and the real one (checked tile by tile against c468c75e's build) */
+const ZERO_HASH = '6f3793ebe263e4a3b97eb58d7a7c7645e207cb56e40fcf0fdcaf55ee869f21f7';
 
 const c = city();
 const ti = (x, y) => [Math.floor(x / T), Math.floor(y / T)];
@@ -151,11 +154,11 @@ if (process.argv.includes('--child')) {
     assert.ok(b.d === a.d || (bo === 'main' ? b.d === REMAP[a.d] : b.d === bo), `${what}: district ${a.d} -> ${b.d}`); m++;
   };
   const r = facts();
-  const TAIL = [...NEW_RIDES.map(q => q.kind), ...city().ubin.park.map(q => q.kind)];
+  const TAIL = [...NEW_RIDES.map(q => q.kind), ...city().ubin.park.map(q => q.kind), ...city().kallang.park.map(q => q.kind)];
   for (const id of Object.keys(z.places)) moved(z.places[id], r.places[id], `place ${id}`);
   for (const k of KEYS) {
     // the fifteenth pass's special rides are parked last of all, after the seams' (lib/jade-rides.ts), and the seventeenth
-    // pass's Ubin rides (its own block) after those: matched end to end
+    // pass's Ubin rides (its own block) after those, then the eighteenth's Kallang rides: matched end to end
     const nNew = k === 'parking' || k === 'rides' ? TAIL.length : 0, zk = z[k].slice(0, z[k].length - nNew), rk = r[k].slice(0, r[k].length - nNew);
     zk.forEach((a, i) => moved(a, rk[i], `${k} ${a.id ?? a.kind ?? i}`));
     // the seams' own kerbside parking (and the rides parked there) come after the build's, on seam tiles
