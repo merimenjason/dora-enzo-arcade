@@ -192,6 +192,8 @@ export const CHANGI_OPENS = 'm52';
 export const JURONG_OPENS = 'm61';
 /** the story job that opens Pulau Ubin (the end of chapter nine: chapter ten is set there) */
 export const UBIN_OPENS = 'm65';
+/** the story job that opens Kallang (the end of chapter ten: chapter eleven is set there) */
+export const KALLANG_OPENS = 'm75';
 
 // ── every [x, y] tile in a step is written in the old frame (where the district was first laid out) and moved once,
 // here, through the layout table (lib/jade-layout.ts); names ('kee', 'here', 'loot') are places and stay
