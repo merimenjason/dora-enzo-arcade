@@ -206,9 +206,9 @@ test('pacing: a careful player who reinvests owns everything in three to five ho
     return t;
   };
   const night = 720 / 0.85 / 60;
-  // (the slowest earner gets five and a half hours since the seventeenth pass's three Ubin properties)
+  // (the slowest earner gets five and a half hours since the seventeenth pass's three Ubin properties; the eighteenth pass's three in Kallang bring the whole empire past 200,000)
   for (const [A, lo, hi] of [[45, 180, 300], [30, 180, 330], [60, 170, 300]]) { const m = sim(A, night); assert.ok(m >= lo && m <= hi, `${A} coins a minute: everything in ${(m / 60).toFixed(1)} h`); }
-  assert.ok(EMPIRE_COST > 120000 && EMPIRE_COST < 200000, `the whole empire costs ${EMPIRE_COST}`);
+  assert.ok(EMPIRE_COST > 120000 && EMPIRE_COST < 220000, `the whole empire costs ${EMPIRE_COST}`);
 });
 
 test('discoverability: properties for sale say their price at the door; a hint once one is affordable; the empire tab’s pins', () => {

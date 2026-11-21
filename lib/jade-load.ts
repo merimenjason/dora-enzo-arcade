@@ -38,7 +38,7 @@ const ATLAS_TIER: Record<string, Tier> = {
   // within reach of it); the map icons are small and wait for a job
   'atlas-ubin': 'ubin', 'atlas-boars': 'ubin', 'atlas-cast-ubin': 'ubin', 'atlas-ui17': 'job',
   // the eighteenth pass: Kallang's paintings stream with its zone; the two new hero moves and the new icons are job art
-  'atlas-kallang': 'kallang', 'atlas-cast-kallang': 'kallang', 'atlas-act18': 'kallang', 'atlas-ui18': 'job',
+  'atlas-kallang': 'kallang', 'atlas-cast-kallang': 'kallang', 'atlas-act18': 'job', 'atlas-ui18': 'job',
   // (the heroes' new actions stream with the rest of their rarer poses: every hero frame is core or job)
   'atlas-act17': 'job',
 };

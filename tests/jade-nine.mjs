@@ -83,7 +83,7 @@ test('the districts open with the story: over the river after Island Night, Sent
 
 test('the MRT runs on: Beach station on Sentosa, Bugis and Little India; trains overhead on the new viaduct', () => {
   const w = world(); const isle = w.c.isle;
-  assert.deepEqual(isle.stations.slice(6).map(s => s.id), ['stn-beach', 'stn-chinatown', 'stn-raffles', 'stn-bayfront', 'stn-bugis', 'stn-littleindia', 'stn-toapayoh']);
+  assert.deepEqual(isle.stations.slice(7).map(s => s.id), ['stn-beach', 'stn-chinatown', 'stn-raffles', 'stn-bayfront', 'stn-bugis', 'stn-littleindia', 'stn-toapayoh']);
   at(w, 'stn-chinatown'); const cash = w.s.cash; w.heat = 0;
   assert.ok(mrtTo(w, 'stn-littleindia')); assert.equal(w.s.cash, cash - 2);
   const li = w.c.places['stn-littleindia']; assert.ok(dist(w.p.x, w.p.y, li.x, li.y) < 160, 'arrive at Little India');
