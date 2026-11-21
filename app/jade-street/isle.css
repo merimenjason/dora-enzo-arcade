@@ -36,3 +36,7 @@
 .jade-line-list li { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px; background: rgba(255, 255, 255, .06); }
 .jade-line-list li > span { flex: 1; display: flex; flex-direction: column; }
 
+/* the twentieth pass's vehicle perks: the rides your businesses lend you, called from the taxi app */
+.jade-fleet { flex-basis: 100%; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid rgba(255, 255, 255, .15); padding-top: 8px; }
+.jade-fleet-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.jade-perk { color: #ffd76a; font-weight: 600; }

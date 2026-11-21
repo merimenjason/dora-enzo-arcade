@@ -114,7 +114,8 @@ export function PhoneView({ play, onClose }: { play: Play; onClose: () => void }
           {tab === 'msgs' && !msgs.length && <p>No texts yet. Your contacts text job offers, market tips and calls for help.</p>}
           {tab === 'msgs' && msgs.map(m => (
             <div key={m.id} className="jade-text-msg"><Sprite name={PEOPLE[m.from]?.face ?? 'face-kee'} h={40} w={40} /><p><b>{PEOPLE[m.from]?.name ?? m.from}</b> <small>night {m.night}</small><br />{m.text}</p>
-              {m.job && offered(w.s).some(x => x.id === m.job) && !w.run && <Btn kind="gold" testid={`msg-route-${m.job}`} onClick={() => { const pl = w.c.places[MISSION[m.job!].at]; if (pl) { w.waypoint = [pl.x, pl.y]; w.routeT = 0; w.updateRoute(); play.bump(); onClose(); } }}>Route me</Btn>}</div>
+              {m.job && offered(w.s).some(x => x.id === m.job) && !w.run && <Btn kind="gold" testid={`msg-route-${m.job}`} onClick={() => { const pl = w.c.places[MISSION[m.job!].at]; if (pl) { w.waypoint = [pl.x, pl.y]; w.routeT = 0; w.updateRoute(); play.bump(); onClose(); } }}>Route me</Btn>}
+              {m.gig && !w.run && (() => { const b = w.gigs().find(g => g.id === m.gig); return b && <Btn kind="gold" testid={`msg-route-gig-${m.gig}`} onClick={() => { w.waypoint = [b.x, b.y]; w.routeT = 0; w.updateRoute(); play.bump(); onClose(); }}>Route me</Btn>; })()}</div>
           ))}
           {tab === 'fines' && <FinesList play={play} />}
           {tab === 'empire' && <EmpirePage play={play} onClose={onClose} />}

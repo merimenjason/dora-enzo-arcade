@@ -8,6 +8,7 @@ import { Panel } from './panels';
 import { Sprite, artUrl } from './ui';
 import { destinations, mrtTo, FARE, RIDE_VIEW, routeToStation } from '@/lib/jade-mrt';
 import { dropOffs, taxiGo, hail, cantHail, TAXI_APP } from '@/lib/jade-taxi';
+import { ownedFleet, cantCall, callRide, freeGrab } from '@/lib/jade-fleet';
 import { DISTRICT_NAME, districtAt, T } from '@/lib/jade-city';
 import { CABLE_VIEW, FARES, linksOf, routeToStop } from '@/lib/jade-cable';
 
@@ -82,7 +83,7 @@ export function TaxiPanel({ play, onClose }: { play: Play; onClose: () => void }
     <Panel title={`${TAXI_APP} · where to?`} onClose={onClose} cls="taxi" testid="taxi">
       <p className="small">The taxi drives you there (E skips the ride). You have {Math.floor(w.s.cash)} coins.</p>
       <div className="jade-taxi-list">
-        {list.map(d => <button key={d.id} type="button" className="jade-btn jade" disabled={w.s.cash < d.fare} data-testid={`taxi-${d.id}`} onClick={() => { taxiGo(w, d.id); play.bump(); }}>{d.name}<small>{d.fare} coins</small></button>)}
+        {list.map(d => <button key={d.id} type="button" className="jade-btn jade" disabled={w.s.cash < d.fare} data-testid={`taxi-${d.id}`} onClick={() => { taxiGo(w, d.id); play.bump(); }}>{d.name}<small>{d.fare ? `${d.fare} coins` : 'free'}</small></button>)}
       </div>
     </Panel>
   );
@@ -130,7 +131,24 @@ export function TaxiApp({ play, onClose }: { play: Play; onClose: () => void }) 
     <div className="jade-taxi-app" data-testid="taxi-app">
       <Sprite name="i-taxiapp" h={56} w={56} />
       <div><b>{TAXI_APP}</b><p className="small">{why ?? 'A taxi comes to you, then drives you anywhere in the open districts.'}</p></div>
-      <button type="button" className="jade-btn jade" disabled={!!why} data-testid="taxi-book" onClick={() => { if (hail(w, true)) onClose(); play.bump(); }}>Book a taxi</button>
+      <button type="button" className="jade-btn jade" disabled={!!why} data-testid="taxi-book" onClick={() => { if (hail(w, true)) onClose(); play.bump(); }}>{freeGrab(w.s) ? 'Book a taxi (free: your depot)' : 'Book a taxi'}</button>
+      <FleetCalls play={play} onClose={onClose} />
+    </div>
+  );
+}
+/** the twentieth pass: the vehicles your businesses lend you, each called to your side (lib/jade-fleet.ts) */
+export function FleetCalls({ play, onClose }: { play: Play; onClose: () => void }) {
+  const w = play.w, own = ownedFleet(w.s);
+  if (!own.length) return <p className="small" data-testid="fleet-none">Own a vehicle business (the taxi depot, the bumboat service, the kayak hire, the Ubin bike rental or the ice kacang cart) and you can call its ride here.</p>;
+  return (
+    <div className="jade-fleet" data-testid="fleet">
+      <b>Your rides</b>
+      {own.map(f => { const no = cantCall(w, f.id); return (
+        <div key={f.id} className="jade-fleet-row">
+          <button type="button" className="jade-btn gold" disabled={!!no} data-testid={`fleet-call-${f.id}`} onClick={() => { if (callRide(w, f.id)) onClose(); play.bump(); }}>{f.call}</button>
+          <small data-testid={`fleet-why-${f.id}`}>{no ?? 'It pulls up beside you'}</small>
+        </div>
+      ); })}
     </div>
   );
 }

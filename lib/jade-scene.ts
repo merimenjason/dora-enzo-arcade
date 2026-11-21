@@ -26,6 +26,7 @@ import { eastGround, eastSorted, eastOver } from './jade-eastdraw.js';
 import { farSorted, farOver } from './jade-fardraw.js';
 import { southGround, southSorted, southOver } from './jade-southdraw.js';
 import { ubinSorted } from './jade-ubindraw.js';
+import { roundsGround } from './jade-rounddraw.js';
 import { kallangSorted } from './jade-kallangdraw.js';
 import { mandaiSorted, mandaiOver } from './jade-mandaidraw.js';
 import { snapScale, foldTints, chunkStale } from './jade-perf.js';
@@ -33,6 +34,7 @@ import { empSorted, empOver, jagaActor } from './jade-empdraw.js';
 import { BIZ, BIZ_OF, bizPos } from './jade-biz.js';
 import { jobActor, jobGround, mindBeam, mindBubble } from './jade-jobdraw.js';
 import { castFrame, castPose, type CastMember } from './jade-cast.js';
+import { fleetSprite, fleetHue } from './jade-fleet.js';
 
 export const ART = '/art/jade-street/';
 const CH = 8; // tiles per chunk
@@ -256,6 +258,10 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     case 'hide': return `${h}-hide`;
     case 'carry': case 'carry-idle': return face === 'side' ? `${h}-carry-side` : `${h}-carry-down`;
     case 'climb-on': return `${h}-climb-on`;
+    // the twentieth pass: stepping into your own cab, and waving a called ride over with the phone
+    // (job art: until it has streamed in, the older climb and phone poses stand in)
+    case 'cab-in': return hasFrame(`${h}-cab-in`) ? `${h}-cab-in` : `${h}-climb-on`;
+    case 'call-ride': return hasFrame(`${h}-call`) ? `${h}-call` : `${h}-phone`;
     case 'climb-off': return `${h}-climb-off`;
     case 'celebrate': return `${h}-cheer-${cyc(2, 4)}`;
     case 'caught': return t < 0.6 ? `${h}-caught-0` : `${h}-caught-1`;
@@ -329,6 +335,9 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     // the Night Safari tram
     case 'torch': return `${h}-torch-${cyc(2, 4)}`; case 'torch-still': return `${h}-listen`; case 'torch-hush': return `${h}-hush`; case 'torch-startle': return `${h}-startle`;
     case 'lory': return `${h}-lory`; case 'clap': return `${h}-clap`; case 'tram': return `${h}-tram`;
+    // the twentieth pass's rounds (lib/jade-rounds.ts): a garland held up, then draped; a cage or lantern hooked up high,
+    // then admired
+    case 'drape': return `${h}-drape-${t < 0.45 ? 0 : 1}`; case 'hang': return `${h}-${t < 0.65 ? 'hang-up' : 'admire'}`;
     case 'kwave': return `${h}-wave-${t < 0.7 ? 0 : 1}`; case 'skyward': return `${h}-${t < 1.3 ? 'skyward' : 'point-up'}`;
     // the empire: mending a raided shop, a handshake hiring the jaga, sending the partner off, the partner's coin bag
     // handed over, counting a big till
@@ -738,7 +747,9 @@ export class Scene {
     spr(x, p.sprite, p.x, p.y + 12, {});
   }
   ride(x: CanvasRenderingContext2D, w: World, r: Ride, player: boolean) {
-    const name = r.broken ? 'van-broken' : r.kind === 'boat' ? (r.id % 2 ? 'v-bumboat-b' : 'v-bumboat') : 'v-' + r.kind; const paint = AS_PAINTED.has(r.kind) ? 0 : player ? PAINTS.find(q => q.id === w.s.paint)?.filter ?? 0 : [0, 140, 40, 210, 280][r.tint % 5];
+    // (a ride lent by your business wears its livery: lib/jade-fleet.ts)
+    const own = fleetSprite(r, w.s), hue = fleetHue(r, w.s);
+    const name = own ?? (r.broken ? 'van-broken' : r.kind === 'boat' ? (r.id % 2 ? 'v-bumboat-b' : 'v-bumboat') : 'v-' + r.kind); const paint = hue !== null ? hue : AS_PAINTED.has(r.kind) ? 0 : player ? PAINTS.find(q => q.id === w.s.paint)?.filter ?? 0 : [0, 140, 40, 210, 280][r.tint % 5];
     x.fillStyle = 'rgba(0,0,0,.32)'; this.shadow(x, r.b.x + 5, r.b.y + 7, VEHICLES[r.kind].len * 0.45, VEHICLES[r.kind].r * 0.9);
     const bob = onWater(r.kind) ? Math.sin(this.t * 2 + r.id) * 0.03 : 0;
     spr(x, name, r.b.x, r.b.y, { anchor: 'center', rot: r.b.h + Math.PI / 2 + bob, variant: paint ? 'paint:' + paint : '' });
@@ -905,7 +916,7 @@ export class Scene {
         }
       }
       if (run) {
-        if (!jobGround(this, x, w, run)) for (const it of run.items) if (!it.got) { this.glow(x, it.x, it.y, 46, 'rgba(255,200,80,.4)'); spr(x, itemSprite(it.sprite), it.x, it.y + 10, { w: it.sprite === 'lookout' ? 60 : 30 }); if (cb) this.cb(x, 'item', it.x + 26, it.y - 30); }
+        if (!jobGround(this, x, w, run) && !roundsGround(this, x, w, run)) for (const it of run.items) if (!it.got) { this.glow(x, it.x, it.y, 46, 'rgba(255,200,80,.4)'); spr(x, itemSprite(it.sprite), it.x, it.y + 10, { w: it.sprite === 'lookout' ? 60 : 30 }); if (cb) this.cb(x, 'item', it.x + 26, it.y - 30); }
         if (run.loot) { this.glow(x, run.loot.x, run.loot.y, 54, 'rgba(120,255,200,.45)'); spr(x, run.loot.sprite, run.loot.x, run.loot.y + 8 + b * 0.4, { w: 40 }); if (cb) this.cb(x, 'loot', run.loot.x + 30, run.loot.y - 34, 14); }
         if (run.cur.t === 'pickup' && run.cur.at !== 'loot') { const [px, py] = run.spot(run.cur.at); spr(x, itemSprite(run.cur.item), px, py + 10, { w: 34 }); }
         if (run.fare) { const f = run.fare; if (!f.to) spr(x, `folk-${f.sp}-hop`, f.x, f.y + 4, {}); }

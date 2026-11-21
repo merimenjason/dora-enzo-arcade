@@ -10,6 +10,7 @@ import type { Play } from './controller';
 import type { JadeSound } from './sound';
 import { Sprite, Btn, fmt, Icon } from './ui';
 import { EmpireActions } from './empire';
+import { perkLine } from '@/lib/jade-fleet';
 
 const dName = (d: string) => DISTRICT_NAME[d as keyof typeof DISTRICT_NAME].replace(/^the /, 'The ');
 function Bars({ hist, testid }: { hist: number[]; testid?: string }) {
@@ -36,6 +37,7 @@ export function BizPanel({ play, id, snd, onClose, onSave }: { play: Play; id: B
             <div>
               <p><b>{PEOPLE[b.keeper]?.name}</b> runs it in {dName(b.d)}.{b.id === 'claw' ? ' A claw machine, not a trading good.' : ''}</p>
               {st.lvl ? <p data-testid="biz-level">Your stake: level {st.lvl} of 3 · about <b>{rate.rate}</b> coins a night</p> : <p data-testid="biz-level">Stake for sale: {fmt(b.price)} coins. Earns {b.income[1]} coins a night at first, up to {b.income[3]} fully upgraded.</p>}
+              {perkLine(id) && <p className="jade-perk" data-testid="biz-perk">{perkLine(id)}</p>}
               {st.lvl > 0 && <p className="small" data-testid="biz-why">Tonight: {rate.parts.join(' · ')}</p>}
             </div>
           </div>

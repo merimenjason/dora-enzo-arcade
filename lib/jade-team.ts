@@ -85,7 +85,7 @@ function bagStep(run: Run, st: St<'bag'>, dt: number) {
   if (a.stun > 0) { a.stun -= dt; a.b.x += Math.cos(a.b.h) * 60 * dt; return; }
   // circle over the spot; every few seconds swoop down low toward you for a moment
   if ((a.extra ?? 0) > 0) { a.extra = (a.extra ?? 0) - dt; if ((a.extra ?? 0) <= 0) a.look = w.assist ? 4.2 : 5.2; }
-  else if (a.look <= 0) { a.extra = w.assist ? 2.2 : 1.6; w.fx.push({ t: 'swoop', x: a.b.x, y: a.b.y }); run.warn(drum ? 'The drum brings the crow down! Surge into it (Space)!' : 'The crow swoops low! Pounce or dash into it now!'); }
+  else if (a.look <= 0) { a.extra = w.assist ? 2.2 : 1.6; w.fx.push({ t: 'swoop', x: a.b.x, y: a.b.y }); const who = st.skin ?? 'crow'; run.warn(drum ? `The drum brings the ${who} down! Surge into it (Space)!` : `The ${who} swoops low! Pounce or dash (Space) into it now!`); }
   const low = (a.extra ?? 0) > 0;
   const ang = a.t * 0.9, R = 150;
   const gx = low ? pb.x : cx + Math.cos(ang) * R, gy = low ? pb.y - 10 : cy + Math.sin(ang) * R * 0.7;
@@ -97,7 +97,7 @@ function bagStep(run: Run, st: St<'bag'>, dt: number) {
   const mateHit = w.mate.ai.mode === 'pounce' && dist(a.b.x, a.b.y, w.mate.b.x, w.mate.b.y) < 40;
   if (low && ((d < 40 + (w.assist ? 16 : 0) && hitting) || mateHit)) dropBag(run, a);
   if (run.timer !== null && run.timer < 10 && !run.warning) run.warn('The crow is about to fly off with the bag!');
-  run.label = low ? 'It’s low: pounce, dash or hop into it!' : st.label;
+  run.label = low ? 'It’s low: run into it and dash (Space), hop or pounce!' : st.label;
 }
 export function dropBag(run: Run, a: Actor) {
   const w = run.w; if (a.gone) return;

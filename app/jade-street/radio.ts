@@ -74,5 +74,5 @@ const BOAT = ['Canal Strings', 'Moonlit Ferry', 'Lantern Lo-fi'];
 export const OFF = 'Radio off';
 
 /** the station names for a ride kind, "Radio off" last */
-export const stationList = (kind: string | null) => [...(kind === 'boat' || kind === 'dragon' ? BOAT : ROAD), OFF];
+export const stationList = (kind: string | null) => [...(kind === 'boat' || kind === 'dragon' || kind === 'kayak' ? BOAT : ROAD), OFF];
 export const stationOf = (name: string): Station | null => BY_NAME[name] ?? null;

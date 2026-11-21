@@ -23,6 +23,7 @@ import { finesStep, payTicket, offence, FINE, type Patrol, type Ticket } from '.
 import { gangsStep, gangNear, gangAct, newGangs, type GangState } from './jade-gangs.js';
 import { stationNear, mrtTo, cantRide, routeToStation, stationById, MRT_TEXT, travelPlan, type Travel } from './jade-mrt.js';
 import { hail, taxiStep, skipRide, type Taxi } from './jade-taxi.js';
+import { fleetBoost } from './jade-fleet.js';
 import { eastStep, eastNear, eastAct, newEast, type EastState } from './jade-eastfest.js';
 import { farStep, farNear, farAct, newFar, type FarState } from './jade-farfest.js';
 import { southStep, southNear, southAct, newSouth, type SouthState } from './jade-southfest.js';
@@ -40,7 +41,9 @@ export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop
   /** hail a taxi (G) */
   hail?: boolean };
 export const NO_INPUT: Input = { mx: 0, my: 0, sneak: false, dash: false, hop: false, act: false };
-export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; locked: boolean; tint: number; mission?: boolean; seen?: number; broken?: boolean };
+export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; locked: boolean; tint: number; mission?: boolean; seen?: number; broken?: boolean;
+  /** the vehicle business that lent it (lib/jade-fleet.ts): its level sets the ride's speed and livery */
+  own?: string };
 /** `over`: a toast that replaces any showing or waiting toast containing this text (pass 13: "Your taxi is here" sat
  * beside "a taxi is on its way") */
 export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string; over?: string };
@@ -402,7 +405,7 @@ export class World {
   rideStep(inp: Input, dt: number) {
     const p = this.p, r = p.ride!; const v = VEHICLES[r.kind];
     const up = this.s.upgrades;
-    let top = v.speed * (1 + up.speed * 0.07) * (this.overloaded() ? 0.75 : 1);
+    let top = v.speed * (1 + up.speed * 0.07) * (this.overloaded() ? 0.75 : 1) * fleetBoost(this, r);
     // a hired bike flies along East Coast Park's cycling track
     const ti = Math.floor(r.b.y / T) * W + Math.floor(r.b.x / T);
     if ((r.kind === 'bike' || r.kind === 'tandem') && this.c.ground[ti] === G.CYCLE) top *= 1.18;
@@ -474,7 +477,7 @@ export class World {
     if (this.run?.m.mods?.includes('foot')) { this.say('No rides on this contract: on foot all the way!', 'bad'); return; }
     if (r.locked) { this.ui = { kind: 'mini', mini: 'wires', level: 1, from: 'ride' }; this.pendingRide = r; this.fx.push({ t: 'mini' }); return; }
     if (p.carry === 'durian' && (r.kind === 'tuktuk' || r.kind === 'trishaw' || onWater(r.kind))) offence(this, 'durian', r.b.x, r.b.y, true);
-    p.act = { n: 'climb-on', t: 0, dur: 0.32, then: () => { p.ride = r; r.parked = false; p.b.x = r.b.x; p.b.y = r.b.y; p.hide = false; this.enteredAt = this.time; this.fx.push({ t: 'enter', kind: r.kind }); if (r.kind === 'bike') this.s.stats.bikes++; this.run?.onEnter(r); } };
+    p.act = { n: r.kind === 'cab' ? 'cab-in' : 'climb-on', t: 0, dur: r.kind === 'cab' ? 0.5 : 0.32, then: () => { p.ride = r; r.parked = false; p.b.x = r.b.x; p.b.y = r.b.y; p.hide = false; this.enteredAt = this.time; this.fx.push({ t: 'enter', kind: r.kind }); if (r.kind === 'bike') this.s.stats.bikes++; this.run?.onEnter(r); } };
     p.face = 'side'; p.flip = r.b.x < p.b.x;
     // walk the hero onto the seat during the climb
     p.b.x = r.b.x; p.b.y = r.b.y;

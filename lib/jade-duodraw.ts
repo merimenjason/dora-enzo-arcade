@@ -10,6 +10,7 @@ import { OUTFITS } from './jade-save.js';
 import { GADGETS, carried, stallPos, stallOpen, type GadgetId } from './jade-gear.js';
 import { BOOSTS, boostXY } from './jade-tag.js';
 import { holding } from './jade-team.js';
+import { fleetSprite, fleetHue } from './jade-fleet.js';
 import { spr, heroFrame, hasFrame as has, type Scene } from './jade-scene.js';
 import type { World, Player, Ride } from './jade-game.js';
 import type { Actor } from './jade-mission.js';
@@ -114,11 +115,14 @@ function ring(x: X, px: number, py: number, rgb: string, a: number) {
  * luge's one seat, the dragon boat's paddler amidships and its drummer at the bow */
 const SEAT: Partial<Record<VehicleKind, { drv: [number, number]; pas?: [number, number] }>> = {
   tandem: { drv: [0.25, 0], pas: [-0.3, 0] }, icecream: { drv: [-0.05, -12], pas: [-0.22, 16] }, luge: { drv: [-0.25, 0] }, dragon: { drv: [-0.21, 0], pas: [0.33, 0] },
+  // the twentieth pass's perk rides: the cab's driver under the sunroof (front right: Singapore drives on the left), the kayak's seat
+  cab: { drv: [0.06, 8] }, kayak: { drv: [-0.04, 0] },
 };
 const at = (r: Ride, [fwd, side]: [number, number]): [number, number] => {
   const h = r.b.h, len = VEHICLES[r.kind].len;
   return [r.b.x + Math.cos(h) * len * fwd + Math.cos(h + Math.PI / 2) * side, r.b.y + Math.sin(h) * len * fwd + Math.sin(h + Math.PI / 2) * side];
 };
+const TURN = new WeakMap<Ride, number>();
 /** the riding frames of a kind (the driver's, or the partner riding their own copy of a one-seat ride) */
 function rideFrame(h: string, k: VehicleKind, sc: Scene, r: Ride, half = 0): string {
   const pedal = Math.floor(sc.t * (2 + r.b.speed / 45) + half) % 2;
@@ -131,6 +135,9 @@ function rideFrame(h: string, k: VehicleKind, sc: Scene, r: Ride, half = 0): str
     case 'luge': return `${h}-ride-luge-${Math.floor(sc.t * 1.6 + half) % 2}`;
     // the dragon boat's paddle, left then right, quicker with speed
     case 'dragon': return `${h}-ride-paddle-${Math.floor(sc.t * (1.2 + r.b.speed / 140)) % 2}`;
+    // the kayak's double-bladed paddle, left then right; the cab: paws on the wheel, a hand over the top of it in a turn
+    case 'kayak': return `${h}-ride-kayak-${Math.floor(sc.t * (1.1 + r.b.speed / 120) + half) % 2}`;
+    case 'cab': { const last = TURN.get(r) ?? r.b.h; TURN.set(r, r.b.h); const d = Math.abs(Math.atan2(Math.sin(r.b.h - last), Math.cos(r.b.h - last))); return `${h}-ride-cab-${d > 0.004 ? 1 : 0}`; }
   }
   return '';
 }
@@ -154,11 +161,11 @@ function driver(sc: Scene, x: X, w: World, p: Player, r: Ride, variant: string) 
 }
 /** a one-seat ride (the hired bike, the luge cart): the partner rides their own copy a length behind the driver's and a
  * lane to the side, at the same pace and half a stroke out of step, so the two pairs of legs don't move as one */
-function companion(sc: Scene, x: X, r: Ride, who: string, variant: string): string {
+function companion(sc: Scene, x: X, r: Ride, who: string, variant: string, hull = 'v-' + r.kind, paint = 0): string {
   const v = VEHICLES[r.kind], len = v.len, h = r.b.h, side = h + Math.PI / 2;
   const bx = r.b.x - Math.cos(h) * len * 0.95 + Math.cos(side) * 24, by = r.b.y - Math.sin(h) * len * 0.95 + Math.sin(side) * 24;
   x.fillStyle = 'rgba(0,0,0,.32)'; sc.shadow(x, bx + 5, by + 7, len * 0.45, v.r * 0.9);
-  spr(x, 'v-' + r.kind, bx, by, { anchor: 'center', rot: h + Math.PI / 2 });
+  spr(x, hull, bx, by, { anchor: 'center', rot: h + Math.PI / 2, variant: paint ? 'paint:' + paint : '' });
   const f = rideFrame(who, r.kind, sc, r, 0.5), [fx, fy] = SEAT[r.kind]?.drv ?? [0.02, 0];
   return spr(x, f, bx + Math.cos(h) * len * fx + Math.cos(side) * fy, by + Math.sin(h) * len * fx + Math.sin(side) * fy, { anchor: 'center', rot: h + Math.PI / 2, variant }) ? f : '';
 }
@@ -174,12 +181,14 @@ function seatFrame(who: string, k: VehicleKind, sc: Scene, r: Ride): string {
 export function passenger(sc: Scene, x: X, w: World, r: Ride) {
   const m = w.mate.seat === r ? w.mate : w.p.seat === r ? w.p : null; if (!m) return;
   const of = OUTFITS.findIndex(o => o.id === w.s.outfit[m.who]); const variant = of > 0 ? `${m.who}:${of}` : '';
-  if (OWN_COPY.has(r.kind)) { RIDE_DRAWN.partner = companion(sc, x, r, m.who, variant); return; }
+  // (a lent ride's copy wears the same livery: lib/jade-fleet.ts)
+  if (OWN_COPY.has(r.kind)) { RIDE_DRAWN.partner = companion(sc, x, r, m.who, variant, fleetSprite(r, w.s) ?? 'v-' + r.kind, fleetHue(r, w.s) ?? 0); return; }
   const own = SEAT[r.kind]?.pas;
   // pillion on a scooter, on the bench of a trishaw, in the bow of a boat; a tuk-tuk or van carries them inside the cab
-  if (!own && r.kind !== 'scooter' && r.kind !== 'boat' && r.kind !== 'trishaw') return;
+  // (your own cab, the twentieth pass's perk: the partner in the front seat beside you, under the open sunroof)
+  if (!own && r.kind !== 'scooter' && r.kind !== 'boat' && r.kind !== 'trishaw' && r.kind !== 'cab') return;
   const back = r.kind === 'boat' ? 0.12 : r.kind === 'trishaw' ? 0.2 : -0.26;
-  const [px, py] = own ? at(r, own) : [r.b.x + Math.cos(r.b.h) * VEHICLES[r.kind].len * back, r.b.y + Math.sin(r.b.h) * VEHICLES[r.kind].len * back];
+  const [px, py] = r.kind === 'cab' ? at(r, [0.06, -8]) : own ? at(r, own) : [r.b.x + Math.cos(r.b.h) * VEHICLES[r.kind].len * back, r.b.y + Math.sin(r.b.h) * VEHICLES[r.kind].len * back];
   // which side the passenger leans to: toward what they aim at or grab
   const side = Math.sin(m.aimH - r.b.h) < 0;
   let f = own ? seatFrame(m.who, r.kind, sc, r) : `${m.who}-pass-${Math.floor(sc.t * 1.2) % 2}`, flip = false;
