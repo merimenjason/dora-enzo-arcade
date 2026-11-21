@@ -168,7 +168,9 @@ test('the paintings: Kallang’s art streams with its zone, the heroes’ new ac
     'npc-biru-idle-0', 'npc-tenuk-talk-1', 'npc-kubung-wave-0', 'npc-sutera-idle-1', 'face-sutera-cross', 'biz-wavekiosk-3', 'biz-hubsatay-0', 'biz-rowcafe-2',
     'mi-stadium', 'pin-swan', 'i-crowd', 'i-seaplane'])
     assert.ok(FRAMES[f], f);
-  for (const a of ['atlas-kallang', 'atlas-cast-kallang', 'atlas-act18']) assert.equal(tierOf(a), 'kallang', a);
+  for (const a of ['atlas-kallang', 'atlas-cast-kallang']) assert.equal(tierOf(a), 'kallang', a);
+  // (the heroes' new actions stream with their other rarer poses, as every hero frame is core or job art)
+  assert.equal(tierOf('atlas-act18'), 'job'); assert.equal(tierOf('atlas-ui18'), 'job');
   for (const a of ATLASES) if (/18|kallang/.test(a)) assert.notEqual(tierOf(a), 'core', a);
 });
 

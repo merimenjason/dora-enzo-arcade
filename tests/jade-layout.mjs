@@ -37,7 +37,7 @@ import { NEW_RIDES } from '../.checks/jade-rides.js';
  * (21-11-2026) built Kallang in two pieces of open sea (old columns 212-257, rows 82-95, under Kampong Glam in the main
  * block, and columns 148-193, rows 96-125, its own block) with its places; every tile and place outside those two
  * rects is as pass 17 left it, in the old frame and the real one (checked tile by tile against c468c75e's build) */
-const ZERO_HASH = '6f3793ebe263e4a3b97eb58d7a7c7645e207cb56e40fcf0fdcaf55ee869f21f7';
+const ZERO_HASH = 'bb3c390f252b8ce50a7e9e1329a0dda1dfe8be07d1abd276ad7e2aa3a9d75e4b';
 
 const c = city();
 const ti = (x, y) => [Math.floor(x / T), Math.floor(y / T)];

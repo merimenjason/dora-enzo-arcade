@@ -156,4 +156,8 @@ export const CHAT: Record<string, string> = {
   lan: 'The gongs start at dusk. Come early, the front bench fills up with aunties.',
   belangkas: 'Four hundred million years on this planet, and still people step on us. Watch your feet on the flats.',
   taring: 'Hmph. A Tusker never says sorry. He just digs somewhere else.',
+  biru: 'Hup! Hup! Paddles in together or the boat goes round in circles. Ask my Tuesday crew.',
+  tenuk: 'Forty thousand fans, six gates, one manager. Calmly. Everything is fine. Calmly.',
+  kubung: 'The flying boats came down right there on the basin, in 1937. You could hear them from Geylang.',
+  sutera: 'Such a pretty little basin, darlings. I shan’t be staying long.',
 };

@@ -69,7 +69,7 @@ test('expressways: flagged lanes, gantries and crash barriers; island avenues ge
 
 test('the MRT: a fixed timetable, the trains on the viaduct, fares, the ride view, a durian fine, no rides mid-job', () => {
   const w = world(); const isle = w.c.isle;
-  assert.equal(isle.stations.length, 13); assert.deepEqual(isle.stations.map(s => s.d), ['jurong', 'tiong', 'quay', 'changi', 'katong', 'orchard', 'resort', 'canal', 'bay', 'bay', 'glam', 'india', 'heartland']);
+  assert.equal(isle.stations.length, 14); assert.deepEqual(isle.stations.map(s => s.d), ['kallang', 'jurong', 'tiong', 'quay', 'changi', 'katong', 'orchard', 'resort', 'canal', 'bay', 'bay', 'glam', 'india', 'heartland']);
   let seen = false, under = false;
   for (let t = 0; t < 400; t += 1.7) for (let k = 0; k < TRAINS; k++) { const a = trainAt(isle, t, k), b = trainAt(isle, t, k); assert.deepEqual(a, b); if (a.visible) seen = true; else under = true; }
   assert.ok(seen && under, 'trains run underground and up on the viaduct');

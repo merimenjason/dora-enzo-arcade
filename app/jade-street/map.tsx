@@ -82,6 +82,9 @@ function landmarks(play: Play): [string, number, number][] {
   at('mi-mall', 'ion', 0, -3 * T); at('mi-terrace', 'joochiat', 0, -3 * T); at('mi-beach', 'ecp', 0, 0); at('mi-airport', 'terminal', 0, -3 * T); at('mi-jewel', 'jewel', 0, -6 * T);
   // west of Chinatown: Tiong Bahru's flats, Clarke Quay's godowns, the Chinese Garden's pagoda, the Science Centre's dome
   at('mi-artdeco', 'flats', 0, -3 * T); at('mi-godown', 'godowns', 0, -3 * T); at('mi-pagoda', 'pagoda', 0, -3 * T); at('mi-dome', 'science', 0, -4 * T);
+  // Kallang: the National Stadium's dome, the Old Kallang Airport and the rowing club's dragon boats
+  const dome = c.buildings.find(b => b.sprite === 'kal-stadium'); if (dome) out.push(['mi-stadium', (dome.x + dome.w / 2) * T, (dome.y + dome.h / 2) * T]);
+  at('mi-oldairport', 'airport', 0, -3 * T); at('mi-dragon', 'club', 0, 0);
   return out;
 }
 

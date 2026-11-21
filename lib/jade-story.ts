@@ -1013,7 +1013,7 @@ export const MISSIONS: Mission[] = mvMissions([
       { t: 'talk', lines: [['kubung', 'One crow in a cap, one crate, every night. Off down Stadium Boulevard, very pleased with itself.', 'calm'], ['hero', 'That cap. That swagger. That’s Pip.', 'cross'], ['mate', 'Then Pip sees you, then Pip sees me. Never the same chinchilla twice.', 'smug']] },
       { t: 'goto', at: K(22, 13), label: 'Wait by the old terminal for Pip to come out of the hangar', ride: 'foot', cp: true },
       { t: 'tail', from: K(24, 13), route: [K(24, 15), K(31, 15), K(31, 21), K(34, 25), K(38, 27), K(39, 32)], relay: { at: 3, spot: K(33, 21) }, calm: 0.55, label: 'Follow Pip down the boulevard to the Sports Hub; switch to {mate} by the station (Tab)', cp: true },
-      { t: 'talk', lines: [['sutera', 'Thank you, Pip. And thank you, little ones, for walking my courier home. You have something of mine, I believe. A chart.', 'calm'], ['hero', 'It’s not yours. The quarry men buried it, and we dug it up.', 'cross'], ['sutera', 'Half a story, darlings. The other half flew out of this basin in 1937. I will have both. I always do.', 'smug'], ['mate', 'She’s very… silky.', 'worried']] },
+      { t: 'talk', lines: [['sutera', 'Thank you, Pip. And thank you, little ones, for walking my courier home. You have something of mine, I believe. A chart.', 'calm'], ['hero', 'It’s not yours. The quarry men buried it, and we dug it up.', 'cross'], ['sutera', 'Half a story, darlings. The other half flew out of this basin in 1937. I will have both. I always do.', 'happy'], ['mate', 'She’s very… silky.', 'worried']] },
     ] },
   { id: 'm80', ch: 11, title: 'Through the Turnstiles', giver: 'tenuk', at: 'tenuk', reward: 880, rep: 21, blurb: 'Madam Sutera has a box at the stadium for the semi-final, and Ms Tenuk saw a crate carried in through the west gate. Get through the pre-match crowd and show your ticket before kick-off.',
     steps: [
@@ -1049,7 +1049,7 @@ export const MISSIONS: Mission[] = mvMissions([
     steps: [
       { t: 'talk', lines: [['tenuk', 'She meets her crows at the south gate before kick-off. Two chinchillas would stand out. Two fans would not.', 'calm'], ['mate', 'Home shirts. Red and white. I look good in red and white.', 'happy']] },
       { t: 'blend', rack: K(40, 28), route: [K(40, 29), K(41, 34), K(40, 39), K(35, 41), K(32, 41)], goal: K(31, 41), lookouts: [[...K(38, 35), 0], [...K(34, 42), 270]], crowd: 8, folk: 'town', label: 'Put on the home shirt by the scarf kiosk (E), then walk with the fans to the south gate', cp: true },
-      { t: 'talk', lines: [['sutera', 'The photograph shows the island. Their chart shows the way in past the reef. One without the other is a very pretty postcard.', 'calm'], ['sutera', 'At the final whistle the whole stadium pours out at once. Pip: in the crowd, take the chart. Then the plane.', 'smug'], ['hero', 'At full time, then. We’ll be ready.', 'cross']] },
+      { t: 'talk', lines: [['sutera', 'The photograph shows the island. Their chart shows the way in past the reef. One without the other is a very pretty postcard.', 'calm'], ['sutera', 'At the final whistle the whole stadium pours out at once. Pip: in the crowd, take the chart. Then the plane.', 'happy'], ['hero', 'At full time, then. We’ll be ready.', 'cross']] },
     ] },
   { id: 'm85', ch: 11, title: 'Kallang Roar', giver: 'biru', at: 'biru', reward: 1600, rep: 28, blurb: 'Full time at the cup final, and the National Stadium empties all at once. Get the chart through the roaring crowd to the pontoon, run down Pip on the basin when the crows strike, and see where Madam Sutera goes next.',
     steps: [
@@ -1060,7 +1060,7 @@ export const MISSIONS: Mission[] = mvMissions([
       { t: 'goto', at: 'pontoon', label: 'Run up the Riverwalk to the pontoon after Pip', ride: 'foot', cp: true },
       { t: 'ride', kind: 'dragon', near: 'pontoon', label: 'Jump into a dragon boat at the pontoon (E): {mate} takes the drum' },
       { t: 'chase', who: 'boat', from: K(9, 28), route: [K(4, 34), K(10, 39), K(14, 33), K(8, 27), K(3, 36), K(12, 41)], bumps: 3, loot: 'i-map', speed: 200, label: 'Paddle after Pip’s sampan and bump it three times', cp: true },
-      { t: 'talk', lines: [['hero', 'Got it! The chart, dry and whole. Sorry, Pip.', 'happy'], ['sutera', 'Keep it, darlings. A chart is only paper. I have the photograph, and the photograph has the bearing.', 'smug'], ['mate', 'The seaplane! Its engines are going! She’s taking off across the basin!', 'worried'], ['biru', 'Heading south. Low and fast, over the Straits.', 'worried'], ['hero', 'South. Towards an island with no name. And she’s a day ahead of us.', 'cross']] },
+      { t: 'talk', lines: [['hero', 'Got it! The chart, dry and whole. Sorry, Pip.', 'happy'], ['sutera', 'Keep it, darlings. A chart is only paper. I have the photograph, and the photograph has the bearing.', 'happy'], ['mate', 'The seaplane! Its engines are going! She’s taking off across the basin!', 'worried'], ['biru', 'Heading south. Low and fast, over the Straits.', 'worried'], ['hero', 'South. Towards an island with no name. And she’s a day ahead of us.', 'cross']] },
     ] },
 ]);
 // ── Hawker Tales: the Singapore side jobs. They sit outside the five chapters (ch 0), open once their story job is
@@ -1301,7 +1301,7 @@ export const SIDE: Mission[] = mvMissions([
     ] },
   { id: 'k28', side: 'm77', ch: 0, title: 'Morning Run', giver: 'biru', at: 'club', reward: 300, rep: 12, blurb: 'Coach Biru runs the Riverwalk every morning before practice and says no paddler alive can keep up. Prove him wrong: every marker along the water before he gets back to the boathouse.',
     steps: [
-      { t: 'talk', lines: [['biru', 'Every morning: boathouse, Riverwalk, sea wall, and back. No paddler alive has beaten me. Hup!', 'smug'], ['mate', 'He has very short legs for someone who talks so fast.', 'smug']] },
+      { t: 'talk', lines: [['biru', 'Every morning: boathouse, Riverwalk, sea wall, and back. No paddler alive has beaten me. Hup!', 'happy'], ['mate', 'He has very short legs for someone who talks so fast.', 'smug']] },
       { t: 'race', ride: 'foot', rival: 'runner', time: 80, pace: 0.9, marks: [K(12, 20), K(18, 25), K(18, 33), K(19, 42), K(18, 30), K(11, 21)], label: 'Run every marker along the Riverwalk and back before Coach Biru', cp: true },
       { t: 'talk', lines: [['biru', 'Beaten! By a chinchilla! In my own Riverwalk! Same time tomorrow?', 'happy']] },
     ] },
