@@ -79,6 +79,9 @@ export function duoFrame(p: Player, t: number): { f: string; flip: boolean } {
   return { f: heroFrame(h, anim, p.face, t), flip };
 }
 
+/** the frame the last frame really drew for each hero on foot ('' when nothing could be drawn; the browser tests check
+ *  a pose is on screen, not just chosen) */
+export const HERO_DRAWN: Record<string, string | number> = { dora: '', enzo: '', t: 0 };
 /** one hero on foot (or on their own ride, with any passenger), at their spot */
 export function drawHero(sc: Scene, x: X, w: World, p: Player, active: boolean) {
   const h = p.who, of = OUTFITS.findIndex(o => o.id === w.s.outfit[h]);
@@ -93,7 +96,8 @@ export function drawHero(sc: Scene, x: X, w: World, p: Player, active: boolean) 
   const { f, flip } = duoFrame(p, p.act ? p.act.t : p.animT);
   const [qx, qy] = sc.juice.squash(p.anim, 1 - p.hopT / 0.42), fy = p.b.y + 4 - hop;
   if (qx !== 1 || qy !== 1) { x.save(); x.translate(p.b.x, fy); x.scale(qx, qy); x.translate(-p.b.x, -fy); }
-  spr(x, f, p.b.x, fy, { flip, variant, alpha: p.hide ? 0.55 : 1 }) || spr(x, `${h}-idle-down`, p.b.x, p.b.y + 4, { variant });
+  const drew = spr(x, f, p.b.x, fy, { flip, variant, alpha: p.hide ? 0.55 : 1 }) ? f : spr(x, `${h}-idle-down`, p.b.x, p.b.y + 4, { variant }) ? `${h}-idle-down` : '';
+  HERO_DRAWN[h] = drew; HERO_DRAWN.t = sc.t;
   if (qx !== 1 || qy !== 1) x.restore();
   if (p.carry && !p.anim.startsWith('carry')) spr(x, itemOf(p.carry), p.b.x, p.b.y - 54 - hop, { w: 28 });
   if (p.anim === 'umbrella' && p.face !== 'down') spr(x, 'umb-red', p.b.x, p.b.y - 46, { w: 46, anchor: 'center' });

@@ -38,7 +38,7 @@ export async function nineteenth(h) {
   check(await W(() => { const im = document.querySelector('[data-testid="jade-chapter-card"] img'); return !!im && im.complete && im.naturalWidth > 0 && /bg-chapter-12/.test(im.src); }), `${name}: the card's painting is chapter twelve's`);
   await press('jade-story-skip'); await settle();
   check(await W(() => window.__jade.world().s.story.ch === 12), `${name}: chapter twelve is under way`);
-  check(await W(() => window.__jade.jobs().side) === 32 && await W(() => window.__jade.jobs().story) === 95, `${name}: 95 story jobs and 32 Hawker Tales, counted from the data`);
+  check(await W(() => window.__jade.jobs().side) >= 32 && await W(() => window.__jade.jobs().story) >= 95, `${name}: 95 story jobs and 32 Hawker Tales (or more, from later passes), counted from the data`);
 
   // ── the plaque plans the trip: a pin on the Night Safari from Chinatown goes by MRT to Mandai Lake Road
   await at('safe-market', 0, 64);
@@ -69,6 +69,9 @@ export async function nineteenth(h) {
   await E(); check(await until(() => window.__seen19.has('tram'), null, 2000), `${name}: riding the tram plays its own pose`); await wait(1200); await look('the night safari tram');
   await until(() => !window.__jade.world().p.act, null, 8000); check(await W(() => window.__jade.world().s.stats.trams >= 1), `${name}: the tram ride is counted`);
   await free();
+  // (the perch first from just above and to its right, so its painted lorikeets show clear of the heroes and the toasts)
+  await stand(M.perch[0] + 70, M.perch[1] - 110);
+  check(await until(() => window.__jade.art().files.includes('atlas-lory19b'), null, 4000), `${name}: the perched lorikeets' painting is decoded in Mandai`); await wait(2500); await look('bird paradise perch');
   nk = await stand(M.perch[0], M.perch[1]); check(nk?.kind === 'mandai' && nk.id === 'lory', `${name}: the lory perch's prompt: "${nk?.label}"`);
   await E(); check(await until(() => window.__seen19.has('lory'), null, 2000), `${name}: feeding the lories plays its own pose`); await wait(700); await look('feeding the lories');
   await until(() => !window.__jade.world().p.act, null, 5000); check(await W(() => window.__jade.world().s.stats.lories >= 1), `${name}: the lories are counted`);
@@ -104,6 +107,7 @@ export async function nineteenth(h) {
       await p.keyboard.down(' '); await until(() => { const g = window.__jadeMini?.g(); return !g || g.glowing() || g.pins[g.sel].h > 0.97; }, null, 4000); await p.keyboard.up(' '); await wait(150);
     }
   };
+  let listened = false, listenTries = 0, torchAt = 0;
   const only = process.env.ONLY19 ? process.env.ONLY19.split(',') : null;
   async function play(id, secs) {
     const t0 = Date.now(); let fails = 0, started = false, lastKey = 0, last = '', fAt = 0;
@@ -156,6 +160,20 @@ export async function nineteenth(h) {
       }
       // (a crowd, as the hint says: stand still at the edge while it says "Wait", walk on when it says "Go!" or "Squeeze")
       if (s.step === 'crowd' && /^Wait at the edge/.test(s.hint)) { await hold(new Set()); await wait(60); continue; }
+      // (once, on the first torch trail a few seconds in (the job's title card gone): stop dead with nothing stirring, as
+      // a person pauses to listen, and check the listening pose is the frame really drawn for the hero, then look at it)
+      if (s.step === 'torch' && !torchAt) torchAt = Date.now();
+      if (s.step === 'torch' && !listened && listenTries < 4 && Date.now() - torchAt > 4000 && !/stirring/.test(s.hint) && !s.act) {
+        listenTries++; await hold(new Set()); await wait(700);
+        const ls = await W(() => { const w = window.__jade.world(); return { who: w.p.who, anim: w.p.anim, step: w.run?.cur?.t ?? null }; });
+        if (ls.step === 'torch' && ls.anim === 'torch-still') {
+          listened = true; await look('torch trail: standing still, listening');
+          const d = await W(() => window.__jade.heroDrawn());
+          check(d[ls.who] === `${ls.who}-listen`, `${name}: standing still on the torch trail draws the listening pose (${d[ls.who] || 'nothing'})`);
+          check(await W(() => window.__seen19.has('torch-still')), `${name}: the listen pose is played while standing still`);
+          continue;
+        }
+      }
       // (a torch trail, as the hint says: when it names an animal near, hold Shift and creep; "stirring" says stand still
       // till it settles (or creep), so a person stops a moment)
       if (s.step === 'torch' && /stirring/.test(s.hint)) { await hold(new Set()); await wait(400); continue; }
@@ -179,6 +197,7 @@ export async function nineteenth(h) {
     const r = await play(id, id === 'm95' ? 420 : 300); results[id] = r;
     check(r.won, `${name}: a first-timer finishes ${id} from the hints alone (${r.secs.toFixed(0)} s, ${r.fails} retries)`);
     if (id === 'm87') check(await seen('torch'), `${name}: the torch trail plays its own creeping pose`);
+    if (id === 'm87') check(listened, `${name}: stood still on the torch trail and saw the listening pose drawn`);
     if (id === 'm88') check(await seen('skin:owl'), `${name}: barn owls keep watch`);
     await look(`${id} done`);
     if (!r.won) await W(id => { const w = window.__jade.world(); w.quitJob(); if (!w.s.done.includes(id)) w.s.done.push(id); }, id);
