@@ -19,7 +19,9 @@ export type Line = [string, string, Mood?];
  * crane's swinging container and the yard gate (lib/jade-setpiece.ts); `wp` is the route leg that triggers it */
 /** a chase or tail target's painted body other than Pip's: a gang member (otter, macaque, lizard, mynah, bat) or a boss
  * (Director Kaw, Crow Number Nine, Datin Ciku) */
-export type Skin = 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine' | 'bat' | 'ciku' | 'hoot' | 'boar' | 'taring';
+export type Skin = 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine' | 'bat' | 'ciku' | 'hoot' | 'boar' | 'taring' | 'owl';
+/** the nineteenth pass: the night animals resting by a torch trail (lib/jade-torch.ts) */
+export type Beast = 'fcat' | 'pango' | 'porc' | 'squir';
 export type SetDef = { k: 'stall' | 'drums' | 'bridge' | 'crane' | 'gate'; at: [number, number]; wp: number };
 export type Step =
   | { t: 'talk'; lines: Line[]; cp?: boolean }
@@ -74,7 +76,7 @@ export type Step =
   | { t: 'toss'; marks: Spot[]; item: string; time?: number; label: string; cp?: boolean }
   /** the sixteenth pass: a delivery on the dragon boat, timed for a boat with the partner drumming */
   | { t: 'paddle'; to: Spot; time: number; item: string; label: string; cp?: boolean }
-  | { t: 'case'; spots: { at: Spot; kind: Intel }[]; guards: Spot[][]; need?: number; label: string; cp?: boolean; /** who keeps watch (guards in caps when unset) */ skin?: 'liz' | 'myna' | 'bat' | 'boar' }
+  | { t: 'case'; spots: { at: Spot; kind: Intel }[]; guards: Spot[][]; need?: number; label: string; cp?: boolean; /** who keeps watch (guards in caps when unset) */ skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' }
   /** the heist: choose quiet or loud. Quiet sneaks in at `back` (only with the back door cased) or at `front`, past the
    * guards and `cams` ([x, y, facing in degrees]), cracks the safe and slips out the same way; loud sends the partner
    * to set off a confetti diversion at the front, then it is a race to the safe before `time` runs out and a getaway
@@ -100,8 +102,12 @@ export type Step =
   /** the eighteenth pass (lib/jade-crowd.ts): get from `from` to `to` through `lanes` lanes of match-night fans
    * streaming across the way (`span` tiles either side); a fan walks into you and you are shoved back; `ticket`: E at
    * the turnstile at `to` to end it; `item`: carried through (`keep`: still carried after) */
+  /** the nineteenth pass (lib/jade-torch.ts): a lights-off night trail by torch, marker to marker along `route`, past the
+   * animals resting by it (`beasts`): in earshot, creep (Shift) or the animal wakes and bolts and you go back a marker;
+   * `time`: the night left */
+  | { t: 'torch'; route: Spot[]; beasts: { at: Spot; kind: Beast }[]; time?: number; label: string; cp?: boolean }
   | { t: 'crowd'; from: Spot; to: Spot; lanes: number; span?: number; time?: number; item?: string; keep?: boolean; ticket?: boolean; label: string; cp?: boolean }
-  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat' | 'boar'; /** what the HUD calls a crate ('loot sack') */ thing?: string; label: string; cp?: boolean };
+  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl'; /** what the HUD calls a crate ('loot sack') */ thing?: string; label: string; cp?: boolean };
 /** what a photo while casing tells you: the back way in, the guards' beats, where the cameras are wired, the safe's make */
 export type Intel = 'door' | 'rota' | 'cam' | 'safe';
 /** a witness: `ask` are the three questions on offer, `right` the one that gets the clue (its `tag` must be among the
@@ -170,6 +176,11 @@ export const PEOPLE: Record<string, { name: string; face: string; who: string }>
   biru: { name: 'Coach Biru', face: 'face-biru', who: 'Kallang dragon-boat and rowing coach (a collared kingfisher)' },
   tenuk: { name: 'Ms Tenuk', face: 'face-tenuk', who: 'Sports Hub events manager (a Malayan tapir)' },
   kubung: { name: 'Uncle Kubung', face: 'face-kubung', who: 'caretaker of the Old Kallang Airport and its archive (a Sunda colugo)' },
+  // the nineteenth pass: Mandai
+  kongkang: { name: 'Encik Kongkang', face: 'face-kongkang', who: 'Night Safari ranger (a slow loris)' },
+  enggang: { name: 'Auntie Enggang', face: 'face-enggang', who: 'Bird Paradise keeper (a rhinoceros hornbill)' },
+  bintu: { name: 'Dr Bintu', face: 'face-bintu', who: 'the parks’ vet and host of the Creatures of the Night show (a binturong)' },
+  hantu: { name: 'Tuan Hantu', face: 'face-hantu', who: 'boss of a night watch for hire (a barn owl)' },
   sutera: { name: 'Madam Sutera', face: 'face-sutera', who: 'the lady in black feathers (a black swan)' },
   // the tenth pass: the empire's supplier, the health inspector, the rival towkay and the jaga you can hire
   huat: { name: 'Ah Huat', face: 'face-huat', who: 'wholesale supplier (a wild boar)' },
@@ -190,9 +201,9 @@ export const HEIRLOOMS = [
 ] as const;
 /** which district each chapter's finale opens (chapter 1 is played in Smith Street) */
 export const CHAPTER_OPENS: District[] = ['temple', 'canal', 'docks', 'arcade'];
-export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Club Street', 'The Island', 'Island Lights', 'Christmas Star', 'Lights by the Lake', 'Kampong Spirit', 'Kallang Roar'];
+export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Club Street', 'The Island', 'Island Lights', 'Christmas Star', 'Lights by the Lake', 'Kampong Spirit', 'Kallang Roar', 'Night Safari'];
 /** the last job of each chapter (its finale) */
-export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55', 'm65', 'm75', 'm85'];
+export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55', 'm65', 'm75', 'm85', 'm95'];
 /** the story job that opens Sentosa (half way through chapter seven) */
 export const RESORT_OPENS = 'm40';
 /** the story job that opens Changi (half way through chapter eight) */
@@ -203,12 +214,16 @@ export const JURONG_OPENS = 'm61';
 export const UBIN_OPENS = 'm65';
 /** the story job that opens Kallang (the end of chapter ten: chapter eleven is set there) */
 export const KALLANG_OPENS = 'm75';
+/** the story job that opens Mandai (the end of chapter eleven: chapter twelve is set there) */
+export const MANDAI_OPENS = 'm85';
 
 // ── every [x, y] tile in a step is written in the old frame (where the district was first laid out) and moved once,
 // here, through the layout table (lib/jade-layout.ts); names ('kee', 'here', 'loot') are places and stay
 /** a Kallang tile by its local column and row (lib/jade-kallang.ts kalOld, written out here so the story needs no
  * city at run time): the north strip's rows 0-13 sit under Kampong Glam, the rest east of Sentosa, both in the old frame */
 const K = (lx: number, ly: number): [number, number] => ly < 14 ? [212 + lx, 82 + ly] : [148 + lx, 82 + ly];
+/** a Mandai tile by its local column and row (lib/jade-mandai.ts mndOld): built in the old frame west of Sentosa */
+const M = (lx: number, ly: number): [number, number] => [lx, 90 + ly];
 /** a spot: a place name stays, a tile moves */
 export const mvSpot = <S extends Spot>(s: S): S => (typeof s === 'string' ? s : mvT(s[0], s[1])) as S;
 const mvSpots = (a: Spot[]) => a.map(mvSpot);
@@ -233,6 +248,7 @@ function mvStepFields(st: Step): Step {
     case 'toss': return { ...st, marks: mvSpots(st.marks) };
     case 'track': return { ...st, route: mvSpots(st.route), ...(st.old ? { old: mvSpots(st.old) } : {}) };
     case 'crowd': return { ...st, from: mvSpot(st.from), to: mvSpot(st.to) };
+    case 'torch': return { ...st, route: mvSpots(st.route), beasts: st.beasts.map(b => ({ ...b, at: mvSpot(b.at) })) };
     case 'chase': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), sets: st.sets?.map(d => ({ ...d, at: mvT(d.at[0], d.at[1]) })) };
     case 'float': return st.rope === undefined ? st : { ...st, rope: mvSpot(st.rope) };
     case 'tail': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), relay: st.relay && { ...st.relay, spot: mvSpot(st.relay.spot) } };
@@ -1062,6 +1078,81 @@ export const MISSIONS: Mission[] = mvMissions([
       { t: 'chase', who: 'boat', from: K(9, 28), route: [K(4, 34), K(10, 39), K(14, 33), K(8, 27), K(3, 36), K(12, 41)], bumps: 3, loot: 'i-map', speed: 200, label: 'Paddle after Pip’s sampan and bump it three times', cp: true },
       { t: 'talk', lines: [['hero', 'Got it! The chart, dry and whole. Sorry, Pip.', 'happy'], ['sutera', 'Keep it, darlings. A chart is only paper. I have the photograph, and the photograph has the bearing.', 'happy'], ['mate', 'The seaplane! Its engines are going! She’s taking off across the basin!', 'worried'], ['biru', 'Heading south. Low and fast, over the Straits.', 'worried'], ['hero', 'South. Towards an island with no name. And she’s a day ahead of us.', 'cross']] },
     ] },
+  // ── Chapter twelve, "Night Safari" (the nineteenth pass): Mandai, after dark. Madam Sutera's seaplane flew south off
+  // Kallang, then doubled back north under the clouds and came down on Upper Seletar Reservoir. She has the 1937
+  // photograph; the bearing that reads it is cut into the old survey pillar deep in the Night Safari's forest, and Tuan
+  // Hantu's barn owls keep watch over the trails for her.
+  { id: 'm86', ch: 12, title: 'Doubling Back', giver: 'kubung', at: 'kubung', reward: 960, rep: 23, blurb: 'Madam Sutera’s seaplane flew south off Kallang, but the radio log says it turned north again under the clouds. Uncle Kubung has a ranger friend at Mandai who saw something land on the reservoir. Take the MRT up and find him.',
+    steps: [
+      { t: 'talk', lines: [['kubung', 'The 1937 flight log: the survey took its bearing from a stone pillar at Mandai. “Station Mandai.” The bearing is cut into the pillar itself.', 'calm'], ['kubung', 'And my radio log from last night: the seaplane went south over the Straits… then turned north again, low, under the cloud. My old friend Kongkang, the ranger at the Night Safari, says something with floats came down on Upper Seletar.', 'worried'], ['mate', 'She doubled back. South was only for us to see.', 'cross']] },
+      { t: 'train', to: 'stn-mandai', label: 'Take the MRT to Mandai Lake Road (E at the station entrance)', cp: true },
+      { t: 'goto', at: 'kongkang', time: 60, label: 'Find Encik Kongkang, the ranger, by the Night Safari’s entrance lodge, before he locks up for the night' },
+      { t: 'talk', lines: [['kongkang', 'Ah… you are… Kubung’s… chinchillas. Good. I am… slow. But I… see… everything. At night.', 'calm'], ['kongkang', 'A black seaplane… on my reservoir. And owls… new owls… on every trail. Not my owls.', 'worried'], ['hero', 'Madam Sutera’s, then. She’s after the survey pillar. Where is it?', 'worried'], ['kongkang', 'Deep… in my forest. In the dark. First… you learn… to walk my trails.', 'calm']] },
+    ] },
+  { id: 'm87', ch: 12, title: 'Lights Out', giver: 'kongkang', at: 'kongkang', reward: 970, rep: 23, mods: ['night'], blurb: 'Encik Kongkang walks the Night Safari’s trails with only a torch. Learn how: follow the glowing studs into the forest, and creep past the animals sleeping by the path without waking them.',
+    steps: [
+      { t: 'talk', lines: [['kongkang', 'On my trails… no lights. The animals… sleep by the path. Run… and they wake. Creep… and they do not.', 'calm'], ['kongkang', 'Torch. Studs. Markers. When you see… eyes shining… hold Shift… and creep.', 'calm'], ['mate', 'Softly, softly. I can do softly.', 'smug']] },
+      { t: 'goto', at: M(6, 31), label: 'Go to the start of the trail, past the entrance lodge', ride: 'foot', cp: true },
+      { t: 'torch', route: [M(3, 33), M(11, 34), M(14, 32)], beasts: [{ at: M(7, 34), kind: 'pango' }], time: 120, label: 'Follow the torch trail marker to marker: creep (hold Shift) past anything sleeping by the path', cp: true },
+      { t: 'talk', lines: [['kongkang', 'The pangolin… did not even… uncurl. Good. You are… ready… for owls.', 'happy'], ['hero', 'Then show us where they roost.', 'calm']] },
+    ] },
+  { id: 'm88', ch: 12, title: 'Owl Watch', giver: 'kongkang', at: 'kongkang', reward: 980, rep: 24, mods: ['night'], blurb: 'Tuan Hantu’s barn owls have set up a watch post outside the Night Safari’s lodge. Photograph their door, their rota, their lookout and their strongbox without being seen.',
+    steps: [
+      { t: 'talk', lines: [['kongkang', 'Their post… is outside my lodge. Rude. Find out… who they are… and what they guard.', 'cross'], ['mate', 'Owls see in the dark. So do we, with a camera.', 'smug']] },
+      { t: 'case', skin: 'owl', spots: [{ at: M(3, 30), kind: 'door' }, { at: M(9, 31), kind: 'rota' }, { at: M(12, 32), kind: 'cam' }, { at: M(5, 32), kind: 'safe' }], need: 3, guards: [[M(2, 32), M(10, 32)], [M(14, 31), M(14, 35)]], label: 'Photograph three things (E): the owls’ door, their rota, their lookout, their strongbox', cp: true },
+      { t: 'goto', at: 'safe-mandai', label: 'Slip off to the ranger hut with the photos: Encik Kongkang will meet you there' },
+      { t: 'talk', lines: [['hero', 'The rota is signed Tuan Hantu, Night Watch for Hire. Payment from M. Sutera. Watch the pillar.', 'worried'], ['kongkang', 'So… they guard… the pillar. And every trail… to it.', 'worried'], ['hero', 'Then she hasn’t read the bearing yet. She’s waiting till her owls have the whole forest.', 'cross']] },
+    ] },
+  { id: 'm89', ch: 12, title: 'Lory Loft', giver: 'enggang', at: 'enggang', reward: 990, rep: 24, mods: ['night'], blurb: 'Someone opened the Lory Loft at Bird Paradise after closing, and Auntie Enggang’s lorikeets are loose in the dark. Find all four before they fly out over the reservoir.',
+    steps: [
+      { t: 'talk', lines: [['enggang', 'My lories! Somebody opened the loft! Owls, I think, to keep us busy. Four of them, out in the dark, the silly things.', 'worried'], ['mate', 'Busy is what they want. Quick, then.', 'cross']] },
+      { t: 'collect', items: [M(1, 12), M(10, 15), M(8, 20), M(1, 20)], item: 'i-lory', time: 70, label: 'Find the four lorikeets round Bird Paradise (E at each) before they fly off', cp: true },
+      { t: 'talk', lines: [['enggang', 'All four! Every feather. Thank you, darlings. Now, about those owls: they fly in from the boardwalk, every night, carrying crates.', 'happy']] },
+    ] },
+  { id: 'm90', ch: 12, title: 'River Wonders', giver: 'bintu', at: 'bintu', reward: 1000, rep: 24, mods: ['night'], blurb: 'Dr Bintu has a sleepy pangolin who must reach the panda pavilion’s night clinic, and the owls have blocked the bridge. Carry its travel crate the long way round the river, gently.',
+    steps: [
+      { t: 'talk', lines: [['bintu', 'Hello, hello! I am Dr Bintu, and yes, I smell of popcorn: all binturongs do. Now, a favour.', 'happy'], ['bintu', 'A pangolin from the trail with a sore paw, asleep in a crate at the market. My clinic is at River Wonders, round the river. Gently, please.', 'calm']] },
+      { t: 'pickup', at: 'mk-mandai', item: 'mnd-crate', label: 'Pick up the pangolin’s travel crate at the Mandai market (E)', cp: true },
+      { t: 'deliver', to: 'riverwonders', item: 'mnd-crate', time: 60, fragile: 5, label: 'Carry the crate round the river to River Wonders (gently: bumps wake the pangolin)', cp: true },
+      { t: 'talk', lines: [['bintu', 'Still asleep! Perfect. Come to my show tomorrow night, both of you. The Creatures of the Night. A lady in black has booked the front row.', 'happy']] },
+    ] },
+  { id: 'm91', ch: 12, title: 'Creatures of the Night', giver: 'bintu', at: 'bintu', reward: 1010, rep: 25, mods: ['night'], blurb: 'Madam Sutera has the front row at Dr Bintu’s Creatures of the Night show, with Tuan Hantu beside her. Pull on a tour poncho, walk in with the tram crowd, and listen.',
+    steps: [
+      { t: 'talk', lines: [['bintu', 'She is in the front row with a very large owl. You two will sit in the back with the tour group, in ponchos. Nobody looks at ponchos.', 'calm'], ['mate', 'I look excellent in a poncho.', 'happy']] },
+      { t: 'blend', rack: M(23, 29), route: [M(22, 30), M(20, 31), M(15, 31), M(13, 31)], goal: M(12, 30), lookouts: [[...M(18, 34), 270], [...M(10, 32), 0]], crowd: 8, folk: 'town', label: 'Pull on a tour poncho by the station (E), then walk in with the tram crowd to the show', cp: true },
+      { t: 'talk', lines: [['hantu', 'My owls watch every trail, madam. Nobody reaches the pillar without my say.', 'happy'], ['sutera', 'Good. Tomorrow night I read the bearing off it myself, then the photograph tells me the island. Then, darling, we fly.', 'happy'], ['hero', 'Tomorrow night. Then we get there first.', 'cross']] },
+    ] },
+  { id: 'm92', ch: 12, title: 'Hoot Watch', giver: 'kongkang', at: 'kongkang', reward: 1020, rep: 25, mods: ['night'], blurb: 'Tuan Hantu’s owls are stacking Madam Sutera’s crates on the boardwalk for the seaplane. Swap each one for a crate of bird seed while the owls on watch look the other way.',
+    steps: [
+      { t: 'talk', lines: [['kongkang', 'Crates… on my boardwalk. For her plane. Enggang… has crates of bird seed. Same size.', 'calm'], ['mate', 'Bird seed. For a plane full of owls. Perfect.', 'smug']] },
+      { t: 'goto', at: M(8, 9), label: 'Creep up Mandai Lake Road to the boardwalk', ride: 'foot', cp: true },
+      { t: 'swap', crates: [M(5, 7), M(12, 8), M(17, 7), M(23, 8)], guards: [[M(2, 8), M(14, 8)], [M(15, 7), M(27, 7)]], time: 90, decoy: 'decoy', skin: 'owl', label: 'Swap a bird-seed crate for each of hers (E) while the owls look away', cp: true },
+      { t: 'talk', lines: [['hero', 'In the last crate: a brass sextant and a survey book from 1937. She means to read the pillar tonight.', 'worried'], ['kongkang', 'Then you… go tonight. First. The leopard trail. The old way. In the dark.', 'calm']] },
+    ] },
+  { id: 'm93', ch: 12, title: 'The Leopard Trail', giver: 'kongkang', at: 'kongkang', reward: 1040, rep: 25, mods: ['night'], blurb: 'The survey pillar stands at the far end of the Leopard Trail. Walk it by torch past a fishing cat, a flying squirrel and a porcupine, and take a rubbing of the bearing before Madam Sutera gets there.',
+    steps: [
+      { t: 'talk', lines: [['kongkang', 'Three animals… sleep on the Leopard Trail tonight. A fishing cat. A flying squirrel. A porcupine. Do not… wake… the porcupine.', 'worried'], ['mate', 'Noted. Very, very noted.', 'worried']] },
+      { t: 'goto', at: M(11, 34), label: 'Go into the forest to the start of the Leopard Trail', ride: 'foot', cp: true },
+      { t: 'torch', route: [M(17, 33), M(13, 37), M(5, 37), M(2, 33)], beasts: [{ at: M(14, 32), kind: 'fcat' }, { at: M(15, 35), kind: 'squir' }, { at: M(9, 37), kind: 'porc' }], time: 150, label: 'Walk the Leopard Trail by torch to the survey pillar: creep (hold Shift) past each sleeping animal', cp: true },
+      { t: 'pickup', at: 'trig', item: 'mnd-rubbing', label: 'Take a rubbing of the bearing cut into the survey pillar (E)' },
+      { t: 'talk', lines: [['hero', 'Got it. “Station Mandai, 1937. Bearing one-eight-two.” Almost due south.', 'happy'], ['mate', 'Something just flew off that branch. Black. Small. Holding our rubbing!', 'cross'], ['hero', 'PIP!', 'cross']] },
+    ] },
+  { id: 'm94', ch: 12, title: 'Boardwalk Dash', giver: 'enggang', at: 'enggang', reward: 1060, rep: 26, mods: ['night'], blurb: 'Pip snatched the pillar rubbing and is running for the seaplane along the boardwalk. Chase him down and bump him three times before he reaches the jetty.',
+    steps: [
+      { t: 'talk', lines: [['enggang', 'That crow child ran past my aviary holding paper! Towards the boardwalk!', 'cross'], ['mate', 'Run. Now. Talk later.', 'cross']] },
+      { t: 'goto', at: 'boardwalk', label: 'Run up to the boardwalk after Pip', ride: 'foot', cp: true },
+      { t: 'chase', who: 'runner', from: M(20, 8), route: [M(26, 7), M(28, 8), M(22, 7), M(14, 8), M(6, 7), M(2, 8), M(9, 7)], bumps: 3, loot: 'mnd-rubbing', speed: 190, label: 'Chase Pip along the boardwalk and bump him three times (Space dashes)', cp: true },
+      { t: 'talk', lines: [['hero', 'Got it back. Sorry, Pip.', 'happy'], ['pip', 'It is only a copy! Madam made her own! She is going to the plane! NOW!', 'smug']] },
+    ] },
+  { id: 'm95', ch: 12, title: 'Upper Seletar', giver: 'kongkang', at: 'kongkang', reward: 1700, rep: 29, mods: ['night'], blurb: 'Madam Sutera has her bearing and her seaplane is warming up on the reservoir. Take the old trail north by torch to the boardwalk, hold the jetty against her crows, and see where she goes next.',
+    steps: [
+      { t: 'talk', lines: [['kongkang', 'Her engines… are warming. The quick way… is the old trail. North. Through the dark. Past… everyone… asleep.', 'worried'], ['hero', 'Then quietly, and quickly. Both at once.', 'cross']] },
+      { t: 'goto', at: M(2, 33), label: 'Go to the survey pillar, where the old trail north begins', ride: 'foot', cp: true },
+      { t: 'torch', route: [M(1, 27), M(1, 19), M(1, 12), M(6, 8)], beasts: [{ at: M(0, 30), kind: 'pango' }, { at: M(0, 23), kind: 'porc' }, { at: M(0, 16), kind: 'squir' }, { at: M(2, 9), kind: 'fcat' }], time: 160, label: 'Take the old trail north by torch to the boardwalk: creep (hold Shift) past each sleeping animal', cp: true },
+      { t: 'goto', at: 'mnd-jetty', label: 'Run along the boardwalk to the jetty', ride: 'foot', cp: true },
+      { t: 'defend', at: 'mnd-jetty', time: 60, waves: 3, per: 2, gang: 'crow', what: 'the jetty', label: 'Hold the jetty: knock the crows back before they cut the mooring line ({mate} helps on their own)', cp: true },
+      { t: 'talk', lines: [['sutera', 'Darlings! In the dark, through my owls, past every sleeping thing in the forest. I am almost impressed.', 'happy'], ['hantu', 'Madam. My owls are paid until midnight. It is midnight.', 'calm'], ['sutera', 'Then go home, Tuan. Pip, the door.', 'calm'], ['mate', 'She’s taking off! And she dropped something on the jetty.', 'worried'], ['hero', 'A black feather. And a card: “Bearing one-eight-two, darlings. See you at the lighthouse.”', 'cross'], ['kongkang', 'One-eight-two… from here… runs… right out to Raffles Lighthouse. Far south. On its own… little rock.', 'calm'], ['hero', 'Then that’s where the island is. And this time, she’s waiting for us.', 'cross']] },
+    ] },
 ]);
 // ── Hawker Tales: the Singapore side jobs. They sit outside the five chapters (ch 0), open once their story job is
 // done, and pay like a story job; the townsfolk they help are in PEOPLE.
@@ -1310,6 +1401,27 @@ export const SIDE: Mission[] = mvMissions([
       { t: 'talk', lines: [['kubung', 'The wind! My 1938 logs, all over the apron! Four pages, and the basin is very wet.', 'worried'], ['mate', 'Four pages. We can do four pages.', 'happy']] },
       { t: 'collect', items: [K(17, 9), K(31, 5), K(29, 14), K(20, 15)], item: 'kal-charts', time: 70, label: 'Pick up the four flight-log pages blowing across the apron (E at each) before they reach the water', cp: true },
       { t: 'talk', lines: [['kubung', 'All four. Every take-off, every landing. Thank you. History is mostly paper, and paper is mostly wind.', 'happy']] },
+    ] },  // the nineteenth pass: Mandai
+  { id: 'k30', side: 'm89', ch: 0, title: 'Lory Breakfast', giver: 'enggang', at: 'aviary', reward: 310, rep: 12, blurb: 'The lorikeets at Bird Paradise want their nectar before dawn, and Auntie Enggang’s pot is at the Mandai market. Carry it to the lory perch without spilling a drop.',
+    steps: [
+      { t: 'talk', lines: [['enggang', 'Breakfast time and no nectar! The pot is at the market. Carry it level, darling: lories are fussy about spills.', 'worried']] },
+      { t: 'pickup', at: 'mk-mandai', item: 'mnd-nectar', label: 'Pick up the nectar pot at the Mandai market (E)', cp: true },
+      { t: 'deliver', to: M(5, 19), item: 'mnd-nectar', time: 60, fragile: 5, label: 'Carry the nectar to the lory perch at Bird Paradise (bumps spill it)', cp: true },
+      { t: 'talk', lines: [['enggang', 'Look at them! Rainbows with spoons. Thank you, darling.', 'happy']] },
+    ] },
+  { id: 'k31', side: 'm87', ch: 0, title: 'Torchlight Tour', giver: 'kongkang', at: 'safari', reward: 310, rep: 12, mods: ['night'], blurb: 'Encik Kongkang’s school group wants a torchlight tour, and he wants to see if you can lead one. Walk the forest loop by torch past a porcupine and a fishing cat without waking either.',
+    steps: [
+      { t: 'talk', lines: [['kongkang', 'A school… tour. You lead. I… watch. A porcupine… and a fishing cat… on the loop tonight.', 'calm'], ['mate', 'Torches on, voices off, everybody.', 'happy']] },
+      { t: 'goto', at: M(13, 32), label: 'Meet the tour group by the Creatures of the Night show', ride: 'foot', cp: true },
+      { t: 'torch', route: [M(19, 35), M(12, 37), M(6, 36)], beasts: [{ at: M(16, 33), kind: 'porc' }, { at: M(16, 36), kind: 'fcat' }], time: 110, label: 'Lead the torchlight tour round the forest loop: creep (hold Shift) past each sleeping animal', cp: true },
+      { t: 'talk', lines: [['kongkang', 'Nobody… woke. Not even… the teacher. Very good.', 'happy']] },
+    ] },
+  { id: 'k32', side: 'm91', ch: 0, title: 'Popcorn', giver: 'bintu', at: 'boardwalk', reward: 310, rep: 12, mods: ['night'], blurb: 'A Kaypoh Crow cadet steals Dr Bintu’s popcorn every night and races off down the boardwalk with it. Dr Bintu bets you can’t beat him there and back. Every marker, and back, before the crow.',
+    steps: [
+      { t: 'talk', lines: [['bintu', 'That crow cadet! Every night, one bag of my popcorn, there and back along the boardwalk. Nobody has ever caught him.', 'cross'], ['mate', 'Honestly, I would also run for popcorn.', 'happy']] },
+      { t: 'goto', at: M(3, 8), label: 'Go to the west end of the boardwalk', ride: 'foot', cp: true },
+      { t: 'race', ride: 'foot', rival: 'runner', time: 80, pace: 0.9, marks: [M(9, 7), M(16, 8), M(23, 7), M(28, 8), M(19, 8), M(10, 7)], label: 'Run every marker along the boardwalk and back before the crow cadet', cp: true },
+      { t: 'talk', lines: [['bintu', 'You beat him! He dropped the bag, too. Popcorn for everybody!', 'happy']] },
     ] },
 ]);
 export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id, m])) as Record<string, Mission>;

@@ -8,7 +8,7 @@ import { PEOPLE } from './jade-story.js';
 import type { World } from './jade-game.js';
 import type { Msg } from './jade-save.js';
 
-export const CONTACT_OF: Record<District, string> = { market: 'kee', temple: 'pang', canal: 'kiri', docks: 'bo', arcade: 'gizmo', heartland: 'kamal', bay: 'vanda', india: 'raju', glam: 'kancil', resort: 'duyung', orchard: 'tiara', katong: 'rosie', changi: 'ubin', tiong: 'seng', quay: 'melati', jurong: 'musang', pulau: 'ayu', kallang: 'tenuk' };
+export const CONTACT_OF: Record<District, string> = { market: 'kee', temple: 'pang', canal: 'kiri', docks: 'bo', arcade: 'gizmo', heartland: 'kamal', bay: 'vanda', india: 'raju', glam: 'kancil', resort: 'duyung', orchard: 'tiara', katong: 'rosie', changi: 'ubin', tiong: 'seng', quay: 'melati', jurong: 'musang', pulau: 'ayu', kallang: 'tenuk', mandai: 'kongkang' };
 export function text(w: World, from: string, msg: string, o: { kind?: Msg['kind']; job?: string } = {}) {
   const s = w.s; const id = (s.msgs[s.msgs.length - 1]?.id ?? 0) + 1;
   s.msgs.push({ id, from, text: msg, night: s.night, read: false, ...o });
