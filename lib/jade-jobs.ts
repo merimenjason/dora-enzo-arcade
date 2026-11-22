@@ -442,7 +442,7 @@ function blendStep(run: Run, st: St<'blend'>, dt: number) {
       if (mi.st === 'sus' && mi.t > 1.8) mi.st = 'patrol';
       if ((a.stare ?? 0) > 0) continue;
       if (mi.st === 'sus') a.b.h = turnTo(a.b.h, Math.atan2(mi.at![1] - a.b.y, mi.at![0] - a.b.x), dt * 5);
-      else a.b.h = turnTo(a.b.h, a.face + Math.sin(a.t * 0.55 + a.id) * 0.9, dt * 3);
+      else a.b.h = turnTo(a.b.h, a.face + Math.sin(a.t * 0.55 + a.id - run.actors[0].id) * 0.9, dt * 3);
       continue;
     }
     if (a.kind !== 'crowd') continue;
