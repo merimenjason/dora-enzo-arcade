@@ -19,7 +19,7 @@ import { playMission } from './jade-bot.mjs';
 let n = 0;
 const test = (name, fn) => { try { fn(); n++; } catch (e) { console.error('FAILED:', name); throw e; } };
 const c = city();
-const ALL = ['market', 'temple', 'canal', 'docks', 'arcade', 'heartland', 'bay', 'india', 'glam', 'resort', 'orchard', 'katong', 'changi', 'tiong', 'quay', 'jurong', 'pulau', 'kallang', 'mandai', 'islands', 'bukit'];
+const ALL = ['market', 'temple', 'canal', 'docks', 'arcade', 'heartland', 'bay', 'india', 'glam', 'resort', 'orchard', 'katong', 'changi', 'tiong', 'quay', 'jurong', 'pulau', 'kallang', 'mandai', 'islands', 'bukit', 'kranji'];
 /** a save that has finished the story, with reputation everywhere and coins to spend */
 function rich(seed = 5, o = {}) {
   const s = newSave(seed); s.started = true; s.story.intro = true; s.done = [...MISSIONS.map(m => m.id), ...SIDE.map(m => m.id)];

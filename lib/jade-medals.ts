@@ -31,6 +31,10 @@ export const PAR: Record<string, number> = {
   m96: 75, m97: 60, m98: 70, m99: 60, m100: 60, m101: 75, m102: 60, m103: 65, m104: 65, m105: 205, k39: 60, k40: 140, k41: 60,
   // the twenty-second pass (Bukit Timah, chapter 14): 2.5 times the slower solver, at least a minute
   m106: 88, m107: 93, m108: 155, m109: 60, m110: 60, m111: 110, m112: 113, m113: 73, m114: 80, m115: 208, k42: 60, k43: 85, k44: 60,
+  // Whimbrel Season (chapter fifteen, the twenty-fourth pass) and its Hawker Tales: 2.5 times the slower of the casual
+  // and normal solvers (they wait out the crocodiles' watch on the mud as a person does), at least a minute; m116 includes
+  // the MRT ride north
+  m116: 60, m117: 60, m118: 85, m119: 60, m120: 60, m121: 60, m122: 60, m123: 75, m124: 60, m125: 205, k53: 65, k54: 60, k55: 65,
 };
 export const MEDAL_NAME = ['Finished', 'Bronze', 'Silver', 'Gold'] as const;
 export const MEDAL_SPRITE = ['ui-medal-none', 'ui-medal-bronze', 'ui-medal-silver', 'ui-medal-gold'] as const;

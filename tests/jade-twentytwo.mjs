@@ -52,7 +52,7 @@ function at(id, i, o = {}) {
 const put = (w, x, y) => { w.p.b.x = x; w.p.b.y = y; w.p.b.speed = 0; w.p.act = null; };
 
 test('Bukit Timah: its own district, opened by chapter 13’s finale, real places, a safe house, two MRT stations, taxis', () => {
-  assert.ok(DISTRICTS.includes('bukit')); assert.equal(ZONE_OF.bukit, 'bukit'); assert.equal(DISTRICTS.at(-1), 'bukit', 'appended after the others');
+  assert.ok(DISTRICTS.includes('bukit')); assert.equal(ZONE_OF.bukit, 'bukit'); assert.equal(DISTRICTS[DISTRICTS.indexOf('islands') + 1], 'bukit', 'appended after the others (the twenty-fourth pass’s Kranji after it)');
   assert.equal(BUKIT_OPENS, 'm105');
   const s = newSave(); s.done = MISSIONS.slice(0, MISSIONS.findIndex(m => m.id === BUKIT_OPENS)).map(m => m.id);
   assert.ok(!openDistricts(s).includes('bukit'), 'fogged before'); s.done.push(BUKIT_OPENS); assert.ok(openDistricts(s).includes('bukit'), 'open after');
@@ -103,8 +103,8 @@ test('chapter fourteen: ten jobs round the hill and the Gardens, a mix of steps,
   assert.doesNotMatch(words, /Sutera (is|was) (beaten|caught|finished)/i, 'Sutera is not beaten');
   assert.doesNotMatch(readFileSync(new URL('../app/jade-street/story.tsx', import.meta.url), 'utf8'), /bg-end-14|chapter 14 ending/i);
   const s = newSave(); s.done = MISSIONS.filter(m => m.ch <= 13).map(m => m.id); assert.equal(chapterOf(s), 14);
-  s.done = MISSIONS.map(m => m.id); assert.equal(chapterOf(s), 15);
-  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 115); assert.equal(jc.talesAll, 52);
+  s.done = MISSIONS.map(m => m.id); assert.equal(chapterOf(s), 16);
+  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 125); assert.equal(jc.talesAll, 55);
   assert.doesNotMatch(JSON.stringify([...ten, ...TALES.map(id => MISSION[id])]), /grumble/i);
 });
 
@@ -180,7 +180,7 @@ test('the macaques snatch snacks; shoo them, read a specimen, rest on a log, tou
   put(w, near.summit.x, near.summit.y); bukitAct(w, 'summit'); assert.equal(w.p.act?.n, 'summit'); settle(w, 1.8); assert.equal(w.s.stats.summits, 1);
   assert.ok(w.s.rep.bukit >= 4, 'a little Bukit Timah reputation');
   for (const t of ['secondbearing', 'hillrunner', 'nofeeding', 'naturalist']) assert.ok(TROPHIES.some(x => x.id === t), t);
-  assert.equal(TROPHIES.length, 81);
+  assert.equal(TROPHIES.length, 86);
   for (const f of ['mac-snatch', 'mac-run-0', 'mac-munch', 'mac-taunt', 'mac-startled']) assert.ok(FRAMES[f], f);
 });
 

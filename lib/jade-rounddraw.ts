@@ -21,7 +21,8 @@ export function roundsGround(sc: Scene, x: X, w: World, run: Run): boolean {
     if (it.got) { if (!sp && st.act !== 'photo') spr(x, f, it.x, it.y + (st.act === 'hang' ? -30 : 8), { w: 30 }); continue; }
     sc.glow(x, it.x, it.y, 44 + pulse * 8, 'rgba(255,210,110,.45)');
     if (sp) {
-      spr(x, `folk-${sp}-down`, it.x, it.y + 4, {});
+      // (a painted animal of its own, the twenty-fourth pass's goats, or one of the townsfolk)
+      spr(x, sp.startsWith('kr-') ? sp : `folk-${sp}-down`, it.x, it.y + 4, sp.startsWith('kr-') ? { w: 70 } : {});
       spr(x, 'ui-bubble', it.x + 20, it.y - 74, { w: 40, anchor: 'center' });
       spr(x, f, it.x + 20, it.y - 76, { w: 24, anchor: 'center' });
     } else {

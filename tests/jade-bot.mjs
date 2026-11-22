@@ -66,6 +66,8 @@ export function missionSave(id, o = {}) {
   if (d === 'islands') { s.safe = 'safe-islands'; s.best['house:safe-islands'] = 1; }
   // Bukit Timah (twenty-second pass) is far up the west: its jobs start from the bungalow by the Rail Corridor
   if (d === 'bukit') { s.safe = 'safe-bukit'; s.best['house:safe-bukit'] = 1; }
+  // Kranji and Woodlands are up north (the MRT's Kranji and Woodlands stations): their jobs start from the Woodlands flat
+  if (d === 'kranji') { s.safe = 'safe-kranji'; s.best['house:safe-kranji'] = 1; }
   return s;
 }
 
@@ -533,6 +535,17 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
         const pc = /(\d+)%/.exec(run.label), br = pc ? +pc[1] : 100, sh = (w.c.bukit?.shelters ?? []).find(([x, y]) => dist(x, y, p.x, p.y) < 320);
         if (sh && (br < 30 || (/Resting/.test(run.label) && br < 90))) { if (dist(sh[0], sh[1], p.x, p.y) > 60) { inp.sneak = true; go(sh[0], sh[1]); } else { inp.mx = 0; inp.my = 0; } return; }
         inp.sneak = br < 50 + 10 * P.wob; go(tg[0], tg[1]); return;
+      }
+      // the twenty-fourth pass: a mud crossing. The HUD says what the crocodiles are doing and for how long: go for the
+      // next marker (or flock, E at it) while they doze, stop dead the moment one is stirring, and stand still while one
+      // watches (in its sight or not, as the words ask)
+      case 'mud': {
+        if (p.ride) { offFoot(); return; }
+        if (p.act) { inp.mx = 0; inp.my = 0; return; }
+        const lab = run.label, tg = run.target();
+        if (nearJob('flock:')) { press('act'); return; }
+        if (/^Crocs dozing/.test(lab) && tg) { go(tg[0], tg[1]); return; }
+        inp.mx = 0; inp.my = 0; return;
       }
       // the twentieth pass: a round of drop-offs. Off any ride, follow the gold line to the nearest stop still waiting
       // and press E the moment the prompt shows; stand still while the pose plays

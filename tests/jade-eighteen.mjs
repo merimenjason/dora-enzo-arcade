@@ -85,8 +85,8 @@ test('chapter eleven: ten jobs in Kallang, a mix of steps, at most a third chase
   // no end panel for this chapter: the story goes on
   assert.doesNotMatch(readFileSync(new URL('../app/jade-street/story.tsx', import.meta.url), 'utf8'), /bg-end-11|chapter 11 ending/i);
   const s = newSave(); s.done = MISSIONS.filter(m => m.ch <= 10).map(m => m.id); assert.equal(chapterOf(s), 11);
-  s.done = MISSIONS.map(m => m.id); assert.equal(chapterOf(s), 15);
-  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 115); assert.equal(jc.talesAll, 52);
+  s.done = MISSIONS.map(m => m.id); assert.equal(chapterOf(s), 16);
+  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 125); assert.equal(jc.talesAll, 55);
   // no Hari Raya bazaar and no durians in this chapter
   const text = JSON.stringify([...ten, ...TALES.map(id => MISSION[id])]); assert.doesNotMatch(text, /durian|bazaar|Hari Raya/i);
 });

@@ -33,6 +33,7 @@ import { twentieth, fleetPerks } from './jade-street-20.mjs';
 import { twentyFirst } from './jade-street-21.mjs';
 import { twentySecond } from './jade-street-22.mjs';
 import { twentyThird } from './jade-street-23.mjs';
+import { twentyFourth } from './jade-street-24.mjs';
 const require = createRequire(import.meta.url);
 let chromium;
 try { ({ chromium } = require('playwright')); } catch { ({ chromium } = createRequire(process.cwd() + '/')('playwright')); }
@@ -171,6 +172,7 @@ async function viewport(name, w, h, touch) {
   if (process.env.PASS === '22') { if (!touch) { const r = await twentySecond({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); console.log('PASS=22 results', JSON.stringify(Object.fromEntries(Object.entries(r).map(([k, v]) => [k, `${v.won ? 'won' : 'LOST'} ${v.fails} retries ${Math.round(v.secs)} s`])))); } await ctx.close(); return; }
   if (process.env.PASS === '23') { if (!touch) { const r = await twentyThird({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); console.log('PASS=23 results', JSON.stringify(Object.fromEntries(Object.entries(r).map(([k, v]) => [k, `${v.won ? 'won' : 'LOST'} ${v.fails} retries ${Math.round(v.secs)} s`])))); } await ctx.close(); return; }
   if (process.env.PASS === '21') { if (!touch) { const r = await twentyFirst({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); console.log('PASS=21 results', JSON.stringify(Object.fromEntries(Object.entries(r).map(([k, v]) => [k, `${v.won ? 'won' : 'LOST'} ${v.fails} retries ${Math.round(v.secs)} s`])))); } await ctx.close(); return; }
+  if (process.env.PASS === '24') { if (!touch) { const r = await twentyFourth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); console.log('PASS=24 results', JSON.stringify(Object.fromEntries(Object.entries(r).map(([k, v]) => [k, `${v.won ? 'won' : 'LOST'} ${v.fails} retries ${Math.round(v.secs)} s`])))); } await ctx.close(); return; }
   if (process.env.PASS === '19') { if (!touch) await nineteenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }
   if (process.env.PASS === '20') { if (!touch) { const hh = { p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }; if (!process.env.FLEET_ONLY) await twentieth(hh); await fleetPerks(hh); } await ctx.close(); return; }
   if (process.env.PASS === '18') { if (!touch) await eighteenth({ p, W, press, loc, exists, appear, look, check, until, wait, act, settle, name }); await ctx.close(); return; }

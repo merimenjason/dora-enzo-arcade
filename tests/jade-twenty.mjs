@@ -233,10 +233,10 @@ function fleetWorld(own, lvl = 1, seed = 5) {
   const w = done(seed); for (const id of own) w.s.biz[id].lvl = lvl; w.s.cash = 5000; return w;
 }
 const standFor = (w, id) => fleetSpot(w, id);
-const HOME = { taxi: 'heartland', bumboat: 'canal', kayak: 'resort', ubinbikes: 'pulau', icekacang: 'bay', snorkelhire: 'islands', railbikes: 'bukit' };
+const HOME = { taxi: 'heartland', bumboat: 'canal', kayak: 'resort', ubinbikes: 'pulau', icekacang: 'bay', snorkelhire: 'islands', railbikes: 'bukit', bikehire: 'kranji' };
 
 test('the five vehicle businesses each lend a ride; the cab and the kayak are new kinds after the older ten', () => {
-  assert.deepEqual(FLEET.slice(0, 5).map(f => f.id), ['taxi', 'bumboat', 'kayak', 'ubinbikes', 'icekacang']); // (the twenty-first pass's snorkel hire after these)
+  assert.deepEqual(FLEET.slice(0, 5).map(f => f.id), ['taxi', 'bumboat', 'kayak', 'ubinbikes', 'icekacang']); // (the twenty-first pass's snorkel hire and the twenty-fourth's bike hire after these)
   for (const f of FLEET) {
     const p = PROPS.find(q => q.id === f.id); assert.ok(p, f.id); assert.equal(p.d, HOME[f.id], `${f.id} district`);
     assert.match(perkLine(f.id), /^Perk: /, `${f.id}: the buy panel shows the perk before buying`);

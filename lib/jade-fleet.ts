@@ -13,7 +13,7 @@ import type { World, Ride } from './jade-game.js';
 import type { Save } from './jade-save.js';
 import { BIZ, BIZ_OF, bizPos } from './jade-biz.js';
 
-export type FleetId = 'taxi' | 'bumboat' | 'kayak' | 'ubinbikes' | 'icekacang' | 'snorkelhire' | 'railbikes';
+export type FleetId = 'taxi' | 'bumboat' | 'kayak' | 'ubinbikes' | 'icekacang' | 'snorkelhire' | 'railbikes' | 'bikehire';
 export type Perk = { id: FleetId; kind: VehicleKind; perk: string; call: string; where: string };
 /** the five vehicle businesses and what each lends (the buy panel's "Perk:" line, the phone's button) */
 export const FLEET: Perk[] = [
@@ -26,6 +26,8 @@ export const FLEET: Perk[] = [
   { id: 'snorkelhire', kind: 'kayak', perk: 'a kayak waiting at any Southern Islands shore', call: 'Call a kayak', where: 'Stand at the water’s edge on the Southern Islands' },
   // (the twenty-second pass) the Rail Corridor Bike Hire
   { id: 'railbikes', kind: 'bike', perk: 'a bike brought to you anywhere in Bukit Timah', call: 'Call a bike', where: 'Only in Bukit Timah' },
+  // (the twenty-fourth pass) the Kranji Bicycle Hire
+  { id: 'bikehire', kind: 'bike', perk: 'a bike brought to you anywhere in Kranji and Woodlands', call: 'Call a bike', where: 'Only in Kranji and Woodlands, outside the memorial grounds' },
 ];
 export const FLEET_OF: Record<FleetId, Perk> = Object.fromEntries(FLEET.map(f => [f.id, f])) as Record<FleetId, Perk>;
 /** the business's level makes its vehicle quicker (levels 0 to 3) */
@@ -65,6 +67,8 @@ export function cantCall(w: World, id: FleetId): string | null {
   if (id === 'ubinbikes' && d !== 'pulau') return 'The bike shop only delivers on Pulau Ubin';
   if (id === 'kayak' && d !== 'resort') return 'The kayaks only go out from Sentosa’s shores';
   if (id === 'railbikes' && d !== 'bukit') return 'The Rail Corridor’s bikes only go round Bukit Timah';
+  if (id === 'bikehire' && d !== 'kranji') return 'The bike hire only delivers in Kranji and Woodlands';
+  if (id === 'bikehire') { const q = w.c.kranji?.quiet; if (q && tx >= q[0] && ty >= q[1] && tx <= q[2] && ty <= q[3]) return 'Not inside the memorial grounds'; }
   if (id === 'snorkelhire' && d !== 'islands') return 'The snorkel hut’s kayaks only go out round the Southern Islands';
   if ((id === 'taxi' || id === 'icekacang') && d === 'pulau') return 'No roads on Pulau Ubin: only bike tracks';
   if ((id === 'taxi' || id === 'icekacang' || id === 'ubinbikes') && d === 'islands') return 'No roads on the Southern Islands: only footpaths';

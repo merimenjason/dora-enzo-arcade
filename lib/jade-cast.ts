@@ -171,4 +171,9 @@ export const CHAT: Record<string, string> = {
   lotong: 'Rule one on this hill: never feed the macaques. There is no rule two.',
   merbah: 'Every sheet in this herbarium has a story. Most of them are about leaves.',
   umang: 'This shell? Borrowed. Everything a crab owns is borrowed, little one.',
+  kedidi: 'Shh. Hear that bubbling call? Whimbrels. Seven of them, coming in on the tide.',
+  biawak: 'Hssss. Boardwalk only, please. The mud is for crocodiles, mudskippers and very silly people.',
+  katak: 'My frogs sing all night. Nobody in Kranji needs an alarm clock.',
+  kambing: 'Fresh goat’s milk, this morning’s. The goats say you’re welcome.',
+  belacak: 'This mud is Mudskipper mud. You want to cross it, you skip like us. Can you skip? No? Hah!',
 };

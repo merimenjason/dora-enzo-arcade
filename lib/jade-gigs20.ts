@@ -3,7 +3,7 @@
 // round and cab fares in Toa Payoh, Auntie Vanda's balloons and promenade run at Marina Bay, Malar's temple garlands,
 // Kancil's batik, Duyung's runaway beach balls, Uncle Buaya's potong, Rosie's laksa round and kamcheng, Faiz's lost
 // luggage, Seng's bakery round and chwee kueh, Kerbau's river taxi, Musang's lanterns in the Chinese Garden, Ayu's
-// island bike loop, Coach Biru's buoy sprint and Auntie Enggang's nectar feeders round Bird Paradise (Mandai). Routes are hand-placed (old-frame tiles, moved once through the layout
+// island bike loop, Coach Biru's buoy sprint and Auntie Enggang's nectar feeders round Bird Paradise (Mandai), Kak Lumba's kayak loop and Kak Kedidi's kopi round to the Causeway jam. Routes are hand-placed (old-frame tiles, moved once through the layout
 // table, as the story's are), so nothing lands in a pond; the timers come from each route's foot or boat path (see
 // tests/jade-twenty.mjs) with room for a first-timer on Normal. Appended after Chinatown's gigs in GIG_DEFS.
 import type { District } from './jade-city.js';
@@ -34,11 +34,15 @@ export const GIG20_DEFS: Gig20[] = [
   { id: 'kayak-loop', title: 'Lagoon kayak loop', at: [35, 140], d: 'islands', giver: 'lumba', kind: 'kayak-loop' },
   // (the twenty-second pass) Dr Merbah's plant press, from the herbarium up to the old railway station
   { id: 'press-run', title: 'Plant press to the station', at: [77, 144], d: 'bukit', giver: 'merbah', kind: 'press-run' },
+  // (the twenty-fourth pass) Kak Kedidi's kopi round down the Causeway's footpaths, to the drivers stuck in the jam
+  { id: 'causeway-kopi', title: 'Causeway kopi round', at: [122, 139], d: 'kranji', giver: 'kedidi', kind: 'causeway-kopi' },
 ];
 /** Kallang's local tiles, as the story writes them */
 const K = (lx: number, ly: number): [number, number] => ly < 14 ? [212 + lx, 82 + ly] : [148 + lx, 82 + ly];
 /** the Southern Islands' local tiles (lib/jade-islands.ts islOld) */
 const I = (lx: number, ly: number): [number, number] => [lx, 128 + ly];
+/** Kranji and Woodlands' local tiles (lib/jade-kranji.ts) */
+const KR = (lx: number, ly: number): [number, number] => [100 + lx, 128 + ly];
 
 /** each gig's steps (written in the old frame) and pay; `home` is the board's tile, already moved */
 export function gig20Steps(kind: string, home: [number, number]): { steps: Step[]; reward: number } | null {
@@ -64,6 +68,7 @@ export function gig20Steps(kind: string, home: [number, number]): { steps: Step[
     case 'lanterns': return S([{ t: 'rounds', act: 'hang', item: 'moon-lantern', what: 'lantern', drops: [[206, 109], [208, 112], [200, 120], [222, 113], [210, 124]], time: 80, label: 'Hang a lantern on each empty hook round the Chinese Garden' }], 70);
     case 'ubin-loop': return S([{ t: 'ride', kind: 'bike', near: 'bikes-ubin', label: 'Take a bike from the rack (E)' }, { t: 'race', ride: 'bike', time: 70, marks: [[344, 117], [352, 117], [355, 113], [359, 106], [355, 108], [350, 113], [343, 113]], label: 'Ride every flag round the island loop' }], 70);
     case 'kayak-loop': return S([{ t: 'ride', kind: 'kayak', near: 'lagoon', label: 'Take Kak Lumba’s kayak at the lagoon beach (E)' }, { t: 'race', ride: 'kayak', time: 100, marks: [I(37, 18), I(40, 21), I(43, 14), I(43, 5), I(39, 1), I(43, 8), I(41, 21), I(37, 16)], label: 'Paddle out of the lagoon and round every buoy off Lazarus Island, then back in' }], 75);
+    case 'causeway-kopi': return S([{ t: 'rounds', act: 'serve', item: 'kr-kopi', what: 'kopi', drops: [KR(23, 9), KR(23, 6), KR(23, 2), KR(28, 8), KR(28, 3)], who: ['goose', 'dog', 'rabbit', 'tabby', 'duck'], time: 80, label: 'Hand a kopi in a plastic bag to each driver leaning out of the Causeway jam' }], 75);
     case 'feeders': return S([{ t: 'rounds', act: 'hang', item: 'mnd-nectar', what: 'nectar feeder', drops: [[1, 102], [5, 99], [10, 102], [13, 99], [7, 107]], time: 75, label: 'Hang a nectar feeder on each empty hook round Bird Paradise for the lories' }], 70);
     case 'buoy-sprint': return S([{ t: 'goto', at: 'pontoon', label: 'Go down to the rowing club’s pontoon', ride: 'foot' }, { t: 'ride', kind: 'dragon', near: 'pontoon', label: 'Step into a dragon boat at the pontoon (E)' }, { t: 'race', ride: 'dragon', time: 90, marks: [K(11, 25), K(14, 32), K(13, 41), K(8, 37), K(3, 31), K(9, 27)], label: 'Paddle round the six buoys the other way (Space: surge)' }], 80);
   }

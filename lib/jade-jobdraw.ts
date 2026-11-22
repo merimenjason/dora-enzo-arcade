@@ -93,7 +93,8 @@ export function jobActor(sc: Scene, x: X, w: World, a: Actor): boolean {
       const eating = (m?.treat ?? 0) > 0;
       if (!dazed && !painted && !eating && !((a.stare ?? 0) > 0)) mindBeam(sc, x, m, b.x, b.y - 20, b.h, sightRange(w.run!), w.assist ? 0.45 : 0.55);
       let f: string;
-      if (a.skin === 'myna' || a.skin === 'bat' || a.skin === 'boar' || a.skin === 'owl' || a.skin === 'crab') {
+      if (a.skin === 'myna' || a.skin === 'bat' || a.skin === 'boar' || a.skin === 'owl' || a.skin === 'crab' || a.skin === 'skipper') {
+        // (the twenty-fourth pass) one of Bos Belacak's Mudskipper Boys on the Sungei Buloh mudflats
         // (the nineteenth pass) one of Tuan Hantu's barn owls on night watch at Mandai; (the twenty-first) one of Kapitan
         // Umang's hermit-crab deckhands on the Southern Islands
         // a Kecoh Mynah, Atas Bat or Tusker Boy (the seventeenth pass) lookout: head cocked to look, beak (or snout) open to call the others; a bat on
