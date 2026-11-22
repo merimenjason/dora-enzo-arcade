@@ -43,7 +43,7 @@ export type Step =
   /** `flanks`: crows come in pairs from both sides and the partner guards the far flank */
   | { t: 'escort'; from: Spot; route: Spot[]; label: string; crows: number; flanks?: boolean; skin?: 'otter'; cp?: boolean }
   /** `relay`: the marks from this one on count only for the partner waiting there (a hand-off) */
-  | { t: 'race'; marks: Spot[]; label: string; rival?: 'runner' | 'scooter' | 'boat'; roof?: boolean; time?: number; ride?: VehicleKind | 'foot'; relay?: number; cp?: boolean; /** the rival's speed against the usual (a slow raft) */ pace?: number; /** (the twenty-first pass) the rival runner's painted body (a crow cadet when unset) */ skin?: 'crab' }
+  | { t: 'race'; marks: Spot[]; label: string; rival?: 'runner' | 'scooter' | 'boat'; roof?: boolean; time?: number; ride?: VehicleKind | 'foot'; relay?: number; cp?: boolean; /** the rival's speed against the usual (a slow raft) */ pace?: number; /** (the twenty-first pass) the rival runner's painted body (a crow cadet when unset); (the twenty-third) a gang's runner */ skin?: 'crab' | 'mac' | 'otter' | 'myna' | 'liz' | 'bat' }
   /** `shutter`: the goal's shutter is down unless the partner holds its lever there */
   /** `calm`: lookouts grow sure more slowly (a multiplier on the Alert meter's rise); `pause`: each stops this many
    * seconds at the ends of its beat, sweeping its torch, so a careful player can read the gap */
@@ -118,7 +118,8 @@ export type Step =
   /** the twentieth pass (lib/jade-rounds.ts): a round of drop-offs. You carry `item` and hand one over at each of `drops`
    * (E there: the step's own pose, `act`) before `time` runs out; `who`: the townsfolk waiting at each drop (unset: a hook,
    * a shrine or a doorway); `what`: the thing, as the HUD names it ('songbird cage') */
-  | { t: 'rounds'; drops: Spot[]; item: string; act: 'serve' | 'drape' | 'hang'; what: string; who?: string[]; time: number; label: string; cp?: boolean }
+  | { t: 'rounds'; drops: Spot[]; item: string; act: 'serve' | 'drape' | 'hang' | 'photo' | 'plant'; what: string; who?: string[]; time: number; label: string; cp?: boolean;
+      /** (the twenty-third pass) what stands at each stop, painted (a mural on the wall to photograph): drawn there all along */ sights?: string[] }
   | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' | 'crab'; /** what the HUD calls a crate ('loot sack') */ thing?: string; label: string; cp?: boolean };
 /** what a photo while casing tells you: the back way in, the guards' beats, where the cameras are wired, the safe's make */
 export type Intel = 'door' | 'rota' | 'cam' | 'safe';
@@ -1686,6 +1687,61 @@ export const SIDE: Mission[] = mvMissions([
       { t: 'talk', lines: [['kow', 'Chinchilla. A favour. My smallest nephew took my crisps. MY crisps. A boss does not run after crisps.', 'cross'], ['mate', 'A boss hires chinchillas to run after crisps.', 'smug'], ['kow', 'Exactly. Go.', 'calm']] },
       { t: 'chase', who: 'runner', skin: 'mac', name: 'the little macaque', from: B(21, 18), route: [B(25, 18), B(25, 12), B(17, 12), B(16, 16), B(17, 19), B(24, 19), B(25, 15), B(21, 11), B(16, 12), B(22, 19)], bumps: 2, loot: 'bkt-snack', speed: 165, label: 'Chase Kow’s little nephew round Hindhede Quarry and bump him twice (Space dashes)', cp: true },
       { t: 'talk', lines: [['kow', 'My crisps. Half of them. Hoo. Fine. You are not so bad, for chinchillas.', 'happy']] },
+    ] },  // ── the twenty-third pass: eight more Hawker Tales for the districts with fewest (the Arcade had none; the temple,
+  // Little India, Kampong Glam, Changi, Jurong, Mandai and the islands one to three)
+  { id: 'k45', side: 'm25', ch: 0, title: 'The Token Tin', giver: 'gizmo', at: 'gizmo', reward: 280, rep: 12, blurb: 'A crow swooped through the Arcade and flew off with Gizmo’s tin of game tokens, the whole week’s float. It is hopping from awning to awning down the street, too pleased with itself to fly far.',
+    steps: [
+      { t: 'talk', lines: [['gizmo', 'My token tin! A crow just walked in, took it off the counter and walked out. Walked!', 'worried'], ['mate', 'It won’t get far with a tin that heavy.', 'smug']] },
+      { t: 'chase', who: 'runner', name: 'the crow', from: [97, 25], route: [[106, 25], [106, 40], [88, 40], [89, 25]], bumps: 2, loot: 'coins', speed: 200, finish: 'pounce', label: 'Pounce on the crow together: F sends {mate} in, then dash into it', cp: true },
+      { t: 'talk', lines: [['gizmo', 'Every token. Free plays for you two all week, and the crow gets none.', 'happy']] },
+    ] },
+  { id: 'k46', side: 'm10', ch: 0, title: 'The Temple Bell', giver: 'heron', at: 'heron', reward: 280, rep: 12, blurb: 'A macaque slipped into the temple at dusk and ran off with Brother Heron’s little hand bell. Follow it to wherever it hides its treasures, then bring the bell back up the steps.',
+    steps: [
+      { t: 'talk', lines: [['heron', 'The evening bell is gone, and so is the macaque who was sitting on the offering table. Follow it quietly. It will lead you to its hoard.', 'worried'], ['hero', 'Quietly. Got it.', 'calm']] },
+      { t: 'tail', skin: 'mac', name: 'the macaque', calm: 0.8, from: [22, 9], route: [[30, 8], [38, 9], [38, 16], [30, 20]], label: 'Follow the macaque, but stay out of sight', cp: true },
+      { t: 'pickup', at: [31, 22], item: 'job-bell', label: 'Pick up the bell from the macaque’s hoard' },
+      { t: 'deliver', to: 'heron', time: 60, item: 'job-bell', label: 'Take the bell back up to Brother Heron', cp: true },
+      { t: 'talk', lines: [['heron', 'And the macaque left a banana for it. A fair trade, he thinks. Thank you both.', 'happy']] },
+    ] },
+  { id: 'k47', side: 'm37', ch: 0, title: 'Deepavali Lamps', giver: 'raju', at: 'raju', reward: 280, rep: 12, blurb: 'Mr Raju has filled a tray of clay oil lamps for the temple on Serangoon Road, and they are already lit. Carry them over without spilling a drop of oil or blowing one out.',
+    steps: [
+      { t: 'talk', lines: [['raju', 'Lit, filled to the brim, and the temple wants them now. Walk like you are carrying the moon.', 'calm'], ['mate', 'No dashing. No jumping. No sneezing.', 'calm']] },
+      { t: 'pickup', at: 'spices', item: 'diya-lit', label: 'Pick up the tray of lit lamps' },
+      { t: 'deliver', to: 'temple-li', time: 70, fragile: 6, item: 'diya-lit', label: 'Carry the lamps to the temple on Serangoon Road: gently, or they go out', cp: true },
+      { t: 'talk', lines: [['raju', 'Every flame still burning. The whole street is glowing. Happy Deepavali!', 'happy']] },
+    ] },
+  { id: 'k48', side: 'm41', ch: 0, title: 'Open House', giver: 'kancil', at: 'kancil', reward: 290, rep: 12, blurb: 'It is Hari Raya and Abang Kancil keeps open house. His ketupat are ready, and the neighbours down Bussorah Street are waiting on their steps for a plate each.',
+    steps: [
+      { t: 'talk', lines: [['kancil', 'Selamat Hari Raya! My ketupat are done and my neighbours are hungry. One plate to each door on Bussorah.', 'happy'], ['hero', 'Hand-delivered, still warm.', 'happy']] },
+      { t: 'rounds', act: 'serve', item: 'ketupat', what: 'plate of ketupat', drops: [[252, 74], [260, 72], [264, 77], [250, 77], [256, 69]], who: ['cat', 'deer', 'loris', 'turtle', 'goose'], time: 100, label: 'Hand a plate of ketupat to each neighbour along Bussorah Street', cp: true },
+      { t: 'talk', lines: [['kancil', 'Everyone fed, and they all want to know who the two new caterers are.', 'happy']] },
+    ] },
+  { id: 'k49', side: 'm55', ch: 0, title: 'The Boarding Pass', giver: 'faiz', at: 'faiz', reward: 290, rep: 12, blurb: 'A cheeky crow snatched a traveller’s bag at Changi, boarding pass and all, and the flight closes soon. Captain Faiz wants it back before the gate shuts.',
+    steps: [
+      { t: 'talk', lines: [['faiz', 'A crow took a passenger’s bag right off the trolley. Her boarding pass is inside and her gate closes soon!', 'worried'], ['mate', 'Crows don’t even fly economy.', 'smug']] },
+      { t: 'chase', who: 'runner', name: 'the crow', from: [352, 26], route: [[358, 32], [348, 40], [347, 23], [356, 21]], bumps: 2, loot: 'loot-bag', speed: 180, label: 'Chase the crow round the terminal and bump it twice (Space dashes)', cp: true },
+      { t: 'deliver', to: 'faiz', time: 50, item: 'loot-bag', label: 'Run the bag back to Captain Faiz', cp: true },
+      { t: 'talk', lines: [['faiz', 'With ten minutes to spare. She says she will send you a postcard.', 'happy']] },
+    ] },
+  { id: 'k50', side: 'm65', ch: 0, title: 'Lantern Boat', giver: 'musang', at: 'musang', reward: 300, rep: 12, blurb: 'Sifu Musang has made a lotus lantern to float by the pagoda for the Mid-Autumn festival. Paddle it across the Chinese Garden lake in the dragon boat before the moon is up.',
+    steps: [
+      { t: 'talk', lines: [['musang', 'My lotus lantern goes by the pagoda tonight. By boat, so it arrives with dignity. One paddles, one drums.', 'calm'], ['mate', 'I’ll drum. Gently.', 'happy']] },
+      { t: 'ride', kind: 'dragon', near: [217, 117], label: 'Climb into the dragon boat on the lake (E): {mate} takes the drum', cp: true },
+      { t: 'paddle', to: [206, 115], time: 60, item: 'lotus-lantern', label: 'Paddle the lantern across the lake to the pagoda', cp: true },
+      { t: 'talk', lines: [['musang', 'Floating, and glowing just right. The moon can come up now.', 'happy']] },
+    ] },
+  { id: 'k51', side: 'm91', ch: 0, title: 'The Lorikeet Escape', giver: 'bintu', at: 'bintu', reward: 300, rep: 12, blurb: 'A keeper left a door open at Bird Paradise and five lorikeets are out, perched round the park. Dr Bintu needs every one back before the show.',
+    steps: [
+      { t: 'talk', lines: [['bintu', 'Five lorikeets out! They’ll come to a gentle hand. Go round and pick each one up, softly.', 'worried'], ['hero', 'Five little rainbows. On it.', 'calm']] },
+      { t: 'collect', items: [[1, 98], [9, 97], [11, 104], [4, 107], [13, 111]], item: 'mnd-lory-wings', time: 110, label: 'Gather each lorikeet round Bird Paradise', cp: true },
+      { t: 'talk', lines: [['bintu', 'All five home, and not one feather lost. You’d make good keepers.', 'happy']] },
+    ] },
+  { id: 'k52', side: 'm106', ch: 0, title: 'Keeper’s Supper', giver: 'camar', at: 'camar', reward: 300, rep: 12, blurb: 'Pak Camar can’t leave the light, and his supper is waiting in a tiffin at the island stall on St John’s. Carry it down to Raffles Lighthouse while it is still hot.',
+    steps: [
+      { t: 'talk', lines: [['camar', 'The light can’t be left, and my supper is on St John’s. Could you bring the tiffin? It has soup in it.', 'calm'], ['mate', 'Soup. So: no dashing.', 'calm']] },
+      { t: 'pickup', at: 'mk-islands', item: 'g23-tiffin', label: 'Pick up Pak Camar’s tiffin at the island stall', cp: true },
+      { t: 'deliver', to: 'camar', time: 120, fragile: 6, item: 'g23-tiffin', label: 'Carry the tiffin to Raffles Lighthouse: steady, it has soup in it', cp: true },
+      { t: 'talk', lines: [['camar', 'Still hot! Sit a while. The light will keep.', 'happy']] },
     ] },
 ]);
 export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id, m])) as Record<string, Mission>;

@@ -350,6 +350,8 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     // the twentieth pass's rounds (lib/jade-rounds.ts): a garland held up, then draped; a cage or lantern hooked up high,
     // then admired
     case 'drape': return `${h}-drape-${t < 0.45 ? 0 : 1}`; case 'hang': return `${h}-${t < 0.65 ? 'hang-up' : 'admire'}`;
+    // the twenty-third pass: a mangrove seedling pushed into the Chek Jawa mud, patted in, watered, then a muddy thumbs-up
+    case 'plant': return `${h}-plant-${t < 0.4 ? 0 : t < 0.8 ? 1 : t < 1.25 ? 2 : 3}`;
     case 'kwave': return `${h}-wave-${t < 0.7 ? 0 : 1}`; case 'skyward': return `${h}-${t < 1.3 ? 'skyward' : 'point-up'}`;
     // the empire: mending a raided shop, a handshake hiring the jaga, sending the partner off, the partner's coin bag
     // handed over, counting a big till
