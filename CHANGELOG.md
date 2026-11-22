@@ -33,6 +33,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Jade Street**: the lookouts on disguise jobs sweep their heads on the same rhythm however many rides are parked about town. Each new district's bikes and scooters used to shift where they were looking, so a job could get harder for no reason.
 - **Jade Street**: traffic no longer clogs an unlit crossing for up to a minute. A car that had waited its turn used to stop again as soon as it got moving, so a junction full of cars crept forward a few pixels each in turn.
 
 ## 21-11-2026

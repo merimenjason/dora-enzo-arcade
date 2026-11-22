@@ -41,10 +41,17 @@ function provoke(id, i) {
   const { w, run } = at(id, i); const st = run.cur; let shown = false;
   const p = w.p;
   if (st.t === 'stealth' || st.t === 'case') { const a = run.actors[0]; p.b.x = a.b.x + Math.cos(a.b.h) * 70; p.b.y = a.b.y + Math.sin(a.b.h) * 70; }
-  // the job steps: commit to a loud heist at the front door; a disguise on beside a lookout (the one furthest from the
-  // goal, so standing in its face is not already the end of the walk); nets and bait down
+  // the job steps: commit to a loud heist at the front door; a disguise on, standing beside a lookout (on its side away
+  // from the goal, at the spot furthest from the crowd, so it is neither the end of the walk nor cover); nets and bait down
   if (st.t === 'heist') { idle(w, 0.2); run.heistPick('loud'); const [fx, fy] = run.spot(st.front); w.placePlayer(fx, fy); }
-  if (st.t === 'blend') { idle(w, 0.2); run.js.ph = 1; p.disguise = true; const [gx, gy] = run.spot(st.goal), a = run.actors.filter(x => x.kind === 'watcher').sort((u, v) => Math.hypot(v.b.x - gx, v.b.y - gy) - Math.hypot(u.b.x - gx, u.b.y - gy))[0]; w.placePlayer(a.b.x + Math.cos(a.b.h) * 60, a.b.y + Math.sin(a.b.h) * 60); }
+  if (st.t === 'blend') {
+    idle(w, 0.2); run.js.ph = 1; p.disguise = true; const [gx, gy] = run.spot(st.goal), crowd = run.actors.filter(x => x.kind === 'crowd');
+    const ws = run.actors.filter(x => x.kind === 'watcher'), room = ([x, y]) => Math.min(Infinity, ...crowd.map(c => Math.hypot(c.b.x - x, c.b.y - y)));
+    // where the hero lands once snapped to the walkable grid must be in a lookout's face (close, or in its view cone)
+    const seen = () => ws.some(a => { const d = Math.hypot(a.b.x - p.x, a.b.y - p.y), off = Math.abs(Math.atan2(Math.sin(Math.atan2(p.y - a.b.y, p.x - a.b.x) - a.b.h), Math.cos(Math.atan2(p.y - a.b.y, p.x - a.b.x) - a.b.h))); return d < 70 || (d < 240 && off < 0.8); });
+    const spots = ws.flatMap(a => { const l = Math.hypot(a.b.x - gx, a.b.y - gy) || 1; return [[a.b.x + Math.cos(a.b.h) * 60, a.b.y + Math.sin(a.b.h) * 60], [a.b.x + (a.b.x - gx) / l * 40, a.b.y + (a.b.y - gy) / l * 40]]; }).sort((u, v) => room(v) - room(u));
+    for (const [sx, sy] of spots) { w.placePlayer(sx, sy); if (seen() && Math.hypot(p.x - gx, p.y - gy) > 120) break; }
+  }
   if (st.t === 'trap') { for (let k = 0; k < st.need; k++) run.js.set.push(k); run.js.ph = 2; run.js.queue = st.n; run.js.spawnT = 0.5; const [x, y] = run.spot(st.path[1]); w.placePlayer(x + 40, y + 40); }
   if (st.t === 'float') { const [x, y] = leapSpot(0); p.roof = true; p.b.x = x; p.b.y = y; p.lastRoof = [x, y];
     // the partner on the bunting rope, so the float swings in (and can roll away while nobody leaps)
@@ -167,7 +174,7 @@ test('Madame Glint: three phases with checkpoints, decoys, falling signs, and th
 
 // ── item 5: businesses
 test('businesses: eleven stalls (five at the hawker centre) and fifteen more properties across the districts, prices rise with value, and income follows level, reputation and events', () => {
-  assert.equal(BIZ.length, 53); assert.equal(BIZ.filter(b => ['ckt', 'chicken', 'satay', 'laksa', 'kopi'].includes(b.id)).length, 5, 'the five hawker stalls'); assert.ok(new Set(BIZ.map(b => b.d)).size >= 5, 'spread across the districts');
+  assert.equal(BIZ.length, 56); assert.equal(BIZ.filter(b => ['ckt', 'chicken', 'satay', 'laksa', 'kopi'].includes(b.id)).length, 5, 'the five hawker stalls'); assert.ok(new Set(BIZ.map(b => b.d)).size >= 5, 'spread across the districts');
   for (const b of BIZ) { assert.ok(b.income[1] < b.income[2] && b.income[2] < b.income[3]); assert.ok(b.price < b.up[0] + b.up[1]); assert.ok(b.price / b.income[1] >= 3, `${b.id}: pays back in three nights or more`); }
   const s = newSave(4); s.rep = { market: 50, temple: 50, canal: 50, docks: 50, arcade: 50 }; s.cash = 99999;
   assert.match(canBuy(s, 'jade', ['market']), /fog/); s.rep.market = 0; assert.match(canBuy(s, 'noodle', ALL_OPEN), /reputation/); s.rep.market = 50;

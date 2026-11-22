@@ -45,7 +45,7 @@ const near = (w, kind, id) => w.near && w.near.kind === kind && (id === undefine
 function act(w, x, y, id) { w.placePlayer(x, y); w.p.act = null; w.step(NO_INPUT, DT); assert.ok(near(w, 'south', id), `prompt for ${id}: ${JSON.stringify(w.near)}`); w.interact(); }
 
 test('the map grows west over land: Jurong, Tiong Bahru and Clarke Quay, with their own ground, river and lake', () => {
-  assert.deepEqual(DISTRICTS.slice(13, 16), SOUTH); assert.equal(DISTRICTS.length, 21);
+  assert.deepEqual(DISTRICTS.slice(13, 16), SOUTH); assert.equal(DISTRICTS.length, 22);
   assert.equal(districtAt(...mvT(210, 110)), 'jurong'); assert.equal(districtAt(...mvT(260, 110)), 'tiong'); assert.equal(districtAt(...mvT(310, 110)), 'quay');
   assert.equal(districtAt(...mvT(80, 110)), 'resort', 'Sentosa is still Sentosa'); assert.equal(districtAt(...mvT(332, 94)), 'resort', 'the sea off Changi keeps its district (the bumboat race)'); assert.equal(districtAt(...mvT(340, 110)), 'pulau', 'Pulau Ubin (the seventeenth pass) south of it');
   assert.equal(DISTRICT_NAME.tiong, 'Tiong Bahru'); assert.equal(DISTRICT_NAME.quay, 'Clarke Quay'); assert.equal(DISTRICT_NAME.jurong, 'Jurong');

@@ -104,6 +104,9 @@ test('island traffic, scooter wardens and the five-foot-way fine', () => {
   const w = world({ safe: 'safe-bay' });
   steps(w, 60 * 25);
   assert.ok(w.cars.some(c => oldX(c.x, c.y) >= OW * T), 'cars on the island roads');
+  // scooter wardens ride off and are dropped past 1,700 px, and the next turns up on some road a moment later: wait
+  // for one rather than hoping one is about at the twenty-five-second mark
+  for (let k = 0; k < 60 * 20 && !w.patrols.some(p => p.ride); k++) steps(w, 1);
   assert.ok(w.patrols.some(p => p.ride), 'a scooter warden on the roads');
   assert.ok(OFFENCES.includes('pavement') && FINE.pavement.amt > 0);
   const pt = w.patrols.find(p => p.ride); w.ticket = null; w.s.settings.diff = 'normal';
