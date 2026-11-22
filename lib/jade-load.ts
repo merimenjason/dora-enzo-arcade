@@ -56,6 +56,11 @@ const ATLAS_TIER: Record<string, Tier> = {
   'atlas-bukit': 'bukit', 'atlas-cast-bukit': 'bukit', 'atlas-act22': 'job', 'atlas-ui22': 'job',
   // (the heroes' new actions stream with the rest of their rarer poses: every hero frame is core or job)
   'atlas-act17': 'job',
+  // the twenty-third pass: the new gigs' and tales' things stream with their own districts (the satay with Clarke Quay, the
+  // seedling with Ubin, the cups with Kallang, the flotsam and the tiffin with the islands, the murals with Kampong Glam);
+  // the heroes' planting pose is job art, as every hero frame is
+  'atlas-gig23-south': 'south', 'atlas-gig23-ubin': 'ubin', 'atlas-gig23-kallang': 'kallang', 'atlas-gig23-islands': 'islands',
+  'atlas-gig23-east': 'east', 'atlas-act23': 'job',
 };
 const TEX_TIER: Record<string, Tier> = {
   road: 'core', walk: 'core', plaza: 'core', grass: 'core', canal: 'core', plank: 'core', temple: 'core', sea: 'core', dock: 'core', neon: 'core', path: 'core', cobble: 'core',
