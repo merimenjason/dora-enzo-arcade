@@ -35,6 +35,9 @@ export const PAR: Record<string, number> = {
   // and normal solvers (they wait out the crocodiles' watch on the mud as a person does), at least a minute; m116 includes
   // the MRT ride north
   m116: 60, m117: 60, m118: 85, m119: 60, m120: 60, m121: 60, m122: 60, m123: 75, m124: 60, m125: 205, k53: 65, k54: 60, k55: 65,
+  // King Tide (chapter sixteen, the twenty-fifth pass) and its Hawker Tales: 2.5 times the slower of the casual and normal
+  // solvers (they walk the cattle home at a person's pace), at least a minute; m126 includes the MRT ride out
+  m126: 120, m127: 100, m128: 105, m129: 60, m130: 65, m131: 65, m132: 95, m133: 95, m134: 60, m135: 160, k56: 100, k57: 105, k58: 115,
 };
 export const MEDAL_NAME = ['Finished', 'Bronze', 'Silver', 'Gold'] as const;
 export const MEDAL_SPRITE = ['ui-medal-none', 'ui-medal-bronze', 'ui-medal-silver', 'ui-medal-gold'] as const;

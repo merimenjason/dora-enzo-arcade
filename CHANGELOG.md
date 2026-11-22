@@ -2,6 +2,16 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 23-11-2026
+
+### Added
+
+- **Jade Street**: Punggol and Coney Island open after Whimbrel Season. Take the MRT to Punggol (Route me plans it) for Punggol Point's Promenade and jetty, looking across the water at Pulau Ubin; Coney Island's casuarinas, wild beach and free-roaming Brahman cattle, over its west and east bridges; the Punggol Waterway and its boardwalks; the Lorong Halus wetland and its red bridge; the old sea wall; and the red park connectors. There is a void-deck safe house and three properties to buy: the Punggol Point Crab House, the Coney Island Drinks Kiosk and the Waterway Kayak Hire. No roads, so no taxis.
+- **Jade Street**: chapter sixteen, "King Tide": ten new jobs that follow Pak Camar's text about the 1937 chart out to the old Punggol tide gauge. There are four new givers (Puan Pekaka the tide-gauge keeper, Cik Bubut the Coney ranger, Dr Tempua the wetland scientist and Encik Berang of the kayak hire), and Abang Pucong's Pucong Boys, grey herons working for Madam Sutera. It ends on a hook, not an ending.
+- **Jade Street**: a new kind of job step, herding. A cow walks away from you, so stand behind her (the green arc) and she ambles home gate by gate. Get in front and she backs off; get too close and her Calm drains until she bolts back to the last gate. Your partner keeps back while you herd, and Dora and Enzo have their own herding poses.
+- **Jade Street**: three new Hawker Tales in Punggol (Chilli Crab Run, Little Calf and Round the Loop), Encik Berang's park connector loop gig, four new trophies, and new things to do: fish off the end of Punggol Point Jetty, or look across the water at Ubin from the Promenade.
+- **Jade Street**: own the Waterway Kayak Hire and it leaves a kayak at any Punggol and Coney Island shore.
+
 ## 22-11-2026
 
 ### Added

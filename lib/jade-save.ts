@@ -10,7 +10,7 @@
 // counts) and version 11 saves (no contracts) migrate forward, keeping every bit of progress, medals included.
 import { DISTRICTS, type District } from './jade-city.js';
 import { emptyCargo, GOODS, type Cargo, type Tip } from './jade-trade.js';
-import { MISSIONS, SIDE, MISSION, CHAPTER_OPENS, FINALE, RESORT_OPENS, CHANGI_OPENS, JURONG_OPENS, UBIN_OPENS, KALLANG_OPENS, MANDAI_OPENS, ISLANDS_OPENS, BUKIT_OPENS, KRANJI_OPENS } from './jade-story.js';
+import { MISSIONS, SIDE, MISSION, CHAPTER_OPENS, FINALE, RESORT_OPENS, CHANGI_OPENS, JURONG_OPENS, UBIN_OPENS, KALLANG_OPENS, MANDAI_OPENS, ISLANDS_OPENS, BUKIT_OPENS, KRANJI_OPENS, PUNGGOL_OPENS } from './jade-story.js';
 import { hashStr, rng } from './jade-rng.js';
 import { asDiff, type Diff } from './jade-diff.js';
 import { BIZ, STALL_IDS, newBiz, rankOf, type BizState } from './jade-biz.js';
@@ -66,7 +66,9 @@ export type Stats = { walked: number; driven: number; boated: number; missions: 
   summits: number; shoos: number; specimens: number; rests: number;
   /** the twenty-fourth pass: mudflat crossings made past the crocodiles, handfuls of hay fed to Hay Dairies' goats,
    * shorebird watches from the Sungei Buloh hide */
-  mudflats: number; goatfeeds: number; hides: number };
+  mudflats: number; goatfeeds: number; hides: number;
+  /** the twenty-fifth pass: stray cattle herded home on Coney Island, fish caught off Punggol Point Jetty */
+  herds: number; fishes: number };
 /** the empire (lib/jade-empire.ts): the highest rank reached (its card shows once), empire jobs finished (by id) and the
  * night each was last done (one a night) */
 export type Empire = { rank: number; jobs: Record<string, number>; last: Record<string, number> };
@@ -163,17 +165,18 @@ export const SAFE_HOUSES: { id: string; d: District; need: number; price: number
   // the twenty-second pass: the black-and-white bungalow below Bukit Timah Hill
   { id: 'safe-bukit', d: 'bukit', need: 12, price: 720 },
   { id: 'safe-kranji', d: 'kranji', need: 12, price: 700 },
+  { id: 'safe-punggol', d: 'punggol', need: 12, price: 700 },
 ];
 
 export function newSave(seed = 1): Save {
   return {
     v: SAVE_VERSION, seed, hero: 'dora', started: false,
     cash: 100, night: 1, clock: 0, cargo: emptyCargo(), stash: emptyCargo(),
-    done: [], rep: { market: 0, temple: 0, canal: 0, docks: 0, arcade: 0, heartland: 0, bay: 0, india: 0, glam: 0, resort: 0, orchard: 0, katong: 0, changi: 0, tiong: 0, quay: 0, jurong: 0, pulau: 0, kallang: 0, mandai: 0, islands: 0, bukit: 0, kranji: 0 },
+    done: [], rep: { market: 0, temple: 0, canal: 0, docks: 0, arcade: 0, heartland: 0, bay: 0, india: 0, glam: 0, resort: 0, orchard: 0, katong: 0, changi: 0, tiong: 0, quay: 0, jurong: 0, pulau: 0, kallang: 0, mandai: 0, islands: 0, bukit: 0, kranji: 0, punggol: 0 },
     upgrades: { speed: 0, grip: 0, cargo: 0 }, paint: 'red',
     outfits: { dora: ['classic'], enzo: ['classic'] }, outfit: { dora: 'classic', enzo: 'classic' },
     cats: [], murals: [], trophies: [], tips: [], safe: 'safe-market', best: {}, daily: '', dailyDone: [],
-    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0, tolls: 0, junk: 0, kopi: 0, chope: 0, mrt: 0, taxi: 0, photos: 0, heists: 0, quiet: 0, defends: 0, disguises: 0, clues: 0, traps: 0, swaps: 0, lures: 0, palHelps: 0, bribes: 0, cable: 0, ferry: 0, lamps: 0, kuih: 0, mynahs: 0, raidsWon: 0, raidsMissed: 0, repairs: 0, rounds: 0, empJobs: 0, gradeA: 0 , bats: 0, bikes: 0, laksa: 0, baubles: 0, kites: 0, planes: 0, chwee: 0, songs: 0, slings: 0, koi: 0, stars: 0, lwalks: 0, durians: 0, spies: 0, digs: 0, boars: 0, trails: 0, bumboats: 0, crowds: 0, waves: 0, skies: 0, torches: 0, trams: 0, lories: 0, shows: 0, tides: 0, launches: 0, tortoises: 0, floats: 0, lookouts: 0, peeks: 0, summits: 0, shoos: 0, specimens: 0, rests: 0, mudflats: 0, goatfeeds: 0, hides: 0 },
+    stats: { walked: 0, driven: 0, boated: 0, missions: 0, gigs: 0, trades: 0, profit: 0, caught: 0, escapes: 0, bumps: 0, cats: 0, murals: 0, maxHeat: 0, playTime: 0, minis: 0, bizCoins: 0, shots: 0, tags: 0, switches: 0, tolls: 0, junk: 0, kopi: 0, chope: 0, mrt: 0, taxi: 0, photos: 0, heists: 0, quiet: 0, defends: 0, disguises: 0, clues: 0, traps: 0, swaps: 0, lures: 0, palHelps: 0, bribes: 0, cable: 0, ferry: 0, lamps: 0, kuih: 0, mynahs: 0, raidsWon: 0, raidsMissed: 0, repairs: 0, rounds: 0, empJobs: 0, gradeA: 0 , bats: 0, bikes: 0, laksa: 0, baubles: 0, kites: 0, planes: 0, chwee: 0, songs: 0, slings: 0, koi: 0, stars: 0, lwalks: 0, durians: 0, spies: 0, digs: 0, boars: 0, trails: 0, bumboats: 0, crowds: 0, waves: 0, skies: 0, torches: 0, trams: 0, lories: 0, shows: 0, tides: 0, launches: 0, tortoises: 0, floats: 0, lookouts: 0, peeks: 0, summits: 0, shoos: 0, specimens: 0, rests: 0, mudflats: 0, goatfeeds: 0, hides: 0, herds: 0, fishes: 0 },
     settings: { sound: true, music: true, assist: true, diff: 'easy', touch: 'auto', shake: true, calm: false, keys: {}, bigText: false, cbMarks: false, partner: 'auto' },
     medals: {}, story: { intro: false, ch: 0, ending: false, isle: false, lights: false, coast: false, lake: false }, learned: [], msgs: [], radio: 0, helped: 0,
     biz: Object.fromEntries(BIZ.map(b => [b.id, newBiz()])), bizLog: [], gear: newGear(), bag: newBag(), fines: newFines(), lingo: [], empire: newEmpire(), contracts: newContracts(),
@@ -233,7 +236,7 @@ export function loadSave(raw: string | null): Save {
   const md = (o.medals ?? {}) as Record<string, unknown>;
   for (const [k, v] of Object.entries(md)) if (ids.has(k) && v && typeof v === 'object') { const x = v as Record<string, unknown>; s.medals[k] = { m: Math.floor(num(x.m, 0, 0, 3)), t: num(x.t, 0, 0, 1e6), plays: Math.floor(num(x.plays, 1, 1, 1e6)) }; }
   const sy = (o.story ?? {}) as Record<string, unknown>;
-  s.story = { intro: sy.intro === true, ch: Math.floor(num(sy.ch, 0, 0, 16)), ending: sy.ending === true, isle: sy.isle === true, lights: sy.lights === true, coast: sy.coast === true, lake: sy.lake === true };
+  s.story = { intro: sy.intro === true, ch: Math.floor(num(sy.ch, 0, 0, 17)), ending: sy.ending === true, isle: sy.isle === true, lights: sy.lights === true, coast: sy.coast === true, lake: sy.lake === true };
   s.learned = strs(o.learned);
   s.msgs = Array.isArray(o.msgs) ? (o.msgs as Msg[]).filter(m => m && typeof m.text === 'string' && typeof m.from === 'string').slice(-30).map((m, i) => ({ id: Number.isInteger(m.id) ? m.id : i + 1, from: m.from, text: m.text, night: num(m.night, 1, 1, 1e5), read: m.read === true, ...(m.kind === 'job' || m.kind === 'fine' || m.kind === 'help' ? { kind: m.kind } : {}), ...(typeof m.job === 'string' ? { job: m.job } : {}), ...(typeof m.gig === 'string' ? { gig: m.gig } : {}) })) : [];
   s.radio = Math.floor(num(o.radio, 0, -1, 9)); s.helped = Math.floor(num(o.helped, 0, 0, 1e6));
@@ -373,7 +376,7 @@ function migrate1(o: Record<string, unknown>): Record<string, unknown> {
 }
 
 // ── progression
-export const chapterOf = (s: Save) => { let ch = 1; for (let c = 1; c <= 15; c++) { if (MISSIONS.filter(m => m.ch === c).every(m => s.done.includes(m.id))) ch = c + 1; else break; } return Math.min(ch, 16); };
+export const chapterOf = (s: Save) => { let ch = 1; for (let c = 1; c <= 16; c++) { if (MISSIONS.filter(m => m.ch === c).every(m => s.done.includes(m.id))) ch = c + 1; else break; } return Math.min(ch, 17); };
 export function openDistricts(s: Save): District[] {
   const out: District[] = ['market'];
   for (let c = 1; c <= 4; c++) if (s.done.includes(`m${c * 5}`)) out.push(CHAPTER_OPENS[c - 1]);
@@ -401,6 +404,8 @@ export function openDistricts(s: Save): District[] {
   // chapter fifteen: Kranji and Woodlands, in the north (by MRT to Kranji or Woodlands, or along Kranji Road from
   // Changi), once the second tag is found
   if (s.done.includes(KRANJI_OPENS)) out.push('kranji');
+  // chapter sixteen: Punggol and Coney Island, in the north-east by MRT to Punggol, once the black junk has dropped anchor
+  if (s.done.includes(PUNGGOL_OPENS)) out.push('punggol');
   return out;
 }
 /** story missions you may start now: the chapter's jobs in order, a couple at a time */
@@ -501,6 +506,11 @@ export const TROPHIES: { id: string; name: string; desc: string; test: (s: Save)
   { id: 'hillrunner', name: 'Hill Runner', desc: 'Reach the summit of Bukit Timah Hill five times.', test: s => s.stats.summits >= 5 },
   { id: 'nofeeding', name: 'Don’t Feed the Monkeys', desc: 'Shoo five macaques off a snack on Bukit Timah, without feeding a single one.', test: s => s.stats.shoos >= 5 },
   { id: 'naturalist', name: 'Naturalist', desc: 'Read three herbarium specimens and rest on a trail shelter’s log.', test: s => s.stats.specimens >= 3 && s.stats.rests >= 1 },
+  // the twenty-fifth pass: Punggol and Coney Island
+  { id: 'kingtide', name: 'King Tide', desc: 'Read the 1937 datum at Punggol Point and hold the tide-gauge house against Madam Sutera’s crows.', test: s => s.done.includes('m135') },
+  { id: 'cowhand', name: 'Coney Cowhand', desc: 'Herd Coney Island’s stray cattle home five times.', test: s => s.stats.herds >= 5 },
+  { id: 'jettyfish', name: 'Line Off the Jetty', desc: 'Catch five fish off Punggol Point Jetty.', test: s => s.stats.fishes >= 5 },
+  { id: 'lrtloop', name: 'Round the Loop', desc: 'Beat the LRT round Punggol on a bicycle.', test: s => s.done.includes('k58') },
   { id: 'squeeze', name: 'Excuse Me, Excuse Me', desc: 'Squeeze through five match-night crowds at the Sports Hub.', test: s => s.stats.crowds >= 5 },
   { id: 'mexican', name: 'Kallang Wave', desc: 'Start the Kallang Wave at the fan zone three times.', test: s => s.stats.waves >= 3 },
   { id: 'flyingboat', name: 'Flying Boat Spotter', desc: 'Spot three planes from the apron of the Old Kallang Airport.', test: s => s.stats.skies >= 3 },

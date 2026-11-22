@@ -48,7 +48,10 @@ export const MANDAI_FOLK = ['tapir', 'tapir', 'deer', 'deer', 'hornbill', 'hornb
 export const ISLANDS_FOLK = ['turtle', 'turtle', 'egret', 'egret', 'boxturtle', 'duck', 'civet', 'robin', 'goose'];
 /** (the twenty-fourth pass) Kranji and Woodlands: egrets and a frog off the farms, Woodlands' commuters and their dogs */
 export const KRANJI_FOLK = ['egret', 'egret', 'frog', 'duck', 'robin', 'rabbit', 'goose', 'dog', 'tabby'];
-const folkAt = (tx: number, ty: number) => { const d = districtAt(tx, ty); return d === 'kranji' ? KRANJI_FOLK : d === 'islands' ? ISLANDS_FOLK : d === 'mandai' ? MANDAI_FOLK : d === 'kallang' ? KALLANG_FOLK : d === 'pulau' ? UBIN_FOLK : d === 'india' || d === 'glam' || d === 'resort' ? EAST_FOLK[d] : d === 'orchard' || d === 'katong' || d === 'changi' ? FAR_FOLK[d] : d === 'tiong' || d === 'quay' || d === 'jurong' ? SOUTH_FOLK[d] : (unmvT(tx, ty)?.[0] ?? OW) >= OW ? ISLE_FOLK : FOLK; };
+/** (the twenty-fifth pass) Punggol after dark: egrets and herons by the Waterway, a hornbill pair, families out on the
+ *  boardwalk, a robin or two */
+export const PUNGGOL_FOLK = ['egret', 'egret', 'hornbill', 'hornbill', 'duck', 'robin', 'robin', 'boxturtle', 'goose'];
+const folkAt = (tx: number, ty: number) => { const d = districtAt(tx, ty); return d === 'kranji' ? KRANJI_FOLK : d === 'punggol' ? PUNGGOL_FOLK : d === 'islands' ? ISLANDS_FOLK : d === 'mandai' ? MANDAI_FOLK : d === 'kallang' ? KALLANG_FOLK : d === 'pulau' ? UBIN_FOLK : d === 'india' || d === 'glam' || d === 'resort' ? EAST_FOLK[d] : d === 'orchard' || d === 'katong' || d === 'changi' ? FAR_FOLK[d] : d === 'tiong' || d === 'quay' || d === 'jurong' ? SOUTH_FOLK[d] : (unmvT(tx, ty)?.[0] ?? OW) >= OW ? ISLE_FOLK : FOLK; };
 export type Ped = {
   id: number; sp: string; x: number; y: number; h: number; tx: number; ty: number; hop: number; hx: number; hy: number; scare: number; wait: number; walk: number;
   dest: number; sit: number; roadT: number; watch: boolean;

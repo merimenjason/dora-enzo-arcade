@@ -19,7 +19,7 @@ export type Line = [string, string, Mood?];
  * crane's swinging container and the yard gate (lib/jade-setpiece.ts); `wp` is the route leg that triggers it */
 /** a chase or tail target's painted body other than Pip's: a gang member (otter, macaque, lizard, mynah, bat) or a boss
  * (Director Kaw, Crow Number Nine, Datin Ciku) */
-export type Skin = 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine' | 'bat' | 'ciku' | 'hoot' | 'boar' | 'taring' | 'owl' | 'crab' | 'skipper';
+export type Skin = 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine' | 'bat' | 'ciku' | 'hoot' | 'boar' | 'taring' | 'owl' | 'crab' | 'skipper' | 'pucong';
 /** the nineteenth pass: the night animals resting by a torch trail (lib/jade-torch.ts) */
 export type Beast = 'fcat' | 'pango' | 'porc' | 'squir';
 export type SetDef = { k: 'stall' | 'drums' | 'bridge' | 'crane' | 'gate'; at: [number, number]; wp: number };
@@ -76,7 +76,7 @@ export type Step =
   | { t: 'toss'; marks: Spot[]; item: string; time?: number; label: string; cp?: boolean }
   /** the sixteenth pass: a delivery on the dragon boat, timed for a boat with the partner drumming */
   | { t: 'paddle'; to: Spot; time: number; item: string; label: string; cp?: boolean }
-  | { t: 'case'; spots: { at: Spot; kind: Intel }[]; guards: Spot[][]; need?: number; label: string; cp?: boolean; /** who keeps watch (guards in caps when unset) */ skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' | 'crab' | 'skipper' }
+  | { t: 'case'; spots: { at: Spot; kind: Intel }[]; guards: Spot[][]; need?: number; label: string; cp?: boolean; /** who keeps watch (guards in caps when unset) */ skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' | 'crab' | 'skipper' | 'pucong' }
   /** the heist: choose quiet or loud. Quiet sneaks in at `back` (only with the back door cased) or at `front`, past the
    * guards and `cams` ([x, y, facing in degrees]), cracks the safe and slips out the same way; loud sends the partner
    * to set off a confetti diversion at the front, then it is a race to the safe before `time` runs out and a getaway
@@ -119,13 +119,18 @@ export type Step =
    * stir and watch on a rhythm the HUD shows: move in sight of a watching one and it lunges, and you scramble back to the
    * last marker; `doze`: the dozing spell against the usual (shorter at dawn); `time`: the tide's time left */
   | { t: 'mud'; route: Spot[]; crocs: Spot[]; birds?: Spot[]; doze?: number; time?: number; label: string; cp?: boolean }
+  /** the twenty-fifth pass (lib/jade-herd.ts): drive one of Coney Island's stray Brahman cattle home along `trail` (her
+   * start, then each gate; the last is home) by where you stand: behind her she walks on, in front she backs off, too
+   * close and her Calm drains till she bolts back to the last gate; `calf`: a jumpy calf; `pace`: her walk against the
+   * usual; `time`: the dusk left */
+  | { t: 'herd'; trail: Spot[]; calf?: boolean; pace?: number; time?: number; label: string; cp?: boolean }
   | { t: 'crowd'; from: Spot; to: Spot; lanes: number; span?: number; time?: number; item?: string; keep?: boolean; ticket?: boolean; label: string; cp?: boolean }
   /** the twentieth pass (lib/jade-rounds.ts): a round of drop-offs. You carry `item` and hand one over at each of `drops`
    * (E there: the step's own pose, `act`) before `time` runs out; `who`: the townsfolk waiting at each drop (unset: a hook,
    * a shrine or a doorway); `what`: the thing, as the HUD names it ('songbird cage') */
   | { t: 'rounds'; drops: Spot[]; item: string; act: 'serve' | 'drape' | 'hang' | 'photo' | 'plant' | 'goatfeed'; what: string; who?: string[]; time: number; label: string; cp?: boolean;
       /** (the twenty-third pass) what stands at each stop, painted (a mural on the wall to photograph): drawn there all along */ sights?: string[] }
-  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' | 'crab' | 'skipper'; /** what the HUD calls a crate ('loot sack') */ thing?: string; label: string; cp?: boolean };
+  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' | 'crab' | 'skipper' | 'pucong'; /** what the HUD calls a crate ('loot sack') */ thing?: string; label: string; cp?: boolean };
 /** what a photo while casing tells you: the back way in, the guards' beats, where the cameras are wired, the safe's make */
 export type Intel = 'door' | 'rota' | 'cam' | 'safe';
 /** a witness: `ask` are the three questions on offer, `right` the one that gets the clue (its `tag` must be among the
@@ -215,6 +220,12 @@ export const PEOPLE: Record<string, { name: string; face: string; who: string }>
   kambing: { name: 'Uncle Kambing', face: 'face-kambing', who: 'goat farmer at Hay Dairies (a dairy goat)' },
   belacak: { name: 'Bos Belacak', face: 'face-belacak', who: 'boss of the Mudskipper Boys (a giant mudskipper)' },
   sutera: { name: 'Madam Sutera', face: 'face-sutera', who: 'the lady in black feathers (a black swan)' },
+  // the twenty-fifth pass: Punggol and Coney Island
+  pekaka: { name: 'Puan Pekaka', face: 'face-pekaka', who: 'keeper of the old tide gauge at Punggol Point (a stork-billed kingfisher)' },
+  bubut: { name: 'Cik Bubut', face: 'face-bubut', who: 'park ranger on Coney Island (a greater coucal)' },
+  tempua: { name: 'Dr Tempua', face: 'face-tempua', who: 'wetland scientist at Lorong Halus (a baya weaver)' },
+  berang: { name: 'Encik Berang', face: 'face-berang', who: 'kayak and bicycle hire on Punggol Waterway (a smooth-coated otter)' },
+  pucong: { name: 'Abang Pucong', face: 'face-pucong', who: 'boss of the Pucong Boys, a crew for hire (a grey heron)' },
   // the tenth pass: the empire's supplier, the health inspector, the rival towkay and the jaga you can hire
   huat: { name: 'Ah Huat', face: 'face-huat', who: 'wholesale supplier (a wild boar)' },
   siew: { name: 'Inspector Siew', face: 'face-siew', who: 'health inspector (a milky stork)' },
@@ -234,9 +245,9 @@ export const HEIRLOOMS = [
 ] as const;
 /** which district each chapter's finale opens (chapter 1 is played in Smith Street) */
 export const CHAPTER_OPENS: District[] = ['temple', 'canal', 'docks', 'arcade'];
-export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Club Street', 'The Island', 'Island Lights', 'Christmas Star', 'Lights by the Lake', 'Kampong Spirit', 'Kallang Roar', 'Night Safari', 'Raffles Lighthouse', 'Bukit Timah', 'Whimbrel Season'];
+export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Club Street', 'The Island', 'Island Lights', 'Christmas Star', 'Lights by the Lake', 'Kampong Spirit', 'Kallang Roar', 'Night Safari', 'Raffles Lighthouse', 'Bukit Timah', 'Whimbrel Season', 'King Tide'];
 /** the last job of each chapter (its finale) */
-export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55', 'm65', 'm75', 'm85', 'm95', 'm105', 'm115', 'm125'];
+export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55', 'm65', 'm75', 'm85', 'm95', 'm105', 'm115', 'm125', 'm135'];
 /** the story job that opens Sentosa (half way through chapter seven) */
 export const RESORT_OPENS = 'm40';
 /** the story job that opens Changi (half way through chapter eight) */
@@ -257,6 +268,8 @@ export const BUKIT_OPENS = 'm105';
 export const KRANJI_OPENS = 'm115';
 /** who gives chapter fifteen's first job: chapter fourteen's last giver, Dr Merbah at the herbarium */
 const CH14_KEEPER = 'merbah';
+/** the story job that opens Punggol and Coney Island (the end of chapter fifteen: chapter sixteen is set there) */
+export const PUNGGOL_OPENS = 'm125';
 
 // ── every [x, y] tile in a step is written in the old frame (where the district was first laid out) and moved once,
 // here, through the layout table (lib/jade-layout.ts); names ('kee', 'here', 'loot') are places and stay
@@ -273,6 +286,9 @@ const B = (lx: number, ly: number): [number, number] => [48 + lx, 130 + ly];
 /** a Kranji and Woodlands tile by its local column and row (lib/jade-kranji.ts krjOld): built in the rows below the old
  * frame, east of the islands */
 const KR = (lx: number, ly: number): [number, number] => [100 + lx, 128 + ly];
+/** a Punggol and Coney Island tile by its local column and row (lib/jade-punggol.ts pglOld): built in the rows below the
+ * old frame, east of the islands */
+const PG = (lx: number, ly: number): [number, number] => [140 + lx, 128 + ly];
 /** a spot: a place name stays, a tile moves */
 export const mvSpot = <S extends Spot>(s: S): S => (typeof s === 'string' ? s : mvT(s[0], s[1])) as S;
 const mvSpots = (a: Spot[]) => a.map(mvSpot);
@@ -302,6 +318,7 @@ function mvStepFields(st: Step): Step {
     case 'mud': return { ...st, route: mvSpots(st.route), crocs: mvSpots(st.crocs), ...(st.birds ? { birds: mvSpots(st.birds) } : {}) };
     case 'tide': return { ...st, route: mvSpots(st.route), ...(st.pools ? { pools: mvSpots(st.pools) } : {}) };
     case 'summit': return { ...st, route: mvSpots(st.route) };
+    case 'herd': return { ...st, trail: mvSpots(st.trail) };
     case 'chase': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), sets: st.sets?.map(d => ({ ...d, at: mvT(d.at[0], d.at[1]) })) };
     case 'float': return st.rope === undefined ? st : { ...st, rope: mvSpot(st.rope) };
     case 'tail': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), relay: st.relay && { ...st.relay, spot: mvSpot(st.relay.spot) } };
@@ -1435,6 +1452,84 @@ export const MISSIONS: Mission[] = mvMissions([
       { t: 'defend', at: 'kr-jetty', time: 50, waves: 2, per: 2, gang: 'crow', what: 'Ringing table', label: 'Hold the jetty: knock the crows back before they grab Kak Kedidi’s ring book ({mate} helps on their own)', cp: true },
       { t: 'talk', lines: [['kedidi', 'There they go. Ninety-two whimbrels, south over the strait, the way they have gone every spring for longer than any book.', 'happy'], ['mate', 'And look behind them. Three dark birds, flying low. Not whimbrels.', 'worried'], ['hero', 'Her owls. She isn’t reading the book. She’s following the flock.', 'cross'], ['mate', 'The phone. Pak Camar: “The black junk has dropped anchor, fourteen miles south of my light. The tide is going out.”', 'worried']] },
     ] },
+  // ── chapter sixteen (the twenty-fifth pass): Punggol and Coney Island. The black junk has dropped anchor over the
+  // colour in the water, fourteen miles south of Raffles Light. Every depth on the 1937 chart is measured from one
+  // floor: the low-water mark the old tide gauge at Punggol Point was set to that year, cut into a brass plate (bench
+  // mark B.M. 37) on a survey post on Coney Island. With the gauge's 1937 register and that plate, the chart tells you
+  // the night the island no other chart has comes up out of the sea; without them its numbers float. Madam Sutera has
+  // hired Abang Pucong's Pucong Boys to get both. Coney's Brahman cattle wander the trails, and they do not like being
+  // hurried. Not the end: the chapter closes with the junk on the move again.
+  { id: 'm126', ch: 16, title: 'The Punggol Datum', giver: 'pekaka', at: 'pekaka', reward: 1400, rep: 33, blurb: 'Pak Camar says every depth on the 1937 chart is measured from the old Punggol datum. Take the MRT to Punggol and see Puan Pekaka, keeper of the tide gauge at Punggol Point. Somebody broke into her gauge house last night.',
+    steps: [
+      { t: 'talk', lines: [['pekaka', 'Pak Camar’s chinchillas? Good, good. My gauge house was broken into last night. The 1937 register is gone. Ninety years of tides, and they take that one.', 'worried'], ['hero', 'The 1937 one. Of course they did.', 'cross'], ['pekaka', 'Come and see. Mind the stilts.', 'calm']] },
+      { t: 'goto', at: 'pg-gauge', label: 'Go round to the old tide-gauge house on Punggol Point', ride: 'foot', cp: true },
+      { t: 'talk', lines: [['hero', 'A long grey feather, caught on the door. And wet footprints, long toes, three in front.', 'worried'], ['pekaka', 'A heron. Pucong. Abang Pucong’s boys camp on Coney Island now, and hire themselves out to anybody.', 'cross'], ['pekaka', 'The register is no use alone. Every depth on that chart is measured from the 1937 low-water mark, cut into a brass plate on the survey post on Coney. Bench mark B.M. 37. The register and the plate, together, tell you when the sea is lowest.', 'calm'], ['mate', 'And when the sea is lowest, an island that isn’t there… is.', 'worried']] },
+      { t: 'goto', at: 'bubut', time: 70, label: 'Cross the west bridge to Coney Island and find Cik Bubut, the ranger', cp: true },
+      { t: 'talk', lines: [['bubut', 'Boop. Boop-boop. Sorry, that is how coucals say hello. I am Bubut, the ranger. Herons? All night, digging round my trails, and the cattle are upset.', 'worried'], ['bubut', 'One of the cows is right down at the east end and will not come home. You have the look of a cowhand.', 'calm']] },
+    ] },
+  { id: 'm127', ch: 16, title: 'Coney Cow', giver: 'bubut', at: 'bubut', reward: 1410, rep: 33, blurb: 'The Pucong Boys spooked Coney Island’s Brahman cattle, and one cow is standing at the far east end. Cattle walk away from you: get behind her, not too close, and walk her home along the trail to the pasture gate.',
+    steps: [
+      { t: 'talk', lines: [['bubut', 'A cow walks away from you. Stand behind her and she ambles on. Stand in front and she backs off. Too close and she bolts.', 'calm'], ['bubut', 'Watch her Calm on the meter. When she looks round at you, give her room.', 'calm'], ['mate', 'I’ll stay back. Two of us in her face would only scare her.', 'calm']] },
+      { t: 'goto', at: 'pg-coney', label: 'Walk out onto the Coney Island trail', ride: 'foot', cp: true },
+      { t: 'herd', trail: [PG(33, 7), PG(31, 7), PG(27, 8), PG(23, 8), PG(19, 7), PG(17, 8), PG(17, 9)], time: 150, label: 'Walk the cow home along the trail to the pasture gate before dark', cp: true },
+      { t: 'talk', lines: [['bubut', 'Boop! Home. She was spooked by those herons, digging under the casuarinas at the east end, by their camp.', 'happy'], ['hero', 'Digging for a survey post, maybe?', 'worried'], ['bubut', 'The post is by the old villa. They had the wrong tree. Herons are not clever, only tall.', 'calm']] },
+    ] },
+  { id: 'm128', ch: 16, title: 'Heron Camp', giver: 'bubut', at: 'bubut', reward: 1420, rep: 33, blurb: 'Abang Pucong’s Pucong Boys camp under the casuarinas at Coney’s east end. Photograph three things there without being seen: their door, their rota, their lookout or their strongbox.',
+    steps: [
+      { t: 'talk', lines: [['bubut', 'Their camp is a tarp and some crates and a great deal of standing still. Herons stand still for hours. Then they stab.', 'worried'], ['mate', 'So we stand still for longer.', 'smug']] },
+      { t: 'case', skin: 'pucong', spots: [{ at: PG(29, 5), kind: 'door' }, { at: PG(32, 5), kind: 'rota' }, { at: PG(28, 6), kind: 'cam' }, { at: PG(31, 4), kind: 'safe' }], need: 3, guards: [[PG(34, 4), PG(34, 8)], [PG(29, 9), PG(33, 9)]], label: 'Photograph three things (E) at the Pucong Boys’ camp without being seen', cp: true },
+      { t: 'goto', at: 'safe-punggol', label: 'Slip back over the bridge to the Punggol flat with the photos' },
+      { t: 'talk', lines: [['hero', 'The rota: “Pucong Boys. Paid by M. Sutera. 1: the book from the gauge. 2: the brass off the post. Bring both to the jetty Sunday.”', 'worried'], ['mate', 'And the strongbox is empty! So where’s the register?', 'worried'], ['hero', 'The doorway photo. Look: a heron in a kayak, on the Waterway, with a book under his wing.', 'cross']] },
+    ] },
+  { id: 'm129', ch: 16, title: 'Paper Boats', giver: 'berang', at: 'berang', reward: 1430, rep: 34, blurb: 'A heron tipped his hired kayak over on Punggol Waterway, and pages of an old book are drifting down into the Lorong Halus reeds. Encik Berang the kayak man needs help fishing them out before they sink.',
+    steps: [
+      { t: 'talk', lines: [['berang', 'Aiyo! A heron hires my kayak, says he can paddle, cannot paddle. Splash! Pages everywhere, floating off down the Waterway into the wetland.', 'cross'], ['berang', 'He swam out with the book, but four pages got away. Old paper, very wet. Quick!', 'worried']] },
+      { t: 'collect', items: [PG(13, 23), PG(24, 24), PG(29, 19), PG(33, 24)], item: 'pg-page', time: 130, label: 'Fish the four drifting pages out of the reeds before they sink (E at each)', cp: true },
+      { t: 'talk', lines: [['hero', 'Tide tables, 1937. Every low water that year, and the lowest of all in pencil: “King tide. Reduce to B.M. 37.”', 'worried'], ['berang', 'Also, the crow boy. He was fishing for pages too, then he rode off on one of my bicycles! Without paying!', 'cross'], ['mate', 'Pip. Which way?', 'cross'], ['berang', 'Towards the wetland. Ask the doctor at the hut. She sees everything that moves out there.', 'calm']] },
+    ] },
+  { id: 'm130', ch: 16, title: 'Park Connector', giver: 'tempua', at: 'tempua', reward: 1440, rep: 34, blurb: 'Pip is cycling the park connector round to the old sea wall with the photos he took of the register. Dr Tempua lends you a bicycle: get to the sea wall first, along the red track.',
+    steps: [
+      { t: 'talk', lines: [['tempua', 'A crow on a bicycle, wobbling past my hut with a phone in his beak. He took the long way, round by the Waterway. Silly bird.', 'calm'], ['tempua', 'My bicycle is by the hut. The short way is the red track. Go!', 'worried']] },
+      { t: 'ride', kind: 'bike', near: 'pg-halusbikes', label: 'Take Dr Tempua’s bicycle by the path (E)', cp: true },
+      { t: 'race', ride: 'bike', time: 60, marks: [PG(25, 19), PG(23, 16), PG(23, 26), PG(28, 24), PG(34, 24), PG(34, 28)], label: 'Ride the park connector round to the south end of the old sea wall before Pip', cp: true },
+      { t: 'talk', lines: [['pip', 'Kaw! How are you here already? I took the scenic route!', 'worried'], ['hero', 'Hand over the phone, Pip.', 'cross'], ['pip', 'Can’t. Madam’s calling. Madam’s ALWAYS calling.', 'worried'], ['tempua', 'He is meeting somebody on the sea wall at dusk. I hear them every evening. Follow him, quietly.', 'calm']] },
+    ] },
+  { id: 'm131', ch: 16, title: 'The Old Sea Wall', giver: 'tempua', at: 'tempua', reward: 1450, rep: 34, blurb: 'At dusk Pip walks the old sea wall promenade talking to Madam Sutera on the phone. Tail him along the wall without being seen, and listen.',
+    steps: [
+      { t: 'talk', lines: [['tempua', 'Weavers build in the reeds, so nobody looks at us twice. Be a weaver. Keep to the reeds and listen.', 'calm']] },
+      { t: 'goto', at: 'pg-redbridge', label: 'Wait in the reeds by the red bridge', cp: true },
+      { t: 'tail', from: PG(28, 24), route: [PG(31, 24), PG(34, 24), PG(34, 21), PG(34, 18), PG(34, 15)], calm: 0.6, label: 'Follow Pip along the path and up the old sea wall, without being seen', cp: true },
+      { t: 'talk', lines: [['pip', 'Yes, madam. I have photos of every page. No, madam, not the brass yet. The cows keep getting in the way.', 'worried'], ['sutera', 'Then open their gate, Pip, and let the cows get in everybody else’s way. Abang Pucong takes the plate off the post at dusk.', 'calm'], ['sutera', 'The register tells me which night. The plate tells me how deep. I need both, darling, by Sunday.', 'calm'], ['hero', 'Dusk. That’s now.', 'cross']] },
+    ] },
+  { id: 'm132', ch: 16, title: 'Dusk Drive', giver: 'bubut', at: 'bubut', reward: 1460, rep: 34, blurb: 'Somebody opened the pasture gate, and a cow is standing on the trail by the old villa, between you and the survey post. Walk her home before dark falls, then get to the post.',
+    steps: [
+      { t: 'talk', lines: [['bubut', 'Boop! The gate is open and a cow is standing right in the trail by the villa, as if she owns it. She does, really.', 'worried'], ['mate', 'Behind her, not too close. I’ll keep back.', 'calm']] },
+      { t: 'goto', at: 'pg-coney', label: 'Run out onto the Coney Island trail', ride: 'foot', cp: true },
+      { t: 'herd', trail: [PG(27, 8), PG(23, 8), PG(19, 7), PG(17, 8), PG(17, 9)], time: 120, label: 'Walk the cow home to the pasture gate before dark', cp: true },
+      { t: 'goto', at: 'pg-post', label: 'Run to the survey post under the casuarina by the old villa', ride: 'foot', cp: true },
+      { t: 'talk', lines: [['hero', 'Four bolt holes, and fresh scratches. The plate’s gone.', 'cross'], ['mate', 'Heron tracks, all the way back to their camp. With something heavy: look how deep.', 'worried'], ['bubut', 'If it is in their camp, it is in a crate. They have four crates. Herons love a crate.', 'calm']] },
+    ] },
+  { id: 'm133', ch: 16, title: 'Brass for Brass', giver: 'pekaka', at: 'pekaka', reward: 1470, rep: 35, blurb: 'The bench mark plate is in one of the four crates at the Pucong Boys’ camp. Puan Pekaka has old plates from the gauge house store, with the wrong numbers on them. Swap one into each crate while the heron on watch looks away.',
+    steps: [
+      { t: 'talk', lines: [['pekaka', 'In my store I have four old plates, retired, with the wrong numbers. Brass is brass to a heron.', 'calm'], ['mate', 'So she gets a plate. Just not the plate.', 'smug']] },
+      { t: 'swap', crates: [PG(29, 6), PG(32, 6), PG(31, 8), PG(33, 8)], guards: [[PG(28, 9), PG(33, 9)]], time: 95, decoy: 'pg-plate', skin: 'pucong', thing: 'crate', label: 'Swap an old plate into each crate (E) while the heron on watch looks away', cp: true },
+      { t: 'talk', lines: [['hero', 'Crate three. Heavy brass, still muddy: “B.M. 37. Punggol Datum.” The real one.', 'happy'], ['pucong', 'Hm. Somebody has moved my crates. Pucong Boys! Count the crates!', 'cross'], ['pucong', 'Four crates. Four plates. Good. And the book goes to the jetty now, before anybody else gets clever.', 'calm'], ['mate', 'The register. He’s sending it off. Now.', 'worried']] },
+    ] },
+  { id: 'm134', ch: 16, title: 'East Bridge', giver: 'berang', at: 'berang', reward: 1480, rep: 35, blurb: 'Abang Pucong’s fastest boy is running the 1937 register over Coney’s east bridge and through the wetland. Catch him: bump him three times and the book is yours.',
+    steps: [
+      { t: 'talk', lines: [['berang', 'A heron running with a book, over the east bridge! They are faster on their feet than in my kayaks, I tell you that.', 'worried'], ['hero', 'Then we’ll be faster.', 'cross']] },
+      { t: 'goto', at: 'pg-eastbridge', label: 'Get to the south end of Coney Island’s east bridge', cp: true },
+      { t: 'chase', who: 'runner', skin: 'pucong', from: PG(30, 19), route: [PG(26, 19), PG(26, 24), PG(29, 24), PG(34, 24), PG(34, 19), PG(29, 19), PG(26, 19), PG(26, 24)], bumps: 3, loot: 'pg-register', speed: 180, label: 'Chase the heron through Lorong Halus and bump him three times (Space dashes)', cp: true },
+      { t: 'talk', lines: [['hero', 'The 1937 register. Wet at the edges, but every page.', 'happy'], ['pucong', 'Keep the book, then. Madam has photographs of every page, and she has the plate. Pucong Boys are paid. Pucong Boys go home.', 'calm'], ['mate', 'She has A plate.', 'smug'], ['pucong', '…', 'cross']] },
+    ] },
+  { id: 'm135', ch: 16, title: 'King Tide', giver: 'pekaka', at: 'pekaka', reward: 2000, rep: 35, blurb: 'With the register and the real plate, Puan Pekaka can read the 1937 chart at last. Hold the gauge house against Madam Sutera’s crows while she works, then read the tide staff off the end of the jetty at the top of the tide.',
+    steps: [
+      { t: 'talk', lines: [['pekaka', 'The register, and B.M. 37. With these I can tell you to the hour when the sea is lowest this year. Give me the gauge house and a little quiet.', 'calm'], ['mate', 'Quiet. Look up.', 'worried'], ['hero', 'Crows. A lot of crows.', 'cross']] },
+      { t: 'goto', at: 'pg-gauge', label: 'Run to the old tide-gauge house', ride: 'foot', cp: true },
+      { t: 'defend', at: 'pg-gauge', time: 50, waves: 2, per: 2, gang: 'crow', what: 'Gauge house', label: 'Hold the gauge house: knock the crows back before they get in at the register ({mate} helps on their own)', cp: true },
+      { t: 'goto', at: 'pg-jetty', label: 'Run out to the end of Punggol Point Jetty and read the tide staff', cp: true },
+      { t: 'talk', lines: [['pekaka', 'There. Reduced to the plate, the king tide falls lower than any night since 1937. Three nights from now, a little after two in the morning.', 'worried'], ['pekaka', 'For forty minutes, a sandbank fourteen miles south of Raffles Light comes up dry. The island no other chart has.', 'calm'], ['mate', 'And Madam Sutera is working from a plate with the wrong numbers.', 'smug'], ['hero', 'Then she’ll be wrong by a foot. That won’t stop her. It’ll only make her angry.', 'worried'], ['mate', 'The phone. Pak Camar.', 'worried']] },
+    ] },
 ]);
 // ── Hawker Tales: the Singapore side jobs. They sit outside the five chapters (ch 0), open once their story job is
 // done, and pay like a story job; the townsfolk they help are in PEOPLE.
@@ -1860,6 +1955,28 @@ export const SIDE: Mission[] = mvMissions([
       { t: 'pickup', at: 'katak', item: 'ticket', label: 'Pick up the passport from Auntie Katak’s table' },
       { t: 'deliver', to: KR(23, 3), time: 75, cp: true, item: 'ticket', label: 'Run the passport up the Causeway’s west footpath to her son’s lorry, before the queue reaches the checkpoint' },
       { t: 'talk', lines: [['hero', 'Here! Your mum says eat something.', 'happy'], ['katak', '(on the phone) He says thank you, and the queue moved one metre. Very exciting.', 'happy']] },
+    ] },
+  // the twenty-fifth pass: Punggol and Coney Island
+  { id: 'k56', side: 'm129', ch: 0, title: 'Chilli Crab Run', giver: 'berang', at: 'berang', reward: 340, rep: 12, blurb: 'Dr Tempua has been out in the reeds all day and has ordered chilli crab from the Punggol Point kopitiam. Carry it to the wetland hut hot, and steady: a crab in chilli sauce does not like being bumped.',
+    steps: [
+      { t: 'talk', lines: [['berang', 'The doctor ordered chilli crab to the hut. I would take it, but otters and chilli crab… I would eat it on the way.', 'happy'], ['mate', 'Steady hands, then. Hot and steady.', 'calm']] },
+      { t: 'pickup', at: 'mk-punggol', item: 'pg-crab', label: 'Pick up the chilli crab at the Punggol Point kopitiam (E)', cp: true },
+      { t: 'deliver', to: 'tempua', time: 50, fragile: 6, item: 'pg-crab', label: 'Carry the chilli crab to Dr Tempua at the wetland hut: hot, and steady!', cp: true },
+      { t: 'talk', lines: [['tempua', 'Still hot! You are better than the delivery boy, and he has a motorbike.', 'happy']] },
+    ] },
+  { id: 'k57', side: 'm132', ch: 0, title: 'Little Calf', giver: 'bubut', at: 'bubut', reward: 350, rep: 12, blurb: 'A Brahman calf has wandered off along Coney’s wild beach after the crabs. Walk it home to the pasture gate: calves go the same way as their mothers, only jumpier.',
+    steps: [
+      { t: 'talk', lines: [['bubut', 'The little one is chasing crabs along the beach again. Same as a cow, but more nervous. Give it lots of room.', 'calm']] },
+      { t: 'goto', at: 'pg-beach', label: 'Go down to Coney Island’s wild beach', ride: 'foot', cp: true },
+      { t: 'herd', calf: true, trail: [PG(29, 3), PG(24, 3), PG(19, 3), PG(18, 6), PG(17, 8), PG(17, 9)], label: 'Walk the calf home along the beach to the pasture gate', cp: true },
+      { t: 'talk', lines: [['bubut', 'Boop-boop! Back with its mother. You can come and be a ranger any time.', 'happy']] },
+    ] },
+  { id: 'k58', side: 'm134', ch: 0, title: 'Round the Loop', giver: 'berang', at: 'berang', reward: 360, rep: 12, blurb: 'Encik Berang says no bicycle can beat the Punggol LRT round the town. Prove him wrong: ride the loop round both banks of the Waterway before the next train comes round.',
+    steps: [
+      { t: 'talk', lines: [['berang', 'The LRT goes round Punggol in a loop, every few minutes. A bicycle against a train? No chance.', 'happy'], ['mate', 'The train has to stop at every station.', 'smug']] },
+      { t: 'ride', kind: 'bike', near: 'pg-bikes', label: 'Take a bicycle from the rack by Punggol station (E)', cp: true },
+      { t: 'race', ride: 'bike', time: 70, marks: [PG(20, 19), PG(4, 19), PG(6, 23), PG(14, 23), PG(22, 28), PG(23, 16)], label: 'Ride the loop round both banks of the Waterway before the LRT comes round', cp: true },
+      { t: 'talk', lines: [['berang', 'Ha! Beat the train. Fine. I will tell everybody. I will tell them it was a slow train.', 'happy']] },
     ] },
 ]);
 export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id, m])) as Record<string, Mission>;

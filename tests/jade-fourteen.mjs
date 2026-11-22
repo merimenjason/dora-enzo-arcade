@@ -45,7 +45,7 @@ const near = (w, kind, id) => w.near && w.near.kind === kind && (id === undefine
 function act(w, x, y, id) { w.placePlayer(x, y); w.p.act = null; w.step(NO_INPUT, DT); assert.ok(near(w, 'south', id), `prompt for ${id}: ${JSON.stringify(w.near)}`); w.interact(); }
 
 test('the map grows west over land: Jurong, Tiong Bahru and Clarke Quay, with their own ground, river and lake', () => {
-  assert.deepEqual(DISTRICTS.slice(13, 16), SOUTH); assert.equal(DISTRICTS.length, 22);
+  assert.deepEqual(DISTRICTS.slice(13, 16), SOUTH); assert.equal(DISTRICTS.length, 23);
   assert.equal(districtAt(...mvT(210, 110)), 'jurong'); assert.equal(districtAt(...mvT(260, 110)), 'tiong'); assert.equal(districtAt(...mvT(310, 110)), 'quay');
   assert.equal(districtAt(...mvT(80, 110)), 'resort', 'Sentosa is still Sentosa'); assert.equal(districtAt(...mvT(332, 94)), 'resort', 'the sea off Changi keeps its district (the bumboat race)'); assert.equal(districtAt(...mvT(340, 110)), 'pulau', 'Pulau Ubin (the seventeenth pass) south of it');
   assert.equal(DISTRICT_NAME.tiong, 'Tiong Bahru'); assert.equal(DISTRICT_NAME.quay, 'Clarke Quay'); assert.equal(DISTRICT_NAME.jurong, 'Jurong');
@@ -88,7 +88,7 @@ test('each district has a market, a safe house, a station, a giver, folk, a keep
 });
 
 test('the MRT runs on: Jurong East, Tiong Bahru and Clarke Quay head the line, and a far pin plans a ride there', () => {
-  const st = c.isle.stations; assert.deepEqual(st.slice(4, 10).map(s => s.id), ['stn-mandai', 'stn-stadium', 'stn-jurong', 'stn-tiong', 'stn-quay', 'stn-changi']);
+  const st = c.isle.stations; assert.deepEqual(st.filter(s => s.id !== 'stn-punggol').slice(4, 10).map(s => s.id), ['stn-mandai', 'stn-stadium', 'stn-jurong', 'stn-tiong', 'stn-quay', 'stn-changi']);
   for (let i = 1; i < st.length; i++) assert.ok(st[i].s > st[i - 1].s, 'stations in line order');
   const w = world(); assert.equal(stationById(w, 'stn-quay').name, 'Clarke Quay station'); const kt = c.places['safe-katong']; w.placePlayer(kt.x, kt.y + T);
   const g = c.places.garden; const plan = travelPlan(w, g.x, g.y);
@@ -118,7 +118,7 @@ test('the opening order: Tiong Bahru and Clarke Quay with the Christmas Star, Ju
 
 test('chapter nine: ten jobs across the three districts, a mix of steps, at most two chases, a finale at the pagoda', () => {
   const nine = MISSIONS.filter(m => m.ch === 9);
-  assert.deepEqual(nine.map(m => m.id), NINE); assert.equal(CHAPTERS[8], 'Lights by the Lake'); assert.equal(FINALE[8], 'm65'); assert.equal(CHAPTERS.length, 15);
+  assert.deepEqual(nine.map(m => m.id), NINE); assert.equal(CHAPTERS[8], 'Lights by the Lake'); assert.equal(FINALE[8], 'm65'); assert.equal(CHAPTERS.length, 16);
   for (const m of nine) {
     if (m.id !== 'm56') assert.ok(SOUTH.includes(c.places[m.at].d), `${m.id} is given in a new district`);
     assert.ok(m.steps.some(s => s.cp), `${m.id} checkpoint`);
@@ -142,8 +142,8 @@ test('chapter nine: ten jobs across the three districts, a mix of steps, at most
   assert.deepEqual(SIDE.filter(m => TALES.includes(m.id)).map(m => m.id), TALES); // (the sixteenth pass's ride jobs follow them)
   assert.deepEqual(SIDE.slice(SIDE.findIndex(m => m.id === TALES[0])).slice(0, 3).map(m => m.id), TALES); // (and the seventeenth pass's three on Ubin, the eighteenth's three in Kallang, the nineteenth's three in Mandai and the twentieth's six after those)
   for (const id of TALES) assert.ok(SOUTH.includes(c.places[MISSION[id].at].d), `${id} in a new district`);
-  const s = newSave(); s.done = allDone.filter(id => MISSION[id].ch <= 8); assert.equal(chapterOf(s), 9); s.done = allDone; assert.equal(chapterOf(s), 16);
-  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 125); assert.equal(jc.talesAll, 55);
+  const s = newSave(); s.done = allDone.filter(id => MISSION[id].ch <= 8); assert.equal(chapterOf(s), 9); s.done = allDone; assert.equal(chapterOf(s), 17);
+  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 135); assert.equal(jc.talesAll, 58);
 });
 
 test('the solver finishes every chapter-nine job and the new Hawker Tales; the casual bot finishes the finale', () => {
