@@ -31,9 +31,11 @@ import { ubinStep, ubinNear, ubinAct, newUbin, type UbinState } from './jade-ubi
 import { kallangStep, kallangNear, kallangAct, newKallang, type KallangState } from './jade-kallangfest.js';
 import { mandaiStep, mandaiNear, mandaiAct, newMandai, type MandaiState } from './jade-mandaifest.js';
 import { islandsStep, islandsNear, islandsAct, newIslands, type IslandsState } from './jade-islandsfest.js';
+import { bukitStep, bukitNear, bukitAct, newBukit, type BukitState } from './jade-bukitfest.js';
 import { onReef, onRock, tideOf, phaseOf, wading, TIDE } from './jade-tide.js';
+import { climbing, underShelter, SUMMIT } from './jade-summit.js';
 import { crowdIn } from './jade-crowd.js';
-import { linkNear, linkGo, ferryStep, ferryLand, FARES, EAST_TEXT, RESORT_TEXT, FAR_TEXT, CHANGI_TEXT, SOUTH_TEXT, JURONG_TEXT, UBIN_TEXT, KAMPONG_TEXT, KALLANG_TEXT, ROAR_TEXT, MANDAI_TEXT, SELETAR_TEXT, ISLANDS_TEXT, LIGHTHOUSE_TEXT, type FerryRide } from './jade-cable.js';
+import { linkNear, linkGo, ferryStep, ferryLand, FARES, EAST_TEXT, RESORT_TEXT, FAR_TEXT, CHANGI_TEXT, SOUTH_TEXT, JURONG_TEXT, UBIN_TEXT, KAMPONG_TEXT, KALLANG_TEXT, ROAR_TEXT, MANDAI_TEXT, SELETAR_TEXT, ISLANDS_TEXT, LIGHTHOUSE_TEXT, HERBARIUM_TEXT, type FerryRide } from './jade-cable.js';
 
 export const DT = 1 / 60;
 export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop: boolean; act: boolean;
@@ -49,7 +51,7 @@ export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; lo
 /** `over`: a toast that replaces any showing or waiting toast containing this text (pass 13: "Your taxi is here" sat
  * beside "a taxi is on its way") */
 export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string; over?: string };
-export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry' | 'east' | 'empire' | 'contract' | 'far' | 'south' | 'ubin' | 'kallang' | 'mandai' | 'islands'; label: string; x: number; y: number; id?: string; ride?: Ride };
+export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry' | 'east' | 'empire' | 'contract' | 'far' | 'south' | 'ubin' | 'kallang' | 'mandai' | 'islands' | 'bukit'; label: string; x: number; y: number; id?: string; ride?: Ride };
 export type Snatcher = { x: number; y: number; h: number; t: number; out: boolean; took: number; wing: number; good?: string; dizzy?: number };
 export type Act = { n: string; t: number; dur: number; then?: () => void };
 export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' | 'sg' } | { kind: 'map' } | { kind: 'biz'; id: BizId } | { kind: 'gear' } | { kind: 'mama' } | { kind: 'glossary' }
@@ -123,7 +125,7 @@ export class World {
   /** the island: a hailed taxi (lib/jade-taxi.ts), the station the last train ride arrived at (lib/jade-mrt.ts) */
   taxi: Taxi | null = null; lastMrt = '';
   /** the ninth pass: the ferry crossing you are on, and the last cable car or ferry stop you stepped off at */
-  ferry: FerryRide | null = null; lastLink = ''; east: EastState = newEast(); far: FarState = newFar(); south: SouthState = newSouth(); ubin: UbinState = newUbin(); kallang: KallangState = newKallang(); mandai: MandaiState = newMandai(); islands: IslandsState = newIslands();
+  ferry: FerryRide | null = null; lastLink = ''; east: EastState = newEast(); far: FarState = newFar(); south: SouthState = newSouth(); ubin: UbinState = newUbin(); kallang: KallangState = newKallang(); mandai: MandaiState = newMandai(); islands: IslandsState = newIslands(); bukit: BukitState = newBukit();
   /** today's date from the device ('yyyy-mm-dd', set by the page) for the festivals; null in the Node tests */
   today: string | null = null;
   /** the partner thinking for themselves (lib/jade-pal.ts) */
@@ -265,7 +267,7 @@ export class World {
     this.collectStep();
     trafficStep(this, dt); pedStep(this, dt);
     heatStep(this, dt);
-    finesStep(this, dt); sgStep(this, dt); gangsStep(this, dt); eastStep(this); farStep(this); southStep(this); ubinStep(this, dt); kallangStep(this, dt); mandaiStep(this, dt); islandsStep(this, dt); empireStep(this, dt);
+    finesStep(this, dt); sgStep(this, dt); gangsStep(this, dt); eastStep(this); farStep(this); southStep(this); ubinStep(this, dt); kallangStep(this, dt); mandaiStep(this, dt); islandsStep(this, dt); bukitStep(this, dt); empireStep(this, dt);
     if (this.run) this.run.step(dt, inp);
     this.snatchStep(dt);
     eventsStep(this, dt);
@@ -373,6 +375,8 @@ export class World {
     if (over) top = FOOT.walk * 0.75;
     // wading the reef flats in a tide crossing (lib/jade-tide.ts): slow going, no dash
     if (p === this.p && wading(this.run, p.b.x, p.b.y)) { top = Math.min(top, TIDE.wade); p.dashT = 0; }
+    // up Bukit Timah Hill on a summit climb (lib/jade-summit.ts): a run is a hill run, slower than on the flat
+    if (p === this.p && climbing(this.run)) top = Math.min(top, SUMMIT.top);
     if (p.dashT > 0) { p.dashT -= dt; top = FOOT.dash; if (Math.hypot(mx, my) < 0.2) { mx = Math.cos(p.b.h); my = Math.sin(p.b.h); } }
     const wasAir = p.air;
     if (p.air) { p.hopT -= dt; if (Math.hypot(mx, my) < 0.2 && p.b.speed > 40) { mx = Math.cos(p.b.h); my = Math.sin(p.b.h); } top = Math.max(top, 230); }
@@ -399,6 +403,8 @@ export class World {
       const c = tideOf(this.run), ph = c ? phaseOf(this.run, this.run.cur, c.t).ph : 'out';
       p.anim = p.b.speed > 8 ? 'wade' : ph !== 'out' && onRock(this.run, p.x, p.y) ? 'tide-brace' : p.anim;
     }
+    // on Bukit Timah Hill's summit trail: stepping up it (two frames), or sat on a rest shelter's bench getting your breath
+    if (p === this.p && this.run && climbing(this.run) && !p.air && p.stunT <= 0 && !p.carry) p.anim = p.b.speed > 8 ? 'hike' : underShelter(this.run, p.x, p.y) ? 'rest' : p.anim;
     if (this.pushing) this.faceFrom(this.inputAng);
   }
   land() {
@@ -580,7 +586,7 @@ export class World {
     if (!this.run) empireNear(this, cand);
     if (!this.run) contractNear(this, cand);
     const en = eventNear(this); if (en) cand(en, 80);
-    if (!this.run) { sgNear(this, cand); gangNear(this, cand); eastNear(this, cand); farNear(this, cand); southNear(this, cand); ubinNear(this, cand); kallangNear(this, cand); mandaiNear(this, cand); islandsNear(this, cand); }
+    if (!this.run) { sgNear(this, cand); gangNear(this, cand); eastNear(this, cand); farNear(this, cand); southNear(this, cand); ubinNear(this, cand); kallangNear(this, cand); mandaiNear(this, cand); islandsNear(this, cand); bukitNear(this, cand); }
     if (this.festival) for (const f of this.c.festival) if (f.kind !== 'arch') cand({ kind: 'festival', label: f.kind === 'stage' ? 'Dance on the festival stage' : 'Let a sky lantern go', x: f.x, y: f.y, id: f.kind }, 80);
     for (const pr of this.tables()) cand({ kind: 'eat', label: 'Grab a bowl of noodles (3 coins)', x: pr.x, y: pr.y + 20 }, 56);
     for (const l of this.c.ladders) cand({ kind: 'ladder-up', label: 'Climb the ladder', x: l.x * T + T / 2, y: l.y * T + T / 2 }, 60);
@@ -659,6 +665,7 @@ export class World {
       case 'kallang': kallangAct(this, n.id!); break;
       case 'mandai': mandaiAct(this, n.id!); break;
       case 'islands': islandsAct(this, n.id!); break;
+      case 'bukit': bukitAct(this, n.id!); break;
       case 'empire': empireAct(this, n.id!); break;
       case 'contract': contractAct(this, n.id!); break;
       case 'fine': payTicket(this); break;
@@ -733,6 +740,7 @@ export class World {
     if (m.id === 'm95') text(this, 'kongkang', SELETAR_TEXT);
     if (!hadIslands && this.open.has('islands')) text(this, 'vanda', ISLANDS_TEXT);
     if (m.id === 'm105') text(this, 'camar', LIGHTHOUSE_TEXT);
+    if (m.id === 'm115') text(this, 'merbah', HERBARIUM_TEXT);
     this.fieldCache.clear();
     this.fx.push({ t: 'mission-done', name: m.title, k: m.reward });
     this.banner = { text: 'Job done!', sub: `${m.title} · ${MEDAL_NAME[medal]}${medal ? ' medal' : ''}`, t: 3 };

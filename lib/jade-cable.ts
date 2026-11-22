@@ -149,6 +149,8 @@ export const SELETAR_TEXT = 'Bearing one-eight-two from Station Mandai runs stra
 /** the phone text when the Southern Islands open (after chapter twelve), and the hook at the end of chapter thirteen
  * (not an ending: the story goes on) */
 export const ISLANDS_TEXT = 'Vanda here, at the bay. Raffles Lighthouse, you said? The island ferry runs from Marina South Pier, on the promenade south of the Bay, out to St John’s Island: three coins. My friend Kak Lumba guides on the reef there. Come and see me first.';
+/** the hook at the end of chapter fourteen (not an ending: the story goes on) */
+export const HERBARIUM_TEXT = 'Dr Merbah here, in the herbarium, very late. The 1937 potting book: the orchid was potted by the Gardens’ own orchid man, and he wrote the tag twice. One went in the pot. The other went in the drawer under his bench, and the drawer is still locked. Come in the morning. Bring Pak Tenggiling: the old station’s key ring hangs in his office, and I would bet my feathers the drawer key is on it.';
 export const LIGHTHOUSE_TEXT = 'Pak Camar here, on the rock. The lamp is lit and the door is still on its hinges, thanks to you. That island on the 1937 chart that no other chart has: I have the keeper’s log open on it. Come and read it with me. The ferry runs all night.';
 export const JURONG_TEXT = 'Jurong is open! The MRT runs to Jurong East station: the Science Centre, Snow City and the Chinese Garden on Jurong Lake. Or cross the bridge at the end of Beach Road.';
 export const RESORT_TEXT = 'Sentosa is open! The cable car leaves from HarbourFront at the docks (4 coins), the boardwalk runs beside the Sentosa Gateway, the MRT stops at Beach station, and the ferry crosses from Marina Bay (3 coins).';

@@ -167,5 +167,8 @@ export const CHAT: Record<string, string> = {
   lumba: 'Pink means old, not shy. Mind the fire coral, it bites back.',
   ku: 'Hurry? I have never hurried. I am a hundred and four.',
   camar: 'Thirty years on this rock. The light has never once gone out. Not on my watch.',
+  tenggiling: 'No trains since 2011. I wind the station clock anyway. Somebody should.',
+  lotong: 'Rule one on this hill: never feed the macaques. There is no rule two.',
+  merbah: 'Every sheet in this herbarium has a story. Most of them are about leaves.',
   umang: 'This shell? Borrowed. Everything a crab owns is borrowed, little one.',
 };

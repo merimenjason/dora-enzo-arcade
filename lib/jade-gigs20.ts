@@ -32,6 +32,8 @@ export const GIG20_DEFS: Gig20[] = [
   { id: 'feeders-mnd', title: 'Nectar feeders', at: [10, 109], d: 'mandai', giver: 'enggang', kind: 'feeders' },
   // (the twenty-first pass) Kak Lumba's kayak loop out of the Lazarus lagoon and round the island
   { id: 'kayak-loop', title: 'Lagoon kayak loop', at: [35, 140], d: 'islands', giver: 'lumba', kind: 'kayak-loop' },
+  // (the twenty-second pass) Dr Merbah's plant press, from the herbarium up to the old railway station
+  { id: 'press-run', title: 'Plant press to the station', at: [77, 144], d: 'bukit', giver: 'merbah', kind: 'press-run' },
 ];
 /** Kallang's local tiles, as the story writes them */
 const K = (lx: number, ly: number): [number, number] => ly < 14 ? [212 + lx, 82 + ly] : [148 + lx, 82 + ly];
@@ -44,6 +46,7 @@ export function gig20Steps(kind: string, home: [number, number]): { steps: Step[
   // the board's own tile is already in the new frame, so steps that start there are added after the move
   const at = (st: Step[], reward: number, first?: Step) => { const r = S(st, reward); if (first) r.steps.unshift(first); return r; };
   switch (kind) {
+    case 'press-run': return S([{ t: 'pickup', at: 'herbarium', item: 'bkt-press', label: 'Pick up Dr Merbah’s plant press at the herbarium (E)' }, { t: 'deliver', to: 'bkt-station', time: 55, item: 'bkt-press', label: 'Carry the plant press over the road and up to the old Bukit Timah railway station before the specimens dry out' }], 80);
     case 'mooncakes': return S([{ t: 'rounds', act: 'serve', item: 'mooncakes', what: 'box of mooncakes', drops: [[144, 30], [128, 25], [158, 15], [168, 21]], who: ['rabbit', 'hedgehog', 'goose', 'cat'], time: 92, label: 'Take a box of mooncakes to each neighbour waiting at the void decks' }], 70);
     case 'fares-tp': return at([{ t: 'fares', n: 2, label: 'Drive two Toa Payoh fares' }], 60, { t: 'ride', kind: 'tuktuk', near: home, label: 'Get in Uncle Kamal’s tuk-tuk' });
     case 'balloons': return S([{ t: 'rounds', act: 'serve', item: 'balloons', what: 'balloon', drops: [[138, 65], [165, 61], [183, 67], [197, 75], [143, 75]], who: ['rabbit', 'duck', 'tapir', 'civet', 'dog'], time: 120, label: 'Hand a balloon to each kid waiting round the bay' }], 80);

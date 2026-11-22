@@ -137,6 +137,7 @@ export function ChapterCard({ ch, onDone }: { ch: number; onDone: () => void }) 
         {c === 10 && <><p>Pulau Ubin is open: take Pak Ubin’s bumboat from the Changi Point jetty.</p><p>Find out what the boars are digging for.</p></>}
         {c === 12 && <><p>Mandai is open: take the MRT to Mandai Lake Road.</p><p>Find out where the black seaplane is heading.</p></>}
         {c === 13 && <><p>The Southern Islands are open: take the island ferry from Marina South Pier.</p><p>Get to Raffles Lighthouse before Madam Sutera.</p></>}
+        {c === 14 && <><p>Bukit Timah is open: take the MRT to Beauty World or Botanic Gardens.</p><p>Find out what the 1937 survey left on the hill.</p></>}
         <div className="jade-chapter-bar"><span /></div>
       </div>
       <button type="button" className="jade-btn plain jade-story-skip" data-testid="jade-story-skip" onClick={e => { e.stopPropagation(); finish(); }}>Skip ›</button>
