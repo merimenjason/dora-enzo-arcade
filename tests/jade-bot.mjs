@@ -36,6 +36,7 @@ import { contractMission } from '../.checks/jade-proc.js';
 import { openDistricts, SAFE_HOUSES } from '../.checks/jade-save.js';
 import { startGig } from '../.checks/jade-gigs.js';
 import { GIG20_DEFS } from '../.checks/jade-gigs20.js';
+import { GIG23_DEFS } from '../.checks/jade-gigs23.js';
 
 const QUICK = process.argv.includes('--quick');
 const MAIN = import.meta.url === `file://${process.argv[1]}`;
@@ -82,9 +83,9 @@ export function empireSave(id, seed = 0) {
  *  every raid kind of each gang (at one property in the gang's district); a raid alert starts across town, with the
  *  real clock */
 /** the twentieth pass: each side gig past Chinatown, started at its board on a save with the whole story done (every
- *  district open), as a player walks up to the flag and presses E */
-export function gigCases() {
-  return GIG20_DEFS.map(g => [`gig ${g.id}`, g.id, s => ({ save: s, setup: w => { const b = w.gigs().find(x => x.id === g.id); assert.ok(b, `${g.id} board is up`); w.placePlayer(b.x, b.y + 20); startGig(w, g.id); }, done: () => !!s.best['gig:' + g.id], maxT: 400 })]);
+ *  district open), as a player walks up to the flag and presses E (the twenty-third pass's too; `defs` narrows it) */
+export function gigCases(defs = [...GIG20_DEFS, ...GIG23_DEFS]) {
+  return defs.map(g => [`gig ${g.id}`, g.id, s => ({ save: s, setup: w => { const b = w.gigs().find(x => x.id === g.id); assert.ok(b, `${g.id} board is up`); w.placePlayer(b.x, b.y + 20); startGig(w, g.id); }, done: () => !!s.best['gig:' + g.id], maxT: 400 })]);
 }
 export function empireCases() {
   const out = [];

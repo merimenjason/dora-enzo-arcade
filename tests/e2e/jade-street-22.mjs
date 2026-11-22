@@ -39,7 +39,7 @@ export async function twentySecond(h) {
   check(await W(() => { const im = document.querySelector('[data-testid="jade-chapter-card"] img'); return !!im && im.complete && im.naturalWidth > 0 && /bg-chapter-14/.test(im.src); }), `${name}: the card's painting is chapter fourteen's`);
   await press('jade-story-skip'); await settle();
   check(await W(() => window.__jade.world().s.story.ch === 14), `${name}: chapter fourteen is under way`);
-  check(await W(() => window.__jade.jobs().side) === 44 && await W(() => window.__jade.jobs().story) === 115, `${name}: 115 story jobs and 44 Hawker Tales, counted from the data`);
+  check(await W(() => window.__jade.jobs().side) >= 44 && await W(() => window.__jade.jobs().story) >= 115, `${name}: 115 story jobs and 44 Hawker Tales (or more, from later passes), counted from the data`);
 
   // ── the plaque plans the trip: a pin on the summit from Chinatown goes by the MRT
   await at('safe-market', 0, 64);
