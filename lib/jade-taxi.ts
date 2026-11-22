@@ -51,12 +51,15 @@ export function hail(w: World, app = false): boolean {
   return true;
 }
 /** the places a taxi drops off at: safe houses, markets, contacts, stations and sights in open districts */
+const KRANJI_NO_TAXI = new Set(['kr-memorial', 'kr-ringpost', 'kr-camp', 'kr-mudflat', 'kr-hide', 'kr-jetty']);
 export function dropOffs(w: World): { id: string; name: string; fare: number }[] {
   const out: { id: string; name: string; fare: number }[] = [];
   for (const [id, p] of Object.entries(w.c.places)) {
     if (!w.open.has(p.d) || !p.name || !['safe', 'market', 'station', 'spot'].includes(p.kind)) continue;
     // (Pulau Ubin is over the strait, the Southern Islands over the sea: no taxi crosses to either)
     if (p.d === 'pulau' || p.d === 'islands') continue;
+    // (nor out on Sungei Buloh's mudflats, nor inside the Kranji War Memorial's hedge: the taxi stops at the gate)
+    if (p.d === 'kranji' && KRANJI_NO_TAXI.has(id)) continue;
     if (dist(p.x, p.y, w.p.x, w.p.y) < 8 * T) continue;
     out.push({ id, name: p.name, fare: fareTo(w, p) });
   }

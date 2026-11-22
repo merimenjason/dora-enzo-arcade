@@ -245,7 +245,7 @@ test('crows snatch cargo from a slow rider and miss one who dashes', () => {
 });
 
 test('the story: 85 jobs in 11 chapters (five of five, the island’s ten, Island Lights’ ten, Christmas Star’s ten, Lights by the Lake’s ten, Kampong Spirit’s ten, Kallang Roar’s ten), each with a contact, dialogue and a checkpoint, heirlooms at each Chinatown finale', () => {
-  assert.equal(MISSIONS.length, 115);
+  assert.equal(MISSIONS.length, 125);
   for (let ch = 1; ch <= 5; ch++) assert.equal(MISSIONS.filter(m => m.ch === ch).length, 5);
   assert.equal(MISSIONS.filter(m => m.ch === 6).length, 10);
   assert.equal(MISSIONS.filter(m => m.ch === 7).length, 10);
@@ -333,7 +333,7 @@ test('the save: round trip, repair and clamping, v1 migration, garage, wardrobe 
 });
 
 test('trophies, the daily market event and the night clock', () => {
-  assert.equal(TROPHIES.length, 81);
+  assert.equal(TROPHIES.length, 86);
   const s = newSave(); s.done = ['m1', 'm2', 'm3', 'm4', 'm5']; s.cats = Array.from({ length: 10 }, (_, i) => i);
   const got = checkTrophies(s); assert.ok(got.includes('First Job') && got.includes('Jade Dragon') && got.includes('Lucky Paw'));
   assert.deepEqual(checkTrophies(s), [], 'awarded once');

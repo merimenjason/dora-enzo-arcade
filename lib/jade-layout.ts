@@ -21,13 +21,18 @@ const T = 64;
 export const OLD_W = 376, OLD_H = 128;
 /** the twenty-first pass: the build frame grows 30 rows below the old frame (every older pass builds and loops over the
  * first OLD_H rows only, so nothing it built moves). The Southern Islands are built there, in the rect ISL (old columns
- * 0 to 43, rows 128 to 157), their own block; the rest of the extra rows are open sea that no table shows */
-export const BUILD_H = OLD_H + 30;
+ * 0 to 43, rows 128 to 157), their own block; the rest of the extra rows are open sea that no table shows (the
+ * twenty-fourth pass grew it 26 rows more, for KRJ below) */
+export const BUILD_H = OLD_H + 56;
 export const ISL = { x0: 0, y0: OLD_H, x1: 43, y1: OLD_H + 29 } as const;
 /** the twenty-second pass: Bukit Timah and the Botanic Gardens, built in the same extra rows east of the islands (old
  * columns 48 to 87, rows 130 to 157: four columns and two rows of open sea keep it clear of the islands' rect and the
  * old frame), its own block; in the world, the parkland west of Tiong Bahru and south of Jurong */
 export const BKT = { x0: 48, y0: OLD_H + 2, x1: 87, y1: OLD_H + 29 } as const;
+/** the twenty-fourth pass: Kranji and Woodlands, built in the extra rows too (old columns 100 to 135, rows 128 to 183:
+ * the build frame grew 26 more rows for it, open sea that no other table shows), its own block; in the world, the
+ * north-east corner above Pulau Ubin, at the top edge east of Changi (the Strait of Johor along its north edge) */
+export const KRJ = { x0: 100, y0: OLD_H, x1: 135, y1: OLD_H + 55 } as const;
 
 /** an old tile rect (inclusive) and the new tile its top-left corner lands at */
 export type Block = { id: string; x0: number; y0: number; x1: number; y1: number; nx: number; ny: number };
@@ -35,7 +40,7 @@ export type Layout = { blocks: Block[]; NW: number; NH: number };
 
 /** the identity: the whole old world onto itself (the build frame's extra rows with it: the islands' block where it was
  * built) */
-const ZERO: Layout = { blocks: [{ id: 'islands', ...ISL, nx: ISL.x0, ny: ISL.y0 }, { id: 'bukit', ...BKT, nx: BKT.x0, ny: BKT.y0 }, { id: 'main', x0: 0, y0: 0, x1: OLD_W - 1, y1: OLD_H - 1, nx: 0, ny: 0 }], NW: OLD_W, NH: BUILD_H };
+const ZERO: Layout = { blocks: [{ id: 'islands', ...ISL, nx: ISL.x0, ny: ISL.y0 }, { id: 'bukit', ...BKT, nx: BKT.x0, ny: BKT.y0 }, { id: 'kranji', ...KRJ, nx: KRJ.x0, ny: KRJ.y0 }, { id: 'main', x0: 0, y0: 0, x1: OLD_W - 1, y1: OLD_H - 1, nx: 0, ny: 0 }], NW: OLD_W, NH: BUILD_H };
 /** the four blocks that leave the main block (more specific blocks first: a tile belongs to the first block that covers
  * it). The south strip's three are its land rows only (96 to 125), split on the column between Zion Road and the
  * Singapore River, so no road runs along a seam */
@@ -55,6 +60,9 @@ const MOVED = [
   // the twenty-second pass: Bukit Timah, built in the build frame's extra rows east of the islands; in the world, the
   // parkland between Jurong (north), Tiong Bahru (east) and the west coast's beach (south)
   { id: 'bukit', ...BKT },
+  // the twenty-fourth pass: Kranji and Woodlands, built in the build frame's extra rows east of the islands; in the
+  // world, the north-east corner above Pulau Ubin
+  { id: 'kranji', ...KRJ },
 ];
 /** the real table (new-frame origins): Orchard Road north-west of Chinatown, Fort Canning Park between them (Orchard
  * Boulevard runs on into Pagoda Street); Clarke Quay under Orchard (Clemenceau Avenue joins them; Eu Tong Sen Street runs
@@ -62,8 +70,9 @@ const MOVED = [
  * Rajah Expressway; Jurong at the west edge; Mandai in the north-west corner, west of Orchard Road at the top edge (the
  * reservoir along the edge); the Southern Islands in the sea south of Marina Bay (Marina South Pier's ferry runs down to
  * them), west of Kallang; Bukit Timah in the parkland west of Tiong Bahru (Upper Bukit Timah Road runs on into Tiong
- * Bahru's road, Jurong's runs down into it); the main block 100 columns east */
-const REAL_AT: Record<string, [number, number]> = { orchard: [36, 0], quay: [52, 44], tiong: [44, 78], jurong: [0, 44], pulau: [476, 60], kallang: [312, 96], mandai: [6, 0], islands: [264, 96], bukit: [4, 78], main: [100, 0] };
+ * Bahru's road, Jurong's runs down into it); Kranji and Woodlands in the north-east corner
+ * above Pulau Ubin (its road runs on into Changi's); the main block 100 columns east */
+const REAL_AT: Record<string, [number, number]> = { orchard: [36, 0], quay: [52, 44], tiong: [44, 78], jurong: [0, 44], pulau: [476, 60], kallang: [312, 96], mandai: [6, 0], islands: [264, 96], bukit: [4, 78], kranji: [476, 0], main: [100, 0] };
 /** the real world's width: the main block 100 columns east, then Pulau Ubin's 36 columns off Changi (the north-east
  * corner). 512 × 128 is 65,536 tiles; lib/jade-nav.ts keys its heap on 2^17 so the world may still grow */
 const REAL_W = OLD_W + 100 + 36;

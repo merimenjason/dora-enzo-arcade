@@ -97,8 +97,8 @@ test('chapter thirteen: ten jobs round the islands, a mix of steps, at most a th
   assert.doesNotMatch(words, /Sutera (is|was) (beaten|caught|finished)/i, 'Sutera is not beaten');
   assert.doesNotMatch(readFileSync(new URL('../app/jade-street/story.tsx', import.meta.url), 'utf8'), /bg-end-13|chapter 13 ending/i);
   const s = newSave(); s.done = MISSIONS.filter(m => m.ch <= 12).map(m => m.id); assert.equal(chapterOf(s), 13);
-  s.done = MISSIONS.map(m => m.id); assert.equal(chapterOf(s), 15);
-  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 115); assert.equal(jc.talesAll, 52);
+  s.done = MISSIONS.map(m => m.id); assert.equal(chapterOf(s), 16);
+  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 125); assert.equal(jc.talesAll, 55);
   assert.doesNotMatch(JSON.stringify([...ten, ...TALES.map(id => MISSION[id])]), /grumble/i);
 });
 
@@ -190,7 +190,7 @@ test('the tortoises, the lagoon, the lookout and the pools: their own animations
   put(w, near['pool:0'].x, near['pool:0'].y); islandsAct(w, 'pool:0'); assert.equal(w.p.act?.n, 'peer'); settle(w, 2); assert.equal(w.s.stats.peeks, 1);
   assert.ok(w.s.rep.islands >= 4, 'a little islands reputation');
   for (const t of ['lighthouse', 'tidereader', 'slowfood', 'islandtime']) assert.ok(TROPHIES.some(x => x.id === t), t);
-  assert.equal(TROPHIES.length, 81);
+  assert.equal(TROPHIES.length, 86);
 });
 
 test('a side gig round the lagoon, and the snorkel hire’s kayak perk, only on the islands', () => {

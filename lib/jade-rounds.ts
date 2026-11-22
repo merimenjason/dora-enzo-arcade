@@ -15,9 +15,9 @@ type Rounds = Extract<Step, { t: 'rounds' }>;
 /** how near a stop E reaches (world units) */
 export const DROP_R = 84;
 /** each act's verb, as the prompt and the HUD say it ("Hang the songbird cage") */
-export const VERB: Record<Rounds['act'], string> = { serve: 'Hand over', drape: 'Drape', hang: 'Hang', photo: 'Photograph', plant: 'Plant' };
+export const VERB: Record<Rounds['act'], string> = { serve: 'Hand over', drape: 'Drape', hang: 'Hang', photo: 'Photograph', plant: 'Plant', goatfeed: 'Feed' };
 /** how long each pose plays (seconds) */
-export const ACT_DUR: Record<Rounds['act'], number> = { serve: 0.8, drape: 1.0, hang: 1.1, photo: 0.9, plant: 1.6 };
+export const ACT_DUR: Record<Rounds['act'], number> = { serve: 0.8, drape: 1.0, hang: 1.1, photo: 0.9, plant: 1.6, goatfeed: 1.0 };
 /** acts that carry nothing round (the camera is in a pocket until a stop) */
 export const EMPTY_HANDED: Rounds['act'][] = ['photo'];
 
@@ -28,7 +28,7 @@ function nearest(run: Run) {
   return best;
 }
 /** the progress counter's word for each act ("Hung 2/4") */
-const DONE: Record<Rounds['act'], string> = { serve: 'Served', drape: 'Draped', hang: 'Hung', photo: 'Photographed', plant: 'Planted' };
+const DONE: Record<Rounds['act'], string> = { serve: 'Served', drape: 'Draped', hang: 'Hung', photo: 'Photographed', plant: 'Planted', goatfeed: 'Fed' };
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 export function roundsEnter(run: Run, st: Step): boolean {

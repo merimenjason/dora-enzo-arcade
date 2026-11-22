@@ -19,7 +19,7 @@ export type Line = [string, string, Mood?];
  * crane's swinging container and the yard gate (lib/jade-setpiece.ts); `wp` is the route leg that triggers it */
 /** a chase or tail target's painted body other than Pip's: a gang member (otter, macaque, lizard, mynah, bat) or a boss
  * (Director Kaw, Crow Number Nine, Datin Ciku) */
-export type Skin = 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine' | 'bat' | 'ciku' | 'hoot' | 'boar' | 'taring' | 'owl' | 'crab';
+export type Skin = 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine' | 'bat' | 'ciku' | 'hoot' | 'boar' | 'taring' | 'owl' | 'crab' | 'skipper';
 /** the nineteenth pass: the night animals resting by a torch trail (lib/jade-torch.ts) */
 export type Beast = 'fcat' | 'pango' | 'porc' | 'squir';
 export type SetDef = { k: 'stall' | 'drums' | 'bridge' | 'crane' | 'gate'; at: [number, number]; wp: number };
@@ -76,7 +76,7 @@ export type Step =
   | { t: 'toss'; marks: Spot[]; item: string; time?: number; label: string; cp?: boolean }
   /** the sixteenth pass: a delivery on the dragon boat, timed for a boat with the partner drumming */
   | { t: 'paddle'; to: Spot; time: number; item: string; label: string; cp?: boolean }
-  | { t: 'case'; spots: { at: Spot; kind: Intel }[]; guards: Spot[][]; need?: number; label: string; cp?: boolean; /** who keeps watch (guards in caps when unset) */ skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' | 'crab' }
+  | { t: 'case'; spots: { at: Spot; kind: Intel }[]; guards: Spot[][]; need?: number; label: string; cp?: boolean; /** who keeps watch (guards in caps when unset) */ skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' | 'crab' | 'skipper' }
   /** the heist: choose quiet or loud. Quiet sneaks in at `back` (only with the back door cased) or at `front`, past the
    * guards and `cams` ([x, y, facing in degrees]), cracks the safe and slips out the same way; loud sends the partner
    * to set off a confetti diversion at the front, then it is a race to the safe before `time` runs out and a getaway
@@ -114,13 +114,18 @@ export type Step =
   // (the twenty-second pass) up Bukit Timah Hill's summit trail, marker to marker, on a Breath meter: walk, don't run, and
   // get your breath back under the trail's rest shelters (lib/jade-summit.ts); `pace` steepens the going
   | { t: 'summit'; route: Spot[]; pace?: number; time?: number; label: string; cp?: boolean }
+  /** the twenty-fourth pass (lib/jade-mud.ts): a crossing of Sungei Buloh's mudflats, marker to marker along `route`
+   * (after counting each of the whimbrel flocks `birds`, E, in order), past the crocodiles basking at `crocs`. They doze,
+   * stir and watch on a rhythm the HUD shows: move in sight of a watching one and it lunges, and you scramble back to the
+   * last marker; `doze`: the dozing spell against the usual (shorter at dawn); `time`: the tide's time left */
+  | { t: 'mud'; route: Spot[]; crocs: Spot[]; birds?: Spot[]; doze?: number; time?: number; label: string; cp?: boolean }
   | { t: 'crowd'; from: Spot; to: Spot; lanes: number; span?: number; time?: number; item?: string; keep?: boolean; ticket?: boolean; label: string; cp?: boolean }
   /** the twentieth pass (lib/jade-rounds.ts): a round of drop-offs. You carry `item` and hand one over at each of `drops`
    * (E there: the step's own pose, `act`) before `time` runs out; `who`: the townsfolk waiting at each drop (unset: a hook,
    * a shrine or a doorway); `what`: the thing, as the HUD names it ('songbird cage') */
-  | { t: 'rounds'; drops: Spot[]; item: string; act: 'serve' | 'drape' | 'hang' | 'photo' | 'plant'; what: string; who?: string[]; time: number; label: string; cp?: boolean;
+  | { t: 'rounds'; drops: Spot[]; item: string; act: 'serve' | 'drape' | 'hang' | 'photo' | 'plant' | 'goatfeed'; what: string; who?: string[]; time: number; label: string; cp?: boolean;
       /** (the twenty-third pass) what stands at each stop, painted (a mural on the wall to photograph): drawn there all along */ sights?: string[] }
-  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' | 'crab'; /** what the HUD calls a crate ('loot sack') */ thing?: string; label: string; cp?: boolean };
+  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' | 'crab' | 'skipper'; /** what the HUD calls a crate ('loot sack') */ thing?: string; label: string; cp?: boolean };
 /** what a photo while casing tells you: the back way in, the guards' beats, where the cameras are wired, the safe's make */
 export type Intel = 'door' | 'rota' | 'cam' | 'safe';
 /** a witness: `ask` are the three questions on offer, `right` the one that gets the clue (its `tag` must be among the
@@ -203,6 +208,12 @@ export const PEOPLE: Record<string, { name: string; face: string; who: string }>
   tenggiling: { name: 'Pak Tenggiling', face: 'face-tenggiling', who: 'keeper of the old Bukit Timah railway station (a Sunda pangolin)' },
   lotong: { name: 'Puan Lotong', face: 'face-lotong', who: 'ranger on Bukit Timah Hill (a banded langur)' },
   merbah: { name: 'Dr Merbah', face: 'face-merbah', who: 'keeper of the Botanic Gardens’ herbarium (a straw-headed bulbul)' },
+  // the twenty-fourth pass: Kranji and Woodlands
+  kedidi: { name: 'Kak Kedidi', face: 'face-kedidi', who: 'bird ringer at Sungei Buloh (a whimbrel)' },
+  biawak: { name: 'Pak Biawak', face: 'face-biawak', who: 'warden of the Sungei Buloh Wetland Reserve (a water monitor)' },
+  katak: { name: 'Auntie Katak', face: 'face-katak', who: 'Kranji frog farmer (an Asian bullfrog)' },
+  kambing: { name: 'Uncle Kambing', face: 'face-kambing', who: 'goat farmer at Hay Dairies (a dairy goat)' },
+  belacak: { name: 'Bos Belacak', face: 'face-belacak', who: 'boss of the Mudskipper Boys (a giant mudskipper)' },
   sutera: { name: 'Madam Sutera', face: 'face-sutera', who: 'the lady in black feathers (a black swan)' },
   // the tenth pass: the empire's supplier, the health inspector, the rival towkay and the jaga you can hire
   huat: { name: 'Ah Huat', face: 'face-huat', who: 'wholesale supplier (a wild boar)' },
@@ -223,9 +234,9 @@ export const HEIRLOOMS = [
 ] as const;
 /** which district each chapter's finale opens (chapter 1 is played in Smith Street) */
 export const CHAPTER_OPENS: District[] = ['temple', 'canal', 'docks', 'arcade'];
-export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Club Street', 'The Island', 'Island Lights', 'Christmas Star', 'Lights by the Lake', 'Kampong Spirit', 'Kallang Roar', 'Night Safari', 'Raffles Lighthouse', 'Bukit Timah'];
+export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Club Street', 'The Island', 'Island Lights', 'Christmas Star', 'Lights by the Lake', 'Kampong Spirit', 'Kallang Roar', 'Night Safari', 'Raffles Lighthouse', 'Bukit Timah', 'Whimbrel Season'];
 /** the last job of each chapter (its finale) */
-export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55', 'm65', 'm75', 'm85', 'm95', 'm105', 'm115'];
+export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55', 'm65', 'm75', 'm85', 'm95', 'm105', 'm115', 'm125'];
 /** the story job that opens Sentosa (half way through chapter seven) */
 export const RESORT_OPENS = 'm40';
 /** the story job that opens Changi (half way through chapter eight) */
@@ -242,6 +253,10 @@ export const MANDAI_OPENS = 'm85';
 export const ISLANDS_OPENS = 'm95';
 /** the story job that opens Bukit Timah (the end of chapter thirteen: chapter fourteen is set there) */
 export const BUKIT_OPENS = 'm105';
+/** the story job that opens Kranji and Woodlands (the end of chapter fourteen: chapter fifteen is set there) */
+export const KRANJI_OPENS = 'm115';
+/** who gives chapter fifteen's first job: chapter fourteen's last giver, Dr Merbah at the herbarium */
+const CH14_KEEPER = 'merbah';
 
 // ── every [x, y] tile in a step is written in the old frame (where the district was first laid out) and moved once,
 // here, through the layout table (lib/jade-layout.ts); names ('kee', 'here', 'loot') are places and stay
@@ -255,6 +270,9 @@ const I = (lx: number, ly: number): [number, number] => [lx, 128 + ly];
 /** a Bukit Timah tile by its local column and row (lib/jade-bukit.ts bktOld): built in the rows below the old frame, east
  * of the Southern Islands */
 const B = (lx: number, ly: number): [number, number] => [48 + lx, 130 + ly];
+/** a Kranji and Woodlands tile by its local column and row (lib/jade-kranji.ts krjOld): built in the rows below the old
+ * frame, east of the islands */
+const KR = (lx: number, ly: number): [number, number] => [100 + lx, 128 + ly];
 /** a spot: a place name stays, a tile moves */
 export const mvSpot = <S extends Spot>(s: S): S => (typeof s === 'string' ? s : mvT(s[0], s[1])) as S;
 const mvSpots = (a: Spot[]) => a.map(mvSpot);
@@ -281,6 +299,7 @@ function mvStepFields(st: Step): Step {
     case 'crowd': return { ...st, from: mvSpot(st.from), to: mvSpot(st.to) };
     case 'torch': return { ...st, route: mvSpots(st.route), beasts: st.beasts.map(b => ({ ...b, at: mvSpot(b.at) })) };
     case 'rounds': return { ...st, drops: mvSpots(st.drops) };
+    case 'mud': return { ...st, route: mvSpots(st.route), crocs: mvSpots(st.crocs), ...(st.birds ? { birds: mvSpots(st.birds) } : {}) };
     case 'tide': return { ...st, route: mvSpots(st.route), ...(st.pools ? { pools: mvSpots(st.pools) } : {}) };
     case 'summit': return { ...st, route: mvSpots(st.route) };
     case 'chase': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), sets: st.sets?.map(d => ({ ...d, at: mvT(d.at[0], d.at[1]) })) };
@@ -1338,6 +1357,84 @@ export const MISSIONS: Mission[] = mvMissions([
       { t: 'goto', at: 'orchid', time: 60, label: 'Run down the hill and across to the Orchid Garden', cp: true },
       { t: 'talk', lines: [['merbah', 'The cool house. Shelf fourteen. The pot is here, the label is here… and the orchid is gone.', 'worried'], ['hero', 'One black feather in the pot. And the old tag’s string, cut.', 'cross'], ['mate', 'Look, the phone. Pak Camar: “A black junk with no lights just passed my rock, sailing south. One-eight-one.”', 'worried'], ['hero', 'She has both bearings now. But a tag can be read by more than one bird. Dr Merbah: who potted that orchid in 1937?', 'calm'], ['merbah', 'Who… I would have to look in the old books. It will take a little while. Come back tomorrow.', 'calm']] },
     ] },
+  // ── chapter fifteen (the twenty-fourth pass): Kranji and Woodlands. Pak Tenggiling's key opens the orchid man's locked drawer in the
+  // herbarium, and it gives up his second tag: a bird ring's number, and "Sungei Buloh". In 1937 the orchid man also ringed shorebirds on the Kranji
+  // mudflats, and a whimbrel he ringed there was found again the next spring, far to the south: the ring book says
+  // where. Madam Sutera has hired Bos Belacak's Mudskipper Boys to dig it up first. The crocodiles bask on the flats at
+  // low tide; the whimbrels leave for the south in three days; and the Causeway is jammed solid. The Kranji War
+  // Memorial on its hill is a quiet place: the story stops at its gate, and goes in only to pay its respects.
+  { id: 'm116', ch: 15, title: 'The Second Tag', giver: CH14_KEEPER, at: CH14_KEEPER, reward: 1290, rep: 31, blurb: 'Pak Tenggiling’s old key ring has opened the orchid man’s locked drawer, and his second tag is inside: a bird ring’s number and two words, “Sungei Buloh”. Take the MRT north to Kranji and find the bird ringer there.',
+    steps: [
+      { t: 'talk', lines: [[CH14_KEEPER, 'Pak Tenggiling’s key fitted. The drawer opened at last. One tag, in the orchid man’s hand: “Ring 41. Sungei Buloh. The book is under the post.”', 'calm'], ['hero', 'Ring 41? A bird ring?', 'worried'], [CH14_KEEPER, 'He ringed shorebirds at Kranji, on the mudflats, every spring. The ringer there now is Kak Kedidi. Go north.', 'calm'], ['mate', 'Mudflats. I knew we should have packed boots.', 'smug']] },
+      { t: 'train', to: 'stn-kranji', label: 'Take the MRT north to Kranji (E at any station entrance)', cp: true },
+      { t: 'goto', at: 'kedidi', time: 60, label: 'Find Kak Kedidi, the bird ringer, at the Sungei Buloh visitor centre', cp: true },
+      { t: 'talk', lines: [['kedidi', 'Chinchillas, in boots? Good. I am Kedidi. Ring 41… the old ringing post is out on the flats, among the crocodiles.', 'calm'], ['kedidi', 'And the whimbrels fly south in three days. Somebody has been digging out there at night. Little fins, little holes.', 'worried'], ['hero', 'Then we cross the mud tomorrow.', 'cross']] },
+    ] },
+  { id: 'm117', ch: 15, title: 'Mud Boots', giver: 'kedidi', at: 'kedidi', reward: 1300, rep: 31, blurb: 'The old ringing post stands out on the Sungei Buloh mudflats, and estuarine crocodiles bask on them at low tide. Kak Kedidi shows you how to cross: go while they doze, stop when one stirs, freeze while it watches.',
+    steps: [
+      { t: 'talk', lines: [['kedidi', 'The crocodiles doze in the sun. When one stirs, it opens an eye: stop. When it lifts its head, it is watching. Do not move a whisker.', 'calm'], ['kedidi', 'They only snap at what moves. Watch the meter, not the crocodile.', 'calm'], ['mate', 'Go, stop, freeze. Like musical statues, but with teeth.', 'worried']] },
+      { t: 'goto', at: 'kr-mudflat', label: 'Go down the boardwalk to the edge of the mudflats', ride: 'foot', cp: true },
+      { t: 'mud', route: [KR(3, 13), KR(5, 10), KR(4, 8)], crocs: [KR(6, 12), KR(12, 10), KR(2, 7)], time: 120, label: 'Cross the mudflats to the old ringing post, marker to marker', cp: true },
+      { t: 'talk', lines: [['hero', 'A brass plate on the post: “Ringing station, 1937.” And a hole at its foot. Something square was buried here.', 'worried'], ['mate', 'Fin prints, all round it. Hundreds. Heading for the north bank.', 'cross'], ['kedidi', 'The Mudskipper Boys. Bos Belacak’s lot. They hop about like they own the mud.', 'cross']] },
+    ] },
+  { id: 'm118', ch: 15, title: 'Skipper Camp', giver: 'kedidi', at: 'kedidi', reward: 1310, rep: 31, blurb: 'Bos Belacak’s Mudskipper Boys have a driftwood camp on the flats’ north bank. Photograph their door, their rota, their lookout and their strongbox without being seen.',
+    steps: [
+      { t: 'talk', lines: [['kedidi', 'Their camp is under the mangroves on the north bank. Crates, a lantern, a lot of singing. They are very bad singers.', 'cross'], ['mate', 'Photographs first. Then we can laugh.', 'smug']] },
+      { t: 'case', skin: 'skipper', spots: [{ at: KR(11, 7), kind: 'door' }, { at: KR(14, 7), kind: 'rota' }, { at: KR(9, 7), kind: 'cam' }, { at: KR(12, 6), kind: 'safe' }], need: 3, guards: [[KR(8, 9), KR(12, 9)], [KR(9, 12), KR(12, 12)]], label: 'Photograph three things (E): the mudskippers’ door, their rota, their lookout, their strongbox', cp: true },
+      { t: 'goto', at: 'safe-kranji', label: 'Slip back to the Woodlands flat with the photos' },
+      { t: 'talk', lines: [['hero', 'The rota: “Bos Belacak’s Mudskipper Boys. Paid by M. Sutera. Dig up the tin under the post. Keep it shut till she comes.”', 'worried'], ['mate', 'And the strongbox: an old biscuit tin, rusted shut. They can’t open it either!', 'happy'], ['hero', 'So somebody had the key. In 1937.', 'calm']] },
+    ] },
+  { id: 'm119', ch: 15, title: 'Frog Chorus', giver: 'katak', at: 'katak', reward: 1320, rep: 32, blurb: 'Somebody knocked open Auntie Katak’s frog ponds in the night, and four of her bullfrogs are loose round the Kranji farms. Catch them before the egrets do, then hear about her grandfather’s friend from the Gardens.',
+    steps: [
+      { t: 'talk', lines: [['katak', 'Aiyoh, my frogs! The pond gate, open! Fins all over the mud. Four big ones are out.', 'worried'], ['mate', 'Frogs. How far can a frog get?', 'smug'], ['katak', 'You will see, boy. They jump.', 'cross']] },
+      { t: 'collect', items: [KR(5, 37), KR(15, 40), KR(9, 42), KR(8, 52)], item: 'kr-frog-0', time: 85, label: 'Catch the four runaway bullfrogs round the Kranji farms (E at each)', cp: true },
+      { t: 'talk', lines: [['katak', 'All home. Thank you. My grandfather had this farm in 1937, you know. His good friend was the orchid man from the Gardens.', 'happy'], ['katak', 'The orchid man kept a biscuit tin for his bird book, and he left the little key with Grandpa. In the greenhouse, under the orchid bench.', 'calm']] },
+      { t: 'goto', at: 'kr-greenhouse', label: 'Look under the orchid bench in the old greenhouse', ride: 'foot', cp: true },
+      { t: 'talk', lines: [['hero', 'A tiny brass key, tied to a label: “For the tin, if the birds come back.”', 'happy'], ['mate', 'So she has the tin, and we have the key.', 'smug'], ['hero', 'And she knows it by now.', 'worried']] },
+    ] },
+  { id: 'm120', ch: 15, title: 'Dam Whispers', giver: 'biawak', at: 'biawak', reward: 1330, rep: 32, blurb: 'Pak Biawak the warden saw Pip on Kranji Dam with a phone. Tail him along the dam to the sluice house without being seen, and listen.',
+    steps: [
+      { t: 'talk', lines: [['biawak', 'Hssss. Warden Biawak. That crow child is on my dam again, talking into a phone. Very loud, for a spy.', 'cross'], ['hero', 'We follow, and we listen.', 'calm']] },
+      { t: 'goto', at: 'kr-visitor', label: 'Wait by the visitor centre, above the west end of Kranji Dam', cp: true },
+      { t: 'tail', from: KR(7, 25), route: [KR(9, 24), KR(11, 25), KR(14, 24)], label: 'Follow Pip along the dam to the sluice house, without being seen', cp: true },
+      { t: 'talk', lines: [['pip', 'Yes, madam. No, madam. Bos Belacak still can’t get the tin open, madam.', 'worried'], ['sutera', 'Then it does not need opening, Pip. I shall open it myself. I am driving down from Johor on Friday.', 'calm'], ['sutera', 'Bring it to my car at the Causeway. The traffic is never bad on a Friday.', 'happy'], ['mate', 'The traffic is ALWAYS bad on a Friday.', 'smug']] },
+    ] },
+  { id: 'm121', ch: 15, title: 'Frangipani', giver: 'kambing', at: 'kambing', reward: 1340, rep: 32, blurb: 'Uncle Kambing knew the orchid man’s story. Gather frangipani from the farms before the sun wilts it, and walk up with him to the gate of the Kranji War Memorial.',
+    steps: [
+      { t: 'talk', lines: [['kambing', 'The orchid man? My father knew him. He did not grow old. In 1942 he went to the war, and he did not come back.', 'calm'], ['kambing', 'His name is up on the memorial, on the hill. Every year I take him frangipani. The flowers wilt fast in the sun. Will you help me?', 'calm']] },
+      { t: 'collect', items: [KR(6, 44), KR(16, 39), KR(11, 50), KR(12, 55)], item: 'kr-flower', time: 80, label: 'Gather frangipani from the four bushes round the farms before the sun wilts it (E at each)', cp: true },
+      { t: 'goto', at: 'kr-memgate', label: 'Walk with Uncle Kambing to the gate of the Kranji War Memorial', ride: 'foot', cp: true },
+      { t: 'talk', lines: [['kambing', 'Here we walk slowly, and we speak softly. Thousands of people are remembered on this hill.', 'calm'], ['hero', 'We’ll take the flowers up with you, Uncle.', 'calm'], ['kambing', 'Thank you. Go up whenever you like and stand a while. That is all anyone asks.', 'calm']] },
+    ] },
+  { id: 'm122', ch: 15, title: 'Causeway Crawl', giver: 'biawak', at: 'biawak', reward: 1350, rep: 32, blurb: 'It is Friday, the Causeway is jammed solid, and Madam Sutera’s long black car has not moved for forty minutes. Pip is running the tin along the footpath to her window. Bump him three times before he gets there.',
+    steps: [
+      { t: 'talk', lines: [['biawak', 'Hssss! The crow child just ran past my hut with a tin. Towards the Causeway!', 'cross'], ['mate', 'And she’s in that queue. Somewhere.', 'smug']] },
+      { t: 'goto', at: 'kr-causeway', label: 'Run to the foot of the Causeway', cp: true },
+      { t: 'chase', who: 'runner', from: KR(23, 11), route: [KR(23, 7), KR(23, 2), KR(23, 8), KR(23, 11), KR(28, 11), KR(28, 5), KR(31, 5), KR(34, 5), KR(33, 3), KR(32, 1), KR(32, 5), KR(28, 6), KR(28, 11), KR(23, 11)], bumps: 3, loot: 'kr-tin', speed: 185, label: 'Chase Pip along the Causeway footpaths and the waterfront, and bump him three times (Space dashes)', cp: true },
+      { t: 'talk', lines: [['hero', 'The tin. Got it.', 'happy'], ['sutera', 'Darlings! Forty minutes, and I have moved one car length. One!', 'cross'], ['sutera', 'Keep the tin. Open it, read it. I only need to read what you read, and I am a very fast reader.', 'happy'], ['mate', 'She’s stuck in traffic and she’s STILL winning.', 'cross']] },
+    ] },
+  { id: 'm123', ch: 15, title: 'Whimbrel Count', giver: 'kedidi', at: 'kedidi', reward: 1360, rep: 32, blurb: 'The tin opens with Auntie Katak’s key, but page 41 is torn out of the ring book. First Kak Kedidi’s spring count: count the whimbrel flocks out on the flats, past the crocodiles, and finish at the bird hide.',
+    steps: [
+      { t: 'talk', lines: [['hero', 'The key turns. The ring book, 1937… and page 41 is torn out. Fin marks on the edge.', 'cross'], ['kedidi', 'Belacak’s boys had it open a crack after all. Page 41 will be in their camp.', 'cross'], ['kedidi', 'But first my count. The whimbrels go south the day after tomorrow, and every one must be counted. Three flocks.', 'calm']] },
+      { t: 'goto', at: 'kr-boardwalk', label: 'Go to the boardwalk spur by the flats', ride: 'foot', cp: true },
+      { t: 'mud', route: [KR(14, 13)], crocs: [KR(6, 12), KR(12, 10), KR(2, 7)], birds: [KR(5, 14), KR(9, 10), KR(13, 14)], time: 150, label: 'Count the three whimbrel flocks (E at each), then reach the bird hide', cp: true },
+      { t: 'talk', lines: [['kedidi', 'Ninety-two whimbrels! A good year.', 'happy'], ['hero', 'From the hide window… look. Their camp. And a page pinned up over the crates like a trophy.', 'worried'], ['mate', 'Then we go and get it back.', 'cross']] },
+    ] },
+  { id: 'm124', ch: 15, title: 'Page Forty-One', giver: 'biawak', at: 'biawak', reward: 1370, rep: 33, blurb: 'Bos Belacak’s boys have hidden page 41 in one of their four crates on the north bank. Swap each crate for one of Pak Biawak’s crates of mud while the mudskipper on watch looks away.',
+    steps: [
+      { t: 'talk', lines: [['biawak', 'Four crates by their camp, all the same. I have four crates of my own. Full of mud. Hsss-hss-hss.', 'happy'], ['mate', 'Crates of mud, for mudskippers. They won’t even notice.', 'smug']] },
+      { t: 'swap', crates: [KR(9, 7), KR(14, 7), KR(10, 10), KR(13, 8)], guards: [[KR(8, 9), KR(12, 9)]], time: 95, decoy: 'decoy', skin: 'skipper', thing: 'crate', label: 'Swap a crate of mud for each of theirs (E) while the mudskipper on watch looks away', cp: true },
+      { t: 'talk', lines: [['hero', 'Page 41: “Whimbrel, ringed at Kranji, October 1937. Found again, April 1938, on a sandbank fourteen miles south of the Raffles Light.”', 'worried'], ['belacak', 'Oi! That was OUR page! The lady already took a photo of it, so there. Ha!', 'cross'], ['hero', 'Fourteen miles. On bearing one-eight-two. That’s the third piece.', 'cross']] },
+    ] },
+  { id: 'm125', ch: 15, title: 'Whimbrel Season', giver: 'kedidi', at: 'kedidi', reward: 1900, rep: 33, blurb: 'At dawn the whimbrels leave for the south. Kak Kedidi must ring the last bird at the post first. Cross the flats while the crocodiles are waking, then hold the waterfront jetty against Madam Sutera’s crows.',
+    steps: [
+      { t: 'talk', lines: [['kedidi', 'Dawn. The crocodiles are waking up, so they doze short. One more bird to ring at the post, then the jetty to see them off.', 'worried'], ['hero', 'Quick, then. Go, stop, freeze.', 'cross']] },
+      { t: 'goto', at: 'kr-mudflat', label: 'Go down to the edge of the mudflats', ride: 'foot', cp: true },
+      { t: 'mud', route: [KR(3, 13), KR(5, 10), KR(4, 8)], crocs: [KR(6, 12), KR(12, 10), KR(2, 7)], doze: 0.7, time: 120, label: 'Cross the flats to the ringing post at dawn (short dozes: be quick)', cp: true },
+      { t: 'goto', at: 'kr-jetty', label: 'Run out to the end of the Woodlands Waterfront jetty', cp: true },
+      { t: 'defend', at: 'kr-jetty', time: 50, waves: 2, per: 2, gang: 'crow', what: 'Ringing table', label: 'Hold the jetty: knock the crows back before they grab Kak Kedidi’s ring book ({mate} helps on their own)', cp: true },
+      { t: 'talk', lines: [['kedidi', 'There they go. Ninety-two whimbrels, south over the strait, the way they have gone every spring for longer than any book.', 'happy'], ['mate', 'And look behind them. Three dark birds, flying low. Not whimbrels.', 'worried'], ['hero', 'Her owls. She isn’t reading the book. She’s following the flock.', 'cross'], ['mate', 'The phone. Pak Camar: “The black junk has dropped anchor, fourteen miles south of my light. The tide is going out.”', 'worried']] },
+    ] },
 ]);
 // ── Hawker Tales: the Singapore side jobs. They sit outside the five chapters (ch 0), open once their story job is
 // done, and pay like a story job; the townsfolk they help are in PEOPLE.
@@ -1742,6 +1839,27 @@ export const SIDE: Mission[] = mvMissions([
       { t: 'pickup', at: 'mk-islands', item: 'g23-tiffin', label: 'Pick up Pak Camar’s tiffin at the island stall', cp: true },
       { t: 'deliver', to: 'camar', time: 120, fragile: 6, item: 'g23-tiffin', label: 'Carry the tiffin to Raffles Lighthouse: steady, it has soup in it', cp: true },
       { t: 'talk', lines: [['camar', 'Still hot! Sit a while. The light will keep.', 'happy']] },
+    ] },
+  // the twenty-fourth pass: Kranji and Woodlands' townsfolk
+  { id: 'k53', side: 'm117', ch: 0, title: 'Croc Count', giver: 'biawak', at: 'biawak', reward: 340, rep: 12, blurb: 'Pak Biawak counts the Sungei Buloh crocodiles every month, from close enough to see their scutes. Walk out past each one, marker to marker, and don’t get snapped at.',
+    steps: [
+      { t: 'talk', lines: [['biawak', 'Hssss. Monthly croc count. I am a lizard, they are crocodiles: they think I am a snack. You go.', 'calm'], ['biawak', 'Walk close past each one. When it opens an eye, stop. Same as always.', 'calm'], ['mate', 'Close. He said close.', 'worried']] },
+      { t: 'goto', at: 'kr-mudflat', label: 'Go down to the edge of the mudflats', ride: 'foot', cp: true },
+      { t: 'mud', route: [KR(5, 12), KR(10, 10), KR(4, 7)], crocs: [KR(6, 12), KR(12, 10), KR(2, 7)], time: 120, label: 'Walk past each crocodile to its marker and count it', cp: true },
+      { t: 'talk', lines: [['biawak', 'Three crocodiles, all fat and happy. Same as last month. Good. Boring is good.', 'happy']] },
+    ] },
+  { id: 'k54', side: 'm121', ch: 0, title: 'Goat Rounds', giver: 'kambing', at: 'kambing', reward: 340, rep: 12, blurb: 'Feeding time at Hay Dairies, and Uncle Kambing’s back is stiff. Take an armful of hay round the pen and feed each goat before they start butting the fence.',
+    steps: [
+      { t: 'talk', lines: [['kambing', 'Feeding time, and my back says no. Hay for each of them, please. Hold it out flat, or they eat your sleeve.', 'calm'], ['mate', 'They’re looking at my sleeve already.', 'worried']] },
+      { t: 'rounds', act: 'goatfeed', item: 'kr-hay', what: 'handful of hay', drops: [KR(10, 42), KR(13, 41), KR(15, 42), KR(10, 45), KR(16, 45)], who: ['kr-goat-0'], time: 70, label: 'Feed each hungry goat round the pen (E beside each)', cp: true },
+      { t: 'talk', lines: [['kambing', 'Every goat fed, and every sleeve still on. Very good.', 'happy']] },
+    ] },
+  { id: 'k55', side: 'm122', ch: 0, title: 'Passport Run', giver: 'katak', at: 'katak', reward: 360, rep: 13, blurb: 'Auntie Katak’s son is in the Causeway queue on his way to Johor Bahru, and his passport is on her kitchen table. Run it up the Causeway footpath to his lorry before the queue reaches the checkpoint.',
+    steps: [
+      { t: 'talk', lines: [['katak', 'Aiyoh, my son! Stuck in the jam, and his passport is on my table! He will reach the checkpoint without it!', 'worried'], ['hero', 'The jam doesn’t move. We do.', 'smug']] },
+      { t: 'pickup', at: 'katak', item: 'ticket', label: 'Pick up the passport from Auntie Katak’s table' },
+      { t: 'deliver', to: KR(23, 3), time: 75, cp: true, item: 'ticket', label: 'Run the passport up the Causeway’s west footpath to her son’s lorry, before the queue reaches the checkpoint' },
+      { t: 'talk', lines: [['hero', 'Here! Your mum says eat something.', 'happy'], ['katak', '(on the phone) He says thank you, and the queue moved one metre. Very exciting.', 'happy']] },
     ] },
 ]);
 export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id, m])) as Record<string, Mission>;

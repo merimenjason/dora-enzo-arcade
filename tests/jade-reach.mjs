@@ -62,6 +62,9 @@ for (const m of [...MISSIONS, ...SIDE]) {
       case 'crowd': { go(st.from, 'foot', `${what} from`); const a0 = at; go(st.to, 'foot', `${what} to`);
         for (let q = 0; q <= 1; q += 0.02) { const x = a0[0] + (at[0] - a0[0]) * q, y = a0[1] + (at[1] - a0[1]) * q; assert.ok(passable(c, 'foot', tile(x), tile(y)), `${m.id} ${what}: the way through is open at ${tile(x)},${tile(y)}`); }
         break; }
+      // (the twenty-fourth pass) a mudflat crossing: on foot, flock to flock, then marker to marker; every crocodile basks on
+      // ground a walker could stand on (the mud)
+      case 'mud': (st.birds ?? []).forEach((r, k) => go(r, 'foot', `${what} flock ${k}`)); st.route.forEach((r, k) => go(r, 'foot', `${what} marker ${k}`)); for (const [k, r] of st.crocs.entries()) assert.ok(passable(c, 'foot', r[0], r[1]), `${m.id} ${what}: croc ${k} on the mud`); break;
       case 'hold': go(st.lever, cls, `${what} lever`); go(st.through, cls, `${what} through`); break;
       // the MRT, the cable car, the ferry and the Ubin bumboat: walk to the gates, ride, step out at the other end
       case 'train': { const t = c.isle.stations.find(x => x.id === st.to); assert.ok(t, `${m.id} ${what}: station ${st.to}`); at = [t.x, t.y]; cls = 'foot'; break; }

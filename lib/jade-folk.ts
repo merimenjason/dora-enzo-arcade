@@ -46,7 +46,9 @@ export const KALLANG_FOLK = ['fanbear', 'fanbear', 'fankancil', 'fankancil', 'fa
 export const MANDAI_FOLK = ['tapir', 'tapir', 'deer', 'deer', 'hornbill', 'hornbill', 'egret', 'robin', 'boxturtle'];
 /** (the twenty-first pass) the Southern Islands' night visitors: sea turtles up the beach, egrets on the reef, day-trippers */
 export const ISLANDS_FOLK = ['turtle', 'turtle', 'egret', 'egret', 'boxturtle', 'duck', 'civet', 'robin', 'goose'];
-const folkAt = (tx: number, ty: number) => { const d = districtAt(tx, ty); return d === 'islands' ? ISLANDS_FOLK : d === 'mandai' ? MANDAI_FOLK : d === 'kallang' ? KALLANG_FOLK : d === 'pulau' ? UBIN_FOLK : d === 'india' || d === 'glam' || d === 'resort' ? EAST_FOLK[d] : d === 'orchard' || d === 'katong' || d === 'changi' ? FAR_FOLK[d] : d === 'tiong' || d === 'quay' || d === 'jurong' ? SOUTH_FOLK[d] : (unmvT(tx, ty)?.[0] ?? OW) >= OW ? ISLE_FOLK : FOLK; };
+/** (the twenty-fourth pass) Kranji and Woodlands: egrets and a frog off the farms, Woodlands' commuters and their dogs */
+export const KRANJI_FOLK = ['egret', 'egret', 'frog', 'duck', 'robin', 'rabbit', 'goose', 'dog', 'tabby'];
+const folkAt = (tx: number, ty: number) => { const d = districtAt(tx, ty); return d === 'kranji' ? KRANJI_FOLK : d === 'islands' ? ISLANDS_FOLK : d === 'mandai' ? MANDAI_FOLK : d === 'kallang' ? KALLANG_FOLK : d === 'pulau' ? UBIN_FOLK : d === 'india' || d === 'glam' || d === 'resort' ? EAST_FOLK[d] : d === 'orchard' || d === 'katong' || d === 'changi' ? FAR_FOLK[d] : d === 'tiong' || d === 'quay' || d === 'jurong' ? SOUTH_FOLK[d] : (unmvT(tx, ty)?.[0] ?? OW) >= OW ? ISLE_FOLK : FOLK; };
 export type Ped = {
   id: number; sp: string; x: number; y: number; h: number; tx: number; ty: number; hop: number; hx: number; hy: number; scare: number; wait: number; walk: number;
   dest: number; sit: number; roadT: number; watch: boolean;
@@ -84,6 +86,9 @@ export function pedTile(c: City, tx: number, ty: number) {
   // own rock
   if (g === G.REEF) return false;
   const q = c.islands?.quiet; if (q && tx >= q[0] && ty >= q[1] && tx <= q[2] && ty <= q[3]) return false;
+  // (the twenty-fourth pass) nobody strolls among Sungei Buloh's crocodiles, and the Kranji War Memorial is left quiet
+  if (g === G.MUDFLAT) return false;
+  const k = c.kranji?.quiet; if (k && tx >= k[0] && ty >= k[1] && tx <= k[2] && ty <= k[3]) return false;
   if (g === G.ROAD) return ZEBRA![i] >= 0;
   if (g === G.BRIDGE) return (c.flags[i] & F_BRIDGE) > 0 && (c.flags[i] & F_ALLEY) > 0;
   return true;

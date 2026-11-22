@@ -31,6 +31,7 @@ import { kallangSorted } from './jade-kallangdraw.js';
 import { mandaiSorted, mandaiOver } from './jade-mandaidraw.js';
 import { islandsSorted, islandsOver } from './jade-islandsdraw.js';
 import { bukitSorted, bukitOver } from './jade-bukitdraw.js';
+import { kranjiSorted, kranjiOver } from './jade-kranjidraw.js';
 import { snapScale, foldTints, chunkStale } from './jade-perf.js';
 import { empSorted, empOver, jagaActor } from './jade-empdraw.js';
 import { BIZ, BIZ_OF, bizPos } from './jade-biz.js';
@@ -346,6 +347,10 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     // one off (arms wide), reading a herbarium specimen through a magnifier
     case 'hike': return `${h}-hike-${cyc(2, 4)}`; case 'winded': return `${h}-winded`; case 'rest': return `${h}-rest`; case 'summit-top': case 'summit': return `${h}-summit`;
     case 'snatched': return `${h}-snatched`; case 'scare': return `${h}-scare`; case 'specimen': return `${h}-specimen`;
+    // Kranji and Woodlands (the twenty-fourth pass): wading Sungei Buloh's mud (two frames), frozen stock-still while a
+    // crocodile watches, scrambling back from its lunge; hay held out to Hay Dairies' goats; a bow before the memorial
+    case 'mud-wade': return `${h}-mud-wade-${cyc(2, 4)}`; case 'mud-freeze': return `${h}-mud-freeze`; case 'mud-scramble': return `${h}-mud-scramble`;
+    case 'goatfeed': return `${h}-goatfeed`; case 'bow': return `${h}-bow`;
     case 'tide-peer': case 'peer': return `${h}-peer`; case 'tortoise': return `${h}-tortoise`; case 'float': return `${h}-float`; case 'lookout': return `${h}-lookout`;
     // the twentieth pass's rounds (lib/jade-rounds.ts): a garland held up, then draped; a cage or lantern hooked up high,
     // then admired
@@ -666,7 +671,7 @@ export class Scene {
     sgSorted(this, x, w, list, vis);
     gearSorted(this, x, w, list, vis);
     isleSorted(this, x, w, list, vis);
-    eastSorted(this, x, w, list, vis); farSorted(this, x, w, list, vis); southSorted(this, x, w, list, vis); ubinSorted(this, x, w, list, vis); kallangSorted(this, x, w, list, vis); mandaiSorted(this, x, w, list, vis); islandsSorted(this, x, w, list, vis); bukitSorted(this, x, w, list, vis);
+    eastSorted(this, x, w, list, vis); farSorted(this, x, w, list, vis); southSorted(this, x, w, list, vis); ubinSorted(this, x, w, list, vis); kallangSorted(this, x, w, list, vis); mandaiSorted(this, x, w, list, vis); islandsSorted(this, x, w, list, vis); bukitSorted(this, x, w, list, vis); kranjiSorted(this, x, w, list, vis);
     if (!p.roof) list.push([p.y + 1, () => this.hero(x, w)]);
     if (!m.roof && !m.seat && vis(m.x, m.y)) list.push([m.y + 0.5, () => drawHero(this, x, w, m, w.two)]);
     list.sort((a, b) => a[0] - b[0]);
@@ -705,6 +710,8 @@ export class Scene {
     // Raffles Lighthouse's beam, and the tide over the reef flats on a crossing (lib/jade-islandsdraw.ts)
     islandsOver(this, x, w, vis, ox, oy, cam.w, cam.h);
     bukitOver(this, x, w, vis);
+    // on a mudflat crossing, the crocodiles' sight and the next marker (lib/jade-kranjidraw.ts)
+    kranjiOver(this, x, w, vis);
     this.particles(x, dt);
     this.juice.drawWorld(x, spr);
     // night tint by the clock and a soft vignette (screen space)
@@ -830,10 +837,12 @@ export class Scene {
         if (a.kind === 'lookout' && !((a.stare ?? 0) > 0) && !((a.extra2 ?? 0) > 0)) mindBeam(this, x, a.mind, b.x, b.y - 20, a.b.h, (w.assist ? 170 : 215) * w.diff.look, w.assist ? 0.45 : 0.55);
         if (a.kind === 'pip' && a.look > 0) mindBeam(this, x, a.mind, b.x, b.y - 20, a.face, w.assist ? 165 : 210, 1.2);
         // a rival gang's runner (the tenth and eleventh passes): the same moves in their own painted frames
-        const gs = a.skin === 'mac' || a.skin === 'otter' || a.skin === 'liz' || a.skin === 'myna' || a.skin === 'bat' || a.skin === 'crab' ? a.skin : null;
+        const gs = a.skin === 'mac' || a.skin === 'otter' || a.skin === 'liz' || a.skin === 'myna' || a.skin === 'bat' || a.skin === 'crab' || a.skin === 'skipper' ? a.skin : null;
         if (gs) f = f.startsWith('crow-look') ? (gs === 'liz' ? 'liz-look' : `${gs}-taunt`) : f.replace(/^crow-/, gs + '-');
         // (a hermit crab, the twenty-first pass, has no dizzy frame: it peers up out of its shell)
         if (gs === 'crab' && f === 'crab-dizzy') f = 'crab-peer';
+        // (nor has a mudskipper, the twenty-fourth pass: it peers about, eyes on stalks)
+        if (gs === 'skipper' && f === 'skipper-dizzy') f = 'skipper-peer';
         spr(x, f, b.x, b.y + 4, { flip, w: gs === 'liz' ? 56 : gs === 'myna' ? 44 : gs === 'bat' ? 48 : gs === 'otter' ? 46 : gs === 'crab' ? 46 : undefined });
         if ((a.kind === 'runner' || a.kind === 'raider') && a.stun <= 0) spr(x, a.skin === 'mac' ? 'bun' : 'coins', b.x, b.y - 52, { w: 20 });
         if ((a.kind === 'lookout' || a.kind === 'pip') && a.stun <= 0) mindBubble(this, x, a.mind, b.x, b.y - 84);

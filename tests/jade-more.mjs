@@ -35,15 +35,16 @@ const idle = (w, sec, until = () => false) => { for (let k = 0; k < sec * 60 && 
 
 // ── item 1: every job has a fair, readable way to fail
 const FAILABLE = new Set(['chase', 'tail', 'escort', 'stealth', 'race', 'heat', 'float', 'raid', 'collect', 'trade', 'fares', 'case', 'heist', 'defend', 'blend', 'detective', 'trap', 'swap']);
-const failable = st => FAILABLE.has(st.t) || ((st.t === 'deliver' || st.t === 'goto' || st.t === 'track' || st.t === 'crowd' || st.t === 'torch' || st.t === 'paddle' || st.t === 'tide' || st.t === 'summit') && (st.time || st.fragile));
+const failable = st => FAILABLE.has(st.t) || ((st.t === 'deliver' || st.t === 'goto' || st.t === 'track' || st.t === 'crowd' || st.t === 'torch' || st.t === 'paddle' || st.t === 'tide' || st.t === 'summit' || st.t === 'mud') && (st.time || st.fragile));
 /** provoke a failure at step i by doing nothing useful; returns the reason and whether a timer or meter showed first */
 function provoke(id, i) {
   const { w, run } = at(id, i); const st = run.cur; let shown = false;
   const p = w.p;
   if (st.t === 'stealth' || st.t === 'case') { const a = run.actors[0]; p.b.x = a.b.x + Math.cos(a.b.h) * 70; p.b.y = a.b.y + Math.sin(a.b.h) * 70; }
-  // the job steps: commit to a loud heist at the front door; a disguise on beside a lookout; nets and bait down
+  // the job steps: commit to a loud heist at the front door; a disguise on beside a lookout (the one furthest from the
+  // goal, so standing in its face is not already the end of the walk); nets and bait down
   if (st.t === 'heist') { idle(w, 0.2); run.heistPick('loud'); const [fx, fy] = run.spot(st.front); w.placePlayer(fx, fy); }
-  if (st.t === 'blend') { idle(w, 0.2); run.js.ph = 1; p.disguise = true; const a = run.actors.find(x => x.kind === 'watcher'); w.placePlayer(a.b.x + Math.cos(a.b.h) * 60, a.b.y + Math.sin(a.b.h) * 60); }
+  if (st.t === 'blend') { idle(w, 0.2); run.js.ph = 1; p.disguise = true; const [gx, gy] = run.spot(st.goal), a = run.actors.filter(x => x.kind === 'watcher').sort((u, v) => Math.hypot(v.b.x - gx, v.b.y - gy) - Math.hypot(u.b.x - gx, u.b.y - gy))[0]; w.placePlayer(a.b.x + Math.cos(a.b.h) * 60, a.b.y + Math.sin(a.b.h) * 60); }
   if (st.t === 'trap') { for (let k = 0; k < st.need; k++) run.js.set.push(k); run.js.ph = 2; run.js.queue = st.n; run.js.spawnT = 0.5; const [x, y] = run.spot(st.path[1]); w.placePlayer(x + 40, y + 40); }
   if (st.t === 'float') { const [x, y] = leapSpot(0); p.roof = true; p.b.x = x; p.b.y = y; p.lastRoof = [x, y];
     // the partner on the bunting rope, so the float swings in (and can roll away while nobody leaps)
