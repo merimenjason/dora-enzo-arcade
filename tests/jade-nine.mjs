@@ -134,8 +134,10 @@ test('the Kecoh Mynahs: cheeky, on their turf, hop-flying, mimicking; every gadg
   assert.deepEqual(effects, { bubble: 'play', paint: 'preen', net: 'netted', sling: 'munch', popper: 'leap' });
   for (const st of ['play', 'preen', 'netted', 'munch', 'dizzy', 'run']) assert.ok(mobSprite('mynahs', { st, b: { h: 0, speed: 50 }, anim: 0 }).name.startsWith('myna-'), st);
   // shoo
+  // (the shoo is tried where the raid began, by Raju's: where a fresh mynah lands is the dice's, and a tuk-tuk or a
+  // giver parked nearer would take E there)
   w.gangs.ev = null; const e2 = startGang(w, 'mynahs'); const m = e2.mobs[0]; m.fly = undefined; m.st = 'run'; m.has = true;
-  w.placePlayer(m.b.x + 30, m.b.y); w.p.act = null; w.findNear(); assert.equal(w.near?.kind, 'gang'); assert.match(w.near.label, /Shoo/);
+  const rj = w.c.places.raju; m.b.x = rj.x; m.b.y = rj.y + T * 1.4; w.placePlayer(m.b.x + 30, m.b.y); w.p.act = null; w.findNear(); assert.equal(w.near?.kind, 'gang'); assert.match(w.near.label, /Shoo/);
   const sid = +w.near.id.slice(5); w.interact(); assert.equal(w.p.act?.n, 'shoo'); assert.equal(e2.mobs.find(q => q.id === sid).has, false, 'it drops the kuih');
   function w0Roost() { return !!city().isle.hideouts.myna; }
 });

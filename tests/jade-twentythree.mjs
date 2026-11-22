@@ -45,9 +45,9 @@ test('a second board in every district past Chinatown that had one; Little India
   assert.deepEqual(GIG_DEFS.slice(13 + GIG20_DEFS.length).map(g => g.id), GIG23_DEFS.map(g => g.id), 'appended after the twentieth pass’s');
   assert.equal(new Set(GIG_DEFS.map(g => g.id)).size, GIG_DEFS.length, 'gig ids are unique');
   const before = d => GIG_DEFS.filter(g => g.d === d && !NEW.has(g.id)).length;
-  // (Bukit Timah came in the twenty-second pass, built alongside this one, and Kranji in the twenty-fourth, each with its
-  // own first gig: not one of these)
-  for (const d of ['temple', ...LATER].filter(d => d !== 'bukit' && d !== 'kranji')) {
+  // (Bukit Timah came in the twenty-second pass, built alongside this one, Kranji in the twenty-fourth and Punggol in the
+  // twenty-fifth, each with its own first gig: not one of these)
+  for (const d of ['temple', ...LATER].filter(d => d !== 'bukit' && d !== 'kranji' && d !== 'punggol')) {
     const now = GIG_DEFS.filter(g => g.d === d).length;
     if (d === 'india') assert.equal(now, before(d) + 2, 'Little India, the thinnest, gets two');
     else if (before(d) === 1) assert.equal(now, 2, `${d} had one gig and now has two`);
