@@ -256,15 +256,19 @@ export class Run {
     return { id: this.w.nextId++, kind, b: { x, y, h: 0, speed: 0, r: v ? v.r : cls === 'small' ? 17 : 12, len: v ? v.len : cls === 'small' ? 50 : 0, cls }, route, wp: 0, speed, t: 0, stun: 0, look: 0, lookCd: 5, face: 0, gone: false, hits: 0 };
   }
   /** follow the actor's route with the right flow field; returns true at the last point */
-  private stall = new WeakMap<Actor, { wp: number; d: number; t: number }>();
+  private stall = new WeakMap<Actor, { wp: number; d: number; x: number; y: number; t: number }>();
   walk(a: Actor, dt: number, speed: number, loop: boolean): boolean {
     const w = this.w; if (!a.route.length) return true;
     const [gx, gy] = a.route[a.wp];
     // pinned against a prop short of a waypoint (a generated contract's route, lib/jade-proc.ts) for over a second
-    // and a half: count the waypoint as reached rather than stand there for ever
+    // and a half: count the waypoint as reached rather than stand there for ever. A looping route (a chase thief, a
+    // patrol) gets the same escape after three seconds standing still: a round front off the tile grid met dead centre
+    // has no side to slide round, and k45's crow once stood against the karaoke front for good. (For a loop it is
+    // standing still that counts, not getting no nearer, so a long way round a block never skips a waypoint; and only
+    // time spent walking counts, so neither does a stun or a wait at a red light)
     const gd = dist(a.b.x, a.b.y, gx, gy), sk = this.stall.get(a);
-    if (!sk || sk.wp !== a.wp || gd < sk.d - 6) this.stall.set(a, { wp: a.wp, d: gd, t: 0 }); else sk.t += dt;
-    const st = this.stall.get(a)?.t ?? 0, pinned = !loop && ((gd < T * 3 && st > 1.5) || st > 3);
+    if (!sk || sk.wp !== a.wp || (loop ? dist(a.b.x, a.b.y, sk.x, sk.y) > 8 : gd < sk.d - 6)) this.stall.set(a, { wp: a.wp, d: gd, x: a.b.x, y: a.b.y, t: 0 }); else sk.t += dt;
+    const st = this.stall.get(a)?.t ?? 0, pinned = loop ? st > 3 : (gd < T * 3 && st > 1.5) || st > 3;
     if (gd < (a.b.cls === 'foot' ? 22 : 48) || pinned) {
       if (a.wp === a.route.length - 1) { if (!loop) { a.b.speed = 0; return true; } a.wp = 0; } else a.wp++;
     }
