@@ -9,12 +9,12 @@
 import { ATLASES, ATLAS_SIZE, TEXTURES } from './jade-art.js';
 import { districtAt, W, H, type District } from './jade-city.js';
 
-export type Zone = 'town' | 'isle' | 'east' | 'resort' | 'far' | 'south' | 'ubin' | 'kallang' | 'mandai' | 'islands';
+export type Zone = 'town' | 'isle' | 'east' | 'resort' | 'far' | 'south' | 'ubin' | 'kallang' | 'mandai' | 'islands' | 'bukit';
 export type Tier = 'core' | 'job' | 'mini' | Zone;
-export const ZONES: Zone[] = ['town', 'isle', 'east', 'resort', 'far', 'south', 'ubin', 'kallang', 'mandai', 'islands'];
+export const ZONES: Zone[] = ['town', 'isle', 'east', 'resort', 'far', 'south', 'ubin', 'kallang', 'mandai', 'islands', 'bukit'];
 export const ZONE_OF: Record<District, Zone> = {
   market: 'town', temple: 'town', canal: 'town', docks: 'town', arcade: 'town', heartland: 'isle', bay: 'isle',
-  india: 'east', glam: 'east', resort: 'resort', orchard: 'far', katong: 'far', changi: 'far', tiong: 'south', quay: 'south', jurong: 'south', pulau: 'ubin', kallang: 'kallang', mandai: 'mandai', islands: 'islands',
+  india: 'east', glam: 'east', resort: 'resort', orchard: 'far', katong: 'far', changi: 'far', tiong: 'south', quay: 'south', jurong: 'south', pulau: 'ubin', kallang: 'kallang', mandai: 'mandai', islands: 'islands', bukit: 'bukit',
 };
 
 const ATLAS_TIER: Record<string, Tier> = {
@@ -51,6 +51,9 @@ const ATLAS_TIER: Record<string, Tier> = {
   // the twenty-first pass: the Southern Islands' paintings (the reef life, the tortoises and Kapitan Umang's hermit crabs
   // among them: they only ever appear there) stream with their zone; the heroes' reef actions and the new icons are job art
   'atlas-islands': 'islands', 'atlas-cast-islands': 'islands', 'atlas-act21': 'job', 'atlas-ui21': 'job',
+  // the twenty-second pass: Bukit Timah's paintings (Big Kow in his safari vest among them: he only stands there) stream
+  // with its zone; the heroes' hill actions and the new icons are job art (the macaques are the twelfth pass's)
+  'atlas-bukit': 'bukit', 'atlas-cast-bukit': 'bukit', 'atlas-act22': 'job', 'atlas-ui22': 'job',
   // (the heroes' new actions stream with the rest of their rarer poses: every hero frame is core or job)
   'atlas-act17': 'job',
 };
@@ -63,6 +66,7 @@ const TEX_TIER: Record<string, Tier> = {
   dirt: 'ubin', kampong: 'ubin', mud: 'ubin', forest: 'ubin', quarry: 'ubin', rock: 'ubin', hub: 'kallang', prom: 'kallang', apron: 'kallang', basin: 'kallang',
   resv: 'mandai', board: 'mandai', jungle: 'mandai', laterite: 'mandai',
   reef: 'islands', shoal: 'islands', coral: 'islands', islepath: 'islands',
+  summit: 'bukit', lawn: 'bukit', railbed: 'bukit', swan: 'bukit',
 };
 /** the tier of an atlas ('atlas-x') or ground texture ('tex-x'); anything unlisted waits for its zone like a job's art */
 export function tierOf(file: string): Tier {

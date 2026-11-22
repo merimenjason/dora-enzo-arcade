@@ -30,6 +30,7 @@ import { roundsGround } from './jade-rounddraw.js';
 import { kallangSorted } from './jade-kallangdraw.js';
 import { mandaiSorted, mandaiOver } from './jade-mandaidraw.js';
 import { islandsSorted, islandsOver } from './jade-islandsdraw.js';
+import { bukitSorted, bukitOver } from './jade-bukitdraw.js';
 import { snapScale, foldTints, chunkStale } from './jade-perf.js';
 import { empSorted, empOver, jagaActor } from './jade-empdraw.js';
 import { BIZ, BIZ_OF, bizPos } from './jade-biz.js';
@@ -340,6 +341,11 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     // comes in, washed off your feet, kneeling to peer into a rock pool; a leaf held out to Kusu's tortoises, floating on
     // your back in the Lazarus lagoon, looking out through the lighthouse keeper's binoculars
     case 'wade': return `${h}-wade-${cyc(2, 4)}`; case 'tide-brace': return `${h}-tide-brace`; case 'tide-washed': return `${h}-washed`;
+    // Bukit Timah (the twenty-second pass): stepping up the summit trail (two frames), winded (bent double), sat on a rest
+    // shelter's log with a water bottle, arms up at the summit; a snack bag snatched out of your hands by a macaque, shooing
+    // one off (arms wide), reading a herbarium specimen through a magnifier
+    case 'hike': return `${h}-hike-${cyc(2, 4)}`; case 'winded': return `${h}-winded`; case 'rest': return `${h}-rest`; case 'summit-top': case 'summit': return `${h}-summit`;
+    case 'snatched': return `${h}-snatched`; case 'scare': return `${h}-scare`; case 'specimen': return `${h}-specimen`;
     case 'tide-peer': case 'peer': return `${h}-peer`; case 'tortoise': return `${h}-tortoise`; case 'float': return `${h}-float`; case 'lookout': return `${h}-lookout`;
     // the twentieth pass's rounds (lib/jade-rounds.ts): a garland held up, then draped; a cage or lantern hooked up high,
     // then admired
@@ -658,7 +664,7 @@ export class Scene {
     sgSorted(this, x, w, list, vis);
     gearSorted(this, x, w, list, vis);
     isleSorted(this, x, w, list, vis);
-    eastSorted(this, x, w, list, vis); farSorted(this, x, w, list, vis); southSorted(this, x, w, list, vis); ubinSorted(this, x, w, list, vis); kallangSorted(this, x, w, list, vis); mandaiSorted(this, x, w, list, vis); islandsSorted(this, x, w, list, vis);
+    eastSorted(this, x, w, list, vis); farSorted(this, x, w, list, vis); southSorted(this, x, w, list, vis); ubinSorted(this, x, w, list, vis); kallangSorted(this, x, w, list, vis); mandaiSorted(this, x, w, list, vis); islandsSorted(this, x, w, list, vis); bukitSorted(this, x, w, list, vis);
     if (!p.roof) list.push([p.y + 1, () => this.hero(x, w)]);
     if (!m.roof && !m.seat && vis(m.x, m.y)) list.push([m.y + 0.5, () => drawHero(this, x, w, m, w.two)]);
     list.sort((a, b) => a[0] - b[0]);
@@ -696,6 +702,7 @@ export class Scene {
     mandaiOver(this, x, w, vis, ox, oy, cam.w, cam.h);
     // Raffles Lighthouse's beam, and the tide over the reef flats on a crossing (lib/jade-islandsdraw.ts)
     islandsOver(this, x, w, vis, ox, oy, cam.w, cam.h);
+    bukitOver(this, x, w, vis);
     this.particles(x, dt);
     this.juice.drawWorld(x, spr);
     // night tint by the clock and a soft vignette (screen space)
