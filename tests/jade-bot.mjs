@@ -63,6 +63,8 @@ export function missionSave(id, o = {}) {
   if (d === 'kallang') { s.safe = 'safe-kallang'; s.best['house:safe-kallang'] = 1; }
   // the Southern Islands are over the water (m96 takes the island ferry there): their jobs start from the bungalow on St John's
   if (d === 'islands') { s.safe = 'safe-islands'; s.best['house:safe-islands'] = 1; }
+  // Bukit Timah (twenty-second pass) is far up the west: its jobs start from the bungalow by the Rail Corridor
+  if (d === 'bukit') { s.safe = 'safe-bukit'; s.best['house:safe-bukit'] = 1; }
   return s;
 }
 
@@ -519,6 +521,17 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
         // nothing reachable in time (or the water is in): hold on your rock (or the sand), or run for the nearest rock
         if (here) { inp.mx = 0; inp.my = 0; return; }
         const r = nearestRock(p.x, p.y); if (r) go(r[0], r[1]); return;
+      }
+      // the twenty-second pass: a summit climb. Read the Breath meter's words: run while there is plenty, walk (Shift) once
+      // it is under half, and when it is low with a rest shelter close by (the glowing roofs beside the trail), stand
+      // under it until the meter is nearly full again
+      case 'summit': {
+        if (p.ride) { offFoot(); return; }
+        if (p.act) { inp.mx = 0; inp.my = 0; return; }
+        const tg = run.target(); if (!tg) return;
+        const pc = /(\d+)%/.exec(run.label), br = pc ? +pc[1] : 100, sh = (w.c.bukit?.shelters ?? []).find(([x, y]) => dist(x, y, p.x, p.y) < 320);
+        if (sh && (br < 30 || (/Resting/.test(run.label) && br < 90))) { if (dist(sh[0], sh[1], p.x, p.y) > 60) { inp.sneak = true; go(sh[0], sh[1]); } else { inp.mx = 0; inp.my = 0; } return; }
+        inp.sneak = br < 50 + 10 * P.wob; go(tg[0], tg[1]); return;
       }
       // the twentieth pass: a round of drop-offs. Off any ride, follow the gold line to the nearest stop still waiting
       // and press E the moment the prompt shows; stand still while the pose plays

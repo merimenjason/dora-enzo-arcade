@@ -175,7 +175,7 @@ test('the carried things are painted, each in the zone of its district', () => {
 });
 
 test('six more Hawker Tales, k33 to k38, for the districts with fewest; each opens after its giver’s story job', () => {
-  assert.deepEqual(SIDE.slice(-9, -6).map(m => m.id), TALES.slice(0, 3)); assert.deepEqual(SIDE.slice(-6, -3).map(m => m.id), TALES.slice(3)); // (the twenty-first pass's three after these)
+  assert.deepEqual(SIDE.slice(-12, -9).map(m => m.id), TALES.slice(0, 3)); assert.deepEqual(SIDE.slice(-9, -6).map(m => m.id), TALES.slice(3)); // (the twenty-first pass's three after these)
   const where = id => c.places[MISSION[id].at].d;
   assert.deepEqual(TALES.map(where), ['tiong', 'tiong', 'katong', 'katong', 'heartland', 'bay']);
   for (const id of TALES) {
@@ -233,7 +233,7 @@ function fleetWorld(own, lvl = 1, seed = 5) {
   const w = done(seed); for (const id of own) w.s.biz[id].lvl = lvl; w.s.cash = 5000; return w;
 }
 const standFor = (w, id) => fleetSpot(w, id);
-const HOME = { taxi: 'heartland', bumboat: 'canal', kayak: 'resort', ubinbikes: 'pulau', icekacang: 'bay', snorkelhire: 'islands' };
+const HOME = { taxi: 'heartland', bumboat: 'canal', kayak: 'resort', ubinbikes: 'pulau', icekacang: 'bay', snorkelhire: 'islands', railbikes: 'bukit' };
 
 test('the five vehicle businesses each lend a ride; the cab and the kayak are new kinds after the older ten', () => {
   assert.deepEqual(FLEET.slice(0, 5).map(f => f.id), ['taxi', 'bumboat', 'kayak', 'ubinbikes', 'icekacang']); // (the twenty-first pass's snorkel hire after these)

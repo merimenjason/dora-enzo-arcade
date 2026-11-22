@@ -66,7 +66,7 @@ test('Mandai: its own district, opened by chapter 11’s finale, with real place
     assert.match(names, new RegExp(real), real);
   const safe = SAFE_HOUSES.find(h => h.d === 'mandai'); assert.ok(safe && c.places[safe.id] && inMandai(c.places[safe.id].x, c.places[safe.id].y), 'a safe house');
   const stn = (c.isle?.stations ?? []).find(st => st.id === 'stn-mandai'); assert.ok(stn && inMandai(stn.x, stn.y), 'Mandai Lake Road station');
-  assert.equal(c.isle.stations[0].id, 'stn-mandai', 'first on the line');
+  assert.equal(c.isle.stations.find(st => !['stn-beauty', 'stn-botanic'].includes(st.id)).id, 'stn-mandai', 'first on the line'); // (after the twenty-second pass's two Bukit Timah stations)
   const props = BIZ.filter(b => b.d === 'mandai'); assert.equal(props.length, 3, 'three properties');
   for (const b of props) assert.ok(PEOPLE[b.keeper], `${b.id} kept by a Mandai giver`);
   for (const k of ['boat', 'bike', 'scooter']) assert.ok(c.parking.some(p => p.d === 'mandai' && p.kind === k), `a ${k} in Mandai`);
@@ -103,13 +103,13 @@ test('chapter twelve: ten jobs, mostly at night in Mandai, a mix of steps, at mo
   assert.doesNotMatch(readFileSync(new URL('../app/jade-street/story.tsx', import.meta.url), 'utf8'), /bg-end-12|chapter 12 ending/i);
   const s = newSave(); s.done = MISSIONS.filter(m => m.ch <= 11).map(m => m.id); assert.equal(chapterOf(s), 12);
   s.done = MISSIONS.filter(m => m.ch <= 12).map(m => m.id); assert.equal(chapterOf(s), 13);
-  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 105); assert.equal(jc.talesAll, 41);
+  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 115); assert.equal(jc.talesAll, 44);
   // Grumbles never appear here
   assert.doesNotMatch(JSON.stringify([...ten, ...TALES.map(id => MISSION[id])]), /grumble/i);
 });
 
 test('three Hawker Tales in Mandai, each opening in chapter twelve', () => {
-  assert.deepEqual(SIDE.slice(-12, -9).map(m => m.id), TALES); // (the twentieth pass's six and the twenty-first's three after these)
+  assert.deepEqual(SIDE.slice(-15, -12).map(m => m.id), TALES); // (the twentieth pass's six and the twenty-first's three after these)
   for (const id of TALES) {
     const m = MISSION[id]; assert.ok(inMandai(c.places[m.at].x, c.places[m.at].y), `${id} in Mandai`);
     assert.ok(PAR[id] > 0); assert.ok(TWELVE.includes(m.side), `${id} opens in chapter twelve`);
@@ -176,7 +176,7 @@ test('the tram, the lories and the show: their own animations, counted, and four
   put(w, near.show.x, near.show.y); w.step(NO_INPUT, DT); mandaiAct(w, 'show'); assert.equal(w.p.act?.n, 'clap'); settle(w, 3); assert.equal(w.s.stats.shows, 1);
   assert.ok(w.s.rep.mandai >= 3, 'a little Mandai reputation');
   for (const t of ['nightsafari', 'softly', 'loryfeeder', 'nightowl']) assert.ok(TROPHIES.some(x => x.id === t), t);
-  assert.equal(TROPHIES.length, 74);
+  assert.equal(TROPHIES.length, 78);
 });
 
 test('the paintings: Mandai’s art streams with its zone, the heroes’ new actions too, nothing new is core', () => {
