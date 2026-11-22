@@ -28,6 +28,7 @@ import { inWindow, LADDER } from '../.checks/jade-boss.js';
 import { tagOption, boostXY } from '../.checks/jade-tag.js';
 import { carried, giveGadget, GEAR_GIFT } from '../.checks/jade-gear.js';
 import { hiddenSpot, sightRange, BRANCHES } from '../.checks/jade-jobs.js';
+import { herdOf, bandOf } from '../.checks/jade-herd.js';
 import { crowdOf, laneAt, nextLane, laneClear, crossTime, BAND, HERO_R } from '../.checks/jade-crowd.js';
 import { BIZ_OF } from '../.checks/jade-biz.js';
 import { startRaidAlert, startEmpireJob, RAID_KINDS, gangOf } from '../.checks/jade-empire.js';
@@ -68,6 +69,8 @@ export function missionSave(id, o = {}) {
   if (d === 'bukit') { s.safe = 'safe-bukit'; s.best['house:safe-bukit'] = 1; }
   // Kranji and Woodlands are up north (the MRT's Kranji and Woodlands stations): their jobs start from the Woodlands flat
   if (d === 'kranji') { s.safe = 'safe-kranji'; s.best['house:safe-kranji'] = 1; }
+  // Punggol and Coney Island are over the water (m126 takes the MRT out to Punggol): their jobs start from the void-deck flat
+  if (d === 'punggol') { s.safe = 'safe-punggol'; s.best['house:safe-punggol'] = 1; }
   return s;
 }
 
@@ -549,6 +552,24 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
       }
       // the twentieth pass: a round of drop-offs. Off any ride, follow the gold line to the nearest stop still waiting
       // and press E the moment the prompt shows; stand still while the pose plays
+      // the twenty-fifth pass: herding a cow home. The HUD's arc is where to stand: behind her, between the two rings. Walk
+      // round to it the long way (never through the inner ring), then keep to it as she ambles on; when the HUD says too
+      // close, step straight back out; while she bolts, wait
+      case 'herd': {
+        if (p.ride) { offFoot(); return; }
+        if (p.act) { inp.mx = 0; inp.my = 0; return; }
+        const c = herdOf(run); if (!c) return;
+        if (c.mode === 'bolt') { inp.mx = 0; inp.my = 0; return; }
+        const [near, far] = bandOf(run, st), r = near * 0.45 + far * 0.55, d = dist(p.x, p.y, c.x, c.y);
+        if (d < near * 1.05) { const ax = p.x - c.x, ay = p.y - c.y, l = Math.hypot(ax, ay) || 1; go(p.x + ax / l * 120, p.y + ay / l * 120); return; }
+        // the angle round her from her way's back (0: straight behind); move round by at most ~35 degrees a look
+        const back = Math.atan2(-c.hy, -c.hx), cur = Math.atan2(p.y - c.y, p.x - c.x);
+        let da = cur - back; while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
+        const a = Math.abs(da) < 0.6 ? back : cur - Math.sign(da) * 0.6, rr = Math.abs(da) < 0.6 ? r : Math.max(r, near * 1.6);
+        const tx = c.x + Math.cos(a) * rr, ty = c.y + Math.sin(a) * rr;
+        if (dist(p.x, p.y, tx, ty) < 20) { inp.mx = 0; inp.my = 0; return; }
+        go(tx, ty, dist(p.x, p.y, tx, ty) < 80 ? 0.6 : 1); return;
+      }
       case 'rounds': {
         if (p.ride) { offFoot(); return; }
         if (p.act) { inp.mx = 0; inp.my = 0; return; }

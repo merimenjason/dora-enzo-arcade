@@ -136,6 +136,7 @@ export function ChapterCard({ ch, onDone }: { ch: number; onDone: () => void }) 
         {c === 9 && <><p>Tiong Bahru and Clarke Quay are open: take the MRT to Tiong Bahru or Clarke Quay.</p><p>Find out who is buying up the lanterns.</p></>}
         {c === 10 && <><p>Pulau Ubin is open: take Pak Ubin’s bumboat from the Changi Point jetty.</p><p>Find out what the boars are digging for.</p></>}
         {c === 12 && <><p>Mandai is open: take the MRT to Mandai Lake Road.</p><p>Find out where the black seaplane is heading.</p></>}
+        {c === 16 && <><p>Punggol and Coney Island are open: take the MRT to Punggol.</p><p>Find Puan Pekaka at the old tide gauge on Punggol Point.</p></>}
         {c === 13 && <><p>The Southern Islands are open: take the island ferry from Marina South Pier.</p><p>Get to Raffles Lighthouse before Madam Sutera.</p></>}
         {c === 14 && <><p>Bukit Timah is open: take the MRT to Beauty World or Botanic Gardens.</p><p>Find out what the 1937 survey left on the hill.</p></>}
         <div className="jade-chapter-bar"><span /></div>

@@ -27,6 +27,7 @@ import { torchEnter, torchStep, torchTarget } from './jade-torch.js';
 import { tideEnter, tideStep, tideTarget, tideNear, tideAct } from './jade-tide.js';
 import { summitEnter, summitStep, summitTarget } from './jade-summit.js';
 import { mudEnter, mudStep, mudTarget, mudNear, mudAct } from './jade-mud.js';
+import { herdEnter, herdStep, herdTarget } from './jade-herd.js';
 import { roundsEnter, roundsStep, roundsNear, roundsAct, roundsTarget, roundsTimeUp } from './jade-rounds.js';
 import { teamEnter, teamStep, teamTag, guardGoal, guardHits, onGadget, onBurst, watchStep, blind, postMate, releaseMate, holding, dropBag } from './jade-team.js';
 import { matePounceHit, pounce, pounceWindow, nameOf, GRAB_REACH, type TagOpt } from './jade-tag.js';
@@ -154,7 +155,7 @@ export class Run {
     this.label = 'label' in st ? st.label : '';
     const k = (this.assist ? 1.4 : 1) * this.w.diff.timer;
     if (teamEnter(this, st)) return;
-    if (rideEnter(this, st) || trackEnter(this, st) || crowdEnter(this, st) || torchEnter(this, st) || tideEnter(this, st) || summitEnter(this, st) || mudEnter(this, st) || roundsEnter(this, st)) return;
+    if (rideEnter(this, st) || trackEnter(this, st) || crowdEnter(this, st) || torchEnter(this, st) || tideEnter(this, st) || summitEnter(this, st) || mudEnter(this, st) || herdEnter(this, st) || roundsEnter(this, st)) return;
     if (jobEnter(this, st)) return;
     switch (st.t) {
       case 'talk': {
@@ -299,7 +300,7 @@ export class Run {
     const px = p.x, py = p.y, pb = p.ride ? p.ride.b : p.b;
     watchStep(this, dt);
     if (teamStep(this, st, dt)) return;
-    if (rideStep(this, st, dt) || trackStep(this, st) || crowdStep(this, st, dt) || torchStep(this, st, dt) || tideStep(this, st, dt) || summitStep(this, st, dt) || mudStep(this, st, dt) || roundsStep(this, st)) return;
+    if (rideStep(this, st, dt) || trackStep(this, st) || crowdStep(this, st, dt) || torchStep(this, st, dt) || tideStep(this, st, dt) || summitStep(this, st, dt) || mudStep(this, st, dt) || herdStep(this, st, dt) || roundsStep(this, st)) return;
     if (jobStep(this, st, dt)) return;
     switch (st.t) {
       case 'goto': {
@@ -701,7 +702,7 @@ export class Run {
   target(): [number, number] | null {
     const st = this.cur; if (!st) return null; const w = this.w;
     const jt = jobTarget(this); if (jt !== undefined) return jt;
-    const rt = this.cur?.t === 'track' ? trackTarget(this) : this.cur?.t === 'crowd' ? crowdTarget(this) : this.cur?.t === 'torch' ? torchTarget(this) : this.cur?.t === 'tide' ? tideTarget(this) : this.cur?.t === 'summit' ? summitTarget(this) : this.cur?.t === 'mud' ? mudTarget(this) : this.cur?.t === 'rounds' ? roundsTarget(this) : rideTarget(this); if (rt !== undefined) return rt;
+    const rt = this.cur?.t === 'track' ? trackTarget(this) : this.cur?.t === 'crowd' ? crowdTarget(this) : this.cur?.t === 'torch' ? torchTarget(this) : this.cur?.t === 'tide' ? tideTarget(this) : this.cur?.t === 'summit' ? summitTarget(this) : this.cur?.t === 'mud' ? mudTarget(this) : this.cur?.t === 'herd' ? herdTarget(this) : this.cur?.t === 'rounds' ? roundsTarget(this) : rideTarget(this); if (rt !== undefined) return rt;
     switch (st.t) {
       case 'goto': return this.spot(st.at);
       case 'ride': return this.ride && this.ride.parked ? [this.ride.b.x, this.ride.b.y] : null;
@@ -753,6 +754,7 @@ function timeUp(st: Step): string {
   if (st.t === 'heist') return 'Out of time! The crows got back on their feet. Head straight for the safe.';
   if (st.t === 'crowd') return 'The match kicked off without you! Wait at the edge for a gap in each stream of fans, then squeeze through.';
   if (st.t === 'summit') return 'The clock ran out on the hill! Walk the steep bits, and when the Breath meter is low stop under a rest shelter: running till you are winded is slower.';
+  if (st.t === 'herd') return 'Dark fell before she was home! Stand behind her (the way the trail runs) and she walks on; in front she backs off. Keep out of the Too close ring so she never bolts.';
   if (st.t === 'tide') return 'The night ran out! Cross while the HUD says the tide is out, and when it turns, wait on a coral head (the dark rocks) or the sand.';
   if (st.t === 'mud') return 'The tide came back over the mudflats! Cross while the HUD says the crocs are dozing, stop when one stirs, and keep still while it watches.';
   if (st.t === 'torch') return 'The night ran out! Follow the studs marker to marker, and hold Shift to creep whenever the HUD says an animal is near.';

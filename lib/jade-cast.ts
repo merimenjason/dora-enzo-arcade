@@ -176,4 +176,9 @@ export const CHAT: Record<string, string> = {
   katak: 'My frogs sing all night. Nobody in Kranji needs an alarm clock.',
   kambing: 'Fresh goat’s milk, this morning’s. The goats say you’re welcome.',
   belacak: 'This mud is Mudskipper mud. You want to cross it, you skip like us. Can you skip? No? Hah!',
+  pekaka: 'Ninety years of tides in my gauge house, and never once has the sea been late.',
+  bubut: 'Boop. Boop-boop. Mind the cattle: they were here first.',
+  tempua: 'Every weaver nest in these reeds, I have counted. Twice.',
+  berang: 'Kayak or bicycle? Both? Ah, you are my favourite kind of customer.',
+  pucong: 'Pucong Boys stand still for hours. Then we get paid.',
 };

@@ -249,7 +249,7 @@ test('save v12: a v11 save keeps everything and gets an empty contracts book; ju
 
 test('trophies: Contractor, Job of the Day, Turf Holder', () => {
   for (const id of ['contractor', 'cotd', 'turf']) assert.ok(TROPHIES.some(t => t.id === id), id);
-  assert.equal(TROPHIES.length, 86);
+  assert.equal(TROPHIES.length, 90);
   const s = past(41); s.contracts.done = 10; s.contracts.dayRuns = 1; s.contracts.retaken = 3;
   const got = checkTrophies(s); for (const id of ['contractor', 'cotd', 'turf']) assert.ok(got.includes(id) || s.trophies.includes(id), id);
 });

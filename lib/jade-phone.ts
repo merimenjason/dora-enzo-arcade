@@ -11,7 +11,7 @@ import { gigBoards } from './jade-gigs.js';
 import { GIG20_DEFS } from './jade-gigs20.js';
 import { GIG23_DEFS } from './jade-gigs23.js';
 
-export const CONTACT_OF: Record<District, string> = { market: 'kee', temple: 'pang', canal: 'kiri', docks: 'bo', arcade: 'gizmo', heartland: 'kamal', bay: 'vanda', india: 'raju', glam: 'kancil', resort: 'duyung', orchard: 'tiara', katong: 'rosie', changi: 'ubin', tiong: 'seng', quay: 'melati', jurong: 'musang', pulau: 'ayu', kallang: 'tenuk', mandai: 'kongkang', islands: 'lumba', bukit: 'lotong', kranji: 'kedidi' };
+export const CONTACT_OF: Record<District, string> = { market: 'kee', temple: 'pang', canal: 'kiri', docks: 'bo', arcade: 'gizmo', heartland: 'kamal', bay: 'vanda', india: 'raju', glam: 'kancil', resort: 'duyung', orchard: 'tiara', katong: 'rosie', changi: 'ubin', tiong: 'seng', quay: 'melati', jurong: 'musang', pulau: 'ayu', kallang: 'tenuk', mandai: 'kongkang', islands: 'lumba', bukit: 'lotong', kranji: 'kedidi', punggol: 'pekaka' };
 export function text(w: World, from: string, msg: string, o: { kind?: Msg['kind']; job?: string; gig?: string } = {}) {
   const s = w.s; const id = (s.msgs[s.msgs.length - 1]?.id ?? 0) + 1;
   s.msgs.push({ id, from, text: msg, night: s.night, read: false, ...o });

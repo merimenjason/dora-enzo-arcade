@@ -123,8 +123,11 @@ export const TRAVEL_MIN = 25, TRAVEL_SAVE = 0.35;
  * are in TRAVEL_FOOT). Pulau Ubin and the Southern Islands are the exceptions (the seventeenth and twenty-first passes): no
  * bridge, so a walk on or off either is endless */
 export function walkDist(x: number, y: number, tx: number, ty: number): number { return onUbin(x, y) !== onUbin(tx, ty) ? Infinity : dist(x, y, tx, ty); }
-/** which island (off the main island, no bridge, no train) a point is on, or '' */
-const onUbin = (x: number, y: number) => { const d = districtAt(Math.floor(x / T), Math.floor(y / T)); return d === 'pulau' || d === 'islands' ? d : ''; };
+/** which island (off the main island, no bridge) a point is on, or '': Pulau Ubin, the Southern Islands, and (the
+ * twenty-fifth pass) Punggol and Coney Island, which no land joins either but which the MRT runs to */
+const onUbin = (x: number, y: number) => { const d = districtAt(Math.floor(x / T), Math.floor(y / T)); return d === 'pulau' || d === 'islands' || d === 'punggol' ? d : ''; };
+/** an island no train runs to */
+const noTrain = (x: number, y: number) => { const d = onUbin(x, y); return d === 'pulau' || d === 'islands'; };
 /** the quickest way from (x, y) to (tx, ty): a ride when it saves enough time, else null (walk) */
 export function travelPlan(w: World, tx: number, ty: number, x = w.p.x, y = w.p.y): Travel | null {
   const open = (sx: number, sy: number) => w.open.has(districtAt(Math.floor(sx / T), Math.floor(sy / T)));
@@ -140,7 +143,7 @@ export function travelPlan(w: World, tx: number, ty: number, x = w.p.x, y = w.p.
     links.push({ via: l.id, from: l.stops[0], to: l.stops[1], ride }, { via: l.id, from: l.stops[1], to: l.stops[0], ride });
   }
   const train = (ax: number, ay: number, bx: number, by: number): TripLeg | null => {
-    if (!mrt || onUbin(ax, ay) || onUbin(bx, by)) return null; const a = near(stns, ax, ay)!, b = near(stns, bx, by)!;
+    if (!mrt || noTrain(ax, ay) || noTrain(bx, by)) return null; const a = near(stns, ax, ay)!, b = near(stns, bx, by)!;
     return a.id === b.id ? null : { via: 'mrt', from: a, to: b, ride: RIDE_SECS.mrt };
   };
   const walk = (ax: number, ay: number, bx: number, by: number) => walkDist(ax, ay, bx, by) / TRAVEL_FOOT;

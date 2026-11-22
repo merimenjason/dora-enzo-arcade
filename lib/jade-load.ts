@@ -9,12 +9,12 @@
 import { ATLASES, ATLAS_SIZE, TEXTURES } from './jade-art.js';
 import { districtAt, W, H, type District } from './jade-city.js';
 
-export type Zone = 'town' | 'isle' | 'east' | 'resort' | 'far' | 'south' | 'ubin' | 'kallang' | 'mandai' | 'islands' | 'bukit' | 'kranji';
+export type Zone = 'town' | 'isle' | 'east' | 'resort' | 'far' | 'south' | 'ubin' | 'kallang' | 'mandai' | 'islands' | 'bukit' | 'kranji' | 'punggol';
 export type Tier = 'core' | 'job' | 'mini' | Zone;
-export const ZONES: Zone[] = ['town', 'isle', 'east', 'resort', 'far', 'south', 'ubin', 'kallang', 'mandai', 'islands', 'bukit', 'kranji'];
+export const ZONES: Zone[] = ['town', 'isle', 'east', 'resort', 'far', 'south', 'ubin', 'kallang', 'mandai', 'islands', 'bukit', 'kranji', 'punggol'];
 export const ZONE_OF: Record<District, Zone> = {
   market: 'town', temple: 'town', canal: 'town', docks: 'town', arcade: 'town', heartland: 'isle', bay: 'isle',
-  india: 'east', glam: 'east', resort: 'resort', orchard: 'far', katong: 'far', changi: 'far', tiong: 'south', quay: 'south', jurong: 'south', pulau: 'ubin', kallang: 'kallang', mandai: 'mandai', islands: 'islands', bukit: 'bukit', kranji: 'kranji',
+  india: 'east', glam: 'east', resort: 'resort', orchard: 'far', katong: 'far', changi: 'far', tiong: 'south', quay: 'south', jurong: 'south', pulau: 'ubin', kallang: 'kallang', mandai: 'mandai', islands: 'islands', bukit: 'bukit', kranji: 'kranji', punggol: 'punggol',
 };
 
 const ATLAS_TIER: Record<string, Tier> = {
@@ -58,6 +58,9 @@ const ATLAS_TIER: Record<string, Tier> = {
   // farms' goats and frogs, the Mudskipper Boys and the Causeway's queue among them: they only ever appear there) stream
   // with their zone; the heroes' mudflat and farm actions and the new icons are job art
   'atlas-kranji': 'kranji', 'atlas-cast-kranji': 'kranji', 'atlas-act24': 'job', 'atlas-ui24': 'job',
+  // the twenty-fifth pass: Punggol and Coney Island's paintings (the Brahman cattle and the Pucong Boys among them: they
+  // only ever appear there) stream with its zone; the heroes' herding poses and the new icons are job art
+  'atlas-punggol': 'punggol', 'atlas-cast-punggol': 'punggol', 'atlas-act25': 'job', 'atlas-ui25': 'job',
   // (the heroes' new actions stream with the rest of their rarer poses: every hero frame is core or job)
   'atlas-act17': 'job',
   // the twenty-third pass: the new gigs' and tales' things stream with their own districts (the satay with Clarke Quay, the
@@ -77,6 +80,7 @@ const TEX_TIER: Record<string, Tier> = {
   reef: 'islands', shoal: 'islands', coral: 'islands', islepath: 'islands',
   summit: 'bukit', lawn: 'bukit', railbed: 'bukit', swan: 'bukit',
   mudflat: 'kranji', mangrove: 'kranji', field: 'kranji', woods: 'kranji',
+  marsh: 'punggol', needles: 'punggol', pgdeck: 'punggol',
 };
 /** the tier of an atlas ('atlas-x') or ground texture ('tex-x'); anything unlisted waits for its zone like a job's art */
 export function tierOf(file: string): Tier {

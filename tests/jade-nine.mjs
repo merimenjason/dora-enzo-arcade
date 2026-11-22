@@ -209,7 +209,7 @@ test('the Island Lights ending plays once, after Crow Number Nine is stopped; th
   w.finishMission(MISSION.m45); assert.ok(w.fx.some(f => f.t === 'finale' && f.kind === 'lights'));
   w.s.story.lights = true; w.fx = []; w.replaying = true; w.finishMission(MISSION.m45); assert.ok(!w.fx.some(f => f.t === 'finale'));
   const s = newSave(); s.done = allDone; assert.ok(checkTrophies(s).includes('Island Lights'));
-  assert.equal(TROPHIES.length, 86);
+  assert.equal(TROPHIES.length, 90);
   s.stats.mynahs = 10; s.stats.cable = 3; const got = checkTrophies(s); assert.ok(got.includes('Quiet Please') && got.includes('Sky Ride'));
 });
 
