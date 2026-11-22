@@ -38,7 +38,7 @@ const act = w => { w.findNear(); w.step({ ...NO_INPUT, act: true }, DT); };
 test('seven new step kinds, each in at least two jobs, and every job keeps its giver and story', () => {
   assert.deepEqual([...JOB_STEPS], ['case', 'heist', 'defend', 'blend', 'detective', 'trap', 'swap']);
   for (const k of JOB_STEPS) assert.ok(ALL.filter(m => m.steps.some(s => s.t === k)).length >= 2, `${k} in two jobs`);
-  assert.equal(SIDE.length, 44); assert.deepEqual(SIDE.slice(7, 10).map(m => m.id), ['k8', 'k9', 'k10']);
+  assert.equal(SIDE.length, 52); assert.deepEqual(SIDE.slice(7, 10).map(m => m.id), ['k8', 'k9', 'k10']);
   for (const [id, k] of [['k8', 'heist'], ['k9', 'swap'], ['k10', 'trap']]) assert.ok(MISSION[id].steps.some(s => s.t === k), `${id} shows off a ${k}`);
   assert.equal(MISSION.m17.giver, 'bo'); assert.equal(MISSION.m26.giver, 'glint'); assert.equal(MISSION.k4.giver, 'hoon');
 });

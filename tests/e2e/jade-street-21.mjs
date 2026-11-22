@@ -41,7 +41,7 @@ export async function twentyFirst(h) {
   check(await W(() => { const im = document.querySelector('[data-testid="jade-chapter-card"] img'); return !!im && im.complete && im.naturalWidth > 0 && /bg-chapter-13/.test(im.src); }), `${name}: the card's painting is chapter thirteen's`);
   await press('jade-story-skip'); await settle();
   check(await W(() => window.__jade.world().s.story.ch === 13), `${name}: chapter thirteen is under way`);
-  check(await W(() => window.__jade.jobs().side) === 41 && await W(() => window.__jade.jobs().story) === 105, `${name}: 105 story jobs and 41 Hawker Tales, counted from the data`);
+  check(await W(() => window.__jade.jobs().side) >= 41 && await W(() => window.__jade.jobs().story) >= 105, `${name}: 105 story jobs and 41 Hawker Tales (or more, from later passes), counted from the data`);
 
   // ── the plaque plans the trip: a pin on Raffles Lighthouse from Chinatown goes by the island ferry
   await at('safe-market', 0, 64);

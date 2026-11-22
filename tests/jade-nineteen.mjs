@@ -103,13 +103,13 @@ test('chapter twelve: ten jobs, mostly at night in Mandai, a mix of steps, at mo
   assert.doesNotMatch(readFileSync(new URL('../app/jade-street/story.tsx', import.meta.url), 'utf8'), /bg-end-12|chapter 12 ending/i);
   const s = newSave(); s.done = MISSIONS.filter(m => m.ch <= 11).map(m => m.id); assert.equal(chapterOf(s), 12);
   s.done = MISSIONS.filter(m => m.ch <= 12).map(m => m.id); assert.equal(chapterOf(s), 13);
-  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 115); assert.equal(jc.talesAll, 44);
+  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 115); assert.equal(jc.talesAll, 52);
   // Grumbles never appear here
   assert.doesNotMatch(JSON.stringify([...ten, ...TALES.map(id => MISSION[id])]), /grumble/i);
 });
 
 test('three Hawker Tales in Mandai, each opening in chapter twelve', () => {
-  assert.deepEqual(SIDE.slice(-15, -12).map(m => m.id), TALES); // (the twentieth pass's six and the twenty-first's three after these)
+  assert.deepEqual(SIDE.slice(SIDE.findIndex(m => m.id === TALES[0])).slice(0, 3).map(m => m.id), TALES); // (the twentieth pass's six and the twenty-first's three after these)
   for (const id of TALES) {
     const m = MISSION[id]; assert.ok(inMandai(c.places[m.at].x, c.places[m.at].y), `${id} in Mandai`);
     assert.ok(PAR[id] > 0); assert.ok(TWELVE.includes(m.side), `${id} opens in chapter twelve`);
@@ -176,7 +176,7 @@ test('the tram, the lories and the show: their own animations, counted, and four
   put(w, near.show.x, near.show.y); w.step(NO_INPUT, DT); mandaiAct(w, 'show'); assert.equal(w.p.act?.n, 'clap'); settle(w, 3); assert.equal(w.s.stats.shows, 1);
   assert.ok(w.s.rep.mandai >= 3, 'a little Mandai reputation');
   for (const t of ['nightsafari', 'softly', 'loryfeeder', 'nightowl']) assert.ok(TROPHIES.some(x => x.id === t), t);
-  assert.equal(TROPHIES.length, 78);
+  assert.equal(TROPHIES.length, 81);
 });
 
 test('the paintings: Mandai’s art streams with its zone, the heroes’ new actions too, nothing new is core', () => {

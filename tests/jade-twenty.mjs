@@ -42,7 +42,7 @@ const settle = (w, s = 1) => { for (let i = 0; i < s / DT; i++) w.step(NO_INPUT,
 
 test('every district past Chinatown has a side gig board; the thinnest have two; Chinatown’s come first, unchanged', () => {
   assert.deepEqual(GIG_DEFS.slice(0, 13).map(g => g.id), ['delivery-market', 'delivery-temple', 'delivery-canal', 'delivery-docks', 'delivery-arcade', 'taxi-market', 'taxi-docks', 'race-street', 'roof-market', 'roof-arcade', 'cook', 'dumplings', 'locks']);
-  assert.deepEqual(GIG_DEFS.slice(13).map(g => g.id), GIG20_DEFS.map(g => g.id));
+  assert.deepEqual(GIG_DEFS.slice(13, 13 + GIG20_DEFS.length).map(g => g.id), GIG20_DEFS.map(g => g.id));
   assert.equal(new Set(GIG_DEFS.map(g => g.id)).size, GIG_DEFS.length, 'gig ids are unique');
   for (const d of LATER) assert.ok(GIG20_DEFS.some(g => g.d === d), `${d} has a side gig`);
   for (const d of ['heartland', 'bay', 'tiong', 'katong']) assert.equal(GIG20_DEFS.filter(g => g.d === d).length, 2, `${d} has two`);
@@ -175,7 +175,7 @@ test('the carried things are painted, each in the zone of its district', () => {
 });
 
 test('six more Hawker Tales, k33 to k38, for the districts with fewest; each opens after its giver’s story job', () => {
-  assert.deepEqual(SIDE.slice(-12, -9).map(m => m.id), TALES.slice(0, 3)); assert.deepEqual(SIDE.slice(-9, -6).map(m => m.id), TALES.slice(3)); // (the twenty-first pass's three after these)
+  assert.deepEqual(SIDE.slice(SIDE.findIndex(m => m.id === TALES[0])).slice(0, 3).map(m => m.id), TALES.slice(0, 3)); assert.deepEqual(SIDE.slice(SIDE.findIndex(m => m.id === TALES[3])).slice(0, 3).map(m => m.id), TALES.slice(3)); // (the twenty-first pass's three after these)
   const where = id => c.places[MISSION[id].at].d;
   assert.deepEqual(TALES.map(where), ['tiong', 'tiong', 'katong', 'katong', 'heartland', 'bay']);
   for (const id of TALES) {
@@ -213,7 +213,7 @@ test('a giver past Chinatown texts about their gig (once, one a night) with the 
 });
 
 test('first-timer play: the bot clears each new gig and tale on Normal reading the HUD, and on Hard', () => {
-  for (const [label, id, opts] of gigCases()) {
+  for (const [label, id, opts] of gigCases(GIG20_DEFS)) {
     const r = playMission(label, 'normal', 61, { ...opts(contractSave(61, 1)), assist: false, diff: 'normal' });
     assert.ok(r.won, `${label} on Normal: ${JSON.stringify(r)}`);
     const h = playMission(label, 'normal', 91, { ...opts(contractSave(91, 1)), assist: false, diff: 'hard' });

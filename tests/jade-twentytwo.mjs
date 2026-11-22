@@ -104,12 +104,12 @@ test('chapter fourteen: ten jobs round the hill and the Gardens, a mix of steps,
   assert.doesNotMatch(readFileSync(new URL('../app/jade-street/story.tsx', import.meta.url), 'utf8'), /bg-end-14|chapter 14 ending/i);
   const s = newSave(); s.done = MISSIONS.filter(m => m.ch <= 13).map(m => m.id); assert.equal(chapterOf(s), 14);
   s.done = MISSIONS.map(m => m.id); assert.equal(chapterOf(s), 15);
-  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 115); assert.equal(jc.talesAll, 44);
+  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 115); assert.equal(jc.talesAll, 52);
   assert.doesNotMatch(JSON.stringify([...ten, ...TALES.map(id => MISSION[id])]), /grumble/i);
 });
 
 test('three Hawker Tales in Bukit Timah, each opening in chapter fourteen', () => {
-  assert.deepEqual(SIDE.slice(-3).map(m => m.id), TALES);
+  assert.deepEqual(SIDE.slice(SIDE.findIndex(m => m.id === TALES[0])).slice(0, 3).map(m => m.id), TALES); // (the twenty-third pass’s eight after these)
   for (const id of TALES) {
     const m = MISSION[id]; assert.ok(inBukit(c.places[m.at].x, c.places[m.at].y), `${id} in Bukit Timah`);
     assert.ok(PAR[id] > 0); assert.ok(FOURTEEN.includes(m.side), `${id} opens in chapter fourteen`);
@@ -180,7 +180,7 @@ test('the macaques snatch snacks; shoo them, read a specimen, rest on a log, tou
   put(w, near.summit.x, near.summit.y); bukitAct(w, 'summit'); assert.equal(w.p.act?.n, 'summit'); settle(w, 1.8); assert.equal(w.s.stats.summits, 1);
   assert.ok(w.s.rep.bukit >= 4, 'a little Bukit Timah reputation');
   for (const t of ['secondbearing', 'hillrunner', 'nofeeding', 'naturalist']) assert.ok(TROPHIES.some(x => x.id === t), t);
-  assert.equal(TROPHIES.length, 78);
+  assert.equal(TROPHIES.length, 81);
   for (const f of ['mac-snatch', 'mac-run-0', 'mac-munch', 'mac-taunt', 'mac-startled']) assert.ok(FRAMES[f], f);
 });
 
