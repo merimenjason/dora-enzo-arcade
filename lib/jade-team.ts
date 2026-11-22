@@ -96,7 +96,7 @@ function bagStep(run: Run, st: St<'bag'>, dt: number) {
   const hitting = p.ride ? pb.speed > 90 : (p.dashT > 0 || p.hopT > 0);
   const mateHit = w.mate.ai.mode === 'pounce' && dist(a.b.x, a.b.y, w.mate.b.x, w.mate.b.y) < 40;
   if (low && ((d < 40 + (w.assist ? 16 : 0) && hitting) || mateHit)) dropBag(run, a);
-  if (run.timer !== null && run.timer < 10 && !run.warning) run.warn('The crow is about to fly off with the bag!');
+  if (run.timer !== null && run.timer < 10 && !run.warning) run.warn(`The ${st.skin ?? 'crow'} is about to fly off with the ${st.loot === 'garland' ? 'garland' : 'bag'}!`);
   run.label = low ? 'It’s low: run into it and dash (Space), hop or pounce!' : st.label;
 }
 export function dropBag(run: Run, a: Actor) {

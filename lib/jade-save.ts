@@ -16,6 +16,7 @@ import { asDiff, type Diff } from './jade-diff.js';
 import { BIZ, STALL_IDS, newBiz, rankOf, type BizState } from './jade-biz.js';
 import { EMPIRE_JOB_IDS } from './jade-empjobs.js';
 import { GIG20_DEFS } from './jade-gigs20.js';
+import { GIG23_DEFS } from './jade-gigs23.js';
 import { newGear, giveGadget, clipOf, ammoCap, GEAR_GIFT, GADGET_IDS, type GearState, type GadgetId } from './jade-gear.js';
 
 export const SAVE_KEY = 'jade-street-v13';
@@ -529,6 +530,10 @@ export const TROPHIES: { id: string; name: string; desc: string; test: (s: Save)
   { id: 'every-corner', name: 'Every Corner', desc: 'Finish a side gig in every district past Chinatown.', test: s => [...new Set(GIG20_DEFS.map(g => g.d))].every(d => GIG20_DEFS.some(g => g.d === d && s.best['gig:' + g.id])) },
   { id: 'rounds', name: 'Round the Houses', desc: 'Finish every round: mooncakes, balloons, garlands, potong, laksa, luggage, pastries, lanterns and nectar feeders.', test: s => GIG20_DEFS.filter(g => ROUND_KINDS.includes(g.kind)).every(g => s.best['gig:' + g.id]) },
   { id: 'wheels-wakes', name: 'Wheels and Wakes', desc: 'Finish the river taxi run, the island bike loop and the buoy sprint.', test: s => ['river-taxi', 'ubin-loop', 'buoy-sprint'].every(id => s.best['gig:' + id]) },
+  // the twenty-third pass: the second boards (lib/jade-gigs23.ts)
+  { id: 'second-helpings', name: 'Second Helpings', desc: 'Finish the second side gig in every district that has one.', test: s => GIG23_DEFS.every(g => s.best['gig:' + g.id]) },
+  { id: 'look-plant-count', name: 'Look, Plant, Count', desc: 'Finish the mural photo walk, the mangrove planting and the night trail count.', test: s => ['photo-walk', 'mangroves', 'night-count'].every(id => s.best['gig:' + id]) },
+  { id: 'four-rivals', name: 'Four Rivals', desc: 'Outrun the macaque, the mynah, the otter and the crow in their own districts.', test: s => ['lion-dash', 'tekka-sprint', 'siloso-run', 'pagoda-run'].every(id => s.best['gig:' + id]) },
 ];
 /** the side gigs that are rounds (lib/jade-rounds.ts) */
 const ROUND_KINDS = ['mooncakes', 'balloons', 'garlands', 'potong', 'laksa', 'luggage', 'croissants', 'lanterns', 'feeders'];

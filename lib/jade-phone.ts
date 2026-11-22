@@ -9,6 +9,7 @@ import type { World } from './jade-game.js';
 import type { Msg } from './jade-save.js';
 import { gigBoards } from './jade-gigs.js';
 import { GIG20_DEFS } from './jade-gigs20.js';
+import { GIG23_DEFS } from './jade-gigs23.js';
 
 export const CONTACT_OF: Record<District, string> = { market: 'kee', temple: 'pang', canal: 'kiri', docks: 'bo', arcade: 'gizmo', heartland: 'kamal', bay: 'vanda', india: 'raju', glam: 'kancil', resort: 'duyung', orchard: 'tiara', katong: 'rosie', changi: 'ubin', tiong: 'seng', quay: 'melati', jurong: 'musang', pulau: 'ayu', kallang: 'tenuk', mandai: 'kongkang', islands: 'lumba', bukit: 'lotong' };
 export function text(w: World, from: string, msg: string, o: { kind?: Msg['kind']; job?: string; gig?: string } = {}) {
@@ -49,7 +50,8 @@ export function phoneStep(w: World) {
 function gigText(w: World) {
   const s = w.s; if (w.run || s.msgs.some(m => m.gig && m.night === s.night)) return;
   const up = new Set(gigBoards(w).map(b => b.id));
-  const g = GIG20_DEFS.find(g => up.has(g.id) && !s.best['gig:' + g.id] && !s.best['gigs:' + g.id] && !s.msgs.some(m => m.gig === g.id));
+  // (the twenty-third pass) the second boards text too, after the first ones
+  const g = [...GIG20_DEFS, ...GIG23_DEFS].find(g => up.has(g.id) && !s.best['gig:' + g.id] && !s.best['gigs:' + g.id] && !s.msgs.some(m => m.gig === g.id));
   if (!g) return;
   text(w, g.giver, `Side gig at my flag in ${DISTRICT_NAME[g.d]}: “${g.title}”. Quick coins, any night you like. Come by!`, { kind: 'job', gig: g.id });
 }

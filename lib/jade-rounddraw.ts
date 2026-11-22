@@ -1,7 +1,8 @@
 // Jade Street drawing for the twentieth pass's `rounds` step (lib/jade-rounds.ts): who waits at each stop (a townsfolk
 // standing there with what they want in a bubble), or for a hook, a doorway or a shrine a soft ring with the thing
 // ghosted in it; once handed over, a hung cage or lantern and a draped garland stay where they were put. All painted
-// sprites; code adds only light and rings.
+// sprites; code adds only light and rings. (The twenty-third pass: a stop's `sights`, say a mural, stand there all along;
+// a photo leaves nothing behind.)
 import { spr, itemSprite } from './jade-scene.js';
 import type { Scene } from './jade-scene.js';
 import type { World } from './jade-game.js';
@@ -12,9 +13,12 @@ type X = CanvasRenderingContext2D;
 export function roundsGround(sc: Scene, x: X, w: World, run: Run): boolean {
   const st = run.cur; if (!st || st.t !== 'rounds') return false;
   const f = itemSprite(st.item), pulse = 0.5 + Math.sin(sc.t * 4) * 0.5;
-  for (const it of run.items) {
+  for (const [i, it] of run.items.entries()) {
     const sp = it.marks?.[0];
-    if (it.got) { if (!sp) spr(x, f, it.x, it.y + (st.act === 'hang' ? -30 : 8), { w: 30 }); continue; }
+    // (the twenty-third pass) what stands at the stop, painted, all along: a mural on the wall above it
+    const sight = st.sights?.[i % st.sights.length];
+    if (sight) spr(x, sight, it.x, it.y - 34, { w: 112, anchor: 'center' });
+    if (it.got) { if (!sp && st.act !== 'photo') spr(x, f, it.x, it.y + (st.act === 'hang' ? -30 : 8), { w: 30 }); continue; }
     sc.glow(x, it.x, it.y, 44 + pulse * 8, 'rgba(255,210,110,.45)');
     if (sp) {
       spr(x, `folk-${sp}-down`, it.x, it.y + 4, {});

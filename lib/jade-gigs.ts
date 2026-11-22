@@ -9,6 +9,7 @@ import type { Mission, Step } from './jade-story.js';
 import { mvT, mvTs, unmvT } from './jade-layout.js';
 import { safeOpen } from './jade-save.js';
 import { GIG20_DEFS, gig20Steps } from './jade-gigs20.js';
+import { GIG23_DEFS, gig23Steps } from './jade-gigs23.js';
 
 export type GigDef = { id: string; title: string; at: [number, number] | string; d: District; giver: string; kind: string };
 /** `at` tiles are written in the old frame and moved once through the layout table (lib/jade-layout.ts) */
@@ -28,6 +29,8 @@ export const GIG_DEFS: GigDef[] = ([
   { id: 'locks', title: 'Crate cracking', at: [96, 64], d: 'docks', giver: 'bo', kind: 'locks' },
   // the twentieth pass: a board or two in every district past Chinatown (lib/jade-gigs20.ts)
   ...GIG20_DEFS,
+  // the twenty-third pass: a second board in each district that had one (lib/jade-gigs23.ts)
+  ...GIG23_DEFS,
 ] as GigDef[]).map(g => typeof g.at === 'string' ? g : { ...g, at: mvT(g.at[0], g.at[1]) });
 const where = (w: World, at: GigDef['at']): [number, number] => typeof at === 'string' ? [w.c.places[at].x, w.c.places[at].y] : [at[0] * T + T / 2, at[1] * T + T / 2];
 
@@ -74,7 +77,7 @@ export function gigMission(w: World, id: string): { m: Mission; reward: number; 
     case 'cook': steps = [{ t: 'mini', kind: 'wok', level: 2, label: 'Cook the orders' }]; reward = 45; break;
     case 'dumpling': steps = [{ t: 'mini', kind: 'dumpling', level: 2, label: 'Fold the dumplings' }]; reward = 45; break;
     case 'locks': steps = [{ t: 'mini', kind: 'lock', level: 2, label: 'Crack the crate lock' }]; reward = 60; break;
-    default: { const r = gig20Steps(g.kind, home); if (!r) return null; steps = r.steps; reward = r.reward; }
+    default: { const r = gig20Steps(g.kind, home) ?? gig23Steps(g.kind); if (!r) return null; steps = r.steps; reward = r.reward; }
   }
   return { m: { id: 'gig-' + id, ch: 0, title: g.title, giver: g.giver, at: '', blurb: '', reward, rep: 2, steps }, reward, d: g.d };
 }
