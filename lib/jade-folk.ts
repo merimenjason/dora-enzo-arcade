@@ -147,13 +147,30 @@ function mayCross(w: World, tx: number, ty: number) {
   return !w.cars.some(c => c.r === ri && dist(c.x, c.y, px, py) < 240 && ((ROADS[ri].axis === 'h' ? px - c.x : py - c.y) * c.d > -40));
 }
 
+/** the destinations (indices into dests) a townsperson might pick: in the open districts and near where they stand
+ * (cached per 8-tile cell and open set). Only places within reach are counted, so a district that has not opened yet,
+ * or a new pass's doors and benches anywhere else on the map, never changes who walks where nearby, nor the world's
+ * dice after it */
+const NEAR_DESTS = new Map<string, number[]>();
+const CELL = 8, REACH = 26;
+export function openDests(w: World, x = w.p.x, y = w.p.y): number[] {
+  const cx = Math.floor(x / T / CELL), cy = Math.floor(y / T / CELL), key = cx + ',' + cy + ':' + [...w.open].sort().join();
+  let v = NEAR_DESTS.get(key);
+  if (!v) {
+    const all = dests(w.c), mx = (cx + 0.5) * CELL * T, my = (cy + 0.5) * CELL * T, r = (REACH + CELL) * T; v = [];
+    for (let i = 0; i < all.length; i++) if (dist(all[i].x, all[i].y, mx, my) <= r && w.open.has(districtAt(all[i].tx, all[i].ty))) v.push(i);
+    NEAR_DESTS.set(key, v);
+  }
+  return v;
+}
+
 function choose(w: World, pd: Ped) {
-  const all = dests(w.c); if (!all.length) return;
+  const all = dests(w.c), pool = openDests(w, pd.x, pd.y); if (!pool.length) return;
   if (w.crowd && dist(w.crowd.x, w.crowd.y, pd.x, pd.y) < 520 && w.R() < 0.7) { pd.dest = -1; pd.watch = true; return; }
   pd.watch = false;
   for (let k = 0; k < 8; k++) {
-    const i = Math.floor(w.R() * all.length), d = all[i];
-    if (i === pd.dest || dist(d.x, d.y, pd.x, pd.y) > 26 * T || !w.open.has(districtAt(d.tx, d.ty))) continue;
+    const i = pool[Math.floor(w.R() * pool.length)], d = all[i];
+    if (i === pd.dest || dist(d.x, d.y, pd.x, pd.y) > REACH * T) continue;
     if (d.kind === 'seat' && w.peds.some(o => o.dest === i)) continue;
     const f = pedField(w, i); if (f[Math.floor(pd.y / T) * W + Math.floor(pd.x / T)] < 0) continue;
     pd.dest = i; return;

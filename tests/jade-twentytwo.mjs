@@ -103,8 +103,8 @@ test('chapter fourteen: ten jobs round the hill and the Gardens, a mix of steps,
   assert.doesNotMatch(words, /Sutera (is|was) (beaten|caught|finished)/i, 'Sutera is not beaten');
   assert.doesNotMatch(readFileSync(new URL('../app/jade-street/story.tsx', import.meta.url), 'utf8'), /bg-end-14|chapter 14 ending/i);
   const s = newSave(); s.done = MISSIONS.filter(m => m.ch <= 13).map(m => m.id); assert.equal(chapterOf(s), 14);
-  s.done = MISSIONS.map(m => m.id); assert.equal(chapterOf(s), 16);
-  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 125); assert.equal(jc.talesAll, 55);
+  s.done = MISSIONS.map(m => m.id); assert.equal(chapterOf(s), 17);
+  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 135); assert.equal(jc.talesAll, 58);
   assert.doesNotMatch(JSON.stringify([...ten, ...TALES.map(id => MISSION[id])]), /grumble/i);
 });
 
@@ -180,7 +180,7 @@ test('the macaques snatch snacks; shoo them, read a specimen, rest on a log, tou
   put(w, near.summit.x, near.summit.y); bukitAct(w, 'summit'); assert.equal(w.p.act?.n, 'summit'); settle(w, 1.8); assert.equal(w.s.stats.summits, 1);
   assert.ok(w.s.rep.bukit >= 4, 'a little Bukit Timah reputation');
   for (const t of ['secondbearing', 'hillrunner', 'nofeeding', 'naturalist']) assert.ok(TROPHIES.some(x => x.id === t), t);
-  assert.equal(TROPHIES.length, 86);
+  assert.equal(TROPHIES.length, 90);
   for (const f of ['mac-snatch', 'mac-run-0', 'mac-munch', 'mac-taunt', 'mac-startled']) assert.ok(FRAMES[f], f);
 });
 

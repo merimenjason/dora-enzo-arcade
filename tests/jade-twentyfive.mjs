@@ -23,6 +23,7 @@ import { gigMission } from '../.checks/jade-gigs.js';
 import { FLEET, cantCall } from '../.checks/jade-fleet.js';
 import { PAR } from '../.checks/jade-medals.js';
 import { FRAMES, ATLASES } from '../.checks/jade-art.js';
+import { dests, openDests } from '../.checks/jade-folk.js';
 import { tierOf, ZONE_OF } from '../.checks/jade-load.js';
 import { playMission, missionSave } from './jade-bot.mjs';
 
@@ -75,6 +76,16 @@ test('Punggol and Coney Island: their own district, opened by chapter 15’s fin
   const town = punggol(3, { at: 'safe-market' }); put(town, m.x, m.y + 40); town.step(NO_INPUT, DT);
   assert.ok(!dropOffs(town).some(d => c.places[d.id]?.d === 'punggol'), 'no taxi drops off in Punggol');
   w.s.biz.taxi.lvl = 1; assert.match(cantCall(w, 'taxi') ?? '', /No roads/);
+  // townsfolk pick where to walk among the open districts only: Punggol's doors and benches, while it is fogged, never
+  // change the dice of a job played before it opens
+  const early = punggol(4); early.open.delete('punggol'); const all = dests(c);
+  assert.ok(all.some(d => districtAt(d.tx, d.ty) === 'punggol'), 'Punggol has places to walk to');
+  const pj = c.places['stn-punggol'];
+  assert.ok(openDests(punggol(4), pj.x, pj.y).some(i => districtAt(all[i].tx, all[i].ty) === 'punggol'), 'picked once it opens');
+  assert.ok(!openDests(early, pj.x, pj.y).some(i => districtAt(all[i].tx, all[i].ty) === 'punggol'), 'none of them picked before it opens');
+  // and only places within a walk count: what is far off (a new pass's district) never changes the pick here
+  const mk = c.places['safe-market'];
+  assert.ok(openDests(early, mk.x, mk.y).every(i => Math.hypot(all[i].x - mk.x, all[i].y - mk.y) <= 34 * T * 1.42), 'nearby only');
 });
 
 test('chapter sixteen: ten jobs round Punggol and Coney, a mix of steps, at most a third chases, ending on a hook', () => {
