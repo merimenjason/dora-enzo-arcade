@@ -77,9 +77,15 @@ export const PROPS: PropDef[] = [
   P('coconutbar', 'Lazarus Coconut Bar', 'lumba', 'islands', [37, 133], 1300, 0.95, 12, 'food'),
   P('jettycafe', 'St John’s Jetty Café', 'ku', 'islands', [26, 133], 1500, 1.05, 13, 'food'),
   P('snorkelhire', 'St John’s Snorkel Hire', 'lumba', 'islands', [23, 135], 2100, 0.75, 15, 'kayak'),
+  // the twenty-second pass: three in Bukit Timah (raided by Big Kow's macaques): a hawker stall by Beauty World station,
+  // a florist by the Orchid Garden, and a bike hire on the Rail Corridor (its perk: a bike anywhere in Bukit Timah,
+  // lib/jade-fleet.ts). Old-frame tiles: Bukit Timah's block starts at [48, 130]
+  P('beautyworld', 'Beauty World Hawker Stall', 'tenggiling', 'bukit', [53, 148], 1350, 1.05, 12, 'food'),
+  P('orchidshop', 'Orchid Garden Florist', 'merbah', 'bukit', [76, 155], 1550, 0.95, 13, 'shop'),
+  P('railbikes', 'Rail Corridor Bike Hire', 'tenggiling', 'bukit', [58, 137], 1900, 0.8, 15, 'shop'),
 ];
 /** the first eleven, kept as they were placed, with the kind of trade each is */
 export const STALL_KIND: Record<string, PropKind> = { noodle: 'food', cake: 'food', tea: 'food', fan: 'shop', jade: 'shop', claw: 'shop', ckt: 'food', chicken: 'food', satay: 'food', laksa: 'food', kopi: 'food' };
 /** the rival gang that raids each district's properties (lib/jade-gangs.ts and the Longkang Lizards of the island) */
-export const RAID_GANG: Record<District, 'crow' | 'mac' | 'otter' | 'liz' | 'myna' | 'bat' | 'boar'> = { market: 'mac', temple: 'mac', canal: 'otter', docks: 'otter', arcade: 'crow', heartland: 'liz', bay: 'liz', india: 'myna', glam: 'myna', resort: 'myna', orchard: 'bat', katong: 'bat', changi: 'bat', tiong: 'crow', quay: 'otter', jurong: 'liz', pulau: 'boar', kallang: 'crow', mandai: 'crow', islands: 'crow' };
+export const RAID_GANG: Record<District, 'crow' | 'mac' | 'otter' | 'liz' | 'myna' | 'bat' | 'boar'> = { market: 'mac', temple: 'mac', canal: 'otter', docks: 'otter', arcade: 'crow', heartland: 'liz', bay: 'liz', india: 'myna', glam: 'myna', resort: 'myna', orchard: 'bat', katong: 'bat', changi: 'bat', tiong: 'crow', quay: 'otter', jurong: 'liz', pulau: 'boar', kallang: 'crow', mandai: 'crow', islands: 'crow', bukit: 'mac' };
 export const GANG_NAME: Record<string, string> = { crow: 'Kaypoh Crows', mac: 'Bukit Bunch macaques', otter: 'Riverside Romp otters', liz: 'Longkang Lizards', myna: 'Kecoh Mynahs', bat: 'Atas Bats', boar: 'Tusker Boys' };

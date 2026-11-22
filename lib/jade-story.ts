@@ -111,6 +111,9 @@ export type Step =
    * shows: while it is in, off a coral head or the sand the water washes you back to the last marker; `out`: the low
    * tide's length against the usual (a spring tide is shorter); `time`: the night left */
   | { t: 'tide'; route: Spot[]; pools?: Spot[]; out?: number; time?: number; label: string; cp?: boolean }
+  // (the twenty-second pass) up Bukit Timah Hill's summit trail, marker to marker, on a Breath meter: walk, don't run, and
+  // get your breath back under the trail's rest shelters (lib/jade-summit.ts); `pace` steepens the going
+  | { t: 'summit'; route: Spot[]; pace?: number; time?: number; label: string; cp?: boolean }
   | { t: 'crowd'; from: Spot; to: Spot; lanes: number; span?: number; time?: number; item?: string; keep?: boolean; ticket?: boolean; label: string; cp?: boolean }
   /** the twentieth pass (lib/jade-rounds.ts): a round of drop-offs. You carry `item` and hand one over at each of `drops`
    * (E there: the step's own pose, `act`) before `time` runs out; `who`: the townsfolk waiting at each drop (unset: a hook,
@@ -195,6 +198,10 @@ export const PEOPLE: Record<string, { name: string; face: string; who: string }>
   umang: { name: 'Kapitan Umang', face: 'face-umang', who: 'boss of a deck crew for hire (a hermit crab)' },
   bintu: { name: 'Dr Bintu', face: 'face-bintu', who: 'the parks’ vet and host of the Creatures of the Night show (a binturong)' },
   hantu: { name: 'Tuan Hantu', face: 'face-hantu', who: 'boss of a night watch for hire (a barn owl)' },
+  // the twenty-second pass: Bukit Timah
+  tenggiling: { name: 'Pak Tenggiling', face: 'face-tenggiling', who: 'keeper of the old Bukit Timah railway station (a Sunda pangolin)' },
+  lotong: { name: 'Puan Lotong', face: 'face-lotong', who: 'ranger on Bukit Timah Hill (a banded langur)' },
+  merbah: { name: 'Dr Merbah', face: 'face-merbah', who: 'keeper of the Botanic Gardens’ herbarium (a straw-headed bulbul)' },
   sutera: { name: 'Madam Sutera', face: 'face-sutera', who: 'the lady in black feathers (a black swan)' },
   // the tenth pass: the empire's supplier, the health inspector, the rival towkay and the jaga you can hire
   huat: { name: 'Ah Huat', face: 'face-huat', who: 'wholesale supplier (a wild boar)' },
@@ -215,9 +222,9 @@ export const HEIRLOOMS = [
 ] as const;
 /** which district each chapter's finale opens (chapter 1 is played in Smith Street) */
 export const CHAPTER_OPENS: District[] = ['temple', 'canal', 'docks', 'arcade'];
-export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Club Street', 'The Island', 'Island Lights', 'Christmas Star', 'Lights by the Lake', 'Kampong Spirit', 'Kallang Roar', 'Night Safari', 'Raffles Lighthouse'];
+export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Club Street', 'The Island', 'Island Lights', 'Christmas Star', 'Lights by the Lake', 'Kampong Spirit', 'Kallang Roar', 'Night Safari', 'Raffles Lighthouse', 'Bukit Timah'];
 /** the last job of each chapter (its finale) */
-export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55', 'm65', 'm75', 'm85', 'm95', 'm105'];
+export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55', 'm65', 'm75', 'm85', 'm95', 'm105', 'm115'];
 /** the story job that opens Sentosa (half way through chapter seven) */
 export const RESORT_OPENS = 'm40';
 /** the story job that opens Changi (half way through chapter eight) */
@@ -232,6 +239,8 @@ export const KALLANG_OPENS = 'm75';
 export const MANDAI_OPENS = 'm85';
 /** the story job that opens the Southern Islands (the end of chapter twelve: chapter thirteen is set there) */
 export const ISLANDS_OPENS = 'm95';
+/** the story job that opens Bukit Timah (the end of chapter thirteen: chapter fourteen is set there) */
+export const BUKIT_OPENS = 'm105';
 
 // ── every [x, y] tile in a step is written in the old frame (where the district was first laid out) and moved once,
 // here, through the layout table (lib/jade-layout.ts); names ('kee', 'here', 'loot') are places and stay
@@ -242,6 +251,9 @@ const K = (lx: number, ly: number): [number, number] => ly < 14 ? [212 + lx, 82 
 const M = (lx: number, ly: number): [number, number] => [lx, 90 + ly];
 /** a Southern Islands tile by its local column and row (lib/jade-islands.ts islOld): built in the rows below the old frame */
 const I = (lx: number, ly: number): [number, number] => [lx, 128 + ly];
+/** a Bukit Timah tile by its local column and row (lib/jade-bukit.ts bktOld): built in the rows below the old frame, east
+ * of the Southern Islands */
+const B = (lx: number, ly: number): [number, number] => [48 + lx, 130 + ly];
 /** a spot: a place name stays, a tile moves */
 export const mvSpot = <S extends Spot>(s: S): S => (typeof s === 'string' ? s : mvT(s[0], s[1])) as S;
 const mvSpots = (a: Spot[]) => a.map(mvSpot);
@@ -269,6 +281,7 @@ function mvStepFields(st: Step): Step {
     case 'torch': return { ...st, route: mvSpots(st.route), beasts: st.beasts.map(b => ({ ...b, at: mvSpot(b.at) })) };
     case 'rounds': return { ...st, drops: mvSpots(st.drops) };
     case 'tide': return { ...st, route: mvSpots(st.route), ...(st.pools ? { pools: mvSpots(st.pools) } : {}) };
+    case 'summit': return { ...st, route: mvSpots(st.route) };
     case 'chase': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), sets: st.sets?.map(d => ({ ...d, at: mvT(d.at[0], d.at[1]) })) };
     case 'float': return st.rope === undefined ? st : { ...st, rope: mvSpot(st.rope) };
     case 'tail': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), relay: st.relay && { ...st.relay, spot: mvSpot(st.relay.spot) } };
@@ -1250,6 +1263,79 @@ export const MISSIONS: Mission[] = mvMissions([
       { t: 'goto', at: 'lighthouse', label: 'Run to the lighthouse door', ride: 'foot', cp: true },
       { t: 'defend', at: 'lighthouse', time: 50, waves: 2, per: 2, gang: 'crow', what: 'Lighthouse door', label: 'Hold the lighthouse door: knock the crows back before they get inside ({mate} helps on their own)', cp: true },
       { t: 'talk', lines: [['sutera', 'Darlings! Over the reef on a spring tide, through my crows, and on my gallery before me. I am impressed. Truly.', 'happy'], ['umang', 'Madam, the tide. It is turning. My crew are… floating.', 'worried'], ['sutera', 'Then we go, Kapitan. Back to the junk.', 'calm'], ['mate', 'Look! From up here the reef shows its whole shape, like the photograph. And past it, on one-eight-two…', 'worried'], ['camar', 'White water. Breakers, where the chart says open sea. Something just under the surface, the size of an island. Thirty years, and I never once looked at the spring tide.', 'worried'], ['hero', 'And her junk is sailing straight for it. She doesn’t need the gallery. She only needed to know we’d look.', 'cross']] },
+    ] },  // ── chapter fourteen (the twenty-second pass): Bukit Timah. Pak Camar's 1937 keeper's log says the survey men sent
+  // what they found on the nameless island up the railway to the Botanic Gardens' herbarium, and took their last bearing
+  // from the trig pillar on Bukit Timah Hill. Madam Sutera has hired Big Kow's Bukit Bunch to get there first.
+  { id: 'm106', ch: 14, title: 'The Keeper’s Log', giver: 'camar', at: 'camar', reward: 1190, rep: 29, blurb: 'Pak Camar has the 1937 keeper’s log open on the island no other chart shows. The survey men sent what they found there up the railway to Bukit Timah. Go and find the old station.',
+    steps: [
+      { t: 'talk', lines: [['camar', 'Read it with me. “Survey party returned from the reef, 1937. Specimens crated for the Botanic Gardens herbarium, by rail from Tanjong Pagar to Bukit Timah station.”', 'calm'], ['camar', '“Last bearing to be taken from the trig pillar on Bukit Timah Hill.” From a hill in the middle of the island, to a rock in the sea. Why?', 'worried'], ['mate', 'Because from the top of a hill you can see two things at once. Two bearings make a cross. A cross makes a spot.', 'smug'], ['camar', 'The old railway station still stands. Pak Tenggiling keeps it. Ask him for the 1937 goods book.', 'calm']] },
+      { t: 'goto', at: 'isl-jetty', label: 'Go back to St John’s jetty (over the reef, or by boat)', cp: true },
+      { t: 'cable', to: 'pier-msp', label: 'Take the island ferry back to Marina South Pier (E at the jetty)', cp: true },
+      { t: 'train', to: 'stn-beauty', label: 'Take the MRT to Beauty World (E at a station entrance)', cp: true },
+      { t: 'goto', at: 'tenggiling', time: 70, label: 'Walk up to the old Bukit Timah railway station and find Pak Tenggiling, the stationmaster' },
+      { t: 'talk', lines: [['tenggiling', 'Trains? Not since 2011, young ones. I keep the station anyway. Somebody has to wind the clock.', 'calm'], ['tenggiling', 'The 1937 goods book… here. “One crate, survey specimens, to the herbarium. One parcel, to be called for at the summit.” Signed by my grandfather.', 'calm'], ['tenggiling', 'And the monkeys have been at my ticket office every night this week, looking for something. They’re not usually so busy.', 'worried'], ['hero', 'Somebody is paying them.', 'cross']] },
+    ] },
+  { id: 'm107', ch: 14, title: 'Summit Trail', giver: 'tenggiling', at: 'tenggiling', reward: 1200, rep: 29, blurb: 'Bukit Timah Hill is 163 metres high, the highest ground in Singapore. Climb the summit trail to the trig pillar where the 1937 survey took its last bearing, and don’t run yourself out of breath.',
+    steps: [
+      { t: 'talk', lines: [['tenggiling', 'The summit trail starts by the visitor centre. It is steep. Walk it, don’t run it, or you will be sitting on a log going “hoo, hoo” like an old pangolin.', 'happy'], ['mate', 'One hundred and sixty-three metres. I’ve climbed taller bookshelves.', 'smug']] },
+      { t: 'goto', at: 'trailhead', label: 'Go to the trailhead by the visitor centre', ride: 'foot', cp: true },
+      { t: 'summit', route: [B(12, 15), B(8, 16), B(4, 17), B(3, 20), B(7, 21), B(11, 22), B(14, 24), B(10, 26), B(5, 26), B(3, 24)], time: 70, label: 'Climb the summit trail, marker to marker (hold Shift to walk and save your breath)', cp: true },
+      { t: 'talk', lines: [['hero', 'The trig pillar. And a brass plate: “Survey station, 1937. Bearing to Raffles Light, one-eight-one.” Somebody has polished it. Again.', 'worried'], ['mate', 'Polished, and the moss scraped off round the bottom. Little hand prints. Lots of them.', 'cross'], ['kow', 'Hoo! Chinchillas on MY hill! Nothing personal. A lady in black pays very good bananas.', 'happy']] },
+    ] },
+  { id: 'm108', ch: 14, title: 'Trailhead Raid', giver: 'lotong', at: 'lotong', reward: 1210, rep: 29, blurb: 'Big Kow’s Bukit Bunch are raiding the trailhead shop for snacks, and Puan Lotong the ranger can’t be everywhere. Hold the shop until they give up.',
+    steps: [
+      { t: 'talk', lines: [['lotong', 'Ranger Lotong. Yes, I am a monkey too. A langur, a quiet one. Those macaques are not quiet.', 'cross'], ['lotong', 'Rule one on this hill: never, ever feed the macaques. Rule two: wave your arms, be big, and they back off. Help me hold the shop.', 'calm']] },
+      { t: 'defend', at: 'mk-bukit', time: 55, waves: 2, per: 4, gang: 'mac', what: 'Trailhead shop', label: 'Hold the trailhead shop: knock the macaques back before they grab ({mate} helps on their own)', cp: true },
+      { t: 'talk', lines: [['lotong', 'Off they go, empty-handed. Good. Now listen: they weren’t after the crisps. They went straight for my trail maps. Old ones.', 'worried'], ['hero', 'Maps of the summit. They’re looking for the parcel “to be called for at the summit”.', 'worried']] },
+    ] },
+  { id: 'm109', ch: 14, title: 'Daypack Thief', giver: 'lotong', at: 'lotong', reward: 1220, rep: 29, blurb: 'One of Big Kow’s nephews snatched a daypack, with Pak Tenggiling’s copy of the 1937 goods book inside. Chase him round the quarry and bump him three times.',
+    steps: [
+      { t: 'talk', lines: [['mate', 'Your bag! He has your bag! With the goods book in it!', 'cross'], ['lotong', 'Towards the quarry! Go, go! He’s fast, but he stops to show off.', 'cross']] },
+      { t: 'chase', who: 'runner', skin: 'mac', name: 'the macaque', from: B(12, 14), route: [B(16, 14), B(16, 11), B(22, 11), B(25, 13), B(25, 17), B(22, 19), B(17, 19), B(13, 17), B(9, 19), B(5, 19), B(2, 15), B(6, 12), B(11, 10), B(16, 12)], bumps: 3, loot: 'bkt-snack', speed: 180, label: 'Chase the macaque round Hindhede Quarry and bump him three times (Space dashes)', cp: true },
+      { t: 'talk', lines: [['hero', 'Got it. And he’d already torn out a page: the one for 1937.', 'cross'], ['lotong', 'Then Kow knows what you know: a crate to the herbarium, a parcel at the summit. The herbarium is in the Botanic Gardens. Dr Merbah keeps it.', 'worried']] },
+    ] },
+  { id: 'm110', ch: 14, title: 'Specimen Sheets', giver: 'merbah', at: 'merbah', reward: 1230, rep: 30, blurb: 'Somebody broke into the old herbarium in the Botanic Gardens and threw the 1937 specimen sheets out of the window. Gather them off the lawns before the sprinklers come on.',
+    steps: [
+      { t: 'talk', lines: [['merbah', 'Dr Merbah, herbarium. Forgive the feathers, I am a straw-headed bulbul and I am very, very cross.', 'cross'], ['merbah', 'Hand prints on the cabinet, and the whole 1937 drawer out of the window. Every sheet is on the lawn, and the sprinklers come on at ten.', 'worried']] },
+      { t: 'collect', items: [B(31, 12), B(38, 14), B(35, 17), B(30, 16), B(39, 25)], item: 'bkt-specimen', time: 80, label: 'Pick up the five specimen sheets blowing round the Gardens’ lawns (E at each) before the sprinklers come on', cp: true },
+      { t: 'talk', lines: [['merbah', 'All five. And look: number fourteen. A pressed orchid. “From the reef island, no name. A living plant sent to the Orchid Garden.”', 'happy'], ['merbah', 'An orchid nobody has ever found anywhere else. If it still lives, it has a tag. Old tags carry where the plant was found.', 'calm'], ['hero', 'A second bearing, in a flower pot.', 'worried']] },
+    ] },
+  { id: 'm111', ch: 14, title: 'Swan Lake', giver: 'merbah', at: 'merbah', reward: 1240, rep: 30, blurb: 'Pip has been seen at the bandstand, and Dr Merbah says he is carrying a black feather. Follow him round Swan Lake to whoever he is meeting, without him seeing you.',
+    steps: [
+      { t: 'talk', lines: [['merbah', 'The crow child is at the bandstand, pretending to listen to the band. Nobody pretends to listen to the band.', 'cross'], ['mate', 'He’s meeting someone. Follow him, and don’t be seen.', 'calm']] },
+      { t: 'goto', at: 'bandstand', label: 'Stroll over to the bandstand', ride: 'foot', cp: true },
+      { t: 'tail', from: B(32, 18), route: [B(35, 18), B(38, 21), B(39, 24), B(39, 26), B(33, 27), B(31, 25)], calm: 0.6, label: 'Follow Pip round Swan Lake without being seen (keep back, stop when he looks round)', cp: true },
+      { t: 'talk', lines: [['sutera', 'Kow, darling. The orchid. Tomorrow night, while you keep the chinchillas busy on the hill.', 'happy'], ['kow', 'Busy we can do. Bananas first.', 'happy'], ['sutera', 'Bananas after. I never pay in advance.', 'calm'], ['hero', 'Tomorrow night: the hill and the Orchid Garden, both at once.', 'cross']] },
+    ] },
+  { id: 'm112', ch: 14, title: 'Banana Trap', giver: 'lotong', at: 'lotong', reward: 1250, rep: 30, blurb: 'The Bukit Bunch raid the bins at Dairy Farm every evening on their way up the hill. Lay nets on their path and catch two of Kow’s nephews before tomorrow night.',
+    steps: [
+      { t: 'talk', lines: [['lotong', 'Fewer monkeys on the hill tomorrow means fewer to chase. They come down the Rail Corridor to the Dairy Farm bins every evening.', 'calm'], ['lotong', 'A bunch of bananas by the shed. NOT for feeding. For looking at. Then a net under them, and off to the vet for a check-up.', 'happy']] },
+      { t: 'goto', at: 'dairy', label: 'Go to the old Dairy Farm shed by the Rail Corridor', ride: 'foot', cp: true },
+      { t: 'trap', spots: [B(16, 6), B(13, 6), B(10, 6), B(7, 5)], need: 3, bait: B(5, 5), wait: B(12, 1), path: [B(22, 6), B(16, 6), B(13, 6), B(10, 6), B(6, 5)], gang: 'mac', n: 3, catch: 2, label: 'Lay three nets on the macaques’ path to the Dairy Farm shed (E)', cp: true },
+      { t: 'talk', lines: [['lotong', 'Two in the nets and one gone squealing up the hill to tell Kow. Good. Let him worry.', 'happy']] },
+    ] },
+  { id: 'm113', ch: 14, title: 'Night Climb', giver: 'lotong', at: 'lotong', reward: 1260, rep: 30, mods: ['night'], blurb: 'Torches are moving on the summit after dark. Climb Bukit Timah Hill at night, in a hurry, and see what Big Kow’s gang are digging for at the trig pillar.',
+    steps: [
+      { t: 'talk', lines: [['lotong', 'Torches on the summit. At night the trail is steeper, I swear it. Rest at the shelters or you will never make the top.', 'worried'], ['hero', 'Walk, rest, walk. Then run the last bit.', 'calm']] },
+      { t: 'goto', at: 'trailhead', label: 'Go to the trailhead', ride: 'foot', cp: true },
+      { t: 'summit', route: [B(12, 15), B(8, 16), B(4, 17), B(3, 20), B(7, 21), B(11, 22), B(14, 24), B(10, 26), B(5, 26), B(3, 24)], pace: 1.5, time: 75, label: 'Climb the summit trail in the dark, marker to marker (Shift walks; rest under a shelter)', cp: true },
+      { t: 'talk', lines: [['hero', 'A hole by the trig pillar, and an old tin box in it. Empty. Whatever was “to be called for at the summit” has been called for.', 'cross'], ['kow', 'Not by us, chinchilla. Box was empty when we dug. The lady in black is not happy. Neither am I. No bananas.', 'cross'], ['mate', 'Somebody got here before Madam Sutera. Before anyone. In 1937.', 'worried']] },
+    ] },
+  { id: 'm114', ch: 14, title: 'Rail Corridor', giver: 'tenggiling', at: 'tenggiling', reward: 1270, rep: 30, blurb: 'Pak Tenggiling found the old parcel slip: “called for by the Gardens”. Pip has seen it too. Race him along the Rail Corridor on a bike, over the truss bridge, to the Botanic Gardens gate.',
+    steps: [
+      { t: 'talk', lines: [['tenggiling', 'Here. The slip. “Summit parcel called for, 1937, by the Gardens. Signed, Orchid Garden.” And that crow was reading it over my shoulder!', 'cross'], ['mate', 'Bikes by the corridor. He’s on a scooter. Rail beats road.', 'smug']] },
+      { t: 'ride', kind: 'bike', near: 'corridor', label: 'Take a bike at the Rail Corridor (E)', cp: true },
+      { t: 'race', ride: 'bike', rival: 'scooter', pace: 0.82, time: 75, marks: [B(14, 4), B(22, 4), B(27, 4), B(34, 4), B(39, 4), B(28, 6), B(28, 13), B(28, 18), B(36, 19)], label: 'Race Pip along the Rail Corridor, under the truss bridge to the end, then down to the Gardens gate', cp: true },
+      { t: 'talk', lines: [['hero', 'First to the gate! And the Orchid Garden’s book says it: “Summit parcel received, 1937. One orchid, potted, tagged, in the cool house.”', 'happy'], ['pip', 'Doesn’t matter! Madam goes in tonight, and the monkeys keep you up the hill!', 'smug']] },
+    ] },
+  { id: 'm115', ch: 14, title: 'Second Bearing', giver: 'merbah', at: 'merbah', reward: 1850, rep: 31, mods: ['night'], blurb: 'Tonight Big Kow’s whole gang is on the summit to keep you busy, while Madam Sutera goes for the 1937 orchid and its tag. Hold the summit, then get down to the Orchid Garden.',
+    steps: [
+      { t: 'talk', lines: [['merbah', 'Torches on the hill, and the cool house dark. She wants you up there, so you are not down here.', 'worried'], ['hero', 'Then we go up fast, and come down faster.', 'cross']] },
+      { t: 'goto', at: 'bt-summit', label: 'Get up to the summit (the trail, or straight up the hill)', ride: 'foot', cp: true },
+      { t: 'defend', at: 'bt-summit', time: 50, waves: 2, per: 3, gang: 'mac', what: 'Trig pillar', label: 'Hold the trig pillar: knock Kow’s gang back before they pull the brass plate off ({mate} helps on their own)', cp: true },
+      { t: 'talk', lines: [['kow', 'Enough! Enough. Hoo. You win the hill. You were always meant to.', 'cross'], ['kow', 'We were the busy bit, chinchilla. The lady is in the Orchid Garden. Has been for ten minutes.', 'happy']] },
+      { t: 'goto', at: 'orchid', time: 60, label: 'Run down the hill and across to the Orchid Garden', cp: true },
+      { t: 'talk', lines: [['merbah', 'The cool house. Shelf fourteen. The pot is here, the label is here… and the orchid is gone.', 'worried'], ['hero', 'One black feather in the pot. And the old tag’s string, cut.', 'cross'], ['mate', 'Look, the phone. Pak Camar: “A black junk with no lights just passed my rock, sailing south. One-eight-one.”', 'worried'], ['hero', 'She has both bearings now. But a tag can be read by more than one bird. Dr Merbah: who potted that orchid in 1937?', 'calm'], ['merbah', 'Who… I would have to look in the old books. It will take a little while. Come back tomorrow.', 'calm']] },
     ] },
 ]);
 // ── Hawker Tales: the Singapore side jobs. They sit outside the five chapters (ch 0), open once their story job is
@@ -1582,6 +1668,24 @@ export const SIDE: Mission[] = mvMissions([
       { t: 'goto', at: 'lazarus', label: 'Go over the causeway to Lazarus Island', ride: 'foot', cp: true },
       { t: 'race', ride: 'foot', rival: 'runner', skin: 'crab', pace: 0.8, time: 80, marks: [I(34, 8), I(34, 16), I(34, 11), I(38, 7), I(41, 10), I(41, 16)], label: 'Beat the hermit crab round Lazarus: down the west beach and back, over the top, down the east beach', cp: true },
       { t: 'talk', lines: [['lumba', 'He says it was the shell. It is always the shell.', 'happy']] },
+    ] },  // the twenty-second pass: Bukit Timah's townsfolk
+  { id: 'k42', side: 'm110', ch: 0, title: 'Orchid Rounds', giver: 'merbah', at: 'bandstand', reward: 330, rep: 12, blurb: 'Sunday concert at the bandstand, and Dr Merbah wants an orchid in a pot on every corner of the lawn before the band starts.',
+    steps: [
+      { t: 'talk', lines: [['merbah', 'A concert without orchids? In the Botanic Gardens? Never. Four pots, four corners. The band starts at five.', 'cross'], ['mate', 'Orchids, on time, round a bandstand. The calmest job we’ve had all year.', 'happy']] },
+      { t: 'rounds', act: 'serve', item: 'bkt-orchid-urn', what: 'orchid pot', drops: [B(30, 14), B(34, 18), B(38, 16), B(39, 24)], time: 70, label: 'Set an orchid pot down at each glowing ring round the bandstand lawn (E at each)', cp: true },
+      { t: 'talk', lines: [['merbah', 'Perfect. And here comes the band. Stay, listen. Nobody pretends to listen to this band. They are wonderful.', 'happy']] },
+    ] },
+  { id: 'k43', side: 'm107', ch: 0, title: 'Hill Run', giver: 'lotong', at: 'trailhead', reward: 330, rep: 12, blurb: 'Puan Lotong times the rangers up the summit trail every month. Beat the clock to the top without getting so winded you have to stop.',
+    steps: [
+      { t: 'talk', lines: [['lotong', 'Ranger time trial. Top of the hill before the clock runs out. Run the flat bits, walk the steep bits. Get winded and the clock keeps going.', 'calm'], ['hero', 'Breath on the meter, eyes on the markers.', 'calm']] },
+      { t: 'summit', route: [B(12, 15), B(8, 16), B(4, 17), B(3, 20), B(7, 21), B(11, 22), B(14, 24), B(10, 26), B(5, 26), B(3, 24)], time: 60, label: 'Run the summit trail against the clock, marker to marker (Shift walks when your breath is low)', cp: true },
+      { t: 'talk', lines: [['lotong', 'Not bad. Not ranger fast. But not bad. Water bottle? Here.', 'happy']] },
+    ] },
+  { id: 'k44', side: 'm109', ch: 0, title: 'Snack Bag Scramble', giver: 'kow', at: 'quarry', reward: 340, rep: 12, blurb: 'Big Kow’s smallest nephew has run off with Kow’s own snack bag, and Kow is too dignified to chase him. Catch the little one round Hindhede Quarry.',
+    steps: [
+      { t: 'talk', lines: [['kow', 'Chinchilla. A favour. My smallest nephew took my crisps. MY crisps. A boss does not run after crisps.', 'cross'], ['mate', 'A boss hires chinchillas to run after crisps.', 'smug'], ['kow', 'Exactly. Go.', 'calm']] },
+      { t: 'chase', who: 'runner', skin: 'mac', name: 'the little macaque', from: B(21, 18), route: [B(25, 18), B(25, 12), B(17, 12), B(16, 16), B(17, 19), B(24, 19), B(25, 15), B(21, 11), B(16, 12), B(22, 19)], bumps: 2, loot: 'bkt-snack', speed: 165, label: 'Chase Kow’s little nephew round Hindhede Quarry and bump him twice (Space dashes)', cp: true },
+      { t: 'talk', lines: [['kow', 'My crisps. Half of them. Hoo. Fine. You are not so bad, for chinchillas.', 'happy']] },
     ] },
 ]);
 export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id, m])) as Record<string, Mission>;

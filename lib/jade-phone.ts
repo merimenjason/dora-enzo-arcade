@@ -10,7 +10,7 @@ import type { Msg } from './jade-save.js';
 import { gigBoards } from './jade-gigs.js';
 import { GIG20_DEFS } from './jade-gigs20.js';
 
-export const CONTACT_OF: Record<District, string> = { market: 'kee', temple: 'pang', canal: 'kiri', docks: 'bo', arcade: 'gizmo', heartland: 'kamal', bay: 'vanda', india: 'raju', glam: 'kancil', resort: 'duyung', orchard: 'tiara', katong: 'rosie', changi: 'ubin', tiong: 'seng', quay: 'melati', jurong: 'musang', pulau: 'ayu', kallang: 'tenuk', mandai: 'kongkang', islands: 'lumba' };
+export const CONTACT_OF: Record<District, string> = { market: 'kee', temple: 'pang', canal: 'kiri', docks: 'bo', arcade: 'gizmo', heartland: 'kamal', bay: 'vanda', india: 'raju', glam: 'kancil', resort: 'duyung', orchard: 'tiara', katong: 'rosie', changi: 'ubin', tiong: 'seng', quay: 'melati', jurong: 'musang', pulau: 'ayu', kallang: 'tenuk', mandai: 'kongkang', islands: 'lumba', bukit: 'lotong' };
 export function text(w: World, from: string, msg: string, o: { kind?: Msg['kind']; job?: string; gig?: string } = {}) {
   const s = w.s; const id = (s.msgs[s.msgs.length - 1]?.id ?? 0) + 1;
   s.msgs.push({ id, from, text: msg, night: s.night, read: false, ...o });
