@@ -123,6 +123,10 @@ J['props26b'] = (L, SREF + ['props1.png', 'props21.png', 'props25b.png'], STYLE 
   "a dab of red sambal chilli; (6) a WEDDING BERKAT gift: a little woven basket with a red-dyed egg on a gold paper flower, wrapped "
   "in clear cellophane with a gold ribbon; (7) an old SURVEYOR'S FIELD BOOK: a small worn brown leather notebook tied with a cord, "
   "closed, blank cover; (8) a long glossy black KOEL tail FEATHER. No text anywhere. " + MAG)
+J['props26d'] = (SQ, SREF + ['props1.png', 'props21.png', 'props25b.png'], STYLE + SG + BSH + PROP + "ONE item, centred, "
+  "filling about half the image: a KOPI IN A BAG, the coffee-shop takeaway of Singapore: a small CLEAR PLASTIC BAG full of milky "
+  "brown kopi and a few ice cubes, a pink straw poking out of the knot at the top, tied with a loop of red RAFFIA STRING for a "
+  "handle, a few beads of condensation on the plastic. One connected object. No text anywhere. " + MAG)
 J['props26c'] = (L, SREF + ['props1.png', 'props25c.png', 'traffic.png'], STYLE + SG + BSH + "A 2 by 1 grid of two separate large "
   "items, each centred in its own half of the image and filling most of it. (1) LEFT half: a BISHAN PARK FOOTBRIDGE over the river "
   "seen from DIRECTLY ABOVE (strict bird's-eye top-down view, like a map): a straight timber footbridge running straight UP and DOWN "

@@ -69,8 +69,9 @@ test('one of each, parked in the right district beside what it belongs to, after
   // (and the twenty-first pass's island rides after those: a kayak and a bike)
   // (and the twenty-second pass's Bukit Timah rides after those: bikes on the Rail Corridor, a scooter at Beauty World;
   // then the twenty-fourth pass's Kranji rides: bikes and a scooter; then the twenty-fifth pass's Punggol rides: bikes
-  // and a kayak)
-  const PG = c.punggol.park.length; assert.deepEqual(c.parking.slice(-PG).map(p => p.d), c.punggol.park.map(() => 'punggol'));
+  // and a kayak; then the twenty-sixth pass's Bishan rides)
+  const BS = c.bishan.park.length; assert.deepEqual(c.parking.slice(-BS).map(p => p.d), c.bishan.park.map(() => 'bishan'));
+  const PG = c.punggol.park.length + BS; assert.deepEqual(c.parking.slice(-PG, -BS).map(p => p.d), c.punggol.park.map(() => 'punggol'));
   const KR = c.kranji.park.length + PG; assert.deepEqual(c.parking.slice(-KR, -PG).map(p => p.d), c.kranji.park.map(() => 'kranji'));
   const BK = c.bukit.park.length + KR; assert.deepEqual(c.parking.slice(-BK, -KR).map(p => p.d), c.bukit.park.map(() => 'bukit'));
   const IS = c.islands.park.length + BK; assert.deepEqual(c.parking.slice(-IS, -BK).map(p => p.d), c.islands.park.map(() => 'islands'));

@@ -137,6 +137,8 @@ PA = {'bs-koelcamp': 120, 'bs-birdpole': 60, 'bs-raintree': 104, 'bs-chess': 72,
 each('atlas-bishan', 'props26a', list(PA), 3, 2, PA, fix=unspill_mag)
 PB = {'bs-stonehi': 62, 'bs-stonelo': 62, 'bs-survey': 34, 'bs-cage': 36, 'bs-mee': 40, 'bs-berkat': 36, 'bs-book': 36, 'bs-feather': 36}
 each('atlas-bishan', 'props26b', list(PB), 4, 2, PB)
+# the kopi in a bag the Ang Mo Kio kopi round carries (a sheet of its own)
+each('atlas-bishan', 'props26d', ['bs-kopi'], 1, 1, {'bs-kopi': 32})
 # the footbridge (top-down, a ground layer, 140 long: measured by height, it runs up the sheet) and the old stone bridge
 each('atlas-bishan', 'props26c', [None, 'bs-oldbridge'], 2, 1, {'bs-oldbridge': 120})
 _fb = cells('props26c', 2, 1)[0]; put('atlas-bishan', 'bs-footbridge', scaled(_fb, 140 * PX / _fb.shape[0]))

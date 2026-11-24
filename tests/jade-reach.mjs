@@ -88,8 +88,8 @@ for (const done of stages) {
     if (!ps.length) { for (let y = 0; y < H && !ps.length; y += 2) for (let x = 0; x < W; x += 2) if (districtAt(x, y) === d && passable(c, 'foot', x, y)) { ps.push([x * T + T / 2, y * T + T / 2]); break; } }
     // (Pulau Ubin is an island: walked from the bumboat's jetty, which the bumboat reaches from Changi Point)
     // (and the Southern Islands from St John's jetty, which the island ferry reaches from Marina South Pier)
-    // (and Punggol and Coney Island from Punggol station, which the MRT reaches)
-    const from = d === 'pulau' ? [c.places['jetty-ubin'].x, c.places['jetty-ubin'].y] : d === 'islands' ? [c.places['isl-jetty'].x, c.places['isl-jetty'].y] : d === 'punggol' ? [c.places['stn-punggol'].x, c.places['stn-punggol'].y] : start;
+    // (and Punggol and Coney Island from Punggol station, which the MRT reaches; Bishan and Ang Mo Kio from Bishan station)
+    const from = d === 'pulau' ? [c.places['jetty-ubin'].x, c.places['jetty-ubin'].y] : d === 'islands' ? [c.places['isl-jetty'].x, c.places['isl-jetty'].y] : d === 'punggol' ? [c.places['stn-punggol'].x, c.places['stn-punggol'].y] : d === 'bishan' ? [c.places['stn-bishan'].x, c.places['stn-bishan'].y] : start;
     for (const p of ps) assert.ok(reach('foot', from, p, open, okey), `${d} (${tile(p[0])},${tile(p[1])}) on foot from the market, with ${okey} open`);
     pairs++;
   }

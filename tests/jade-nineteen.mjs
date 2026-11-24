@@ -66,7 +66,7 @@ test('Mandai: its own district, opened by chapter 11’s finale, with real place
     assert.match(names, new RegExp(real), real);
   const safe = SAFE_HOUSES.find(h => h.d === 'mandai'); assert.ok(safe && c.places[safe.id] && inMandai(c.places[safe.id].x, c.places[safe.id].y), 'a safe house');
   const stn = (c.isle?.stations ?? []).find(st => st.id === 'stn-mandai'); assert.ok(stn && inMandai(stn.x, stn.y), 'Mandai Lake Road station');
-  assert.equal(c.isle.stations.find(st => !['stn-beauty', 'stn-botanic', 'stn-kranji', 'stn-woodlands', 'stn-punggol'].includes(st.id)).id, 'stn-mandai', 'first on the line'); // (after the twenty-fifth pass's Punggol, the twenty-fourth's Kranji and Woodlands and the twenty-second's two Bukit Timah stations)
+  assert.equal(c.isle.stations.find(st => !['stn-beauty', 'stn-botanic', 'stn-kranji', 'stn-woodlands', 'stn-punggol', 'stn-bishan', 'stn-angmokio'].includes(st.id)).id, 'stn-mandai', 'first on the line'); // (after the twenty-sixth pass's Bishan and Ang Mo Kio, the twenty-fifth's Punggol, the twenty-fourth's Kranji and Woodlands and the twenty-second's two Bukit Timah stations)
   const props = BIZ.filter(b => b.d === 'mandai'); assert.equal(props.length, 3, 'three properties');
   for (const b of props) assert.ok(PEOPLE[b.keeper], `${b.id} kept by a Mandai giver`);
   for (const k of ['boat', 'bike', 'scooter']) assert.ok(c.parking.some(p => p.d === 'mandai' && p.kind === k), `a ${k} in Mandai`);

@@ -96,9 +96,9 @@ export const PROPS: PropDef[] = [
   P('coneykiosk', 'Coney Island Drinks Kiosk', 'bubut', 'punggol', [163, 134], 1100, 0.9, 13, 'food'),
   P('kayakhire', 'Waterway Kayak Hire', 'berang', 'punggol', [158, 152], 2000, 0.8, 15, 'kayak'),
   // the twenty-sixth pass: Bishan and Ang Mo Kio
-  P('hokkienmee', 'Auntie Puyuh’s Hokkien Mee', 'puyuh', 'bishan', [199, 135], 1800, 1.0, 14, 'food'),
+  P('hokkienmee', 'Auntie Puyuh’s Hokkien Mee', 'puyuh', 'bishan', [199, 136], 1800, 1.0, 14, 'food'),
   P('birdkopi', 'Kebun Baru Bird-Singing Kopi', 'merbok', 'bishan', [226, 136], 1200, 0.9, 13, 'food'),
-  P('parkhire', 'Bishan Park Bike Hire', 'kura', 'bishan', [221, 155], 2000, 0.8, 15, 'shop'),
+  P('parkhire', 'Bishan Park Bike Hire', 'kura', 'bishan', [221, 154], 2000, 0.8, 15, 'shop'),
 ];
 /** the first eleven, kept as they were placed, with the kind of trade each is */
 export const STALL_KIND: Record<string, PropKind> = { noodle: 'food', cake: 'food', tea: 'food', fan: 'shop', jade: 'shop', claw: 'shop', ckt: 'food', chicken: 'food', satay: 'food', laksa: 'food', kopi: 'food' };
