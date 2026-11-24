@@ -45,7 +45,7 @@ const near = (w, kind, id) => w.near && w.near.kind === kind && (id === undefine
 function act(w, x, y, id) { w.placePlayer(x, y); w.p.act = null; w.step(NO_INPUT, DT); assert.ok(near(w, 'south', id), `prompt for ${id}: ${JSON.stringify(w.near)}`); w.interact(); }
 
 test('the map grows west over land: Jurong, Tiong Bahru and Clarke Quay, with their own ground, river and lake', () => {
-  assert.deepEqual(DISTRICTS.slice(13, 16), SOUTH); assert.equal(DISTRICTS.length, 23);
+  assert.deepEqual(DISTRICTS.slice(13, 16), SOUTH); assert.equal(DISTRICTS.length, 24); // (Bishan and Ang Mo Kio, the twenty-sixth pass, the twenty-fourth)
   assert.equal(districtAt(...mvT(210, 110)), 'jurong'); assert.equal(districtAt(...mvT(260, 110)), 'tiong'); assert.equal(districtAt(...mvT(310, 110)), 'quay');
   assert.equal(districtAt(...mvT(80, 110)), 'resort', 'Sentosa is still Sentosa'); assert.equal(districtAt(...mvT(332, 94)), 'resort', 'the sea off Changi keeps its district (the bumboat race)'); assert.equal(districtAt(...mvT(340, 110)), 'pulau', 'Pulau Ubin (the seventeenth pass) south of it');
   assert.equal(DISTRICT_NAME.tiong, 'Tiong Bahru'); assert.equal(DISTRICT_NAME.quay, 'Clarke Quay'); assert.equal(DISTRICT_NAME.jurong, 'Jurong');
@@ -88,7 +88,7 @@ test('each district has a market, a safe house, a station, a giver, folk, a keep
 });
 
 test('the MRT runs on: Jurong East, Tiong Bahru and Clarke Quay head the line, and a far pin plans a ride there', () => {
-  const st = c.isle.stations; assert.deepEqual(st.filter(s => s.id !== 'stn-punggol').slice(4, 10).map(s => s.id), ['stn-mandai', 'stn-stadium', 'stn-jurong', 'stn-tiong', 'stn-quay', 'stn-changi']);
+  const st = c.isle.stations; assert.deepEqual(st.filter(s => !['stn-punggol', 'stn-bishan', 'stn-angmokio'].includes(s.id)).slice(4, 10).map(s => s.id), ['stn-mandai', 'stn-stadium', 'stn-jurong', 'stn-tiong', 'stn-quay', 'stn-changi']);
   for (let i = 1; i < st.length; i++) assert.ok(st[i].s > st[i - 1].s, 'stations in line order');
   const w = world(); assert.equal(stationById(w, 'stn-quay').name, 'Clarke Quay station'); const kt = c.places['safe-katong']; w.placePlayer(kt.x, kt.y + T);
   const g = c.places.garden; const plan = travelPlan(w, g.x, g.y);

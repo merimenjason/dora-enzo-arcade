@@ -75,7 +75,7 @@ test('real names on the new streets and landmarks; the district opens with the s
 });
 
 test('the MRT runs on: Changi Airport, Katong Park and Orchard at the top of the line', () => {
-  const isle = c.isle; assert.deepEqual(isle.stations.filter(s => s.id !== 'stn-punggol').slice(9, 12).map(s => s.id), ['stn-changi', 'stn-katong', 'stn-orchard']); // (after Kranji and Woodlands, the twenty-fourth pass, and Bukit Timah, the twenty-second) // (Punggol, the twenty-fifth pass, comes first)
+  const isle = c.isle; assert.deepEqual(isle.stations.filter(s => !['stn-punggol', 'stn-bishan', 'stn-angmokio'].includes(s.id)).slice(9, 12).map(s => s.id), ['stn-changi', 'stn-katong', 'stn-orchard']); // (after Kranji and Woodlands, the twenty-fourth pass, and Bukit Timah, the twenty-second) // (Punggol, the twenty-fifth pass, and Bishan and Ang Mo Kio, the twenty-sixth, come first)
   for (let i = 1; i < isle.stations.length; i++) assert.ok(isle.stations[i].s > isle.stations[i - 1].s, 'stations in order along the line');
 });
 
@@ -110,7 +110,7 @@ test('the empire reaches the coast: a property or two in each new district, raid
 
 test('the hired bikes: parked by the racks, quiet, quicker on the cycling track; riding one has its own frames', () => {
   assert.equal(VEHICLES.bike.seats, 1); assert.equal(VEHICLES.bike.cls, 'small');
-  const bikes = c.parking.filter(p => p.kind === 'bike'); assert.equal(bikes.length, c.far.bikes.length + c.parking.filter(p => p.kind === 'bike' && (p.d === 'pulau' || p.d === 'kallang' || p.d === 'mandai' || p.d === 'bukit' || p.d === 'kranji' || p.d === 'punggol')).length);
+  const bikes = c.parking.filter(p => p.kind === 'bike'); assert.equal(bikes.length, c.far.bikes.length + c.parking.filter(p => p.kind === 'bike' && (p.d === 'pulau' || p.d === 'kallang' || p.d === 'mandai' || p.d === 'bukit' || p.d === 'kranji' || p.d === 'punggol' || p.d === 'bishan')).length);
   for (const b of bikes) assert.equal(districtAt(...tile(b.x, b.y)), b.d);
   for (const h of ['dora', 'enzo']) for (const f of ['ride-bike-0', 'ride-bike-1', 'laksa-0', 'bauble-0', 'kite-0', 'plane-0', 'suitcase-0']) assert.ok(FRAMES[`${h}-${f}`], `${h}-${f}`);
   const w = world(); const r = w.rides.find(r => r.kind === 'bike'); assert.ok(r);
