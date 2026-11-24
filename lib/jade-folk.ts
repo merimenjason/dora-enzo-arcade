@@ -51,7 +51,10 @@ export const KRANJI_FOLK = ['egret', 'egret', 'frog', 'duck', 'robin', 'rabbit',
 /** (the twenty-fifth pass) Punggol after dark: egrets and herons by the Waterway, a hornbill pair, families out on the
  *  boardwalk, a robin or two */
 export const PUNGGOL_FOLK = ['egret', 'egret', 'hornbill', 'hornbill', 'duck', 'robin', 'robin', 'boxturtle', 'goose'];
-const folkAt = (tx: number, ty: number) => { const d = districtAt(tx, ty); return d === 'kranji' ? KRANJI_FOLK : d === 'punggol' ? PUNGGOL_FOLK : d === 'islands' ? ISLANDS_FOLK : d === 'mandai' ? MANDAI_FOLK : d === 'kallang' ? KALLANG_FOLK : d === 'pulau' ? UBIN_FOLK : d === 'india' || d === 'glam' || d === 'resort' ? EAST_FOLK[d] : d === 'orchard' || d === 'katong' || d === 'changi' ? FAR_FOLK[d] : d === 'tiong' || d === 'quay' || d === 'jurong' ? SOUTH_FOLK[d] : (unmvT(tx, ty)?.[0] ?? OW) >= OW ? ISLE_FOLK : FOLK; };
+/** (the twenty-sixth pass) Bishan and Ang Mo Kio after dark: heartland aunties and uncles out walking, joggers by the river,
+ *  a heron off the bend, a robin or two */
+export const BISHAN_FOLK = ['rabbit', 'rabbit', 'goose', 'cat', 'tabby', 'egret', 'robin', 'hedgehog', 'dog'];
+const folkAt = (tx: number, ty: number) => { const d = districtAt(tx, ty); return d === 'bishan' ? BISHAN_FOLK : d === 'kranji' ? KRANJI_FOLK : d === 'punggol' ? PUNGGOL_FOLK : d === 'islands' ? ISLANDS_FOLK : d === 'mandai' ? MANDAI_FOLK : d === 'kallang' ? KALLANG_FOLK : d === 'pulau' ? UBIN_FOLK : d === 'india' || d === 'glam' || d === 'resort' ? EAST_FOLK[d] : d === 'orchard' || d === 'katong' || d === 'changi' ? FAR_FOLK[d] : d === 'tiong' || d === 'quay' || d === 'jurong' ? SOUTH_FOLK[d] : (unmvT(tx, ty)?.[0] ?? OW) >= OW ? ISLE_FOLK : FOLK; };
 export type Ped = {
   id: number; sp: string; x: number; y: number; h: number; tx: number; ty: number; hop: number; hx: number; hy: number; scare: number; wait: number; walk: number;
   dest: number; sit: number; roadT: number; watch: boolean;

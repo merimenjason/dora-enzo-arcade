@@ -30,7 +30,7 @@ const world = (s, seed = 9) => { const w = new World(s, seed); w.quiet = true; r
 const idle = (w, sec) => { for (let i = 0; i < sec * 60; i++) w.step(NO_INPUT, DT); };
 
 test('forty-four properties in every district: on clear pavement, reachable on foot, apart, and painted at four levels', () => {
-  assert.equal(BIZ.length, 59); assert.equal(PROPS.length, 48);
+  assert.equal(BIZ.length, 62); assert.equal(PROPS.length, 48);
   const ids = new Set(BIZ.map(b => b.id)); assert.equal(ids.size, BIZ.length, 'ids are unique');
   for (const d of ALL) assert.ok(BIZ.some(b => b.d === d), `a property in ${d}`);
   const sm = c.places['safe-market']; const f = field(c, 'foot', Math.floor(sm.x / T), Math.floor(sm.y / T), new Set(ALL));
@@ -59,7 +59,7 @@ test('buying, upgrading and takings: three levels, a till that fills through the
   const r = bizRate(s, 'kopitiam', [...w.open]).rate; assert.ok(r > BIZ_OF.kopitiam.income[3] * 0.8, 'level 3 takings');
   const rn = bizRate(s, 'kopitiam', [...w.open], { daily: w.event, festival: w.festival }).rate; accrue(w, 360); assert.ok(Math.abs(s.biz.kopitiam.bank - rn / 2) < 2, 'half a night, half the takings');
   closeNight(s); assert.equal(s.biz.kopitiam.hist.length, 1);
-  const L = ledger(w); assert.equal(L.mine, 1); assert.equal(L.all, 59); assert.ok(L.till > 0 && L.tonight > 0);
+  const L = ledger(w); assert.equal(L.mine, 1); assert.equal(L.all, 62); assert.ok(L.till > 0 && L.tonight > 0);
   assert.ok(w.collectBiz('kopitiam') >= Math.floor(rn / 2) - 1);
   // reputation gates the sale; fog gates the district
   const s2 = rich(6, { rep: 0 }); const w2 = world(s2); assert.match(w2.buyBiz('taxi') ?? '', /reputation/);

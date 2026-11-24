@@ -244,6 +244,59 @@ A ticket pops up with the offence, the amount and the warden's quip; E pays it (
 
 **Not built.** Curvier roads: the roads are the traffic lanes, lights, gantries and every job route, and bending them would have meant re-checking all of that; they stay straight. The full island conversion (HDB heartlands, the bay front, the MRT, expressways) is the next pass.
 
+## Bishan, Ang Mo Kio and chapter seventeen (twenty-sixth pass)
+
+Toa Payoh grows north. After King Tide (m135), Mr Kamal texts from Toa Payoh: the trains run on north to Bishan and Ang
+Mo Kio. The new district, `bishan` ("Bishan and Ang Mo Kio", `lib/jade-bishan.ts`), is built in the build frame's extra
+rows (old columns 180-235, rows 128-159) and shown as a 56 × 30 block (`lib/jade-layout.ts` BSH, the built top and bottom
+rows are a blank margin). North to south, as on the real map:
+
+- **Ang Mo Kio**: the elevated MRT station, AMK Hub, the market and food centre (Ah Seng's hokkien mee), the void deck
+  with its stone chess table, Ang Mo Kio Town Garden and the Kebun Baru bird-singing corner (bird poles and cages).
+- **Bishan-Ang Mo Kio Park**: the naturalised Kallang River west to east, with a wide bend in the middle, two lines of
+  stepping stones across it, two footbridges, the old stone bridge, the survey stone, the park cafe, the grassy bank,
+  and the otters' holt. The Bishan Ten (smooth-coated otters) bound along the banks; a kingfisher sits on a reed.
+- **Bishan**: the North-South and Circle Line interchange, Junction 8, HDB blocks, a void-deck wedding with its pelamin,
+  and a flat for the safe house (`safe-bishan`).
+
+For now the block sits in the open sea east of Kallang (`REAL_AT.bishan = [360, 96]`, real columns 360-415, rows
+96-125, two sea columns from Kallang). No land joins it: Bishan and Ang Mo Kio stations are put first on the MRT line,
+no taxis go there and none drop off there. Its real place is directly north of Toa Payoh, which the geography pass
+gives it (Bishan's south row is a paved walk all along, ready to meet Toa Payoh's).
+
+**Chapter seventeen, "Red-Haired Man's Bridge"** (m136 to m145): every position on Sutera's 1937 chart was copied from
+the survey of George Thomson, the red-haired Government Surveyor the Hokkien called the ang mo, whose bridge on the
+Kallang River gave Ang Mo Kio its name, and whose survey stone stands beside it. Four new givers: Uncle Merbok of the
+Kebun Baru bird-singing club (a zebra dove), Auntie Puyuh the AMK hokkien mee hawker (a king quail), Dr Kura the park's
+river engineer (a river terrapin) and Mak Andam Kijang the void-deck wedding dresser (a barking deer). Opponents: Ah
+Wei's Koel Boys (Asian koels), a crew for hire, on watch in the case, tail and chase jobs; Sutera's crows come for the
+survey stone in m145. m136 starts in Toa Payoh and rides the MRT north. The chapter ends on a hook (Pak Camar: the black junk has
+turned east towards Pedra Branca and Horsburgh Light), not an ending.
+
+**The new step, `stones`** (`lib/jade-stones.ts`): hop the stepping stones across the river. Stand by the stone you are
+on and press E to hop to the next. Each stone is high (mossy, always dry) or low (flat and wet), as painted. The river
+surges on a clock that the HUD and the River meter show: Calm, then Rising, then Surge, when the low stones are under.
+Be on a low stone when the surge comes, or land on one while it is under, and you are swept back to the last high
+stone (3 s lost, never the job). So wait on the high stones and cross each low one inside a calm.
+
+| | Cycle | Warning | Surge |
+|---|---|---|---|
+| Assist | 6.6 s | 2.2 s | 1.4 s |
+| Normal | 5.2 s | 1.6 s | 1.4 s |
+| Hard | 4.6 s | 1.3 s | 1.4 s |
+
+A step's `surge` scales the cycle (m144's crossing runs at 0.85). Only the hero you control hops: the partner waits
+on the bank. The hero has their own poses: the leap, a wobbling landing and swept off.
+
+**Hawker Tales**: k59 River Samples (hop the east stones and run Dr Kura's sample book back to her), k60 Wet Hokkien Mee
+(carry Auntie Puyuh's mee down through the park to the wedding without spilling) and k61 First New Town (photograph the
+dragon playground, the town centre, the void deck and the HDB Hub for Mr Kamal). **Side gig**: Kopi for the uncles
+(`amk-kopi`), a round of kopi bags. **Out of a job**: play blitz chess with the
+void-deck uncles (E at the chess table, its own two poses; the games go round a list, some won, some lost) and slide down
+the park's grassy bank on a flattened carton (E at the top, its own pose). Each counts towards a trophy. Five new trophies:
+Red-Haired Man's Bridge, Dry Feet, Void Deck Champion, Carton Slider and First New Town. Art: `scripts/jade-art26.py` packs four atlases; the
+district's two stream with the `bishan` zone, the heroes' new poses and three map icons are in the job tier.
+
 ## Pulau Ubin and chapter ten (seventeenth pass)
 
 **The island.** `lib/jade-ubin.ts` builds Pulau Ubin in the old frame's open sea south of Changi (old columns 332 to 367, rows 96 to 125), after the rest of the city, so no earlier random draw moves. In the real layout it is its own block, `pulau`, at real columns 476 to 511 and rows 60 to 89 (`lib/jade-layout.ts`); its zone is `ubin`. The roads are dirt tracks with their real names (Jalan Ubin, Jalan Endut Senin, Jalan Mamam, Jalan Sam Kongsi); the Chek Jawa boardwalk runs over the flats on the east side, with Jejawi Tower on it (place `jejawi`; Changi already had a `tower`). The parked rides (three rental bikes, the tandem and a boat on Ketam Quarry) are kept on `c.ubin.park` and appended to the city's parking after every older ride, so older rides keep their ids and seeded paint. Wildlife townsfolk (`UBIN_FOLK` in `lib/jade-folk.ts`) walk the whole island, which is park. A taxi will not come (`cantHail`), and drop-offs skip the island.

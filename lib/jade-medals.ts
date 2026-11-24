@@ -38,6 +38,8 @@ export const PAR: Record<string, number> = {
   // King Tide (chapter sixteen, the twenty-fifth pass) and its Hawker Tales: 2.5 times the slower of the casual and normal
   // solvers (they walk the cattle home at a person's pace), at least a minute; m126 includes the MRT ride out
   m126: 120, m127: 100, m128: 105, m129: 60, m130: 65, m131: 65, m132: 95, m133: 95, m134: 60, m135: 160, k56: 100, k57: 105, k58: 115,
+  // the twenty-sixth pass (Bishan and Ang Mo Kio): 1.7 times the scripted solver's time, as above
+  m136: 50, m137: 30, m138: 55, m139: 30, m140: 65, m141: 30, m142: 50, m143: 40, m144: 35, m145: 100, k59: 45, k60: 50, k61: 45,
 };
 export const MEDAL_NAME = ['Finished', 'Bronze', 'Silver', 'Gold'] as const;
 export const MEDAL_SPRITE = ['ui-medal-none', 'ui-medal-bronze', 'ui-medal-silver', 'ui-medal-gold'] as const;

@@ -2,6 +2,15 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 24-11-2026
+
+### Added
+
+- **Jade Street**: Bishan and Ang Mo Kio open after King Tide. Take the MRT north from Toa Payoh (Route me plans it) to Bishan-Ang Mo Kio Park, where the Kallang River runs wild through a wide bend with stepping stones, footbridges and the old stone bridge, and the Bishan Ten otters bound along the banks. Up in Ang Mo Kio there are AMK Hub, the market and food centre, the void-deck chess uncles, the Town Garden and the Kebun Baru bird-singing corner; down in Bishan, Junction 8, a void-deck wedding and a flat for a safe house. No roads in yet, so no taxis.
+- **Jade Street**: chapter seventeen, "Red-Haired Man’s Bridge": ten new jobs that start at Toa Payoh's dragon playground and follow Madam Sutera's 1937 chart back to the red-haired surveyor who named Ang Mo Kio. There are four new givers (Uncle Merbok of the bird-singing club, Auntie Puyuh the hokkien mee hawker, Dr Kura the river engineer and Mak Andam Kijang the wedding dresser), and Ah Wei's Koel Boys on watch. It ends on a hook, not an ending.
+- **Jade Street**: a new kind of job step, the stepping stones. Press E to hop from stone to stone across the river. Every few seconds it surges over the low, wet stones, and the River meter shows Calm, Rising and Surge. Wait on the high, mossy stones and cross the low ones while it is calm, or you are swept back a stone and lose a few seconds. Assist slows the river down. Dora and Enzo have their own leap, wobble and swept-off poses.
+- **Jade Street**: three new Hawker Tales (River Samples, Wet Hokkien Mee and First New Town, a photo walk round Toa Payoh), a kopi round for the AMK uncles, five new trophies, and two new things to do: play blitz chess with the void-deck uncles, or slide down the park's grassy bank on a flattened carton.
+
 ## 23-11-2026
 
 ### Added

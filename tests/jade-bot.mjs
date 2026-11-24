@@ -71,6 +71,8 @@ export function missionSave(id, o = {}) {
   if (d === 'kranji') { s.safe = 'safe-kranji'; s.best['house:safe-kranji'] = 1; }
   // Punggol and Coney Island are over the water (m126 takes the MRT out to Punggol): their jobs start from the void-deck flat
   if (d === 'punggol') { s.safe = 'safe-punggol'; s.best['house:safe-punggol'] = 1; }
+  // Bishan and Ang Mo Kio are reached by the MRT (m136 rides it up from Toa Payoh): their jobs start from the Bishan flat
+  if (d === 'bishan') { s.safe = 'safe-bishan'; s.best['house:safe-bishan'] = 1; }
   return s;
 }
 
@@ -569,6 +571,21 @@ export function playMission(id, profile = 'perfect', seed = 1, o = {}) {
         const tx = c.x + Math.cos(a) * rr, ty = c.y + Math.sin(a) * rr;
         if (dist(p.x, p.y, tx, ty) < 20) { inp.mx = 0; inp.my = 0; return; }
         go(tx, ty, dist(p.x, p.y, tx, ty) < 80 ? 0.6 : 1); return;
+      }
+      // the twenty-sixth pass: hopping the stepping stones. Reads the HUD as a first-timer would: hop on whenever it says
+      // Calm (but not onto a low stone once the River meter is nearly out), get off a low stone the moment it says Rising
+      // or Surge, otherwise wait on the high stone; off the stones, walk to the first one
+      case 'stones': {
+        if (p.ride) { offFoot(); return; }
+        if (p.act) { inp.mx = 0; inp.my = 0; return; }
+        const lab = run.label;
+        if (nearJob('stone:')) {
+          inp.mx = 0; inp.my = 0;
+          if (/^Calm! Hop onto the low/.test(lab)) { if ((run.meter?.v ?? 0) > 0.3 + 0.2 * P.wob) press('act'); return; }
+          if (/^Calm|^SURGE! Off|RISING: hop on|^Rising: hop on/.test(lab)) press('act');
+          return;
+        }
+        const tg = run.target(); if (tg) go(tg[0], tg[1], 0.8); return;
       }
       case 'rounds': {
         if (p.ride) { offFoot(); return; }

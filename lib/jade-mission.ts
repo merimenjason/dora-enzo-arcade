@@ -28,6 +28,7 @@ import { tideEnter, tideStep, tideTarget, tideNear, tideAct } from './jade-tide.
 import { summitEnter, summitStep, summitTarget } from './jade-summit.js';
 import { mudEnter, mudStep, mudTarget, mudNear, mudAct } from './jade-mud.js';
 import { herdEnter, herdStep, herdTarget } from './jade-herd.js';
+import { stonesEnter, stonesStep, stonesTarget, stonesNear, stonesAct, stonesTimeUp } from './jade-stones.js';
 import { roundsEnter, roundsStep, roundsNear, roundsAct, roundsTarget, roundsTimeUp } from './jade-rounds.js';
 import { teamEnter, teamStep, teamTag, guardGoal, guardHits, onGadget, onBurst, watchStep, blind, postMate, releaseMate, holding, dropBag } from './jade-team.js';
 import { matePounceHit, pounce, pounceWindow, nameOf, GRAB_REACH, type TagOpt } from './jade-tag.js';
@@ -155,7 +156,7 @@ export class Run {
     this.label = 'label' in st ? st.label : '';
     const k = (this.assist ? 1.4 : 1) * this.w.diff.timer;
     if (teamEnter(this, st)) return;
-    if (rideEnter(this, st) || trackEnter(this, st) || crowdEnter(this, st) || torchEnter(this, st) || tideEnter(this, st) || summitEnter(this, st) || mudEnter(this, st) || herdEnter(this, st) || roundsEnter(this, st)) return;
+    if (rideEnter(this, st) || trackEnter(this, st) || crowdEnter(this, st) || torchEnter(this, st) || tideEnter(this, st) || summitEnter(this, st) || mudEnter(this, st) || herdEnter(this, st) || stonesEnter(this, st) || roundsEnter(this, st)) return;
     if (jobEnter(this, st)) return;
     switch (st.t) {
       case 'talk': {
@@ -300,7 +301,7 @@ export class Run {
     const px = p.x, py = p.y, pb = p.ride ? p.ride.b : p.b;
     watchStep(this, dt);
     if (teamStep(this, st, dt)) return;
-    if (rideStep(this, st, dt) || trackStep(this, st) || crowdStep(this, st, dt) || torchStep(this, st, dt) || tideStep(this, st, dt) || summitStep(this, st, dt) || mudStep(this, st, dt) || herdStep(this, st, dt) || roundsStep(this, st)) return;
+    if (rideStep(this, st, dt) || trackStep(this, st) || crowdStep(this, st, dt) || torchStep(this, st, dt) || tideStep(this, st, dt) || summitStep(this, st, dt) || mudStep(this, st, dt) || herdStep(this, st, dt) || stonesStep(this, st, dt) || roundsStep(this, st)) return;
     if (jobStep(this, st, dt)) return;
     switch (st.t) {
       case 'goto': {
@@ -687,9 +688,9 @@ export class Run {
   onSwitch() { }
   onGadget(a: Actor, g: GadgetId, pw: number, x: number, y: number) { return jobGadget(this, a, g, pw, x, y) || onGadget(this, a, g, pw, x, y); }
   onBurst(g: GadgetId, x: number, y: number, r: number) { onBurst(this, g, x, y, r); }
-  nearAction(x: number, y: number): Near | null { return this.cur?.t === 'float' ? floatNear(this, x, y) : this.cur?.t === 'track' ? trackNear(this, x, y) : this.cur?.t === 'crowd' ? crowdNear(this, x, y) : this.cur?.t === 'rounds' ? roundsNear(this, x, y) : this.cur?.t === 'tide' ? tideNear(this, x, y) : this.cur?.t === 'mud' ? mudNear(this, x, y) : jobNear(this, x, y); }
+  nearAction(x: number, y: number): Near | null { return this.cur?.t === 'float' ? floatNear(this, x, y) : this.cur?.t === 'track' ? trackNear(this, x, y) : this.cur?.t === 'crowd' ? crowdNear(this, x, y) : this.cur?.t === 'rounds' ? roundsNear(this, x, y) : this.cur?.t === 'stones' ? stonesNear(this, x, y) : this.cur?.t === 'tide' ? tideNear(this, x, y) : this.cur?.t === 'mud' ? mudNear(this, x, y) : jobNear(this, x, y); }
   /** E on one of the job steps' things (a photo, a witness, a crate) */
-  jobAct(id: string) { if (!trackAct(this, id) && !crowdAct(this, id) && !roundsAct(this, id) && !tideAct(this, id) && !mudAct(this, id)) jobAct(this, id); }
+  jobAct(id: string) { if (!trackAct(this, id) && !crowdAct(this, id) && !roundsAct(this, id) && !stonesAct(this, id) && !tideAct(this, id) && !mudAct(this, id)) jobAct(this, id); }
   walkOnly() { return walkOnly(this); }
   heistPick(mode: 'quiet' | 'loud') { heistPick(this, mode); }
   branchPick(pick: BranchPick) { branchPick(this, pick); }
@@ -702,7 +703,7 @@ export class Run {
   target(): [number, number] | null {
     const st = this.cur; if (!st) return null; const w = this.w;
     const jt = jobTarget(this); if (jt !== undefined) return jt;
-    const rt = this.cur?.t === 'track' ? trackTarget(this) : this.cur?.t === 'crowd' ? crowdTarget(this) : this.cur?.t === 'torch' ? torchTarget(this) : this.cur?.t === 'tide' ? tideTarget(this) : this.cur?.t === 'summit' ? summitTarget(this) : this.cur?.t === 'mud' ? mudTarget(this) : this.cur?.t === 'herd' ? herdTarget(this) : this.cur?.t === 'rounds' ? roundsTarget(this) : rideTarget(this); if (rt !== undefined) return rt;
+    const rt = this.cur?.t === 'track' ? trackTarget(this) : this.cur?.t === 'crowd' ? crowdTarget(this) : this.cur?.t === 'torch' ? torchTarget(this) : this.cur?.t === 'tide' ? tideTarget(this) : this.cur?.t === 'summit' ? summitTarget(this) : this.cur?.t === 'mud' ? mudTarget(this) : this.cur?.t === 'herd' ? herdTarget(this) : this.cur?.t === 'stones' ? stonesTarget(this) : this.cur?.t === 'rounds' ? roundsTarget(this) : rideTarget(this); if (rt !== undefined) return rt;
     switch (st.t) {
       case 'goto': return this.spot(st.at);
       case 'ride': return this.ride && this.ride.parked ? [this.ride.b.x, this.ride.b.y] : null;
@@ -745,7 +746,7 @@ export function stealthGoal(label: string) {
 function timeUp(st: Step): string {
   if (st.t === 'deliver') return st.item === 'cake' ? 'The cake melted!' : st.item === 'crate' ? 'Chef Mo’s queue gave up waiting for the mangoes!' : 'Out of time! The parcel was too late.';
   if (st.t === 'trade') return 'Out of time! The buyers went elsewhere. Buy low, ride quickly, sell high.';
-  if (st.t === 'goto') return st.label.includes('crows') ? 'Too slow! The crows cleared out the till.' : 'The jump-start faded before you got there!';
+  if (st.t === 'goto') return st.label.includes('crows') ? 'Too slow! The crows cleared out the till.' : st.label.includes('cleaners') ? 'Too late! The cleaners hosed the dragon playground down, chalk and all. Follow the gold line straight there.' : 'The jump-start faded before you got there!';
   if (st.t === 'collect') return 'Out of time! Grab them in the order the gold line suggests.';
   if (st.t === 'race') return 'Out of time! Cut the corners and use your boost.';
   if (st.t === 'fares') return 'The fare got fed up and walked! Drive them home quicker.';
@@ -754,6 +755,7 @@ function timeUp(st: Step): string {
   if (st.t === 'heist') return 'Out of time! The crows got back on their feet. Head straight for the safe.';
   if (st.t === 'crowd') return 'The match kicked off without you! Wait at the edge for a gap in each stream of fans, then squeeze through.';
   if (st.t === 'summit') return 'The clock ran out on the hill! Walk the steep bits, and when the Breath meter is low stop under a rest shelter: running till you are winded is slower.';
+  if (st.t === 'stones') return stonesTimeUp;
   if (st.t === 'herd') return 'Dark fell before she was home! Stand behind her (the way the trail runs) and she walks on; in front she backs off. Keep out of the Too close ring so she never bolts.';
   if (st.t === 'tide') return 'The night ran out! Cross while the HUD says the tide is out, and when it turns, wait on a coral head (the dark rocks) or the sand.';
   if (st.t === 'mud') return 'The tide came back over the mudflats! Cross while the HUD says the crocs are dozing, stop when one stirs, and keep still while it watches.';

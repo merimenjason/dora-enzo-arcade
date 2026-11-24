@@ -142,7 +142,7 @@ test('chapter six: ten jobs, offered in order after the festival, both heroes ta
   assert.ok(MISSION.m30.steps.some(s => s.t === 'chase' && s.route.some(([x, y]) => { const [ox, oy] = unmvT(x, y) ?? [0, 0]; return oy === 80 || ox === 124; })), 'the expressway chase rides the expressways');
   const s = newSave(); s.done = allDone.slice(0, 25); assert.equal(chapterOf(s), 6); assert.deepEqual(available(s).map(m => m.id), ['m26', 'm27']);
   s.done = allDone.slice(0, 34); assert.deepEqual(available(s).map(m => m.id), ['m35'], 'the finale waits for the rest');
-  s.done = allDone.slice(0, 35); assert.equal(chapterOf(s), 7); s.done = allDone.filter(id => MISSION[id].ch <= 7); assert.equal(chapterOf(s), 8); s.done = allDone; assert.equal(chapterOf(s), 17);
+  s.done = allDone.slice(0, 35); assert.equal(chapterOf(s), 7); s.done = allDone.filter(id => MISSION[id].ch <= 7); assert.equal(chapterOf(s), 8); s.done = allDone; assert.equal(chapterOf(s), 18);
 });
 
 test('chapter six: the solver finishes all ten, a forced failure restarts at the checkpoint, the island ending plays once', () => {

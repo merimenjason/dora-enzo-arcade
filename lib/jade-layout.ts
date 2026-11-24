@@ -37,6 +37,13 @@ export const KRJ = { x0: 100, y0: OLD_H, x1: 135, y1: OLD_H + 55 } as const;
  * 157: clear of the islands', Bukit Timah's and Kranji's rects), its own block; in the world, the open sea south of
  * Pulau Ubin in the east, Punggol Point's jetty looking north across the water at the island */
 export const PGL = { x0: 140, y0: OLD_H, x1: 175, y1: OLD_H + 29 } as const;
+/** the twenty-sixth pass: Bishan and Ang Mo Kio, built in the same extra rows (old columns 180 to 235, rows 128 to 159:
+ * clear of Punggol's rect; lib/jade-city.ts BSH_BUILD). Its block is the 30 rows inside the built 32 (rows 129 to 158:
+ * the built top and bottom rows are a blank margin), so it fits the open sea east of Kallang's block, where the world
+ * sets it for now (two columns of sea between them, no land joins it: the MRT runs to Bishan and Ang Mo Kio). Its real
+ * place is directly north of Toa Payoh, Bishan's south edge on Toa Payoh's north edge: the geography pass moves
+ * REAL_AT.bishan there (and may give the block back its two margin rows) */
+export const BSH = { x0: 180, y0: OLD_H + 1, x1: 235, y1: OLD_H + 30 } as const;
 
 /** an old tile rect (inclusive) and the new tile its top-left corner lands at */
 export type Block = { id: string; x0: number; y0: number; x1: number; y1: number; nx: number; ny: number };
@@ -44,7 +51,7 @@ export type Layout = { blocks: Block[]; NW: number; NH: number };
 
 /** the identity: the whole old world onto itself (the build frame's extra rows with it: the islands' block where it was
  * built) */
-const ZERO: Layout = { blocks: [{ id: 'islands', ...ISL, nx: ISL.x0, ny: ISL.y0 }, { id: 'bukit', ...BKT, nx: BKT.x0, ny: BKT.y0 }, { id: 'kranji', ...KRJ, nx: KRJ.x0, ny: KRJ.y0 }, { id: 'punggol', ...PGL, nx: PGL.x0, ny: PGL.y0 }, { id: 'main', x0: 0, y0: 0, x1: OLD_W - 1, y1: OLD_H - 1, nx: 0, ny: 0 }], NW: OLD_W, NH: BUILD_H };
+const ZERO: Layout = { blocks: [{ id: 'islands', ...ISL, nx: ISL.x0, ny: ISL.y0 }, { id: 'bukit', ...BKT, nx: BKT.x0, ny: BKT.y0 }, { id: 'kranji', ...KRJ, nx: KRJ.x0, ny: KRJ.y0 }, { id: 'punggol', ...PGL, nx: PGL.x0, ny: PGL.y0 }, { id: 'bishan', ...BSH, nx: BSH.x0, ny: BSH.y0 }, { id: 'main', x0: 0, y0: 0, x1: OLD_W - 1, y1: OLD_H - 1, nx: 0, ny: 0 }], NW: OLD_W, NH: BUILD_H };
 /** the four blocks that leave the main block (more specific blocks first: a tile belongs to the first block that covers
  * it). The south strip's three are its land rows only (96 to 125), split on the column between Zion Road and the
  * Singapore River, so no road runs along a seam */
@@ -70,6 +77,9 @@ const MOVED = [
   // the twenty-fifth pass: Punggol and Coney Island, built in the build frame's extra rows east of the islands; in the
   // world, the open sea under Pulau Ubin
   { id: 'punggol', ...PGL },
+  // the twenty-sixth pass: Bishan and Ang Mo Kio, built in the build frame's extra rows east of Punggol's; in the world,
+  // for now the open sea east of Kallang (its real place, north of Toa Payoh, is the geography pass's)
+  { id: 'bishan', ...BSH },
 ];
 /** the real table (new-frame origins): Orchard Road north-west of Chinatown, Fort Canning Park between them (Orchard
  * Boulevard runs on into Pagoda Street); Clarke Quay under Orchard (Clemenceau Avenue joins them; Eu Tong Sen Street runs
@@ -79,8 +89,9 @@ const MOVED = [
  * them), west of Kallang; Bukit Timah in the parkland west of Tiong Bahru (Upper Bukit Timah Road runs on into Tiong
  * Bahru's road, Jurong's runs down into it); Kranji and Woodlands in the north-east corner above Pulau Ubin (its road
  * runs on into Changi's); Punggol and Coney Island in the sea south of Pulau Ubin (no land joins it: the MRT runs to
- * Punggol station); the main block 100 columns east */
-const REAL_AT: Record<string, [number, number]> = { orchard: [36, 0], quay: [52, 44], tiong: [44, 78], jurong: [0, 44], pulau: [476, 60], kallang: [312, 96], mandai: [6, 0], islands: [264, 96], bukit: [4, 78], kranji: [476, 0], punggol: [476, 98], main: [100, 0] };
+ * Punggol station); Bishan and Ang Mo Kio for now in the sea east of Kallang (no land joins it: the MRT runs to Bishan and
+ * Ang Mo Kio stations); the main block 100 columns east */
+const REAL_AT: Record<string, [number, number]> = { orchard: [36, 0], quay: [52, 44], tiong: [44, 78], jurong: [0, 44], pulau: [476, 60], kallang: [312, 96], mandai: [6, 0], islands: [264, 96], bukit: [4, 78], kranji: [476, 0], punggol: [476, 98], bishan: [360, 96], main: [100, 0] };
 /** the real world's width: the main block 100 columns east, then Pulau Ubin's 36 columns off Changi (the north-east
  * corner). 512 × 128 is 65,536 tiles; lib/jade-nav.ts keys its heap on 2^17 so the world may still grow */
 const REAL_W = OLD_W + 100 + 36;

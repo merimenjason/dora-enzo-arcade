@@ -79,7 +79,9 @@ test('every place, cat, mural, hide and ladder foot can be walked to', () => {
   const j = c.places['isl-jetty'], fj = field(c, 'foot', Math.floor(j.x / T), Math.floor(j.y / T), ALL);
   // (and Punggol and Coney Island, over the water, from Punggol station: the MRT runs there)
   const g = c.places['stn-punggol'], fg = field(c, 'foot', Math.floor(g.x / T), Math.floor(g.y / T), ALL);
-  const reach = (x, y) => { const [fx, fy] = nearestFree(c, 'foot', x, y, ALL, 2), i = Math.floor(fy / T) * W + Math.floor(fx / T); return f.dist[i] >= 0 || fu.dist[i] >= 0 || fj.dist[i] >= 0 || fg.dist[i] >= 0; };
+  // (and Bishan and Ang Mo Kio, joined to Toa Payoh only by the MRT until the geography pass, from Bishan station)
+  const bs = c.places['stn-bishan'], fb = field(c, 'foot', Math.floor(bs.x / T), Math.floor(bs.y / T), ALL);
+  const reach = (x, y) => { const [fx, fy] = nearestFree(c, 'foot', x, y, ALL, 2), i = Math.floor(fy / T) * W + Math.floor(fx / T); return f.dist[i] >= 0 || fu.dist[i] >= 0 || fj.dist[i] >= 0 || fg.dist[i] >= 0 || fb.dist[i] >= 0; };
   for (const [id, p] of Object.entries(c.places)) assert.ok(reach(p.x, p.y), `place ${id}`);
   c.cats.forEach((k, i) => { const roof = (c.flags[Math.floor(k.y / T) * W + Math.floor(k.x / T)] & F_ROOF) > 0; if (!roof) assert.ok(reach(k.x, k.y), `cat ${i}`); });
   for (const m of c.murals) assert.ok(reach(m.x, m.y + 30), `mural ${m.id}`);
@@ -95,9 +97,11 @@ test('every parked ride can be reached on foot, and every boat from dry land', (
   const j = c.places['isl-jetty'], fj = field(c, 'foot', Math.floor(j.x / T), Math.floor(j.y / T), ALL);
   // (and Punggol and Coney Island, over the water, from Punggol station: the MRT runs there)
   const g = c.places['stn-punggol'], fg = field(c, 'foot', Math.floor(g.x / T), Math.floor(g.y / T), ALL);
+  // (and Bishan and Ang Mo Kio, joined to Toa Payoh only by the MRT until the geography pass, from Bishan station)
+  const bs = c.places['stn-bishan'], fb = field(c, 'foot', Math.floor(bs.x / T), Math.floor(bs.y / T), ALL);
   for (const r of w.rides) {
     const reachable = [];
-    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const tx = Math.floor(r.b.x / T) + dx, ty = Math.floor(r.b.y / T) + dy; if (tx >= 0 && ty >= 0 && tx < W && ty < H && (f.dist[ty * W + tx] >= 0 || fu.dist[ty * W + tx] >= 0 || fj.dist[ty * W + tx] >= 0 || fg.dist[ty * W + tx] >= 0) && c.solid[ty * W + tx] === S.OPEN) reachable.push(Math.hypot(tx * T + T / 2 - r.b.x, ty * T + T / 2 - r.b.y)); }
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const tx = Math.floor(r.b.x / T) + dx, ty = Math.floor(r.b.y / T) + dy; if (tx >= 0 && ty >= 0 && tx < W && ty < H && (f.dist[ty * W + tx] >= 0 || fu.dist[ty * W + tx] >= 0 || fj.dist[ty * W + tx] >= 0 || fg.dist[ty * W + tx] >= 0 || fb.dist[ty * W + tx] >= 0) && c.solid[ty * W + tx] === S.OPEN) reachable.push(Math.hypot(tx * T + T / 2 - r.b.x, ty * T + T / 2 - r.b.y)); }
     assert.ok(reachable.length && Math.min(...reachable) < (VEHICLES[r.kind].cls === 'boat' ? 96 : 70) + 20, `${r.kind} at ${Math.floor(r.b.x / T)},${Math.floor(r.b.y / T)} is within reach of a walkable tile`);
   }
 });
@@ -249,7 +253,7 @@ test('crows snatch cargo from a slow rider and miss one who dashes', () => {
 });
 
 test('the story: 85 jobs in 11 chapters (five of five, the island’s ten, Island Lights’ ten, Christmas Star’s ten, Lights by the Lake’s ten, Kampong Spirit’s ten, Kallang Roar’s ten), each with a contact, dialogue and a checkpoint, heirlooms at each Chinatown finale', () => {
-  assert.equal(MISSIONS.length, 135);
+  assert.equal(MISSIONS.length, 145);
   for (let ch = 1; ch <= 5; ch++) assert.equal(MISSIONS.filter(m => m.ch === ch).length, 5);
   assert.equal(MISSIONS.filter(m => m.ch === 6).length, 10);
   assert.equal(MISSIONS.filter(m => m.ch === 7).length, 10);
@@ -337,7 +341,7 @@ test('the save: round trip, repair and clamping, v1 migration, garage, wardrobe 
 });
 
 test('trophies, the daily market event and the night clock', () => {
-  assert.equal(TROPHIES.length, 90);
+  assert.equal(TROPHIES.length, 95);
   const s = newSave(); s.done = ['m1', 'm2', 'm3', 'm4', 'm5']; s.cats = Array.from({ length: 10 }, (_, i) => i);
   const got = checkTrophies(s); assert.ok(got.includes('First Job') && got.includes('Jade Dragon') && got.includes('Lucky Paw'));
   assert.deepEqual(checkTrophies(s), [], 'awarded once');

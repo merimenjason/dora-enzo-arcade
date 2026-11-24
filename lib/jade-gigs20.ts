@@ -39,11 +39,15 @@ export const GIG20_DEFS: Gig20[] = [
   // (the twenty-fifth pass) Encik Berang's park connector loop: up the red track to Punggol Point and back, then down to
   // Lorong Halus
   { id: 'pcn-loop', title: 'Park connector loop', at: [150, 147], d: 'punggol', giver: 'berang', kind: 'pcn-loop' },
+  // (the twenty-sixth pass) Auntie Puyuh's kopi round to the chess uncles and the bird-singing uncles at Ang Mo Kio
+  { id: 'amk-kopi', title: 'Kopi for the uncles', at: [203, 134], d: 'bishan', giver: 'puyuh', kind: 'amk-kopi' },
 ];
 /** Kallang's local tiles, as the story writes them */
 const K = (lx: number, ly: number): [number, number] => ly < 14 ? [212 + lx, 82 + ly] : [148 + lx, 82 + ly];
 /** Punggol and Coney Island's local tiles (lib/jade-punggol.ts pglOld) */
 const PG = (lx: number, ly: number): [number, number] => [140 + lx, 128 + ly];
+/** Bishan and Ang Mo Kio's local tiles (lib/jade-bishan.ts bshOld) */
+const BS = (lx: number, ly: number): [number, number] => [180 + lx, 128 + ly];
 /** the Southern Islands' local tiles (lib/jade-islands.ts islOld) */
 const I = (lx: number, ly: number): [number, number] => [lx, 128 + ly];
 /** Kranji and Woodlands' local tiles (lib/jade-kranji.ts) */
@@ -72,6 +76,7 @@ export function gig20Steps(kind: string, home: [number, number]): { steps: Step[
     case 'river-taxi': return S([{ t: 'ride', kind: 'boat', near: [303, 103], label: 'Jump in the bumboat at the steps by Read Bridge' }, { t: 'race', ride: 'boat', time: 70, marks: [[305, 103], [293, 105], [314, 106], [327, 104], [316, 105]], label: 'Steer the river taxi past every jetty marker' }], 75);
     case 'lanterns': return S([{ t: 'rounds', act: 'hang', item: 'moon-lantern', what: 'lantern', drops: [[206, 109], [208, 112], [200, 120], [222, 113], [210, 124]], time: 80, label: 'Hang a lantern on each empty hook round the Chinese Garden' }], 70);
     case 'ubin-loop': return S([{ t: 'ride', kind: 'bike', near: 'bikes-ubin', label: 'Take a bike from the rack (E)' }, { t: 'race', ride: 'bike', time: 70, marks: [[344, 117], [352, 117], [355, 113], [359, 106], [355, 108], [350, 113], [343, 113]], label: 'Ride every flag round the island loop' }], 70);
+    case 'amk-kopi': return S([{ t: 'rounds', act: 'serve', item: 'kopi', what: 'kopi in a bag', drops: [BS(36, 6), BS(41, 6), BS(47, 6), BS(50, 4), BS(44, 8)], who: ['goose', 'turtle', 'cat', 'hedgehog', 'loris'], time: 80, label: 'Take a kopi in a bag to each uncle at the chess table and the bird-singing corner' }], 75);
     case 'pcn-loop': return S([{ t: 'ride', kind: 'bike', near: 'pg-bikes', label: 'Take a bicycle from the rack by Punggol station (E)' }, { t: 'race', ride: 'bike', time: 70, marks: [PG(12, 14), PG(2, 14), PG(2, 5), PG(2, 14), PG(23, 14), PG(23, 28), PG(23, 16)], label: 'Ride the park connector loop: up to Punggol Point, back, and down to Lorong Halus' }], 75);
     case 'kayak-loop': return S([{ t: 'ride', kind: 'kayak', near: 'lagoon', label: 'Take Kak Lumba’s kayak at the lagoon beach (E)' }, { t: 'race', ride: 'kayak', time: 100, marks: [I(37, 18), I(40, 21), I(43, 14), I(43, 5), I(39, 1), I(43, 8), I(41, 21), I(37, 16)], label: 'Paddle out of the lagoon and round every buoy off Lazarus Island, then back in' }], 75);
     case 'causeway-kopi': return S([{ t: 'rounds', act: 'serve', item: 'kr-kopi', what: 'kopi', drops: [KR(23, 9), KR(23, 6), KR(23, 2), KR(28, 8), KR(28, 3)], who: ['goose', 'dog', 'rabbit', 'tabby', 'duck'], time: 80, label: 'Hand a kopi in a plastic bag to each driver leaning out of the Causeway jam' }], 75);

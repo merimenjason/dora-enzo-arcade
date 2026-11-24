@@ -181,4 +181,9 @@ export const CHAT: Record<string, string> = {
   tempua: 'Every weaver nest in these reeds, I have counted. Twice.',
   berang: 'Kayak or bicycle? Both? Ah, you are my favourite kind of customer.',
   pucong: 'Pucong Boys stand still for hours. Then we get paid.',
+  merbok: 'Hear that? Kur-kur-kur-ROO. That is my Ah Boy. Champion, three years running.',
+  puyuh: 'Hokkien mee must be wet, not dry. Anybody tells you dry, they are from somewhere else.',
+  kura: 'This river was a concrete drain for forty years. Now look at it. Otters!',
+  kijang: 'Every wedding at this void deck, I have dressed. Every one. Some of them twice.',
+  koel: 'Ko-EL! Ko-EL! We start at five in the morning. Every morning. You are welcome.',
 };

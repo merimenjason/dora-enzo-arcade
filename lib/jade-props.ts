@@ -95,9 +95,13 @@ export const PROPS: PropDef[] = [
   P('crabhouse', 'Punggol Point Crab House', 'pekaka', 'punggol', [155, 147], 1800, 1.0, 14, 'food'),
   P('coneykiosk', 'Coney Island Drinks Kiosk', 'bubut', 'punggol', [163, 134], 1100, 0.9, 13, 'food'),
   P('kayakhire', 'Waterway Kayak Hire', 'berang', 'punggol', [158, 152], 2000, 0.8, 15, 'kayak'),
+  // the twenty-sixth pass: Bishan and Ang Mo Kio
+  P('hokkienmee', 'Auntie Puyuh’s Hokkien Mee', 'puyuh', 'bishan', [199, 135], 1800, 1.0, 14, 'food'),
+  P('birdkopi', 'Kebun Baru Bird-Singing Kopi', 'merbok', 'bishan', [226, 136], 1200, 0.9, 13, 'food'),
+  P('parkhire', 'Bishan Park Bike Hire', 'kura', 'bishan', [221, 155], 2000, 0.8, 15, 'shop'),
 ];
 /** the first eleven, kept as they were placed, with the kind of trade each is */
 export const STALL_KIND: Record<string, PropKind> = { noodle: 'food', cake: 'food', tea: 'food', fan: 'shop', jade: 'shop', claw: 'shop', ckt: 'food', chicken: 'food', satay: 'food', laksa: 'food', kopi: 'food' };
 /** the rival gang that raids each district's properties (lib/jade-gangs.ts and the Longkang Lizards of the island) */
-export const RAID_GANG: Record<District, 'crow' | 'mac' | 'otter' | 'liz' | 'myna' | 'bat' | 'boar'> = { market: 'mac', temple: 'mac', canal: 'otter', docks: 'otter', arcade: 'crow', heartland: 'liz', bay: 'liz', india: 'myna', glam: 'myna', resort: 'myna', orchard: 'bat', katong: 'bat', changi: 'bat', tiong: 'crow', quay: 'otter', jurong: 'liz', pulau: 'boar', kallang: 'crow', mandai: 'crow', islands: 'crow', bukit: 'mac', kranji: 'crow', punggol: 'crow' };
+export const RAID_GANG: Record<District, 'crow' | 'mac' | 'otter' | 'liz' | 'myna' | 'bat' | 'boar'> = { market: 'mac', temple: 'mac', canal: 'otter', docks: 'otter', arcade: 'crow', heartland: 'liz', bay: 'liz', india: 'myna', glam: 'myna', resort: 'myna', orchard: 'bat', katong: 'bat', changi: 'bat', tiong: 'crow', quay: 'otter', jurong: 'liz', pulau: 'boar', kallang: 'crow', mandai: 'crow', islands: 'crow', bukit: 'mac', kranji: 'crow', punggol: 'crow', bishan: 'liz' };
 export const GANG_NAME: Record<string, string> = { crow: 'Kaypoh Crows', mac: 'Bukit Bunch macaques', otter: 'Riverside Romp otters', liz: 'Longkang Lizards', myna: 'Kecoh Mynahs', bat: 'Atas Bats', boar: 'Tusker Boys' };

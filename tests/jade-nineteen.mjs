@@ -103,7 +103,7 @@ test('chapter twelve: ten jobs, mostly at night in Mandai, a mix of steps, at mo
   assert.doesNotMatch(readFileSync(new URL('../app/jade-street/story.tsx', import.meta.url), 'utf8'), /bg-end-12|chapter 12 ending/i);
   const s = newSave(); s.done = MISSIONS.filter(m => m.ch <= 11).map(m => m.id); assert.equal(chapterOf(s), 12);
   s.done = MISSIONS.filter(m => m.ch <= 12).map(m => m.id); assert.equal(chapterOf(s), 13);
-  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 135); assert.equal(jc.talesAll, 58);
+  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 145); assert.equal(jc.talesAll, 61);
   // Grumbles never appear here
   assert.doesNotMatch(JSON.stringify([...ten, ...TALES.map(id => MISSION[id])]), /grumble/i);
 });
@@ -176,7 +176,7 @@ test('the tram, the lories and the show: their own animations, counted, and four
   put(w, near.show.x, near.show.y); w.step(NO_INPUT, DT); mandaiAct(w, 'show'); assert.equal(w.p.act?.n, 'clap'); settle(w, 3); assert.equal(w.s.stats.shows, 1);
   assert.ok(w.s.rep.mandai >= 3, 'a little Mandai reputation');
   for (const t of ['nightsafari', 'softly', 'loryfeeder', 'nightowl']) assert.ok(TROPHIES.some(x => x.id === t), t);
-  assert.equal(TROPHIES.length, 90);
+  assert.equal(TROPHIES.length, 95);
 });
 
 test('the paintings: Mandai’s art streams with its zone, the heroes’ new actions too, nothing new is core', () => {

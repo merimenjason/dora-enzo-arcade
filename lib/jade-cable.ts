@@ -159,6 +159,10 @@ export const LIGHTHOUSE_TEXT = 'Pak Camar here, on the rock. The lamp is lit and
  * (not an ending: the story goes on) */
 export const PUNGGOL_TEXT = 'Pak Camar again. The junk’s men are sounding the water off my light with a lead line. Every depth on the 1937 chart is measured from the old Punggol datum, the low-water mark the tide gauge at Punggol Point was set to that year. My old friend Puan Pekaka keeps that gauge. Take the MRT to Punggol, the first stop on the line, and ask her.';
 export const KINGTIDE_TEXT = 'Pak Camar here. The black junk weighed anchor at sunset. She is not waiting for any plate: she has a lead line over the side, sounding foot by foot, and she is working towards the colour on the water. Three nights to the king tide. Bring the register. I will keep the lamp lit.';
+/** the twenty-sixth pass: Bishan and Ang Mo Kio open once the king tide is read (m135), and Mr Kamal rings; and after
+ * Thomson's stone is read (m145), Pak Camar's call: the junk turns east (the next chapter's hook) */
+export const BISHAN_TEXT = 'Mr Kamal here, at Toa Payoh. Pak Camar rang me about the old chart. I think I know what Madam Sutera is missing, and it is not a plate. The trains run on north from Toa Payoh now: Bishan and Ang Mo Kio. Come and see me at the station first.';
+export const HORSBURGH_TEXT = 'Pak Camar here. The black junk has stopped sounding. An hour ago she hauled in her lead line and turned east, past Changi, out towards Pedra Branca, where Mr Thomson built Horsburgh Light. Whatever she is looking for, it was never under my light. I am calling the keeper there.';
 export const JURONG_TEXT = 'Jurong is open! The MRT runs to Jurong East station: the Science Centre, Snow City and the Chinese Garden on Jurong Lake. Or cross the bridge at the end of Beach Road.';
 export const RESORT_TEXT = 'Sentosa is open! The cable car leaves from HarbourFront at the docks (4 coins), the boardwalk runs beside the Sentosa Gateway, the MRT stops at Beach station, and the ferry crosses from Marina Bay (3 coins).';
 export function routeToStop(w: World, id: string): boolean {
