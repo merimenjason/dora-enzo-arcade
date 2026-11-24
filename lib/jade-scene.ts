@@ -33,6 +33,7 @@ import { islandsSorted, islandsOver } from './jade-islandsdraw.js';
 import { bukitSorted, bukitOver } from './jade-bukitdraw.js';
 import { kranjiSorted, kranjiOver } from './jade-kranjidraw.js';
 import { punggolSorted, punggolOver } from './jade-punggoldraw.js';
+import { bishanSorted, bishanGround } from './jade-bishandraw.js';
 import { snapScale, foldTints, chunkStale } from './jade-perf.js';
 import { empSorted, empOver, jagaActor } from './jade-empdraw.js';
 import { BIZ, BIZ_OF, bizPos } from './jade-biz.js';
@@ -346,6 +347,11 @@ export function heroFrame(h: string, anim: string, face: 'down' | 'up' | 'side',
     // out, thrown back as she bolts; casting off Punggol Point Jetty, then the rod bending as something bites
     case 'herd': return `${h}-herd-${cyc(2, 3)}`; case 'herd-still': return `${h}-herd-still`; case 'herd-bolt': return `${h}-herd-bolt`;
     case 'fish': return `${h}-fish-${t < 1.2 ? 0 : 1}`;
+    // Bishan and Ang Mo Kio (the twenty-sixth pass): the leap from stone to stone, the one-footed wobble on landing, swept
+    // off sideways by a surge; chin on fist over the void-deck chess board, then the piece slapped down; leaning back, arms
+    // up, sliding down the park's grassy bank on a carton
+    case 'stone-hop': return `${h}-stonehop`; case 'stone-land': return `${h}-teeter`; case 'stone-swept': return `${h}-swept`;
+    case 'blitz': return `${h}-blitz-${t < 2 ? 0 : 1}`; case 'bankslide': return `${h}-cartonslide`;
     case 'wade': return `${h}-wade-${cyc(2, 4)}`; case 'tide-brace': return `${h}-tide-brace`; case 'tide-washed': return `${h}-washed`;
     // Bukit Timah (the twenty-second pass): stepping up the summit trail (two frames), winded (bent double), sat on a rest
     // shelter's log with a water bottle, arms up at the summit; a snack bag snatched out of your hands by a macaque, shooing
@@ -676,7 +682,7 @@ export class Scene {
     sgSorted(this, x, w, list, vis);
     gearSorted(this, x, w, list, vis);
     isleSorted(this, x, w, list, vis);
-    eastSorted(this, x, w, list, vis); farSorted(this, x, w, list, vis); southSorted(this, x, w, list, vis); ubinSorted(this, x, w, list, vis); kallangSorted(this, x, w, list, vis); mandaiSorted(this, x, w, list, vis); islandsSorted(this, x, w, list, vis); bukitSorted(this, x, w, list, vis); kranjiSorted(this, x, w, list, vis); punggolSorted(this, x, w, list, vis);
+    eastSorted(this, x, w, list, vis); farSorted(this, x, w, list, vis); southSorted(this, x, w, list, vis); ubinSorted(this, x, w, list, vis); kallangSorted(this, x, w, list, vis); mandaiSorted(this, x, w, list, vis); islandsSorted(this, x, w, list, vis); bukitSorted(this, x, w, list, vis); kranjiSorted(this, x, w, list, vis); punggolSorted(this, x, w, list, vis); bishanSorted(this, x, w, list, vis); bishanGround(this, x, w, vis);
     if (!p.roof) list.push([p.y + 1, () => this.hero(x, w)]);
     if (!m.roof && !m.seat && vis(m.x, m.y)) list.push([m.y + 0.5, () => drawHero(this, x, w, m, w.two)]);
     list.sort((a, b) => a[0] - b[0]);
@@ -844,13 +850,13 @@ export class Scene {
         if (a.kind === 'lookout' && !((a.stare ?? 0) > 0) && !((a.extra2 ?? 0) > 0)) mindBeam(this, x, a.mind, b.x, b.y - 20, a.b.h, (w.assist ? 170 : 215) * w.diff.look, w.assist ? 0.45 : 0.55);
         if (a.kind === 'pip' && a.look > 0) mindBeam(this, x, a.mind, b.x, b.y - 20, a.face, w.assist ? 165 : 210, 1.2);
         // a rival gang's runner (the tenth and eleventh passes): the same moves in their own painted frames
-        const gs = a.skin === 'mac' || a.skin === 'otter' || a.skin === 'liz' || a.skin === 'myna' || a.skin === 'bat' || a.skin === 'crab' || a.skin === 'skipper' || a.skin === 'pucong' ? a.skin : null;
+        const gs = a.skin === 'mac' || a.skin === 'otter' || a.skin === 'liz' || a.skin === 'myna' || a.skin === 'bat' || a.skin === 'crab' || a.skin === 'skipper' || a.skin === 'pucong' || a.skin === 'koel' ? a.skin : null;
         if (gs) f = f.startsWith('crow-look') ? (gs === 'liz' ? 'liz-look' : `${gs}-taunt`) : f.replace(/^crow-/, gs + '-');
         // (a hermit crab, the twenty-first pass, has no dizzy frame: it peers up out of its shell)
         if (gs === 'crab' && f === 'crab-dizzy') f = 'crab-peer';
         // (nor has a mudskipper, the twenty-fourth pass: it peers about, eyes on stalks)
         if (gs === 'skipper' && f === 'skipper-dizzy') f = 'skipper-peer';
-        spr(x, f, b.x, b.y + 4, { flip, w: gs === 'liz' ? 56 : gs === 'myna' ? 44 : gs === 'bat' ? 48 : gs === 'otter' ? 46 : gs === 'crab' ? 46 : gs === 'pucong' ? 52 : undefined });
+        spr(x, f, b.x, b.y + 4, { flip, w: gs === 'liz' ? 56 : gs === 'myna' ? 44 : gs === 'bat' ? 48 : gs === 'otter' ? 46 : gs === 'crab' ? 46 : gs === 'pucong' ? 52 : gs === 'koel' ? 46 : undefined });
         if ((a.kind === 'runner' || a.kind === 'raider') && a.stun <= 0) spr(x, a.skin === 'mac' ? 'bun' : 'coins', b.x, b.y - 52, { w: 20 });
         if ((a.kind === 'lookout' || a.kind === 'pip') && a.stun <= 0) mindBubble(this, x, a.mind, b.x, b.y - 84);
         break;

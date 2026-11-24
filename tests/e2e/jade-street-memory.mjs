@@ -60,7 +60,7 @@ await p.click('[data-testid="continue"]');
 await p.waitForFunction(() => !!window.__jade, null, { timeout: 300000 });
 await p.evaluate(() => { const w = window.__jade.world(); w.talk = null; window.__jade.give(); const s = w.s; for (const g of s.gear.own) s.gear.ammo[g] = 999; window.__jade.play.paused = false; });
 
-const DISTRICTS = ['market', 'heartland', 'india', 'temple', 'bay', 'resort', 'orchard', 'canal', 'glam', 'katong', 'docks', 'changi', 'arcade', 'tiong', 'quay', 'jurong', 'pulau', 'kallang', 'mandai', 'islands', 'bukit', 'kranji', 'punggol'];
+const DISTRICTS = ['market', 'heartland', 'india', 'temple', 'bay', 'resort', 'orchard', 'canal', 'glam', 'katong', 'docks', 'changi', 'arcade', 'tiong', 'quay', 'jurong', 'pulau', 'kallang', 'mandai', 'islands', 'bukit', 'kranji', 'punggol', 'bishan'];
 const samples = []; const t0 = Date.now(); let k = 0, lastSample = -1e9, held = null;
 const sample = async (d) => {
   const g = await p.evaluate(() => ({ art: window.__jade.art ? window.__jade.art() : { decodedMB: null, files: [], chunks: window.__jade.play.scene.chunks.size, chunkMB: null, recolored: null }, heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null, fps: Math.round(window.__jade.fps()) }));

@@ -124,8 +124,9 @@ export const TRAVEL_MIN = 25, TRAVEL_SAVE = 0.35;
  * bridge, so a walk on or off either is endless */
 export function walkDist(x: number, y: number, tx: number, ty: number): number { return onUbin(x, y) !== onUbin(tx, ty) ? Infinity : dist(x, y, tx, ty); }
 /** which island (off the main island, no bridge) a point is on, or '': Pulau Ubin, the Southern Islands, and (the
- * twenty-fifth pass) Punggol and Coney Island, which no land joins either but which the MRT runs to */
-const onUbin = (x: number, y: number) => { const d = districtAt(Math.floor(x / T), Math.floor(y / T)); return d === 'pulau' || d === 'islands' || d === 'punggol' ? d : ''; };
+ * twenty-fifth pass) Punggol and Coney Island, and (the twenty-sixth) Bishan and Ang Mo Kio, which no land joins yet but
+ * which the MRT runs to */
+const onUbin = (x: number, y: number) => { const d = districtAt(Math.floor(x / T), Math.floor(y / T)); return d === 'pulau' || d === 'islands' || d === 'punggol' || d === 'bishan' ? d : ''; };
 /** an island no train runs to */
 const noTrain = (x: number, y: number) => { const d = onUbin(x, y); return d === 'pulau' || d === 'islands'; };
 /** the quickest way from (x, y) to (tx, ty): a ride when it saves enough time, else null (walk) */

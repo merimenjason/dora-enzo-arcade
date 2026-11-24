@@ -19,7 +19,7 @@ export type Line = [string, string, Mood?];
  * crane's swinging container and the yard gate (lib/jade-setpiece.ts); `wp` is the route leg that triggers it */
 /** a chase or tail target's painted body other than Pip's: a gang member (otter, macaque, lizard, mynah, bat) or a boss
  * (Director Kaw, Crow Number Nine, Datin Ciku) */
-export type Skin = 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine' | 'bat' | 'ciku' | 'hoot' | 'boar' | 'taring' | 'owl' | 'crab' | 'skipper' | 'pucong';
+export type Skin = 'otter' | 'mac' | 'liz' | 'kaw' | 'myna' | 'nine' | 'bat' | 'ciku' | 'hoot' | 'boar' | 'taring' | 'owl' | 'crab' | 'skipper' | 'pucong' | 'koel';
 /** the nineteenth pass: the night animals resting by a torch trail (lib/jade-torch.ts) */
 export type Beast = 'fcat' | 'pango' | 'porc' | 'squir';
 export type SetDef = { k: 'stall' | 'drums' | 'bridge' | 'crane' | 'gate'; at: [number, number]; wp: number };
@@ -76,7 +76,7 @@ export type Step =
   | { t: 'toss'; marks: Spot[]; item: string; time?: number; label: string; cp?: boolean }
   /** the sixteenth pass: a delivery on the dragon boat, timed for a boat with the partner drumming */
   | { t: 'paddle'; to: Spot; time: number; item: string; label: string; cp?: boolean }
-  | { t: 'case'; spots: { at: Spot; kind: Intel }[]; guards: Spot[][]; need?: number; label: string; cp?: boolean; /** who keeps watch (guards in caps when unset) */ skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' | 'crab' | 'skipper' | 'pucong' }
+  | { t: 'case'; spots: { at: Spot; kind: Intel }[]; guards: Spot[][]; need?: number; label: string; cp?: boolean; /** who keeps watch (guards in caps when unset) */ skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' | 'crab' | 'skipper' | 'pucong' | 'koel' }
   /** the heist: choose quiet or loud. Quiet sneaks in at `back` (only with the back door cased) or at `front`, past the
    * guards and `cams` ([x, y, facing in degrees]), cracks the safe and slips out the same way; loud sends the partner
    * to set off a confetti diversion at the front, then it is a race to the safe before `time` runs out and a getaway
@@ -124,13 +124,18 @@ export type Step =
    * close and her Calm drains till she bolts back to the last gate; `calf`: a jumpy calf; `pace`: her walk against the
    * usual; `time`: the dusk left */
   | { t: 'herd'; trail: Spot[]; calf?: boolean; pace?: number; time?: number; label: string; cp?: boolean }
+  /** the twenty-sixth pass (lib/jade-stones.ts): hop the stepping stones across the Kallang River in Bishan-Ang Mo Kio Park,
+   * E at each: `stones` is the bank you start from, each stone, the far bank; `low` the stones (by their place in the list)
+   * that go under when the river surges; `surge`: the surge clock against the usual (under 1, faster); `time`: the time
+   * there is */
+  | { t: 'stones'; stones: Spot[]; low: number[]; surge?: number; time?: number; label: string; cp?: boolean }
   | { t: 'crowd'; from: Spot; to: Spot; lanes: number; span?: number; time?: number; item?: string; keep?: boolean; ticket?: boolean; label: string; cp?: boolean }
   /** the twentieth pass (lib/jade-rounds.ts): a round of drop-offs. You carry `item` and hand one over at each of `drops`
    * (E there: the step's own pose, `act`) before `time` runs out; `who`: the townsfolk waiting at each drop (unset: a hook,
    * a shrine or a doorway); `what`: the thing, as the HUD names it ('songbird cage') */
   | { t: 'rounds'; drops: Spot[]; item: string; act: 'serve' | 'drape' | 'hang' | 'photo' | 'plant' | 'goatfeed'; what: string; who?: string[]; time: number; label: string; cp?: boolean;
       /** (the twenty-third pass) what stands at each stop, painted (a mural on the wall to photograph): drawn there all along */ sights?: string[] }
-  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' | 'crab' | 'skipper' | 'pucong'; /** what the HUD calls a crate ('loot sack') */ thing?: string; label: string; cp?: boolean };
+  | { t: 'swap'; crates: Spot[]; guards: Spot[][]; time: number; decoy: string; skin?: 'liz' | 'myna' | 'bat' | 'boar' | 'owl' | 'crab' | 'skipper' | 'pucong' | 'koel'; /** what the HUD calls a crate ('loot sack') */ thing?: string; label: string; cp?: boolean };
 /** what a photo while casing tells you: the back way in, the guards' beats, where the cameras are wired, the safe's make */
 export type Intel = 'door' | 'rota' | 'cam' | 'safe';
 /** a witness: `ask` are the three questions on offer, `right` the one that gets the clue (its `tag` must be among the
@@ -226,6 +231,12 @@ export const PEOPLE: Record<string, { name: string; face: string; who: string }>
   tempua: { name: 'Dr Tempua', face: 'face-tempua', who: 'wetland scientist at Lorong Halus (a baya weaver)' },
   berang: { name: 'Encik Berang', face: 'face-berang', who: 'kayak and bicycle hire on Punggol Waterway (a smooth-coated otter)' },
   pucong: { name: 'Abang Pucong', face: 'face-pucong', who: 'boss of the Pucong Boys, a crew for hire (a grey heron)' },
+  // the twenty-sixth pass: Bishan and Ang Mo Kio
+  merbok: { name: 'Uncle Merbok', face: 'face-merbok', who: 'of the Kebun Baru bird-singing club (a zebra dove)' },
+  puyuh: { name: 'Auntie Puyuh', face: 'face-puyuh', who: 'hokkien mee hawker at the Ang Mo Kio food centre (a king quail)' },
+  kura: { name: 'Dr Kura', face: 'face-kura', who: 'river engineer at Bishan-Ang Mo Kio Park (a river terrapin)' },
+  kijang: { name: 'Mak Andam Kijang', face: 'face-kijang', who: 'wedding dresser at the Bishan void decks (a barking deer)' },
+  koel: { name: 'Ah Wei', face: 'face-koel', who: 'boss of the Koel Boys, a crew for hire (an Asian koel)' },
   // the tenth pass: the empire's supplier, the health inspector, the rival towkay and the jaga you can hire
   huat: { name: 'Ah Huat', face: 'face-huat', who: 'wholesale supplier (a wild boar)' },
   siew: { name: 'Inspector Siew', face: 'face-siew', who: 'health inspector (a milky stork)' },
@@ -245,9 +256,9 @@ export const HEIRLOOMS = [
 ] as const;
 /** which district each chapter's finale opens (chapter 1 is played in Smith Street) */
 export const CHAPTER_OPENS: District[] = ['temple', 'canal', 'docks', 'arcade'];
-export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Club Street', 'The Island', 'Island Lights', 'Christmas Star', 'Lights by the Lake', 'Kampong Spirit', 'Kallang Roar', 'Night Safari', 'Raffles Lighthouse', 'Bukit Timah', 'Whimbrel Season', 'King Tide'];
+export const CHAPTERS = ['Smith Street', 'Temple Street', 'Boat Quay', 'Tanjong Pagar Docks', 'Club Street', 'The Island', 'Island Lights', 'Christmas Star', 'Lights by the Lake', 'Kampong Spirit', 'Kallang Roar', 'Night Safari', 'Raffles Lighthouse', 'Bukit Timah', 'Whimbrel Season', 'King Tide', 'Red-Haired Man’s Bridge'];
 /** the last job of each chapter (its finale) */
-export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55', 'm65', 'm75', 'm85', 'm95', 'm105', 'm115', 'm125', 'm135'];
+export const FINALE = ['m5', 'm10', 'm15', 'm20', 'm25', 'm35', 'm45', 'm55', 'm65', 'm75', 'm85', 'm95', 'm105', 'm115', 'm125', 'm135', 'm145'];
 /** the story job that opens Sentosa (half way through chapter seven) */
 export const RESORT_OPENS = 'm40';
 /** the story job that opens Changi (half way through chapter eight) */
@@ -270,6 +281,8 @@ export const KRANJI_OPENS = 'm115';
 const CH14_KEEPER = 'merbah';
 /** the story job that opens Punggol and Coney Island (the end of chapter fifteen: chapter sixteen is set there) */
 export const PUNGGOL_OPENS = 'm125';
+/** the story job that opens Bishan and Ang Mo Kio (the end of chapter sixteen: chapter seventeen is set there) */
+export const BISHAN_OPENS = 'm135';
 
 // ── every [x, y] tile in a step is written in the old frame (where the district was first laid out) and moved once,
 // here, through the layout table (lib/jade-layout.ts); names ('kee', 'here', 'loot') are places and stay
@@ -289,6 +302,13 @@ const KR = (lx: number, ly: number): [number, number] => [100 + lx, 128 + ly];
 /** a Punggol and Coney Island tile by its local column and row (lib/jade-punggol.ts pglOld): built in the rows below the
  * old frame, east of the islands */
 const PG = (lx: number, ly: number): [number, number] => [140 + lx, 128 + ly];
+/** a Bishan and Ang Mo Kio tile by its local column and row (lib/jade-bishan.ts bshOld): built in the rows below the old
+ * frame, east of Punggol */
+const BS = (lx: number, ly: number): [number, number] => [180 + lx, 128 + ly];
+/** the park's two stepping-stone crossings (lib/jade-bishan.ts STONES_W, STONES_E: north bank, four stones, south bank;
+ * the second and fourth stones out from the north are the low ones), either way over */
+const WEST_N = [BS(24, 10), BS(24, 12), BS(24, 14), BS(24, 16), BS(24, 18), BS(24, 20)], EAST_N = [BS(33, 10), BS(34, 12), BS(32, 14), BS(34, 16), BS(32, 18), BS(33, 20)];
+const southward = (a: [number, number][]) => ({ stones: a, low: [2, 4] }), northward = (a: [number, number][]) => ({ stones: [...a].reverse(), low: [1, 3] });
 /** a spot: a place name stays, a tile moves */
 export const mvSpot = <S extends Spot>(s: S): S => (typeof s === 'string' ? s : mvT(s[0], s[1])) as S;
 const mvSpots = (a: Spot[]) => a.map(mvSpot);
@@ -319,6 +339,7 @@ function mvStepFields(st: Step): Step {
     case 'tide': return { ...st, route: mvSpots(st.route), ...(st.pools ? { pools: mvSpots(st.pools) } : {}) };
     case 'summit': return { ...st, route: mvSpots(st.route) };
     case 'herd': return { ...st, trail: mvSpots(st.trail) };
+    case 'stones': return { ...st, stones: mvSpots(st.stones) };
     case 'chase': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), sets: st.sets?.map(d => ({ ...d, at: mvT(d.at[0], d.at[1]) })) };
     case 'float': return st.rope === undefined ? st : { ...st, rope: mvSpot(st.rope) };
     case 'tail': return { ...st, from: mvSpot(st.from), route: mvSpots(st.route), relay: st.relay && { ...st.relay, spot: mvSpot(st.relay.spot) } };
@@ -1530,6 +1551,78 @@ export const MISSIONS: Mission[] = mvMissions([
       { t: 'goto', at: 'pg-jetty', label: 'Run out to the end of Punggol Point Jetty and read the tide staff', cp: true },
       { t: 'talk', lines: [['pekaka', 'There. Reduced to the plate, the king tide falls lower than any night since 1937. Three nights from now, a little after two in the morning.', 'worried'], ['pekaka', 'For forty minutes, a sandbank fourteen miles south of Raffles Light comes up dry. The island no other chart has.', 'calm'], ['mate', 'And Madam Sutera is working from a plate with the wrong numbers.', 'smug'], ['hero', 'Then she’ll be wrong by a foot. That won’t stop her. It’ll only make her angry.', 'worried'], ['mate', 'The phone. Pak Camar.', 'worried']] },
     ] },
+  // ── chapter seventeen: Red-Haired Man's Bridge (the twenty-sixth pass), Toa Payoh, Bishan and Ang Mo Kio
+  { id: 'm136', ch: 17, title: 'The Red-Haired Man', giver: 'kamal', at: 'kamal', reward: 1500, rep: 35, blurb: 'Pak Camar says Madam Sutera’s junk is sounding in the wrong place, and she knows it. Mr Kamal at Toa Payoh station thinks he knows why: every position on that old chart was fixed from one stone, set by the red-haired surveyor who gave Ang Mo Kio its name.',
+    steps: [
+      { t: 'talk', lines: [['kamal', 'Pak Camar rang me. The junk is sounding round and round, and finding nothing. Her position is wrong, not only her depth.', 'worried'], ['kamal', 'Every position on the 1937 chart was copied from Mr Thomson’s survey of the 1840s. Thomson, the Government Surveyor. Red hair. The Hokkien called him the ang mo, the red-haired man.', 'calm'], ['hero', 'Ang Mo Kio. The red-haired man’s bridge!', 'happy'], ['kamal', 'He built a bridge on the Kallang River, and set his survey stone beside it. And this morning some very noisy birds were asking the playground kids where it is.', 'worried']] },
+      { t: 'goto', at: 'playground', time: 70, label: 'Get to Toa Payoh’s dragon playground, by the town centre, before the morning cleaners hose it down', cp: true },
+      { t: 'talk', lines: [['mate', 'A black feather in the dragon’s mouth. And chalk on the slide: an arrow, “AMK 5AM”, and a bird going KO-EL.', 'worried'], ['hero', 'Koels. They shout at five every morning, right under your window. Every heartland kid knows that sound.', 'cross'], ['mate', 'Bishan’s two stops up the line now. The stone’s in the park.', 'calm']] },
+      { t: 'train', to: 'stn-bishan', label: 'Take the MRT north to Bishan (E at the station entrance under the HDB Hub)', cp: true },
+      { t: 'goto', at: 'kura', label: 'Find Dr Kura, the river engineer, at her kiosk by the park cafe', cp: true },
+      { t: 'talk', lines: [['kura', 'Thomson’s stone? It is my river, so it is my stone. When we dug the old concrete canal out in 2010 and let the river wander again, there it was, by the bridge ruins.', 'happy'], ['kura', 'Only the top shows. The face with the marks on it is down in the riverbed.', 'calm']] },
+    ] },
+  { id: 'm137', ch: 17, title: 'Stepping Stones', giver: 'kura', at: 'kura', reward: 1510, rep: 35, blurb: 'Somebody has been at Thomson’s survey stone on the south bank of the Kallang River in Bishan-Ang Mo Kio Park, and their tracks go over the stepping stones. Follow them across, and mind the surge: the park’s river rises fast.',
+    steps: [
+      { t: 'talk', lines: [['kura', 'This park is built to flood. When it rains upstream, the water comes down in surges, every few seconds, right over the low stones.', 'worried'], ['kura', 'Wait on the high mossy stones. Cross the low flat ones while it is calm. If the river takes you, it only takes you back a stone.', 'calm'], ['mate', 'I’ll wait on the bank. One of us should have dry feet.', 'smug']] },
+      { t: 'goto', at: 'bs-survey', label: 'Go to the survey stone by the old bridge ruins, on the south bank', ride: 'foot', cp: true },
+      { t: 'talk', lines: [['hero', 'Chisel marks round the top. Somebody tried to lever it up and gave up.', 'cross'], ['mate', 'And wet bird tracks: out over the stepping stones, to the north lawn.', 'worried']] },
+      { t: 'stones', ...northward(WEST_N), time: 90, label: 'Hop the west stepping stones over the bend to the north lawn (E at each)', cp: true },
+      { t: 'talk', lines: [['hero', 'The tracks go up to that rain tree. Under it: crates, a radio, and a lot of black birds pretending to sleep.', 'worried'], ['kura', 'The Koel Boys! Ah Wei’s gang. They hire out to anybody. Mostly they hire out to be loud.', 'cross']] },
+    ] },
+  { id: 'm138', ch: 17, title: 'The Koel Boys', giver: 'kura', at: 'kura', reward: 1520, rep: 35, blurb: 'Ah Wei’s Koel Boys have a camp under a rain tree on the park’s north lawn. Photograph three things there without being seen: their door, their rota, their lookout or their strongbox.',
+    steps: [
+      { t: 'talk', lines: [['kura', 'Koels watch everything from inside a tree. You hear them, you never see them.', 'calm'], ['mate', 'Then we’ll be the ones nobody sees, for once.', 'smug']] },
+      { t: 'case', skin: 'koel', spots: [{ at: BS(10, 11), kind: 'door' }, { at: BS(14, 12), kind: 'rota' }, { at: BS(12, 10), kind: 'cam' }, { at: BS(17, 10), kind: 'safe' }], need: 3, guards: [[BS(7, 10), BS(7, 12)], [BS(10, 12), BS(17, 12)]], label: 'Photograph three things (E) at the Koel Boys’ camp without being seen', cp: true },
+      { t: 'goto', at: 'safe-bishan', label: 'Slip back over the footbridge to the Bishan flat with the photos' },
+      { t: 'talk', lines: [['hero', 'The rota: “Koel Boys. Paid by M. Sutera. 1: Read the stone’s face. 2: Wait for the flood. 3: Rubbing. 5AM sharp.”', 'worried'], ['mate', 'The strongbox: an old book, leather, “J. T. Thomson, Field Book, 1844”.', 'worried'], ['hero', 'His own field book. With the bearings in it.', 'cross']] },
+    ] },
+  { id: 'm139', ch: 17, title: 'Bird Singing', giver: 'merbok', at: 'merbok', reward: 1530, rep: 36, blurb: 'Every morning the Kebun Baru bird-singing uncles hang their songbirds high on the poles at Ang Mo Kio. Uncle Merbok says his doves hear everything the koels say. Hang the cages up for him, and listen.',
+    steps: [
+      { t: 'talk', lines: [['merbok', 'Kur-kur-kur-ROO. Good morning. Koels? Hah. Noisy, but stupid. They talk in front of my doves.', 'happy'], ['merbok', 'Help an old man hang the cages up on the poles, and my Ah Boy will tell you what he heard.', 'calm']] },
+      { t: 'rounds', act: 'hang', item: 'bs-cage', what: 'songbird cage', drops: [BS(49, 3), BS(52, 3), BS(53, 6), BS(49, 6)], time: 80, label: 'Hang a songbird cage on each pole at the bird-singing corner (E at each)', cp: true },
+      { t: 'talk', lines: [['merbok', 'Listen. Kur-ROO, kur-kur. He says: “Book. Market. Hokkien mee.”', 'calm'], ['hero', 'A koel is selling the field book at the market?', 'worried'], ['merbok', 'No. A koel is eating hokkien mee at the market. With a book. Same thing.', 'happy']] },
+    ] },
+  { id: 'm140', ch: 17, title: 'Wet, Not Dry', giver: 'puyuh', at: 'puyuh', reward: 1540, rep: 36, blurb: 'A koel ate three plates of Auntie Puyuh’s hokkien mee with an old book under his wing, and walked off without paying. Follow him through Ang Mo Kio without being seen, and see who he takes the book to.',
+    steps: [
+      { t: 'talk', lines: [['puyuh', 'Three plates! Wet hokkien mee, prawns, sotong, the lime, the chilli, everything. Then: “Ko-EL!” and off. No money.', 'cross'], ['puyuh', 'He is going slowly because he is so full. Follow him. Don’t let him see you.', 'calm']] },
+      { t: 'tail', skin: 'koel', name: 'the koel', calm: 0.8, from: BS(27, 6), route: [BS(30, 5), BS(36, 6), BS(41, 8), BS(47, 8)], label: 'Follow the koel through Ang Mo Kio, but stay out of sight', cp: true },
+      { t: 'talk', lines: [['koel', 'Ko-EL. Boss, I have the book. And I have eaten.', 'happy'], ['koel', 'Good boy. The swan lady says the stone’s face only shows after a flood, when the river falls. So we wait for rain.', 'calm'], ['koel', 'Meanwhile, the void-deck uncles play for money. I feel lucky.', 'happy'], ['hero', 'He’s going to bet Thomson’s field book on a game of chess?', 'cross']] },
+    ] },
+  { id: 'm141', ch: 17, title: 'Void Deck Gambit', giver: 'merbok', at: 'merbok', reward: 1550, rep: 36, blurb: 'Ah Wei has bet Thomson’s field book on a game of chess at the Ang Mo Kio void deck, and Uncle Merbok is playing him. When Ah Wei loses, he will run. Catch him: bump him three times and the book is yours.',
+    steps: [
+      { t: 'talk', lines: [['merbok', 'A koel wants to play chess? Against me? I have played at this table since before his grandmother was an egg.', 'happy'], ['mate', 'And when he loses, he runs.', 'worried']] },
+      { t: 'goto', at: 'bs-chess', label: 'Go and watch the game at the void deck’s stone chess table', cp: true },
+      { t: 'talk', lines: [['merbok', 'Check. Check. And… checkmate.', 'happy'], ['koel', 'Cannot be! Again! Best of three!', 'cross'], ['koel', 'KO-EL!', 'cross'], ['hero', 'He’s grabbed the book. Go!', 'cross']] },
+      { t: 'chase', who: 'runner', skin: 'koel', name: 'Ah Wei', from: BS(40, 7), route: [BS(44, 8), BS(50, 8), BS(53, 4), BS(48, 8), BS(36, 8), BS(24, 8), BS(14, 8), BS(8, 8)], bumps: 3, loot: 'bs-book', speed: 175, label: 'Chase Ah Wei through Ang Mo Kio and bump him three times (Space dashes)', cp: true },
+      { t: 'talk', lines: [['hero', 'Thomson’s field book. “Station A, the stone at Ang Mo Kio. Bearing to the bank, cut into its river face.”', 'worried'], ['koel', 'Keep it. The swan lady has photos of every page. She only needs the face of the stone.', 'cross'], ['mate', 'Everybody always has photos of every page.', 'cross']] },
+    ] },
+  { id: 'm142', ch: 17, title: 'Void Deck Wedding', giver: 'kijang', at: 'kijang', reward: 1560, rep: 36, blurb: 'There is a Malay wedding at a Bishan void deck today, and Mak Andam Kijang, who dresses every bride in Bishan, is short of hands. Help hand the guests their berkat, and she will tell you about the uncle who dug up the river.',
+    steps: [
+      { t: 'talk', lines: [['kijang', 'You two! You have hands! Today the bride’s whole kampung has come, and the berkat must go round before the photos.', 'worried'], ['kijang', 'An egg, a sweet, and a little gift in each. Smile. Everybody is somebody’s auntie.', 'happy']] },
+      { t: 'rounds', act: 'serve', item: 'bs-berkat', what: 'berkat', drops: [BS(24, 28), BS(27, 30), BS(31, 30), BS(33, 27), BS(31, 26)], who: ['cat', 'deer', 'loris', 'turtle', 'goose'], time: 85, label: 'Hand a berkat to each guest round the wedding void deck (E at each)', cp: true },
+      { t: 'talk', lines: [['kijang', 'The bride’s grandfather worked the old canal. He says when they dug it out, the stone’s face showed for one day, after a big flood, when the river fell.', 'calm'], ['kijang', 'An arrow, he says, and letters. Then it rained again and the river covered it.', 'calm'], ['hero', 'And rain’s coming tonight.', 'worried']] },
+    ] },
+  { id: 'm143', ch: 17, title: 'Park Connector', giver: 'kura', at: 'kura', reward: 1570, rep: 36, blurb: 'A storm is coming down the Kallang River from upstream. Dr Kura needs the warning signs out at both ends of the park before it hits. Take a bicycle and ride the park connector round, flag to flag.',
+    steps: [
+      { t: 'talk', lines: [['kura', 'Rain upstream, the big one. When it comes, the river comes up a metre in minutes. Everybody off the banks.', 'worried'], ['kura', 'There is a bicycle by the cafe. Ride the connector: every flag, both footbridges. Go!', 'calm']] },
+      { t: 'ride', kind: 'bike', near: BS(40, 24), label: 'Take the bicycle by the park cafe (E)', cp: true },
+      { t: 'race', ride: 'bike', time: 75, marks: [BS(44, 21), BS(48, 18), BS(48, 12), BS(40, 10), BS(20, 10), BS(9, 12), BS(9, 18), BS(18, 21)], label: 'Ride the park connector round: every flag and both footbridges, before the storm', cp: true },
+      { t: 'talk', lines: [['kura', 'Everybody is off the banks. Good. Here it comes.', 'worried'], ['mate', 'And look who’s on the north lawn, in the rain, waiting. The Koel Boys.', 'cross'], ['hero', 'When the river falls, they go for the stone. We need to be there first.', 'cross']] },
+    ] },
+  { id: 'm144', ch: 17, title: 'Flood Night', giver: 'kura', at: 'kura', reward: 1580, rep: 37, blurb: 'The storm has passed and the Kallang River is falling, but still surging hard. The Koel Boys are crossing to the survey stone from the north. Beat them over the east stepping stones to the old bridge.',
+    steps: [
+      { t: 'talk', lines: [['kura', 'The river is falling, but upstream is still emptying. The surges will come faster tonight.', 'worried'], ['mate', 'Faster surges. Same plan: high stones, wait; low stones, go.', 'calm']] },
+      { t: 'goto', at: 'bs-bend', label: 'Run round to the north end of the east stepping stones', ride: 'foot', cp: true },
+      { t: 'stones', ...southward(EAST_N), surge: 0.85, time: 90, label: 'Hop the east stepping stones over the falling river (E at each): the surges come faster tonight', cp: true },
+      { t: 'talk', lines: [['hero', 'The river’s dropping. Look, at the bottom of the stone: lines. An arrow!', 'happy'], ['kura', 'Thomson’s river face. After a hundred and eighty years. Quick, the light.', 'happy'], ['mate', 'And here come the koels. And the crows.', 'worried']] },
+    ] },
+  { id: 'm145', ch: 17, title: 'Red-Haired Man’s Bridge', giver: 'kura', at: 'kura', reward: 2100, rep: 37, blurb: 'The river has fallen and the face of Thomson’s survey stone is out of the water for the first time since 2010. Hold the stone against Madam Sutera’s crows and the Koel Boys while Dr Kura reads it.',
+    steps: [
+      { t: 'talk', lines: [['kura', 'Give me two minutes with my torch and my notebook, and keep those birds off.', 'calm'], ['hero', 'Two minutes. Easy.', 'smug'], ['mate', 'You always say easy.', 'worried']] },
+      { t: 'goto', at: 'bs-survey', label: 'Run to the survey stone', ride: 'foot', cp: true },
+      { t: 'defend', at: 'bs-survey', time: 55, waves: 2, per: 2, gang: 'crow', what: 'Survey stone', label: 'Hold the survey stone: knock the crows back before they reach it ({mate} helps on their own)', cp: true },
+      { t: 'talk', lines: [['kura', 'An arrow, and under it: “S. by E. 1/2 E. to H. L.” H. L.? Not the sandbank.', 'worried'], ['hero', 'Thomson didn’t fix the bank from Raffles Light at all. He fixed it from another light.', 'worried'], ['koel', 'Ko-EL! Too late, chinchillas. I took my rubbing an hour ago, when you were busy with the berkat.', 'happy'], ['mate', 'H. L. Horsburgh Light? Out at Pedra Branca? Thomson built that one too!', 'worried'], ['hero', 'Then Madam Sutera is going east. The phone: Pak Camar.', 'worried']] },
+    ] },
 ]);
 // ── Hawker Tales: the Singapore side jobs. They sit outside the five chapters (ch 0), open once their story job is
 // done, and pay like a story job; the townsfolk they help are in PEOPLE.
@@ -1977,6 +2070,29 @@ export const SIDE: Mission[] = mvMissions([
       { t: 'ride', kind: 'bike', near: 'pg-bikes', label: 'Take a bicycle from the rack by Punggol station (E)', cp: true },
       { t: 'race', ride: 'bike', time: 70, marks: [PG(20, 19), PG(4, 19), PG(6, 23), PG(14, 23), PG(22, 28), PG(23, 16)], label: 'Ride the loop round both banks of the Waterway before the LRT comes round', cp: true },
       { t: 'talk', lines: [['berang', 'Ha! Beat the train. Fine. I will tell everybody. I will tell them it was a slow train.', 'happy']] },
+    ] },
+  // the twenty-sixth pass: Toa Payoh, Bishan and Ang Mo Kio
+  { id: 'k59', side: 'm138', ch: 0, title: 'River Samples', giver: 'kura', at: 'kura', reward: 370, rep: 12, blurb: 'Dr Kura needs her water-sample notebook from the north lawn kiosk, and the quickest way is over the east stepping stones. Fetch it and bring it back to her before the samples go warm.',
+    steps: [
+      { t: 'talk', lines: [['kura', 'My sample book is on the north side. The footbridge is a long way round, and the stones are right there.', 'calm'], ['mate', 'High stones: wait. Low stones: go. I’ll hold your kopi.', 'smug']] },
+      { t: 'goto', at: 'bs-oldbridge', label: 'Go to the south end of the east stepping stones, by the old bridge', ride: 'foot', cp: true },
+      { t: 'stones', ...northward(EAST_N), time: 80, label: 'Hop the east stepping stones to the north lawn (E at each)', cp: true },
+      { t: 'pickup', at: 'bs-bend', item: 'bs-book', label: 'Pick up Dr Kura’s sample book on the north lawn (E)', cp: true },
+      { t: 'deliver', to: 'kura', time: 70, item: 'bs-book', label: 'Run the sample book back round to Dr Kura by the park cafe', cp: true },
+      { t: 'talk', lines: [['kura', 'Still cold! Ten otters this morning, by the way. The Bishan Ten. They have their own fans.', 'happy']] },
+    ] },
+  { id: 'k60', side: 'm140', ch: 0, title: 'Wet Hokkien Mee', giver: 'puyuh', at: 'puyuh', reward: 380, rep: 12, blurb: 'Mak Andam Kijang has ordered hokkien mee to the Bishan void deck for the wedding cooks. Carry it down from Ang Mo Kio hot, and steady: wet hokkien mee slops.',
+    steps: [
+      { t: 'talk', lines: [['puyuh', 'Wet, not dry, and wrapped in the leaf, the old way. Down to Bishan for the wedding cooks. Don’t slop the gravy!', 'calm']] },
+      { t: 'pickup', at: 'mk-bishan', item: 'bs-mee', label: 'Pick up the hokkien mee at Auntie Puyuh’s stall (E)', cp: true },
+      { t: 'deliver', to: 'kijang', time: 80, fragile: 6, item: 'bs-mee', label: 'Carry the hokkien mee down through the park to Mak Andam Kijang at the wedding void deck: steady!', cp: true },
+      { t: 'talk', lines: [['kijang', 'Still steaming! The cooks will marry you. Not literally. I am very busy this week.', 'happy']] },
+    ] },
+  { id: 'k61', side: 'm142', ch: 0, title: 'First New Town', giver: 'kamal', at: 'kamal', reward: 390, rep: 12, blurb: 'Toa Payoh was one of the first HDB new towns, and Mr Kamal is making a noticeboard about it for the station. Photograph the dragon playground, the town centre, the void deck and the HDB Hub for him.',
+    steps: [
+      { t: 'talk', lines: [['kamal', 'Toa Payoh, 1960s: swamp and kampung, then the first new town built all at once. The Queen came to see it!', 'happy'], ['kamal', 'Four photos for my board, please. The famous ones.', 'calm']] },
+      { t: 'rounds', act: 'photo', item: 'i-camera', what: 'sight', drops: ['playground', 'nc', 'safe-heartland', 'stn-toapayoh'], time: 110, label: 'Photograph the dragon playground, the town centre, the void deck and the HDB Hub (E at each)', cp: true },
+      { t: 'talk', lines: [['kamal', 'Lovely. The dragon, especially. Every child in Singapore has fallen off that dragon at least once.', 'happy']] },
     ] },
 ]);
 export const MISSION = Object.fromEntries([...MISSIONS, ...SIDE].map(m => [m.id, m])) as Record<string, Mission>;

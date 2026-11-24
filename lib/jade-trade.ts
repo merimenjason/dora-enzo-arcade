@@ -51,6 +51,7 @@ export const LEAN: Record<District, Record<Good, number>> = {
   // (the twenty-fifth pass) the Punggol Point kopitiam: seafood folk pay for good tea and fans on the hot waterfront, and
   // the HDB town is full of mooncake buyers; mangoes come in on every lorry
   punggol: { jade: 1.2, mooncake: 1.28, tea: 1.34, bowl: 0.9, fan: 1.24, mango: 0.74 },
+  bishan: { jade: 1.1, mooncake: 0.86, tea: 1.18, bowl: 1.26, fan: 0.82, mango: 1.22 },
 };
 export type Tip = { night: number; market: District; good: Good; mult: number; from: string; text: string };
 export type Cargo = Record<Good, number>;
@@ -122,4 +123,4 @@ export function bestRoute(seed: number, night: number, open: District[], tips: T
 }
 
 /** each market's name, the same on its E prompt and its panel */
-export const MARKET_NAME: Record<District, string> = { market: 'Smith Street Market', temple: 'Temple Street Bazaar', canal: 'Boat Quay Market', docks: 'Tanjong Pagar Market', arcade: 'Club Street Neon Market', heartland: 'Toa Payoh Provision Shop', bay: 'Promenade Kiosk', india: 'Tekka Market', glam: 'Arab Street Market', resort: 'Siloso Beach Kiosk', orchard: 'Orchard Road Christmas Market', katong: 'Joo Chiat Market', changi: 'Changi Village Market', tiong: 'Tiong Bahru Market', quay: 'Clarke Quay Night Market', jurong: 'Jurong Lake Night Market', pulau: 'Ubin Town Provision Shop', kallang: 'Kallang Wave Mall Market', mandai: 'Mandai Market', islands: 'St John’s Canteen', bukit: 'Bukit Timah Trailhead Shop', kranji: 'Woodlands Kopitiam', punggol: 'Punggol Point Kopitiam' };
+export const MARKET_NAME: Record<District, string> = { market: 'Smith Street Market', temple: 'Temple Street Bazaar', canal: 'Boat Quay Market', docks: 'Tanjong Pagar Market', arcade: 'Club Street Neon Market', heartland: 'Toa Payoh Provision Shop', bay: 'Promenade Kiosk', india: 'Tekka Market', glam: 'Arab Street Market', resort: 'Siloso Beach Kiosk', orchard: 'Orchard Road Christmas Market', katong: 'Joo Chiat Market', changi: 'Changi Village Market', tiong: 'Tiong Bahru Market', quay: 'Clarke Quay Night Market', jurong: 'Jurong Lake Night Market', pulau: 'Ubin Town Provision Shop', kallang: 'Kallang Wave Mall Market', mandai: 'Mandai Market', islands: 'St John’s Canteen', bukit: 'Bukit Timah Trailhead Shop', kranji: 'Woodlands Kopitiam', punggol: 'Punggol Point Kopitiam', bishan: 'Ang Mo Kio Food Centre' };

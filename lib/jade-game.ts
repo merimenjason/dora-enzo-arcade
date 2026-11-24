@@ -34,12 +34,14 @@ import { islandsStep, islandsNear, islandsAct, newIslands, type IslandsState } f
 import { bukitStep, bukitNear, bukitAct, newBukit, type BukitState } from './jade-bukitfest.js';
 import { kranjiStep, kranjiNear, kranjiAct, newKranji, inQuiet, type KranjiState } from './jade-kranjifest.js';
 import { punggolStep, punggolNear, punggolAct, newPunggol, type PunggolState } from './jade-punggolfest.js';
+import { bishanStep, bishanNear, bishanAct, newBishan, type BishanState } from './jade-bishanfest.js';
+import { stepping } from './jade-stones.js';
 import { herding, herdOf, bandOf, standing } from './jade-herd.js';
 import { onReef, onRock, tideOf, phaseOf, wading, TIDE } from './jade-tide.js';
 import { climbing, underShelter, SUMMIT } from './jade-summit.js';
 import { onMud, mudOf, crocPhase, mudWading, crocsWatching, MUD } from './jade-mud.js';
 import { crowdIn } from './jade-crowd.js';
-import { linkNear, linkGo, ferryStep, ferryLand, FARES, EAST_TEXT, RESORT_TEXT, FAR_TEXT, CHANGI_TEXT, SOUTH_TEXT, JURONG_TEXT, UBIN_TEXT, KAMPONG_TEXT, KALLANG_TEXT, ROAR_TEXT, MANDAI_TEXT, SELETAR_TEXT, ISLANDS_TEXT, LIGHTHOUSE_TEXT, HERBARIUM_TEXT, KRANJI_TEXT, WHIMBREL_TEXT, PUNGGOL_TEXT, KINGTIDE_TEXT, type FerryRide } from './jade-cable.js';
+import { linkNear, linkGo, ferryStep, ferryLand, FARES, EAST_TEXT, RESORT_TEXT, FAR_TEXT, CHANGI_TEXT, SOUTH_TEXT, JURONG_TEXT, UBIN_TEXT, KAMPONG_TEXT, KALLANG_TEXT, ROAR_TEXT, MANDAI_TEXT, SELETAR_TEXT, ISLANDS_TEXT, LIGHTHOUSE_TEXT, HERBARIUM_TEXT, KRANJI_TEXT, WHIMBREL_TEXT, BISHAN_TEXT, HORSBURGH_TEXT, PUNGGOL_TEXT, KINGTIDE_TEXT, type FerryRide } from './jade-cable.js';
 
 export const DT = 1 / 60;
 export type Input = { mx: number; my: number; sneak: boolean; dash: boolean; hop: boolean; act: boolean;
@@ -55,7 +57,7 @@ export type Ride = { id: number; kind: VehicleKind; b: Body; parked: boolean; lo
 /** `over`: a toast that replaces any showing or waiting toast containing this text (pass 13: "Your taxi is here" sat
  * beside "a taxi is on its way") */
 export type Fx = { t: string; x?: number; y?: number; k?: number; msg?: string; kind?: string; name?: string; over?: string };
-export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry' | 'east' | 'empire' | 'contract' | 'far' | 'south' | 'ubin' | 'kallang' | 'mandai' | 'islands' | 'bukit' | 'kranji' | 'punggol'; label: string; x: number; y: number; id?: string; ride?: Ride };
+export type Near = { kind: 'mission' | 'giver' | 'market' | 'safe' | 'garage' | 'ladder-up' | 'ladder-down' | 'hide' | 'unhide' | 'mural' | 'ride' | 'exit' | 'gig' | 'buy-safe' | 'event' | 'festival' | 'eat' | 'leap' | 'biz' | 'gear' | 'sg' | 'fine' | 'gang' | 'station' | 'taxi' | 'isle' | 'job' | 'cable' | 'ferry' | 'east' | 'empire' | 'contract' | 'far' | 'south' | 'ubin' | 'kallang' | 'mandai' | 'islands' | 'bukit' | 'kranji' | 'punggol' | 'bishan'; label: string; x: number; y: number; id?: string; ride?: Ride };
 export type Snatcher = { x: number; y: number; h: number; t: number; out: boolean; took: number; wing: number; good?: string; dizzy?: number };
 export type Act = { n: string; t: number; dur: number; then?: () => void };
 export type UiPanel = null | { kind: 'market'; d: District } | { kind: 'safe'; id: string } | { kind: 'garage'; id: string } | { kind: 'mini'; mini: string; level: number; from: 'mission' | 'gig' | 'ride' | 'sg' } | { kind: 'map' } | { kind: 'biz'; id: BizId } | { kind: 'gear' } | { kind: 'mama' } | { kind: 'glossary' }
@@ -129,7 +131,7 @@ export class World {
   /** the island: a hailed taxi (lib/jade-taxi.ts), the station the last train ride arrived at (lib/jade-mrt.ts) */
   taxi: Taxi | null = null; lastMrt = '';
   /** the ninth pass: the ferry crossing you are on, and the last cable car or ferry stop you stepped off at */
-  ferry: FerryRide | null = null; lastLink = ''; east: EastState = newEast(); far: FarState = newFar(); south: SouthState = newSouth(); ubin: UbinState = newUbin(); kallang: KallangState = newKallang(); mandai: MandaiState = newMandai(); islands: IslandsState = newIslands(); bukit: BukitState = newBukit(); kranji: KranjiState = newKranji(); punggol: PunggolState = newPunggol();
+  ferry: FerryRide | null = null; lastLink = ''; east: EastState = newEast(); far: FarState = newFar(); south: SouthState = newSouth(); ubin: UbinState = newUbin(); kallang: KallangState = newKallang(); mandai: MandaiState = newMandai(); islands: IslandsState = newIslands(); bukit: BukitState = newBukit(); kranji: KranjiState = newKranji(); punggol: PunggolState = newPunggol(); bishan: BishanState = newBishan();
   /** today's date from the device ('yyyy-mm-dd', set by the page) for the festivals; null in the Node tests */
   today: string | null = null;
   /** the partner thinking for themselves (lib/jade-pal.ts) */
@@ -262,7 +264,7 @@ export class World {
       // (on a mudflat crossing the partner stops dead while a crocodile watches: lib/jade-mud.ts)
       if (crocsWatching(this.run) && !this.mate.seat) { this.mate.b.speed = 0; this.mate.anim = onMud(this.run!, this.mate.x, this.mate.y) ? 'mud-freeze' : 'idle'; } else
       // (on a herding job the partner keeps back and waits where they stand: lib/jade-herd.ts)
-      if (herding(this.run) && !this.mate.seat && !this.mate.ride) { this.mate.b.speed = 0; this.mate.anim = 'idle'; } else mateStep(this, dt);
+      if ((herding(this.run) || stepping(this.run)) && !this.mate.seat && !this.mate.ride) { this.mate.b.speed = 0; this.mate.anim = 'idle'; } else mateStep(this, dt);
       palStep(this, dt);
     }
     if (inp.hail && !cab) hail(this);
@@ -277,7 +279,7 @@ export class World {
     this.collectStep();
     trafficStep(this, dt); pedStep(this, dt);
     heatStep(this, dt);
-    finesStep(this, dt); sgStep(this, dt); gangsStep(this, dt); eastStep(this); farStep(this); southStep(this); ubinStep(this, dt); kallangStep(this, dt); mandaiStep(this, dt); islandsStep(this, dt); bukitStep(this, dt); kranjiStep(this, dt); punggolStep(this, dt); empireStep(this, dt);
+    finesStep(this, dt); sgStep(this, dt); gangsStep(this, dt); eastStep(this); farStep(this); southStep(this); ubinStep(this, dt); kallangStep(this, dt); mandaiStep(this, dt); islandsStep(this, dt); bukitStep(this, dt); kranjiStep(this, dt); punggolStep(this, dt); bishanStep(this, dt); empireStep(this, dt);
     if (this.run) this.run.step(dt, inp);
     this.snatchStep(dt);
     eventsStep(this, dt);
@@ -612,7 +614,7 @@ export class World {
     if (!this.run) empireNear(this, cand);
     if (!this.run) contractNear(this, cand);
     const en = eventNear(this); if (en) cand(en, 80);
-    if (!this.run) { sgNear(this, cand); gangNear(this, cand); eastNear(this, cand); farNear(this, cand); southNear(this, cand); ubinNear(this, cand); kallangNear(this, cand); mandaiNear(this, cand); islandsNear(this, cand); bukitNear(this, cand); kranjiNear(this, cand); punggolNear(this, cand); }
+    if (!this.run) { sgNear(this, cand); gangNear(this, cand); eastNear(this, cand); farNear(this, cand); southNear(this, cand); ubinNear(this, cand); kallangNear(this, cand); mandaiNear(this, cand); islandsNear(this, cand); bukitNear(this, cand); kranjiNear(this, cand); punggolNear(this, cand); bishanNear(this, cand); }
     if (this.festival) for (const f of this.c.festival) if (f.kind !== 'arch') cand({ kind: 'festival', label: f.kind === 'stage' ? 'Dance on the festival stage' : 'Let a sky lantern go', x: f.x, y: f.y, id: f.kind }, 80);
     for (const pr of this.tables()) cand({ kind: 'eat', label: 'Grab a bowl of noodles (3 coins)', x: pr.x, y: pr.y + 20 }, 56);
     for (const l of this.c.ladders) cand({ kind: 'ladder-up', label: 'Climb the ladder', x: l.x * T + T / 2, y: l.y * T + T / 2 }, 60);
@@ -694,6 +696,7 @@ export class World {
       case 'bukit': bukitAct(this, n.id!); break;
       case 'kranji': kranjiAct(this, n.id!); break;
       case 'punggol': punggolAct(this, n.id!); break;
+      case 'bishan': bishanAct(this, n.id!); break;
       case 'empire': empireAct(this, n.id!); break;
       case 'contract': contractAct(this, n.id!); break;
       case 'fine': payTicket(this); break;
@@ -752,7 +755,7 @@ export class World {
     else if (this.replaying) this.s.cash += Math.round(m.reward / 4);
     this.replaying = false;
     if (m.tip) this.s.tips = this.s.tips.filter(t => !(t.market === m.tip!.market && t.good === m.tip!.good));
-    const before = this.open.size, hadIsle = this.open.has('heartland'), hadEast = this.open.has('india'), hadResort = this.open.has('resort'), hadFar = this.open.has('katong'), hadChangi = this.open.has('changi'), hadSouth = this.open.has('tiong'), hadJurong = this.open.has('jurong'), hadUbin = this.open.has('pulau'), hadKallang = this.open.has('kallang'), hadMandai = this.open.has('mandai'), hadIslands = this.open.has('islands'), hadKranji = this.open.has('kranji'), hadPunggol = this.open.has('punggol'); this.open = new Set(openDistricts(this.s));
+    const before = this.open.size, hadIsle = this.open.has('heartland'), hadEast = this.open.has('india'), hadResort = this.open.has('resort'), hadFar = this.open.has('katong'), hadChangi = this.open.has('changi'), hadSouth = this.open.has('tiong'), hadJurong = this.open.has('jurong'), hadUbin = this.open.has('pulau'), hadKallang = this.open.has('kallang'), hadMandai = this.open.has('mandai'), hadIslands = this.open.has('islands'), hadKranji = this.open.has('kranji'), hadPunggol = this.open.has('punggol'), hadBishan = this.open.has('bishan'); this.open = new Set(openDistricts(this.s));
     if (!hadIsle && this.open.has('heartland')) text(this, 'kamal', MRT_TEXT);
     if (!hadEast && this.open.has('india')) text(this, 'kamal', EAST_TEXT);
     if (!hadResort && this.open.has('resort')) text(this, 'helang', RESORT_TEXT);
@@ -773,6 +776,8 @@ export class World {
     if (m.id === 'm125') text(this, 'camar', WHIMBREL_TEXT);
     if (!hadPunggol && this.open.has('punggol')) text(this, 'camar', PUNGGOL_TEXT);
     if (m.id === 'm135') text(this, 'camar', KINGTIDE_TEXT);
+    if (!hadBishan && this.open.has('bishan')) text(this, 'kamal', BISHAN_TEXT);
+    if (m.id === 'm145') text(this, 'camar', HORSBURGH_TEXT);
     this.fieldCache.clear();
     this.fx.push({ t: 'mission-done', name: m.title, k: m.reward });
     this.banner = { text: 'Job done!', sub: `${m.title} · ${MEDAL_NAME[medal]}${medal ? ' medal' : ''}`, t: 3 };

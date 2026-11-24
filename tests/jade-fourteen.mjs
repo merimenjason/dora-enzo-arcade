@@ -118,7 +118,7 @@ test('the opening order: Tiong Bahru and Clarke Quay with the Christmas Star, Ju
 
 test('chapter nine: ten jobs across the three districts, a mix of steps, at most two chases, a finale at the pagoda', () => {
   const nine = MISSIONS.filter(m => m.ch === 9);
-  assert.deepEqual(nine.map(m => m.id), NINE); assert.equal(CHAPTERS[8], 'Lights by the Lake'); assert.equal(FINALE[8], 'm65'); assert.equal(CHAPTERS.length, 16);
+  assert.deepEqual(nine.map(m => m.id), NINE); assert.equal(CHAPTERS[8], 'Lights by the Lake'); assert.equal(FINALE[8], 'm65'); assert.equal(CHAPTERS.length, 17);
   for (const m of nine) {
     if (m.id !== 'm56') assert.ok(SOUTH.includes(c.places[m.at].d), `${m.id} is given in a new district`);
     assert.ok(m.steps.some(s => s.cp), `${m.id} checkpoint`);
@@ -142,8 +142,8 @@ test('chapter nine: ten jobs across the three districts, a mix of steps, at most
   assert.deepEqual(SIDE.filter(m => TALES.includes(m.id)).map(m => m.id), TALES); // (the sixteenth pass's ride jobs follow them)
   assert.deepEqual(SIDE.slice(SIDE.findIndex(m => m.id === TALES[0])).slice(0, 3).map(m => m.id), TALES); // (and the seventeenth pass's three on Ubin, the eighteenth's three in Kallang, the nineteenth's three in Mandai and the twentieth's six after those)
   for (const id of TALES) assert.ok(SOUTH.includes(c.places[MISSION[id].at].d), `${id} in a new district`);
-  const s = newSave(); s.done = allDone.filter(id => MISSION[id].ch <= 8); assert.equal(chapterOf(s), 9); s.done = allDone; assert.equal(chapterOf(s), 17);
-  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 135); assert.equal(jc.talesAll, 58);
+  const s = newSave(); s.done = allDone.filter(id => MISSION[id].ch <= 8); assert.equal(chapterOf(s), 9); s.done = allDone; assert.equal(chapterOf(s), 18);
+  const jc = jobCounts(newSave()); assert.equal(jc.storyAll, 145); assert.equal(jc.talesAll, 61);
 });
 
 test('the solver finishes every chapter-nine job and the new Hawker Tales; the casual bot finishes the finale', () => {

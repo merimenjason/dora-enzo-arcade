@@ -35,7 +35,7 @@ const idle = (w, sec, until = () => false) => { for (let k = 0; k < sec * 60 && 
 
 // ── item 1: every job has a fair, readable way to fail
 const FAILABLE = new Set(['chase', 'tail', 'escort', 'stealth', 'race', 'heat', 'float', 'raid', 'collect', 'trade', 'fares', 'case', 'heist', 'defend', 'blend', 'detective', 'trap', 'swap']);
-const failable = st => FAILABLE.has(st.t) || ((st.t === 'deliver' || st.t === 'goto' || st.t === 'track' || st.t === 'crowd' || st.t === 'torch' || st.t === 'paddle' || st.t === 'tide' || st.t === 'summit' || st.t === 'mud' || st.t === 'herd') && (st.time || st.fragile));
+const failable = st => FAILABLE.has(st.t) || ((st.t === 'deliver' || st.t === 'goto' || st.t === 'track' || st.t === 'crowd' || st.t === 'torch' || st.t === 'paddle' || st.t === 'tide' || st.t === 'summit' || st.t === 'mud' || st.t === 'herd' || st.t === 'stones' || st.t === 'rounds') && (st.time || st.fragile));
 /** provoke a failure at step i by doing nothing useful; returns the reason and whether a timer or meter showed first */
 function provoke(id, i) {
   const { w, run } = at(id, i); const st = run.cur; let shown = false;
@@ -174,7 +174,7 @@ test('Madame Glint: three phases with checkpoints, decoys, falling signs, and th
 
 // ── item 5: businesses
 test('businesses: eleven stalls (five at the hawker centre) and fifteen more properties across the districts, prices rise with value, and income follows level, reputation and events', () => {
-  assert.equal(BIZ.length, 59); assert.equal(BIZ.filter(b => ['ckt', 'chicken', 'satay', 'laksa', 'kopi'].includes(b.id)).length, 5, 'the five hawker stalls'); assert.ok(new Set(BIZ.map(b => b.d)).size >= 5, 'spread across the districts');
+  assert.equal(BIZ.length, 62); assert.equal(BIZ.filter(b => ['ckt', 'chicken', 'satay', 'laksa', 'kopi'].includes(b.id)).length, 5, 'the five hawker stalls'); assert.ok(new Set(BIZ.map(b => b.d)).size >= 5, 'spread across the districts');
   for (const b of BIZ) { assert.ok(b.income[1] < b.income[2] && b.income[2] < b.income[3]); assert.ok(b.price < b.up[0] + b.up[1]); assert.ok(b.price / b.income[1] >= 3, `${b.id}: pays back in three nights or more`); }
   const s = newSave(4); s.rep = { market: 50, temple: 50, canal: 50, docks: 50, arcade: 50 }; s.cash = 99999;
   assert.match(canBuy(s, 'jade', ['market']), /fog/); s.rep.market = 0; assert.match(canBuy(s, 'noodle', ALL_OPEN), /reputation/); s.rep.market = 50;
