@@ -2,7 +2,7 @@
 // painted at four levels), buying and upgrading, nightly takings and the ledger, raids (the alert, the clock, each kind
 // of raid job built for every property and played through by the bot, a missed raid's lost takings or damage, repairs,
 // the jaga, the partner's round of the tills and the partner seeing off a raid), the empire jobs, the ranks and their
-// trophies, the v10 → v11 save migration, and the pacing: a careful player owns everything in three to five hours.
+// trophies, the v10 → v11 save migration, and the pacing: a careful player owns everything in three to five and a half hours.
 import assert from 'node:assert/strict';
 import { World, DT, NO_INPUT } from '../.checks/jade-game.js';
 import { city, T, W, S, districtAt } from '../.checks/jade-city.js';
@@ -197,7 +197,7 @@ test('save v11: a v10 save keeps every job, medal, stall, safe house and till; t
   const v3 = loadSave(JSON.stringify({ v: 3, seed: 2, cash: 50, done: ['m1'], rep: { market: 5 } })); assert.equal(v3.v, SAVE_VERSION); assert.deepEqual(v3.done, ['m1']); assert.equal(v3.empire.rank, 0);
 });
 
-test('pacing: a careful player who reinvests owns everything in three to five hours of play (the coast’s six and the west side’s six included)', () => {
+test('pacing: a careful player who reinvests owns everything in three to five and a half hours of play (the coast’s six and the west side’s six included)', () => {
   // a careful player: about 45 coins a minute from jobs, gigs and trading, a night every 14 minutes on Assist, every
   // till collected each night, reputation around 50 (×1.0), one night's takings in ten lost to raids; buys whatever
   // pays back soonest as soon as they can
@@ -213,9 +213,9 @@ test('pacing: a careful player who reinvests owns everything in three to five ho
   };
   const night = 720 / 0.85 / 60;
   // (the slowest earner gets five and a half hours since the seventeenth pass's three Ubin properties; the eighteenth pass's three in Kallang bring the whole empire past 200,000)
-  // (the twenty-sixth pass's three in Bishan and Ang Mo Kio take the careful player just past five hours and the slowest
-  // earner to six: twenty more minutes for three more properties)
-  for (const [A, lo, hi] of [[45, 180, 330], [30, 180, 360], [60, 170, 300]]) { const m = sim(A, night); assert.ok(m >= lo && m <= hi, `${A} coins a minute: everything in ${(m / 60).toFixed(1)} h`); }
+  // (the twenty-sixth pass's three in Bishan and Ang Mo Kio take the careful player from 5.0 to 5.25 hours: fifteen more
+  // minutes for three more properties; the slowest earner stays at five and a half)
+  for (const [A, lo, hi] of [[45, 180, 330], [30, 180, 330], [60, 170, 300]]) { const m = sim(A, night); assert.ok(m >= lo && m <= hi, `${A} coins a minute: everything in ${(m / 60).toFixed(1)} h`); }
   // (the twenty-first pass's three on the Southern Islands bring it past 220,000, and Bukit Timah's and Kranji's threes
   // past 250,000; the hours above still hold; Punggol's and Bishan's take it to about 290,000)
   assert.ok(EMPIRE_COST > 120000 && EMPIRE_COST < 300000, `the whole empire costs ${EMPIRE_COST}`);
