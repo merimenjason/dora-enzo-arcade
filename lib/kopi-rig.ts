@@ -32,7 +32,7 @@ export const RIGS: Record<'dora' | 'enzo', RigDef> = {
   },
 };
 /** world px per source px, so both heroes stand about 230 px tall */
-export const HERO_S: Record<'dora' | 'enzo', number> = { dora: 0.34, enzo: 0.33 };
+export const HERO_S: Record<'dora' | 'enzo', number> = { dora: 0.3, enzo: 0.29 };
 
 export interface Pose { lean: number; head: number; ua: number; fa: number; uaF: number; faF: number; th: number; sh: number; thF: number; shF: number; tail: number; air: number; sx: number; sy: number; smear?: boolean }
 type K = Exclude<keyof Pose, 'smear'>;
