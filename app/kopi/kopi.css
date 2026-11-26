@@ -1,0 +1,39 @@
+.kopi { position: fixed; inset: 0; background: #120d0a; color: #fff6d8; font-family: "Arial Black", Impact, system-ui, sans-serif; overflow: hidden; user-select: none; }
+.kopi-cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.kopi-load { position: absolute; inset: 0; display: grid; place-items: center; font-size: 28px; }
+.kopi-title { position: absolute; inset: 0; display: grid; place-items: center; cursor: pointer; }
+.kopi-title img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.kopi-press { position: relative; margin-top: 14px; font-size: 26px; color: #ffe14a; text-shadow: 3px 3px 0 #17110c, -2px -2px 0 #17110c, 2px -2px 0 #17110c, -2px 2px 0 #17110c; animation: kopi-blink 1s steps(2) infinite; text-align: center; }
+.kopi-title .kopi-press { position: absolute; bottom: 9%; }
+.kopi-sub { position: absolute; bottom: 4%; font-family: system-ui, sans-serif; font-weight: 700; font-size: 15px; background: rgba(18,13,10,0.75); padding: 6px 14px; border-radius: 8px; }
+@keyframes kopi-blink { 50% { opacity: 0.35; } }
+.kopi-back { position: absolute; top: 14px; left: 16px; color: #fff6d8; font-family: system-ui, sans-serif; font-weight: 700; text-decoration: none; background: rgba(18,13,10,0.7); padding: 6px 12px; border-radius: 8px; z-index: 3; }
+.kopi-select { position: absolute; inset: 0; padding: 60px 4vw 24px; display: flex; flex-direction: column; align-items: center; gap: 18px; background: radial-gradient(circle at 50% 30%, #3a1d16, #120d0a 70%); overflow: auto; }
+.kopi-select h1 { margin: 0; font-size: clamp(30px, 4vw, 56px); color: #ffe14a; text-shadow: 4px 4px 0 #b8262a, 7px 7px 0 #17110c; transform: rotate(-2deg); }
+.kopi-stages { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; width: 100%; max-width: 1400px; }
+.kopi-stage { position: relative; border: 4px solid #17110c; border-radius: 10px; background: #2a1c15; color: #fff6d8; padding: 0 0 12px; text-align: left; cursor: pointer; font-family: inherit; box-shadow: 6px 6px 0 #17110c; transition: transform 0.12s; overflow: hidden; display: flex; flex-direction: column; }
+.kopi-stage img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; display: block; border-bottom: 4px solid #17110c; }
+.kopi-stage b { font-size: 20px; padding: 8px 12px 0; } .kopi-stage i { font-style: normal; font-family: system-ui, sans-serif; font-weight: 700; padding: 0 12px; color: #ffcf9a; }
+.kopi-stage em { font-style: normal; font-family: system-ui, sans-serif; font-size: 13px; padding: 4px 12px 0; color: #ffe14a; }
+.kopi-stage .n { position: absolute; top: 8px; left: 8px; background: #b8262a; border: 3px solid #17110c; border-radius: 50%; width: 38px; height: 38px; display: grid; place-items: center; font-size: 20px; }
+.kopi-stage .rank { position: absolute; top: 8px; right: 8px; background: #ffe14a; color: #17110c; border: 3px solid #17110c; border-radius: 8px; padding: 0 10px; font-size: 24px; }
+.kopi-stage.sel { transform: translateY(-6px) rotate(-1deg); border-color: #ffe14a; }
+.kopi-stage.locked { filter: grayscale(1) brightness(0.5); cursor: not-allowed; }
+.kopi-opts { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.kopi-opts button { font-family: system-ui, sans-serif; font-weight: 800; font-size: 15px; background: #fff6d8; color: #17110c; border: 3px solid #17110c; border-radius: 8px; padding: 8px 14px; cursor: pointer; box-shadow: 3px 3px 0 #17110c; }
+.kopi-keys { font-family: system-ui, sans-serif; font-weight: 600; font-size: 14px; text-align: center; color: #ffe9c4; line-height: 1.6; }
+.kopi-panel, .kopi-over, .kopi-results { position: absolute; inset: 0; display: grid; place-items: center; }
+.kopi-panel img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(0.55); }
+.kopi-over, .kopi-results { background: rgba(10,6,4,0.62); }
+.kopi-results { background: radial-gradient(circle, #4a1e16, #120d0a 75%); }
+.box { position: relative; max-width: 720px; margin: 16px; background: #fffbea; color: #17110c; border: 5px solid #17110c; border-radius: 12px; padding: 24px 30px; box-shadow: 10px 10px 0 #17110c; transform: rotate(-0.6deg); }
+.box h2 { margin: 4px 0 10px; font-size: 40px; color: #b8262a; }
+.box p { font-family: system-ui, sans-serif; font-weight: 600; font-size: 17px; line-height: 1.5; margin: 8px 0; }
+.box .twist { background: #ffe14a; padding: 8px 12px; border: 3px solid #17110c; border-radius: 8px; }
+.box .small { font-size: 13px; color: #5a4a3c; }
+.box .tag { font-size: 14px; background: #17110c; color: #ffe14a; padding: 3px 10px; border-radius: 6px; }
+.box .kopi-press { color: #b8262a; text-shadow: none; }
+.box table { font-family: system-ui, sans-serif; font-weight: 700; font-size: 17px; border-collapse: collapse; width: 100%; }
+.box td { padding: 4px 0; border-bottom: 2px dashed #d8c8a8; } .box td:last-child { text-align: right; }
+.big-rank { position: absolute; top: -34px; right: -24px; width: 100px; height: 100px; display: grid; place-items: center; font-size: 64px; background: #ffe14a; border: 5px solid #17110c; border-radius: 50%; transform: rotate(12deg); box-shadow: 5px 5px 0 #17110c; }
+@media (max-width: 900px) { .kopi-stages { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
