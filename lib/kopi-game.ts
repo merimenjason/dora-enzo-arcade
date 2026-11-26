@@ -1021,7 +1021,7 @@ export class KopiGame {
       case 'charge':
         if (f.t < 0.8) { f.anim = 'paw'; this.approach(f, f.x, T.z, 0, 160); f.face = sgn(T.x - f.x); break; }
         f.anim = 'charge'; f.x += f.face * 640 * DT; this.foeHit(f, B.rad + 40, 50, 16, true, false, 60);
-        if (f.x <= this.camX + 70 || f.x >= this.camX + VIEW_W - 70) { f.pat = 'stunned'; f.patT = 2.2; this.shake = 12; this.fx.push({ k: 'hit', x: f.x, z: f.z, h: 120, sfx: 'BONK', big: true }); }
+        const wall = B.rad * 1.6 + 6; if (f.x <= this.camX + wall || f.x >= this.camX + VIEW_W - wall) { f.pat = 'stunned'; f.patT = 2.2; this.shake = 12; this.fx.push({ k: 'hit', x: f.x, z: f.z, h: 120, sfx: 'BONK', big: true }); }
         if (f.t > 4) done(1); break;
       case 'stomp': f.anim = f.t < 0.7 ? 'wind' : 'stomp'; if (f.t > 0.7 && f.t < 0.8) { this.shake = 10; for (const h of this.heroes) if (h.h < 10 && h.st !== 'out' && h.inv <= 0 && Math.abs(h.x - f.x) < 460) this.hurtHero(h, 8, sgn(h.x - f.x), false, f); this.fx.push({ k: 'dust', x: f.x, z: f.z }); } if (f.t > 1.4) done(1.2); break;
       case 'slam': f.anim = f.t < 0.5 ? 'wind' : 'strike'; if (f.t > 0.5 && f.t < 0.75) this.foeHit(f, B.rad + 80, 46, 14, true, true); if (f.t > 1.1) done(1.0); break;

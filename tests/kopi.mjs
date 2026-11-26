@@ -136,6 +136,13 @@ ok('a knocked-out hero comes back while the partner fights on', () => {
   const g = quiet(); g.hero('enzo').ctrl = 'p2'; g.knockOut(g.hero('dora')); run(g, 60 * 9, {});
   assert.notEqual(g.hero('dora').st, 'out');
 });
+ok('Tusker charging into the screen edge is stunned', () => {
+  const g = new KopiGame({ stage: 2, scene: 2, seed: 7, skipTalk: true }); g.eventDone = true; const d = g.hero('dora'); g.hero('enzo').ctrl = 'p2';
+  let b = null; for (let k = 0; k < 600 && !b; k++) { g.step({}); b = g.boss; }
+  assert.ok(b, 'boss came'); d.x = g.camX + 200; d.inv = 99; g.hero('enzo').inv = 99; b.x = g.camX + 900; b.z = d.z; b.pat = 'charge'; b.t = 0; b.patT = 0;
+  let stunned = false; for (let k = 0; k < 60 * 5 && !stunned; k++) { g.step({}); stunned = b.pat === 'stunned'; }
+  assert.ok(stunned, b.pat);
+});
 ok('saves: parse, reject junk, unlock in order, rank', () => {
   assert.equal(parseSave('nope'), null); assert.equal(parseSave('{"v":2}'), null);
   const s = freshSave(); assert.ok(stageOpen(s, 0)); assert.ok(!stageOpen(s, 1));
