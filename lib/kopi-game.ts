@@ -723,7 +723,9 @@ export class KopiGame {
     return best;
   }
   attackers(h: Hero) { return this.foes.filter((f) => !f.dead && f.target === h && (f.st === 'wind' || f.st === 'act')).length; }
-  stepFoe(f: Foe) {
+  /** steps a foe; a new anim starts from its first frame */
+  stepFoe(f: Foe) { const a0 = f.anim; this.stepFoeBody(f); if (f.anim !== a0) f.animT = 0; }
+  stepFoeBody(f: Foe) {
     f.t += DT; f.animT += DT; if (f.inv > 0) f.inv -= DT; if (f.flash > 0) f.flash -= DT; if (f.enrage > 0) f.enrage -= DT; f.cd -= DT;
     if (f.dead) {
       f.fade += DT; this.physFoe(f, true);

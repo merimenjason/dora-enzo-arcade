@@ -8,7 +8,7 @@ import { KOPI_ATLAS } from './kopi-art';
 export type Pt = [number, number];
 interface PartDef { pivot: Pt; tip?: Pt; scale?: number }
 interface TorsoDef extends PartDef { tip: Pt; sh: Pt; shF: Pt; tail: Pt; bow?: Pt; hipF?: Pt }
-export interface RigDef { torso: TorsoDef; [k: string]: PartDef }
+export interface RigDef { torso: TorsoDef; [k: string]: PartDef | TorsoDef }
 
 // joint points in source-sheet pixels: pivot = where the part hangs from its parent, tip = where its child attaches
 export const RIGS: Record<'dora' | 'enzo', RigDef> = {
