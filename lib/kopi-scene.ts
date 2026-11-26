@@ -17,7 +17,7 @@ const ITEM_W: Record<string, number> = { tray: 84, stool: 78, wok: 96, durian: 5
 const HERO_NAME: Record<HeroId, string> = { dora: 'DORA', enzo: 'ENZO' };
 const INK = '#17110c';
 
-interface Pop { kind: 'word' | 'burst' | 'smoke' | 'star' | 'speed'; x: number; y: number; t: number; life: number; name?: string; size: number; rot: number; vx?: number; vy?: number }
+interface Pop { kind: 'word' | 'burst' | 'smoke' | 'star' | 'speed'; x: number; y: number; t: number; life: number; name?: string; size: number; rot: number; vx?: number; vy?: number; big?: boolean }
 interface Bubble { who: string; text: string; t: number }
 interface Banner { text: string; sub?: string; t: number; life: number }
 
@@ -57,7 +57,7 @@ export class KopiScene {
         this.bubbles.push({ who: 'Dora', text: 'Mind the doors!', t: 2 });
       } else if (f.k === 'dust' || f.k === 'smoke') {
         const big = f.k === 'smoke';
-        for (let i = 0; i < (big ? 5 : 3); i++) this.pops.push({ kind: 'smoke', x: f.x - g.camX + (i - 1) * (big ? 60 : 34), y: FLOOR_Y + f.z - (big ? 50 : 10), t: 0, life: big ? 4.2 : 0.6, name: `smoke${1 + (i % 3)}`, size: big ? 170 : 70, rot: 0, vx: (i - 1) * 20, vy: big ? -6 : -30 });
+        for (let i = 0; i < (big ? 5 : 3); i++) this.pops.push({ kind: 'smoke', x: f.x - g.camX + (i - 1) * (big ? 60 : 34), y: FLOOR_Y + f.z - (big ? 50 : 10), t: 0, life: big ? 2.6 : 0.6, name: `smoke${1 + (i % 3)}`, size: big ? 150 : 70, rot: 0, vx: (i - 1) * 20, vy: big ? -6 : -30, big });
       } else if (f.k === 'banner') this.banner = { text: f.text, sub: f.sub, t: 0, life: f.t };
       else if (f.k === 'say') { this.bubbles = this.bubbles.filter((b) => b.who !== f.who); this.bubbles.push({ who: f.who, text: f.text, t: 2.8 }); }
       else if (f.k === 'flash') this.flash = 0.35;
@@ -119,7 +119,7 @@ export class KopiScene {
     for (const it of g.items) if (!it.held || it.flying) list.push({ z: it.z, f: () => this.drawItem(g, it) });
     for (const s of g.shots) list.push({ z: s.z, f: () => { const x = sx(s.x), y = sy(s.z, s.h); ctx.save(); ctx.translate(x, y); ctx.scale(Math.sign(s.vx) || 1, 1); this.sprite('weapons', 'satay', 0, 0, 74); ctx.restore(); this.speedStreak(x, y, -Math.sign(s.vx)); } });
     for (const z of g.hazards) list.push({ z: z.z, f: () => this.drawHazard(g, z) });
-    for (const s of g.smoke) list.push({ z: s.z + 1, f: () => { ctx.save(); ctx.globalAlpha = Math.min(0.75, s.t / 1.5); for (let i = 0; i < 4; i++) this.sprite('sfx', `smoke${1 + (i % 3)}`, sx(s.x) + Math.cos(i * 1.7 + this.clock * 0.6) * 70, sy(s.z) - 40 - i * 18, 150); ctx.restore(); } });
+    for (const s of g.smoke) list.push({ z: s.z + 1, f: () => { ctx.save(); ctx.globalAlpha = Math.min(0.45, s.t / 1.5); for (let i = 0; i < 4; i++) this.sprite('sfx', `smoke${1 + (i % 3)}`, sx(s.x) + Math.cos(i * 1.7 + this.clock * 0.6) * 70, sy(s.z) - 40 - i * 18, 150); ctx.restore(); } });
     for (const f of g.foes) list.push({ z: f.z + (f.st === 'ride' ? 0.5 : 0) + (f.st === 'carried' ? 2 : 0), f: () => this.drawFoeAt(g, f) });
     for (const h of g.heroes) list.push({ z: h.z + 0.25, f: () => this.drawHeroAt(g, h, dt) });
     list.sort((a, b) => a.z - b.z);
@@ -285,7 +285,8 @@ export class KopiScene {
         ctx.globalAlpha = u > 0.75 ? (1 - u) / 0.25 : 1; ctx.rotate(p.rot); ctx.scale(s, s); ctx.translate(0, -u * 30);
         if (!this.sprite('sfx', p.name!, 0, 0, p.size)) this.label(p.name + '!', 0, 0, p.size / 4, '#ffe14a', 1);
       } else if (p.kind === 'burst') { ctx.rotate(p.rot); const s = 0.5 + u * 0.8; ctx.scale(s, s); ctx.globalAlpha = 1 - u * u; this.sprite('sfx', p.name!, 0, 0, p.size); }
-      else if (p.kind === 'smoke') { ctx.globalAlpha = (1 - u) * 0.8; const s = 0.6 + u * 0.7; ctx.scale(s, s); this.sprite('sfx', p.name!, 0, 0, p.size); }
+      else if (p.kind === 'smoke') { ctx.globalAlpha = (1 - u) * (p.big ? 0.42 : 0.8); // big smoke stays see-through: the fight must show through it
+        const s = 0.6 + u * 0.7; ctx.scale(s, s); this.sprite('sfx', p.name!, 0, 0, p.size); }
       else if (p.kind === 'star') this.starAt(0, 0, p.size);
       else if (p.kind === 'speed') { ctx.globalAlpha = 1 - u; ctx.strokeStyle = INK; ctx.lineWidth = 3; for (let i = 0; i < 16; i++) { const a = i * 0.3927 + p.x; const r0 = p.size * 0.5, r1 = p.size * (0.85 + (i % 3) * 0.1); ctx.beginPath(); ctx.moveTo(Math.cos(a) * r0, Math.sin(a) * r0 * 0.7); ctx.lineTo(Math.cos(a) * r1, Math.sin(a) * r1 * 0.7); ctx.stroke(); } }
       ctx.restore();
