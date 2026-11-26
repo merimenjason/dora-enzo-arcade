@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 26-11-2026
+
+### Added
+
+- **Lookout Ridge** (game 107): turn-based artillery on a ridge woven from Andean cloth. Dora rides Tupa the llama with a pebble trebuchet and Enzo rides Mochi the capybara with a clay-pot cannon, against a culpeo fox with a log cannon and a buzzard-eagle that swoops. Keep three chinchilla kits safe in their burrow for seven rounds until nightfall. The Darning Needle stitches holes in the cloth shut, and hitting a crater's pom-pom unravels its row, dropping the ground and anyone standing on it.
+
 ## 24-11-2026
 
 ### Added

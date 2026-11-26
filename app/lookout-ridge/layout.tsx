@@ -1,0 +1,3 @@
+import type { Metadata } from 'next';
+export const metadata: Metadata = { title: 'Lookout Ridge · Dora & Enzo’s Arcade', description: 'Turn-based artillery on a woven Andean cloth ridge. Dora rides Tupa the llama with a pebble trebuchet, Enzo rides Mochi the capybara with a clay-pot cannon. Keep three chinchilla kits safe in their burrow from a culpeo fox and a buzzard-eagle until nightfall: darn holes shut with the Darning Needle and pull loose threads to unravel the ground under the predators.' };
+export default function LookoutRidgeLayout({ children }: { children: React.ReactNode }) { return children; }
