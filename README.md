@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of one hundred and six original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of one hundred and seven original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -116,6 +116,7 @@ Listed in arcade-menu order.
 | 104 | Little Red Dot: The Straits | `/straits` | 3D sailing adventure |
 | 105 | Jade Street | `/jade-street` | Open-city caper |
 | 106 | Tembusu | `/tembusu` | Idle roguelite |
+| 107 | Lookout Ridge | `/lookout-ridge` | Turn-based artillery |
 
 ## Run
 
@@ -1731,6 +1732,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:tembusu` (the replay engine: no clock reads, determinism, catch-up, backwards clocks, the fork wait and assist, run lengths, seeds, the hill, saves), `npm run bot:tembusu` (every animal and trait reachable, no dominant bud, average tree length) and `npm run test:e2e:tembusu` (every action at three desktop sizes, time skipped through a whole tree, screenshots).
 
 **Docs:** [`docs/tembusu.md`](docs/tembusu.md).
+
+### 107 · Lookout Ridge (`/lookout-ridge`)
+
+**Play:** turn-based artillery on a ridge woven from Andean cloth, in the style of Gunbound. Dora rides Tupa the llama and fires a pebble trebuchet (Pebble, or a Pebble Trio); Enzo rides Mochi the capybara and fires a clay-pot cannon (Clay Pot, or a Heavy Pot that drops fast). Tupa walks far and climbs steep slopes; Mochi takes a fifth less damage. A culpeo fox with a log cannon and a buzzard-eagle that swoops and drops stones take turns with them, and wind changes every turn. The level is the burrow: three chinchilla kits in a pocket in Dora's ledge. Hold out for seven rounds and night falls and the kits are safe; lose if every kit bolts or both heroes go down. Predators go for the burrow 85% of the time, and a blast within 18px of its radius scares a kit off unless 12px of cloth is in the way. Shot 3 for both heroes is the Darning Needle: it stitches cloth back into a hole where it lands (its guide shows the patch) and never fills the kits' chamber. Every crater can leave a loose thread with a pom-pom; a hero's shot that lands within 40px of the pom-pom pulls the row, which unravels for up to 520px: the cloth above drops a row, anyone standing on it slides toward the hole and takes 22 tumble damage, and falls over 50px hurt. The cloth over the burrow is knotted and never unravels. All the art is painted woven textile.
+
+**Controls:** ← → walk (until the walk meter runs out), ↑ ↓ angle, 1 2 3 or Tab pick the shot, G hides or shows the aim guide, hold Space to charge (two seconds to full) and let go to fire. Space, Enter or a click starts; after the end, Space, Enter, R or a click plays again. Keyboard only.
+
+**Tests:** `npm run test:lookout-ridge` (determinism, the woven ground and grass band, the roof shielding the kits, darning and the open chamber, thread ends, pulls and the knot, every control, nightfall and both ways to lose), `npm run bot:lookout-ridge` (300 self-played matches an arm: heroes who darn must win at least 10 points more often than heroes who never darn; measured 54% against 35%; `npm test` runs a quick version that checks every match ends) and `npm run test:e2e:lookout-ridge` (every key and shot in the browser, a needle patch, a pom-pom pull, nightfall, losing, every restart, a first-timer pass by eye, the painted ground checked against the engine's, screenshots).
+
+**Docs:** [`docs/lookout-ridge.md`](docs/lookout-ridge.md).
 
 ## Validation
 

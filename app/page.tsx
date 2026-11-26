@@ -108,14 +108,15 @@ const GAMES=[
  {href:'/straits',title:'Little Red Dot: The Straits',tag:'NEW · SAILING ADVENTURE',blurb:'Sail a bumboat the size of a shoebox from Tiong Bahru to Pulau Ubin with a bale of hay. The Marina otters hold the strait: outrun their rafts, sink them with peanut volleys, or talk Captain Bishan round at his kelong. Dock at the islands to patch the hull, and mind the cats if you make trouble.',color:'#1c8fa0',art:'⛵'},
  {href:'/jade-street',title:'Jade Street',tag:'NEW · OPEN-CITY CAPER',blurb:'The night before the Lantern Festival the Kaypoh Crows steal five lucky heirlooms. Dora and Enzo run, hop and ride scooters, trishaws, vans and bumboats across Singapore’s Chinatown, then take the MRT and taxis out to Toa Payoh and Marina Bay: six chapters of story jobs, Hawker Tales, ticket wardens and five lanterns of heat, night markets, lucky cats, murals and mini-games.',color:'#1f9a6a',art:'🏮'},
  {href:'/tembusu',title:'Tembusu',tag:'NEW · IDLE ROGUELITE',blurb:'One tembusu tree on a hill, from seed to fall, growing in real time even while you’re away. Pick one of three buds at each fork, watch Singapore’s animals move in, and keep its seeds for the next tree.',color:'#8cbf6a',art:'🌳'},
+ {href:'/lookout-ridge',title:'Lookout Ridge',tag:'NEW · TURN-BASED ARTILLERY',blurb:'Woven Andean-cloth artillery. Dora rides Tupa the llama with a pebble trebuchet, Enzo rides Mochi the capybara with a clay-pot cannon. Guard three chinchilla kits in their burrow from a culpeo fox and a buzzard-eagle until nightfall: darn holes shut and pull loose threads to unravel the ground under the predators.',color:'#c0507a',art:'🧶'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">ONE HUNDRED AND SIX ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>One hundred and six ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, one hundred and six cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">ONE HUNDRED AND SEVEN ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>One hundred and seven ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, one hundred and seven cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <ArcadeGrid games={GAMES}/>

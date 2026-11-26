@@ -1,0 +1,9 @@
+/* Lookout Ridge: one 16:9 canvas, letterboxed in the window, with the way back to the arcade in the corner. */
+.lr-shell{position:fixed;inset:0;display:grid;place-items:center;background:#1d1730;overflow:hidden;color:#f9eedb;
+  user-select:none;-webkit-user-select:none;overscroll-behavior:none}
+.lr-canvas{display:block;width:min(100vw,calc(100vh * 16 / 9));height:auto;aspect-ratio:16/9;max-height:100vh;cursor:pointer}
+.lr-canvas:focus-visible{outline:3px solid #ffd36b;outline-offset:-3px}
+.lr-back{position:fixed;left:12px;bottom:10px;padding:6px 12px;border-radius:999px;background:rgba(42,15,42,.82);color:#f9eedb;
+  font:700 14px/1.2 "Atkinson Hyperlegible",system-ui,sans-serif;text-decoration:none;letter-spacing:.04em}
+.lr-back:hover,.lr-back:focus-visible{background:#3a1238;outline:2px solid #ffd36b}
+.lr-loading{position:fixed;inset:0;display:grid;place-items:center;font:700 20px "Atkinson Hyperlegible",system-ui,sans-serif;color:#ffd36b;pointer-events:none}
