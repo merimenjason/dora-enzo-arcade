@@ -44,11 +44,15 @@ Both can pick up anything lying on the floor. Team-ups trigger when the heroes s
 | | Solo | Player 1 with a second player | Player 2 |
 |---|---|---|---|
 | Move | arrows or WASD | WASD | arrows |
+| Run | double-tap left or right | double-tap | double-tap |
 | Attack | J | J | , (comma) or Numpad 1 |
-| Jump | K or Space | K | . (full stop) or Numpad 2 |
-| Special / grab / pick up | L | L | / or Numpad 3 |
+| Jump | K or Space | K or Space | . (full stop) or Numpad 2 |
+| Grab, pick up, throw | L | L | / or Numpad 3 |
+| Special (one bar of meter) | I, or Attack + Jump together | I, or J + K | ' (apostrophe) or Numpad 0 |
 | Swap hero | Q | – | – |
 | Pause | Esc or P | Esc or P | Esc or P |
+
+Both heroes pressing Special within half a second, standing close, makes the team-up (one bar each). A wrapped hero mashes Attack and Jump to wriggle free, or the partner whacks the python.
 
 Player 2 joins by pressing any of their keys; the helper bot hands the hero over. No touch controls (a keyboard game).
 

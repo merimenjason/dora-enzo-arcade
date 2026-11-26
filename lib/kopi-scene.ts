@@ -188,7 +188,6 @@ export class KopiScene {
     if (f.st === 'cough') this.label('cough!', x, y - (FOE_HEIGHT[kind] ?? 100) * k - 10, 18, '#fff', 0.8);
     if (f.st === 'stun' || f.pat === 'stunned') for (let i = 0; i < 3; i++) { const a = this.clock * 5 + i * 2.1; this.starAt(x + Math.cos(a) * 34, y - (FOE_HEIGHT[kind] ?? 100) * k - 10 + Math.sin(a) * 8, 10); }
     // the python's coils around a wrapped hero
-    if (f.wrapping) { ctx.save(); ctx.strokeStyle = '#c99a3a'; ctx.lineWidth = 22; ctx.lineCap = 'round'; const wx = f.wrapping.x - g.camX, wy = FLOOR_Y + f.wrapping.z - f.wrapping.h; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.ellipse(wx, wy - 70 - i * 42, 52, 16, 0, 0.2, Math.PI - 0.2); ctx.stroke(); } ctx.strokeStyle = INK; ctx.lineWidth = 3; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.ellipse(wx, wy - 70 - i * 42, 63, 26, 0, 0.3, Math.PI - 0.3); ctx.stroke(); } ctx.restore(); }
     // small foes' health
     if (!boss && !f.dead && f.hp < f.maxHp && f.kind !== 'roach') {
       const w = 70, bx = x - w / 2, by = y - (FOE_HEIGHT[kind] ?? 100) * k - 14;
