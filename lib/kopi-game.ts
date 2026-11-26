@@ -488,10 +488,10 @@ export class KopiGame {
   }
   special(h: Hero) {
     const mate = this.heroes.find((o) => o !== h)!;
-    // a team-up: both heroes close, both asking within half a second, and two bars between them
-    if (mate.teamReq > 0 && Math.abs(mate.x - h.x) < 260 && Math.abs(mate.z - h.z) < 120 && h.meter + mate.meter >= 200 && mate.st !== 'out') {
+    // a team-up: both heroes close and both pressing Special within half a second (one bar each)
+    if (mate.teamReq > 0 && Math.abs(mate.x - h.x) < 260 && Math.abs(mate.z - h.z) < 120 && h.meter >= 100 && mate.st !== 'out') {
       for (const o of [h, mate]) { o.move = 'team'; o.st = 'atk'; o.t = 0; o.hit = new Set(); o.anim = 'team'; o.animT = 0; o.inv = 1.6; o.hold = null; }
-      const need = 200; const take = Math.min(h.meter, need / 2); h.meter -= take; mate.meter -= need - take;
+      h.meter -= 100; // the partner already paid a bar for the special this replaces
       this.stats.teamups++; this.fx.push({ k: 'banner', text: 'Kopi Peng Combo!', t: 1.6 }); this.fx.push({ k: 'snd', s: 'team' }); this.shake = 12;
       return;
     }
@@ -813,7 +813,7 @@ export class KopiGame {
       if (f.kind === 'macaque' && !hold && Math.abs(T.x - f.x) > 160 && Math.abs(T.x - f.x) < 280 && Math.abs(T.z - f.z) < 40 && this.rng() < DT * 1.2) {
         f.st = 'act'; f.t = 0; f.pat = 'leap'; f.vh = 620; f.h = 1; f.vx = (T.x - f.x) * 1.6; f.hit = new Set(); f.anim = 'leap'; return;
       }
-      if (!hold && Math.abs(T.x - f.x) <= reach + 10 && Math.abs(T.z - f.z) < 24 && T.h < 40) { f.st = 'wind'; f.t = 0; f.anim = 'wind'; f.pat = f.kind === 'monitor' && this.rng() < 0.5 ? 'sweep' : 'strike'; }
+      if (!hold && Math.abs(T.x - f.x) <= reach - 6 && Math.abs(T.z - f.z) < 22 && T.h < 40) { f.st = 'wind'; f.t = 0; f.anim = 'wind'; f.pat = f.kind === 'monitor' && this.rng() < 0.5 ? 'sweep' : 'strike'; }
       return;
     }
     if (f.st === 'wind') {
@@ -830,7 +830,8 @@ export class KopiGame {
         return;
       }
       if (f.kind === 'rat') { f.x += f.vx * DT; f.vx *= 0.96; }
-      const reach = f.pat === 'sweep' ? 150 : f.arm ? 110 : D.reach;
+      const reach = (f.pat === 'sweep' ? 150 : f.arm ? 110 : D.reach) + 18;
+      if (f.kind !== 'rat' && f.t < D.act * 0.5) f.x += f.face * 160 * DT;
       const dmg = (f.arm ? ITEMS[f.arm.kind].dmg * 0.6 : D.dmg) * (f.enrage > 0 ? 1.5 : 1);
       this.foeHit(f, reach, 28, dmg, f.pat === 'sweep' || !!D.down || (!!f.arm && ITEMS[f.arm.kind].cls === 'heavy'), f.pat === 'sweep');
       if (f.t >= D.act) { f.st = 'rec'; f.t = 0; f.cd = D.cd * (0.8 + this.rng() * 0.5); if (f.arm) { f.arm.uses--; if (f.arm.uses <= 0) { f.arm.gone = true; f.arm = null; } } }
