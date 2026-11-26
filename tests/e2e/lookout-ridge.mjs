@@ -134,15 +134,20 @@ try {
     ok(await L(p, '!!L.ends.find(e => e.dir === 1 && e.ex > 1150)'), 'a crater short of the fox leaves a pom-pom whose row runs under him');
     await shot(p, '05-pom');
     const fox0 = await L(p, "(() => { const f = L.units.find(u => u.id === 'fox'); return { x: f.x, y: f.y, hp: f.hp }; })()");
-    const robust = `(r, L, u, a, pw) => { if (r.end !== 'snag') return 999; for (const d of [-1, 1]) { const q = L.simulate(u, a, pw + d); if (q.end !== 'snag') return 50; } return 0; }`;
+    // a robust snag on the thread under the fox: it must still snag one power point either side, like a player who is a little off
+    const robust = `(r, L, u, a, pw) => { const under = (q) => q.end === 'snag' && q.thread.ex > 1150; if (!under(r)) return 999; for (const d of [-1, 1]) { if (!under(L.simulate(u, a, pw + d))) return 50; } return 0; }`;
     const heroPulled = 'L.LOG.some(e => e[0] === "pull" && (e[1] === "dora" || e[1] === "enzo"))';
+    let caught = false;
     for (let tries = 0; tries < 3 && !(await L(p, heroPulled)); tries++) {
       if (tries) { await settled(p); await heroTurn(p); if (await L(p, 'L.state') === 'over') break;
         if (!(await L(p, 'L.ends.some(e => e.dir === 1 && e.ex > 1150)'))) { await L(p, 'L.blastAt(1232, 548, 40, "dora")'); await p.waitForTimeout(400); } }
       await aim(p, 0, robust);
-      await p.waitForTimeout(150);
+      // catch the row mid-unravel for the screenshot, then let the shot finish before checking
+      caught = await p.waitForFunction(() => window.__lr.pulls.some((q) => !q.done), null, { timeout: 8000, polling: 'raf' }).then(() => true, () => false);
+      if (caught) { await p.waitForTimeout(120); await shot(p, '06-pulling'); }
+      await p.waitForFunction(() => window.__lr.state !== 'flight', null, { timeout: 20000 });
     }
-    await p.waitForTimeout(450); await shot(p, '06-pulling');
+    ok(caught, 'the row is seen unravelling');
     await p.waitForFunction(() => !window.__lr.pulls.length && window.__lr.state !== 'flight', null, { timeout: 20000 });
     await p.waitForTimeout(400);
     const fox1 = await L(p, "(() => { const f = L.units.find(u => u.id === 'fox'); return { x: f.x, y: f.y, hp: f.hp }; })()");
@@ -150,6 +155,21 @@ try {
     ok(await L(p, heroPulled), 'a keyed shot that hits the pom-pom unravels the row');
     ok(fox1.y > fox0.y + 20 && fox1.x < fox0.x - 20 && fox1.hp < fox0.hp, 'the fox drops, is dragged toward the hole and takes damage');
     await groundMatches(p, 'after the pull');
+
+    // 4b. shot 2 for both heroes: Dora's Pebble Trio throws three pebbles, Enzo's Heavy Pot one heavy pot
+    const seen = new Set();
+    for (let k = 0; k < 4 && seen.size < 2; k++) {
+      await settled(p); await heroTurn(p); if (await L(p, 'L.state') === 'over') break;
+      const who = await L(p, 'L.cur.id');
+      await aim(p, 1, `(r, L) => { const ps = L.units.filter(u => u.side === 'pred' && u.alive); const t = ps.sort((a, b) => a.hp - b.hp)[0]; return r.end === 'unit' && r.unit === t ? 0 : Math.hypot(r.x - t.x, r.y - (t.flying ? t.y : t.y - 50)); }`);
+      const fl = await L(p, '({ state: L.state, n: L.shells.length, names: L.shells.map(s => s.s.name) })');
+      if (who === 'dora') ok(fl.state === 'flight' && fl.n === 3 && fl.names.every(n => n === 'Pebble Trio'), `2 then Space: Dora throws the Pebble Trio (${fl.n} pebbles)`);
+      else ok(fl.state === 'flight' && fl.n === 1 && fl.names[0] === 'Heavy Pot', '2 then Space: Enzo fires the Heavy Pot');
+      if (k === 0) { await p.waitForTimeout(200); await shot(p, '07b-shot-two'); }
+      seen.add(who);
+      await settled(p);
+    }
+    ok(seen.size === 2 || await L(p, 'L.state') === 'over', 'both heroes fired shot 2');
 
     // 5. play on like a player: mend the roof if it is open, else shoot the weaker predator
     let turns = 0;
@@ -162,8 +182,13 @@ try {
     ok(await L(p, 'L.state') === 'over', `a careful game ends: "${await L(p, 'L.banner')}" in round ${await L(p, 'L.round')}`);
     await p.waitForTimeout(1000); await shot(p, '08-careful-end');
     await groundMatches(p, 'at the end of a whole game');
+    await p.keyboard.press('Space'); await p.waitForTimeout(300);
+    ok(await L(p, 'L.state') === 'aim' && await L(p, 'L.round') === 1 && await L(p, 'L.kits.every(k => k.home)'), 'Space after the end restarts with three kits and round 1');
+    await p.evaluate(() => { const L = window.__lr; for (const k of L.kits) k.home = false; });
+    await p.keyboard.press('1'); await p.keyboard.down(' '); await p.waitForTimeout(60); await p.keyboard.up(' ');
+    await p.waitForFunction(() => window.__lr.state === 'over' && window.__lr.canRestart(), null, { timeout: 30000 });
     await p.keyboard.press('Enter'); await p.waitForTimeout(300);
-    ok(await L(p, 'L.state') === 'aim' && await L(p, 'L.round') === 1 && await L(p, 'L.kits.every(k => k.home)'), 'Enter restarts with three kits and round 1');
+    ok(await L(p, 'L.state') === 'aim' && await L(p, 'L.round') === 1 && await L(p, 'L.kits.every(k => k.home)'), 'Enter restarts too');
 
     // 6. nightfall: a self-played seed that holds out, shown to its banner
     await p.evaluate((seed) => { const L = window.__lr; L.autoHero = true; L.newGame(seed); while (L.round < 6 && L.state !== 'over') L.fast(60); }, NIGHT_SEED);
@@ -207,7 +232,8 @@ try {
       if (t === 1) await shot(p, '13-first-timer-flight');
       await settled(p);
     }
-    ok(fired >= 4 && await L(p, 'L.LOG.filter(e => e[0] === "dora" || e[0] === "enzo" || (e[0] === "KO")).length') >= 0, `a first-timer fires ${fired} shots by eye`);
+    ok(fired >= 4 && await L(p, 'L.units.filter(u => u.side === "hero" && u.lastPower > 0).length') === 2, `a first-timer fires ${fired} shots by eye, with both heroes`);
+    ok(await L(p, 'L.ops.filter(o => o.k === "cut").length') > 6 + 2, 'their shots leave craters in the cloth');
     await shot(p, '14-first-timer');
     await p.context().close();
   }
