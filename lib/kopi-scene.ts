@@ -9,6 +9,8 @@ import {
 import { KOPI_ATLAS } from './kopi-art';
 import { drawHero, heroPose, HERO_S, type Pt } from './kopi-rig';
 import { drawFoe, FOE_HEIGHT, type FoeView } from './kopi-foes';
+/** puppets drawn larger than their painted size so foes and bosses hold their own next to the heroes */
+const FOE_SCALE: Partial<Record<FoeView['kind'], number>> = { rat: 1.3, macaque: 1.12, mynah: 1.2, monitor: 1.25, roach: 1.2, python: 1.1, toad: 1.3, boar: 1.25, tank: 1.6, ssst: 1.2, tusker: 1.4, ong: 1.45, king: 1.3 };
 
 const FONT = '"Arial Black", Impact, "Helvetica Neue", system-ui, sans-serif';
 const ITEM_W: Record<string, number> = { tray: 84, stool: 78, wok: 96, durian: 58, pole: 210, satay: 70, kopibag: 52, fish: 86, ice: 54, plate: 64, kopi: 42, basin: 76, coconut: 48 };
@@ -168,9 +170,9 @@ export class KopiScene {
 
   drawFoeAt(g: KopiGame, f: Foe) {
     const { ctx } = this;
-    const k = this.depthK(f.z), x = f.x - g.camX, ground = FLOOR_Y + f.z, y = ground - f.h;
     const boss = f.boss, kind = f.kind as FoeView['kind'];
-    if (f.kind !== 'python' || f.h < 60) this.shadow(x, ground, (boss ? BD[f.kind as BossKind].rad * 1.4 : FD[f.kind as FoeKind].rad * 1.5) * k, f.h > 80 ? 0.16 : 0.3);
+    const k = this.depthK(f.z) * (FOE_SCALE[kind] ?? 1), x = f.x - g.camX, ground = FLOOR_Y + f.z, y = ground - f.h;
+    if (f.kind !== 'python' || f.h < 60) this.shadow(x, ground, (boss ? BD[f.kind as BossKind].rad * 1.4 : FD[f.kind as FoeKind].rad * 1.5) * this.depthK(f.z), f.h > 80 ? 0.16 : 0.3);
     ctx.save();
     if (f.dead) { ctx.globalAlpha = Math.max(0, 1 - f.fade / (boss ? 2.4 : 1.3)); }
     if (f.enrage > 0) { ctx.shadowColor = 'rgba(255,60,30,0.9)'; ctx.shadowBlur = 18; }

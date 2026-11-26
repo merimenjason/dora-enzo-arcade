@@ -21,8 +21,8 @@ const HINT = 'J attack · K jump · L grab & throw · I (or J+K) special · doub
 function readSave(): SaveData { try { return parseSave(localStorage.getItem(SAVE_KEY)) ?? freshSave(); } catch { return freshSave(); } }
 function writeSave(s: SaveData) { try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch { /* private window */ } }
 
-interface Pad { held: Record<Act, boolean>; press: Record<'atk' | 'jmp' | 'grab' | 'spc', boolean> }
-const freshPad = (): Pad => ({ held: { left: false, right: false, up: false, down: false, atk: false, jmp: false, grab: false, spc: false }, press: { atk: false, jmp: false, grab: false, spc: false } });
+interface Pad { held: Record<Act, boolean>; press: Record<'atk' | 'jmp' | 'grab' | 'spc', boolean>; at: { atk: number; jmp: number } }
+const freshPad = (): Pad => ({ held: { left: false, right: false, up: false, down: false, atk: false, jmp: false, grab: false, spc: false }, press: { atk: false, jmp: false, grab: false, spc: false }, at: { atk: -1e9, jmp: -1e9 } });
 
 export default function KopiPengBrawl() {
   const cvRef = useRef<HTMLCanvasElement>(null);
@@ -109,7 +109,7 @@ export default function KopiPengBrawl() {
         sceneRef.current?.ingest([{ k: 'banner', text: 'Player 2 joins!', sub: 'WASD for player 1, arrows for player 2', t: 2.4 }], g);
       }
       const pad = pads.current[r.pad];
-      if (!pad.held[r.act] && (r.act === 'atk' || r.act === 'jmp' || r.act === 'grab' || r.act === 'spc')) pad.press[r.act] = true;
+      if (!pad.held[r.act] && (r.act === 'atk' || r.act === 'jmp' || r.act === 'grab' || r.act === 'spc')) { pad.press[r.act] = true; if (r.act === 'atk' || r.act === 'jmp') pad.at[r.act] = performance.now(); }
       pad.held[r.act] = true;
     };
     const ku = (e: KeyboardEvent) => { const r = route(e.code); if (r) pads.current[r.pad].held[r.act] = false; };
@@ -122,10 +122,12 @@ export default function KopiPengBrawl() {
   useEffect(() => {
     let raf = 0, acc = 0, last = performance.now();
     const read = (p: Pad): Input => {
-      const spc = p.press.spc || (p.press.atk && (p.press.jmp || p.held.jmp)) || (p.press.jmp && p.held.atk);
+      // Attack + Jump is the special only when both go down together (within 90 ms), so holding Jump and kicking in the air stays a kick
+      const spc = p.press.spc || ((p.press.atk || p.press.jmp) && Math.abs(p.at.atk - p.at.jmp) < 90);
       const inp: Input = { mx: (p.held.right ? 1 : 0) - (p.held.left ? 1 : 0), mz: (p.held.down ? 1 : 0) - (p.held.up ? 1 : 0),
         atk: spc || p.press.atk, jmp: spc || p.press.jmp, grab: !spc && p.press.grab, atkH: p.held.atk, jmpH: p.held.jmp };
       p.press = { atk: false, jmp: false, grab: false, spc: false };
+      if (spc) p.at = { atk: -1e9, jmp: -1e9 };
       return inp;
     };
     const frame = (now: number) => {

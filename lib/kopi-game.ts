@@ -108,11 +108,11 @@ export const FD: Record<FoeKind, FoeDef> = {
 };
 export interface BossDef { hp: number; spd: number; rad: number; ht: number; score: number }
 export const BD: Record<BossKind, BossDef> = {
-  tank: { hp: 420, spd: 80, rad: 70, ht: 110, score: 5000 },
+  tank: { hp: 420, spd: 80, rad: 95, ht: 150, score: 5000 },
   ssst: { hp: 440, spd: 130, rad: 50, ht: 120, score: 5000 },
-  tusker: { hp: 480, spd: 110, rad: 70, ht: 140, score: 6000 },
-  ong: { hp: 460, spd: 120, rad: 70, ht: 130, score: 6000 },
-  king: { hp: 620, spd: 170, rad: 44, ht: 200, score: 10000 },
+  tusker: { hp: 480, spd: 110, rad: 90, ht: 180, score: 6000 },
+  ong: { hp: 460, spd: 120, rad: 90, ht: 180, score: 6000 },
+  king: { hp: 620, spd: 170, rad: 52, ht: 240, score: 10000 },
 };
 
 // ─────────────────────────────────────────────────────────────── entities
@@ -249,7 +249,7 @@ export class KopiGame {
     for (const f of this.foes) {
       this.stepFoe(f);
       // once in, foes stay on screen (a boar backing off for a run-up must not wander out of reach)
-      if (!f.dead && f.st !== 'enter' && f.st !== 'thrown' && f.st !== 'carried' && f.kind !== 'roach') f.x = clamp(f.x, this.camX + 40, this.camX + VIEW_W - 40);
+      if (!f.dead && f.st !== 'enter' && f.st !== 'thrown' && f.st !== 'carried' && f.kind !== 'roach') { const m = f.boss ? BD[f.kind as BossKind].rad * 1.6 : 40; f.x = clamp(f.x, this.camX + m, this.camX + VIEW_W - m); }
     }
     this.foes = this.foes.filter((f) => !f.gone);
     this.stepItems(); this.stepShots(); this.stepHazards(); this.stepHawkers(); this.stepCamera();
@@ -1078,7 +1078,9 @@ export class KopiGame {
         const pl = this.heroes.find((o) => o !== h)!;
         let best = foes[0], bs = 1e9;
         for (const f of foes) { const s = Math.abs(f.x - h.x) + Math.abs(f.z - h.z) * 2 + (Math.abs(f.x - pl.x) < 120 && foes.length > 1 ? 300 : 0) + (f.h > 100 ? 200 : 0); if (s < bs) { bs = s; best = f; } }
-        const side = h.x < best.x ? -1 : 1;
+        let side = h.x < best.x ? -1 : 1;
+        // flank: when the partner already stands on this side of the foe, go round to the other side
+        if (Math.abs(pl.x - best.x) < 170 && Math.abs(pl.z - best.z) < 40 && (pl.x < best.x ? -1 : 1) === side) side = -side;
         goal = { x: best.x + side * 80, z: best.z };
         attackNow = Math.abs(best.x - h.x) < 120 && Math.abs(best.z - h.z) < 26 && Math.abs(best.h - h.h) < 90;
         if (best.h > 80 && best.h < 280 && Math.abs(best.x - h.x) < 80 && Math.abs(best.z - h.z) < 24 && h.h <= 0 && b.jumpCd <= 0) { b.jumpCd = 0.9; inp.jmp = true; inp.mx = sgn(best.x - h.x); return inp; }
