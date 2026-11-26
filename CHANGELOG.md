@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 27-11-2026
+
+### Added
+
+- **Kopi Peng Brawl** (game 108): a co-op belt brawler across Singapore on one long night, drawn as a 1980s kung-fu comic. Dora and Enzo are both on screen at once; a helper bot plays the other hero until a second player joins on the same keyboard. Five stages, from Lau Pa Sat at closing time to Changi Village at dawn, each with its own twist and boss, plus foes that team up, hawkers who join the fight and random events like power cuts and a durian lorry spill.
+
 ## 26-11-2026
 
 ### Added
