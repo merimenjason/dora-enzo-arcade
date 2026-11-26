@@ -37,3 +37,4 @@
 .box td { padding: 4px 0; border-bottom: 2px dashed #d8c8a8; } .box td:last-child { text-align: right; }
 .big-rank { position: absolute; top: -34px; right: -24px; width: 100px; height: 100px; display: grid; place-items: center; font-size: 64px; background: #ffe14a; border: 5px solid #17110c; border-radius: 50%; transform: rotate(12deg); box-shadow: 5px 5px 0 #17110c; }
 @media (max-width: 900px) { .kopi-stages { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.kopi-results .box p { color: #5b3423; font-size: 16px; }
