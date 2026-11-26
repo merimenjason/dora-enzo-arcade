@@ -125,6 +125,22 @@ ok(KIT_FOCUS === 0.85 && KIT_REACH === 18 && NIGHT === 7, 'tuned values KIT_FOCU
   for (let i = 0; i < 2000 && g.cur === d; i++) g.update({});
   ok(g.cur.id === 'fox', 'the fox takes the next turn');
 }
+// shot 2: Dora's Pebble Trio is three pebbles; Enzo's Heavy Pot is one pot that falls faster
+{
+  const g = createGame(7); g.newGame(99); settle(g, 60);
+  g.pickShot(1); g.chargeStart(); for (let i = 0; i < 70; i++) g.update({}); g.chargeRelease();
+  ok(g.shells.length === 3 && g.shells.every((s) => s.s.name === 'Pebble Trio'), 'the Pebble Trio throws three pebbles');
+  const vx = g.shells.map((s) => Math.abs(s.vx)); ok(vx[0] < vx[1] && vx[1] < vx[2], 'at three powers');
+  for (let i = 0; i < 4000 && g.cur.id !== 'enzo'; i++) g.update({});
+  ok(g.cur.id === 'enzo', 'Enzo\'s turn comes');
+  const e = g.cur; e.angle = 50; g.pickShot(1);
+  const heavy = g.simulate(e, 50, 60); g.pickShot(0); const pot = g.simulate(e, 50, 60); g.pickShot(1);
+  ok(heavy.pts.length < pot.pts.length || heavy.x < pot.x, 'the Heavy Pot drops sooner than the Clay Pot');
+  g.chargeStart(); for (let i = 0; i < 70; i++) g.update({}); g.chargeRelease();
+  ok(g.shells.length === 1 && g.shells[0].s.name === 'Heavy Pot' && g.shells[0].s.grav === 1.35, 'Enzo fires the Heavy Pot');
+  for (let i = 0; i < 4000 && g.cur === e; i++) g.update({});
+  ok(g.cur !== e, 'the turn passes');
+}
 // the needle, fired by the player, stitches a patch where it lands
 {
   const g = createGame(7); g.newGame(31); settle(g, 60);

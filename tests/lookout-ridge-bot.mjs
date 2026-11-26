@@ -53,8 +53,8 @@ if (!isMainThread) {
   const smart = arm(true), dumb = arm(false);
   const pct = (n) => (100 * n / N).toFixed(0) + '%';
   console.log(`Lookout Ridge self-play, ${N} matches an arm on ${nw} threads (${((Date.now() - t0) / 1000).toFixed(1)}s)`);
-  console.log(`  heroes who darn:       win ${pct(smart.wins)}, ${(smart.darn / N).toFixed(2)} darns, ${(smart.pull / N).toFixed(2)} pulls, ${(smart.kits / N).toFixed(2)} kits lost a match`, JSON.stringify(smart.banners));
-  console.log(`  heroes who never darn: win ${pct(dumb.wins)}, ${(dumb.kits / N).toFixed(2)} kits lost a match`, JSON.stringify(dumb.banners));
+  if (!QUICK) console.log(`  heroes who darn:       win ${pct(smart.wins)}, ${(smart.darn / N).toFixed(2)} darns, ${(smart.pull / N).toFixed(2)} pulls, ${(smart.kits / N).toFixed(2)} kits lost a match`, JSON.stringify(smart.banners));
+  if (!QUICK) console.log(`  heroes who never darn: win ${pct(dumb.wins)}, ${(dumb.kits / N).toFixed(2)} kits lost a match`, JSON.stringify(dumb.banners));
   assert.equal(smart.stuck + dumb.stuck, 0, 'every match reaches an end');
   assert.ok(smart.darn > 0 && smart.pull > 0, 'smart heroes darn and pull');
   assert.equal(dumb.darn, 0, 'dumb heroes never darn');
