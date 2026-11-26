@@ -98,6 +98,6 @@ Every picture is painted by Codex from the jobs in `docs/kopi-art/jobs.txt` (`do
 
 ## Tests
 
-- `npm run test:kopi`: 21 engine tests: the stage data, determinism, both heroes' combos, the specials and the team-up, picking up, swinging, breaking and throwing, food, the python's wrap and both ways out of it, the mynah passing a stolen tray to a macaque, rats riding a monitor, every foe kind landing a hit, each stage's twist, the random events, the hawkers, both down and retry, a hero coming back, the save and the hero swap.
+- `npm run test:kopi`: 22 engine tests: the stage data, determinism, both heroes' combos, the specials and the team-up, picking up, swinging, breaking and throwing, food, the python's wrap and both ways out of it, the mynah passing a stolen tray to a macaque, rats riding a monitor, every foe kind landing a hit, each stage's twist, the random events, the hawkers, both down and retry, a hero coming back, the save and the hero swap.
 - `npm run bot:kopi`: human-delay bots (they see the game 0.2 to 0.3 s late and press a few times a second) play every stage over ten seeds with the helper on the other hero. The masher must clear stage 1 at least 70% of the time; the casual player every stage at least 80%, with at most one retry a run on stage 1. On 27-11-2026 both cleared every stage on every seed.
 - `tests/e2e/kopi.mjs` (muted, with real keys): the menus, every player-one and player-two key, the join, pause, swap, the team-up, the wrap, Continue, the results card and the save.

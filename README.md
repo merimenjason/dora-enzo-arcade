@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of one hundred and seven original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of one hundred and eight original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -117,6 +117,7 @@ Listed in arcade-menu order.
 | 105 | Jade Street | `/jade-street` | Open-city caper |
 | 106 | Tembusu | `/tembusu` | Idle roguelite |
 | 107 | Lookout Ridge | `/lookout-ridge` | Turn-based artillery |
+| 108 | Kopi Peng Brawl | `/kopi` | Co-op belt brawler |
 
 ## Run
 
@@ -1742,6 +1743,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:lookout-ridge` (determinism, the woven ground and grass band, the roof shielding the kits, darning and the open chamber, thread ends, pulls and the knot, every control, nightfall and both ways to lose), `npm run bot:lookout-ridge` (300 self-played matches an arm: heroes who darn must win at least 10 points more often than heroes who never darn; measured 54% against 35%; `npm test` runs a quick version that checks every match ends) and `npm run test:e2e:lookout-ridge` (every key and shot in the browser, a needle patch, a pom-pom pull, nightfall, losing, every restart, a first-timer pass by eye, the painted ground checked against the engine's, screenshots).
 
 **Docs:** [`docs/lookout-ridge.md`](docs/lookout-ridge.md).
+
+### 108 · Kopi Peng Brawl (`/kopi`)
+
+**Play:** a side-scrolling belt brawler across Singapore on one long night, drawn as a 1980s Hong Kong kung-fu comic with cut-out rig animation. Both heroes are always on screen: you play one and the other is a helper bot until a second player presses one of their keys to take over. Dora is quicker, with longer combos and kicks (jab, jab, high kick; special Tray Cyclone); Enzo hits harder and grabs and throws foes (jab, hook, belly bump; special Stool Slam). Five stages of three scenes each, each with a twist: Lau Pa Sat at closing time (shutters come down, the cleaners' trolley sweeps the floor) against Old Tank the water monitor; a Chinatown night market with a lion dance parade against Madam Ssst the python; the last MRT train, where doors open at each station and you can kick foes out, against Tusker the wild boar; Tekka wet market in a monsoon flood against Big Frog Ong the toad; and Changi Village at dawn, where passing jets stun everyone not in the air, against the Macaque King. Foes combine (a mynah drops what it steals to a macaque, rats ride a monitor, a python wraps one hero until the other frees them), hawker uncles and aunties join in with smoke, weapons and kopi peng that heals, and seeded random events (a power cut, a durian lorry spill, a cockroach swarm, a downpour) break up fights. Pick up stools, trays and food; a full meter bar buys a special, and both heroes pressing Special together close by makes the team-up (one bar each). If both go down, Continue restarts the scene. Cleared stages are saved.
+
+**Controls:** solo, arrows or WASD move, double-tap left or right to run, J attacks, K or Space jumps, L grabs, picks up and throws, I (or J and K together) is the special, Q swaps hero, Esc or P pauses. With a second player, player 1 uses WASD, J, K or Space, L and I; player 2 uses the arrows, comma or Numpad 1 to attack, full stop or Numpad 2 to jump, slash or Numpad 3 to grab and apostrophe or Numpad 0 for the special. Mash Attack and Jump to wriggle out of a python. Keyboard only.
+
+**Tests:** `npm run test:kopi` (22 engine tests: the stage data, determinism, both combos, the specials and the team-up, weapons and throws, food, the python wrap and both ways out, foes combining, every foe kind landing a hit, each twist, the events, the hawkers, both down and retry, the Tusker wall stun, the save and the hero swap), `npm run bot:kopi` (human-delay bots over ten seeds: the masher clears stage 1 at least 70% of the time and the casual player every stage at least 80%; `npm test` runs four seeds) and `tests/e2e/kopi.mjs` (muted, real keys: the menus, every key for both players, the join, pause, swap, team-up, wrap, Continue, the results card and the save).
+
+**Docs:** [`docs/kopi-peng-brawl.md`](docs/kopi-peng-brawl.md).
 
 ## Validation
 

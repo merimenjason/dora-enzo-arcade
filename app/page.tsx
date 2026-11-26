@@ -109,14 +109,15 @@ const GAMES=[
  {href:'/jade-street',title:'Jade Street',tag:'NEW · OPEN-CITY CAPER',blurb:'The night before the Lantern Festival the Kaypoh Crows steal five lucky heirlooms. Dora and Enzo run, hop and ride scooters, trishaws, vans and bumboats across Singapore’s Chinatown, then take the MRT and taxis out to Toa Payoh and Marina Bay: six chapters of story jobs, Hawker Tales, ticket wardens and five lanterns of heat, night markets, lucky cats, murals and mini-games.',color:'#1f9a6a',art:'🏮'},
  {href:'/tembusu',title:'Tembusu',tag:'NEW · IDLE ROGUELITE',blurb:'One tembusu tree on a hill, from seed to fall, growing in real time even while you’re away. Pick one of three buds at each fork, watch Singapore’s animals move in, and keep its seeds for the next tree.',color:'#8cbf6a',art:'🌳'},
  {href:'/lookout-ridge',title:'Lookout Ridge',tag:'NEW · TURN-BASED ARTILLERY',blurb:'Woven Andean-cloth artillery. Dora rides Tupa the llama with a pebble trebuchet, Enzo rides Mochi the capybara with a clay-pot cannon. Guard three chinchilla kits in their burrow from a culpeo fox and a buzzard-eagle until nightfall: darn holes shut and pull loose threads to unravel the ground under the predators.',color:'#c0507a',art:'🧶'},
+ {href:'/kopi',title:'Kopi Peng Brawl',tag:'NEW · CO-OP BRAWLER',blurb:'One long night across Singapore, drawn as a 1980s kung-fu comic. Dora and Enzo both brawl on screen at once: play one while the other helps, or a second player takes over on the same keyboard. Fight rats, macaques, mynahs, monitors, pythons, toads and wild boars through Lau Pa Sat, Chinatown, the last MRT train, Tekka in a monsoon and Changi Village at dawn.',color:'#d9452b',art:'🥊'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">ONE HUNDRED AND SEVEN ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>One hundred and seven ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, one hundred and seven cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">ONE HUNDRED AND EIGHT ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>One hundred and eight ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, one hundred and eight cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <ArcadeGrid games={GAMES}/>
