@@ -28,7 +28,7 @@
 .kopi-results { background: radial-gradient(circle, #4a1e16, #120d0a 75%); }
 .box { position: relative; max-width: 720px; margin: 16px; background: #fffbea; color: #17110c; border: 5px solid #17110c; border-radius: 12px; padding: 24px 30px; box-shadow: 10px 10px 0 #17110c; transform: rotate(-0.6deg); }
 .box h2 { margin: 4px 0 10px; font-size: 40px; color: #b8262a; }
-.box p { font-family: system-ui, sans-serif; font-weight: 600; font-size: 17px; line-height: 1.5; margin: 8px 0; }
+.box p { color: #17110c; font-family: system-ui, sans-serif; font-weight: 600; font-size: 17px; line-height: 1.5; margin: 8px 0; }
 .box .twist { background: #ffe14a; padding: 8px 12px; border: 3px solid #17110c; border-radius: 8px; }
 .box .small { font-size: 13px; color: #5a4a3c; }
 .box .tag { font-size: 14px; background: #17110c; color: #ffe14a; padding: 3px 10px; border-radius: 6px; }
