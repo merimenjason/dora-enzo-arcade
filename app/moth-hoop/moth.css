@@ -1,0 +1,45 @@
+.mh { position: fixed; inset: 0; background: #1d130c; color: #2a1a10; font-family: Georgia, "Iowan Old Style", serif; overflow: hidden; user-select: none; display: grid; place-items: center; }
+.mh-stage { position: relative; width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9; }
+.mh-cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; transition: filter 0.3s; }
+.mh-cv.dim { filter: brightness(0.62) saturate(0.85); }
+.mh-load { position: absolute; inset: 0; display: grid; place-items: center; }
+.mh-load p { color: #f6efe0; font-size: 26px; }
+.mh-title { position: absolute; inset: 0; cursor: pointer; }
+.mh-title img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.mh-logo { position: absolute; left: 50%; top: 9%; width: 62%; transform: translateX(-50%); filter: drop-shadow(0 4px 6px rgba(40, 20, 8, 0.45)); }
+.mh-press { color: #8a2a1e; font-weight: 700; font-size: 19px; text-align: center; margin: 12px 0 0; animation: mh-blink 1.2s ease-in-out infinite; }
+.mh-title .mh-press { position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%); background: #f6efe0; color: #8a2a1e; padding: 8px 22px; border-radius: 10px; border: 2px dashed #8a2a1e; }
+@keyframes mh-blink { 50% { opacity: 0.55; } }
+.mh-back { position: absolute; top: 14px; left: 16px; color: #2a1a10; background: #f6efe0; font-family: system-ui, sans-serif; font-weight: 700; text-decoration: none; padding: 6px 12px; border-radius: 8px; border: 2px dashed #8a3b2a; z-index: 3; }
+.mh-menu { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; overflow: auto; }
+.mh-card { position: relative; max-width: 760px; width: 100%; background: #f6efe0 url('/art/moth/aida.webp') center / 96px; color: #2a1a10; border-radius: 14px; padding: 22px 30px; box-shadow: 0 10px 30px rgba(10, 5, 2, 0.6); outline: 3px dashed #8a3b2a; outline-offset: -10px; }
+.mh-card.mh-wide { max-width: 1180px; }
+.mh-card h1 { margin: 2px 0 6px; font-size: clamp(28px, 3.4vw, 46px); color: #8a2a1e; }
+.mh-card h2 { margin: 6px 0 8px; font-size: 34px; color: #8a2a1e; }
+.mh-card p, .mh-card li, .mh-card td { color: #2a1a10; font-size: 16px; line-height: 1.5; }
+.mh-card p { margin: 6px 0; }
+.mh-card ul { margin: 8px 0; padding-left: 20px; }
+.mh-card b { color: #2a1a10; }
+.mh-card .lede { font-size: 17px; }
+.mh-card .keys { font-family: system-ui, sans-serif; font-size: 14px; color: #3d2a1c; background: rgba(255, 250, 238, 0.85); padding: 6px 10px; border-radius: 8px; }
+.mh-card .small { font-size: 14px; color: #3d2a1c; }
+.mh-card .tag { display: inline-block; font-family: system-ui, sans-serif; font-weight: 700; font-size: 13px; background: #2a1a10; color: #f6efe0; padding: 3px 10px; border-radius: 6px; }
+.mh-card .stars { font-size: 40px; color: #b07a12; letter-spacing: 6px; margin: 0; text-align: center; }
+.mh-card table { width: 100%; border-collapse: collapse; font-family: system-ui, sans-serif; }
+.mh-card td { padding: 3px 0; border-bottom: 1px dashed #b8a27c; font-weight: 600; }
+.mh-card td:last-child { text-align: right; }
+.mh-preview { display: block; margin: 8px auto; max-width: 100%; max-height: 190px; image-rendering: pixelated; border-radius: 6px; box-shadow: 0 3px 10px rgba(40, 20, 8, 0.35); }
+.mh-preview.framed { border: 10px solid #c79a5e; border-radius: 50% / 30%; padding: 10px; background: #efe4cf; }
+.mh-hoops { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 12px 0; }
+.mh-hoop { position: relative; display: flex; flex-direction: column; align-items: stretch; text-align: left; gap: 2px; padding: 10px 12px 12px; background: #fffaf0; color: #2a1a10; border: 3px solid #c79a5e; border-radius: 12px; cursor: pointer; font-family: inherit; transition: transform 0.12s, border-color 0.12s; }
+.mh-hoop .frame { display: grid; place-items: center; height: 118px; background: #efe4cf; border-radius: 8px; overflow: hidden; }
+.mh-hoop .frame img { max-width: 100%; max-height: 118px; image-rendering: pixelated; }
+.mh-hoop b { font-size: 18px; color: #2a1a10; margin-top: 6px; }
+.mh-hoop i { font-style: normal; font-family: system-ui, sans-serif; font-size: 13px; color: #4a3424; }
+.mh-hoop em { font-style: normal; font-family: system-ui, sans-serif; font-weight: 700; font-size: 13px; color: #7a2418; }
+.mh-hoop.sel { transform: translateY(-4px); border-color: #8a2a1e; box-shadow: 0 6px 0 #8a2a1e; }
+.mh-hoop.locked { cursor: not-allowed; background: #e9e0cd; }
+.mh-hoop.locked .frame img { filter: grayscale(1) opacity(0.45); }
+.mh-opts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 8px 0; }
+.mh-opts button { font-family: system-ui, sans-serif; font-weight: 700; font-size: 14px; background: #2a1a10; color: #f6efe0; border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+.mh-opts button:hover { background: #8a2a1e; }
