@@ -138,8 +138,8 @@ export default function DragonPlayground() {
 
   // ─────────────────────────────── the loop
   useEffect(() => {
-    let raf = 0, acc = 0, last = performance.now(), hudT = 0;
-    const SND: Record<string, string> = { jump: 'jump', land: 'land', slide: 'slide', spring: 'spring', grab: 'grab', fling: 'fling', splash: 'splash', toast: 'toast', roar: 'roar', stumble: 'stumble', swat: 'swat', steal: 'steal', bonk: 'bonk', count: 'count', go: 'go', flutter: 'flutter', gulp: 'gulp', seed: 'seed', twin: 'twin', otterdive: 'otterdive', otterpop: 'otterpop', win: 'win', lose: 'lose' };
+    let raf = 0, acc = 0, last = performance.now(), hudT = 0, hitStop = 0;
+    const SND: Record<string, string> = { jump: 'jump', land: 'land', slide: 'slide', spring: 'spring', grab: 'grab', fling: 'fling', splash: 'splash', toast: 'toast', roar: 'roar', stumble: 'stumble', swat: 'swat', steal: 'steal', bonk: 'bonk', count: 'count', go: 'go', flutter: 'flutter', gulp: 'gulp', seed: 'seed', twin: 'twin', otterdive: 'otterdive', otterpop: 'otterpop', win: 'win', lose: 'lose', surge: 'surge', overtake: 'overtake', pass: 'pass', knock: 'knock' };
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
       const dt = Math.min(0.1, (now - last) / 1000); last = now;
@@ -149,6 +149,8 @@ export default function DragonPlayground() {
         acc += dt;
         while (acc >= DT) {
           acc -= DT;
+          // hit-stop: a solid hit (a crow or otter swatted, a barge) holds the action for a few frames
+          if (hitStop > 0) { hitStop -= DT; continue; }
           const k1 = keys.current.p1, k2 = keys.current.p2;
           const drive: DriveIn = { mx: (k1.held.right ? 1 : 0) - (k1.held.left ? 1 : 0), down: k1.held.down, jmp: k1.press.jmp, jmpH: k1.held.jmp, roar: k1.press.roar };
           const solo: RideIn = { swat: k1.press.swat, grab: k1.press.grab || k1.held.grab, power: k1.press.power };
@@ -156,7 +158,7 @@ export default function DragonPlayground() {
           k1.press = freshKeys().press; k2.press = freshKeys().press;
           g.step(drive, ride, S.current.twoP ? NO_RIDE : solo);
           scene.ingest(g.fx, g);
-          for (const f of g.fx) { const s = SND[f.k]; if (s) snd?.play(s); if (f.k === 'win') setTimeout(() => snd?.play('wake'), 700); }
+          for (const f of g.fx) { const s = SND[f.k]; if (s) snd?.play(s); if (f.k === 'win') setTimeout(() => snd?.play('wake'), 700); if (f.k === 'knock') hitStop = 0.07; else if (f.k === 'bonk') hitStop = Math.max(hitStop, 0.05); }
           if (g.mode === 'done' && g.endT > 3 && S.current.screen === 'play') { finish(g); break; }
         }
       } else acc = 0;
@@ -301,6 +303,7 @@ export default function DragonPlayground() {
           <table className="dp-table"><tbody>
             <tr><td>Time</td><td>{secs(result.stats.time)}{result.best ? ' · best!' : ''}</td></tr>
             <tr><td>Kaya toast</td><td>{result.stats.toasts}</td></tr>
+            <tr><td>Otters overtaken</td><td>{result.stats.passes}</td></tr>
             <tr><td>Crows swatted</td><td>{result.stats.crows}</td></tr>
             <tr><td>Boosts</td><td>{result.stats.boosts}</td></tr>
             <tr><td>Splashes</td><td>{result.stats.falls}</td></tr>

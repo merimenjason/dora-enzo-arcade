@@ -66,6 +66,10 @@ export class DragonSound {
       case 'twin': for (const [i, f] of [523, 659, 784].entries()) this.tone(f, t + i * 0.05, 0.25, 'triangle', 0.15); break;
       case 'otterdive': this.tone(500, t, 0.15, 'sine', 0.15, 200); this.hiss(t, 0.2, 0.15, 1500, 1); break;
       case 'otterpop': this.tone(300, t, 0.12, 'sine', 0.18, 700); break;
+      case 'surge': this.hiss(t, 0.35, 0.18, 2600, 1.2); this.tone(520, t, 0.25, 'triangle', 0.08, 900); break;
+      case 'overtake': for (const [i, f] of [880, 1175, 988].entries()) this.tone(f, t + i * 0.07, 0.07, 'square', 0.07); break;
+      case 'pass': this.tone(660, t, 0.1, 'triangle', 0.16); this.tone(990, t + 0.08, 0.16, 'triangle', 0.16); break;
+      case 'knock': this.tone(170, t, 0.1, 'sine', 0.45, 60); this.hiss(t, 0.07, 0.35, 3200, 0.8); break;
       case 'boost': this.tone(440, t, 0.25, 'square', 0.1, 880); break;
       case 'win': for (const [i, f] of [523, 659, 784, 1047, 1319].entries()) this.tone(f, t + i * 0.11, 0.4, 'square', 0.14); break;
       case 'lose': for (const [i, f] of [523, 466, 415, 349].entries()) this.tone(f, t + i * 0.16, 0.35, 'triangle', 0.15); break;

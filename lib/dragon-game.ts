@@ -12,12 +12,14 @@ export const BACK = 0.5;         // walking back, as a share of the run
 export const GRAV = 2600;
 export const JUMP = 980;         // take-off speed; holding Jump lightens gravity for a moment
 export const HOLD_T = 0.24, HOLD_G = 0.42;
+export const JUMP_BUF = 0.18;    // seconds a jump press waits for the dragon to be able to jump
 export const STEP = 32;          // a runner steps up anything this low without jumping
 export const DRAGON_H = 135, BELLY_H = 70, DRAGON_HW = 70;
 export const OTTER_H = 58, OTTER_HW = 55;
 export const SAND = 0.6;
 export const WATER_Y = -70;      // where a swimming otter floats; a dragon below -150 has splashed
-export const METER_MAX = 5;      // kaya toasts for a roar
+export const METER_MAX = 5;      // pips on the toast meter for a roar
+export const TOAST_PIP = 3;      // kaya toasts to a pip, so a race has a few roars, not a constant one
 export const COUNTDOWN = 3;
 
 export type HeroId = 'dora' | 'enzo';
@@ -42,8 +44,8 @@ export type DragonSt = 'idle' | 'run' | 'back' | 'jump' | 'fall' | 'land' | 'sli
 export interface Dragon {
   x: number; y: number; vy: number; vx: number; ground: boolean; st: DragonSt; stT: number;
   holdT: number; tier: TierKind | null; tierT: number; stumbleT: number; splashT: number;
-  hang: Grab | null; flutterUsed: boolean; meter: number; padUsed: Set<number>; onSlide: boolean; slid: boolean;
-  bonkT: number; finished: number | null; face: number;
+  hang: Grab | null; flutterUsed: boolean; meter: number; crumbs: number; padUsed: Set<number>; onSlide: boolean; slid: boolean;
+  bonkT: number; finished: number | null; face: number; jumpBuf: number;
 }
 export type RiderAct = 'sit' | 'lean' | 'swat' | 'grab' | 'hang' | 'cheer' | 'flap' | 'wobble' | 'sad';
 export interface Rider { act: RiderAct; actT: number; swatCd: number; grabT: number; powerCd: number; manualT: number }
@@ -51,11 +53,12 @@ export type OtterSt = 'run' | 'jump' | 'swim' | 'dive' | 'hidden' | 'pop' | 'stu
 export interface Otter {
   i: number; x: number; y: number; vy: number; ground: boolean; st: OtterSt; stT: number; skill: number;
   stumbleT: number; hideT: number; hide0: number; diveX: number; popX: number; bumpCd: number; finished: number | null; lastObs: number; runT: number;
+  surgeT: number; surgeCd: number; ahead: boolean;
 }
 export interface Crow { id: number; x: number; y: number; vx: number; vy: number; st: 'fly' | 'swoop' | 'steal' | 'knocked'; t: number; gone: boolean }
 export type Fx =
-  | { k: 'jump' | 'land' | 'slide' | 'spring' | 'grab' | 'fling' | 'splash' | 'toast' | 'roar' | 'stumble' | 'swat' | 'steal' | 'bonk' | 'finish' | 'count' | 'go' | 'flutter' | 'gulp' | 'seed' | 'twin' | 'otterdive' | 'otterpop' | 'boost' | 'win' | 'lose'; x: number; y: number; n?: number };
-export interface Stats { time: number; toasts: number; crows: number; boosts: number; falls: number; steals: number }
+  | { k: 'jump' | 'land' | 'slide' | 'spring' | 'grab' | 'fling' | 'splash' | 'toast' | 'roar' | 'stumble' | 'swat' | 'steal' | 'bonk' | 'finish' | 'count' | 'go' | 'flutter' | 'gulp' | 'seed' | 'twin' | 'otterdive' | 'otterpop' | 'boost' | 'win' | 'lose' | 'surge' | 'overtake' | 'pass' | 'knock'; x: number; y: number; n?: number };
+export interface Stats { time: number; toasts: number; crows: number; boosts: number; falls: number; steals: number; passes: number }
 export interface SaveData { v: 1; won: Record<string, { time: number; stars: number }>; assist: boolean; sound: boolean; music: boolean; power: Power | null }
 
 export function rngOf(seed: number) {
@@ -80,6 +83,8 @@ export function starsFor(place: number, time: number, toasts: number, c: Course)
 }
 
 const OTTER_SKILL = [1.0, 0.95, 0.91];          // the leader and two pups
+/** rivalry: otters further behind than this spurt to catch up; a surge is this long and this fast */
+export const RIVAL_BACK = 180, SURGE_T = 2.4, SURGE_V = 1.4;   // surge speed as a share of the dragon's run
 
 export interface GameOpts { race: number; seed: number; assist?: boolean; power?: Power | null; driver?: HeroId }
 export class DragonGame {
@@ -87,7 +92,7 @@ export class DragonGame {
   rng: () => number; t = 0; mode: 'count' | 'race' | 'done' = 'count'; countT = COUNTDOWN; endT = 0;
   driver: HeroId; dragon: Dragon; rider: Rider; otters: Otter[]; crows: Crow[] = []; crowId = 0;
   toasts: { x: number; y: number; taken: boolean }[];
-  stats: Stats = { time: 0, toasts: 0, crows: 0, boosts: 0, falls: 0, steals: 0 };
+  stats: Stats = { time: 0, toasts: 0, crows: 0, boosts: 0, falls: 0, steals: 0, passes: 0 };
   fx: Fx[] = []; place = 0; stars = 0; nextCrow = 0; finishedCount = 0; leaderDoneT: number | null = null;
   riderBot = true;
   private botQ: { crows: { id: number; x: number; y: number }[]; grab: Grab | null; overGap: boolean; falling: boolean; otterAhead: number }[] = [];
@@ -97,11 +102,11 @@ export class DragonGame {
     this.race = RACES[o.race]; this.course = buildCourse(this.race); this.seed = o.seed; this.assist = o.assist ?? true;
     this.power = o.power ?? null; this.driver = o.driver ?? 'dora'; this.rng = rngOf(o.seed * 7919 + o.race * 31 + 1);
     this.dragon = { x: 120, y: 0, vy: 0, vx: 0, ground: true, st: 'idle', stT: 0, holdT: 0, tier: null, tierT: 0, stumbleT: 0, splashT: 0,
-      hang: null, flutterUsed: false, meter: 0, padUsed: new Set(), onSlide: false, slid: false, bonkT: 0, finished: null, face: 1 };
+      hang: null, flutterUsed: false, meter: 0, crumbs: 0, padUsed: new Set(), onSlide: false, slid: false, bonkT: 0, finished: null, face: 1, jumpBuf: 0 };
     this.rider = { act: 'sit', actT: 0, swatCd: 0, grabT: 0, powerCd: 0, manualT: 0 };
     this.otters = OTTER_SKILL.map((skill, i) => ({ i, x: 120 - 40 - i * 70, y: 0, vy: 0, ground: true, st: 'run' as OtterSt, stT: 0, skill,
-      stumbleT: 0, hideT: 0, hide0: 1, diveX: 0, popX: 0, bumpCd: 0, finished: null, lastObs: -1, runT: 0 }));
-    this.otters.forEach((ot, i) => { ot.x = 120 + 60 - i * 110; });
+      stumbleT: 0, hideT: 0, hide0: 1, diveX: 0, popX: 0, bumpCd: 0, finished: null, lastObs: -1, runT: 0, surgeT: 0, surgeCd: 4 + i * 2.5, ahead: true }));
+    this.otters.forEach((ot, i) => { ot.x = 120 + 60 - i * 110; ot.ahead = ot.x > 120; });
     this.toasts = this.course.toasts.map((t) => ({ ...t, taken: false }));
     this.nextCrow = 900 + this.rng() * 600;
   }
@@ -170,6 +175,8 @@ export class DragonGame {
     else d.tierT = Math.max(d.tierT, TIERS[k].t * 0.6);
     this.stats.boosts++; this.fx.push({ k: 'boost', x: d.x, y: d.y, n: Math.round(TIERS[k].m * 100) });
   }
+  /** a kaya toast eaten: every TOAST_PIP of them lights a pip on the meter */
+  private eat() { const d = this.dragon; this.stats.toasts++; if (d.meter >= METER_MAX) return; if (++d.crumbs >= TOAST_PIP) { d.crumbs = 0; d.meter++; } }
   private stumble(t: number) { const d = this.dragon; if (d.tier === 'roar' || d.tier === 'twin') return; d.stumbleT = Math.max(d.stumbleT, t); this.fx.push({ k: 'stumble', x: d.x, y: d.y }); }
 
   private stepDragon(inp: DriveIn, ride: RideIn) {
@@ -195,9 +202,9 @@ export class DragonGame {
       R.swatCd = 0.32; act('swat'); this.fx.push({ k: 'swat', x: d.x, y: d.y + DRAGON_H + 60 });
       const rx = d.x - 10, ry = d.y + this.bodyH() + 70;
       for (const cr of this.crows) if (!cr.gone && cr.st !== 'knocked' && Math.abs(cr.x - rx) < 175 && Math.abs(cr.y - ry) < 150 && cr.x > rx - 60) {
-        cr.st = 'knocked'; cr.t = 0; cr.vx = 380; cr.vy = 260; this.stats.crows++;
+        cr.st = 'knocked'; cr.t = 0; cr.vx = 380; cr.vy = 260; this.stats.crows++; this.fx.push({ k: 'knock', x: cr.x, y: cr.y });
       }
-      for (const o of this.otters) if (o.st !== 'hidden' && Math.abs(o.x - (d.x + 60)) < 130 && Math.abs(o.y - d.y) < 80 && o.stumbleT <= 0) { o.stumbleT = 0.8; o.st = 'stumble'; }
+      for (const o of this.otters) if (o.st !== 'hidden' && Math.abs(o.x - (d.x + 60)) < 130 && Math.abs(o.y - d.y) < 80 && o.stumbleT <= 0) { o.stumbleT = 0.8; o.st = 'stumble'; this.fx.push({ k: 'knock', x: o.x, y: o.y + 40, n: -1 - o.i }); }
     }
     if (ride.grab) { R.grabT = 0.3; if (R.act !== 'swat') act('grab'); }
     if (ride.power && this.power && R.powerCd <= 0) this.usePower();
@@ -257,7 +264,10 @@ export class DragonGame {
     }
 
     // ── jump
-    if (inp.jmp && d.ground && d.stumbleT <= 0.2) {
+    // a press a moment too early (still stumbling from a barge, or just before touching down) is kept, not lost
+    if (inp.jmp) d.jumpBuf = JUMP_BUF; else d.jumpBuf = Math.max(0, d.jumpBuf - DT);
+    if (d.jumpBuf > 0 && d.ground && d.stumbleT <= 0.2) {
+      d.jumpBuf = 0;
       d.vy = JUMP; d.ground = false; d.holdT = HOLD_T; d.onSlide = false; setSt('jump'); this.fx.push({ k: 'jump', x: d.x, y: d.y });
     }
     if (!d.ground) {
@@ -271,7 +281,7 @@ export class DragonGame {
           const ss = this.course.seesaws.find((q) => d.x >= q.x0 && d.x <= q.x1);
           d.y = s; d.ground = true; d.flutterUsed = false;
           if (ss && d.vy < -380) { d.vy = 1340; d.ground = false; setSt('spring'); this.fx.push({ k: 'spring', x: d.x, y: d.y }); }
-          else { d.vy = 0; setSt('land'); this.fx.push({ k: 'land', x: d.x, y: d.y }); }
+          else { const imp = Math.round(-d.vy); d.vy = 0; setSt('land'); this.fx.push({ k: 'land', x: d.x, y: d.y, n: imp }); }
         }
       }
       if (d.y < -150) {
@@ -312,7 +322,7 @@ export class DragonGame {
   private pickToasts() {
     const d = this.dragon, top = d.y + this.bodyH() + 130;
     for (const t of this.toasts) if (!t.taken && Math.abs(t.x - d.x) < 95 && t.y > d.y - 30 && t.y < top) {
-      t.taken = true; this.stats.toasts++; d.meter = Math.min(METER_MAX, d.meter + 1); this.fx.push({ k: 'toast', x: t.x, y: t.y });
+      t.taken = true; this.eat(); this.fx.push({ k: 'toast', x: t.x, y: t.y });
     }
   }
 
@@ -325,7 +335,7 @@ export class DragonGame {
     R.powerCd = POWER_CD[p];
     if (p === 'gulp') {
       for (const cr of this.crows) if (!cr.gone && cr.st !== 'knocked' && Math.abs(cr.x - d.x) < 560) { cr.gone = true; this.stats.crows++; }
-      for (const t of this.toasts) if (!t.taken && Math.abs(t.x - d.x) < 380 && t.y < d.y + 420) { t.taken = true; this.stats.toasts++; d.meter = Math.min(METER_MAX, d.meter + 1); }
+      for (const t of this.toasts) if (!t.taken && Math.abs(t.x - d.x) < 380 && t.y < d.y + 420) { t.taken = true; this.eat(); }
       this.fx.push({ k: 'gulp', x: d.x, y: d.y });
     } else if (p === 'seed') {
       let best: Otter | null = null;
@@ -376,6 +386,12 @@ export class DragonGame {
     const d = this.dragon, c = this.course;
     o.stT += DT; o.bumpCd = Math.max(0, o.bumpCd - DT);
     const setSt = (s: OtterSt) => { if (o.st !== s) { o.st = s; o.stT = 0; } };
+    // overtakes, both ways, with a little hysteresis so a tussle side by side doesn't chatter
+    if (d.finished === null && this.mode === 'race') {
+      const ox = this.otterX(o);
+      if (!o.ahead && ox > d.x + 40) { o.ahead = true; this.fx.push({ k: 'overtake', x: ox, y: o.y, n: o.i }); }
+      else if (o.ahead && ox < d.x - 40) { o.ahead = false; this.stats.passes++; this.fx.push({ k: 'pass', x: ox, y: o.y, n: o.i }); }
+    }
     if (o.finished !== null) { setSt('cheer'); return; }
     if (this.mode !== 'race') return;
     if (o.st === 'hidden') {
@@ -393,8 +409,19 @@ export class DragonGame {
     if (d.finished === null) {
       if (this.assist) { if (lead > 450) v *= 0.8; else if (lead > 200) v *= 0.92; }
       else if (lead > 900) v *= 0.92;
-      // otters left far behind put on a spurt so the race stays a race, but not on the run-in: a late lead holds
-      if (lead < -400 && d.x < this.course.finish * 0.92) v *= 1 + Math.min(0.75, (-lead - 400) / 900);
+      // otters left behind put on a spurt so they stay in view and the race stays a race, but not on the run-in: a
+      // late lead holds
+      if (lead < -RIVAL_BACK && d.x < this.course.finish * 0.92) v *= 1 + Math.min(0.8, (-lead - RIVAL_BACK) / 500);
+      // rivalry: an otter close behind waits for its moment and surges past, so the lead changes hands; the run-in is
+      // left to the racing
+      o.surgeCd -= DT;
+      if (o.surgeT <= 0 && o.surgeCd <= 0 && o.ground && lead > -380 && lead < 40 && d.x < this.course.finish * 0.75) {
+        o.surgeT = SURGE_T; o.surgeCd = 8 + ((this.seed * 13 + o.i * 7 + Math.floor(this.t)) % 7);
+        this.fx.push({ k: 'surge', x: o.x, y: o.y, n: o.i });
+      }
+      // a surge is for getting past, not for running away: it ends once the otter is clear ahead
+      if (o.surgeT > 0 && lead > 160) o.surgeT = 0;
+      if (o.surgeT > 0) { o.surgeT -= DT; v = Math.max(v, RUN * (this.assist ? SURGE_V : SURGE_V + 0.1)); }
     }
     if (this.assist) v *= 0.96;
     const swim = !o.ground && o.y <= WATER_Y + 2;

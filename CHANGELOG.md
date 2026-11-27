@@ -8,6 +8,18 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Moth Hoop** (game 110): a shooter drawn entirely in cross stitch. Dora and Enzo ride a cotton reel under Ah Ma's embroidery hoop and throw needles up to stitch six Singapore kit pictures (kopi and kaya, the Tiong Bahru flats, the Merlion, Peranakan tiles, the Supertrees and National Day fireworks) while pinning the clothes moths that chew them into holes. Larvae, cocoons, diving gold moths, a silk moth that drops power buttons and the Atlas Moth queen on the last kit. A second player joins on the same keyboard.
 
+### Changed
+
+- **Dragon Playground**: the otters race you now. They used to drop off screen within seconds; now the pack keeps up, an otter close behind surges past and taunts you ("Too slow!"), and you win the lead back with slides, flings and roars. The lead changes hands four to nine times a race, and the results card counts the otters you overtook. Three kaya toasts now make one pip on the roar meter, so a roar is a big moment, not something on all the time.
+- **Dragon Playground**: more feel: a hard landing squashes the dragon, swatting a crow or an otter lands with a hit-stop and a "Thwack!", roars, barges and splashes shake the screen, and there are new sounds for surges, overtakes and passes.
+- **Dragon Playground**: new painted poses: the riders look sad after a lost race, the driver shouts and points when an otter gets past, and otters swim, fall and look back to taunt. Longkang and river water are painted mosaic now.
+
+### Fixed
+
+- **Dragon Playground**: a jump pressed while the dragon was still stumbling from an otter's barge was lost, which could leave you running into a planter; the press is kept for a moment now.
+- **Dragon Playground**: the dragon's tail no longer floats loose behind its body when it jumps.
+- **Dragon Playground**: when two things happened at once, their pop-up words ("Thwack!", "Mine!", "Passed!") printed on top of each other and were unreadable. They stack now.
+
 ## 27-11-2026
 
 ### Added
