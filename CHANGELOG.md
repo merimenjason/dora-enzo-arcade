@@ -10,6 +10,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Kopi Peng Brawl**: the page no longer logs a script error on load; the ← Arcade link is a plain link like every other game's.
 - **Kopi Peng Brawl**: the story and twist text on the stage cards, and the text on the Paused and Both down cards, was pale grey on cream and nearly unreadable. It is dark ink now.
 
 ## 26-11-2026

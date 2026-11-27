@@ -3,7 +3,6 @@
 // or two players on one keyboard (player 2 joins by pressing one of their keys), the fixed-step loop, the save
 // (`kopi-peng-v1`) and the sound. Rules in lib/kopi-game.ts, drawing in lib/kopi-scene.ts.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { KopiGame, DT, NO_INPUT, SAVE_KEY, STAGES, RANKS, freshSave, parseSave, stageOpen, rankFor, type Input, type SaveData, type HeroId, type Stats } from '@/lib/kopi-game';
 import { KopiScene } from '@/lib/kopi-scene';
 import { KopiSound, type Tune } from './sound';
@@ -183,7 +182,7 @@ export default function KopiPengBrawl() {
           <img src={`${ART}title.webp`} alt="Kopi Peng Brawl: Dora and Enzo back to back at Lau Pa Sat" />
           <div className="kopi-press">Press J or Enter</div>
           <div className="kopi-sub">One player, or two on one keyboard · a second player joins any time by pressing , . or /</div>
-          <Link href="/" className="kopi-back" onClick={(e) => e.stopPropagation()}>← Arcade</Link>
+          <a href="/" className="kopi-back" onClick={(e) => e.stopPropagation()}>← Arcade</a>
         </div>
       )}
       {screen === 'select' && (
@@ -211,7 +210,7 @@ export default function KopiPengBrawl() {
             <button onClick={() => setP1((h) => h === 'dora' ? 'enzo' : 'dora')}>Play as: {p1 === 'dora' ? 'Dora' : 'Enzo'}</button>
           </div>
           <div className="kopi-keys">{HINT}<br />Player 2: arrows move · , attack · . jump · / grab · ' special (or Numpad 1 2 3 0)</div>
-          <Link href="/" className="kopi-back">← Arcade</Link>
+          <a href="/" className="kopi-back">← Arcade</a>
         </div>
       )}
       {screen === 'panel' && (
