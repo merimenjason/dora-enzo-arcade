@@ -9,7 +9,8 @@
 .tb-logo { position: absolute; left: 50%; top: 2%; width: 52%; transform: translateX(-50%); filter: drop-shadow(0 4px 8px rgba(40, 20, 8, 0.5)); }
 .tb-press { color: #7a2f12; font-weight: 700; font-size: 19px; text-align: center; margin: 12px 0 0; animation: tb-blink 1.2s ease-in-out infinite; }
 .tb-title .tb-press { position: absolute; left: 50%; bottom: 5%; transform: translateX(-50%); background: #2a1c13; color: #f6ead0; padding: 8px 22px; border-radius: 10px; border: 2px dashed #e0a050; }
-@keyframes tb-blink { 50% { opacity: 0.6; } }
+/* a gentle pulse in size, never in opacity, so the prompt keeps its full contrast */
+@keyframes tb-blink { 50% { scale: 1.05; } }
 .tb-back { position: absolute; top: 14px; left: 16px; color: #f6ead0; background: #2a1c13; font-family: system-ui, sans-serif; font-weight: 700; text-decoration: none; padding: 6px 12px; border-radius: 8px; border: 2px dashed #c9762e; z-index: 3; }
 .tb-menu { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; overflow: auto; }
 .tb-table { background: url('/art/tambak/table.webp') center / cover; }

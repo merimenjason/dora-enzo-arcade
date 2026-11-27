@@ -1,12 +1,13 @@
-// Tambak in the browser, muted, with real keys at 1536×900: the title; the six sites (a locked site stays shut, the
-// arrows and WASD walk the grid, every option button and the 2 key); the brief and back; then in a quiet sea every solo
-// key (W A S D and the arrows walk, a step into the sea pours and a step back claims, Q swaps who pours), the newest held
-// key winning, pause and resume on Esc and P with its options, a held Enter on the brief not bringing in player two,
-// player two joining on Enter and their keys (the arrows) while WASD stay with player one; R from pause to start again
-// and Q from pause back to the sites; a site won by holding W across the sea, its results card, the save under
-// tambak-v1 opening site 2 and Enter going on to its brief; a site lost to the creatures and R to pour it again. Fails
-// on any page error, a blank canvas, sideways scroll or card text under 4.5:1 contrast. Needs `npm run dev` (or
-// BASE_URL) and Playwright. SHOTS=<dir> saves screenshots.
+// Tambak in the browser, muted, with real keys at 1536×900: the title (and a click on it); the six sites (a locked site
+// stays shut, the arrows and WASD walk the grid, every option button and the 2 key); the brief, back, and a click on
+// it; then in a quiet sea every solo key (W A S D and the arrows walk, a step into the sea pours and a step back
+// claims, Q swaps who pours), the newest held key winning, pause and resume on Esc and P with its three options, a
+// held Enter on the brief not bringing in player two, player two joining on Enter and their keys (the arrows) while
+// WASD stay with player one; R from pause to start again and Q from pause back to the sites; a site won by holding W
+// across the sea, its results card, the save under tambak-v1 opening site 2 and Enter going on to its brief; a site
+// lost to the creatures and R to pour it again; a site lost to the tide and Esc back to the sites. Fails on any page
+// error, a blank canvas, sideways scroll or card text under 4.5:1 contrast. Needs `npm run dev` (or BASE_URL) and
+// Playwright. SHOTS=<dir> saves screenshots.
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
@@ -92,8 +93,9 @@ await wait(1500);
 ok((await st()).screen === 'title', 'opens on the title');
 ok(await page.locator('.tb-title img').evaluate((i) => i.complete && i.naturalWidth > 0), 'the title art loads');
 ok(await page.locator('.tb-logo').evaluate((c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 16) if (d[i] > 0) n++; return n > 2000; }), 'the sand lettering is poured');
-await painted('title attract');
 await readable('title'); await noScroll('the title'); await shot('1-title');
+await page.locator('.tb-title').click(); await wait(250); ok((await st()).screen === 'sites', 'a click on the title opens the sites');
+await tap('Escape'); await wait(200); ok((await st()).screen === 'title', 'Esc from the sites goes back to the title');
 
 // ── the sites
 await tap('Enter'); await wait(300);
@@ -133,6 +135,9 @@ ok((await page.locator('.tb-card').textContent()).includes('70%'), 'the brief gi
 await readable('brief'); await shot('3-brief');
 await tap('Escape'); await wait(200); ok((await st()).screen === 'sites', 'Esc leaves the brief');
 await page.locator('[data-site="0"]').click(); await wait(200); ok((await st()).screen === 'brief', 'clicking the open site opens its brief');
+await page.locator('.tb-card').click(); await wait(400); ok((await st()).screen === 'play', 'a click on the brief starts the site');
+await tap('Escape'); await wait(150); await tap('KeyQ'); await wait(300); ok((await st()).screen === 'sites', 'and Q from pause goes back');
+await tap('Enter'); await wait(250); ok((await st()).screen === 'brief', 'Enter opens the brief again');
 await page.keyboard.down('Enter'); await wait(400);
 ok((await st()).screen === 'play', 'Enter on the brief starts the site');
 // a held Enter auto-repeats: the repeat must not also bring in player two
@@ -173,6 +178,12 @@ await tap('KeyQ'); await wait(150); ok(hero(await game(), 'p1').id === 'dora', '
 await tap('Escape'); await wait(200); ok((await st()).paused, 'Esc pauses');
 const t0 = (await game()).t; await wait(400); ok((await game()).t === t0, 'the tide stops while paused');
 ok(await page.locator('.tb-card [data-opt]').count() === 3, 'the pause card has its options');
+for (const opt of ['assist', 'music', 'sound']) {
+  const before = (await st()).save[opt];
+  await page.locator(`.tb-card [data-opt="${opt}"]`).click(); await wait(150);
+  ok((await st()).save[opt] === !before && (await st()).paused, `the pause card's ${opt} button toggles and stays paused`);
+  await page.locator(`.tb-card [data-opt="${opt}"]`).click(); await wait(150);
+}
 await readable('pause'); await shot('7-pause');
 await tap('Escape'); await wait(200); ok(!(await st()).paused, 'Esc resumes');
 await tap('KeyP'); await wait(200); ok((await st()).paused, 'P pauses');
@@ -247,6 +258,13 @@ ok((await page.locator('.tb-card h2').textContent()).includes('Out of sand bucke
 await readable('lost results'); await shot('12-lost');
 await tap('KeyR'); await wait(400);
 ok((await st()).screen === 'play' && (await game()).site === 1 && !(await game()).over, 'R pours the site again');
+// lose it once more and leave the results with Esc
+await page.evaluate(() => { const g = window.__tambak().game; g.tide = 0.2; });
+ok(await until(async () => (await st()).screen === 'results', 9000), 'a site lost to the tide shows the results');
+ok((await page.locator('.tb-card h2').textContent()).includes('tide came in'), 'the card says the tide came in');
+await readable('tide results'); await shot('13-lost-tide');
+await tap('Escape'); await wait(300); ok((await st()).screen === 'sites', 'Esc on the results goes back to the sites');
+await tap('Enter'); await wait(200); await tap('Enter'); await wait(500);
 
 // ── the back link
 await tap('Escape'); await wait(150); await tap('KeyQ'); await wait(300);

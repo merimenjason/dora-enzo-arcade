@@ -29,7 +29,6 @@ export default function Tambak() {
   const cvRef = useRef<HTMLCanvasElement>(null);
   const titleRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<TambakGame | null>(null);
-  const demoRef = useRef<{ g: TambakGame; bot: Bot } | null>(null);
   const sceneRef = useRef<TambakScene | null>(null);
   const soundRef = useRef<TambakSound | null>(null);
   const [screen, setScreen] = useState<Screen>('loading');
@@ -52,12 +51,8 @@ export default function Tambak() {
     const snd = new TambakSound(); snd.musicOn = s.music; snd.sfxOn = s.sound; soundRef.current = snd;
     const fit = () => { const r = cv.getBoundingClientRect(), d = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.max(320, Math.round(r.width * d)); cv.height = Math.round(cv.width * 9 / 16); };
     fit(); window.addEventListener('resize', fit);
-    void scene.load().then(() => {
-      // the attract mode behind the menus: a bot pouring East Coast Park
-      demoRef.current = { g: new TambakGame({ site: 0, seed: 17 }), bot: new Bot(17, 0.8) };
-      setScreen('title');
-    });
-    (window as unknown as { __tambak: () => unknown }).__tambak = () => ({ Bot, game: gameRef.current, demo: demoRef.current?.g, scene: sceneRef.current, screen: S.current.screen, paused: S.current.paused, twoP: S.current.twoP, save: S.current.save, sel: S.current.sel, pads: pads.current });
+    void scene.load().then(() => setScreen('title'));
+    (window as unknown as { __tambak: () => unknown }).__tambak = () => ({ Bot, game: gameRef.current, scene: sceneRef.current, screen: S.current.screen, paused: S.current.paused, twoP: S.current.twoP, save: S.current.save, sel: S.current.sel, pads: pads.current });
     return () => { window.removeEventListener('resize', fit); snd.stop(); };
   }, []);
 
@@ -155,17 +150,9 @@ export default function Tambak() {
       const dt = Math.min(0.1, (now - last) / 1000); last = now;
       const scene = sceneRef.current; if (!scene || !scene.ready) return;
       const scr = S.current.screen;
-      if (scr !== 'play') {
-        // attract mode: a bot pours East Coast Park behind the menus, and starts over when it finishes
-        const d = demoRef.current; if (!d) return;
-        scene.demo = true; acc += dt;
-        while (acc >= DT) { acc -= DT; d.g.step(d.bot.input(d.g, d.g.heroes[0])); scene.ingest(d.g.events, d.g); }
-        if (d.g.over) { S.current.overT += dt; if (S.current.overT > 4) { S.current.overT = 0; scene.reset(); demoRef.current = { g: new TambakGame({ site: 0, seed: (Date.now() & 0xffff) }), bot: new Bot(now | 0, 0.8) }; } }
-        scene.hint = ''; scene.draw(d.g, dt);
-        return;
-      }
+      // the menus cover the whole stage with the title painting or the sand artist's table, so the lightbox only runs in play
+      if (scr !== 'play') { acc = 0; return; }
       const g = gameRef.current; if (!g) return;
-      scene.demo = false;
       if (!S.current.paused) {
         if (scene.hitStop > 0) { scene.hitStop -= dt; acc = 0; }
         else {
