@@ -46,7 +46,7 @@ sprites as palette rows) and `lib/moth-patterns.ts` (the six kit pictures, about
 | Hole | one needle darns it back to plain cloth; the next stitches it |
 | Row bonus | 150 for every row of the picture finished |
 | Win | every stitch in (and, on National Day, the queen pinned): 1000 + 300 a spool left |
-| Lose | no spools left, or holes reach the tear limit (16 to 20% of the picture, at least 10) |
+| Lose | no spools left, or holes reach the tear limit (about 1.5 to 3% of the picture: 19 holes on Kopi & Kaya, 45 to 62 on the rest) |
 | Stars | finishing; keeping every spool; beating par |
 
 Ah Ma hands back one lost spool as the picture passes a third and two thirds.
@@ -100,8 +100,8 @@ Esc or P pauses; from pause R restarts the kit and Q goes back to the kits.
 Gentle moths is on by default: moths fly 15% slower and take about 18% longer to chew, arrivals come 15% further apart, the gold moth shivers
 longer, the queen lays more slowly and a faint running stitch shows where your next needle goes. The bots in
 `tests/moth.mjs` react 12 to 18 frames late (about a quarter of a second) and aim with noise; a casual one clears every
-kit on at least three of four seeds, and one that never throws never wins. Par times are set just above the casual
-bot's clear times.
+kit on at least three of four seeds, one that never throws never wins, and one that sews but never pins a moth
+tears the cloth on the later kits. Par times sit near the casual bot's clear times: beating par takes a tidy run.
 
 ## Files
 

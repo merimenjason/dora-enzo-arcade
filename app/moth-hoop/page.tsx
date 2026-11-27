@@ -3,7 +3,7 @@
 // two players on one keyboard (player 2 joins by pressing Enter), the fixed-step loop, the save (`moth-hoop-v1`)
 // and the sound. Rules in lib/moth-game.ts, the stitch renderer in lib/moth-scene.ts.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MothGame, Bot, DT, W, HOOPS, SAVE_KEY, freshSave, parseSave, hoopOpen, record, type Input, type SaveData, type Stats } from '@/lib/moth-game';
+import { MothGame, Bot, DT, W, HOOPS, SAVE_KEY, freshSave, parseSave, hoopOpen, record, type HeroId, type SaveData, type Stats } from '@/lib/moth-game';
 import { MothScene } from '@/lib/moth-scene';
 import { MOTH_PATTERNS } from '@/lib/moth-patterns';
 import { MOTH_IMG } from '@/lib/moth-art';
@@ -12,7 +12,10 @@ import './moth.css';
 
 type Screen = 'loading' | 'title' | 'hoops' | 'brief' | 'play' | 'results';
 const HINT_SOLO = 'A D move · hold Space to throw · Q swaps · Enter: player 2 · Esc pause';
-const HINT_DUO = 'Dora: A D and Space · Enzo: arrows and Up · Esc pause';
+const NAME: Record<HeroId, string> = { dora: 'Dora', enzo: 'Enzo' };
+const other = (h: HeroId): HeroId => (h === 'dora' ? 'enzo' : 'dora');
+/** the two-player keys, naming whoever is player one (the sewer) and player two */
+const hintDuo = (p1: HeroId) => `${NAME[p1]}: A D and Space · ${NAME[other(p1)]}: arrows and Up · Esc pause`;
 
 function readSave(): SaveData { try { return parseSave(localStorage.getItem(SAVE_KEY)) ?? freshSave(); } catch { return freshSave(); } }
 function writeSave(s: SaveData) { try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch { /* private window */ } }
@@ -68,7 +71,7 @@ export default function MothHoop() {
     const scene = sceneRef.current!; scene.reset();
     const g = new MothGame({ hoop: hi, seed: (Date.now() & 0xffff) + hi * 977, assist: S.current.save.assist, twoP: S.current.twoP, sewer: S.current.save.sewer });
     gameRef.current = g; S.current.overT = 0;
-    scene.hint = S.current.twoP ? HINT_DUO : HINT_SOLO;
+    scene.hint = S.current.twoP ? hintDuo(S.current.save.sewer) : HINT_SOLO;
     scene.say(HOOPS[hi].name, HOOPS[hi].place, 2.4);
     pads.current = { p1: freshPad(), p2: freshPad() };
     setPaused(false); setScreen('play'); S.current.screen = 'play';
@@ -83,6 +86,9 @@ export default function MothHoop() {
       soundRef.current?.start();
       const scr = S.current.screen, code = e.code;
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(code)) e.preventDefault();
+      // held keys auto-repeat; the pads are held-state flags already, so a repeat must never act again (a held Enter
+      // on the brief would otherwise start the kit and then bring in player two)
+      if (e.repeat) return;
       if (scr === 'title') { if (code === 'Enter' || code === 'Space') { toHoops(); soundRef.current?.play('click'); } return; }
       if (scr === 'hoops') {
         const n = HOOPS.length;
@@ -111,7 +117,10 @@ export default function MothHoop() {
       const two = S.current.twoP;
       if (!two && (code === 'Enter' || code === 'NumpadEnter')) {
         g.join(); setTwoP(true); S.current.twoP = true;
-        sceneRef.current!.hint = HINT_DUO; sceneRef.current!.say('Player 2 joins!', 'Enzo gets a reel: arrows move, Up throws', 2.4);
+        // the arrows change owner now: drop whatever either pad held so nothing sticks down
+        pads.current = { p1: freshPad(), p2: freshPad() };
+        const p1 = g.heroes.find((h) => h.ctrl === 'p1')!.id, p2 = other(p1);
+        sceneRef.current!.hint = hintDuo(p1); sceneRef.current!.say('Player 2 joins!', `${NAME[p2]} gets a reel: arrows move, Up throws`, 2.4);
         return;
       }
       if (code === 'KeyQ' && !two) { g.swap(); persist({ ...S.current.save, sewer: g.heroes.find((h) => h.ctrl === 'p1')!.id }); return; }
@@ -161,7 +170,7 @@ export default function MothHoop() {
         acc += dt;
         while (acc >= DT) { acc -= DT; const h = d.g.heroes[0]; d.g.step(d.bot.input(d.g, h)); scene.ingest(d.g.events, d.g); }
         if (d.g.over) { S.current.overT += dt; if (S.current.overT > 4) { S.current.overT = 0; scene.reset(); demoRef.current = { g: new MothGame({ hoop: 0, seed: (Date.now() & 0xffff) }), bot: new Bot(now | 0, 0.8) }; } }
-        scene.hint = ''; scene.draw(d.g, dt);
+        scene.hint = ''; scene.demo = true; scene.draw(d.g, dt);
         return;
       }
       const g = gameRef.current; if (!g) return;
@@ -179,7 +188,7 @@ export default function MothHoop() {
         }
         if (g.over) { S.current.overT += dt; if (S.current.overT > 2.6 && S.current.screen === 'play') finish(g); }
       } else acc = 0;
-      scene.draw(g, S.current.paused ? 0 : dt);
+      scene.demo = false; scene.draw(g, S.current.paused ? 0 : dt);
     };
     const finish = (g: MothGame) => {
       const st = g.stats(), prev = S.current.save.best[g.hoop];
@@ -259,7 +268,7 @@ export default function MothHoop() {
                 <li>A moth on your stitches chews them into <b>holes</b> (watch the red ring). A hole takes one needle to darn before it can be stitched.</li>
                 <li>Finish every stitch to win. Too many holes and the cloth <b>tears</b>; three hits from diving moths and you&rsquo;re out of <b>spools</b>.</li>
               </ul>
-              <p className="keys">{twoP ? HINT_DUO : HINT_SOLO}</p>
+              <p className="keys">{twoP ? hintDuo(save.sewer) : HINT_SOLO}</p>
               <div className="mh-press">Press Enter or Space to start</div>
             </div>
           </div>
@@ -274,7 +283,7 @@ export default function MothHoop() {
                 <button onClick={() => toggle('music')}>Music: {save.music ? 'on' : 'off'}</button>
                 <button onClick={() => toggle('sound')}>Sound: {save.sound ? 'on' : 'off'}</button>
               </div>
-              <p className="keys">{twoP ? HINT_DUO : HINT_SOLO}</p>
+              <p className="keys">{twoP ? hintDuo(save.sewer) : HINT_SOLO}</p>
             </div>
           </div>
         )}
