@@ -132,14 +132,18 @@ export class TambakGame {
     const sp = FOES[kind];
     let x = 0, y = 0;
     if (kind === 'crab') {
-      // on land, as far from every hero as the land allows
+      // on land poured from the sea (so it is in full view, not on the screen's edge), as far from every hero as that
+      // land allows; the rim's inner row only if no poured land qualifies
       let best = -1;
-      for (let k = 0; k < 400; k++) {
-        const c = this.rng.int(N); if (this.grid[c] !== LAND) continue;
-        const cx = c % W, cy = (c / W) | 0;
-        if (cx < 1 || cy < 1 || cx >= W - 1 || cy >= H - 1) continue;
-        const d = Math.min(...this.heroes.map((h) => Math.abs(h.x - cx) + Math.abs(h.y - cy)));
-        if (d > best) { best = d; x = cx + 0.5; y = cy + 0.5; }
+      for (const inner of [RIM, 1]) {
+        for (let k = 0; k < 600; k++) {
+          const c = this.rng.int(N); if (this.grid[c] !== LAND) continue;
+          const cx = c % W, cy = (c / W) | 0;
+          if (cx < inner || cy < inner || cx >= W - inner || cy >= H - inner) continue;
+          const d = Math.min(...this.heroes.map((h) => Math.abs(h.x - cx) + Math.abs(h.y - cy)));
+          if (d > best) { best = d; x = cx + 0.5; y = cy + 0.5; }
+        }
+        if (best >= 0) break;
       }
     } else {
       // in open sea, away from the rim and from the heroes
@@ -310,10 +314,12 @@ export class TambakGame {
       if (sp.sea && this.cellAt(f.x, f.y) === LAND) this.unstick(f);
     }
   }
-  /** sea creatures turn at land, the crab turns at the water's edge (trails count as water for it) */
+  /** sea creatures turn at land, the crab turns at the water's edge (trails count as water for it) and at the outermost
+   *  row of the rim, so it never walks off the screen's edge or under the HUD */
   private blocked(f: Foe, x: number, y: number) {
     const v = this.cellAt(x, y);
-    return FOES[f.kind].sea ? v === LAND : v !== LAND;
+    if (FOES[f.kind].sea) return v === LAND;
+    return v !== LAND || x < 1 || y < 1 || x >= W - 1 || y >= H - 1;
   }
   private unstick(f: Foe) {
     const fx = Math.floor(f.x), fy = Math.floor(f.y);

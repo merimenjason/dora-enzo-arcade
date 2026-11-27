@@ -6,6 +6,7 @@
 import { W, H, N, LAND, TRAIL0, SITES, FOES, type TambakGame, type Ev, type Hero, type Foe, type PickKind } from './tambak-game';
 import { TAMBAK_ATLAS, TAMBAK_IMG, type FrameBox } from './tambak-art';
 
+const HINT_FOR = 15;
 export const VW = 1536, VH = 864, HUD = 64, CELL = 16, FW = W * CELL, FH = H * CELL;
 const INK = '#f6ead0', INK2 = '#e6d5b0', WOOD = '#2a1c13';
 /** each hero pours a different sand: Dora terracotta, Enzo ochre */
@@ -18,7 +19,11 @@ interface Grain { x: number; y: number; vx: number; vy: number; t: number; c: st
 export class TambakScene {
   cv: HTMLCanvasElement; ctx: CanvasRenderingContext2D;
   img: Record<string, HTMLImageElement> = {};
-  ready = false; demo = false; hint = ''; hitStop = 0; time = 0;
+  ready = false; demo = false; hitStop = 0; time = 0;
+  /** the key hint along an edge of the field; setting it shows it afresh for HINT_FOR seconds of play */
+  private hintText = ''; private hintAge = 0;
+  get hint() { return this.hintText; }
+  set hint(v: string) { if (v !== this.hintText) this.hintAge = 0; this.hintText = v; }
   private pic = ''; private picData: ImageData | null = null;
   private land: HTMLCanvasElement; private landCtx: CanvasRenderingContext2D;
   private small: HTMLCanvasElement; private smallCtx: CanvasRenderingContext2D;
@@ -68,7 +73,7 @@ export class TambakScene {
   reset() {
     this.seen.fill(0); this.revAt.fill(0); this.dirty = true; this.box = [0, 0, W, H];
     this.floats = []; this.fx = []; this.grains = []; this.banner = null; this.shake = 0; this.hitStop = 0; this.disp.clear();
-    this.landCtx.clearRect(0, 0, FW, FH);
+    this.landCtx.clearRect(0, 0, FW, FH); this.hintAge = 0;
   }
 
   say(title: string, sub: string, dur = 2.2) { this.banner = { title, sub, t: 0, dur }; }
@@ -211,11 +216,15 @@ export class TambakScene {
     this.drawTrails(g);
     this.drawPicks(g);
     for (const f of g.foes) this.drawFoe(g, f);
+    ctx.restore();
+    // the HUD goes down before the chinchillas, so one standing on the top shore is drawn over it, not hidden under it
+    if (!this.demo) this.drawHud(g);
+    ctx.save(); ctx.translate(ox, oy);
     for (const h of g.heroes) this.drawHero(g, h, dt);
     this.drawFx(dt);
     ctx.restore();
 
-    if (!this.demo) { this.drawHud(g); this.drawBanner(dt); if (this.hint) this.drawHint(); }
+    if (!this.demo) { this.drawBanner(dt); if (this.hint) this.drawHint(g, dt); }
   }
 
   private drawTrails(g: TambakGame) {
@@ -250,7 +259,15 @@ export class TambakScene {
       case 'jelly': this.centred('foes', tick ? 'jellyA' : 'jellyB', x, y, 46 + Math.sin(this.time * 4 + f.id) * 3); break;
       case 'croc': this.centred('foes', f.snap > 0 ? 'crocSnap' : tick ? 'crocA' : 'crocB', x, y, 70, ang); break;
       case 'puffer': this.centred('foes', f.puff < 0.3 ? 'puffS' : f.puff < 0.85 ? 'puffM' : 'puffL', x, y, (f.r * 2 + 0.8) * CELL * 1.15, ang); break;
-      case 'crab': this.centred('foes', tick ? 'crabA' : 'crabB', x, y, 46, ang); break;
+      case 'crab': {
+        // the crab walks the painted land, so it gets the lightbox halo the chinchillas have and a red warning ring
+        const halo = ctx.createRadialGradient(x, y, 4, x, y, 34);
+        halo.addColorStop(0, 'rgba(255,250,228,0.85)'); halo.addColorStop(0.65, 'rgba(255,250,228,0.5)'); halo.addColorStop(1, 'rgba(255,250,228,0)');
+        ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(x, y, 34, 0, Math.PI * 2); ctx.fill();
+        ctx.save(); ctx.strokeStyle = 'rgba(176,40,20,0.85)'; ctx.lineWidth = 2.5; ctx.setLineDash([5, 4]); ctx.lineDashOffset = -this.time * 12;
+        ctx.beginPath(); ctx.arc(x, y, 27, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+        this.centred('foes', tick ? 'crabA' : 'crabB', x, y, 50, ang); break;
+      }
       case 'boss': this.centred('boss', g.netT > 0 ? 'dizzy' : f.snap > 0 || f.puff > 0.6 ? 'lunge' : tick ? 'swimA' : 'swimB', x, y, 104, ang); break;
     }
     if (f.kind === 'puffer' && f.puff > 0 && f.puff < 1) { ctx.save(); ctx.strokeStyle = 'rgba(190,60,30,0.6)'; ctx.lineWidth = 2; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.arc(x, y, (FOES.puffer.r + 0.9) * CELL, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
@@ -275,9 +292,14 @@ export class TambakScene {
       else { name = step ? 'rightA' : 'rightB'; flip = h.face === 4; }
     } else if (t % 3.3 < 0.15) name = 'blink';
     const ctx = this.ctx;
-    ctx.save(); ctx.fillStyle = 'rgba(50,30,15,0.25)'; ctx.beginPath(); ctx.ellipse(d.x, d.y + 7, 15, 6, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    // the lightbox shining through round the chinchilla, so it reads on the busiest painted land
+    ctx.save();
+    const halo = ctx.createRadialGradient(d.x, d.y - 20, 6, d.x, d.y - 20, 46);
+    halo.addColorStop(0, 'rgba(255,250,228,0.7)'); halo.addColorStop(0.6, 'rgba(255,250,228,0.35)'); halo.addColorStop(1, 'rgba(255,250,228,0)');
+    ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(d.x, d.y - 20, 46, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(50,30,15,0.3)'; ctx.beginPath(); ctx.ellipse(d.x, d.y + 7, 15, 6, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     const alpha = h.blink > 0 && g.over === null ? (Math.floor(t * 12) % 2 ? 0.35 : 1) : 1;
-    this.sprite(sheet, name, d.x, d.y + 9, 62, flip, alpha);
+    this.sprite(sheet, name, d.x, Math.min(VH - 1, d.y + 9), 62, flip, alpha);
     // a little marker over each player in two-player, in their sand colour
     if (g.heroes.length > 1) {
       const c = SAND[h.id === 'enzo' ? 1 : 0].base; ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
@@ -350,11 +372,18 @@ export class TambakScene {
     ctx.restore();
   }
 
-  private drawHint() {
-    const ctx = this.ctx; ctx.font = '600 15px system-ui, sans-serif';
-    const w = ctx.measureText(this.hint).width + 28;
-    ctx.fillStyle = 'rgba(42,28,19,0.88)'; ctx.beginPath(); ctx.roundRect(VW / 2 - w / 2, VH - 30, w, 26, 8); ctx.fill();
-    ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(this.hint, VW / 2, VH - 17); ctx.textAlign = 'left';
+  /** the keys, for the first seconds of a site: along the bottom shore, or the top one while a chinchilla stands near
+   *  the bottom, and not at all while both shores are busy, so it never covers a player */
+  private drawHint(g: TambakGame, dt: number) {
+    this.hintAge += dt;
+    const a = Math.min(1, (HINT_FOR - this.hintAge) / 0.6); if (a <= 0) return;
+    const nearBottom = g.heroes.some((h) => h.y >= H - 7), nearTop = g.heroes.some((h) => h.y <= 6);
+    if (nearBottom && nearTop) return;
+    const ctx = this.ctx; ctx.save(); ctx.globalAlpha = a; ctx.font = '600 15px system-ui, sans-serif';
+    const w = ctx.measureText(this.hint).width + 28, y = nearBottom ? HUD + 6 : VH - 30;
+    ctx.fillStyle = 'rgba(42,28,19,0.9)'; ctx.beginPath(); ctx.roundRect(VW / 2 - w / 2, y, w, 26, 8); ctx.fill();
+    ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(this.hint, VW / 2, y + 13);
+    ctx.restore();
   }
 
   /** the title lettering, poured as coloured sand: the word is sampled into grains, a dark rim first, then the fill */

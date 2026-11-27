@@ -164,7 +164,7 @@ ok('the horseshoe crab climbs out once a quarter of the sea is land, far from th
   const crab = g.foes.find((f) => f.kind === 'crab');
   assert.equal(g.cellAt(crab.x, crab.y), LAND);
   assert.ok(Math.abs(crab.x - h.x) + Math.abs(crab.y - h.y) > 20, 'far from the hero');
-  for (let k = 0; k < 20 * 60; k++) { g.step(0); assert.equal(g.cellAt(crab.x, crab.y), LAND); }
+  for (let k = 0; k < 20 * 60; k++) { g.step(0); assert.equal(g.cellAt(crab.x, crab.y), LAND); assert.ok(crab.x >= 1 && crab.y >= 1 && crab.x < W - 1 && crab.y < H - 1, 'off the outermost row, in view'); }
   // and no crab on a site without one
   const g0 = quiet(0); foe(g0, 'jelly', 60.5, 8.5, 0, 0); g0.heroes[0].x = 1; g0.heroes[0].y = 30; walk(g0, 2, W);
   assert.ok(!g0.foes.some((f) => f.kind === 'crab'));
