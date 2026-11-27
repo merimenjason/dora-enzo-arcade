@@ -12,9 +12,12 @@ export const CELL = 12;            // one cloth stitch, in view px
 export const SPR = 7;              // one sprite stitch
 const NV = 32;                     // stitch variants in the atlas
 const INK = '#3a2216';             // HUD thread: dark walnut on cream aida (about 12:1)
+// the riders: the reel sits on the tape measure, the chinchillas stand on the reel
+const REEL_SC = 0.68, HERO_SC = 0.8, REEL_Y = RAIL_Y - 1.4, REEL_TOP = REEL_Y - 16 * SPR / CELL * REEL_SC / 2;
 
 // a 5 x 7 stitch font for the HUD (rows top to bottom, '#' is a stitch)
 const FONT: Record<string, string> = {
+  "·": '.................#.................',
   "A": '.###.#...##...#######...##...##...#', "B": '####.#...#####.#...##...##...#####.', "C": '.###.#...##....#....#....#...#.###.', "D": '####.#...##...##...##...##...#####.',
   "E": '######....####.#....#....#....#####', "F": '######....####.#....#....#....#....', "G": '.###.#...##....#.####...##...#.####', "H": '#...##...#######...##...##...##...#',
   "I": '.###...#....#....#....#....#...###.', "J": '..###...#....#....#....#.#..#..##..', "K": '#...##..#.#.#..##...#.#..#..#.#...#', "L": '#....#....#....#....#....#....#####',
@@ -63,11 +66,18 @@ export class MothScene {
     c = document.createElement('canvas'); c.width = NV * px; c.height = px;
     const x = c.getContext('2d')!, src = this.img.stitches;
     if (src?.naturalWidth) {
-      for (let i = 0; i < NV; i++) x.drawImage(src, (i % 8) * 48, Math.floor(i / 8) * 48, 48, 48, i * px, 0, px, px);
-      // multiply the white floss by the thread colour, then a touch of the colour back on top so dark threads keep sheen
+      // the white strip first (cached per size), then tint it: multiply the floss by the thread colour and cut back to
+      // the floss shape in one draw (destination-in clears everything outside the drawn image, so it can't go per cell)
+      const wk = `white@${px}`; let wh = this.tint.get(wk);
+      if (!wh) {
+        wh = document.createElement('canvas'); wh.width = NV * px; wh.height = px;
+        const w = wh.getContext('2d')!;
+        for (let i = 0; i < NV; i++) w.drawImage(src, (i % 8) * 48, Math.floor(i / 8) * 48, 48, 48, i * px, 0, px, px);
+        this.tint.set(wk, wh);
+      }
+      x.drawImage(wh, 0, 0);
       x.globalCompositeOperation = 'multiply'; x.fillStyle = col; x.fillRect(0, 0, c.width, px);
-      x.globalCompositeOperation = 'destination-in';
-      for (let i = 0; i < NV; i++) x.drawImage(src, (i % 8) * 48, Math.floor(i / 8) * 48, 48, 48, i * px, 0, px, px);
+      x.globalCompositeOperation = 'destination-in'; x.drawImage(wh, 0, 0);
       x.globalCompositeOperation = 'source-over';
     } else { x.fillStyle = col; for (let i = 0; i < NV; i++) x.fillRect(i * px + px * 0.15, px * 0.15, px * 0.7, px * 0.7); }
     this.tint.set(k, c); return c;
@@ -128,10 +138,12 @@ export class MothScene {
     const col = g.pat.palette[ci - 1];
     if (st === TODO || st === HOLE) {
       // a printed kit: the picture is screen-printed faintly onto the cloth
-      k.globalAlpha = 0.34; k.fillStyle = col; k.fillRect(x + c * 0.12, y + c * 0.12, c * 0.76, c * 0.76); k.globalAlpha = 1;
+      k.globalAlpha = 0.5; k.fillStyle = printInk(col); k.fillRect(x + c * 0.14, y + c * 0.14, c * 0.72, c * 0.72); k.globalAlpha = 1;
     } else if (st === DONE) {
       const px = Math.round(c), v = (i * 2654435761 >>> 0) % NV;
-      k.drawImage(this.stitches(col, px), v * px, 0, px, px, x - c * 0.06, y - c * 0.06, c * 1.12, c * 1.12);
+      // floss fills its square: a solid bed of the thread colour a shade darker, then the cross with its sheen on top
+      k.fillStyle = shade(col, 0.8); k.fillRect(x + c * 0.04, y + c * 0.04, c * 0.92, c * 0.92);
+      k.drawImage(this.stitches(col, px), v * px, 0, px, px, x - c * 0.1, y - c * 0.1, c * 1.2, c * 1.2);
     }
   }
 
@@ -143,8 +155,8 @@ export class MothScene {
     for (let r = 0; r < p.h; r++) for (let c = 0; c < p.w; c++) {
       const ci = p.cells[r * p.w + c]; if (!ci) continue;
       const col = p.palette[ci - 1];
-      if (done) x.drawImage(this.stitches(col, size), ((r * 7 + c * 13) % NV) * size, 0, size, size, c * size, r * size, size, size);
-      else { x.globalAlpha = 0.34; x.fillStyle = col; x.fillRect(c * size, r * size, size, size); x.globalAlpha = 1; }
+      if (done) { x.fillStyle = shade(col, 0.8); x.fillRect(c * size, r * size, size, size); x.drawImage(this.stitches(col, size), ((r * 7 + c * 13) % NV) * size, 0, size, size, c * size, r * size, size, size); }
+      else { x.globalAlpha = 0.6; x.fillStyle = printInk(col); x.fillRect(c * size, r * size, size, size); x.globalAlpha = 1; }
     }
     return cv;
   }
@@ -168,6 +180,7 @@ export class MothScene {
         case 'hurt': this.shake = Math.max(this.shake, e.blocked ? 6 : 12); this.flash = e.blocked ? 0 : 0.35; this.hurtT = 0.5; if (e.blocked) this.say('The thimble took it!', '', 1.4); break;
         case 'row': this.floats.push({ x: W / 2, y: e.row, t: 0, text: 'ROW +150', col: INK }); break;
         case 'power': this.say(POWER_NAME[e.power] + '!', powerSub(e.power), 1.8); break;
+        case 'spool': this.say('A spare spool!', 'Ah Ma left one by the hoop. ' + e.spools + ' of 3 now.', 2); break;
         case 'win': this.say('Hoop finished!', 'Every stitch is in.', 3); break;
         case 'lose': this.say(e.why === 'tear' ? 'The cloth tore' : 'Out of spools', e.why === 'tear' ? 'Too many moth holes.' : 'The gold moths knocked the reels over.', 3); break;
         case 'hatch': this.burst(e.x, e.y, ['#f3ead2', '#c9b98f'], 8, 1); break;
@@ -201,7 +214,7 @@ export class MothScene {
     const holes = this.img.holes;
     for (let i = 0; i < W * H; i++) if (g.cloth[i] === HOLE) {
       const x = (i % W) * c, y = Math.floor(i / W) * c, v = (i * 7) % 8;
-      if (holes?.naturalWidth) ctx.drawImage(holes, v * 64, 0, 64, 64, x - c * 0.55, y - c * 0.55, c * 2.1, c * 2.1);
+      if (holes?.naturalWidth) ctx.drawImage(holes, v * 64, 0, 64, 64, x + c / 2 - c * 1.35, y + c / 2 - c * 1.35, c * 2.7, c * 2.7);
       else { ctx.fillStyle = '#22160f'; ctx.fillRect(x + 2, y + 2, c - 4, c - 4); }
     }
     // new stitches pull tight: a bright, slightly large cross that settles
@@ -238,13 +251,6 @@ export class MothScene {
       this.drawSprite(key, d.x, d.y, 1, Math.sin(this.time * 3) * 0.2, true);
     }
 
-    // the tape-measure rail and the reels
-    const rail = this.img.rail;
-    if (rail?.naturalWidth) { const rh = 5.2 * c, rw = rh * rail.naturalWidth / rail.naturalHeight; for (let x = -rw * 0.1; x < VW * s; x += rw * 0.98) ctx.drawImage(rail, x, (RAIL_Y + 0.4) * c, rw, rh); }
-    for (const h of g.heroes) if (h.ctrl !== 'ride') this.drawReel(g, h);
-    if (!g.twoP) { const rider = g.heroes.find((h) => h.ctrl === 'ride'); if (rider) this.drawHero(g, rider, true); }
-    for (const h of g.heroes) if (h.ctrl !== 'ride') this.drawHero(g, h, false);
-
     // flying stitch bits
     for (const b of this.bits) {
       b.t += dt; b.vy += 40 * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.vx *= 0.97;
@@ -258,6 +264,14 @@ export class MothScene {
     // the hoop and table over everything on the cloth
     ctx.setTransform(1, 0, 0, 1, sx * 0.4, sy * 0.4);
     const fr = this.img.frame; if (fr?.naturalWidth) ctx.drawImage(fr, 0, 0, VW * s, VH * s);
+    ctx.setTransform(1, 0, 0, 1, sx, sy);
+    // the tape-measure rail on the table in front of the hoop, and the reels riding it
+    const rail = this.img.rail;
+    if (rail?.naturalWidth) { const rh = 5.2 * c, rw = rh * rail.naturalWidth / rail.naturalHeight; for (let x = -rw * 0.1; x < VW * s; x += rw * 0.98) ctx.drawImage(rail, x, (RAIL_Y + 0.4) * c, rw, rh); }
+    for (const h of g.heroes) if (h.ctrl !== 'ride') this.drawReel(g, h);
+    if (!g.twoP) { const rider = g.heroes.find((h) => h.ctrl === 'ride'); if (rider) this.drawHero(g, rider, true); }
+    for (const h of g.heroes) if (h.ctrl !== 'ride') this.drawHero(g, h, false);
+
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     // lavender haze
@@ -332,7 +346,7 @@ export class MothScene {
 
   private drawReel(g: MothGame, h: Hero) {
     const spin = Math.abs(h.dir) > 0 && Math.sin(this.time * 24) > 0;
-    this.drawSprite(spin ? 'props.reelSpin' : 'props.reel', h.x + 0.5, RAIL_Y + 2.2, 1, 0, true, h.dir < 0);
+    this.drawSprite(spin ? 'props.reelSpin' : 'props.reel', h.x + 0.5, REEL_Y, REEL_SC, 0, true, h.dir < 0);
   }
 
   private drawHero(g: MothGame, h: Hero, rider: boolean) {
@@ -352,12 +366,12 @@ export class MothScene {
     else if (h.idleT > 5 && (h.idleT % 4) < 1.2) f = 'wave';
     else f = (this.time + (h.id === 'enzo' ? 1.7 : 0)) % 3.4 < 0.15 ? 'blink' : 'idle';
     const bob = f === 'idle' || f === 'blink' ? Math.sin(this.time * 3 + (h.id === 'enzo' ? 1 : 0)) * 0.12 : 0;
-    const dx = rider ? (h.id === 'enzo' ? 3.6 : -3.6) : 0;
+    const dx = g.twoP ? 0 : rider ? -3.4 : 2.4;
     const sp = this.sprite(`${h.id}.${f}`);
-    const hgt = sp ? sp.h / (CELL * this.scale()) : 12;
+    const hgt = (sp ? sp.h / (CELL * this.scale()) : 12) * HERO_SC;
     ctx.save();
     if (h.hurtT > 0 && Math.sin(this.time * 40) > 0.3) ctx.globalAlpha = 0.55;
-    this.drawSprite(`${h.id}.${f}`, reel.x + 0.5 + dx, RAIL_Y + 0.4 - hgt / 2 + bob, 1, 0, true);
+    this.drawSprite(`${h.id}.${f}`, reel.x + 0.5 + dx, REEL_TOP + 0.9 - hgt / 2 + bob, HERO_SC, 0, true);
     ctx.restore();
   }
 
@@ -366,13 +380,15 @@ export class MothScene {
     const ctx = this.ctx, t = text.toUpperCase(), cw = px * 6, total = t.length * cw - px;
     let x0 = align === 'left' ? x : align === 'center' ? x - total / 2 : x - total;
     const ip = Math.max(2, Math.round(px));
-    const strip = this.stitches(col, ip), back = outline ? this.stitches('#f6efe0', ip + 2) : null;
+    const strip = this.stitches(col, ip), back = outline;
     for (const ch of t) {
       const g = FONT[ch] ?? FONT[' '];
       for (let r = 0; r < 7; r++) for (let c = 0; c < 5; c++) if (g[r * 5 + c] === '#') {
         const v = (r * 5 + c + ch.charCodeAt(0)) % NV;
-        if (back) ctx.drawImage(back, v * (ip + 2), 0, ip + 2, ip + 2, x0 + c * px - 1, y + r * px - 1, px + 2, px + 2);
-        ctx.drawImage(strip, v * ip, 0, ip, ip, x0 + c * px, y + r * px, px, px);
+        if (back) { ctx.fillStyle = '#f6efe0'; ctx.fillRect(x0 + c * px - px * 0.35, y + r * px - px * 0.35, px * 1.7, px * 1.7); }
+        // a solid square of the thread colour with the cross over it: reads as stitching up close, as a clean pixel font from afar
+        ctx.fillStyle = col; ctx.fillRect(x0 + c * px + px * 0.06, y + r * px + px * 0.06, px * 0.88, px * 0.88);
+        ctx.drawImage(strip, v * ip, 0, ip, ip, x0 + c * px - px * 0.1, y + r * px - px * 0.1, px * 1.2, px * 1.2);
       }
       x0 += cw;
     }
@@ -403,8 +419,8 @@ export class MothScene {
     this.stitchText('KIT', bx, 29 * s, px, INK);
     const cells = 26, cp = Math.round(10 * s), x0 = bx + 70 * s, filled = Math.round(g.progress * cells);
     for (let i = 0; i < cells; i++) {
-      const col = i < filled ? '#2f7d4f' : '#d8ccb2';
-      this.ctx.drawImage(this.stitches(col, cp), (i * 3 % NV) * cp, 0, cp, cp, x0 + i * 11.5 * s, 29 * s, 11 * s, 22 * s);
+      if (i < filled) { this.ctx.fillStyle = '#2f7d4f'; this.ctx.fillRect(x0 + i * 11.5 * s + 1 * s, 30 * s, 9 * s, 20 * s); this.ctx.drawImage(this.stitches('#2f7d4f', cp), (i * 3 % NV) * cp, 0, cp, cp, x0 + i * 11.5 * s, 30 * s, 11 * s, 20 * s); }
+      else { this.ctx.fillStyle = 'rgba(90,60,35,0.18)'; this.ctx.fillRect(x0 + i * 11.5 * s + 1 * s, 30 * s, 9 * s, 20 * s); }
     }
     this.stitchText(Math.floor(g.progress * 100) + '%', bx + bw, 29 * s, px, INK, 'right');
     // tear meter and spools, top right
@@ -412,7 +428,11 @@ export class MothScene {
     this.patch(rx, 14 * s, 330 * s, 54 * s);
     this.stitchText('TEAR', rx + 22 * s, 29 * s, px, INK);
     const tcells = 10, tf = Math.min(tcells, Math.round(g.holes / g.tearAt * tcells));
-    for (let i = 0; i < tcells; i++) this.ctx.drawImage(this.stitches(i < tf ? '#b8322a' : '#d8ccb2', cp), (i * 5 % NV) * cp, 0, cp, cp, rx + 104 * s + i * 13 * s, 30 * s, 12 * s, 20 * s);
+    for (let i = 0; i < tcells; i++) {
+      const tx = rx + 104 * s + i * 13 * s;
+      if (i < tf) { this.ctx.fillStyle = '#b8322a'; this.ctx.fillRect(tx + 1 * s, 30 * s, 10 * s, 20 * s); this.ctx.drawImage(this.stitches('#b8322a', cp), (i * 5 % NV) * cp, 0, cp, cp, tx, 30 * s, 12 * s, 20 * s); }
+      else { this.ctx.fillStyle = 'rgba(90,60,35,0.18)'; this.ctx.fillRect(tx + 1 * s, 30 * s, 10 * s, 20 * s); }
+    }
     for (let i = 0; i < 3; i++) {
       this.ctx.globalAlpha = i < g.spools ? 1 : 0.25;
       this.drawSpool(rx + 252 * s + i * 24 * s, 40 * s, s);
@@ -422,15 +442,20 @@ export class MothScene {
     const act = (['lavender', 'triple', 'gold'] as Power[]).filter((p) => g.powers[p] > 0);
     if (g.powers.thimble > 0) act.push('thimble');
     act.forEach((p, i) => {
-      const y = (78 + i * 40) * s; this.patch(bx + 60 * s, y, bw - 120 * s, 34 * s);
+      const y = ((g.time < 14 && this.hint ? 120 : 78) + i * 40) * s; this.patch(bx + 60 * s, y, bw - 120 * s, 34 * s);
       this.stitchText(POWER_NAME[p] + (p === 'thimble' ? '' : ' ' + Math.ceil(g.powers[p])), VW * s / 2, y + 9 * s, 2.4 * s, INK, 'center');
     });
-    if (this.hint) { this.patch(VW * s / 2 - 400 * s, VH * s - 40 * s, 800 * s, 34 * s); this.stitchText(this.hint, VW * s / 2, VH * s - 31 * s, 2.3 * s, INK, 'center'); }
+    if (this.hint && g.time < 14) {
+      const hp = 2.4 * s, tw = this.hint.length * hp * 6, a = Math.min(1, (14 - g.time) / 1.5);
+      this.ctx.globalAlpha = a;
+      this.patch(VW * s / 2 - tw / 2 - 22 * s, 76 * s, tw + 44 * s, 36 * s); this.stitchText(this.hint, VW * s / 2, 86 * s, hp, INK, 'center');
+      this.ctx.globalAlpha = 1;
+    }
   }
 
   private drawSpool(x: number, y: number, s: number) {
     const sp = this.sprite('props.reel'); if (!sp) return;
-    const w = 22 * s, h = w * sp.h / sp.w; this.ctx.drawImage(sp.cv, x - w / 2, y - h / 2, w, h);
+    const w = 30 * s, h = w * sp.h / sp.w; this.ctx.drawImage(sp.cv, x - w / 2, y - h / 2, w, h);
   }
 
   plaque(text: string, sub: string, cx: number, cy: number) {
@@ -443,4 +468,17 @@ export class MothScene {
 
 function powerSub(p: Power) {
   return p === 'lavender' ? 'Moths hate it. They flee for a while.' : p === 'triple' ? 'Three needles at a time.' : p === 'gold' ? 'Each needle sews twice as far.' : 'Blocks the next dive.';
+}
+
+/** the ink a kit is printed in: the thread colour, with very light colours pulled darker so they show on cream aida */
+function printInk(hex: string) {
+  const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255, l = 0.3 * r + 0.59 * g + 0.11 * b;
+  if (l < 190) return hex;
+  const k = 190 / l; return `rgb(${Math.round(r * k)},${Math.round(g * k)},${Math.round(b * k)})`;
+}
+
+/** a thread colour darkened by `k` (0..1), for the bed under each cross */
+function shade(hex: string, k: number) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgb(${Math.round((n >> 16) * k)},${Math.round(((n >> 8) & 255) * k)},${Math.round((n & 255) * k)})`;
 }

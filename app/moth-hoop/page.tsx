@@ -11,8 +11,8 @@ import { MothSound } from './sound';
 import './moth.css';
 
 type Screen = 'loading' | 'title' | 'hoops' | 'brief' | 'play' | 'results';
-const HINT_SOLO = 'A D or arrows move · Space, W or Up throws (hold it) · Q swaps who sews · Enter: player 2 joins · Esc pauses';
-const HINT_DUO = 'Dora: A D move, W or Space throws · Enzo: arrows move, Up or Enter throws · Esc pauses';
+const HINT_SOLO = 'A D move · hold Space to throw · Q swaps · Enter: player 2 · Esc pause';
+const HINT_DUO = 'Dora: A D and Space · Enzo: arrows and Up · Esc pause';
 
 function readSave(): SaveData { try { return parseSave(localStorage.getItem(SAVE_KEY)) ?? freshSave(); } catch { return freshSave(); } }
 function writeSave(s: SaveData) { try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch { /* private window */ } }
@@ -53,7 +53,7 @@ export default function MothHoop() {
       demoRef.current = { g: new MothGame({ hoop: 0, seed: 17 }), bot: new Bot(17, 0.8) };
       setScreen('title');
     });
-    (window as unknown as { __moth: () => unknown }).__moth = () => ({ game: gameRef.current, screen: S.current.screen, paused: S.current.paused, twoP: S.current.twoP, save: S.current.save, sel: S.current.sel });
+    (window as unknown as { __moth: () => unknown }).__moth = () => ({ game: gameRef.current, scene: sceneRef.current, screen: S.current.screen, paused: S.current.paused, twoP: S.current.twoP, save: S.current.save, sel: S.current.sel });
     return () => { window.removeEventListener('resize', fit); snd.stop(); };
   }, []);
 
@@ -111,7 +111,7 @@ export default function MothHoop() {
       const two = S.current.twoP;
       if (!two && (code === 'Enter' || code === 'NumpadEnter')) {
         g.join(); setTwoP(true); S.current.twoP = true;
-        sceneRef.current!.hint = HINT_DUO; sceneRef.current!.say('Player 2 joins!', 'Enzo takes his own reel: arrows move, Up throws', 2.4);
+        sceneRef.current!.hint = HINT_DUO; sceneRef.current!.say('Player 2 joins!', 'Enzo gets a reel: arrows move, Up throws', 2.4);
         return;
       }
       if (code === 'KeyQ' && !two) { g.swap(); persist({ ...S.current.save, sewer: g.heroes.find((h) => h.ctrl === 'p1')!.id }); return; }
@@ -144,6 +144,7 @@ export default function MothHoop() {
         case 'stitch': snd.stitch(e.cells.map((i) => Math.floor(i / W))); break;
         case 'pin': snd.play(e.dead ? (e.foe === 'silk' ? 'silk' : e.foe === 'queen' ? 'queen' : 'pin') : 'tick'); break;
         case 'hurt': snd.play(e.blocked ? 'block' : 'hurt'); break;
+        case 'spool': snd.play('power'); break;
         case 'win': snd.play('win'); break;
         case 'lose': snd.play('lose'); break;
         case 'throw': case 'darn': case 'chew': case 'hole': case 'shiver': case 'dive': case 'drop': case 'power': case 'row': case 'hatch': case 'egg': snd.play(e.k); break;
