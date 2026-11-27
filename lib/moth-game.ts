@@ -13,7 +13,7 @@ export const W = 128, H = 72;
 export const DT = 1 / 60;
 export const RAIL_Y = 66;        // the reels' axle row
 export const HAND_Y = 56;        // where a thrown needle starts
-export const X_MIN = 10, X_MAX = 118;
+export const X_MIN = 14, X_MAX = 114;
 export const SAVE_KEY = 'moth-hoop-v1';
 
 export type FoeKind = 'moth' | 'gold' | 'larva' | 'silk' | 'queen' | 'cocoon';
