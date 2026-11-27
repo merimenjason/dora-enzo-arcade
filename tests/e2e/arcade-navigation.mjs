@@ -11,8 +11,8 @@ try {
   assert.equal(await link.getAttribute('href'), '/');
   await link.click();
   await page.waitForSelector('.arcade-grid');
-  assert.equal(await page.locator('.arcade-card').count(),110);
-  console.log(`PASS ${route} → main arcade (110 game cards)`);
+  assert.equal(await page.locator('.arcade-card').count(),111);
+  console.log(`PASS ${route} → main arcade (111 game cards)`);
   await page.close();
  }
  {
@@ -33,7 +33,7 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('.arcade-card').length < 86);
   assert.equal(await page.locator('.arcade-card').count(), want);
   await page.locator('.arcade-filter button', { hasText: 'All' }).click();
-  assert.equal(await page.locator('.arcade-card').count(), 110);
+  assert.equal(await page.locator('.arcade-card').count(), 111);
   assert.ok(!page.url().includes('genre'));
   console.log(`PASS the genre filter (${want} puzzle games), kept in the address`);
   await page.close();

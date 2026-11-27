@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Tambak** (game 111): an area-capture game drawn entirely in coloured sand on a sand artist's lightbox. Dora and Enzo, in hi-vis vests and safety helmets, pour new land into the sea at six real Singapore reclamation sites, from East Coast Park and Gardens by the Bay to Changi Airport, Jurong Island, Pulau Semakau and Tuas Port. Step into the water to pour a line of sand and come back to land to fill every patch of sea with no creature in it; each place appears in sand as you pour it. Moon jellyfish, estuarine crocodiles and pufferfish wash lines away, a horseshoe crab walks the new land, and old Captain Bakau guards Tuas. Beat the tide clock; gentle tides are on by default. A second player joins on the same keyboard.
 - **Moth Hoop** (game 110): a shooter drawn entirely in cross stitch. Dora and Enzo ride a cotton reel under Ah Ma's embroidery hoop and throw needles up to stitch six Singapore kit pictures (kopi and kaya, the Tiong Bahru flats, the Merlion, Peranakan tiles, the Supertrees and National Day fireworks) while pinning the clothes moths that chew them into holes. Larvae, cocoons, diving gold moths, a silk moth that drops power buttons and the Atlas Moth queen on the last kit. A second player joins on the same keyboard.
 
 ### Changed

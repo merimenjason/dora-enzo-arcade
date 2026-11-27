@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of one hundred and ten original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of one hundred and eleven original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -120,6 +120,7 @@ Listed in arcade-menu order.
 | 108 | Kopi Peng Brawl | `/kopi` | Co-op belt brawler |
 | 109 | Dragon Playground | `/dragon-playground` | Co-op platform race |
 | 110 | Moth Hoop | `/moth-hoop` | Cross-stitch shooter |
+| 111 | Tambak | `/tambak` | Area capture |
 
 ## Run
 
@@ -1775,6 +1776,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:moth` (27 engine tests: the six kits and their pictures, determinism, stitching from the bottom up, darning, golden thread, three needles, moths chewing and being pinned, larvae and cocoons, the gold moth's dive and the thimble, the silk moth's button, lavender, spare spools, winning and stars, a finished row, both ways to lose (and that a player who never pins a moth does tear the cloth), the queen, solo, swap and player two, saves, and human-delay bots: a casual player clears every kit on at least three of four seeds, and one who never throws never wins). `node tests/e2e/moth-hoop.mjs` (with `npm run dev` and Playwright) plays it in a muted browser with real keys: the title, the kits (a locked kit stays shut, every option), the brief, every solo key, pause, player two joining and their keys, restart and quit from pause, a won kit opening the next one in the save, a lost kit and retry, with a 4.5:1 contrast check on every card.
 
 **Docs:** [`docs/moth-hoop.md`](docs/moth-hoop.md).
+
+### 111 · Tambak (`/tambak`)
+
+**Play:** an area-capture game drawn entirely in coloured sand on a sand artist's lightbox. A quarter of Singapore stands on land poured into the sea, and Dora and Enzo, in hi-vis vests and safety helmets, pour some more. The sea is the glowing lightbox; the land is a sand painting of the place that appears, crumbly edge and all, as you fill it. Walk the shore (12 cells a second, only while a key is held). Step into the water and you pour a line of sand; step back onto land and the line turns to land, along with every patch of sea that has no creature swimming in it. A creature that touches your line washes it away, sends you back to where it started and costs a sand bucket (three to start, five at most); your own line and your partner's are walls. Fill 75% of the sea (70% with gentle tides) before the tide clock runs out. Moon jellyfish drift, estuarine crocodiles swim nearly twice as fast, pufferfish puff up to two and a half times their size every few seconds, a horseshoe crab climbs out onto your land once a quarter is filled on the last three sites, and on Tuas old Captain Bakau turns toward any line in the water. Kopi (faster feet), a net (slower creatures) and spare buckets float in the sea; fill the water round one to claim it. Six real reclamation sites, each opening when the one before is won: East Coast Park, Gardens by the Bay, Changi Airport, Jurong Island, Pulau Semakau and Tuas Port. Stars for filling it, for keeping every bucket and for beating par. Gentle tides (on by default) slow the creatures by a fifth, lower the target and lengthen the tide by a quarter.
+
+**Controls:** solo, WASD or the arrows walk (the newest key held wins), Q swaps Dora and Enzo, Enter brings in player two, Esc or P pauses. With two players, the one chosen to pour uses WASD and the other the arrows, starting on the top shore. From pause, R starts the site again and Q goes back to the sites; on the results card, Enter goes on and R pours the site again. On the sites screen, the arrows or WASD pick a site, Enter opens it, 2 switches between one and two players and Esc goes back. Keyboard only.
+
+**Tests:** `npm run test:tambak` (27 engine tests: the six sites, the starting field, determinism, pouring and claiming, the fill that keeps every creature's water, both kinds of trail wall, a creature washing a line away and the blink after it, a fast crocodile against a one-cell line, the pufferfish puffing, creatures staying in the water, Captain Bakau turning toward sand, the horseshoe crab arriving and walking the land and costing a bucket, every pickup and pickups sinking, both ways to lose (standing still loses to the tide), the win and its stars, gentle tides, player two joining mid-pour and the swap, two players closing a pocket round each other, saves, and human-delay bots: a careful and a sloppy player clear every site on four of four seeds, a careless one loses at least half of sites 3 to 6 to the creatures, two bots clear Tuas together, and no line is ever left without its pourer). `node tests/e2e/tambak.mjs` (with `npm run dev` and Playwright) plays it in a muted browser with real keys: the title, the sites (a locked site stays shut, every option), the brief, every solo key, pause and its options, player two joining and their keys, restart and quit from pause, a site won with real keys opening the next one in the save, a lost site and retry, with a 4.5:1 contrast check on every card and the HUD.
+
+**Docs:** [`docs/tambak.md`](docs/tambak.md).
 
 ## Validation
 
