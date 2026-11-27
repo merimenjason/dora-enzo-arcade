@@ -33,6 +33,13 @@ SHEETS = [
   ('marks', 'marks', 'g', 1.0, 30, 'pelican0 pelican1 melon0 melon1 mini0 mini1'),
   ('props2', 'props2', 'c', 1.0, 24, 'stall voiddeck stone planter bulbs'),
 ]
+# extra sheets painted later (pass 2, 28-11-2026), merged into an atlas above: (sheet, atlas id, key, group, names,
+# (extra part, base part) whose heights are matched so the new poses come out the same size as the old ones)
+EXTRAS = [
+  ('dora2', 'dora', 'g', 20, 'sad shout', ('shout', 'sit')),
+  ('enzo2', 'enzo', 'g', 20, 'sad shout', ('shout', 'sit')),
+  ('otters2', 'otters', 'g', 40, 'swim1 swim2 fall taunt', ('taunt', 'run1')),
+]
 BGS = ['bg1far', 'bg2far', 'bg3far', 'bg4far', 'bg5far']
 MIN_PX = 1200
 PAD = 3
@@ -141,6 +148,13 @@ def main():
     if len(parts) != len(names):
       problems.append(f'{sheet}: {len(parts)} parts, {len(names)} names'); continue
     items = [(n, scaled(p['img'], s)) for n, p in zip(names, parts)]
+    for xs, xaid, xk, xg, xnames, (xm, bm) in EXTRAS:
+      if xaid != aid: continue
+      xnames = xnames.split(); xpath = os.path.join(src, xs + '.png'); xparts = cut(xpath, xk, xg)
+      if dbg: debug_sheet(xpath, xparts, xnames, os.path.join(dbg, xs + '.png'))
+      if len(xparts) != len(xnames): problems.append(f'{xs}: {len(xparts)} parts, {len(xnames)} names'); continue
+      base = parts[names.index(bm)]['h']; xs_s = s * base / xparts[xnames.index(xm)]['h']
+      items += [(n, scaled(p['img'], xs_s)) for n, p in zip(xnames, xparts)]
     atlas, rects = pack(items)
     atlas.save(os.path.join(OUT_IMG, aid + '.webp'), 'WEBP', quality=86, method=6, alpha_quality=90)
     atlases[aid] = dict(src=f'/art/dragon/{aid}.webp', scale=s, parts=rects, size=atlas.size)
@@ -149,6 +163,11 @@ def main():
   for i, nm in enumerate(['path', 'sand', 'grass', 'drain']):
     band = g.crop((0, i * 256, 1536, (i + 1) * 256)).resize((1152, 192), Image.LANCZOS)
     band.save(os.path.join(OUT_IMG, f'ground-{nm}.webp'), 'WEBP', quality=82, method=6)
+  # water: two seamless bands, each 512 px tall on the sheet, kept at 0.75 (pass 2)
+  w = Image.open(os.path.join(src, 'water.png')).convert('RGB')
+  for i, nm in enumerate(['drain', 'river']):
+    band = w.crop((0, i * 512, 1536, (i + 1) * 512)).resize((1152, 384), Image.LANCZOS)
+    band.save(os.path.join(OUT_IMG, f'water-{nm}.webp'), 'WEBP', quality=82, method=6)
   for bg in BGS:
     im = Image.open(os.path.join(src, bg + '.png')).convert('RGB').resize((1536, 864), Image.LANCZOS)
     im.save(os.path.join(OUT_IMG, bg + '.webp'), 'WEBP', quality=80, method=6)

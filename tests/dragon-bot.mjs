@@ -49,6 +49,8 @@ export function play(race, seed, persona) {
     const inp = { mx: 1, down: false, jmp: false, jmpH: holdJ > 0, roar: false };
     if (holdJ > 0) holdJ--;
     // where the bot means to take off for the next obstacle, wobbled by a fumble now and then
+    // stuck against something (a barge ate the jump, say)? look again, as a person would
+    if (frame % 40 === 0) { if (v.ground && v.x - (seen.lastX ?? -1e9) < 8) jumpPlan.clear(); seen.lastX = v.x; }
     const next = obs.find(([ox, h]) => ox > v.x - 20 && !(h > 0 && v.y >= h - STEP));
     if (next && v.ground) {
       const [ox, h, kind] = next;

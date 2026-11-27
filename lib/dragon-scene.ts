@@ -2,6 +2,7 @@
 // painting cut into an atlas (lib/dragon-art.ts) and drawn 1:1, never stretched; props are drawn to fit their footprint
 // in the course. The dragon is a cut-out rig: a head, three body segments that follow the head's path like a train,
 // tail and four legs swinging from their hips. No rules here: it reads the game and draws it.
+import { otterPose, riderPose, driverPose } from './dragon-poses';
 import { DRAGON_ATLAS, DRAGON_IMG, DRAGON_BG } from './dragon-art';
 import { DragonGame, DRAGON_H, WATER_Y, type Fx, type Otter, type Crow, type HeroId } from './dragon-game';
 import { RACES, SLIDE_W, SEESAW_W, SWING_W, POLE_W, BENCH_W, BENCH_H, VOID_CEIL, STALL_CEIL, STONE_H, type Race } from './dragon-levels';
@@ -9,6 +10,11 @@ import { RACES, SLIDE_W, SEESAW_W, SWING_W, POLE_W, BENCH_W, BENCH_H, VOID_CEIL,
 export const VIEW_W = 1536, VIEW_H = 864;
 const GROUND_Y = 700;                      // where world y = 0 sits on screen (before the camera lifts)
 const ZOOM = 1.15;
+/** how far one body joint can sit above or below the one in front, so the dragon bends without coming apart */
+const JOINT = 28;
+/** what an otter says when it gets past you, and what the heroes say when they get it back */
+const BARKS = ['Too slow!', 'Mine!', 'Hehe!', 'Our playground!', 'Catch me!', 'Splish!'];
+const CHEERS = ['Passed!', 'Got you!', 'Shoo, otter!', 'Ha!'];
 /** the sky behind each race's backdrop, top and bottom, for when the camera lifts above the painting */
 const SKY: [string, string][] = [['#8a77b8', '#f0a98a'], ['#7fb2dc', '#cfe4ee'], ['#5f6f86', '#9aa8b4'], ['#121a3c', '#2a2f5a'], ['#101a40', '#26346a']];
 /** each race's sleeping playground at the finish; the last race lines up all four */
@@ -25,20 +31,24 @@ export class DragonScene {
   private trail: { x: number; y: number }[] = [];
   private parts: Particle[] = [];
   private runPhase = 0; private sandT = 0;
+  /** screen shake (px, decays), landing squash (0..1, decays) and which bark each otter says next */
+  private shake = 0; private squash = 0; private barkN = 0;
+  /** the rider shouts, and the otter that got past looks back and taunts, for a moment after an overtake */
+  private shoutT = 0; private tauntT = [0, 0, 0];
   private race: Race | null = null;
   woke = false;
 
   constructor(cv: HTMLCanvasElement) { this.cv = cv; this.ctx = cv.getContext('2d')!; }
 
   load(): Promise<void> {
-    const ids = [...Object.keys(DRAGON_ATLAS), ...DRAGON_BG, 'ground-path', 'ground-sand', 'ground-grass', 'ground-drain'];
+    const ids = [...Object.keys(DRAGON_ATLAS), ...DRAGON_BG, 'ground-path', 'ground-sand', 'ground-grass', 'ground-drain', 'water-drain', 'water-river'];
     return Promise.all(ids.map((id) => new Promise<void>((res) => {
       if (this.img[id]) return res();
       const im = new Image(); im.onload = () => res(); im.onerror = () => res();
       im.src = DRAGON_ATLAS[id] ? DRAGON_ATLAS[id].src : DRAGON_IMG(id); this.img[id] = im;
     }))).then(() => undefined);
   }
-  reset(g: DragonGame) { this.trail = []; this.parts = []; this.race = g.race; this.camX = g.dragon.x - 480; this.camY = 0; this.woke = false; }
+  reset(g: DragonGame) { this.trail = []; this.parts = []; this.race = g.race; this.camX = g.dragon.x - 480; this.camY = 0; this.woke = false; this.shake = 0; this.squash = 0; this.shoutT = 0; this.tauntT = [0, 0, 0]; }
 
   // ───────────────────────────────────────────── helpers
   private part(atlas: string, name: string): Part | null { return DRAGON_ATLAS[atlas]?.parts[name] ?? null; }
@@ -81,16 +91,29 @@ export class DragonScene {
     const d = g.dragon;
     for (const f of fx) {
       switch (f.k) {
-        case 'land': case 'bonk': case 'stumble': this.burst('chips', f.x + 30, f.y + 10, 1); break;
+        case 'land': this.burst('chips', f.x + 30, f.y + 10, 1); if ((f.n ?? 0) > 700) { this.squash = Math.min(1, (f.n! - 500) / 900); this.shake = Math.max(this.shake, 3); } break;
+        case 'bonk': this.shake = Math.max(this.shake, 9); this.burst('chips', f.x + 30, f.y + 10, 2); break;
+        case 'stumble': this.burst('chips', f.x + 30, f.y + 10, 1); break;
         case 'swat': this.burst('chips', f.x + 80, f.y, 1); break;
-        case 'toast': this.parts.push({ kind: 'text', x: f.x, y: f.y + 30, vx: 0, vy: 90, t: 0, life: 0.7, text: '+1', col: '#ffd34a' }); break;
-        case 'splash': for (let i = 0; i < 18; i++) this.parts.push({ kind: 'drop', x: f.x + (i - 9) * 6, y: WATER_Y + 10, vx: (i - 9) * 30, vy: 380 + (i % 5) * 70, t: 0, life: 0.9, r: 5 + (i % 3) * 2, col: '#8fd0d8' }); break;
-        case 'roar': this.parts.push({ kind: 'ring', x: d.x + 70, y: d.y + 100, vx: 0, vy: 0, t: 0, life: 0.7, col: '#ffd34a' }); break;
+        case 'toast': this.say({ kind: 'text', x: f.x, y: f.y + 30, vx: 0, vy: 90, t: 0, life: 0.7, text: '+1', col: '#ffd34a' }); break;
+        case 'splash': this.shake = Math.max(this.shake, 10); for (let i = 0; i < 18; i++) this.parts.push({ kind: 'drop', x: f.x + (i - 9) * 6, y: WATER_Y + 10, vx: (i - 9) * 30, vy: 380 + (i % 5) * 70, t: 0, life: 0.9, r: 5 + (i % 3) * 2, col: '#8fd0d8' }); break;
+        case 'roar': this.shake = Math.max(this.shake, 14); this.parts.push({ kind: 'ring', x: d.x + 70, y: d.y + 100, vx: 0, vy: 0, t: 0, life: 0.7, col: '#ffd34a' }); break;
         case 'spring': case 'fling': this.burst('chips', f.x, f.y, 1); break;
         case 'otterdive': case 'otterpop': this.burst('sand', f.x, 0, 1); break;
-        case 'steal': this.parts.push({ kind: 'text', x: f.x, y: f.y + 20, vx: 0, vy: 70, t: 0, life: 0.9, text: 'Caw!', col: '#fff6e6' }); break;
+        case 'steal': this.say({ kind: 'text', x: f.x, y: f.y + 20, vx: 0, vy: 70, t: 0, life: 0.9, text: 'Caw!', col: '#fff6e6' }); break;
         case 'gulp': case 'seed': case 'twin': case 'flutter': this.parts.push({ kind: 'ring', x: d.x, y: d.y + 120, vx: 0, vy: 0, t: 0, life: 0.6, col: '#9fe3ff' }); break;
         case 'win': this.woke = true; break;
+        case 'knock': this.shake = Math.max(this.shake, 5); this.burst('chips', f.x, f.y, 2);
+          this.say({ kind: 'text', x: f.x, y: f.y + 40, vx: 0, vy: 120, t: 0, life: 0.6, text: f.n !== undefined ? 'Bonk!' : 'Thwack!', col: '#fff6e6' }); break;
+        case 'overtake': {
+          // the otter that gets past says so; only the ones you can see
+          if (!this.visible(f.x - 100, f.x + 100)) break;
+          const say = BARKS[this.barkN++ % BARKS.length];
+          this.shoutT = 0.7; if (f.n !== undefined) this.tauntT[f.n] = 0.8;
+          this.say({ kind: 'text', x: f.x, y: f.y + 120, vx: 40, vy: 50, t: 0, life: 1.3, text: say, col: '#ffe3c2' }); break;
+        }
+        case 'pass': this.say({ kind: 'text', x: d.x + 60, y: d.y + 210, vx: 0, vy: 80, t: 0, life: 0.9, text: CHEERS[this.barkN++ % CHEERS.length], col: '#ffd34a' }); this.burst('chips', d.x + 40, d.y + 60, 1); break;
+        case 'surge': if (this.visible(f.x - 300, f.x + 300)) this.burst('sand', f.x - 40, 0, 2); break;
       }
     }
   }
@@ -102,6 +125,7 @@ export class DragonScene {
   draw(g: DragonGame, dt: number) {
     const c = this.ctx, cv = this.cv;
     this.t += dt;
+    this.shoutT = Math.max(0, this.shoutT - dt); this.tauntT = this.tauntT.map((v) => Math.max(0, v - dt));
     const d = g.dragon;
     // the head's path: segments follow it by x
     if (d.st !== 'splash') {
@@ -121,6 +145,7 @@ export class DragonScene {
     c.fillStyle = '#1f1a1f'; c.fillRect(0, 0, cv.width, cv.height);
     c.setTransform(s, 0, 0, s, (cv.width - VIEW_W * s) / 2, (cv.height - VIEW_H * s) / 2);
     c.save(); c.beginPath(); c.rect(0, 0, VIEW_W, VIEW_H); c.clip();
+    if (this.shake > 0.3) { const k = this.shake; c.translate(Math.sin(this.t * 91) * k, Math.cos(this.t * 77) * k * 0.7); this.shake *= Math.pow(0.0005, dt); } else this.shake = 0;
     this.drawBack(g);
     c.translate(0, GROUND_Y); c.scale(ZOOM, ZOOM); c.translate(0, -GROUND_Y);
     this.drawCourseBack(g);
@@ -128,7 +153,12 @@ export class DragonScene {
     this.drawCourseFront(g);
     for (const t of g.toasts) if (!t.taken && Math.abs(t.x - this.camX - 700) < 1000) this.spr('crows', 'toast', t.x, t.y - 18 + Math.sin(this.t * 4 + t.x) * 5);
     for (const o of g.otters) this.drawOtter(g, o);
-    this.drawDragon(g);
+    if (this.squash > 0.02) {
+      // a hard landing squashes the whole dragon a moment, wide and low, from its feet
+      const k = this.squash, fx = this.sx(d.x - 150), fy = this.sy(d.y);
+      c.save(); c.translate(fx, fy); c.scale(1 + 0.07 * k, 1 - 0.13 * k); c.translate(-fx, -fy); this.drawDragon(g); c.restore();
+      this.squash = Math.max(0, this.squash - dt * 6);
+    } else this.drawDragon(g);
     for (const cr of g.crows) if (!cr.gone) this.drawCrow(cr);
     // sand kicked up when the dragon runs in a sandpit
     this.sandT -= dt;
@@ -170,6 +200,25 @@ export class DragonScene {
   private raceNo() { return Math.max(1, RACES.findIndex((r) => r.id === this.race?.id) + 1); }
   private visible(x0: number, x1: number) { return x1 > this.camX - 200 && x0 < this.camX + VIEW_W / ZOOM + 200; }
 
+  /** painted water (a seamless tile) from its surface line `wy` down, drifting at `flow` px/s; a flat fill until it loads */
+  private water(id: string, x: number, wy: number, w: number, bot: number, x0: number, flow: number) {
+    const c = this.ctx, im = this.img[id];
+    if (!im?.complete || !im.naturalWidth) { c.fillStyle = id === 'water-river' ? '#1f3f6e' : '#3c6e6e'; c.fillRect(x, wy, w, bot - wy); return; }
+    const off = ((x0 + this.t * flow) % 1152 + 1152) % 1152;
+    c.save(); c.beginPath(); c.rect(x, wy, w, bot - wy); c.clip();
+    for (let k = -1; k * 1152 < w + 1152; k++) c.drawImage(im, x + k * 1152 - off, wy - 6 + Math.sin(this.t * 1.6) * 2, 1152, 384);
+    c.restore();
+  }
+  /** a floating word, nudged up above any word already showing there so two never print over each other */
+  private say(p: Particle) {
+    const w = (q: Particle) => 10 * q.text!.length + 12;
+    for (let tries = 0; tries < 6; tries++) {
+      const hit = this.parts.some(q => q.kind === 'text' && q.t < q.life && Math.abs(q.x - p.x) < w(q) + w(p) && Math.abs(q.y - p.y) < 40);
+      if (!hit) break;
+      p.y += 42;
+    }
+    this.parts.push(p);
+  }
   private drawGround(g: DragonGame) {
     const c = this.ctx, C = g.course;
     // longkangs first: concrete drain walls and murky water
@@ -179,10 +228,7 @@ export class DragonScene {
       if (gp.water) {
         // the Bishan Park river: open water just under the stepping stones, reeds at the banks
         const wy = this.sy(-14);
-        c.fillStyle = '#1f3f6e'; c.fillRect(x, wy, w, bot - wy);
-        c.fillStyle = '#2e5a92'; c.fillRect(x, wy, w, 26);
-        c.fillStyle = 'rgba(200,225,250,0.55)';
-        for (let i = 0; i < w; i += 38) c.fillRect(x + i + ((this.t * 30 + i * 7) % 26), wy + 8 + (i % 4) * 14, 16, 3);
+        this.water('water-river', x, wy, w, bot, gp.x0, 18);
         c.strokeStyle = INK; c.lineWidth = 6; c.beginPath(); c.moveTo(x, top); c.lineTo(x, bot); c.moveTo(x + w, top); c.lineTo(x + w, bot); c.stroke();
         continue;
       }
@@ -190,9 +236,7 @@ export class DragonScene {
       if (im?.complete) { c.save(); c.beginPath(); c.rect(x, top, w, bot - top); c.clip(); for (let k = 0; k * 1152 < w + 1152; k++) c.drawImage(im, x + k * 1152 - ((gp.x0 % 1152) + 1152) % 1152, top, 1152, 192); c.restore(); }
       else { c.fillStyle = '#4a4c50'; c.fillRect(x, top, w, bot - top); }
       const wy = this.sy(WATER_Y);
-      c.fillStyle = gp.water ? 'rgba(52,96,150,0.86)' : 'rgba(60,110,110,0.78)'; c.fillRect(x, wy, w, bot - wy);
-      c.fillStyle = 'rgba(190,230,225,0.7)';
-      for (let i = 0; i < w; i += 46) c.fillRect(x + i + ((this.t * 40 + i) % 30), wy + 4 + (i % 3) * 5, 14, 4);
+      this.water('water-drain', x, wy, w, bot, gp.x0, 30);
       c.strokeStyle = INK; c.lineWidth = 6; c.beginPath(); c.moveTo(x, top); c.lineTo(x, bot); c.moveTo(x + w, top); c.lineTo(x + w, bot); c.stroke();
     }
     for (const gr of C.ground) {
@@ -322,7 +366,7 @@ export class DragonScene {
     const pts = [d.x, ...segX, tailX], jy: number[] = [];
     for (let i = 0; i < pts.length; i++) {
       const raw = d.hang ? d.y : this.trailY(pts[i]);
-      jy.push(i === 0 ? raw : Math.max(jy[i - 1] - 38, Math.min(jy[i - 1] + 38, raw)));
+      jy.push(i === 0 ? raw : Math.max(jy[i - 1] - JOINT, Math.min(jy[i - 1] + JOINT, raw)));
     }
     const yAt = (x: number) => { const i = pts.findIndex((q) => Math.abs(q - x) < 30); if (i >= 0) return jy[i]; return jy[0] + (jy[jy.length - 1] - jy[0]) * Math.min(1, Math.max(0, (d.x - x) / 330)); };
     const legs: [number, number][] = [[segX[0] + 10, 0], [segX[2] + 10, 1]];
@@ -334,9 +378,9 @@ export class DragonScene {
     };
     // far legs, darker, behind the body
     for (const [lx, i] of legs) this.spr('dragon', air || low ? 'legB' : 'leg', lx - 14, yAt(lx) + bodyLift + 26 + bob, { rot: legRot(i, true), oy: 10, dark: true });
-    // tail, swishing
+    // tail, swishing, its root tucked into the last body drum
     const ty = yAt(tailX) + bodyLift + 20 + bob;
-    this.spr('dragon', 'tail', tailX - 40, ty, { rot: Math.sin(this.t * 5) * 0.12 + (air ? -0.2 : 0), ox: 140, oy: 60 });
+    this.spr('dragon', 'tail', segX[2] - 48, ty, { rot: Math.sin(this.t * 5) * 0.12 + (air ? -0.2 : 0), ox: 140, oy: 60 });
     // body segments, back to front; the two with handles carry the heroes
     const names = ['segH', 'segH', 'seg'];
     for (let i = 2; i >= 0; i--) {
@@ -346,9 +390,9 @@ export class DragonScene {
     }
     // the heroes: the driver on the front handle, the rider on the back one
     const drv = g.driver, rid: HeroId = g.riderId;
-    const dPose = d.finished !== null ? (g.place === 1 ? 'cheer' : 'sit') : d.stumbleT > 0 ? 'wobble' : (d.tier || d.onSlide || low) ? 'lean' : 'sit';
+    const dPose = driverPose(d.finished !== null ? (g.place === 1 ? 'won' : 'lost') : d.stumbleT > 0 ? 'wobble' : (d.tier || d.onSlide || low) ? 'fast' : this.shoutT > 0 ? 'shout' : 'ride');
     const R = g.rider;
-    const rPose = R.act === 'sad' ? 'sit' : R.act;
+    const rPose = riderPose(R.act, this.shoutT > 0);
     const seatY = (x: number) => yAt(x) + bodyLift + 70 + bob;
     if (d.hang) {
       // the rider hangs from the bars, the dragon dangling under them
@@ -377,19 +421,16 @@ export class DragonScene {
       for (let i = 0; i < 3; i++) { const r = 5 + ((this.t * 3 + i) % 1) * 6; c.beginPath(); c.arc(this.sx(x - i * 26), this.sy(4) - ((this.t * 60 + i * 20) % 30), r, 0, 7); c.fill(); c.stroke(); }
       return;
     }
-    let pose = 'run1';
-    switch (o.st) {
-      case 'run': pose = ['run1', 'run2', 'run3', 'run4'][Math.floor(o.runT * 10) % 4]; break;
-      case 'jump': pose = o.vy > 0 ? 'jump' : 'run1'; break;
-      case 'swim': this.spr('otters', 'pop', x, WATER_Y - 30 + Math.sin(this.t * 6 + o.i) * 4); return;
-      case 'dive': pose = 'dive'; break;
-      case 'pop': pose = 'pop'; break;
-      case 'stumble': pose = 'stumble'; break;
-      case 'barge': pose = 'barge'; break;
-      case 'belly': pose = 'belly'; break;
-      case 'cheer': pose = 'cheer'; break;
+    const pose = otterPose(o.st, o.vy, o.runT, this.t + o.i * 0.3, this.tauntT[o.i] > 0);
+    if (!pose) return;
+    if (o.st === 'swim') { this.spr('otters', pose, x, WATER_Y - 30 + Math.sin(this.t * 6 + o.i) * 4); return; }
+    if (o.surgeT > 0 && o.ground) {
+      // a surging otter streams speed lines
+      const c = this.ctx; c.save(); c.globalAlpha = 0.6; c.fillStyle = '#fff6e6';
+      for (let i = 0; i < 4; i++) c.fillRect(this.sx(x - 90) - ((this.t * 700 + i * 61) % 160), this.sy(o.y + 12 + i * 12), 46 + (i % 2) * 20, 4);
+      c.restore();
     }
-    const lift = pose.startsWith('run') ? Math.abs(Math.sin(o.runT * 15)) * 6 : 0;
+    const lift = pose.startsWith('run') || pose === 'taunt' ? Math.abs(Math.sin(o.runT * 15)) * 6 : 0;
     this.spr('otters', pose, x, o.y + lift - 4, { rot: o.st === 'belly' ? 0.3 : 0 });
   }
 

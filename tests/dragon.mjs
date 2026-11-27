@@ -8,6 +8,8 @@ import {
   parTime, starsFor, SAVE_KEY,
 } from '../.checks/dragon-game.js';
 import { buildCourse } from '../.checks/dragon-levels.js';
+import { otterPose, riderPose, driverPose, OTTER_STATES, RIDER_ACTS } from '../.checks/dragon-poses.js';
+import { DRAGON_ATLAS } from '../.checks/dragon-art.js';
 
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log(`  ok ${name}`); };
 const drive = (o = {}) => ({ ...NO_DRIVE, ...o });
@@ -131,7 +133,7 @@ ok('kaya toast fills the meter; a full meter roars into the fastest run', () => 
   const g = racing(); at(g, 920); const d = g.dragon;
   g.toasts = []; const t0 = g.stats.toasts; g.toasts.push({ x: d.x + 20, y: 40, taken: false }); run(g, 10, { mx: 1 });
   assert.equal(g.stats.toasts, t0 + 1);
-  d.meter = METER_MAX; const ks = fxOf(g, 2, { mx: 1, roar: true });
+  assert.equal(d.crumbs, 1, "one toast is a crumb towards a pip"); d.meter = METER_MAX; const ks = fxOf(g, 2, { mx: 1, roar: true });
   assert.ok(ks.includes('roar')); assert.equal(d.meter, 0); assert.equal(d.tier, 'roar');
   const x = d.x; run(g, 30, { mx: 1 }); assert.ok(d.x - x > RUN * 0.5 * 1.4, 'roaring is fast');
   d.meter = 2; g.step(drive({ roar: true }), NO_RIDE); assert.equal(d.meter, 2, 'no roar until the meter is full');
@@ -153,6 +155,47 @@ ok('powers: seed spit trips the otter ahead; twin runs fast', () => {
   const g = racing(0, { power: 'seed' }); at(g, 300); const o = g.otters[0]; o.x = 700; o.y = 0; o.st = 'run'; o.stumbleT = 0;
   g.step(drive(), ride({ power: true })); assert.equal(o.st, 'stumble');
   const h = racing(0, { power: 'twin' }); at(h, 300); h.step(drive(), ride({ power: true })); assert.equal(h.dragon.tier, 'twin');
+});
+ok('a jump pressed a moment too early is kept until the dragon can jump; a stale one is not', () => {
+  const g = racing(); at(g, 300); const d = g.dragon;
+  d.stumbleT = 0.3; g.step(drive({ jmp: true }), NO_RIDE); assert.ok(d.ground, 'no jump while stumbling');
+  run(g, 12); assert.ok(!d.ground, 'the kept press jumps once the stumble ends');
+  const h = racing(); at(h, 300); h.dragon.stumbleT = 0.8; h.step(drive({ jmp: true }), NO_RIDE); run(h, 50);
+  assert.ok(h.dragon.ground, 'a press long before is forgotten');
+});
+ok('rivalry: an otter close behind surges past the dragon, and passing it back is an event too', () => {
+  const g = racing(); at(g, 2000); const d = g.dragon, o = g.otters[0];
+  for (const q of g.otters) { q.x = 600; q.surgeCd = 99; q.ahead = false; q.st = 'run'; q.ground = true; q.y = 0; }
+  o.x = d.x - 150; o.surgeCd = 0;
+  const ks = fxOf(g, 240, { mx: 1 });
+  assert.ok(ks.includes('surge'), 'the otter surges'); assert.ok(ks.includes('overtake'), 'and gets past');
+  assert.ok(g.otterX(o) > d.x, 'it is ahead after its surge');
+  at(g, 300); o.x = d.x + 60; o.ahead = true; o.surgeT = 0; o.surgeCd = 99; o.stumbleT = 1.2; o.st = 'stumble';
+  const back = fxOf(g, 60, { mx: 1 });
+  assert.ok(back.includes('pass'), 'the dragon gets back past a stumbling otter');
+  // otters left behind keep up so they stay in view; not on the run-in, where a lead holds
+  const h = racing(); at(h, 3000); for (const q of h.otters) { q.x = 1800; q.surgeCd = 99; }
+  run(h, 300, { mx: 1 }); assert.ok(h.dragon.x - h.otterX(h.otters[0]) < 1000, 'a far-behind otter catches up');
+});
+ok('animation: every otter state, rider action and driver state has painted frames of its own, all in the atlases', () => {
+  const owner = new Map();
+  const claim = (who, frame, state) => { const k = who + ':' + frame, o = owner.get(k); assert.ok(!o || o === state, `${who} ${state} reuses ${o}'s frame ${frame}`); owner.set(k, state); };
+  for (const st of OTTER_STATES) {
+    if (st === 'hidden') { assert.equal(otterPose(st, 0, 0, 0, false), null); continue; }
+    const frames = new Set();
+    for (const vy of [300, -300]) for (let k = 0; k < 40; k++) for (const taunt of [false, true]) { const f = otterPose(st, vy, k * 0.05, k * 0.1, taunt); if (f) frames.add(f); }
+    for (const f of frames) { claim('otter', f, st); assert.ok(DRAGON_ATLAS.otters.parts[f], `otter frame ${f} is painted`); }
+  }
+  assert.ok(owner.has('otter:fall') && owner.has('otter:swim1') && owner.has('otter:swim2') && owner.has('otter:taunt'), 'falling, swimming and taunting have frames');
+  for (const hero of ['dora', 'enzo']) {
+    const used = new Map();
+    for (const a of RIDER_ACTS) { const f = riderPose(a, false); assert.ok(!used.has(f), `rider ${a} reuses ${used.get(f)}'s frame`); used.set(f, a); }
+    assert.equal(riderPose('sit', true), 'shout');
+    for (const f of [...used.keys(), 'shout']) assert.ok(DRAGON_ATLAS[hero].parts[f], `${hero} frame ${f} is painted`);
+    const ds = ['won', 'lost', 'wobble', 'fast', 'shout', 'ride'], df = ds.map(driverPose);
+    assert.equal(new Set(df).size, ds.length, 'each driver state has its own frame');
+    for (const f of df) assert.ok(DRAGON_ATLAS[hero].parts[f], `${hero} driver frame ${f} is painted`);
+  }
 });
 ok('race end: the dragon crossing first wins and stars follow', () => {
   const g = racing(); at(g, g.course.finish - 100); for (const o of g.otters) o.x = 0;

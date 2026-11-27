@@ -46,7 +46,7 @@ speed. There is no inertia, skid or drift. Boosts are timed speed tiers on top o
 | Slide exit (press Down on a slide) | 1.35× | 1.2 s |
 | Swing-chain or laundry-pole fling (rider grabs) | 1.5× | 1.0 s |
 | See-saw (land on the high end) | a tall spring jump | – |
-| Roar (full snack meter) | 1.6×, and otters within reach ahead stumble | 2.5 s |
+| Roar (full toast meter: five pips, three kaya toasts to a pip) | 1.6×, and otters within reach ahead stumble | 2.5 s |
 
 Sand slows the dragon to 0.6× while its feet are in it. A crow that reaches the rider steals a kaya toast and makes the
 dragon stumble for 0.5 s; the rider swats crows away. Falling into a longkang puts you back at the last checkpoint after
@@ -58,6 +58,23 @@ Three otters from the Bishan family race every course: a leader and two pups. Th
 each course, take their own drain shortcuts (they dive into a drain grate and pop out further on, shown by bubbles),
 bump the dragon if they share a spot, and stumble when roared at, swatted or hit by a power. Easy hits (assist, on by
 default) slows them when they lead by a lot. The race is won by finishing first. A lost race just offers a retry.
+
+**Rivalry (pass 2, 28-11-2026).** In the first build the otters were on screen for only 15–33% of a race and the lead
+changed hands about once, because a roar was nearly always ready (a toast filled a whole pip) and the otters fell a
+kilometre behind. Now:
+
+- Three kaya toasts make one pip on the meter, so a race has a few roars, not a constant one.
+- Otters more than 180 px behind the dragon spurt to catch up (up to 1.8× their pace), so the pack stays in view; not on
+  the last 8% of the course, where a lead holds.
+- An otter close behind (within 380 px) waits for its moment and **surges**: 1.4× the dragon's run for up to 2.4 s,
+  streaming speed lines, until it is clear ahead. Each otter surges every 8 to 14 s, never in the last quarter.
+- Getting past is an event both ways: the otter looks back and taunts ("Too slow!", "Mine!") and the driver shouts and
+  points, and when you get it back the heroes cheer ("Passed!"). The results card counts the otters you overtook.
+- A jump pressed a moment too early (still stumbling from a barge, or just before landing) is kept for 0.18 s instead of
+  lost.
+
+`tests/dragon-rivalry.mjs` measures it with the casual bot over eight seeds a race: an otter must be in view at least 60%
+of the race and the lead must change hands at least twice. After the change it is 77–96% and 4–9 lead changes.
 
 ## Races
 
@@ -84,7 +101,15 @@ at 1:1, never stretched.
 
 - The dragon is a chain of mosaic body segments that follow the head, so its body curls and waves as it runs and jumps.
 - The riders and the otters are painted as pose sheets, one pose per action, so every action has its own animation:
-  run, jump, land, slide, belly-slide, stumble, cheer, swat, grab, hang, fling, flap, splash.
+  run, jump, land, slide, belly-slide, stumble, cheer, swat, grab, hang, fling, flap, splash. Pass 2 added the poses that
+  were borrowing others: a sad rider and driver after a lost race, a shouting driver, and an otter's two-frame swim,
+  its fall and its look-back taunt. `lib/dragon-poses.ts` picks the frame for each state, and a test checks that no
+  state shows another state's frame and that every frame is painted.
+- Longkang and river water are painted tiles that drift (pass 2; they were flat fills).
+- Feel: a hard landing squashes the dragon; a swatted crow or otter holds the action for a few frames (hit-stop) with
+  a "Thwack!"; roars, barges and splashes shake the screen.
+- The tail is tucked into the last body drum, and body joints bend at most 28 px from the one in front, so the dragon
+  no longer comes apart over a see-saw spring.
 - Dora and Enzo wear new clothes for this game, with no signature items: Dora a yellow school shirt and blue shorts,
   Enzo a red PE singlet and white shorts.
 - HUD text is real text on solid plaques, never painted lettering, and every card sets its own text colour.
