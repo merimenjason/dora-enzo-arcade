@@ -103,6 +103,10 @@ await readable('brief'); await shot('3-brief');
 await tap('Escape'); await wait(200); ok((await st()).screen === 'hoops', 'Esc leaves the brief');
 await tap('Enter'); await wait(200); await tap('Enter'); await wait(400);
 ok((await st()).screen === 'play', 'Enter on the brief starts the kit');
+// a held Enter auto-repeats: the repeat must not also bring in player two
+await page.evaluate(() => { for (let i = 0; i < 3; i++) window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', key: 'Enter', repeat: true })); });
+await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keyup', { code: 'Enter', key: 'Enter' })));
+await wait(150); ok(!(await st()).twoP, 'a held Enter on the brief starts the kit and nothing more');
 await wait(1500); await painted('hoop'); await shot('4-hoop');
 
 // ── solo keys
@@ -135,10 +139,19 @@ await tap('Escape'); await wait(200); ok(!(await st()).paused, 'Esc resumes');
 await tap('KeyP'); await wait(200); ok((await st()).paused, 'P pauses');
 await tap('KeyP'); await wait(200); ok(!(await st()).paused, 'P resumes');
 
-// ── player two
-await tap('Enter'); await wait(200);
+// ── player two, with Enzo sewing so the names follow whoever is player one
+await tap('KeyQ'); await wait(150);
+await quiet();
+const before = (await game()).heroes.find((h) => h.ctrl === 'p1');
+ok(before.id === 'enzo', 'Enzo sews');
+await page.keyboard.down('ArrowRight'); await wait(150);
+await tap('Enter'); await wait(150);
+await page.keyboard.up('ArrowRight');
 ok((await st()).twoP, 'Enter brings in player two'); g = await game();
-const p2 = g.heroes.find((h) => h.ctrl === 'p2'); ok(p2 && p2.id === 'enzo', 'Enzo gets a reel');
+const p2 = g.heroes.find((h) => h.ctrl === 'p2'); ok(p2 && p2.id === 'dora', 'Dora gets the second reel when Enzo sews');
+ok(await page.evaluate(() => window.__moth().scene.hint.startsWith('Enzo: A D')), 'the hint names Enzo as player one');
+const held = (await game()).heroes.find((h) => h.ctrl === 'p1').x; await wait(400);
+ok((await game()).heroes.find((h) => h.ctrl === 'p1').x === held, 'an arrow held through the join does not stick');
 await quiet();
 const a0 = (await game()).heroes.find((h) => h.ctrl === 'p1').x, b0 = (await game()).heroes.find((h) => h.ctrl === 'p2').x;
 await hold('ArrowLeft', 300); g = await game();
@@ -148,11 +161,13 @@ const b1 = g.heroes.find((h) => h.ctrl === 'p2').x; await hold('ArrowRight', 300
 for (const key of ['ArrowUp', 'Enter']) {
   await page.evaluate(() => { window.__moth().game.needles = []; });
   await page.keyboard.down(key); await until(async () => (await game()).needles.length > 0, 2000); g = await game(); await page.keyboard.up(key);
-  ok(g.needles.includes('enzo') && !g.needles.includes('dora'), `${key} throws for player two`);
+  ok(g.needles.includes('dora') && !g.needles.includes('enzo'), `${key} throws for player two`);
 }
 await page.evaluate(() => { window.__moth().game.needles = []; });
 await page.keyboard.down('Space'); await until(async () => (await game()).needles.length > 0, 2000); g = await game(); await page.keyboard.up('Space');
-ok(g.needles.includes('dora') && !g.needles.includes('enzo'), 'Space throws for player one');
+ok(g.needles.includes('enzo') && !g.needles.includes('dora'), 'Space throws for player one');
+await tap('Escape'); await wait(150);
+ok((await page.locator('.mh-card .keys').textContent()).startsWith('Enzo: A D'), 'the pause card names the players right'); await tap('Escape');
 await shot('6-two');
 
 // ── restart and quit from pause

@@ -265,6 +265,20 @@ ok('saves: fresh, round trip, junk rejected, kits open in order, best scores kep
   assert.equal(s.stars[0], 0, 'record copies');
 });
 
+ok('the tear limit bites: a player who sews but never pins a moth tears the cloth on the later kits', () => {
+  // walk to the nearest column that still needs a needle and hold throw; never aim at a moth
+  const sewOnly = (g) => { const h = g.heroes.find((x) => x.ctrl === 'p1'); let best = h.x, bd = 1e9;
+    for (const c of g.openColumns()) { const d = Math.abs(c - h.x); if (d < bd) { bd = d; best = c; } }
+    return inp({ left: best < h.x - 0.45, right: best > h.x + 0.45, fire: true }); };
+  let tears = 0, peak = 0;
+  for (let h = 3; h < HOOPS.length; h++) for (const seed of [142, 213, 284]) {
+    const g = new MothGame({ hoop: h, seed }); while (!g.over && g.time < 600) { g.step(sewOnly(g)); peak = Math.max(peak, g.holes / g.tearAt); }
+    if (g.why === 'tear') tears++;
+  }
+  assert.ok(tears >= 3, `the cloth tore ${tears} times in 9`); assert.ok(peak >= 1);
+  for (const d of HOOPS) assert.ok(new MothGame({ hoop: HOOPS.indexOf(d), seed: 1 }).tearAt <= 70, d.id);
+});
+
 ok('bots: a casual player with human reactions clears every kit; one who never throws never does', () => {
   const res = [];
   for (let h = 0; h < HOOPS.length; h++) {

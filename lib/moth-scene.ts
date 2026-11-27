@@ -35,7 +35,7 @@ const FONT: Record<string, string> = {
 
 type Pop = { cell: number; t: number; col: string };
 type Bit = { x: number; y: number; vx: number; vy: number; t: number; life: number; col: string; v: number; s: number; spin: number };
-type Float = { x: number; y: number; t: number; text: string; col: string };
+type Float = { x: number; y: number; t: number; text: string; col: string; rows?: number };
 
 export class MothScene {
   cv: HTMLCanvasElement; ctx: CanvasRenderingContext2D;
@@ -50,6 +50,8 @@ export class MothScene {
   private hurtT = 0; hitStop = 0; time = 0;
   private pins: { x: number; y: number; t: number; key: string }[] = [];
   hint = '';
+  /** the attract demo behind the menus: no HUD, scores or banners, so they never show through a menu card */
+  demo = false;
 
   constructor(cv: HTMLCanvasElement) { this.cv = cv; this.ctx = cv.getContext('2d')!; }
 
@@ -178,7 +180,13 @@ export class MothScene {
           break;
         }
         case 'hurt': this.shake = Math.max(this.shake, e.blocked ? 6 : 12); this.flash = e.blocked ? 0 : 0.35; this.hurtT = 0.5; if (e.blocked) this.say('The thimble took it!', '', 1.4); break;
-        case 'row': this.floats.push({ x: W / 2, y: e.row, t: 0, text: 'ROW +150', col: INK }); break;
+        case 'row': {
+          // one needle can finish several rows at once: fold them into one label instead of stacking unreadable copies
+          const f = this.floats.find((o) => o.rows && o.t < 0.6);
+          if (f) { f.rows! += 1; f.t = 0; f.y = Math.min(f.y, e.row); f.text = `${f.rows} ROWS +${150 * f.rows!}`; }
+          else this.floats.push({ x: W / 2, y: e.row, t: 0, text: 'ROW +150', col: INK, rows: 1 });
+          break;
+        }
         case 'power': this.say(POWER_NAME[e.power] + '!', powerSub(e.power), 1.8); break;
         case 'spool': this.say('A spare spool!', 'Ah Ma left one by the hoop. ' + e.spools + ' of 3 now.', 2); break;
         case 'win': this.say('Hoop finished!', 'Every stitch is in.', 3); break;
@@ -278,6 +286,7 @@ export class MothScene {
     if (g.powers.lavender > 0) { ctx.fillStyle = `rgba(180,150,220,${0.10 + 0.04 * Math.sin(this.time * 4)})`; ctx.fillRect(0, 0, this.cv.width, this.cv.height); }
     if (this.flash > 0) { ctx.fillStyle = `rgba(200,40,30,${this.flash * 0.5})`; ctx.fillRect(0, 0, this.cv.width, this.cv.height); }
 
+    if (this.demo) { this.floats = []; this.banner = null; return; }
     for (const f of this.floats) { f.t += dt; const k = f.t / 1.1; if (k > 1) continue; ctx.globalAlpha = 1 - k * k; this.stitchText(f.text, f.x * c, (f.y - k * 4) * c, 3.2 * s, f.col, 'center', true); ctx.globalAlpha = 1; }
     this.floats = this.floats.filter((f) => f.t < 1.1);
     this.hud(g);
@@ -380,17 +389,19 @@ export class MothScene {
     const ctx = this.ctx, t = text.toUpperCase(), cw = px * 6, total = t.length * cw - px;
     let x0 = align === 'left' ? x : align === 'center' ? x - total / 2 : x - total;
     const ip = Math.max(2, Math.round(px));
-    const strip = this.stitches(col, ip), back = outline;
+    const strip = this.stitches(col, ip);
+    const cells: [number, number, number][] = [];
     for (const ch of t) {
       const g = FONT[ch] ?? FONT[' '];
-      for (let r = 0; r < 7; r++) for (let c = 0; c < 5; c++) if (g[r * 5 + c] === '#') {
-        const v = (r * 5 + c + ch.charCodeAt(0)) % NV;
-        if (back) { ctx.fillStyle = '#f6efe0'; ctx.fillRect(x0 + c * px - px * 0.35, y + r * px - px * 0.35, px * 1.7, px * 1.7); }
-        // a solid square of the thread colour with the cross over it: reads as stitching up close, as a clean pixel font from afar
-        ctx.fillStyle = col; ctx.fillRect(x0 + c * px + px * 0.06, y + r * px + px * 0.06, px * 0.88, px * 0.88);
-        ctx.drawImage(strip, v * ip, 0, ip, ip, x0 + c * px - px * 0.1, y + r * px - px * 0.1, px * 1.2, px * 1.2);
-      }
+      for (let r = 0; r < 7; r++) for (let c = 0; c < 5; c++) if (g[r * 5 + c] === '#') cells.push([x0 + c * px, y + r * px, (r * 5 + c + ch.charCodeAt(0)) % NV]);
       x0 += cw;
+    }
+    // the cream outline goes down first for every cell, so no cell's outline covers its neighbour's stitch
+    if (outline) { ctx.fillStyle = '#f6efe0'; for (const [cx, cy] of cells) ctx.fillRect(cx - px * 0.35, cy - px * 0.35, px * 1.7, px * 1.7); }
+    for (const [cx, cy, v] of cells) {
+      // a solid square of the thread colour with the cross over it: reads as stitching up close, as a clean pixel font from afar
+      ctx.fillStyle = col; ctx.fillRect(cx + px * 0.06, cy + px * 0.06, px * 0.88, px * 0.88);
+      ctx.drawImage(strip, v * ip, 0, ip, ip, cx - px * 0.1, cy - px * 0.1, px * 1.2, px * 1.2);
     }
   }
 
@@ -417,7 +428,7 @@ export class MothScene {
     const bw = 420 * s, bx = VW * s / 2 - bw / 2;
     this.patch(bx - 16 * s, 14 * s, bw + 32 * s, 54 * s);
     this.stitchText('KIT', bx, 29 * s, px, INK);
-    const cells = 26, cp = Math.round(10 * s), x0 = bx + 70 * s, filled = Math.round(g.progress * cells);
+    const cells = 23, cp = Math.round(10 * s), x0 = bx + 70 * s, filled = Math.round(g.progress * cells);
     for (let i = 0; i < cells; i++) {
       if (i < filled) { this.ctx.fillStyle = '#2f7d4f'; this.ctx.fillRect(x0 + i * 11.5 * s + 1 * s, 30 * s, 9 * s, 20 * s); this.ctx.drawImage(this.stitches('#2f7d4f', cp), (i * 3 % NV) * cp, 0, cp, cp, x0 + i * 11.5 * s, 30 * s, 11 * s, 20 * s); }
       else { this.ctx.fillStyle = 'rgba(90,60,35,0.18)'; this.ctx.fillRect(x0 + i * 11.5 * s + 1 * s, 30 * s, 9 * s, 20 * s); }
@@ -429,9 +440,9 @@ export class MothScene {
     this.stitchText('TEAR', rx + 22 * s, 29 * s, px, INK);
     const tcells = 10, tf = Math.min(tcells, Math.round(g.holes / g.tearAt * tcells));
     for (let i = 0; i < tcells; i++) {
-      const tx = rx + 104 * s + i * 13 * s;
-      if (i < tf) { this.ctx.fillStyle = '#b8322a'; this.ctx.fillRect(tx + 1 * s, 30 * s, 10 * s, 20 * s); this.ctx.drawImage(this.stitches('#b8322a', cp), (i * 5 % NV) * cp, 0, cp, cp, tx, 30 * s, 12 * s, 20 * s); }
-      else { this.ctx.fillStyle = 'rgba(90,60,35,0.18)'; this.ctx.fillRect(tx + 1 * s, 30 * s, 10 * s, 20 * s); }
+      const tx = rx + 104 * s + i * 11 * s;
+      if (i < tf) { this.ctx.fillStyle = '#b8322a'; this.ctx.fillRect(tx + 1 * s, 30 * s, 8.5 * s, 20 * s); this.ctx.drawImage(this.stitches('#b8322a', cp), (i * 5 % NV) * cp, 0, cp, cp, tx, 30 * s, 10.5 * s, 20 * s); }
+      else { this.ctx.fillStyle = 'rgba(90,60,35,0.18)'; this.ctx.fillRect(tx + 1 * s, 30 * s, 8.5 * s, 20 * s); }
     }
     for (let i = 0; i < 3; i++) {
       this.ctx.globalAlpha = i < g.spools ? 1 : 0.25;
