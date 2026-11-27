@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of one hundred and eight original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of one hundred and nine original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -118,6 +118,7 @@ Listed in arcade-menu order.
 | 106 | Tembusu | `/tembusu` | Idle roguelite |
 | 107 | Lookout Ridge | `/lookout-ridge` | Turn-based artillery |
 | 108 | Kopi Peng Brawl | `/kopi` | Co-op belt brawler |
+| 109 | Dragon Playground | `/dragon-playground` | Co-op platform race |
 
 ## Run
 
@@ -1753,6 +1754,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:kopi` (22 engine tests: the stage data, determinism, both combos, the specials and the team-up, weapons and throws, food, the python wrap and both ways out, foes combining, every foe kind landing a hit, each twist, the events, the hawkers, both down and retry, the Tusker wall stun, the save and the hero swap), `npm run bot:kopi` (human-delay bots over ten seeds: the masher clears stage 1 at least 70% of the time and the casual player every stage at least 80%; `npm test` runs four seeds) and `tests/e2e/kopi.mjs` (muted, real keys: the menus, every key for both players, the join, pause, swap, team-up, wrap, Continue, the results card and the save).
 
 **Docs:** [`docs/kopi-peng-brawl.md`](docs/kopi-peng-brawl.md).
+
+### 109 · Dragon Playground (`/dragon-playground`)
+
+**Play:** a side-scrolling platform race across Singapore at dusk, painted as terrazzo and broken-tile mosaic. The old Toa Payoh mosaic dragon has woken up, and Dora and Enzo ride it in five races against three Bishan otters, playground to playground: Lorong 6 Toa Payoh to Dakota Crescent, on to Pipit Road, Tampines, Ang Mo Kio and home along the Bishan Park river. One hero drives (runs and jumps) and the other rides (swats the house crows that swoop for your kaya toast, grabs swings, laundry poles and monkey bars, and uses the playground power). Slides, see-saws, swings, monkey bars and merry-go-rounds give speed boosts; longkangs (drains) and the river splash you back to the last checkpoint; five kaya toasts fill the meter for a roar. The otters dive into the drains and pop out ahead. Each win wakes that race's playground (the Dakota Crescent dove, the Pipit Road pelican, the Tampines watermelon, the Ang Mo Kio mini dragon) and lends its power: Flutter (a second jump in the air), Gulp (scoops up every crow and toast nearby), Seed spit (trips the otter ahead) and Twin (a fast run beside a little dragon). Stars for winning, beating the par time and eating most of the toast. Easy race (on by default) holds the otters back when they get far ahead.
+
+**Controls:** the driver uses → or D to run, ← or A to walk back, K, Space, W or ↑ to jump (hold for higher), ↓ or S to slide on a chute and I to roar when the toast meter is full. Playing alone, a helper bot rides, and you can also ride yourself with J (swat), L (grab) and O (power). A second player takes the rider's seat by pressing comma (swat), slash (grab) or apostrophe (power), or Numpad 1, 3 and 0. Q swaps seats, Esc or P pauses, and R restarts from the pause card or the results.
+
+**Tests:** `npm run test:dragon` (21 engine tests: the five courses, the countdown, determinism, running and jumping, a longkang splash and its checkpoint, the slide, see-saw, swing and monkey bars, crows and the swat, kaya toast and the roar, all four powers, winning and losing, stars, saves and race unlocking, and the seat swap), `npm run bot:dragon` (human-delay bots over twelve seeds: a casual driver who reacts 200 to 300 ms late wins race 1 at least 80% of the time and every race at least half the time, a runner who only jumps wins race 1 at least half the time, and a driver who presses nothing never wins).
+
+**Docs:** [`docs/dragon-playground.md`](docs/dragon-playground.md).
 
 ## Validation
 

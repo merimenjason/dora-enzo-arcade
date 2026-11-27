@@ -2,13 +2,17 @@
 // painting cut into an atlas (lib/dragon-art.ts) and drawn 1:1, never stretched; props are drawn to fit their footprint
 // in the course. The dragon is a cut-out rig: a head, three body segments that follow the head's path like a train,
 // tail and four legs swinging from their hips. No rules here: it reads the game and draws it.
-import { DRAGON_ATLAS, DRAGON_IMG } from './dragon-art';
+import { DRAGON_ATLAS, DRAGON_IMG, DRAGON_BG } from './dragon-art';
 import { DragonGame, DRAGON_H, WATER_Y, type Fx, type Otter, type Crow, type HeroId } from './dragon-game';
-import { SLIDE_W, SEESAW_W, SWING_W, POLE_W, BENCH_W, BENCH_H, VOID_CEIL, STALL_CEIL, STONE_H, type Race } from './dragon-levels';
+import { RACES, SLIDE_W, SEESAW_W, SWING_W, POLE_W, BENCH_W, BENCH_H, VOID_CEIL, STALL_CEIL, STONE_H, type Race } from './dragon-levels';
 
 export const VIEW_W = 1536, VIEW_H = 864;
 const GROUND_Y = 700;                      // where world y = 0 sits on screen (before the camera lifts)
-const ZOOM = 1.15;                         // the world is drawn a little closer than the far backdrop
+const ZOOM = 1.15;
+/** the sky behind each race's backdrop, top and bottom, for when the camera lifts above the painting */
+const SKY: [string, string][] = [['#8a77b8', '#f0a98a'], ['#7fb2dc', '#cfe4ee'], ['#5f6f86', '#9aa8b4'], ['#121a3c', '#2a2f5a'], ['#101a40', '#26346a']];
+/** each race's sleeping playground at the finish; the last race lines up all four */
+const MARKS: [string, string, string, number][] = [['dove', 'asleep', 'awake', 470], ['marks', 'pelican0', 'pelican1', 480], ['marks', 'melon0', 'melon1', 420], ['marks', 'mini0', 'mini1', 430]];                         // the world is drawn a little closer than the far backdrop
 const INK = '#221d1b';                     // the grout outline
 type Part = [number, number, number, number];
 
@@ -27,7 +31,7 @@ export class DragonScene {
   constructor(cv: HTMLCanvasElement) { this.cv = cv; this.ctx = cv.getContext('2d')!; }
 
   load(): Promise<void> {
-    const ids = [...Object.keys(DRAGON_ATLAS), 'bg1far', 'ground-path', 'ground-sand', 'ground-grass', 'ground-drain'];
+    const ids = [...Object.keys(DRAGON_ATLAS), ...DRAGON_BG, 'ground-path', 'ground-sand', 'ground-grass', 'ground-drain'];
     return Promise.all(ids.map((id) => new Promise<void>((res) => {
       if (this.img[id]) return res();
       const im = new Image(); im.onload = () => res(); im.onerror = () => res();
@@ -132,12 +136,19 @@ export class DragonScene {
     this.drawParts(dt);
     c.setTransform(s, 0, 0, s, (cv.width - VIEW_W * s) / 2, (cv.height - VIEW_H * s) / 2);
     if (this.race?.night) { c.fillStyle = 'rgba(20,24,60,0.28)'; c.fillRect(0, 0, VIEW_W, VIEW_H); }
+    if (this.race?.rain) {
+      // monsoon streaks, slanted, drifting with the camera
+      c.strokeStyle = 'rgba(220,232,245,0.42)'; c.lineWidth = 2; c.beginPath();
+      for (let i = 0; i < 140; i++) { const rx = ((i * 211 + this.camX * 0.9 + this.t * 220) % (VIEW_W + 200)) - 100, ry = ((i * 97 + this.t * 1300) % (VIEW_H + 60)) - 30; c.moveTo(VIEW_W - rx, ry); c.lineTo(VIEW_W - rx - 10, ry + 34); }
+      c.stroke(); c.fillStyle = 'rgba(70,90,120,0.14)'; c.fillRect(0, 0, VIEW_W, VIEW_H);
+    }
     c.restore();
   }
 
   private drawBack(g: DragonGame) {
-    const c = this.ctx, bg = this.img['bg1far'];
-    const sky = c.createLinearGradient(0, 0, 0, VIEW_H); sky.addColorStop(0, '#8a77b8'); sky.addColorStop(1, '#f0a98a');
+    const n = this.raceNo(), c = this.ctx, bg = this.img[`bg${n}far`] ?? this.img['bg1far'];
+    const [s0, s1] = SKY[n - 1] ?? SKY[0];
+    const sky = c.createLinearGradient(0, 0, 0, VIEW_H); sky.addColorStop(0, s0); sky.addColorStop(1, s1);
     c.fillStyle = sky; c.fillRect(0, 0, VIEW_W, VIEW_H);
     if (bg?.complete && bg.naturalWidth) {
       const off = -((this.camX * 0.25) % VIEW_W), y = GROUND_Y + 120 - VIEW_H + this.camY * 0.3;
@@ -152,10 +163,11 @@ export class DragonScene {
       const n = names[Math.floor(h * 977) % names.length], p = this.part('mid1', n); if (!p) continue;
       const sx = k * slotW + (h * 180) - x0, im = this.img['mid1'];
       const k2 = 0.72, w2 = p[2] * k2, h2 = p[3] * k2;
-      if (im?.complete) { c.save(); c.globalAlpha = 0.92; c.drawImage(im, p[0], p[1], p[2], p[3], sx - w2 / 2, GROUND_Y + 10 - h2 + this.camY * 0.6, w2, h2); c.restore(); }
+      if (im?.complete) { c.save(); c.globalAlpha = 0.92; if (this.race?.night) c.filter = 'brightness(0.62) saturate(0.8)'; else if (this.race?.rain) c.filter = 'brightness(0.85) saturate(0.75)'; c.drawImage(im, p[0], p[1], p[2], p[3], sx - w2 / 2, GROUND_Y + 10 - h2 + this.camY * 0.6, w2, h2); c.restore(); }
     }
   }
 
+  private raceNo() { return Math.max(1, RACES.findIndex((r) => r.id === this.race?.id) + 1); }
   private visible(x0: number, x1: number) { return x1 > this.camX - 200 && x0 < this.camX + VIEW_W / ZOOM + 200; }
 
   private drawGround(g: DragonGame) {
@@ -164,11 +176,21 @@ export class DragonScene {
     for (const gp of C.gaps) {
       if (!this.visible(gp.x0, gp.x1)) continue;
       const x = this.sx(gp.x0), w = gp.x1 - gp.x0, top = this.sy(0), bot = VIEW_H + 10;
+      if (gp.water) {
+        // the Bishan Park river: open water just under the stepping stones, reeds at the banks
+        const wy = this.sy(-14);
+        c.fillStyle = '#1f3f6e'; c.fillRect(x, wy, w, bot - wy);
+        c.fillStyle = '#2e5a92'; c.fillRect(x, wy, w, 26);
+        c.fillStyle = 'rgba(200,225,250,0.55)';
+        for (let i = 0; i < w; i += 38) c.fillRect(x + i + ((this.t * 30 + i * 7) % 26), wy + 8 + (i % 4) * 14, 16, 3);
+        c.strokeStyle = INK; c.lineWidth = 6; c.beginPath(); c.moveTo(x, top); c.lineTo(x, bot); c.moveTo(x + w, top); c.lineTo(x + w, bot); c.stroke();
+        continue;
+      }
       const im = this.img['ground-drain'];
       if (im?.complete) { c.save(); c.beginPath(); c.rect(x, top, w, bot - top); c.clip(); for (let k = 0; k * 1152 < w + 1152; k++) c.drawImage(im, x + k * 1152 - ((gp.x0 % 1152) + 1152) % 1152, top, 1152, 192); c.restore(); }
       else { c.fillStyle = '#4a4c50'; c.fillRect(x, top, w, bot - top); }
       const wy = this.sy(WATER_Y);
-      c.fillStyle = 'rgba(60,110,110,0.78)'; c.fillRect(x, wy, w, bot - wy);
+      c.fillStyle = gp.water ? 'rgba(52,96,150,0.86)' : 'rgba(60,110,110,0.78)'; c.fillRect(x, wy, w, bot - wy);
       c.fillStyle = 'rgba(190,230,225,0.7)';
       for (let i = 0; i < w; i += 46) c.fillRect(x + i + ((this.t * 40 + i) % 30), wy + 4 + (i % 3) * 5, 14, 4);
       c.strokeStyle = INK; c.lineWidth = 6; c.beginPath(); c.moveTo(x, top); c.lineTo(x, bot); c.moveTo(x + w, top); c.lineTo(x + w, bot); c.stroke();
@@ -205,16 +227,33 @@ export class DragonScene {
         }
         case 'finish': this.fit('props', 'finish', p.x - 207, 415); break;
         case 'landmark': {
-          const awake = this.woke;
-          this.spr('dove', awake ? 'awake' : 'asleep', p.x, 0, { dark: !awake });
+          const awake = this.woke, n = this.raceNo();
+          const list = n === 5 ? MARKS : [MARKS[n - 1]];
+          let x = p.x - 120;
+          for (const [atl, a0, a1, w] of list) {
+            // on the last race every playground you woke is out at the finish to cheer you home
+            const on = awake || n === 5;
+            if (!on) { c.save(); c.filter = 'grayscale(0.7) brightness(0.8)'; }
+            this.fit(atl, on ? a1 : a0, x, w);
+            if (!on) c.restore();
+            x += w + 40;
+          }
+          break;
+        }
+        case 'stall': {
+          // the whole stall behind the racers, its awning's lower edge at the ceiling height, bulbs strung above
+          const pr = this.part('props2', 'stall'), im = this.img['props2']; if (!pr || !im?.complete) break;
+          const k = w / pr[2], h = pr[3] * k, top = this.sy(STALL_CEIL) - pr[3] * 0.3 * k;
+          c.save(); c.beginPath(); c.rect(this.sx(p.x) - 10, 0, w + 20, this.sy(0)); c.clip();
+          c.drawImage(im, pr[0], pr[1], pr[2], pr[3], this.sx(p.x), top, w, Math.max(h, this.sy(0) - top)); c.restore();
+          this.fit('props2', 'bulbs', p.x - 40, w + 80, STALL_CEIL + 150);
           break;
         }
         case 'voiddeck': {
-          const x = this.sx(p.x), y = this.sy(VOID_CEIL + 90), h = 90;
-          c.fillStyle = '#cfc7ba'; c.fillRect(x, y - 400, w, 400 + h);
-          c.fillStyle = '#a49c90'; for (let i = 0; i < w; i += 140) c.fillRect(x + i, y - 400, 6, 400 + h);
-          c.strokeStyle = INK; c.lineWidth = 6; c.strokeRect(x, y, w, h);
-          for (const px of [p.x, p.x + w - 50]) { c.fillStyle = '#d9d2c5'; c.fillRect(this.sx(px), this.sy(VOID_CEIL), 50, VOID_CEIL); c.strokeRect(this.sx(px), this.sy(VOID_CEIL), 50, VOID_CEIL); }
+          // painted void-deck bays whose slab underside sits on the ceiling height
+          const x = this.sx(p.x);
+          const bays = Math.max(1, Math.round(w / 520)), bw = w / bays, pr = this.part('props2', 'voiddeck'), im = this.img['props2'];
+          if (pr && im?.complete) for (let b = 0; b < bays; b++) c.drawImage(im, pr[0], pr[1], pr[2], pr[3], x + b * bw, this.sy(0) - (VOID_CEIL + 34), bw, VOID_CEIL + 38);
           break;
         }
       }
@@ -229,8 +268,8 @@ export class DragonScene {
       switch (p.kind) {
         case 'bench': this.fit('props', 'bench', p.x, BENCH_W); break;
         case 'planter': {
-          const x = this.sx(p.x), y = this.sy(BENCH_H);
-          c.fillStyle = '#b9a58a'; c.fillRect(x, y, w, BENCH_H); c.strokeStyle = INK; c.lineWidth = 5; c.strokeRect(x, y, w, BENCH_H);
+          const pr = this.part('props2', 'planter'), im = this.img['props2'];
+          if (pr && im?.complete) this.fit('props2', 'planter', p.x, w);
           break;
         }
         case 'seesaw': {
@@ -249,15 +288,15 @@ export class DragonScene {
           break;
         }
         case 'stall': {
-          const x = this.sx(p.x), y = this.sy(STALL_CEIL + 40);
-          for (let i = 0; i < w; i += 40) { c.fillStyle = (i / 40) % 2 ? '#f6efe2' : '#c8352e'; c.fillRect(x + i, y, 40, 40); }
-          c.strokeStyle = INK; c.lineWidth = 5; c.strokeRect(x, y, w, 40);
-          c.fillStyle = '#5a4a3c'; c.fillRect(x, y + 40, 8, STALL_CEIL); c.fillRect(x + w - 8, y + 40, 8, STALL_CEIL);
+          // the awning front, in front of the racers, so the dragon ducks under it
+          const pr = this.part('props2', 'stall'), im = this.img['props2']; if (!pr || !im?.complete) break;
+          const k = w / pr[2], aw = pr[3] * 0.3;
+          c.drawImage(im, pr[0], pr[1], pr[2], aw, this.sx(p.x), this.sy(STALL_CEIL) - aw * k, w, aw * k);
           break;
         }
         case 'stone': {
-          const x = this.sx(p.x), y = this.sy(STONE_H);
-          c.fillStyle = '#9d9a92'; c.beginPath(); c.roundRect(x, y, w, 40, 14); c.fill(); c.strokeStyle = INK; c.lineWidth = 5; c.stroke();
+          const pr = this.part('props2', 'stone'), im = this.img['props2'];
+          if (pr && im?.complete) c.drawImage(im, pr[0], pr[1], pr[2], pr[3], this.sx(p.x) - 6, this.sy(STONE_H) - 8, w + 12, (w + 12) * pr[3] / pr[2]);
           break;
         }
       }

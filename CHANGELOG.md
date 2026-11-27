@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Dragon Playground** (game 109): a co-op platform race across Singapore at dusk, painted as terrazzo mosaic. The old Toa Payoh mosaic dragon wakes up and Dora and Enzo ride it in five races against three Bishan otters, playground to playground, from Toa Payoh through Dakota Crescent, MacPherson, Tampines and an Ang Mo Kio pasar malam, then home along the Bishan Park river. One hero drives and the other rides, swatting crows and grabbing swings, laundry poles and monkey bars. Slides, see-saws and merry-go-rounds give boosts, longkangs splash you back, and kaya toast fills the meter for a roar. Each win wakes a playground that lends you its power. A helper bot rides until a second player joins on the same keyboard.
 - **Kopi Peng Brawl** (game 108): a co-op belt brawler across Singapore on one long night, drawn as a 1980s kung-fu comic. Dora and Enzo are both on screen at once; a helper bot plays the other hero until a second player joins on the same keyboard. Five stages, from Lau Pa Sat at closing time to Changi Village at dawn, each with its own twist and boss, plus foes that team up, hawkers who join the fight and random events like power cuts and a durian lorry spill.
 
 ### Fixed
