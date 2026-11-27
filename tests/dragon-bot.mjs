@@ -54,7 +54,7 @@ export function play(race, seed, persona) {
       const [ox, h, kind] = next;
       const key = ox + ':' + kind;
       if (!jumpPlan.has(key)) {
-        const u = r(); const lead = h > 120 ? 150 : kind === 'gap' ? 110 : 120;
+        const u = r(); const lead = h > 120 ? 150 : kind === 'gap' ? 110 : kind === 'stone' ? 50 : 120;
         jumpPlan.set(key, lead + (u < P.early ? 120 : u < P.early + P.late ? -60 : (r() - 0.5) * 40));
       }
       const dist = ox - v.x;

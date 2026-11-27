@@ -116,7 +116,7 @@ export const POLE_W = 520, POLE_Y = 170, SWING_W = 300, SWING_Y = 160;
 export const BARS_RAIL = 195 / 499;              // the monkey-bar rail's height as a share of the bars' width
 export const VOID_CEIL = 250, STALL_CEIL = 120;
 export const SEESAW_W = 380, SEESAW_H = 102, MGR_W = 260;
-export const STONE_W = 220, STONE_GAP = 140, STONE_H = 18;   // one tap-jump from stone to stone
+export const STONE_W = 340, STONE_GAP = 100, STONE_H = 18;   // one tap-jump from stone to stone
 
 export function buildCourse(race: Race): Course {
   const c: Course = { len: 0, finish: 0, ground: [], gaps: [], tops: [], walls: [], grabs: [], pads: [], ceils: [], seesaws: [],
