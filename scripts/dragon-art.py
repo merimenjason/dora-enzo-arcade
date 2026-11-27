@@ -30,8 +30,10 @@ SHEETS = [
   ('props', 'props', 'c', 1.0, 10, 'slide seesaw swing bars mgr bench pole grate finish'),
   ('bg1mid', 'mid1', 'm', 0.8, 10, 'tree shrub lamp pillar bike rail walkway palm'),
   ('dove', 'dove', 'g', 0.75, 30, 'asleep awake'),
+  ('marks', 'marks', 'g', 1.0, 30, 'pelican0 pelican1 melon0 melon1 mini0 mini1'),
+  ('props2', 'props2', 'c', 1.0, 24, 'stall voiddeck stone planter bulbs'),
 ]
-BGS = ['bg1far']
+BGS = ['bg1far', 'bg2far', 'bg3far', 'bg4far', 'bg5far']
 MIN_PX = 1200
 PAD = 3
 

@@ -10,9 +10,11 @@ export const DRAGON_ATLAS: Record<string, { src: string; scale: number; parts: R
   props: { src: '/art/dragon/props.webp', scale: 1.0, parts: { slide: [3, 3, 555, 315], swing: [564, 3, 412, 289], finish: [3, 324, 415, 264], pole: [424, 324, 498, 248], bars: [3, 594, 499, 233], mgr: [508, 594, 386, 208], seesaw: [3, 833, 441, 181], bench: [450, 833, 479, 151], grate: [3, 1020, 380, 36] } },
   mid1: { src: '/art/dragon/mid1.webp', scale: 0.8, parts: { lamp: [3, 3, 93, 316], pillar: [102, 3, 146, 308], tree: [254, 3, 418, 289], palm: [3, 325, 167, 238], shrub: [176, 325, 230, 177], bike: [412, 325, 244, 172], walkway: [3, 569, 310, 168], rail: [319, 569, 197, 129] } },
   dove: { src: '/art/dragon/dove.webp', scale: 0.75, parts: { awake: [3, 3, 487, 382], asleep: [3, 391, 482, 296] } },
+  marks: { src: '/art/dragon/marks.webp', scale: 1.0, parts: { pelican1: [3, 3, 408, 213], pelican0: [3, 222, 408, 208], mini1: [3, 436, 372, 172], mini0: [3, 614, 370, 171], melon1: [3, 791, 404, 151], melon0: [3, 948, 397, 150] } },
+  props2: { src: '/art/dragon/props2.webp', scale: 1.0, parts: { voiddeck: [3, 3, 579, 322], stall: [3, 331, 321, 297], planter: [330, 331, 368, 218], bulbs: [3, 634, 501, 141], stone: [3, 781, 362, 74] } },
 };
 
-export const DRAGON_BG: string[] = ['bg1far'];
+export const DRAGON_BG: string[] = ['bg1far', 'bg2far', 'bg3far', 'bg4far', 'bg5far'];
 export const DRAGON_IMG = (id: string) => `/art/dragon/${id}.webp`;
 export const DRAGON_GROUNDS = ['path', 'sand', 'grass', 'drain'] as const;
-export const DRAGON_ATLAS_IDS: string[] = ['dragon', 'dora', 'enzo', 'otters', 'crows', 'props', 'mid1', 'dove'];
+export const DRAGON_ATLAS_IDS: string[] = ['dragon', 'dora', 'enzo', 'otters', 'crows', 'props', 'mid1', 'dove', 'marks', 'props2'];
