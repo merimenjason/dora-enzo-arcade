@@ -215,8 +215,9 @@ export class DragonGame {
       const reachTop = d.y + this.bodyH() + 150;
       for (const g of c.grabs) {
         const inX = g.kind === 'bars' ? d.x > g.x && d.x < g.x1 - 80 : Math.abs(d.x - g.x) < 75;
-        // the bars also catch a dragon in mid-jump: the rider can reach down to them from a little above
-        if (!inX || reachTop < g.y - 20 || (g.kind === 'bars' ? d.y > g.y : d.y + this.bodyH() > g.y + 30)) continue;
+        // the bars catch a dragon coming down onto them from a jump, or dropping into the drain under them, right up
+        // until the splash
+        if (!inX || (g.kind === 'bars' ? d.y > g.y + (d.vy < 0 ? 150 : 0) || d.y < WATER_Y * 2 : reachTop < g.y - 20 || d.y + this.bodyH() > g.y + 30)) continue;
         R.grabT = 0; this.fx.push({ k: 'grab', x: d.x, y: g.y });
         if (g.kind === 'bars') { d.hang = g; d.tier = null; setSt('hang'); act('hang'); return; }
         d.vy = g.kind === 'pole' ? 820 : 760; d.ground = false; d.y = Math.max(d.y, 4); setSt('fling'); act('hang'); this.setTier('fling');
@@ -258,8 +259,6 @@ export class DragonGame {
     // ── jump
     if (inp.jmp && d.ground && d.stumbleT <= 0.2) {
       d.vy = JUMP; d.ground = false; d.holdT = HOLD_T; d.onSlide = false; setSt('jump'); this.fx.push({ k: 'jump', x: d.x, y: d.y });
-    } else if (inp.jmp && !d.ground && this.power === 'flutter' && !d.flutterUsed && this.riderBot === false) {
-      // (player 2's flutter goes through the power key; player 1 can't flutter with Jump)
     }
     if (!d.ground) {
       const g = d.holdT > 0 && inp.jmpH && d.vy > 0 ? GRAV * HOLD_G : GRAV;
@@ -342,7 +341,7 @@ export class DragonGame {
   private botRide(): RideIn {
     const d = this.dragon, c = this.course, R = this.rider;
     const reachTop = d.y + this.bodyH() + 150;
-    const grab = c.grabs.find((g) => (g.kind === 'bars' ? d.x > g.x + 10 && d.x < g.x1 - 100 : Math.abs(d.x - g.x) < 50) && reachTop >= g.y - 20 && (g.kind === 'bars' ? d.y <= g.y : d.y + this.bodyH() <= g.y + 30)) ?? null;
+    const grab = c.grabs.find((g) => (g.kind === 'bars' ? d.x > g.x + 10 && d.x < g.x1 - 100 && d.y <= g.y + (d.vy < 0 ? 150 : 0) && d.y >= WATER_Y * 2 : Math.abs(d.x - g.x) < 50 && reachTop >= g.y - 20 && d.y + this.bodyH() <= g.y + 30)) ?? null;
     let otterAhead = 9999; for (const o of this.otters) if (o.st !== 'hidden' && o.x > d.x && o.x - d.x < otterAhead) otterAhead = o.x - d.x;
     const overGap = !!this.inGap(d.x + 60) || !!this.inGap(d.x);
     this.botQ.push({ crows: this.crows.filter((cr) => !cr.gone && cr.st !== 'knocked').map((cr) => ({ id: cr.id, x: cr.x, y: cr.y })), grab, overGap, falling: !d.ground && d.vy < 0, otterAhead });
