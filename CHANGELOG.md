@@ -8,6 +8,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Kopi Peng Brawl** (game 108): a co-op belt brawler across Singapore on one long night, drawn as a 1980s kung-fu comic. Dora and Enzo are both on screen at once; a helper bot plays the other hero until a second player joins on the same keyboard. Five stages, from Lau Pa Sat at closing time to Changi Village at dawn, each with its own twist and boss, plus foes that team up, hawkers who join the fight and random events like power cuts and a durian lorry spill.
 
+### Fixed
+
+- **Kopi Peng Brawl**: the story and twist text on the stage cards, and the text on the Paused and Both down cards, was pale grey on cream and nearly unreadable. It is dark ink now.
+
 ## 26-11-2026
 
 ### Added

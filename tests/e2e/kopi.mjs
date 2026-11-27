@@ -4,7 +4,7 @@
 // special, Q to swap heroes), pause and resume on Esc and P; player two joining on comma and their keys (arrows, comma,
 // full stop, slash, apostrophe, numpad 1 2 3 0) while WASD stays with player one; the team-up; mashing out of a python;
 // both heroes down, the Continue overlay and Enter to retry; and the boss going down, the results card and the save
-// under kopi-peng-v1 unlocking stage 2. Fails on any page error or sideways scroll. Needs `npm run dev` (or BASE_URL)
+// under kopi-peng-v1 unlocking stage 2. Fails on any page error, sideways scroll or card text under 4.5:1 contrast. Needs `npm run dev` (or BASE_URL)
 // and Playwright. SHOTS=<dir> saves screenshots.
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
@@ -27,6 +27,25 @@ const screen = () => page.evaluate(() => window.__kopi().screen);
 const hero = (id) => page.evaluate((id) => { const h = window.__kopi().game.hero(id); return { x: h.x, z: h.z, h: h.h, st: h.st, move: h.move, ctrl: h.ctrl, hold: h.hold?.kind ?? null, meter: h.meter, hp: h.hp, running: h.running }; }, id);
 const tap = async (key, ms = 70) => { await page.keyboard.down(key); await wait(ms); await page.keyboard.up(key); };
 const hold = async (key, ms) => { await page.keyboard.down(key); await wait(ms); await page.keyboard.up(key); };
+/** every line of text on the open cards (stage panel, pause, Continue, results) reads at 4.5:1 or better against the
+ *  card it sits on; app/globals.css paints bare `p` a pale grey that once leaked onto the cream cards */
+const readable = async (where) => {
+  const bad = await page.evaluate(() => {
+    const px = (s) => (s.match(/[\d.]+/g) || []).map(Number);
+    const lum = (c) => { const [r, g, b] = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+    const bgOf = (el) => { for (let n = el; n; n = n.parentElement) { const c = px(getComputedStyle(n).backgroundColor); if (c.length === 3 || c[3] > 0.99) return c.slice(0, 3); } return [18, 13, 10]; };
+    const out = [];
+    for (const el of document.querySelectorAll('.box, .box *')) {
+      if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
+      const r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) continue;
+      const a = lum(px(getComputedStyle(el).color).slice(0, 3)), b = lum(bgOf(el));
+      const cr = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+      if (cr < 4.5) out.push(`${el.textContent.trim().slice(0, 30)} (${cr.toFixed(2)}:1)`);
+    }
+    return out;
+  });
+  ok(bad.length === 0, `the ${where} card text is readable: ${bad.join('; ')}`);
+};
 /** no waves, no twist, no event; foes cleared; both heroes stood in the middle */
 const quiet = () => page.evaluate(() => {
   const g = window.__kopi().game; g.waveWait = 1e9; g.twistT = 1e9; g.jetT = 1e9; g.doorT = 1e9; g.curveT = 1e9; g.eventDone = true; g.foes = []; g.items = []; g.hazards = [];
@@ -45,7 +64,7 @@ ok(await screen() === 'select', 'Enter opens the stage map'); await shot('map');
 await page.keyboard.press('ArrowRight'); await wait(100); await page.keyboard.press('Enter'); await wait(300);
 ok(await screen() === 'select', 'a locked stage stays shut');
 await page.keyboard.press('ArrowLeft'); await wait(100); await page.keyboard.press('Enter'); await wait(400);
-ok(await screen() === 'panel', 'stage 1 opens its panel'); await shot('panel');
+ok(await screen() === 'panel', 'stage 1 opens its panel'); await shot('panel'); await readable('stage');
 await page.keyboard.press('Enter'); await page.waitForFunction(() => window.__kopi().screen === 'play' && window.__kopi().game, null, { timeout: 30000 });
 await wait(800); await quiet(); await settle();
 
@@ -90,7 +109,7 @@ a = await hero('dora'); ok(/air/.test(a.move ?? '') && a.meter >= 100, `held K t
 
 // ── pause on Esc and P
 await page.keyboard.press('Escape'); await wait(150);
-ok(await page.evaluate(() => window.__kopi().paused), 'Esc pauses'); await shot('pause');
+ok(await page.evaluate(() => window.__kopi().paused), 'Esc pauses'); await shot('pause'); await readable('pause');
 const t0 = await page.evaluate(() => window.__kopi().game.t); await wait(300);
 ok(await page.evaluate((t0) => window.__kopi().game.t === t0, t0), 'paused time stands still');
 await page.keyboard.press('Escape'); await wait(150); ok(!(await page.evaluate(() => window.__kopi().paused)), 'Esc resumes');
@@ -141,7 +160,7 @@ ok((await hero('dora')).st !== 'wrapped', 'mashing J and K wriggles free');
 
 // ── both down, Continue, retry
 await quiet(); await page.evaluate(() => { const g = window.__kopi().game; for (const h of g.heroes) g.knockOut(h); });
-await page.waitForFunction(() => window.__kopi().down, null, { timeout: 5000 }); ok(true, 'both down shows Continue'); await shot('down');
+await page.waitForFunction(() => window.__kopi().down, null, { timeout: 5000 }); ok(true, 'both down shows Continue'); await shot('down'); await readable('Continue');
 await page.keyboard.press('Enter'); await wait(300);
 ok(!(await page.evaluate(() => window.__kopi().down)) && (await page.evaluate(() => window.__kopi().game.mode)) === 'play', 'Enter continues');
 
@@ -149,7 +168,7 @@ ok(!(await page.evaluate(() => window.__kopi().down)) && (await page.evaluate(()
 await page.evaluate(() => { const g = window.__kopi().game; g.foes = []; g.enterScene(2); });
 await page.waitForFunction(() => window.__kopi().game.boss, null, { timeout: 30000 });
 await page.evaluate(() => { const g = window.__kopi().game; g.killFoe(g.boss, 1); });
-await page.waitForFunction(() => window.__kopi().screen === 'results', null, { timeout: 30000 }); ok(true, 'the boss down brings the results card'); await shot('results');
+await page.waitForFunction(() => window.__kopi().screen === 'results', null, { timeout: 30000 }); ok(true, 'the boss down brings the results card'); await shot('results'); await readable('results');
 const save = JSON.parse(await page.evaluate(() => localStorage.getItem('kopi-peng-v1')));
 ok(save?.cleared?.s1, 'the clear is saved under kopi-peng-v1');
 await page.keyboard.press('Enter'); await wait(300); ok(await screen() === 'select', 'Enter returns to the map');
