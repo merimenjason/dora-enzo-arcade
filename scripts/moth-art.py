@@ -108,6 +108,9 @@ def edge_offset(a, p, axis):
   return bo
 
 
+HERO_W = 120
+
+
 def grid_sample(img, max_w=10000, force=None):
   """pixel-art painting -> (art-pixel RGB grid, key mask). Reads the block pitch from the flat-colour runs; if that
   gives a grid wider than max_w (Codex painted finer detail than asked), the pitch doubles."""
@@ -315,7 +318,8 @@ def main():
   grids = {}
   for name, names in SHEETS.items():
     if not os.path.exists(P(name)): print('skip sheet', name); continue
-    g, key, p = grid_sample(Image.open(P(name)))
+    # the two heroes share one scale (a 120-art-pixel-wide sheet) even when Codex paints one of them finer
+    g, key, p = grid_sample(Image.open(P(name)), HERO_W if name in ('dora', 'enzo') else 10000)
     grids[name] = (g, key, names.split())
     print(f'{name}: pitch {p:.2f}px -> {g.shape[1]}x{g.shape[0]} art px')
   allpts = np.concatenate([g[~k].reshape(-1, 3) for g, k, _ in grids.values()]) if grids else np.zeros((0, 3))
