@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of one hundred and nine original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of one hundred and ten original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -119,6 +119,7 @@ Listed in arcade-menu order.
 | 107 | Lookout Ridge | `/lookout-ridge` | Turn-based artillery |
 | 108 | Kopi Peng Brawl | `/kopi` | Co-op belt brawler |
 | 109 | Dragon Playground | `/dragon-playground` | Co-op platform race |
+| 110 | Moth Hoop | `/moth-hoop` | Cross-stitch shooter |
 
 ## Run
 
@@ -1764,6 +1765,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:dragon` (22 engine tests: the five courses, the countdown, determinism, running and jumping, a longkang splash and its checkpoint, the slide, see-saw, swing and monkey bars (the helper bot catches every set of bars over a drain from the checkpoint), crows and the swat, kaya toast and the roar, all four powers, winning and losing, stars, saves and race unlocking, and the seat swap), `npm run bot:dragon` (human-delay bots over twelve seeds: a casual driver who reacts 200 to 300 ms late wins race 1 at least 80% of the time and every race at least half the time, a runner who only jumps wins race 1 at least half the time, and a driver who presses nothing never wins). `node tests/e2e/dragon-playground.mjs` (with `npm run dev` and Playwright) plays it in a muted browser with real keys: the title, map and race cards, every driver, rider and player-two key, pause, restart, the seat swap, race 1 won by holding right and jumping, the save opening race 2 and its power, with a 4.5:1 contrast check on every card and the HUD.
 
 **Docs:** [`docs/dragon-playground.md`](docs/dragon-playground.md).
+
+### 110 · Moth Hoop (`/moth-hoop`)
+
+**Play:** a fixed-screen shooter drawn entirely in cross stitch: the cloth, the pictures, the chinchillas, the moths and even the HUD lettering are crosses of thread on aida. Ah Ma left six kits half-done on her table in Tiong Bahru and the clothes moths found them. Dora and Enzo ride a cotton reel along a tape measure under the embroidery hoop and throw needles straight up. A needle stitches the first unstitched part of the printed picture it meets, a run of crosses from the bottom up (five on the first kit, twelve after that), or pins the first moth in its way. Moths land on finished stitches and chew them into holes (a red ring shows the chewing); a hole takes one needle to darn before it can be stitched again. Larvae crawl along a row eating stitches and spin a cocoon after four, which hatches a moth. Gold moths hover, shiver (a dotted line shows where) and dive at your reel: step aside or lose a spool. The silk moth takes three pins and drops one of Ah Ma's buttons; catch it on the reel for a power: Lavender sachet (moths flee and none arrive for 7 seconds), Three needles (9 seconds), Golden thread (each needle darns and sews twice as far for 9 seconds) or a Thimble (blocks the next dive). Ah Ma hands back a lost spool at a third and two thirds done. Finish every stitch to win; lose all three spools, or let holes reach the tear limit (16 to 20% of the picture), and the kit is lost. The kits: Kopi & Kaya, Tiong Bahru Flats, The Merlion, Peranakan Tiles, Supertree Grove and National Day, where the Atlas Moth queen arrives at a quarter done, lays larvae on your stitches and takes 36 pins. Each kit opens when the one before is won. Stars for finishing, for keeping every spool and for beating par. Gentle moths (on by default) slow the moths, lengthen the shiver warning and draw a faint guide up your column.
+
+**Controls:** solo, A and D or the arrows move the reel, Space, W, Up or K throws (hold it to keep throwing), Q swaps who sews, Enter brings in player two, Esc or P pauses. With two players, Dora uses A and D to move and Space or W to throw; Enzo gets a reel of their own and uses the arrows to move and Up, Enter or Numpad 0 to throw. From pause, R starts the kit again and Q goes back to the kits; on the results card, Enter goes on and R sews the kit again. On the kits screen, the arrows or WASD pick a kit, Enter opens it, 2 switches between one and two players and Esc goes back. Keyboard only.
+
+**Tests:** `npm run test:moth` (26 engine tests: the six kits and their pictures, determinism, stitching from the bottom up, darning, golden thread, three needles, moths chewing and being pinned, larvae and cocoons, the gold moth's dive and the thimble, the silk moth's button, lavender, spare spools, winning and stars, a finished row, both ways to lose, the queen, solo, swap and player two, saves, and human-delay bots: a casual player clears every kit on at least three of four seeds, and one who never throws never wins). `node tests/e2e/moth-hoop.mjs` (with `npm run dev` and Playwright) plays it in a muted browser with real keys: the title, the kits (a locked kit stays shut, every option), the brief, every solo key, pause, player two joining and their keys, restart and quit from pause, a won kit opening the next one in the save, a lost kit and retry, with a 4.5:1 contrast check on every card.
+
+**Docs:** [`docs/moth-hoop.md`](docs/moth-hoop.md).
 
 ## Validation
 

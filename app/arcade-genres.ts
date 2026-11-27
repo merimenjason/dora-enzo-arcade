@@ -123,4 +123,5 @@ export const GENRE_OF: Record<string, GenreId[]> = {
  '/lookout-ridge': ['strategy', 'action'],
  '/kopi': ['action', 'arcade'],
  '/dragon-playground': ['sports', 'arcade'],
+ '/moth-hoop': ['arcade', 'action'],
 };
