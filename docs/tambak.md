@@ -44,6 +44,11 @@ cost a sand bucket.
   lightbox glow behind it, and the crab a red dashed ring. The chinchillas are drawn over the HUD strip, so one standing
   on the top shore stays in view. The key hint shows for the first 15 seconds of a site (and again when the keys
   change), along whichever edge of the field has no chinchilla near it.
+- **Sprite size.** The creatures are drawn close to their real hit size (a jellyfish is about 46 px across round a
+  22 px hit circle; a crocodile is 70 px nose to tail round a 29 px circle), so a player can judge from the picture how
+  near is too near. The chinchillas are larger (62 px tall) because they are what you watch.
+- **No attract mode.** The menus cover the stage with the title painting or the work table, so the lightbox only runs
+  during play; a bot pouring behind the menus would never be seen.
 - **The title** is a Codex sand painting of the heroes pouring a sandbank with the skyline behind, under the word
   TAMBAK poured as grains of coloured sand over a dark rim.
 - **Menus** sit on the sand artist's work table at night (jars of sand, a scoop, a kopi). Site cards show the painting
@@ -139,7 +144,7 @@ it runs for the nearest land when a creature could reach the line before it can 
 checks off.
 
 From the tests (four seeds a site, gentle tides): the careful bot (skill 0.8) and a sloppy one (skill 0.5) clear every
-site, the careful one usually in one to three minutes. A careless bot loses most of sites 3 to 6 to the creatures, and
+site, the careful one usually in one to three minutes. A careless bot loses at least half of sites 3 to 6 to the creatures, and
 standing still always loses to the tide. With gentle tides off, the sloppy bot sometimes runs out of tide on the later
 sites, which is the intended challenge.
 
@@ -161,5 +166,8 @@ Keyboard only; it is not made for phones.
 - `app/tambak/`: the page, its sounds and styles.
 - `scripts/tambak-art.py`: the art pipeline.
 - `tests/tambak.mjs`: engine tests; `tests/e2e/tambak.mjs`: the browser test.
+
+For the browser tests, `window.__tambak()` returns the running game, the scene, the screen and the save, and the
+`Bot` class (so a test can let the bot choose directions and press the real keys for them).
 
 The save is `tambak-v1` in `localStorage`: stars and best score per site, gentle tides, music, sound and who pours.

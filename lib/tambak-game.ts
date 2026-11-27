@@ -159,7 +159,7 @@ export class TambakGame {
     this.foes.push({ id: this.nextId++, kind, x, y, vx: Math.cos(a) * sp.speed, vy: Math.sin(a) * sp.speed, r: sp.r, t: this.rng.range(0, 3), puff: 0, snap: 0, dizzy: 0 });
   }
 
-  /** player two joins mid-game on the top rim (or the bottom if player one stands there) */
+  /** player two joins mid-game on the middle of the top rim, wherever player one is */
   join() {
     if (this.heroes.length > 1 || this.over) return;
     const lead = this.heroes[0];
