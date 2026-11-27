@@ -115,7 +115,10 @@ export class DragonGame {
   supports(x: number, hw = 0): number[] {
     const c = this.course, out: number[] = [];
     for (const g of c.ground) if (x + hw * 0.3 >= g.x0 && x - hw * 0.3 <= g.x1) { out.push(0); break; }
-    for (const s of c.tops) if (x >= s.x0 && x <= s.x1) out.push(s.y0 + (s.y1 - s.y0) * ((x - s.x0) / Math.max(1, s.x1 - s.x0)));
+    for (const s of c.tops) {
+      const e = s.kind === 'stone' ? hw * 0.3 : 0;   // a stone holds the dragon until its feet are past the edge, like the ground
+      if (x + e >= s.x0 && x - e <= s.x1) out.push(s.y0 + (s.y1 - s.y0) * clamp((x - s.x0) / Math.max(1, s.x1 - s.x0), 0, 1));
+    }
     for (const s of c.seesaws) if (x >= s.x0 && x <= s.x1) out.push(this.seesawY(s, x));
     return out.sort((a, b) => b - a);
   }
@@ -181,7 +184,7 @@ export class DragonGame {
     if (d.st === 'splash') {
       d.splashT -= DT;
       if (d.splashT <= 0) {
-        let cp = 0; for (const p of c.checkpoints) if (p < d.x - 60 && this.supports(p, 0).length && !this.inGap(p)) cp = p;
+        let cp = 0; for (const p of c.checkpoints) if (p < d.x - 60 && this.supports(p, 0).length) cp = p;   // a stepping stone counts
         d.x = cp; d.y = this.supports(cp, 0)[0] ?? 0; d.vy = 0; d.ground = true; d.tier = null; d.tierT = 0; d.hang = null; setSt('idle'); act('sit');
       }
       return;
@@ -213,7 +216,7 @@ export class DragonGame {
       for (const g of c.grabs) {
         const inX = g.kind === 'bars' ? d.x > g.x && d.x < g.x1 - 80 : Math.abs(d.x - g.x) < 75;
         // the bars also catch a dragon in mid-jump: the rider can reach down to them from a little above
-        if (!inX || reachTop < g.y - 20 || d.y + this.bodyH() > g.y + (g.kind === 'bars' ? 110 : 30)) continue;
+        if (!inX || reachTop < g.y - 20 || (g.kind === 'bars' ? d.y > g.y : d.y + this.bodyH() > g.y + 30)) continue;
         R.grabT = 0; this.fx.push({ k: 'grab', x: d.x, y: g.y });
         if (g.kind === 'bars') { d.hang = g; d.tier = null; setSt('hang'); act('hang'); return; }
         d.vy = g.kind === 'pole' ? 820 : 760; d.ground = false; d.y = Math.max(d.y, 4); setSt('fling'); act('hang'); this.setTier('fling');
@@ -339,7 +342,7 @@ export class DragonGame {
   private botRide(): RideIn {
     const d = this.dragon, c = this.course, R = this.rider;
     const reachTop = d.y + this.bodyH() + 150;
-    const grab = c.grabs.find((g) => (g.kind === 'bars' ? d.x > g.x + 10 && d.x < g.x1 - 100 : Math.abs(d.x - g.x) < 50) && reachTop >= g.y - 20 && d.y + this.bodyH() <= g.y + (g.kind === 'bars' ? 110 : 30)) ?? null;
+    const grab = c.grabs.find((g) => (g.kind === 'bars' ? d.x > g.x + 10 && d.x < g.x1 - 100 : Math.abs(d.x - g.x) < 50) && reachTop >= g.y - 20 && (g.kind === 'bars' ? d.y <= g.y : d.y + this.bodyH() <= g.y + 30)) ?? null;
     let otterAhead = 9999; for (const o of this.otters) if (o.st !== 'hidden' && o.x > d.x && o.x - d.x < otterAhead) otterAhead = o.x - d.x;
     const overGap = !!this.inGap(d.x + 60) || !!this.inGap(d.x);
     this.botQ.push({ crows: this.crows.filter((cr) => !cr.gone && cr.st !== 'knocked').map((cr) => ({ id: cr.id, x: cr.x, y: cr.y })), grab, overGap, falling: !d.ground && d.vy < 0, otterAhead });
@@ -355,9 +358,9 @@ export class DragonGame {
         if (!this.botMiss.get(key)) out.swat = true;
       }
     }
-    if (v.grab && grab === v.grab) {
-      const key = 'g' + c.grabs.indexOf(v.grab) + ':' + Math.floor(d.x / 4000);
-      if (!this.botMiss.has(key)) this.botMiss.set(key, v.grab.kind === 'bars' ? false : this.rng() < 0.25);
+    if (v.grab && grab && (grab === v.grab || grab.kind === 'bars')) {
+      const key = 'g' + c.grabs.indexOf(grab) + ':' + this.stats.falls;
+      if (!this.botMiss.has(key)) this.botMiss.set(key, grab.kind === 'bars' ? false : this.rng() < 0.25);
       if (!this.botMiss.get(key)) out.grab = true;
     }
     if (this.power && R.powerCd <= 0) {
@@ -389,8 +392,10 @@ export class DragonGame {
     let v = RUN * this.race.otter * o.skill * (0.97 + 0.06 * Math.sin(this.t * 0.7 + o.i * 2.1));
     const lead = o.x - d.x;
     if (d.finished === null) {
-      if (this.assist) { if (lead > 450) v *= 0.8; else if (lead > 200) v *= 0.92; if (lead < -800) v *= 1.06; }
-      else { if (lead > 900) v *= 0.92; if (lead < -900) v *= 1.05; }
+      if (this.assist) { if (lead > 450) v *= 0.8; else if (lead > 200) v *= 0.92; }
+      else if (lead > 900) v *= 0.92;
+      // otters left far behind put on a spurt so the race stays a race, but not on the run-in: a late lead holds
+      if (lead < -400 && d.x < this.course.finish * 0.92) v *= 1 + Math.min(0.75, (-lead - 400) / 900);
     }
     if (this.assist) v *= 0.96;
     const swim = !o.ground && o.y <= WATER_Y + 2;
