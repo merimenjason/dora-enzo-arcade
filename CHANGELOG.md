@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 28-11-2026
+
+### Added
+
+- **Moth Hoop** (game 110): a shooter drawn entirely in cross stitch. Dora and Enzo ride a cotton reel under Ah Ma's embroidery hoop and throw needles up to stitch six Singapore kit pictures (kopi and kaya, the Tiong Bahru flats, the Merlion, Peranakan tiles, the Supertrees and National Day fireworks) while pinning the clothes moths that chew them into holes. Larvae, cocoons, diving gold moths, a silk moth that drops power buttons and the Atlas Moth queen on the last kit. A second player joins on the same keyboard.
+
 ## 27-11-2026
 
 ### Added

@@ -111,14 +111,15 @@ const GAMES=[
  {href:'/lookout-ridge',title:'Lookout Ridge',tag:'NEW · TURN-BASED ARTILLERY',blurb:'Woven Andean-cloth artillery. Dora rides Tupa the llama with a pebble trebuchet, Enzo rides Mochi the capybara with a clay-pot cannon. Guard three chinchilla kits in their burrow from a culpeo fox and a buzzard-eagle until nightfall: darn holes shut and pull loose threads to unravel the ground under the predators.',color:'#c0507a',art:'🧶'},
  {href:'/kopi',title:'Kopi Peng Brawl',tag:'NEW · CO-OP BRAWLER',blurb:'One long night across Singapore, drawn as a 1980s kung-fu comic. Dora and Enzo both brawl on screen at once: play one while the other helps, or a second player takes over on the same keyboard. Fight rats, macaques, mynahs, monitors, pythons, toads and wild boars through Lau Pa Sat, Chinatown, the last MRT train, Tekka in a monsoon and Changi Village at dawn.',color:'#d9452b',art:'🥊'},
  {href:'/dragon-playground',title:'Dragon Playground',tag:'NEW · CO-OP PLATFORM RACE',blurb:'At dusk the old mosaic dragon at Toa Payoh wakes up, and Dora and Enzo ride it across Singapore, racing three Bishan otters from one tiled playground to the next. One drives and one rides: slide the chutes, spring off see-saws, swing across the monkey bars, swat the crows and roar on a belly full of kaya toast. Each race you win wakes another playground, and it lends you its power. A helper bot rides until a second player joins on the same keyboard.',color:'#c8352e',art:'🐉'},
+ {href:'/moth-hoop',title:'Moth Hoop',tag:'NEW · CROSS-STITCH SHOOTER',blurb:'Everything is drawn in cross stitch. Ah Ma left six embroidery kits half-done on her table in Tiong Bahru, and the clothes moths found them. Dora and Enzo ride a cotton reel along the tape measure and throw needles straight up: a needle stitches the printed picture, a few crosses at a time, or pins the moth in its way. Moths chew finished stitches into holes, larvae crawl the rows, gold moths dive at your reel and the Atlas Moth queen guards the last kit. Stitch kopi and kaya, the Tiong Bahru flats, the Merlion, Peranakan tiles, the Supertrees and National Day fireworks. A second player joins on the same keyboard.',color:'#8a2a1e',art:'🧵'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">ONE HUNDRED AND NINE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>One hundred and nine ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, one hundred and nine cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">ONE HUNDRED AND TEN ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>One hundred and ten ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, one hundred and ten cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <ArcadeGrid games={GAMES}/>
