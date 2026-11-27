@@ -18,13 +18,14 @@
 .mh-card h2 { margin: 6px 0 8px; font-size: 34px; color: #8a2a1e; }
 .mh-card p, .mh-card li, .mh-card td { color: #2a1a10; font-size: 16px; line-height: 1.5; }
 .mh-card p { margin: 6px 0; }
-.mh-card ul { margin: 8px 0; padding-left: 20px; }
+.mh-card ul { margin: 8px 0; padding-left: 22px; list-style: disc; }
+.mh-card li { margin: 2px 0; }
 .mh-card b { color: #2a1a10; }
 .mh-card .lede { font-size: 17px; }
 .mh-card .keys { font-family: system-ui, sans-serif; font-size: 14px; color: #3d2a1c; background: rgba(255, 250, 238, 0.85); padding: 6px 10px; border-radius: 8px; }
 .mh-card .small { font-size: 14px; color: #3d2a1c; }
 .mh-card .tag { display: inline-block; font-family: system-ui, sans-serif; font-weight: 700; font-size: 13px; background: #2a1a10; color: #f6efe0; padding: 3px 10px; border-radius: 6px; }
-.mh-card .stars { font-size: 40px; color: #b07a12; letter-spacing: 6px; margin: 0; text-align: center; }
+.mh-card .stars { font-size: 40px; color: #8a5a00; letter-spacing: 6px; margin: 0; text-align: center; }
 .mh-card table { width: 100%; border-collapse: collapse; font-family: system-ui, sans-serif; }
 .mh-card td { padding: 3px 0; border-bottom: 1px dashed #b8a27c; font-weight: 600; }
 .mh-card td:last-child { text-align: right; }

@@ -252,7 +252,7 @@ export default function MothHoop() {
             <div className="mh-card">
               <span className="tag">Kit {sel + 1} of {HOOPS.length} · {HOOPS[sel].place}</span>
               <h2>{HOOPS[sel].name}</h2>
-              {thumbs[sel] && <img className="mh-preview" src={thumbs[sel].todo} alt={`The printed kit: ${HOOPS[sel].place}`} />}
+              {thumbs[sel] && <img className="mh-preview framed" src={thumbs[sel].done} alt={`The picture on the kit's packet: ${HOOPS[sel].place}`} />}
               <p>{HOOPS[sel].blurb}</p>
               <ul>
                 <li>Your needle flies straight up. It <b>stitches</b> the first unstitched part of the picture it meets, or <b>pins</b> the first moth in its way.</li>
