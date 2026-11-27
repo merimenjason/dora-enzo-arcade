@@ -28,7 +28,7 @@
 .dp-route { font-family: system-ui, sans-serif; font-weight: 800; font-size: 14px; color: #7a2a24; line-height: 1.35; }
 .dp-wake { font-family: system-ui, sans-serif; font-weight: 600; font-size: 13px; color: #3b3430; line-height: 1.35; }
 .dp-n { position: absolute; top: 10px; left: 10px; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: #c8352e; color: #fff7ea; border: 3px solid #221d1b; font-size: 18px; }
-.dp-stars { position: absolute; top: 12px; right: 12px; font-size: 20px; color: #b8860b; letter-spacing: 1px; }
+.dp-stars { position: absolute; top: 12px; right: 12px; font-size: 20px; color: #8c5e00; letter-spacing: 1px; }
 .dp-race.sel { transform: translateY(-6px) rotate(-1deg); border-color: #c8352e; box-shadow: 6px 6px 0 #221d1b, 0 0 0 4px #ffd34a; }
 .dp-race.locked { filter: grayscale(1) brightness(0.6); cursor: not-allowed; }
 .dp-opts { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
@@ -45,13 +45,13 @@
 .dp-card p { color: #221d1b; font-family: system-ui, sans-serif; font-weight: 600; font-size: 17px; line-height: 1.5; }
 .dp-card .dp-tip { background: #ffd34a; color: #221d1b; border: 3px solid #221d1b; border-radius: 10px; padding: 8px 12px; }
 .dp-card .dp-small { font-size: 14px; color: #4a403a; }
-.dp-card .dp-press { color: #c8352e; font-family: inherit; font-size: 20px; }
+.dp-card .dp-press { color: #b02a24; font-family: inherit; font-size: 20px; animation: none; }
 .dp-tag { align-self: flex-start; font-size: 14px; background: #221d1b; color: #ffd34a; padding: 3px 10px; border-radius: 6px; }
 .dp-powers { display: flex; flex-direction: column; gap: 8px; font-family: system-ui, sans-serif; font-weight: 700; font-size: 15px; color: #221d1b; }
 .dp-powers div { display: flex; flex-wrap: wrap; gap: 8px; }
 .dp-powers button.on { background: #2d5fa8; color: #fff7ea; }
 .dp-go { align-self: center; margin-top: 6px; font-family: inherit; font-size: 22px; color: #221d1b; background: #ffd34a; border: 4px solid #221d1b; border-radius: 12px; padding: 8px 26px; cursor: pointer; box-shadow: 5px 5px 0 #221d1b; }
-.dp-bigstars { font-size: 46px; color: #b8860b; letter-spacing: 4px; text-align: center; }
+.dp-bigstars { font-size: 46px; color: #8c5e00; letter-spacing: 4px; text-align: center; }
 .dp-table { font-family: system-ui, sans-serif; font-weight: 700; font-size: 17px; color: #221d1b; border-collapse: collapse; width: 100%; }
 .dp-table td { padding: 4px 0; border-bottom: 2px dashed #d9ccb6; color: #221d1b; } .dp-table td:last-child { text-align: right; }
 

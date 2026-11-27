@@ -103,6 +103,20 @@ ok('monkey bars: a grab hangs the dragon along the bars and flings it off the en
   let flung = false; for (let k = 0; k < 200 && !flung; k++) { g.step(drive({ mx: 1 }), NO_RIDE); flung = g.fx.some((f) => f.k === 'fling'); }
   assert.ok(flung); assert.equal(d.tier, 'bars'); assert.equal(g.stats.falls, 0);
 });
+ok('monkey bars over a drain, every race: the helper bot catches a dragon jumping from the checkpoint, at every reaction lag', () => {
+  for (let race = 0; race < RACES.length; race++) {
+    const C = buildCourse(RACES[race]);
+    for (const [bi, b] of C.grabs.entries()) {
+      const gap = b.kind === 'bars' && C.gaps.find((q) => q.x0 < b.x1 && q.x1 > b.x); if (!gap) continue;
+      for (let seed = 1; seed <= 10; seed++) for (const back of [0, 60, 300]) {
+        const g = racing(race, { seed }); const cp = g.course.checkpoints.filter((p) => p < gap.x0).pop(); at(g, cp - back);
+        for (let k = 0; k < 200 && !(g.dragon.ground && g.dragon.x > gap.x1 + 20); k++) g.step(drive({ mx: 1, jmp: g.dragon.ground && g.dragon.x < gap.x0, jmpH: !g.dragon.ground }), null);
+        const where = `race ${race + 1} bars ${bi}, seed ${seed}, ${back} px back`;
+        assert.equal(g.stats.falls, 0, where); assert.ok(g.dragon.x > gap.x1, where + ' crossed');
+      }
+    }
+  }
+});
 ok('crows: a swat knocks one away; one left alone steals a toast', () => {
   const g = racing(); at(g, 300); const d = g.dragon;
   g.crows = [{ id: 1, x: d.x + 40, y: d.y + g.bodyH() + 70, vx: 0, vy: 0, st: 'swoop', t: 0, gone: false }];
