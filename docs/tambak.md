@@ -40,6 +40,10 @@ cost a sand bucket.
   idle, blink, walking down, right and up, pouring, hurt, cheering, sad, waving, planting a flag, dizzy), the jellyfish
   pulse, the crocodile swimming and snapping, the pufferfish at three sizes, the horseshoe crab walking, Captain Bakau
   (swimming, lunging, dizzy under a net), a wave splash and a sand burst, and the pickups.
+- **Readability on the pictures.** The chinchillas and the crab walk the busy painted land, so each has a soft halo of
+  lightbox glow behind it, and the crab a red dashed ring. The chinchillas are drawn over the HUD strip, so one standing
+  on the top shore stays in view. The key hint shows for the first 15 seconds of a site (and again when the keys
+  change), along whichever edge of the field has no chinchilla near it.
 - **The title** is a Codex sand painting of the heroes pouring a sandbank with the skyline behind, under the word
   TAMBAK poured as grains of coloured sand over a dark rim.
 - **Menus** sit on the sand artist's work table at night (jars of sand, a scoop, a kopi). Site cards show the painting
@@ -86,7 +90,7 @@ All real Singapore sea life (and one cheeky boss):
 | Moon jellyfish | drifts diagonally, bouncing off land, 6 cells a second |
 | Estuarine crocodile | the same at 10 cells a second |
 | Pufferfish | 5 cells a second; every 5.8 s it puffs up from a radius of 0.6 to 1.5 cells and slows to half while big (a dotted ring shows the full size as it puffs) |
-| Mangrove horseshoe crab | lives on land, not water: climbs out once 25% of the sea is filled (Jurong Island, Semakau and Tuas), as far from the heroes as it can, and walks the land diagonally, bouncing off the water; walking into you costs a bucket |
+| Mangrove horseshoe crab | lives on land, not water: climbs out once 25% of the sea is filled (Jurong Island, Semakau and Tuas), as far from the heroes as it can, and walks the land diagonally, bouncing off the water and the outermost row of the rim (so it stays in view); walking into you costs a bucket |
 | Captain Bakau | the huge old saltwater croc of the Tuas sea, radius 1.5 cells: whenever there is a line in the water she turns toward its nearest cell and speeds up by 30% |
 
 Fast creatures move in quarter-cell sub-steps so nothing skips over a one-cell line. Creatures never start within 12

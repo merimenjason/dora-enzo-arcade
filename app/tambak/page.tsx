@@ -57,7 +57,7 @@ export default function Tambak() {
       demoRef.current = { g: new TambakGame({ site: 0, seed: 17 }), bot: new Bot(17, 0.8) };
       setScreen('title');
     });
-    (window as unknown as { __tambak: () => unknown }).__tambak = () => ({ game: gameRef.current, demo: demoRef.current?.g, scene: sceneRef.current, screen: S.current.screen, paused: S.current.paused, twoP: S.current.twoP, save: S.current.save, sel: S.current.sel, pads: pads.current });
+    (window as unknown as { __tambak: () => unknown }).__tambak = () => ({ Bot, game: gameRef.current, demo: demoRef.current?.g, scene: sceneRef.current, screen: S.current.screen, paused: S.current.paused, twoP: S.current.twoP, save: S.current.save, sel: S.current.sel, pads: pads.current });
     return () => { window.removeEventListener('resize', fit); snd.stop(); };
   }, []);
 
