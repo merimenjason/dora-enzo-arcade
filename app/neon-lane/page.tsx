@@ -294,11 +294,19 @@ export default function NeonLane() {
             </div>
           </div>
         )}
+        {screen === 'play' && !paused && (
+          <button className="nl-pausebtn" aria-label="Pause" onClick={() => { if (!gameRef.current?.over) { setPaused(true); pads.current = { p1: [], p2: [] }; } }}>II</button>
+        )}
         {screen === 'play' && paused && (
           <div className="nl-menu">
             <div className="nl-card">
               <h2>Paused</h2>
               <p>Esc or P to run on · R to start the run again · Q to end the run</p>
+              <div className="nl-opts nl-acts">
+                <button data-act="resume" onClick={() => setPaused(false)}>Run on</button>
+                <button data-act="restart" onClick={() => begin(S.current.from)}>Start again</button>
+                <button data-act="end" onClick={() => { const g = gameRef.current; if (g) finish(g); }}>End run</button>
+              </div>
               <div className="nl-opts">
                 <button data-opt="assist" onClick={() => toggle('assist')}>Gentle cicaks: {save.assist ? 'on' : 'off'} (from the next start)</button>
                 <button data-opt="music" onClick={() => toggle('music')}>Music: {save.music ? 'on' : 'off'}</button>
@@ -322,6 +330,10 @@ export default function NeonLane() {
                 <tr><td>Moths eaten</td><td>{result.stats.moths}</td></tr>
                 <tr><td>Time</td><td>{mmss(result.stats.time)}</td></tr>
               </tbody></table>
+              <div className="nl-opts nl-acts">
+                <button data-act="nights" onClick={toNights}>Back to the nights</button>
+                <button data-act="again" onClick={() => begin(result.from)}>Run it again</button>
+              </div>
               <p className="nl-press">Enter: back to the nights · R: run it again</p>
             </div>
           </div>
