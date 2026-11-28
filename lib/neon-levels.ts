@@ -131,7 +131,9 @@ export const NIGHTS: Night[] = [
 ];
 
 /** neon colours for the circuits, picked so neighbours never match */
-export const CIRCUIT_COLOURS = ['#ff8a1f', '#ff3d7f', '#2ee6ff', '#ffd23a', '#b46bff', '#ff4a2e', '#7dff5a', '#fff1d6'];
+export const CIRCUIT_COLOURS = ['#ff5a24', '#ff3d7f', '#2ee6ff', '#ffd23a', '#b46bff', '#fff1d6', '#9dff3a', '#5a8cff'];
+/** colours that read alike at a glance (orange and yellow, pink and violet, cyan and blue) are kept apart too */
+const HUE = [0, 1, 2, 0, 1, 3, 4, 2];
 
 export interface Circuit { id: number; cells: number[]; colour: number; mirror: number }
 export interface Board {
@@ -259,9 +261,9 @@ export function buildBoard(night: Night): Board {
     if (k.mirror < k.id) { k.colour = circuits[k.mirror].colour; continue; }
     const banned = new Set<number>();
     for (const t of [...touch[k.id], ...touch[k.mirror]]) if (t < k.id || circuits[t].mirror < k.id) banned.add(circuits[t].colour);
-    let col = k.id % CIRCUIT_COLOURS.length;
-    for (let i = 0; i < CIRCUIT_COLOURS.length && banned.has(col); i++) col = (col + 1) % CIRCUIT_COLOURS.length;
-    k.colour = col;
+    const hues = new Set([...banned].map((c) => HUE[c]));
+    const start = k.id % CIRCUIT_COLOURS.length, order = CIRCUIT_COLOURS.map((_, i) => (start + i) % CIRCUIT_COLOURS.length);
+    k.colour = order.find((c) => !hues.has(HUE[c])) ?? order.find((c) => !banned.has(c)) ?? start;
   }
   for (const k of circuits) k.cells.sort((a, b) => a - b);
 
