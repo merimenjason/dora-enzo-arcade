@@ -17,7 +17,7 @@ export const CICAKS: { kind: CicakKind; name: string; colour: string; habit: str
   { kind: 'chik', name: 'Chik', colour: '#5dff4a', habit: 'hunts the nearest chinchilla it can see' },
   { kind: 'chak', name: 'Chak', colour: '#ff3dd8', habit: 'cuts you off three tubes ahead' },
   { kind: 'tokek', name: 'Tokek', colour: '#3d8bff', habit: 'guards the brightest circuit' },
-  { kind: 'lulu', name: 'Lulu', colour: '#ff5a2a', habit: 'drifts fast and pounces when close' },
+  { kind: 'lulu', name: 'Lulu', colour: '#ff5a2a', habit: 'drifts fast along the lit tubes' },
 ];
 
 // ─────────────────────────────── numbers (docs/neon-lane.md)
@@ -199,10 +199,12 @@ export class NeonGame {
     if (this.mothsDone < MOTH_AT.length && 1 - this.sparksLeft / this.sparksTotal >= MOTH_AT[this.mothsDone]) { this.mothsDone++; this.spawnMoth(); }
     if (this.sparksLeft <= 0 && this.phase === 'play') {
       this.add(PTS.night * (this.night + 1)); this.st.nights++;
-      this.phase = 'clear'; this.phaseT = CLEAR_TIME; this.events.push({ k: 'clear', night: this.night });
+      this.phase = 'clear'; this.phaseT = CLEAR_TIME; this.moth = null; this.tails = []; this.events.push({ k: 'clear', night: this.night });
       if (this.night + 1 >= NIGHTS.length) this.events.push({ k: 'win' });
     }
   }
+  /** one-player: Dora and Enzo trade places (the one running hands over to the other) */
+  swap() { if (this.twoP) return; const h = this.heroes[0]; h.id = h.id === 'dora' ? 'enzo' : 'dora'; }
   input(p1: Dir, p2: Dir) {
     const h0 = this.heroes[0], h1 = this.heroes[1];
     if (p1) h0.wish = p1;

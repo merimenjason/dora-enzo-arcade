@@ -60,7 +60,7 @@ it takes a random turn at 15% of junctions.
 Arrow keys or WASD. A chinchilla keeps running the way it was going until a wall. Press a direction early and it
 turns at the next junction that allows it; reversing is instant. A turn pressed up to a third of a tube past a
 junction still counts. There is no momentum. In two-player, Dora runs on
-WASD and Enzo on the arrows; in one-player either set moves whoever is running, and Q swaps them before a night starts.
+WASD and Enzo on the arrows; in one-player either set moves whoever is running, and Q swaps them at any time (the one running hands over to the other).
 On a touch screen, swipe.
 
 Speeds in tubes per second: chinchillas 6.5. Cicaks 5.4 on night 1, rising 0.2 a night; times 0.8 with gentle

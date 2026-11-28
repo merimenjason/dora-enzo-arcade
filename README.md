@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of one hundred and eleven original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of one hundred and twelve original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -121,6 +121,7 @@ Listed in arcade-menu order.
 | 109 | Dragon Playground | `/dragon-playground` | Co-op platform race |
 | 110 | Moth Hoop | `/moth-hoop` | Cross-stitch shooter |
 | 111 | Tambak | `/tambak` | Area capture |
+| 112 | Neon Lane | `/neon-lane` | Maze chase |
 
 ## Run
 
@@ -1786,6 +1787,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:tambak` (27 engine tests: the six sites, the starting field, determinism, pouring and claiming, the fill that keeps every creature's water, both kinds of trail wall, a creature washing a line away and the blink after it, a fast crocodile against a one-cell line, the pufferfish puffing, creatures staying in the water, Captain Bakau turning toward sand, the horseshoe crab arriving and walking the land and costing a bucket, every pickup and pickups sinking, both ways to lose (standing still loses to the tide), the win and its stars, gentle tides, player two joining mid-pour and the swap, two players closing a pocket round each other, saves, and human-delay bots: a careful and a sloppy player clear every site on four of four seeds, a careless one loses at least half of sites 3 to 6 to the creatures, two bots clear Tuas together, and no line is ever left without its pourer). `node tests/e2e/tambak.mjs` (with `npm run dev` and Playwright) plays it in a muted browser with real keys: the title (key and click), the sites (a locked site stays shut, every option), the brief (key and click), every solo key, the newest held key winning, pause and its options, player two joining and their keys, restart and quit from pause, a site won by pouring one line across the bay with W, the save opening the next one, a site lost to the creatures and retried, and one lost to the tide, with a 4.5:1 contrast check on every card and the HUD.
 
 **Docs:** [`docs/tambak.md`](docs/tambak.md).
+
+### 112 · Neon Lane (`/neon-lane`)
+
+**Play:** a maze chase on a hand-bent neon signboard on a rainy Geylang shophouse wall, one night per real eatery up Geylang Road. Dora, in brass goggles and a tool belt, and Enzo, in a yellow rain poncho, run the glowing glass tubes eating sparks (6.5 tubes a second) while cicak geckos hunt them. The sign is wired in coloured circuits: eat every spark on a circuit and it goes dark (its last three sparks pulse first), and a cicak only sees you on a lit tube, close by or straight down a tube, so every dark circuit is a place to hide. Cicaks still bump into you in the dark, where they crawl at 60% and show only as glinting eyes. Four fuses per sign: eat one and every cicak out on the tubes panics for 7 seconds (4 by night 6), and a caught cicak drops its wriggling tail for a bonus and runs home as a stub. A moth lands at 30% and 70% eaten; grab it before a cicak gulps it. Chik hunts, Chak cuts you off, Tokek guards the brightest circuit and Lulu drifts fast along the lit tubes; two come out on night 1, three on nights 2 and 3, four after. Six nights: a corner kopitiam, Geylang Lor 9 Fresh Frog Porridge, Tan Ser Seng Herbs Restaurant, Kwong Satay, Durian 36 and Sin Huat Eating House. Three lives, shared in two-player, and one more every 8000 points. Gentle cicaks (on by default) slow the cicaks by a fifth, keep at most three out, give five lives and two more seconds of panic.
+
+**Controls:** solo, WASD or the arrows set the way to run (a turn pressed early waits for the junction, and the newest key held wins), Q swaps Dora and Enzo, Esc or P pauses; swipe on a touch screen. With two players, Dora runs on WASD and Enzo on the arrows. From pause, R starts the run again and Q ends it. On the nights screen, the arrows or WASD pick a night, Enter opens it, 2 switches between one and two players and Esc goes back; Enter goes on from the lights-out card, and on the results card Enter goes back to the nights and R runs again.
+
+**Tests:** `npm run test:neon` (30 engine tests: the six nights and their mazes, determinism, running and turning, circuits going dark, cicak sight on lit and dark tubes, every speed, the fuse and its catches and tails, the fuse wearing off, being caught in one and two players, running out of lives, the moth, lights out and the win, extra lives, how many cicaks come out, and saves) and `npm run bot:neon` (human-delay bots, 12 seeds a night: with gentle cicaks a careful player and a first-timer clear nearly every night, without them the careful one still clears most and the first-timer clearly fewer, and standing still never clears). `npm run test:e2e:neon` (with `npm run dev` and Playwright) plays it in a muted browser with real keys: the title (key and click), the nights (a locked night stays shut, every option), the brief (key and click), Q from pause ending the run, every solo key, the newest held key winning, a swipe, the swap, eating sparks and putting a circuit out, pause and its options, a fuse blown and a panicked cicak caught, the lights-out card (key and click) and the save opening the next night, the run won, caught on the last life and R to run again, R from pause, and two players each on their own keys, with a 4.5:1 contrast check on every card and the HUD.
+
+**Docs:** [`docs/neon-lane.md`](docs/neon-lane.md).
 
 ## Validation
 

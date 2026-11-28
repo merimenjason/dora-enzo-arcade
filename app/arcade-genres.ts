@@ -125,4 +125,5 @@ export const GENRE_OF: Record<string, GenreId[]> = {
  '/dragon-playground': ['sports', 'arcade'],
  '/moth-hoop': ['arcade', 'action'],
  '/tambak': ['arcade', 'puzzle'],
+ '/neon-lane': ['arcade'],
 };
