@@ -28,7 +28,7 @@ sparks. The board is cleared when the whole sign is dark: lights out, on to the 
 Each board has four glass cartridge fuses. Eat one and it blows: the whole sign flickers and every cicak out on the
 tubes panics for a few seconds (7 s on night 1, down to 4 s by night 6; two more with gentle cicaks on). Panicked
 cicaks run away from you and crawl at 55% speed. Catch one and, like a real gecko, it **drops its tail** and bolts
-back to its drainpipe as a stub. The wriggling tail stays where it fell for 5 s and is worth a bonus. A cicak grows
+back to its drainpipe as a stub. The wriggling tail stays where it fell for 5 s and is worth a bonus, but for the first 0.6 s it thrashes too hard to grab, so running straight on through it misses it: double back for it. A cicak grows
 its tail back in the drainpipe and comes out again two seconds later.
 
 Catches in one fuse score 250, 500, 750 and 1000.

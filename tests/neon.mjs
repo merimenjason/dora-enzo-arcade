@@ -5,7 +5,7 @@
 // being caught in one and two players, lights out and the next night, the run won, extra lives, how many cicaks come
 // out each night, and the save. Run after compiling the engine into .checks/ (npm test does).
 import assert from 'node:assert/strict';
-import { NeonGame, Bot, NIGHTS, DT, OPP, HERO_SPEED, PTS, CATCH_PTS, LIFE_EVERY, LIVES, ASSIST_LIVES, CICAKS_OUT, TAIL_LIFE, GULP_TIME, LATE_TURN, freshSave, parseSave, record, canStart } from '../.checks/neon-game.js';
+import { NeonGame, Bot, NIGHTS, DT, OPP, HERO_SPEED, PTS, CATCH_PTS, LIFE_EVERY, LIVES, ASSIST_LIVES, CICAKS_OUT, TAIL_LIFE, TAIL_GRAB, GULP_TIME, LATE_TURN, freshSave, parseSave, record, canStart } from '../.checks/neon-game.js';
 import { buildBoard, fullRows, W, H, N, TUBE, FUSE, DEN, MOTIF, cx, cy, step, mirrorCell, CIRCUIT_COLOURS } from '../.checks/neon-levels.js';
 
 let n = 0, bad = 0; const ok = (name, fn) => { try { fn(); n++; console.log(`  ok ${name}`); } catch (e) { bad++; console.log(`  FAIL ${name}\n    ${e.message.split('\n').join('\n    ')}`); } };
@@ -139,7 +139,7 @@ ok('cicaks crawl dark tubes at 60%, panic at 55%, run home as a stub at 160%; Lu
   const hard = quiet({ assist: false }); assert.ok(hard.cicakSpeed(cicak(hard, 0, at(1, 6))) > lit, 'gentle cicaks are slower');
 });
 
-ok('a fuse panics the cicaks; catches score 250, 500; each drops a tail and runs home to regrow it', () => {
+ok('a fuse panics the cicaks; catches score 250, 500; each drops a tail (grabbed only on doubling back) and runs home to regrow it', () => {
   const g = quiet(); const b = g.board; const h = g.heroes[0];
   const fuse = b.fuses[0]; place(h, fuse);
   const a = cicak(g, 0, step(fuse, 1)), c2 = cicak(g, 1, at(20, 0));
@@ -152,8 +152,9 @@ ok('a fuse panics the cicaks; catches score 250, 500; each drops a tail and runs
   assert.equal(g.tails.length, 1);
   place(h, c2.cell); g.events = []; g.touches();
   assert.equal(g.events.find((e) => e.k === 'catch').pts, CATCH_PTS[1]);
-  // the tail is a bonus while it wriggles
-  const tl = g.tails[0]; place(h, tl.cell); const s0 = g.score; g.arrive(h); assert.equal(g.score - s0, PTS.tail); assert.equal(g.st.tails, 1);
+  // the tail is a bonus while it wriggles, but while it still thrashes, running straight on through it misses it
+  const tl = g.tails[0]; place(h, tl.cell); let s0 = g.score; g.arrive(h); assert.equal(g.score - s0, 0); assert.ok(tl.t > 0);
+  tl.t = TAIL_LIFE - TAIL_GRAB; s0 = g.score; g.arrive(h); assert.equal(g.score - s0, PTS.tail); assert.equal(g.st.tails, 1);
   // the stub goes home, sits in the drainpipe, and comes out again with a tail
   place(h, at(0, 14)); h.wish = 0;
   let home = false, out = false;

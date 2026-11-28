@@ -139,6 +139,7 @@ await tap('Enter'); await wait(250); ok((await st()).screen === 'nights', 'Enter
 await tap('Enter'); await wait(250); await tap('Enter'); await wait(300);
 ok((await st()).screen === 'play', 'Enter on the brief starts the night');
 await playing(); await wait(300); await painted('sign'); await hudReadable(); await shot('5-play');
+ok(await page.locator('.nl-pausebtn').isHidden(), 'no pause button on a desktop with a keyboard');
 
 // ── solo keys, on a quiet sign
 await quiet();
@@ -203,6 +204,7 @@ await readable('pause'); await shot('7-pause');
 await tap('Escape'); await wait(200); ok(!(await st()).paused, 'Esc resumes');
 await tap('KeyP'); await wait(200); ok((await st()).paused, 'P pauses');
 await tap('KeyP'); await wait(200); ok(!(await st()).paused, 'P resumes');
+await tap('KeyP'); await wait(200); await page.locator('[data-act="resume"]').click(); await wait(200); ok(!(await st()).paused, 'the Run on button resumes');
 
 // ── a fuse: run onto it, then catch a panicked cicak
 const fuse = await page.evaluate(() => {
@@ -221,8 +223,7 @@ ok(await page.evaluate(() => window.__neon().game.cicaks[0].mode === 'scared'), 
 await shot('8-fuse');
 await page.evaluate(() => { const g = window.__neon().game, h = g.heroes[0], c = g.cicaks[0]; Object.assign(c, { cell: h.cell, dir: h.dir, t: h.t }); });
 await wait(200); g = await game();
-const tailsEaten = await page.evaluate(() => window.__neon().game.st.tails);
-ok(g.catches === 1 && g.tails + tailsEaten === 1, `catching the panicked cicak scores and drops its tail (${JSON.stringify({ c: g.catches, t: g.tails, e: tailsEaten, f: g.fuseT })})`);
+ok(g.catches === 1 && g.tails === 1, 'catching the panicked cicak scores and drops its tail, still there after running on through it');
 ok(await page.evaluate(() => window.__neon().game.cicaks[0].mode === 'stub'), 'the caught cicak runs home as a stub');
 await shot('9-catch');
 await page.evaluate(() => { window.__neon().game.heroes[0].safe = 0; });
@@ -259,13 +260,21 @@ await page.evaluate(() => { const g = window.__neon().game, h = g.heroes[0]; g.l
 ok(await until(async () => (await st()).screen === 'results', 9000), 'caught on the last life ends the run');
 ok((await page.locator('.nl-card h2').textContent()).includes('Caught at Kwong Satay'), 'the results say where');
 await readable('caught'); await shot('12-caught');
+await page.locator('[data-act="again"]').click(); await wait(400); g = await game();
+ok((await st()).screen === 'play' && g.night === 3 && g.score === 0, 'the Run it again button runs it again from the same night');
+await tap('Escape'); await wait(150); await page.locator('[data-act="end"]').click(); await wait(300);
+ok((await st()).screen === 'results', 'the End run button ends the run');
 await tap('KeyR'); await wait(400); g = await game();
 ok((await st()).screen === 'play' && g.night === 3 && g.score === 0, 'R runs it again from the same night');
 await tap('Escape'); await wait(150); await tap('KeyR'); await wait(400);
 ok((await st()).screen === 'play' && !(await st()).paused, 'R from pause starts the run again');
+await page.evaluate(() => { window.__neon().game.score = 77; });
+await tap('Escape'); await wait(150); await page.locator('[data-act="restart"]').click(); await wait(400);
+ok((await st()).screen === 'play' && !(await st()).paused && (await game()).score === 0, 'the Start again button starts the run again');
 
 // ── two players
 await tap('Escape'); await wait(150); await tap('KeyQ'); await wait(300); await tap('Escape'); await wait(200);
+ok((await st()).screen === 'nights', 'Esc on the results card goes back to the nights');
 await page.locator('[data-opt="players"]').click(); await wait(150);
 await page.locator('[data-night="0"]').click(); await wait(200);
 ok((await page.locator('.nl-card').textContent()).includes('Two players share'), 'the brief tells two players they share the lives');
@@ -276,6 +285,29 @@ await tap('KeyD'); await wait(60); await tap('ArrowLeft'); await wait(60); g = a
 ok(g.heroes[0].wish === 2 && g.heroes[1].wish === 4, 'WASD steer Dora and the arrows steer Enzo');
 await tap('KeyQ'); await wait(100); ok((await game()).heroes[0].id === 'dora', 'Q does not swap with two players');
 await wait(600); await painted('two-player'); await shot('13-two');
+
+// ── a phone on its side, touch only: tap through, swipe to steer, tap to pause and to leave
+const phone = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true });
+const pp = await phone.newPage(); pp.on('pageerror', (e) => errors.push(String(e)));
+const pst = () => pp.evaluate(() => { const s = window.__neon(); return { screen: s.screen, paused: s.paused, wish: s.game?.heroes[0].wish }; });
+await pp.goto(`${base}/neon-lane`, { waitUntil: 'load' }); await pp.waitForSelector('main[data-ready="true"]', { timeout: 120000 }); await pp.waitForTimeout(800);
+await pp.locator('.nl-title').tap(); await pp.waitForTimeout(250); ok((await pst()).screen === 'nights', 'a tap on the title opens the nights');
+await pp.locator('[data-night="0"]').tap(); await pp.waitForTimeout(250); ok((await pst()).screen === 'brief', 'a tap on a night opens its brief');
+await pp.locator('.nl-card').tap(); await pp.waitForTimeout(300); ok((await pst()).screen === 'play', 'a tap on the brief starts the night');
+await pp.evaluate(() => {
+  const t = (x, y) => new Touch({ identifier: 1, target: document.body, clientX: x, clientY: y });
+  window.dispatchEvent(new TouchEvent('touchstart', { touches: [t(400, 200)] }));
+  window.dispatchEvent(new TouchEvent('touchmove', { touches: [t(480, 200)], cancelable: true }));
+  window.dispatchEvent(new TouchEvent('touchend', { touches: [] }));
+});
+ok((await pst()).wish === 2, 'a swipe right steers right');
+ok(await pp.locator('.nl-pausebtn').isVisible(), 'a touch screen gets a pause button');
+await pp.locator('.nl-pausebtn').tap(); await pp.waitForTimeout(200); ok((await pst()).paused, 'tapping it pauses');
+if (SHOTS) await pp.screenshot({ path: `${SHOTS}/neon-14-phone-pause.png` });
+await pp.locator('[data-act="end"]').tap(); await pp.waitForTimeout(300); ok((await pst()).screen === 'results', 'End run ends the run by touch');
+if (SHOTS) await pp.screenshot({ path: `${SHOTS}/neon-15-phone-results.png` });
+await pp.locator('[data-act="nights"]').tap(); await pp.waitForTimeout(250); ok((await pst()).screen === 'nights', 'and a tap goes back to the nights');
+await phone.close();
 
 ok(errors.length === 0, `no page errors: ${errors.join(' | ')}`);
 await browser.close();

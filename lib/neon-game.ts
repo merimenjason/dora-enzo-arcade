@@ -34,6 +34,8 @@ export const FUSE_TIME = 7, FUSE_MIN = 4, FUSE_PER_NIGHT = 0.6, ASSIST_FUSE = 2;
 export const CATCH_PTS = [250, 500, 750, 1000];
 export const PTS = { spark: 10, fuse: 50, tail: 100, moth: 300, night: 1000 };
 export const LIVES = 3, ASSIST_LIVES = 5, LIFE_EVERY = 8000;
+/** a fresh tail wriggles too hard to grab for this long, so running straight through misses it: double back for it */
+export const TAIL_GRAB = 0.6;
 export const TAIL_LIFE = 5, MOTH_LIFE = 10, MOTH_AT = [0.3, 0.7], MOTH_PULL = 7, GULP_TIME = 1.5;
 /** how many tubes away each cicak notices a chinchilla on a lit tube, and how far any of them sees straight down a tube */
 export const SIGHT: Record<CicakKind, number> = { chik: 6, chak: 4, tokek: 5, lulu: 5 };
@@ -263,7 +265,7 @@ export class NeonGame {
       }
     }
     if (this.moth && this.moth.cell === c) this.eatMoth(h);
-    for (const tl of this.tails) if (tl.cell === c && tl.t > 0) { tl.t = 0; this.add(PTS.tail); this.st.tails++; this.events.push({ k: 'tail', hero: h.idx, x: tl.x, y: tl.y }); }
+    for (const tl of this.tails) if (tl.cell === c && tl.t > 0 && tl.t <= TAIL_LIFE - TAIL_GRAB) { tl.t = 0; this.add(PTS.tail); this.st.tails++; this.events.push({ k: 'tail', hero: h.idx, x: tl.x, y: tl.y }); }
   }
   eatMoth(h: Hero) {
     const p = PTS.moth * (this.night + 1);

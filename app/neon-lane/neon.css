@@ -11,7 +11,7 @@
 /* a gentle pulse in size, never in opacity, so the prompt keeps its full contrast */
 @keyframes nl-pulse { 50% { scale: 1.05; } }
 .nl-back { position: absolute; top: 14px; left: 16px; color: #fbf3ff; background: rgba(10, 6, 20, 0.9); font-weight: 700; text-decoration: none; padding: 6px 12px; border-radius: 8px; border: 2px solid #2ee6ff; box-shadow: 0 0 10px rgba(46, 230, 255, 0.6); z-index: 3; }
-.nl-menu { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; overflow: auto; }
+.nl-menu { position: absolute; inset: 0; display: grid; align-items: safe center; justify-items: center; padding: 16px; overflow: auto; }
 .nl-rain { background: linear-gradient(rgba(7, 4, 12, 0.55), rgba(7, 4, 12, 0.75)), url('/art/neon/wall1.webp') center / cover; }
 .nl-card { position: relative; max-width: 800px; width: 100%; background: #140b22; color: #fbf3ff; border-radius: 14px; padding: 22px 30px; border: 2px solid #ff5ad0; box-shadow: 0 0 18px rgba(255, 90, 208, 0.55), inset 0 0 22px rgba(255, 90, 208, 0.12), 0 10px 40px rgba(0, 0, 0, 0.6); }
 .nl-card.nl-wide { max-width: 1180px; }
@@ -49,3 +49,8 @@
 .nl-opts button { font-family: inherit; font-weight: 700; font-size: 14px; background: #251640; color: #fbf3ff; border: 2px solid #b46bff; border-radius: 8px; padding: 8px 14px; cursor: pointer; }
 .nl-opts button:hover { background: #3b2560; }
 @media (max-width: 720px) { .nl-nights { grid-template-columns: repeat(2, minmax(0, 1fr)); } .nl-gang { grid-template-columns: 1fr; } }
+
+/* touch screens: a pause button, since there is no Esc key; on a keyboard Esc or P pauses */
+.nl-pausebtn { display: none; position: absolute; right: 1.2%; bottom: 1%; z-index: 5; font-family: inherit; font-weight: 900; font-size: 18px; width: 48px; height: 40px; background: #140b22; color: #fbf3ff; border: 2px solid #ff5ad0; border-radius: 10px; box-shadow: 0 0 10px rgba(255, 90, 208, 0.6); cursor: pointer; }
+@media (hover: none) and (pointer: coarse) { .nl-pausebtn { display: block; } }
+.nl-acts button { border-color: #ff5ad0; }
